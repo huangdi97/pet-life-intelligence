@@ -6,7 +6,7 @@ registry (PLI-211), and notification helper (PLI-219) + audit writer
 import hashlib
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import Request
 from sqlalchemy import select
@@ -20,7 +20,7 @@ from app.models import AuditEntry, LifeEvent, Notification
 
 def _ensure_tz(dt: datetime) -> datetime:
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
+        return dt.replace(tzinfo=UTC)
     return dt
 
 
@@ -61,7 +61,7 @@ async def create_life_event(
     except Exception as exc:  # pydantic ValidationError
         raise ValidationFailed(f"Payload invalid for {event_type}: {exc}") from exc
 
-    occurred_at = _ensure_tz(occurred_at or datetime.now(timezone.utc))
+    occurred_at = _ensure_tz(occurred_at or datetime.now(UTC))
     prov = provenance_level or source_type.value
     if prov not in enums.PROVENANCE_LEVELS:
         raise ValidationFailed(f"Invalid provenance_level '{prov}'.")
@@ -99,7 +99,7 @@ async def create_life_event(
         pet_id=pet_id,
         event_type=event_type,
         occurred_at=occurred_at,
-        recorded_at=datetime.now(timezone.utc),
+        recorded_at=datetime.now(UTC),
         actor_id=actor_id,
         source_type=source_type.value,
         source_ref=source_ref,
@@ -157,7 +157,7 @@ async def create_notification(
     *,
     household_id: uuid.UUID | None,
     pet_id: uuid.UUID | None,
-    type_: str,
+    notification_type: str,
     title: str,
     body: str = "",
     data: dict | None = None,
@@ -176,7 +176,7 @@ async def create_notification(
         household_id=household_id,
         pet_id=pet_id,
         recipient_user_id=recipient_user_id,
-        type=type_,
+        type=notification_type,
         title=title,
         body=body,
         data=data or {},

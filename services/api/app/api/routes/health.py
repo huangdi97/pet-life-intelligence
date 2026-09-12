@@ -8,13 +8,12 @@ in git history).
 """
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter
+from pli_ai_gateway import Gateway
 from pydantic import BaseModel, Field
 from sqlalchemy import select
-
-from pli_ai_gateway import Gateway
 
 from app.api.deps import CurrentUser, DBSession
 from app.core.errors import NotFound, ValidationFailed
@@ -25,7 +24,6 @@ from app.models import (
     HealthEvent,
     Observation,
     Outcome,
-    Pet,
     ShareToken,
     TriageAssessment,
     VetBrief,
@@ -413,7 +411,7 @@ async def share_vet_brief(
     pet = await perm.get_pet_or_404(db, brief.pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.MEDICAL_WRITE)
     raw, token_hash, prefix = new_share_token()
-    expires = datetime.now(timezone.utc) + timedelta(hours=body.expires_in_hours)
+    expires = datetime.now(UTC) + timedelta(hours=body.expires_in_hours)
     st = ShareToken(
         pet_id=pet.id, resource_type=enums.ShareResourceType.VET_BRIEF.value,
         resource_id=brief.id, token_hash=token_hash, token_prefix=prefix,
@@ -449,7 +447,7 @@ async def view_shared_vet_brief(token: str, db: DBSession) -> dict:
     ).scalar_one_or_none()
     if st is None:
         raise NotFound("Share link not found.")
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if st.revoked_at is not None or st.expires_at <= now:
         raise NotFound("Share link expired or revoked.")
     brief = (
@@ -482,7 +480,7 @@ async def record_outcome(
     )
     db.add(outcome)
     he.status = enums.HealthEventStatus.CLOSED.value
-    he.closed_at = datetime.now(timezone.utc)
+    he.closed_at = datetime.now(UTC)
     await db.flush()
     await create_life_event(
         db, pet_id=pet.id, event_type="health.outcome_recorded",

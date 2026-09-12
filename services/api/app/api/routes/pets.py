@@ -2,21 +2,19 @@
 (PLI-001/002/016/014/215)."""
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
-from app.core.errors import NotFound, PermissionDenied, ValidationFailed
+from app.core.errors import NotFound, ValidationFailed
 from app.domain import enums
 from app.models import (
     Consent,
     EmergencyProfile,
-    Household,
     HouseholdMember,
-    LifeEvent,
     Pet,
     Relationship,
 )
@@ -213,7 +211,7 @@ async def put_consent(
     else:
         row.granted = body.granted
         row.updated_by_user_id = user.id
-        row.updated_at = datetime.now(timezone.utc)
+        row.updated_at = datetime.now(UTC)
     await db.flush()
     await create_life_event(
         db, pet_id=pet.id, event_type="consent.changed",
@@ -283,7 +281,7 @@ async def put_emergency_profile(
             setattr(prof, field, value)
             changed.append(field)
     prof.updated_by_user_id = user.id
-    prof.updated_at = datetime.now(timezone.utc)
+    prof.updated_at = datetime.now(UTC)
     await db.flush()
     await create_life_event(
         db, pet_id=pet.id, event_type="emergency_profile.updated",

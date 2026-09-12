@@ -1,38 +1,20 @@
-"""PLI worker: durable-state jobs against PostgreSQL (never memory-only).
+"""Durable-state worker jobs (PLI-010/011, PLI-037, PLI-060).
 
-Jobs:
-- expire grants whose expires_at passed (grant.expired LifeEvent + notification)
-- end handoffs past end_at (grant revoked + care.handoff_ended)
-- mark missed medication doses (medication.missed + notification)
-
-Run:  python -m app.main --loop 60
+Shared by the standalone worker process (services/worker/main.py) and the
+test suite. All state lives in PostgreSQL — never only in memory.
 """
 
-import argparse
-import asyncio
-import os
-import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timedelta
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from sqlalchemy import select
 
-from sqlalchemy import select, update  # noqa: E402
-
-from app.core.db import get_session_factory  # noqa: E402
-from app.domain import enums  # noqa: E402
-from app.models import (  # noqa: E402
-    CareHandoff,
-    Grant,
-    MedicationDose,
-    MedicationPlan,
-    Notification,
-    Pet,
-)
-from app.services.eventlog import create_life_event, create_notification  # noqa: E402
+from app.domain import enums
+from app.models import CareHandoff, Grant, MedicationDose, MedicationPlan, Pet
+from app.services.eventlog import create_life_event, create_notification
 
 
 async def expire_grants(db) -> int:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     rows = (
         await db.execute(
             select(Grant).where(
@@ -55,8 +37,10 @@ async def expire_grants(db) -> int:
             provenance_level=enums.SourceType.SYSTEM_CALCULATED.value,
             idempotency_key=f"grant-expired:{g.id}",
         )
+        pet = (await db.execute(select(Pet).where(Pet.id == g.pet_id))).scalar_one_or_none()
         await create_notification(
-            db, pet_id=g.pet_id, type="GRANT_EXPIRED",
+            db, household_id=pet.household_id if pet else None,
+            pet_id=g.pet_id, notification_type="GRANT_EXPIRED",
             title="临时权限已到期",
             body="一条临时授权已到期并自动失效。",
             data={"grant_id": str(g.id)},
@@ -68,7 +52,7 @@ async def expire_grants(db) -> int:
 
 
 async def end_handoffs(db) -> int:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     rows = (
         await db.execute(
             select(CareHandoff).where(
@@ -104,14 +88,13 @@ async def end_handoffs(db) -> int:
     return count
 
 
-async def mark_missed_doses(db) -> int:
-    now = datetime.now(timezone.utc)
-    grace_min = 30
+async def mark_missed_doses(db, *, grace_minutes: int = 30) -> int:
+    now = datetime.now(UTC)
     rows = (
         await db.execute(
             select(MedicationDose).where(
                 MedicationDose.status == enums.DoseStatus.PENDING.value,
-                MedicationDose.planned_at < now - __import__("datetime").timedelta(minutes=grace_min),
+                MedicationDose.planned_at < now - timedelta(minutes=grace_minutes),
             ).limit(500)
         )
     ).scalars().all()
@@ -131,8 +114,10 @@ async def mark_missed_doses(db) -> int:
             provenance_level=enums.SourceType.SYSTEM_CALCULATED.value,
             idempotency_key=f"med-missed:{d.id}",
         )
+        pet = (await db.execute(select(Pet).where(Pet.id == plan.pet_id))).scalar_one_or_none()
         await create_notification(
-            db, pet_id=plan.pet_id, type="MEDICATION_MISSED",
+            db, household_id=pet.household_id if pet else None,
+            pet_id=plan.pet_id, notification_type="MEDICATION_MISSED",
             title="用药遗漏提醒",
             body=f"「{plan.medicine_name}」计划剂量（{d.planned_at.isoformat()}）未记录给药。",
             data={"plan_id": str(plan.id), "dose_id": str(d.id)},
@@ -144,6 +129,8 @@ async def mark_missed_doses(db) -> int:
 
 
 async def run_once() -> dict:
+    from app.core.db import get_session_factory
+
     factory = get_session_factory()
     async with factory() as db:
         expired = await expire_grants(db)
@@ -152,29 +139,3 @@ async def run_once() -> dict:
         await db.commit()
     return {"grants_expired": expired, "handoffs_ended": handoffs,
             "doses_missed": missed}
-
-
-async def loop_forever(interval_seconds: int) -> None:
-    while True:
-        try:
-            result = await run_once()
-            if any(result.values()):
-                print(f"[worker] {datetime.now(timezone.utc).isoformat()} {result}")
-        except Exception as exc:  # noqa: BLE001
-            print(f"[worker] error: {type(exc).__name__}: {exc}")
-        await asyncio.sleep(interval_seconds)
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--loop", type=int, default=60,
-                        help="poll interval seconds; 0 = run once and exit")
-    args = parser.parse_args()
-    if args.loop <= 0:
-        print(asyncio.run(run_once()))
-    else:
-        asyncio.run(loop_forever(args.loop))
-
-
-if __name__ == "__main__":
-    main()

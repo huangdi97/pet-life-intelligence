@@ -8,7 +8,7 @@ Security invariants (GOAL §7):
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +21,7 @@ ALL_CAPABILITIES = {c.value for c in enums.Capability}
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 async def get_pet_or_404(db: AsyncSession, pet_id: uuid.UUID) -> Pet:

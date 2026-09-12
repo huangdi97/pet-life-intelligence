@@ -115,7 +115,7 @@ class Provider(Protocol):
 # --- deterministic mock provider ------------------------------------------
 
 
-_DURATION_TOKENS = ("天", "小时", "分钟", "周", "day", "hour", "minute", "week")
+_DURATION_TOKENS = ("多天", "天没", "天了", "小时", "分钟", "周", "day", "hour", "minute", "week")
 _QUANTITY_TOKENS = ("次", "毫升", "克", "公斤", "度", "ml", "kg")
 
 
@@ -148,7 +148,7 @@ class MockProvider:
         species = str(ctx.get("species", "other"))
         complaint = str(ctx.get("chief_complaint", ""))
         questions = [
-            {"id": "onset", "question": f"这个情况最早是什么时候出现的？持续多久了？", "why": "onset/duration"},
+            {"id": "onset", "question": "这个情况最早是什么时候出现的？持续多久了？", "why": "onset/duration"},
             {"id": "appetite", "question": "最近吃饭喝水和平时比有变化吗？", "why": "appetite/hydration"},
             {"id": "elimination", "question": "排尿排便是否正常？有没有异常颜色或次数变化？", "why": "elimination"},
             {"id": "activity", "question": "精神和活动量跟平时比怎么样？", "why": "activity"},
@@ -174,8 +174,10 @@ class MockProvider:
                     any(t in clause for t in _DURATION_TOKENS)
                     or any(t in clause for t in _QUANTITY_TOKENS)
                     or any(k in lowered for k in (
-                        "血", "吐", "泻", "尿", "抽", "喘", "肿", "不", "没有", "发烧", " violet ",
+                        "血", "吐", "泻", "尿", "抽", "喘", "肿", "痛", "咳",
+                        "不吃", "不喝", "没有", "异常", "发烧", "发烧",
                         "bleed", "vomit", "urin", "breath", "lump", "swell",
+                        "pain", "cough", "fever",
                     ))
                 )
                 if has_signal and len(clause) >= 4:

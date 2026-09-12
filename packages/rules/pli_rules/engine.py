@@ -92,7 +92,7 @@ class RuleEngine:
             raise ValueError("Duplicate rule_id in rules data")
 
     @classmethod
-    def load_default(cls) -> "RuleEngine":
+    def load_default(cls) -> RuleEngine:
         data = json.loads(
             resources.files("pli_rules").joinpath("rules_data.json").read_text("utf-8")
         )

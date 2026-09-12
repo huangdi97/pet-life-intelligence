@@ -3,7 +3,7 @@ v0.1 hard boundaries: no dose recommendations, no auto stop-medication
 advice, source of medication info is explicit (docs/05, GOAL §12)."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -12,9 +12,9 @@ from sqlalchemy import select
 from app.api.deps import CurrentUser, DBSession
 from app.core.errors import ConflictError, NotFound, ValidationFailed
 from app.domain import enums
-from app.models import HealthEvent, MedicationDose, MedicationPlan, Pet
+from app.models import HealthEvent, MedicationDose, MedicationPlan
 from app.services import permissions as perm
-from app.services.eventlog import create_life_event, create_notification, write_audit
+from app.services.eventlog import create_life_event, write_audit
 
 router = APIRouter(tags=["medication"])
 
@@ -60,7 +60,7 @@ async def create_medication_plan(
         if he is None or he.pet_id != pet.id:
             raise NotFound("Linked health event not found for this pet.")
 
-    start = body.start_at or datetime.now(timezone.utc)
+    start = body.start_at or datetime.now(UTC)
     plan = MedicationPlan(
         pet_id=pet.id, health_event_id=he_id,
         medicine_name=body.medicine_name, dose_text=body.dose_text,
@@ -155,7 +155,7 @@ async def record_administration(
     pet = await perm.get_pet_or_404(db, plan.pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.MEDICAL_WRITE)
 
-    administered_at = body.administered_at or datetime.now(timezone.utc)
+    administered_at = body.administered_at or datetime.now(UTC)
 
     dose: MedicationDose | None = None
     if body.planned_dose_id is not None:
@@ -243,32 +243,3 @@ async def skip_dose(plan_id: uuid.UUID, body: AdministrationIn,
                       detail={"note": body.note})
     await db.commit()
     return {"dose_id": str(dose.id), "status": dose.status}
-
-
-def mark_missed_doses(db_sync) -> int:
-    """Called by the worker: mark overdue pending doses as MISSED and notify.
-    Idempotent via status transitions. Uses a sync session-compatible API."""
-    now = datetime.now(timezone.utc)
-    grace = timedelta(minutes=30)
-    rows = db_sync.execute(
-        select(MedicationDose).where(
-            MedicationDose.status == enums.DoseStatus.PENDING.value,
-            MedicationDose.planned_at < now - grace,
-        ).limit(200)
-    ).scalars().all()
-    count = 0
-    for d in rows:
-        d.status = enums.DoseStatus.MISSED.value
-        plan = db_sync.get(MedicationPlan, d.plan_id)
-        count += 1
-        n = Notification(
-            pet_id=plan.pet_id, type="MEDICATION_MISSED",
-            title="用药遗漏提醒",
-            body=f"「{plan.medicine_name}」计划剂量（{d.planned_at.isoformat()}）未记录给药。",
-            data={"plan_id": str(plan.id), "dose_id": str(d.id)},
-            dedupe_key=f"med-missed:{d.id}",
-        )
-        db_sync.add(n)
-    if count:
-        db_sync.flush()
-    return count

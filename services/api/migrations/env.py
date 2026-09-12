@@ -3,8 +3,8 @@
 from alembic import context
 from sqlalchemy import create_engine, pool
 
-from app.core.config import get_settings
 import app.models  # noqa: F401 — registers all models on the metadata
+from app.core.config import get_settings
 from app.models.base import Base
 
 config = context.config

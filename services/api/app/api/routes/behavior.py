@@ -12,7 +12,7 @@ from sqlalchemy import select
 from app.api.deps import CurrentUser, DBSession
 from app.core.errors import ValidationFailed
 from app.domain import enums
-from app.models import BehaviorEvent, User
+from app.models import BehaviorEvent
 from app.services import permissions as perm
 from app.services.eventlog import create_life_event, write_audit
 

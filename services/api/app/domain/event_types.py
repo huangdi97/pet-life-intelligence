@@ -24,7 +24,7 @@ class _Strict(BaseModel):
 
 
 def _amount_str(v: Any) -> str:
-    if isinstance(v, float) or isinstance(v, int):
+    if isinstance(v, (float, int)):
         return format(float(v), ".6f").rstrip("0").rstrip(".")
     return str(v)
 

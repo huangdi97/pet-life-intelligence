@@ -6,14 +6,14 @@ import hashlib
 import uuid as uuid_mod
 
 from fastapi import APIRouter, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
 from app.core.config import get_settings
 from app.core.errors import NotFound, ValidationFailed
 from app.domain import enums
-from app.models import Artifact, LifeEvent, Pet
+from app.models import Artifact
 from app.services import permissions as perm
 from app.services.eventlog import create_life_event, write_audit
 from app.services.storage import get_storage
@@ -40,12 +40,10 @@ def sniff(content_type: str, head: bytes) -> str:
     if kind_sig is None:
         raise ValidationFailed(f"Content type {content_type} not allowed.")
     kind, magic = kind_sig
-    if magic is not None:
-        if not head.startswith(magic):
-            raise ValidationFailed("File signature does not match content type.")
-    elif content_type == "video/mp4":
-        if head[4:8] != b"ftyp":
-            raise ValidationFailed("File signature does not match content type.")
+    if magic is not None and not head.startswith(magic):
+        raise ValidationFailed("File signature does not match content type.")
+    if magic is None and content_type == "video/mp4" and head[4:8] != b"ftyp":
+        raise ValidationFailed("File signature does not match content type.")
     return kind
 
 

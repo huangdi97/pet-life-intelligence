@@ -1,7 +1,7 @@
 """Life events + Timeline + Today (PLI-017..025, PLI-185/186, PLI-221)."""
 
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Header, Query
@@ -9,10 +9,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
-from app.core.errors import NotFound, PermissionDenied
+from app.core.errors import NotFound
 from app.domain import enums
 from app.domain.event_types import EVENT_REGISTRY
-from app.models import LifeEvent, Pet, User
+from app.models import LifeEvent, User
 from app.services import permissions as perm
 from app.services.eventlog import create_life_event, write_audit
 
@@ -179,7 +179,7 @@ async def retract_event(
     if event.retracted_at is not None:
         return {"event_id": str(event.id), "retracted_at": event.retracted_at.isoformat(),
                 "already_retracted": True}
-    event.retracted_at = datetime.now(timezone.utc)
+    event.retracted_at = datetime.now(UTC)
     await db.flush()
     await write_audit(
         db, action="event.retract", actor_user_id=user.id,

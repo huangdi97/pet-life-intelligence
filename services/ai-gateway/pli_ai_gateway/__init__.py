@@ -8,7 +8,6 @@ from pli_ai_gateway.gateway import (
     GatewayError,
     GatewayMetadata,
     GatewayResult,
-    GatewayResult as _GR,
     MockProvider,
     OutputSchemaError,
     Provider,

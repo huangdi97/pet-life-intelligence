@@ -14,11 +14,11 @@ from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sqlalchemy import delete, select  # noqa: E402
+from sqlalchemy import delete
 
-from app.core.db import get_session_factory  # noqa: E402
-from app.domain import enums  # noqa: E402
-from app.models import (  # noqa: E402
+from app.core.db import get_session_factory
+from app.domain import enums
+from app.models import (
     AIInferenceLog,
     Artifact,
     AuditEntry,
@@ -48,7 +48,7 @@ from app.models import (  # noqa: E402
     User,
     VetBrief,
 )
-from app.services.eventlog import create_life_event  # noqa: E402
+from app.services.eventlog import create_life_event
 
 CST = timezone(timedelta(hours=8))
 
@@ -320,7 +320,6 @@ async def seed() -> dict:
         }
 
 
-from sqlalchemy import delete  # noqa: E402
 
 
 def main() -> None:

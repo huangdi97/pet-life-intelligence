@@ -9,7 +9,7 @@ import hashlib
 import hmac
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import Depends, Request
 from sqlalchemy import select
@@ -101,4 +101,4 @@ async def require_dev_auth_enabled() -> None:
 
 
 def default_token_expiry() -> datetime:
-    return datetime.now(timezone.utc) + timedelta(hours=72)
+    return datetime.now(UTC) + timedelta(hours=72)

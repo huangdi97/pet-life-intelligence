@@ -3,20 +3,17 @@ vet brief generation. Rule engine output can never be lowered by AI (GOAL
 §11.3); AI results are provenance-tagged AI_DERIVED (PLI-052/053/054)."""
 
 import uuid
-from datetime import datetime, timezone
-
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import UTC, datetime
 
 from pli_ai_gateway import Gateway
 from pli_rules import get_engine, max_level
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain import enums
 from app.models import (
     AIInferenceLog,
-    AuditEntry,
     HealthEvent,
-    LifeEvent,
     MedicationPlan,
     Observation,
     Pet,
@@ -29,7 +26,7 @@ _GATEWAY = Gateway()
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 async def log_ai_inference(
@@ -142,7 +139,7 @@ async def run_rule_triage(
                 db,
                 household_id=pet.household_id,
                 pet_id=pet.id,
-                type="TRIAGE_EMERGENCY",
+                notification_type="TRIAGE_EMERGENCY",
                 title="红旗警告：建议立即就医",
                 body=f"规则引擎命中 {len(result.hits)} 条红旗规则，分级 {level}。",
                 data={"health_event_id": str(he.id), "level": level},

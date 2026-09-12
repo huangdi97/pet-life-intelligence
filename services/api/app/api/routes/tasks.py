@@ -2,7 +2,7 @@
 protection, repeating tasks, list."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -11,7 +11,7 @@ from sqlalchemy import select
 from app.api.deps import CurrentUser, DBSession
 from app.core.errors import ConflictError, ValidationFailed
 from app.domain import enums
-from app.models import CareTask, Notification, Pet, User
+from app.models import CareTask
 from app.services import permissions as perm
 from app.services.eventlog import create_life_event, create_notification, write_audit
 
@@ -149,7 +149,7 @@ async def complete_task(
         await create_notification(
             db,
             household_id=pet.household_id, pet_id=pet.id,
-            type="TASK_CONFLICT",
+            notification_type="TASK_CONFLICT",
             title="任务重复完成提醒",
             body=f"任务「{task.title}」已由他人完成，本次操作被记录为冲突，未覆盖原记录。",
             data={"task_id": str(task.id)},
@@ -160,8 +160,8 @@ async def complete_task(
                           resource_type="CareTask", resource_id=str(task.id))
         await db.commit()
         raise ConflictError(
-            f"Task already completed by another member. First completion kept; "
-            f"this attempt recorded as a conflict.",
+            "Task already completed by another member. First completion kept; "
+            "this attempt recorded as a conflict.",
             code="TASK_CONFLICT",
             details={
                 "task_id": str(task.id),
@@ -175,7 +175,7 @@ async def complete_task(
 
     task.status = enums.TaskStatus.COMPLETED.value
     task.completed_by_user_id = user.id
-    task.completed_at = datetime.now(timezone.utc)
+    task.completed_at = datetime.now(UTC)
     task.completion_note = body.note
     await db.flush()
 

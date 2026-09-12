@@ -3,7 +3,7 @@
 (PLI-219), audit (PLI-046), deletion requests (PLI-216)."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter
 from pydantic import BaseModel, EmailStr, Field
@@ -21,13 +21,10 @@ from app.models import (
     DeletionRequest,
     EmergencyProfile,
     Grant,
-    Household,
     HouseholdMember,
     Invitation,
     MedicationPlan,
     Notification,
-    Pet,
-    Relationship,
     ShareToken,
     User,
 )
@@ -109,7 +106,7 @@ async def invite_member(
         token_hash=token_hash,
         token_prefix=prefix,
         invited_by_user_id=user.id,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
     )
     db.add(inv)
     await db.flush()
@@ -149,7 +146,7 @@ async def accept_invitation(
     ).scalar_one_or_none()
     if inv is None or inv.status != "PENDING":
         raise NotFound("Invitation not found or already used.")
-    if inv.expires_at <= datetime.now(timezone.utc):
+    if inv.expires_at <= datetime.now(UTC):
         inv.status = "EXPIRED"
         await db.flush()
         await db.commit()
@@ -232,7 +229,7 @@ async def create_grant(
     grant = Grant(
         pet_id=pet.id, user_id=body.user_id, scopes=body.scopes,
         reason=body.reason, granted_by_user_id=user.id,
-        starts_at=body.starts_at or datetime.now(timezone.utc),
+        starts_at=body.starts_at or datetime.now(UTC),
         expires_at=body.expires_at,
     )
     db.add(grant)
@@ -263,7 +260,7 @@ async def revoke_grant(grant_id: uuid.UUID, db: DBSession, user: CurrentUser) ->
     pet = await perm.get_pet_or_404(db, grant.pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.MANAGE_PET)
     if grant.revoked_at is None:
-        grant.revoked_at = datetime.now(timezone.utc)
+        grant.revoked_at = datetime.now(UTC)
         grant.revoked_by_user_id = user.id
         grant.status = enums.GrantStatus.REVOKED.value
         await db.flush()
@@ -302,7 +299,7 @@ async def create_handoff(
         raise ValidationFailed(f"Unknown scopes: {invalid}")
     if enums.Capability.MANAGE_PET.value in body.scopes:
         raise PermissionDenied("manage:pet cannot be included in a handoff (PLI-204).")
-    if body.end_at <= datetime.now(timezone.utc):
+    if body.end_at <= datetime.now(UTC):
         raise ValidationFailed("end_at must be in the future.")
     caregiver = (
         await db.execute(select(User).where(User.id == body.caregiver_user_id))
@@ -314,7 +311,7 @@ async def create_handoff(
         pet_id=pet.id, user_id=body.caregiver_user_id, scopes=body.scopes,
         reason=body.reason or "care handoff", source="HANDOFF",
         granted_by_user_id=user.id,
-        starts_at=body.start_at or datetime.now(timezone.utc),
+        starts_at=body.start_at or datetime.now(UTC),
         expires_at=body.end_at,
     )
     db.add(grant)
@@ -358,7 +355,7 @@ async def end_handoff(handoff_id: uuid.UUID, db: DBSession, user: CurrentUser) -
     if handoff.status != enums.HandoffStatus.ACTIVE.value:
         return {"handoff_id": str(handoff.id), "status": handoff.status}
     handoff.status = enums.HandoffStatus.ENDED.value
-    handoff.ended_at = datetime.now(timezone.utc)
+    handoff.ended_at = datetime.now(UTC)
     handoff.ended_by_user_id = user.id
     if handoff.grant_id:
         grant = (
@@ -458,11 +455,11 @@ async def create_care_card(
         },
         "open_tasks": [{"title": t.title, "due_at": t.due_at.isoformat() if t.due_at else None}
                        for t in tasks],
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "notice": "最小字段卡片：不包含完整医疗历史。",
     }
     card = CareCard(pet_id=pet.id, content=content, issued_by_user_id=user.id,
-                    expires_at=datetime.now(timezone.utc) + timedelta(hours=body.expires_in_hours))
+                    expires_at=datetime.now(UTC) + timedelta(hours=body.expires_in_hours))
     db.add(card)
     await db.flush()
 
@@ -506,7 +503,7 @@ async def view_care_card(token: str, db: DBSession) -> dict:
     if row is None:
         raise NotFound("Care card not found.")
     st, card = row
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if st.revoked_at is not None or st.expires_at <= now:
         await write_audit(db, action="care_card.denied", actor_user_id=None,
                           pet_id=st.pet_id, resource_type="ShareToken",
@@ -535,7 +532,7 @@ async def revoke_share_token(token_id: uuid.UUID, db: DBSession, user: CurrentUs
     pet = await perm.get_pet_or_404(db, st.pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.MANAGE_PET)
     if st.revoked_at is None:
-        st.revoked_at = datetime.now(timezone.utc)
+        st.revoked_at = datetime.now(UTC)
         st.revoked_by_user_id = user.id
         await db.flush()
         await write_audit(db, action="share_token.revoke", actor_user_id=user.id,
@@ -633,7 +630,7 @@ async def request_deletion(
         actor_id=user.id, source_type=enums.SourceType.OWNER_REPORTED,
     )
     await create_notification(
-        db, household_id=pet.household_id, pet_id=pet.id, type="DELETION_REQUESTED",
+        db, household_id=pet.household_id, pet_id=pet.id, notification_type="DELETION_REQUESTED",
         title="数据删除请求已记录",
         body="删除请求已登记，等待人工确认后执行（不会自动删除）。", data={"request_id": str(dr.id)},
         dedupe_key=f"deletion:{dr.id}",
