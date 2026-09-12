@@ -1,0 +1,17 @@
+[project]
+name = "pli-ai-gateway"
+version = "0.1.0"
+description = "Pet Life Intelligence AI gateway: provider abstraction, mock provider, metadata, structured output validation"
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.9"]
+
+[project.optional-dependencies]
+server = ["fastapi>=0.115", "uvicorn[standard]>=0.30"]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["pli_ai_gateway*"]

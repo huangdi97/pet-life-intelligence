@@ -6,7 +6,8 @@ services:
       POSTGRES_PASSWORD: pli_dev_password
       POSTGRES_DB: pli
     ports:
-      - "5432:5432"
+      # host 5432 occupied by other local projects; PLI uses 55432
+      - "55432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U pli -d pli"]
       interval: 5s
@@ -18,7 +19,8 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      # host 6379 occupied by other local projects; PLI uses 56379
+      - "56379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -32,8 +34,14 @@ services:
       MINIO_ROOT_USER: pli_minio
       MINIO_ROOT_PASSWORD: pli_minio_dev_secret
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      # host 9000/9001 occupied by other local projects; PLI uses 59000/59001
+      - "59000:9000"
+      - "59001:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     volumes:
       - pli_minio:/data
 

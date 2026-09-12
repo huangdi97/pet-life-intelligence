@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: pli-ai-gateway
+Version: 0.1.0
+Summary: Pet Life Intelligence AI gateway: provider abstraction, mock provider, metadata, structured output validation
+Requires-Python: >=3.12
+Requires-Dist: pydantic>=2.9
+Provides-Extra: server
+Requires-Dist: fastapi>=0.115; extra == "server"
+Requires-Dist: uvicorn[standard]>=0.30; extra == "server"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"

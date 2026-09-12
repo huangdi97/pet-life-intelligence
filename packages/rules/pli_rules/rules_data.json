@@ -1,0 +1,129 @@
+{
+  "engine_name": "pli_red_flag_engine",
+  "engine_version": "1.0.0",
+  "triage_levels": ["MONITOR", "VET_SOON", "URGENT", "EMERGENCY"],
+  "notes": "Rule-first. LLM output must never lower triage below the rule engine result. Keywords are matched case-insensitively over owner text (complaint, answers, observations). Negative controls per rule live in tests.",
+  "rules": [
+    {
+      "rule_id": "RF-RESP",
+      "version": "1.0.0",
+      "species": ["dog", "cat", "other"],
+      "triage": "EMERGENCY",
+      "description": "Respiratory distress (breathing difficulty, blue/purple tongue or gums, choking, open-mouth laboring breath in cat)",
+      "any_keywords": [
+        "呼吸困", "呼吸费力", "喘不上气", "舌头紫", "舌头发紫", "牙龈紫", "嘴唇紫", "舌色发绀",
+        "张口呼吸", "肚子一鼓一鼓地用力呼吸", "窒息", "哽住喘", "咳到喘不上气",
+        "difficulty breathing", "labored breathing", "struggling to breathe", "blue tongue",
+        "purple gums", "choking", "gasping", "cyanosis"
+      ]
+    },
+    {
+      "rule_id": "RF-COLLAPSE",
+      "version": "1.0.0",
+      "species": ["dog", "cat", "other"],
+      "triage": "EMERGENCY",
+      "description": "Collapse / unconsciousness / unresponsive",
+      "any_keywords": [
+        "昏厥", "晕倒", "昏迷", "叫不醒", "瘫软不起", "突然倒地不起", "休克",
+        "collapsed", "unconscious", "unresponsive", "fainted", "seizure-like flop", "passed out"
+      ]
+    },
+    {
+      "rule_id": "RF-SEIZURE",
+      "version": "1.0.0",
+      "species": ["dog", "cat", "other"],
+      "triage": "EMERGENCY",
+      "description": "Prolonged seizure (>5min) or recurrent seizures in 24h (cluster pattern)",
+      "any_keywords": [
+        "抽搐超过五分钟", "抽搐一直不停", "连续抽搐", "反复抽搐", "一天抽好几次", "癫痫连续发作",
+        "seizure lasting more than 5 minutes", "continuous seizure", "cluster seizures",
+        "multiple seizures", "repeated seizures", "status epilepticus"
+      ]
+    },
+    {
+      "rule_id": "RF-BLEED",
+      "version": "1.0.0",
+      "species": ["dog", "cat", "other"],
+      "triage": "EMERGENCY",
+      "description": "Severe / uncontrolled bleeding",
+      "any_keywords": [
+        "大量出血", "血流不止", "止不住血", "大出血", "吐血", "便血大量", "血泊",
+        "severe bleeding", "bleeding heavily", "won't stop bleeding", "uncontrolled bleeding",
+        "coughing up blood", "blood pooling"
+      ]
+    },
+    {
+      "rule_id": "RF-TOXIN",
+      "version": "1.0.0",
+      "species": ["dog", "cat", "other"],
+      "triage": "EMERGENCY",
+      "description": "Suspected high-risk toxin ingestion (chocolate, xylitol, grapes/raisins, lily, rodenticide, antifreeze, acetaminophen/paracetamol, ibuprofen, pesticides)",
+      "any_keywords": [
+        "吃了巧克力", "误食巧克力", "吃了木糖醇", "吃了葡萄", "吃了葡萄干", "误食老鼠药", "吃了老鼠药",
+        "喝了防冻液", "吃了对乙酰氨基酚", "吃了扑热息痛", "吃了布洛芬", "误食杀虫剂", "吃了百合",
+        " swallowed chocolate", "ate chocolate", "xylitol", "ate grapes", "ate raisins",
+        "rat poison", "rodenticide", "antifreeze", "acetaminophen", "paracetamol", "ibuprofen",
+        "ate lily", "lily ingestion"
+      ]
+    },
+    {
+      "rule_id": "RF-BLOAT",
+      "version": "1.0.0",
+      "species": ["dog"],
+      "triage": "EMERGENCY",
+      "description": "Severe abdominal distension with unproductive retching (suspected GDV)",
+      "any_keywords": [
+        "肚子胀大", "腹部胀大", "肚子突然鼓", "干呕吐不出来", "一直干呕", "胀气吐不出", "肚子硬邦邦",
+        "distended abdomen", "swollen belly", "unproductive retching", "dry heaving",
+        "trying to vomit nothing comes out", "bloated and retching"
+      ]
+    },
+    {
+      "rule_id": "RF-UOBSTRUCTION",
+      "version": "1.0.0",
+      "species": ["cat"],
+      "triage": "EMERGENCY",
+      "description": "Cat repeated urination attempts with little/no urine (possible urethral obstruction; highest risk male)",
+      "any_keywords": [
+        "反复进猫砂盆", "频繁蹲猫砂", "一直蹲猫砂盆", "尿不出来", "尿不出多少", "蹲半天没尿",
+        "反复上厕所没尿", "频繁舔下体排尿",
+        "repeatedly trying to urinate", "little or no urine", "straining in litter box",
+        "no urine coming out", "frequent litter box visits"
+      ]
+    },
+    {
+      "rule_id": "RF-TRAUMA",
+      "version": "1.0.0",
+      "species": ["dog", "cat", "other"],
+      "triage": "EMERGENCY",
+      "description": "Severe trauma (hit by car, high fall, deep penetrating wound)",
+      "any_keywords": [
+        "被车撞", "车祸", "高空坠落", "摔下楼", "被咬穿", "贯穿伤", "深度伤口", "重伤",
+        "hit by car", "hit by a car", "fell from height", "high-rise syndrome",
+        "deep puncture wound", "penetrating wound", "severe trauma"
+      ]
+    },
+    {
+      "rule_id": "RF-ProlongedVomiting",
+      "version": "1.0.0",
+      "species": ["dog", "cat", "other"],
+      "triage": "URGENT",
+      "description": "Persistent vomiting / repeated vomiting over many hours (dehydration risk)",
+      "any_keywords": [
+        "吐了一整天", "反复呕吐", "一直吐", "频繁呕吐", "呕吐超过一天",
+        "persistent vomiting", "vomiting all day", "repeatedly vomiting", "cannot keep water down"
+      ]
+    },
+    {
+      "rule_id": "RF-HighFeverLethargy",
+      "version": "1.0.0",
+      "species": ["dog", "cat", "other"],
+      "triage": "VET_SOON",
+      "description": "Marked lethargy / refuses food with abnormal temperature feel, not yet emergency pattern",
+      "any_keywords": [
+        "精神萎靡", "完全不吃东西", "异常嗜睡", "摸起来很烫", "高烧",
+        "very lethargic", "not eating at all", "unusually sleepy", "feels very hot"
+      ]
+    }
+  ]
+}
