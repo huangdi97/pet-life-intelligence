@@ -5,7 +5,6 @@ import json
 import os
 
 import pytest
-
 from app.domain.enums import TRIAGE_ORDER
 from pli_rules import get_engine
 

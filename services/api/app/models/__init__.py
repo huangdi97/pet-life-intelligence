@@ -31,6 +31,28 @@ from app.models.identity import (
     Relationship,
     User,
 )
+from app.models.v02 import (  # noqa: F401 — v0.2 models register on the same metadata
+    AnalyticsCounter,
+    Baseline,
+    CareReminder,
+    ContentVersion,
+    DailySummary,
+    DiaryEntry,
+    DietProfile,
+    Expense,
+    HealthRecord,
+    Incident,
+    Milestone,
+    PetFriend,
+    PetIdentifier,
+    PetPreference,
+    RecoveryPlan,
+    SocialInteraction,
+    SocialProfile,
+    SocialReport,
+    TrainingGoal,
+    TrainingSession,
+)
 
 __all__ = [
     "AIInferenceLog",

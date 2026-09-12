@@ -6,10 +6,10 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
-
 from app.domain.enums import SCHEMA_VERSION, SourceType
 from app.domain.event_types import EVENT_REGISTRY, validate_payload
 from app.services.eventlog import compute_dedupe_key
+from pydantic import ValidationError
 
 EXPECTED_TYPES = {
     "pet.created", "pet.media_added", "relationship.created",
@@ -44,7 +44,7 @@ def test_unknown_event_type_rejected():
 def test_meal_payload_strict():
     ok = validate_payload("daily.meal", {"food_type": "kibble", "amount": "120", "unit": "g"})
     assert ok["amount"] == "120"
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         validate_payload("daily.meal", {"food_type": "kibble", "hacker_field": 1})
 
 
@@ -58,7 +58,7 @@ def test_numbers_normalized_to_string():
 
 
 def test_walk_payload_validated():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         validate_payload("daily.walk", {"duration_minutes": 99999})  # > 24h
 
 

@@ -144,6 +144,7 @@ async def run_rule_triage(
                 body=f"规则引擎命中 {len(result.hits)} 条红旗规则，分级 {level}。",
                 data={"health_event_id": str(he.id), "level": level},
                 dedupe_key=f"triage-emergency:{he.id}",
+                target_role=enums.HouseholdRole.OWNER.value,
             )
     return assessment
 

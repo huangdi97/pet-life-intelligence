@@ -100,6 +100,115 @@ DAILY_EVENT_TYPES: dict[str, tuple[type[BaseModel], str]] = {
 }
 
 
+class SleepPayload(_Strict):
+    duration_minutes: int = Field(default=0, ge=0, le=24 * 60)
+    quality: str = ""
+    notes: str = ""
+
+
+DAILY_EVENT_TYPES["daily.sleep"] = (SleepPayload, "sleep/rest (PLI-024)")
+
+
+# --- v0.2 system event payloads (strict; system-generated) -------------------
+
+
+class PetStatusPayload(_Strict):
+    status: str
+    previous: str = ""
+    note: str = ""
+
+
+class IdentifierAddedPayload(_Strict):
+    identifier_type: str
+    verified: bool = False
+
+
+class DiaryCreatedPayload(_Strict):
+    diary_id: str
+    has_audio: bool = False
+
+
+class SummaryGeneratedPayload(_Strict):
+    summary_id: str
+    date: str = ""
+    fact_count: int = 0
+
+
+class ChecklistUpdatedPayload(_Strict):
+    handoff_id: str
+    items: int | None = None
+    index: int | None = None
+    done: bool | None = None
+
+
+class ReminderPayload(_Strict):
+    reminder_id: str
+    kind: str
+    due_date: str | None = None
+
+
+class RecordImportedPayload(_Strict):
+    record_id: str
+    kind: str
+    source_type: str = ""
+
+
+class RecoveryPlanPayload(_Strict):
+    plan_id: str
+    items: int = 0
+
+
+class TrainingGoalPayload(_Strict):
+    goal_id: str
+    title: str = ""
+
+
+class TrainingSessionPayload(_Strict):
+    session_id: str
+    goal_id: str | None = None
+    duration_minutes: int = 0
+
+
+class FriendRequestedPayload(_Strict):
+    friend_pet_id: str
+    request_id: str = ""
+
+
+class InteractionPayload(_Strict):
+    interaction_id: str
+    friend_pet_id: str
+    quality: str = ""
+
+
+class SocialBlockedPayload(_Strict):
+    friend_pet_id: str
+    action: str = "BLOCK"
+
+
+class ExpenseLoggedPayload(_Strict):
+    expense_id: str
+    category: str
+    amount: str = ""
+    currency: str = "CNY"
+
+
+class MilestonePayload(_Strict):
+    milestone_id: str
+    title: str = ""
+    kind: str = "OTHER"
+
+
+class PetAskedPayload(_Strict):
+    question: str = ""
+    sufficient: bool = False
+    citations: list[str] = []
+
+
+class AdviceFilteredPayload(_Strict):
+    count: int = 0
+    reasons: list[str] = []
+
+
 # --- identity / platform -------------------------------------------------
 
 
@@ -364,6 +473,24 @@ for et, (model, desc) in DAILY_EVENT_TYPES.items():
     _register(et, f"Quick log: {desc.strip()}", model, "daily")
 
 _register("pet.created", "Pet master record created", PetCreatedPayload, "identity")
+_register("pet.status_changed", "Pet lifecycle status changed (PLI-013)", PetStatusPayload, "identity")
+_register("identifier.added", "Chip/passport identifier added (PLI-004)", IdentifierAddedPayload, "identity")
+_register("diary.created", "Free-text/voice diary entry (PLI-031)", DiaryCreatedPayload, "daily")
+_register("summary.generated", "AI daily summary generated (PLI-033)", SummaryGeneratedPayload, "daily")
+_register("care.checklist_updated", "Handoff checklist item updated (PLI-039)", ChecklistUpdatedPayload, "care")
+_register("reminder.created", "Care reminder created (PLI-064)", ReminderPayload, "health")
+_register("reminder.completed", "Care reminder completed", ReminderPayload, "health")
+_register("health.record_imported", "Vet record imported (PLI-057)", RecordImportedPayload, "health")
+_register("recovery_plan.updated", "Recovery plan updated (PLI-061)", RecoveryPlanPayload, "health")
+_register("training.goal_created", "Training goal created (PLI-085)", TrainingGoalPayload, "training")
+_register("training.session_logged", "Training session logged (PLI-087)", TrainingSessionPayload, "training")
+_register("social.friend_requested", "Pet friend requested (PLI-112)", FriendRequestedPayload, "social")
+_register("social.interaction_logged", "Social interaction logged (PLI-113)", InteractionPayload, "social")
+_register("social.blocked", "Social block/report applied (PLI-112)", SocialBlockedPayload, "social")
+_register("expense.logged", "Expense logged (PLI-175)", ExpenseLoggedPayload, "finance")
+_register("milestone.recorded", "Milestone recorded (PLI-187)", MilestonePayload, "timeline")
+_register("pet.asked", "Personal QA answered with evidence (PLI-197)", PetAskedPayload, "agent")
+_register("advice.filtered", "Unsafe behavior advice filtered (PLI-084)", AdviceFilteredPayload, "behavior")
 _register("pet.media_added", "Pet avatar/media added", PetMediaAddedPayload, "identity")
 _register("relationship.created", "Owner/co-owner relationship", RelationshipCreatedPayload, "identity")
 _register("grant.created", "Grant issued", GrantChangedPayload, "identity")

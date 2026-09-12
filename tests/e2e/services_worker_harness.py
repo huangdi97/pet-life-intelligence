@@ -7,11 +7,10 @@ from datetime import datetime, timezone
 def mark_past_dose_missed() -> int:
     """Shift every PENDING dose into the past, then run the worker's
     missed-dose job once. Returns number of doses marked MISSED."""
-    from sqlalchemy import select, text
-
     from app.core.db import get_session_factory
     from app.models import MedicationDose
     from app.worker_jobs import mark_missed_doses
+    from sqlalchemy import select, text
 
     async def prepare_and_run():
         factory = get_session_factory()

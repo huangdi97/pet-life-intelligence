@@ -95,6 +95,8 @@ class Pet(UUIDPk, CreatedAt, Base):
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
+    # PLI-013 pet lifecycle: ACTIVE | LOST | DECEASED | TRANSFERRED (transitions audited)
+    lifecycle_status: Mapped[str] = mapped_column(String(20), default="ACTIVE", nullable=False)
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 

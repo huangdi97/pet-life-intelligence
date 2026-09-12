@@ -273,3 +273,5 @@ class Notification(UUIDPk, CreatedAt, Base):
     data: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     dedupe_key: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    # PLI-047 optional role targeting: OWNER | CO_OWNER | FAMILY | ALL
+    target_role: Mapped[str | None] = mapped_column(String(40), nullable=True)

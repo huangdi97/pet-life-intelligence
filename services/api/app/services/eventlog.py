@@ -163,6 +163,7 @@ async def create_notification(
     data: dict | None = None,
     recipient_user_id: uuid.UUID | None = None,
     dedupe_key: str | None = None,
+    target_role: str | None = None,
 ) -> Notification | None:
     if dedupe_key:
         existing = (
@@ -181,6 +182,7 @@ async def create_notification(
         body=body,
         data=data or {},
         dedupe_key=dedupe_key,
+        target_role=target_role,
     )
     db.add(n)
     await db.flush()

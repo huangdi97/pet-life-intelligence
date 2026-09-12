@@ -67,6 +67,11 @@ def migrated_db():
 
 
 WIPE_TABLES = [
+    "incidents", "analytics_counters", "content_versions", "milestones",
+    "expenses", "diet_profiles", "social_reports", "social_interactions",
+    "pet_friends", "social_profiles", "training_sessions", "training_goals",
+    "pet_preferences", "care_reminders", "recovery_plans", "health_records",
+    "daily_summaries", "diary_entries", "baselines", "pet_identifiers",
     "notifications", "share_tokens", "deletion_requests", "care_cards",
     "care_handoffs", "medication_doses", "medication_plans", "outcomes",
     "vet_briefs", "triage_assessments", "observations",

@@ -24,6 +24,10 @@ from app.api.routes import (
     pets,
     system,
     tasks,
+    v02_behavior_training,
+    v02_care_health,
+    v02_identity_daily,
+    v02_social_platform,
 )
 from app.core.config import get_settings
 from app.core.db import get_session_factory
@@ -78,7 +82,8 @@ async def request_context(request: Request, call_next):
 for router in (
     system.router, auth.router, pets.router, events.router, tasks.router,
     care.router, behavior.router, health.router, medication.router,
-    artifacts.router,
+    artifacts.router, v02_identity_daily.router, v02_care_health.router,
+    v02_behavior_training.router, v02_social_platform.router,
 ):
     app.include_router(router, prefix="/api/v1")
 
@@ -87,3 +92,7 @@ for router in (
 async def startup() -> None:
     async with get_session_factory()() as session:
         await session.execute(text("SELECT 1"))
+        from app.api.routes.v02_behavior_training import ensure_content_seeded
+
+        await ensure_content_seeded(session)
+        await session.commit()

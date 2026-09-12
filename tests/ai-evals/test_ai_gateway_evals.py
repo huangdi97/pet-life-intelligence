@@ -4,8 +4,8 @@ fallback behavior."""
 
 import pytest
 from pli_ai_gateway import (
-    AIProviderMockBroken,
     CAPABILITY_SCHEMAS,
+    AIProviderMockBroken,
     Gateway,
     MockProvider,
     OutputSchemaError,
@@ -49,7 +49,7 @@ class DecisionLeaker(MockProvider):
 def test_all_capabilities_have_schemas():
     assert set(CAPABILITY_SCHEMAS) == {
         "intake_questions", "extract_observations", "summarize_timeline",
-        "vet_brief_draft",
+        "vet_brief_draft", "answer_with_evidence", "behavior_advice",
     }
 
 

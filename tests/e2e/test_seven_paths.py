@@ -13,8 +13,6 @@ def test_e2e_01_create_pet_today_timeline(client):
     # create household via owner (seeded empty household first)
     import asyncio
 
-    from sqlalchemy import text
-
     from app.core.db import get_session_factory
     from app.models import Household, HouseholdMember, User
 

@@ -5,7 +5,6 @@ import json
 import os
 
 import jsonschema
-import pytest
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SCHEMA_PATH = os.path.join(ROOT, "packages", "domain-schema", "life_event.schema.json")

@@ -106,6 +106,8 @@ class CareHandoff(UUIDPk, CreatedAt, Base):
         UUID(as_uuid=True), ForeignKey("grants.id"), nullable=True
     )
     notes: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    # PLI-039 handoff confirmation checklist: [{text, done, done_by, done_at}]
+    checklist: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ended_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True

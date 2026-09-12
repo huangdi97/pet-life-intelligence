@@ -68,15 +68,42 @@ class VetBriefDraft(_Strict):
     disclaimer: str = ""
 
 
+class EvidenceAnswer(_Strict):
+    """PLI-197/190: answer must cite provided evidence; when nothing matches,
+    says so instead of inventing history."""
+
+    answer: str
+    citations: list[str] = Field(default_factory=list)
+    sufficient: bool = True
+    disclaimer: str = ""
+
+
+class BehaviorAdvice(_Strict):
+    """PLI-084: advice lines + safety filter verdicts. Reward-based only."""
+
+    advice: list[str] = Field(default_factory=list)
+    filtered_reasons: list[str] = Field(default_factory=list)
+    disclaimer: str = ""
+
+
 CAPABILITY_SCHEMAS: dict[str, type[BaseModel]] = {
     "intake_questions": IntakeQuestionsResult,
     "extract_observations": ExtractObservationsResult,
     "summarize_timeline": TimelineSummaryResult,
     "vet_brief_draft": VetBriefDraft,
+    "answer_with_evidence": EvidenceAnswer,
+    "behavior_advice": BehaviorAdvice,
 }
 
-PROMPT_VERSION = "v0.1.0"
+PROMPT_VERSION = "v0.2.0"
 SCHEMA_VERSION = "1.0.0"
+
+# PLI-084 forbidden advice patterns (punishment/aversive/dangerous methods)
+UNSAFE_ADVICE_PATTERNS = (
+    "电击", "打骂", "惩罚", "揍", "暴力", " dominance", "_alpha", "shock collar",
+    "prong collar", "choke chain", "punish", "hit the dog", "alpha roll",
+    "断食", "禁水", "starve",
+)
 DISCLAIMER = (
     "AI 整理自主人报告与历史记录，仅供参考，不构成诊断；"
     "紧急程度以独立规则引擎与兽医判断为准。"
@@ -142,6 +169,10 @@ class MockProvider:
             return self._summarize_timeline(context)
         if capability == "vet_brief_draft":
             return self._vet_brief_draft(context)
+        if capability == "answer_with_evidence":
+            return self._answer_with_evidence(context)
+        if capability == "behavior_advice":
+            return self._behavior_advice(context)
         raise GatewayError(f"Unknown capability: {capability}")
 
     def _intake_questions(self, ctx: dict[str, Any]) -> dict[str, Any]:
@@ -218,6 +249,65 @@ class MockProvider:
             "key_findings": findings[:20],
             "disclaimer": DISCLAIMER,
         }
+
+    def _answer_with_evidence(self, ctx: dict[str, Any]) -> dict[str, Any]:
+        """Personal QA (PLI-197): answers strictly from provided evidence
+        chunks (each already a canonical event summary). If nothing matches
+        the question keywords, declares insufficiency — never invents."""
+        import re
+
+        question = str(ctx.get("question", ""))
+        evidence = list(ctx.get("evidence") or [])  # [{id, text}]
+        # crude zh/en tokenisation: drop common function words, keep >=2 char tokens
+        particles = (
+            "最近|有什么|什么|怎么|怎么样|如何|请问|一下|一些|情况|使用|过程|"
+            "历史|记录|吗|呢|吧|啊|的|了|是|在|有|和|与|我|它|他|她|请|这|那"
+        )
+        tokens = [t for t in re.sub(particles, "|", question).split("|") if len(t) >= 2]
+        if not tokens:
+            tokens = [question.strip()[:4]] if question.strip() else []
+        matched = []
+        for ev in evidence:
+            text = str(ev.get("text", ""))
+            if any(tok in text for tok in tokens):
+                matched.append(ev)
+        if not matched:
+            return {
+                "answer": "在现有记录中没有找到与问题相关的证据，无法回答。"
+                          "请补充记录后再试。",
+                "citations": [],
+                "sufficient": False,
+                "disclaimer": DISCLAIMER,
+            }
+        citations = [str(ev.get("id")) for ev in matched[:5]]
+        lines = [str(ev.get("text")) for ev in matched[:5]]
+        return {
+            "answer": "根据以下记录：" + "；".join(lines),
+            "citations": citations,
+            "sufficient": True,
+            "disclaimer": DISCLAIMER,
+        }
+
+    def _behavior_advice(self, ctx: dict[str, Any]) -> dict[str, Any]:
+        """PLI-084: reward-based advice candidates + safety filter verdicts.
+        Unsafe candidates are dropped and reasons recorded."""
+        candidates = [str(c) for c in (ctx.get("advice_candidates") or [])]
+        kept: list[str] = []
+        reasons: list[str] = []
+        lowered = [c.lower() for c in candidates]
+        for cand, low in zip(candidates, lowered, strict=False):
+            hit = next((p for p in UNSAFE_ADVICE_PATTERNS
+                        if p.lower() in low), None)
+            if hit:
+                reasons.append(f"blocked unsafe advice (matched '{hit}')")
+            else:
+                kept.append(cand)
+        base = [
+            "使用奖励（零食/玩具/表扬）在安静环境中逐步建立目标行为。",
+            "每次训练保持短时多次（3-5分钟），以宠物自愿参与为前提。",
+        ]
+        advice = (kept + base)[:6]
+        return {"advice": advice, "filtered_reasons": reasons, "disclaimer": DISCLAIMER}
 
 
 class AIProviderMockBroken(MockProvider):

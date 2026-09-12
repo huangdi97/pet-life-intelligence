@@ -3,10 +3,7 @@ cross-pet isolation, task conflicts, handoffs, care cards, health flow,
 medication conflicts, audit."""
 
 import io
-import uuid
 from datetime import datetime, timedelta, timezone
-
-import pytest
 
 from tests.conftest import auth
 
@@ -213,7 +210,7 @@ class TestCareHandoff:
         return r.json()
 
     def test_handoff_grants_scoped_access(self, client, seeded):
-        data = self._start(client, seeded)
+        self._start(client, seeded)
         sitter = seeded["sitter_id"]
         assert client.get(f"/api/v1/pets/{seeded['coco_id']}", headers=auth(sitter)).status_code == 200
         # medical stays off-limits even with daily scope
@@ -241,7 +238,7 @@ class TestCareHandoff:
         assert "medications" in content and "emergency_contacts" in content
         assert "observations" not in content and "triage_history" not in content
         # revoke → dead
-        tokens = client.get(f"/api/v1/pets/{seeded['coco_id']}/grants", headers=auth(owner))
+        client.get(f"/api/v1/pets/{seeded['coco_id']}/grants", headers=auth(owner))
         # find share token id via audit-free path: revoke by creating new one is not enough;
         # verify via list on care card share: use token list endpoint absent — use audit trail
         # Simplest: revoke via share-tokens endpoint using card id from response
@@ -303,7 +300,7 @@ class TestHealthFlow:
         assert all(o["text"].startswith("主人报告：") for o in ai_obs)
 
     def test_vet_brief_and_share_flow(self, client, seeded):
-        owner, mimi = seeded["owner_id"], seeded["mimi_id"]
+        owner, _mimi = seeded["owner_id"], seeded["mimi_id"]
         he = seeded["health_event_non_emergency_id"]
         r = client.post(f"/api/v1/health-events/{he}/vet-brief", json={}, headers=auth(owner))
         assert r.status_code == 201
