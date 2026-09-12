@@ -28,6 +28,8 @@ from app.api.routes import (
     v02_care_health,
     v02_identity_daily,
     v02_social_platform,
+    v10_extras,
+    v10_platform,
 )
 from app.core.config import get_settings
 from app.core.db import get_session_factory
@@ -84,6 +86,7 @@ for router in (
     care.router, behavior.router, health.router, medication.router,
     artifacts.router, v02_identity_daily.router, v02_care_health.router,
     v02_behavior_training.router, v02_social_platform.router,
+    v10_platform.router, v10_extras.router,
 ):
     app.include_router(router, prefix="/api/v1")
 

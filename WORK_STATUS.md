@@ -1,35 +1,30 @@
 # WORK_STATUS
 
 ## Current terminal
-`PLI_V0_1_RELEASE_CANDIDATE_READY`（push BLOCKED：无远端，见 FINAL_RELEASE_REPORT.md）
+`PLI_V1_0_RELEASE_CANDIDATE_READY_WITH_FUTURE_BACKLOG`
+（v0.1 / v0.2 同为 RELEASE_CANDIDATE_READY；push BLOCKED：无远端）
 
 ## Phase status
 
-| Phase | Status | Evidence | Notes |
-|---|---|---|---|
-| G0 Preflight | PASS | reports/G0_PREFLIGHT.md | git init, toolchain, docs |
-| G1 Repo/Infra | PASS | reports/G1_RUNTIME.md | compose healthy; API/Web up; ports 55432/56379/59000/8800/3100 |
-| G2 Domain Schema | PASS | reports/G2_SCHEMA.md | 28 tables, alembic rev 89595364188f, seed OK |
-| G3 Permission | PASS | reports/G3_PERMISSION.md | RBAC+ABAC, grants, audit, negative tests |
-| G4 Daily/Timeline | PASS | reports/G4_DAILY.md | today/quicklog/tasks/timeline + E2E-01/03 |
-| G5 Care Handoff | PASS | reports/G5_CARE.md | handoff/card/grants + E2E-02/04 |
-| G6 Behavior | PASS | reports/G6_BEHAVIOR.md | ABC + E2E-07 |
-| G7 Health/Safety | PASS | reports/G7_HEALTH_SAFETY.md | rule engine + triage + vet brief + E2E-05 |
-| G8 Medication/Outcome | PASS | reports/G8_MEDICATION.md | plans/doses/conflict/missed + E2E-06 |
-| G9 AI/Eval | PASS | reports/G9_AI.md | mock gateway, schema-validated, offline evals |
-| G10 Frontend | PASS | reports/G10_FRONTEND.md | 14 surfaces, states, build green |
-| G11 Tests | PASS | reports/TEST_REPORT.md | 106 passed, ruff clean, typecheck/build clean |
-| G12 Demo | PASS | reports/G12_DEMO.md | seed + reset + 7 E2E reproducible |
+| 阶段 | 状态 | 证据 |
+|---|---|---|
+| Stage A v0.1（50 P0） | PLI_V0_1_RELEASE_CANDIDATE_READY | FINAL_RELEASE_REPORT.md + reports/G0..G12 |
+| Stage B v0.2（48 P1） | PLI_V0_2_RELEASE_CANDIDATE_READY | reports/V02_RELEASE_REPORT.md |
+| Stage C v1.0（88 P2） | Gate 全 PASS，记录层/沙箱完成 | FULL_PRODUCT_AUDIT.md |
+| Stage D Future（42） | backlog（按 GOAL 不强制上线） | FULL_PRODUCT_AUDIT.md |
+
+## 最终验证（真实命令）
+
+- `pytest -q` → **181 passed**（Stage A 106 + B 34 + C 41）
+- `ruff check`（api/worker/rules/ai-gateway/tests）→ All checks passed
+- `pnpm --dir apps/web typecheck && build` → 绿（16 routes）
+- `alembic upgrade head` → 迁移链 5 个版本全部通过
+- `scripts/staging_smoke.py` → **12/12 PASS**（对运行中的 API:8800）
+- 备份/恢复演练 → pg_dump 64 表、restore 0 错误、数据计数验证通过
 
 ## Current blockers
-- `git push` BLOCKED：未配置远端仓库。本地提交已完成。
+- `git push`：无远端仓库（用户需提供 URL 与凭据）。
 
-## Last verified commands
-- `.venv\Scripts\python.exe -m pytest -q` → 106 passed
-- `.venv\Scripts\python.exe -m ruff check …` → All checks passed
-- `pnpm --dir apps/web build` → 12 routes, exit 0
-- `docker compose up -d` → 3 healthy
-- API `:8800/api/v1/health` → 200; Web `:3100` → 200
-
-## v0.1 → v1.0 continuation
-见 `GOAL_全量连续执行_从v0.1到v1.0.md`（v0.1 结论已得出后按 Gate 顺序推进）。
+## 下一步（backlog，不阻塞当前终点）
+- Future 42 项按产品节奏排期
+- PARTIAL 27 项的 UI/下游通道补齐（见 FULL_PRODUCT_AUDIT.md）
