@@ -14,10 +14,10 @@ function Run-Step($name, $command) {
     }
 }
 
-Run-Step "API ruff" ".\.venv\Scripts\python.exe -m ruff check services/api"
-Run-Step "API pytest" ".\.venv\Scripts\python.exe -m pytest services/api/tests -q"
-Run-Step "Web typecheck" "pnpm --dir apps/web typecheck"
-Run-Step "Web build" "pnpm --dir apps/web build"
+Run-Step "ruff (python lint)" ".\.venv\Scripts\python.exe -m ruff check services/api services/worker packages/rules services/ai-gateway"
+Run-Step "pytest (unit+integration+contract+safety+ai-evals+e2e)" ".\.venv\Scripts\python.exe -m pytest -q"
+Run-Step "web typecheck" "pnpm --dir apps/web typecheck"
+Run-Step "web build" "pnpm --dir apps/web build"
 
 if ($failed -ne 0) {
     exit 1
