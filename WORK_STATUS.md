@@ -1,14 +1,14 @@
 # WORK_STATUS
 
 ## Current terminal
-`PLI_BOOTSTRAP_NOT_STARTED`
+`PLI_V0_1_IN_PROGRESS`
 
 ## Phase status
 
 | Phase | Status | Evidence | Notes |
 |---|---|---|---|
-| G0 Preflight | NOT_RUN | — | — |
-| G1 Repo/Infra | NOT_RUN | — | — |
+| G0 Preflight | PASS | reports/G0_PREFLIGHT.md | git initialized, toolchain OK, docs read |
+| G1 Repo/Infra | IN_PROGRESS | — | — |
 | G2 Domain Schema | NOT_RUN | — | — |
 | G3 Permission | NOT_RUN | — | — |
 | G4 Daily/Timeline | NOT_RUN | — | — |
@@ -22,7 +22,8 @@
 | G12 Demo | NOT_RUN | — | — |
 
 ## Current blockers
-- None recorded yet.
+- No git remote configured → push BLOCKED (local commits continue).
 
 ## Last verified commands
-- None.
+- `git init -b main` + initial commit 90329a6
+- toolchain checks (see reports/G0_PREFLIGHT.md)
