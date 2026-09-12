@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pli.local/schemas/life_event.schema.json",
+  "title": "Pet Life Event",
+  "type": "object",
+  "required": [
+    "event_id",
+    "pet_id",
+    "event_type",
+    "occurred_at",
+    "recorded_at",
+    "actor_id",
+    "source_type",
+    "provenance_level",
+    "schema_version",
+    "payload"
+  ],
+  "properties": {
+    "event_id": {"type": "string", "format": "uuid"},
+    "pet_id": {"type": "string", "format": "uuid"},
+    "event_type": {"type": "string", "minLength": 3},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "recorded_at": {"type": "string", "format": "date-time"},
+    "actor_id": {"type": "string", "format": "uuid"},
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "OWNER_REPORTED",
+        "CAREGIVER_REPORTED",
+        "DEVICE_DERIVED",
+        "AI_DERIVED",
+        "PROFESSIONAL_CONFIRMED",
+        "LAB_CONFIRMED",
+        "SYSTEM_CALCULATED"
+      ]
+    },
+    "source_ref": {"type": ["string", "null"]},
+    "provenance_level": {"type": "string"},
+    "schema_version": {"type": "string"},
+    "payload": {"type": "object"},
+    "artifact_ids": {
+      "type": "array",
+      "items": {"type": "string", "format": "uuid"}
+    },
+    "supersedes_event_id": {
+      "type": ["string", "null"],
+      "format": "uuid"
+    },
+    "retracted_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

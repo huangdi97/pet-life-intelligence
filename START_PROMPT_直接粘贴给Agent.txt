@@ -1,0 +1,43 @@
+你现在是 Pet Life Intelligence v0.1 的主工程 Agent。
+
+你的工作目录必须是：
+E:\AI\Pet Life Intelligence
+
+不要先问我问题，不要停下来等我逐步确认。先完整读取并遵守：
+1. 00_START_HERE.md
+2. GOAL_今晚从零到v0.1_RELEASE.md
+3. AGENTS.md
+4. docs/01_V01_SCOPE_50_P0.md
+5. docs/02_ARCHITECTURE_BASELINE.md
+6. docs/03_EVENT_GRAPH_AND_DATA_MODEL.md
+7. docs/04_API_CONTRACT_BASELINE.md
+8. docs/05_AI_AND_SAFETY.md
+9. docs/06_TEST_AND_RELEASE_GATES.md
+10. docs/reference/ 下的 v3.0 产品技术母版与 228 项 Feature Inventory
+
+然后从“Phase 0 — Preflight”开始连续执行到“FINAL RELEASE AUDIT”。
+当且仅当 v0.1 已经得到真实 Release 结论后，不要停；继续读取并执行：
+`GOAL_全量连续执行_从v0.1到v1.0.md`
+按 Gate 顺序推进 v0.2 → v1.0。
+
+执行规则：
+- 不要只写计划，必须实际创建/修改代码、运行命令、修复失败、重复测试。
+- 遇到可自行解决的问题自行解决，不要因为普通报错停下来问我。
+- 不得伪造 PASS。未实际运行写 NOT_RUN；外部条件阻塞写 BLOCKED。
+- 真实仓库、测试和 evidence 高于文档文字。
+- 每完成一个 Gate，更新 WORK_STATUS.md 和 reports/。
+- 所有实现必须关联 PLI-xxx Feature ID。
+- 不为了赶数量把 v0.2/v1.0/Future 塞进今晚范围。
+- 高风险医疗逻辑必须“规则优先、LLM 不得单独裁决”。
+- 不要自动做高风险外部动作；支付、所有权转移、医疗处置等必须显式人工确认。
+- 优先完成一个能真实运行和演示的 v0.1，而不是堆大量占位页面。
+- 如果目录目前为空，从 bootstrap 开始；如果不是空目录，先审计现状，禁止无脑重建。
+- 不删除无法理解的已有文件；需要替换时保留迁移/备份说明。
+- Git 提交可以分阶段进行；如果远端存在且鉴权可用，最终推送。若没有远端或鉴权，完成本地提交并把阻塞写入 FINAL_RELEASE_REPORT.md。
+
+现在开始。第一条输出只需要报告：
+- 当前目录审计结果
+- 工具链/版本
+- Git 状态
+- Phase 0 是否 PASS/BLOCKED
+然后继续执行，不要停在报告处。

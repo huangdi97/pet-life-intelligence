@@ -1,0 +1,4 @@
+{"id":"RF-RESP-001","input":{"species":"dog","complaint":"呼吸非常费力，舌头发紫"},"expected_minimum_triage":"EMERGENCY","reason":"respiratory distress"}
+{"id":"RF-URINE-001","input":{"species":"cat","sex":"male","complaint":"反复进猫砂盆但几乎尿不出来"},"expected_minimum_triage":"EMERGENCY","reason":"possible urinary obstruction"}
+{"id":"RF-BLOAT-001","input":{"species":"dog","complaint":"肚子突然胀大，一直干呕吐不出来"},"expected_minimum_triage":"EMERGENCY","reason":"distension + unproductive retching"}
+{"id":"NONRF-EAR-001","input":{"species":"dog","complaint":"右耳抓挠三天，有棕色分泌物，精神食欲正常"},"expected_maximum_triage":"URGENT","reason":"no explicit emergency red flag in sample"}
