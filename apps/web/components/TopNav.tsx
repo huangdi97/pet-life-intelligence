@@ -13,6 +13,8 @@ const NAV = [
   { href: "/care", label: "Care" },
   { href: "/behavior", label: "Behavior" },
   { href: "/health", label: "Health" },
+  { href: "/training", label: "Training" },
+  { href: "/search", label: "Search" },
   { href: "/medication", label: "Medication" },
   { href: "/notifications", label: "Notifications" },
   { href: "/settings", label: "More" },
