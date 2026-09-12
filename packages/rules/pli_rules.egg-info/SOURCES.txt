@@ -1,9 +1,0 @@
-README.md
-pyproject.toml
-pli_rules/__init__.py
-pli_rules/engine.py
-pli_rules.egg-info/PKG-INFO
-pli_rules.egg-info/SOURCES.txt
-pli_rules.egg-info/dependency_links.txt
-pli_rules.egg-info/requires.txt
-pli_rules.egg-info/top_level.txt

@@ -19,3 +19,6 @@ artifacts/uploads/
 .minio/
 postgres-data/
 redis-data/
+
+*.egg-info/
+build/

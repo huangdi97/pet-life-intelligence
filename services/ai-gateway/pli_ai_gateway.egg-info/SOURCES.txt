@@ -1,9 +1,0 @@
-README.md
-pyproject.toml
-pli_ai_gateway/__init__.py
-pli_ai_gateway/gateway.py
-pli_ai_gateway.egg-info/PKG-INFO
-pli_ai_gateway.egg-info/SOURCES.txt
-pli_ai_gateway.egg-info/dependency_links.txt
-pli_ai_gateway.egg-info/requires.txt
-pli_ai_gateway.egg-info/top_level.txt
