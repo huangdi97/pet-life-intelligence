@@ -111,6 +111,8 @@ class HealthRecord(UUIDPk, CreatedAt, Base):
     kind: Mapped[str] = mapped_column(String(30), nullable=False)  # PRESCRIPTION|LAB|EXAM|VACCINATION
     occurred_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     content: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    # PLI-045 signature provenance: SIGNED | UNSIGNED | NOT_REQUIRED
+    signature_status: Mapped[str] = mapped_column(String(20), default="NOT_REQUIRED", nullable=False)
     source_type: Mapped[str] = mapped_column(String(40), nullable=False)
     source_note: Mapped[str] = mapped_column(String(300), default="", nullable=False)
     artifact_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)

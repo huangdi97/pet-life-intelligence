@@ -4,6 +4,7 @@ The bootstrap app (single /health route) was superseded on 2026-09-13 by the
 full v0.1 router set; system health routes moved to app/api/routes/system.py.
 """
 
+import logging
 import time
 import uuid as uuid_mod
 from collections import defaultdict, deque
@@ -57,10 +58,14 @@ install_error_handlers(app)
 RATE_BUCKETS: dict[str, deque] = defaultdict(deque)
 
 
+logger = logging.getLogger("pli.access")
+
+
 @app.middleware("http")
 async def request_context(request: Request, call_next):
     request_id = request.headers.get("X-Request-ID") or uuid_mod.uuid4().hex
     request.state.request_id = request_id
+    started = time.perf_counter()
 
     if settings.rate_limit_enabled and request.method in ("POST", "PUT", "DELETE"):
         now = time.monotonic()
@@ -78,6 +83,17 @@ async def request_context(request: Request, call_next):
 
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
+    # structured access log: no bodies, no tokens, no health text
+    logger.info(
+        "request",
+        extra={
+            "request_id": request_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status": response.status_code,
+            "duration_ms": int((time.perf_counter() - started) * 1000),
+        },
+    )
     return response
 
 

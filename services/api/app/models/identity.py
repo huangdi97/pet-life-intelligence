@@ -97,6 +97,9 @@ class Pet(UUIDPk, CreatedAt, Base):
     )
     # PLI-013 pet lifecycle: ACTIVE | LOST | DECEASED | TRANSFERRED (transitions audited)
     lifecycle_status: Mapped[str] = mapped_column(String(20), default="ACTIVE", nullable=False)
+    # PLI-012 field-level privacy: masked fields for non-manage viewers,
+    # e.g. ["weight_note", "birth_date", "breed"] — enforced by serializers.
+    field_privacy: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 

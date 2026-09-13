@@ -276,9 +276,19 @@ async def import_health_record(
     await perm.require_capability(db, pet, user.id, enums.Capability.MEDICAL_WRITE)
     if body.source_type not in enums.PROVENANCE_LEVELS:
         raise ValidationFailed("source_type must be a valid provenance level (PLI-058)")
+    # PLI-045: professional records must carry signature provenance.
+    sig = body.content.get("signature") if isinstance(body.content, dict) else None
+    if body.kind in ("PRESCRIPTION", "EXAM"):
+        signed = isinstance(sig, dict) and all(
+            sig.get(k) for k in ("signer", "institution", "signed_at")
+        )
+        signature_status = "SIGNED" if signed else "UNSIGNED"
+    else:
+        signature_status = "NOT_REQUIRED"
     record = HealthRecord(
         pet_id=pet.id, kind=body.kind, occurred_at=body.occurred_at,
         content=body.content, source_type=body.source_type,
+        signature_status=signature_status,
         source_note=body.source_note, artifact_id=body.artifact_id,
         created_by_user_id=user.id,
     )
@@ -297,7 +307,9 @@ async def import_health_record(
     await db.commit()
     return {"record_id": str(record.id), "kind": record.kind,
             "provenance": record.source_type,
-            "note": "导入记录带来源分级；不自动生成诊断。"}
+            "signature_status": record.signature_status,
+            "note": "导入记录带来源分级；PRESCRIPTION/EXAM 缺签名标记为 UNSIGNED；"
+                    "不自动生成诊断。"}
 
 
 @router.get("/pets/{pet_id}/health-records")
@@ -315,6 +327,7 @@ async def list_health_records(
     return [
         {"record_id": str(r.id), "kind": r.kind, "content": r.content,
          "source_type": r.source_type, "source_note": r.source_note,
+         "signature_status": r.signature_status,
          "occurred_at": r.occurred_at.isoformat() if r.occurred_at else None}
         for r in rows
     ]

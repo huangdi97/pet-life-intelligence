@@ -23,13 +23,14 @@ from sqlalchemy import func, select
 
 from app.adapters.devices import AdapterError, get_provider, quality_check
 from app.api.deps import CurrentUser, DBSession
-from app.core.errors import NotFound, PermissionDenied, ValidationFailed
+from app.core.errors import APIError, NotFound, PermissionDenied, ValidationFailed
 from app.domain import enums
 from app.models import (
     AgentActionLog,
     AutomationRule,
     BehaviorEvent,
     BehaviorInterventionPlan,
+    CapabilityRegistry,
     CareTask,
     DeviceEvent,
     Expense,
@@ -110,12 +111,14 @@ async def link_device(pet_id: uuid.UUID, body: DeviceLinkIn,
     try:
         provider = get_provider(body.provider)  # unknown/real vendors rejected
     except AdapterError as err:
-        raise PermissionDenied(
-            f"provider '{body.provider}' is EXTERNAL_BLOCKED (no sandbox adapter registered)"
+        raise APIError(
+            f"provider '{body.provider}' is EXTERNAL_BLOCKED (no sandbox adapter registered)",
+            code="EXTERNAL_BLOCKED", status_code=403,
         ) from err
     if provider.external and not await feature_enabled(db, f"device.{body.provider}"):
-        raise PermissionDenied(
-            f"provider '{body.provider}' is EXTERNAL_BLOCKED (flag device.{body.provider} off)"
+        raise APIError(
+            f"provider '{body.provider}' is EXTERNAL_BLOCKED (flag device.{body.provider} off)",
+            code="EXTERNAL_BLOCKED", status_code=403,
         )
     row = PetDevice(
         pet_id=pet.id, device_key=body.device_key, provider=body.provider,
@@ -253,6 +256,22 @@ async def device_webhook(provider: str, body: WebhookIn,
             payload=body.payload,
         )
     )
+    replay = (
+        await db.execute(
+            select(DeviceEvent).where(
+                DeviceEvent.provider == provider,
+                DeviceEvent.provider_event_id == body.provider_event_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if replay is not None:
+        from app.core.errors import ConflictError
+
+        raise ConflictError(
+            "Duplicate webhook event (provider_event_id already ingested).",
+            code="DUPLICATE_EVENT",
+            details={"device_event_id": str(replay.id)},
+        )
     row = DeviceEvent(
         pet_id=device.pet_id, device_id=device.id, provider=provider,
         provider_event_id=body.provider_event_id,
@@ -313,6 +332,62 @@ async def create_rule(pet_id: uuid.UUID, body: RuleIn,
     await db.commit()
     return {"rule_id": str(row.id), "requires_confirmation": row.requires_confirmation,
             "note": "非 NOTIFY 动作一律需要人工确认，绝不自动执行（PLI-135）。"}
+
+
+@router.post("/device-events/{event_id}/attribution")
+async def assign_attribution(event_id: uuid.UUID, body: dict,
+                             db: DBSession, user: CurrentUser) -> dict:
+    """PLI-128: manual multi-pet attribution for a device event."""
+    row = (
+        await db.execute(select(DeviceEvent).where(DeviceEvent.id == event_id))
+    ).scalar_one_or_none()
+    if row is None:
+        raise NotFound("Device event not found.")
+    target_pet = await perm.get_pet_or_404(
+        db, uuid.UUID(str(body.get("pet_id", "")))
+    )
+    await perm.require_capability(db, target_pet, user.id, enums.Capability.MANAGE_PET)
+    attribution = str(body.get("attribution", "MANUAL"))
+    if attribution not in {"DEVICE", "MANUAL", "UNRESOLVED"}:
+        raise ValidationFailed("attribution must be DEVICE|MANUAL|UNRESOLVED")
+    row.pet_id = target_pet.id
+    row.attribution = attribution
+    await db.flush()
+    await write_audit(db, action="device_event.attribute", actor_user_id=user.id,
+                      household_id=target_pet.household_id, pet_id=target_pet.id,
+                      resource_type="DeviceEvent", resource_id=str(row.id),
+                      detail={"attribution": attribution})
+    await db.commit()
+    return {"event_id": str(row.id), "pet_id": str(target_pet.id),
+            "attribution": attribution}
+
+
+@router.post("/device-events/{event_id}/review")
+async def review_device_event(event_id: uuid.UUID, body: dict,
+                              db: DBSession, user: CurrentUser) -> dict:
+    """PLI-131: AI event review queue write-back."""
+    row = (
+        await db.execute(select(DeviceEvent).where(DeviceEvent.id == event_id))
+    ).scalar_one_or_none()
+    if row is None:
+        raise NotFound("Device event not found.")
+    pet = await perm.get_pet_or_404(db, uuid.UUID(str(row.pet_id)))
+    await perm.require_capability(db, pet, user.id, enums.Capability.MEDICAL_WRITE)
+    status = str(body.get("status", ""))
+    if status not in {"CONFIRMED", "REJECTED"}:
+        raise ValidationFailed("status must be CONFIRMED|REJECTED")
+    row.review_status = status
+    row.payload = {**row.payload, "review_note": str(body.get("note", ""))}
+    from sqlalchemy.orm.attributes import flag_modified
+
+    flag_modified(row, "payload")
+    await db.flush()
+    await write_audit(db, action="device_event.review", actor_user_id=user.id,
+                      household_id=pet.household_id, pet_id=pet.id,
+                      resource_type="DeviceEvent", resource_id=str(row.id),
+                      detail={"status": status})
+    await db.commit()
+    return {"event_id": str(row.id), "review_status": status}
 
 
 @router.get("/pets/{pet_id}/device-events/review-queue")
@@ -403,14 +478,19 @@ async def put_field_privacy(pet_id: uuid.UUID, body: FieldPrivacyIn,
     invalid = [f for f in body.hidden_fields if f not in allowed]
     if invalid:
         raise ValidationFailed(f"fields not privacy-maskable: {invalid}")
+    pet.field_privacy = body.hidden_fields
+    from sqlalchemy.orm.attributes import flag_modified
+
+    flag_modified(pet, "field_privacy")
+    await db.flush()
     await write_audit(db, action="field_privacy.set", actor_user_id=user.id,
                       household_id=pet.household_id, pet_id=pet.id,
                       resource_type="Pet", resource_id=str(pet.id),
                       detail={"hidden": body.hidden_fields})
     await db.commit()
     return {"pet_id": str(pet.id), "hidden_fields": body.hidden_fields,
-            "enforcement": "audit-recorded; serializer masking documented in "
-                           "FULL_PRODUCT_AUDIT (record layer)"}
+            "enforcement": "GET /pets/{id} and Care Card mask these fields "
+                           "for viewers without manage capability"}
 
 
 @router.get("/pets/{pet_id}/export")
@@ -720,6 +800,84 @@ async def create_service_request(pet_id: uuid.UUID, body: ServiceRequestIn,
     await db.commit()
     return {"request_id": str(row.id), "status": row.status,
             "boundary": "记录层：真实服务者匹配与支付 EXTERNAL_BLOCKED，本系统不撮合、不收款。"}
+
+
+@router.post("/service-requests/{request_id}/checklist", status_code=201)
+async def init_service_checklist(request_id: uuid.UUID, body: dict,
+                                 db: DBSession, user: CurrentUser) -> dict:
+    """PLI-143: pre-service checklist (same pattern as handoff checklist)."""
+    row = (
+        await db.execute(select(ServiceRequest).where(ServiceRequest.id == request_id))
+    ).scalar_one_or_none()
+    if row is None:
+        raise NotFound("Service request not found.")
+    pet = await perm.get_pet_or_404(db, row.pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.MANAGE_PET)
+    items = body.get("items") or [
+        "喂食时间与份量说明", "当前用药与给药时间", "行为禁忌与应激源",
+        "紧急联系人 / 首选医院", "常用物品位置",
+    ]
+    row.checklist = [{"text": t, "done": False, "done_by": None, "done_at": None}
+                     for t in items]
+    from sqlalchemy.orm.attributes import flag_modified
+
+    flag_modified(row, "checklist")
+    await db.flush()
+    await db.commit()
+    return {"request_id": str(row.id), "checklist": row.checklist}
+
+
+@router.post("/service-requests/{request_id}/checklist/update")
+async def update_service_checklist(request_id: uuid.UUID, body: dict,
+                                   db: DBSession, user: CurrentUser) -> dict:
+    row = (
+        await db.execute(select(ServiceRequest).where(ServiceRequest.id == request_id))
+    ).scalar_one_or_none()
+    if row is None:
+        raise NotFound("Service request not found.")
+    pet = await perm.get_pet_or_404(db, row.pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_WRITE)
+    index = int(body.get("index", -1))
+    if index < 0 or index >= len(row.checklist):
+        raise ValidationFailed("checklist index out of range")
+    row.checklist[index] = {
+        **row.checklist[index], "done": bool(body.get("done")),
+        "done_by": str(user.id),
+        "done_at": datetime.now(timezone.utc).isoformat(),
+    }
+    from sqlalchemy.orm.attributes import flag_modified
+
+    flag_modified(row, "checklist")
+    await db.flush()
+    await db.commit()
+    return {"request_id": str(row.id), "checklist": row.checklist}
+
+
+@router.post("/service-requests/{request_id}/summary", status_code=201)
+async def generate_service_summary(request_id: uuid.UUID, db: DBSession,
+                                   user: CurrentUser) -> dict:
+    """PLI-146: deterministic service summary from updates + checklist."""
+    row = (
+        await db.execute(select(ServiceRequest).where(ServiceRequest.id == request_id))
+    ).scalar_one_or_none()
+    if row is None:
+        raise NotFound("Service request not found.")
+    pet = await perm.get_pet_or_404(db, row.pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_WRITE)
+    checklist_done = sum(1 for c in row.checklist if c.get("done"))
+    row.summary = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "final_status": row.status,
+        "update_count": len(row.updates),
+        "checklist_done": str(checklist_done) + "/" + str(len(row.checklist)),
+        "notice": "总结为记录统计，非主观评价。",
+    }
+    from sqlalchemy.orm.attributes import flag_modified
+
+    flag_modified(row, "summary")
+    await db.flush()
+    await db.commit()
+    return {"request_id": str(row.id), "summary": row.summary}
 
 
 @router.post("/service-requests/{request_id}/updates", status_code=201)
@@ -1097,3 +1255,70 @@ async def data_quality(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -> d
     )
     return {"pet_id": str(pet.id), "score": round(score, 2), "checks": checks,
             "event_count": event_count}
+
+
+# --- Stage D Phase 7: integration capability registry -----------------------
+
+REGISTRY_SEED = [
+    {"capability": "device.telemetry", "provider": "fake", "mode": "SANDBOX",
+     "status": "SANDBOX_READY", "feature_flag": "device.fake",
+     "risk_level": "LOW", "notes": "sandbox provider; marked sandbox in payload"},
+    {"capability": "device.telemetry", "provider": "<real vendors>",
+     "mode": "REAL", "status": "EXTERNAL_BLOCKED",
+     "feature_flag": "device.<vendor>", "risk_level": "HIGH",
+     "notes": "no credential/agreement; adapter interface only"},
+    {"capability": "vet.booking", "provider": "sandbox", "mode": "SANDBOX",
+     "status": "DISABLED", "feature_flag": "feature.vet_booking",
+     "risk_level": "HIGH", "notes": "policy: booking never auto-executed"},
+    {"capability": "vet.booking", "provider": "real_provider", "mode": "REAL",
+     "status": "EXTERNAL_BLOCKED", "feature_flag": "feature.vet_booking_real",
+     "risk_level": "HIGH", "notes": "no legal/technical agreement"},
+    {"capability": "payments", "provider": "any", "mode": "REAL",
+     "status": "EXTERNAL_BLOCKED", "feature_flag": "", "risk_level": "HIGH",
+     "notes": "no payments in v1.0"},
+    {"capability": "push.notifications", "provider": "any", "mode": "REAL",
+     "status": "EXTERNAL_BLOCKED", "feature_flag": "", "risk_level": "LOW",
+     "notes": "in-app notifications only in v1.0"},
+    {"capability": "insurance.claims", "provider": "any", "mode": "REAL",
+     "status": "EXTERNAL_BLOCKED", "feature_flag": "", "risk_level": "HIGH",
+     "notes": "record layer only"},
+]
+
+
+async def ensure_registry_seeded(db) -> None:
+    for entry in REGISTRY_SEED:
+        exists = (
+            await db.execute(
+                select(CapabilityRegistry).where(
+                    CapabilityRegistry.capability == entry["capability"],
+                    CapabilityRegistry.provider == entry["provider"],
+                )
+            )
+        ).scalar_one_or_none()
+        if exists is None:
+            db.add(CapabilityRegistry(**entry))
+
+
+@router.get("/capabilities")
+async def list_capabilities(db: DBSession, user: CurrentUser) -> list[dict]:
+    await ensure_registry_seeded(db)
+    await db.commit()
+    rows = (
+        await db.execute(
+            select(CapabilityRegistry).order_by(
+                CapabilityRegistry.capability, CapabilityRegistry.mode
+            )
+        )
+    ).scalars().all()
+    return [
+        {
+            "capability": r.capability, "provider": r.provider,
+            "mode": r.mode, "environment": r.environment,
+            "status": r.status, "feature_flag": r.feature_flag,
+            "contract_version": r.contract_version,
+            "risk_level": r.risk_level,
+            "last_verified_at": r.last_verified_at.isoformat() if r.last_verified_at else None,
+            "notes": r.notes,
+        }
+        for r in rows
+    ]

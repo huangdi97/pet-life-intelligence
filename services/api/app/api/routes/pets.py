@@ -145,10 +145,19 @@ async def list_pets(db: DBSession, user: CurrentUser) -> list[PetOut]:
 
 
 @router.get("/pets/{pet_id}")
-async def get_pet(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -> PetOut:
+async def get_pet(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -> dict:
     pet = await perm.get_pet_or_404(db, pet_id)
-    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
-    return PetOut.model_validate(pet)
+    caps = await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    data = PetOut.model_validate(pet).model_dump(mode="json")
+    # PLI-012: field-level privacy — viewers without manage capability see
+    # masked fields; owner/co-owner always see everything.
+    if enums.Capability.MANAGE_PET.value not in caps:
+        masked = pet.field_privacy or []
+        for f in masked:
+            if f in data:
+                data[f] = None
+        data["field_privacy_applied"] = masked
+    return data
 
 
 @router.patch("/pets/{pet_id}")

@@ -60,6 +60,7 @@ async def create_life_event(
         payload = validate_payload(event_type, payload)
     except Exception as exc:  # pydantic ValidationError
         raise ValidationFailed(f"Payload invalid for {event_type}: {exc}") from exc
+    _reject_unsafe_strings(payload)
 
     occurred_at = _ensure_tz(occurred_at or datetime.now(UTC))
     prov = provenance_level or source_type.value
@@ -187,6 +188,25 @@ async def create_notification(
     db.add(n)
     await db.flush()
     return n
+
+
+def _reject_unsafe_strings(value, _depth: int = 0) -> None:
+    """GA hardening: NUL bytes break PostgreSQL JSONB (500). Any string in a
+    payload containing control characters is rejected with 422."""
+    if _depth > 12:
+        raise ValidationFailed("payload nesting too deep.")
+    if isinstance(value, str):
+        if chr(0) in value:
+            raise ValidationFailed("payload contains NUL control character.")
+        if any(ord(c) < 9 or (13 < ord(c) < 32) for c in value):
+            raise ValidationFailed("payload contains control characters.")
+    elif isinstance(value, dict):
+        for k, v in value.items():
+            _reject_unsafe_strings(str(k), _depth + 1)
+            _reject_unsafe_strings(v, _depth + 1)
+    elif isinstance(value, (list, tuple)):
+        for v in value:
+            _reject_unsafe_strings(v, _depth + 1)
 
 
 def get_request_id(request: Request | None) -> str:

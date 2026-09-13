@@ -436,9 +436,13 @@ async def create_care_card(
         )
     ).scalars().all()
 
+    masked = pet.field_privacy or []
+    birth = None if "birth_date" in masked else str(pet.birth_date or "")
+    breed = None if "breed" in masked else pet.breed
     content = {
-        "pet": {"name": pet.name, "species": pet.species, "breed": pet.breed,
-                "sex": pet.sex, "birth_date": str(pet.birth_date or "")},
+        "pet": {"name": pet.name, "species": pet.species, "breed": breed,
+                "sex": pet.sex, "birth_date": birth,
+                "field_privacy_applied": masked},
         "feeding_notes": "",
         "medications": [
             {"medicine_name": m.medicine_name, "dose_text": m.dose_text,

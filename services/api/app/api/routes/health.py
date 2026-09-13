@@ -46,6 +46,12 @@ INTAKE_QUESTIONS = [
 
 
 class HealthEventCreate(BaseModel):
+    """GOAL 7.4 schema safety: decision fields (diagnosis / triage_override /
+    emergency_override / treatment_order) can never enter through this
+    payload — unknown fields are rejected outright."""
+
+    model_config = {"extra": "forbid"}
+
     chief_complaint: str = Field(min_length=1)
     onset_at: datetime | None = None
     duration_text: str = ""

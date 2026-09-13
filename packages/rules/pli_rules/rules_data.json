@@ -41,6 +41,11 @@
         "choking",
         "gasping",
         "cyanosis"
+      ],
+      "any_patterns": [
+        "呼吸[^。；]{0,6}费力",
+        "呼吸[^。；]{0,6}困难",
+        "喘[^。；]{0,4}不上气"
       ]
     },
     {
@@ -156,6 +161,9 @@
         "ibuprofen",
         "pesticide",
         "lily"
+      ],
+      "any_patterns": [
+        "(吃了|误食|偷吃)[^。；]{0,8}(巧克力|葡萄|老鼠药|药片)"
       ]
     },
     {
@@ -180,6 +188,10 @@
         "dry heaving",
         "trying to vomit nothing comes out",
         "bloated and retching"
+      ],
+      "any_patterns": [
+        "肚子[^。；]{0,8}(胀|鼓)",
+        "干呕[^。；]{0,6}吐不出"
       ]
     },
     {
@@ -204,6 +216,10 @@
         "straining in litter box",
         "no urine coming out",
         "frequent litter box visits"
+      ],
+      "any_patterns": [
+        "反复[^。；]{0,10}猫砂",
+        "尿[^。；]{0,4}不出"
       ]
     },
     {

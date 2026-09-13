@@ -221,6 +221,8 @@ class ServiceRequest(UUIDPk, CreatedAt, Base):
     status: Mapped[str] = mapped_column(String(20), default="REQUESTED", nullable=False)
     # REQUESTED → MATCHED(manual) → BOOKED → IN_PROGRESS → COMPLETED|CANCELLED
     updates: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)
+    # PLI-143 pre-service checklist: [{text, done, done_by, done_at}]
+    checklist: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)
     summary: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     review: Mapped[dict | None] = mapped_column(JSONB, nullable=True)  # PLI-148 split review
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(
@@ -272,6 +274,26 @@ class ExperimentAssignment(UUIDPk, CreatedAt, Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
     bucket: Mapped[str] = mapped_column(String(20), nullable=False)
+
+
+class CapabilityRegistry(UUIDPk, CreatedAt, Base):
+    """Integration capability registry (Stage D Phase 7): one row per
+    capability×provider; sandbox must never be presented as real."""
+
+    __tablename__ = "capability_registry"
+    __table_args__ = (UniqueConstraint("capability", "provider"),)
+
+    capability: Mapped[str] = mapped_column(String(80), nullable=False)
+    provider: Mapped[str] = mapped_column(String(60), nullable=False)
+    mode: Mapped[str] = mapped_column(String(10), nullable=False)  # SANDBOX | REAL
+    environment: Mapped[str] = mapped_column(String(20), default="LOCAL", nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    # SANDBOX_READY | REAL_READY | EXTERNAL_BLOCKED | DISABLED | DEPRECATED
+    feature_flag: Mapped[str] = mapped_column(String(80), default="", nullable=False)
+    contract_version: Mapped[str] = mapped_column(String(20), default="v1", nullable=False)
+    risk_level: Mapped[str] = mapped_column(String(10), default="LOW", nullable=False)
+    last_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    notes: Mapped[str] = mapped_column(String(300), default="", nullable=False)
 
 
 class HouseholdExpenseSplit(UUIDPk, CreatedAt, Base):

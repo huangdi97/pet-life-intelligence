@@ -57,6 +57,7 @@ from app.models.v10 import (  # noqa: F401 — v1.0 models
     AgentActionLog,
     AutomationRule,
     BehaviorInterventionPlan,
+    CapabilityRegistry,
     DeviceEvent,
     ExperimentAssignment,
     FeatureFlag,
@@ -73,6 +74,7 @@ from app.models.v10 import (  # noqa: F401 — v1.0 models
 
 __all__ = [
     "AgentActionLog",
+    "CapabilityRegistry",
     "BehaviorInterventionPlan",
     "AutomationRule",
     "DeviceEvent",

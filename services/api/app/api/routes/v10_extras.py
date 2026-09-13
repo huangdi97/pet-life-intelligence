@@ -561,3 +561,56 @@ async def consultation_package(pet_id: uuid.UUID, db: DBSession,
         ],
         "disclaimer": "信息整理供行为咨询使用；不构成诊断。",
     }
+
+
+# --- PLI-099 five-domain welfare profile ------------------------------------
+
+
+WELFARE_DOMAINS = {"NUTRITION", "ENVIRONMENT", "HEALTH", "BEHAVIOR", "MENTAL"}
+
+
+class WelfareProfileIn(BaseModel):
+    domains: dict
+
+
+@router.put("/pets/{pet_id}/welfare-profile")
+async def put_welfare_profile(pet_id: uuid.UUID, body: WelfareProfileIn,
+                              db: DBSession, user: CurrentUser) -> dict:
+    pet = await perm.get_pet_or_404(db, pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_WRITE)
+    invalid = [k for k in body.domains if k not in WELFARE_DOMAINS]
+    if invalid:
+        raise ValidationFailed(f"unknown domains: {invalid}")
+    from app.models import WelfareProfile as WP
+
+    row = (
+        await db.execute(select(WP).where(WP.pet_id == pet.id))
+    ).scalar_one_or_none()
+    if row is None:
+        row = WP(pet_id=pet.id, updated_by_user_id=user.id)
+        db.add(row)
+    row.domains = body.domains
+    row.updated_by_user_id = user.id
+    from sqlalchemy.orm.attributes import flag_modified
+
+    flag_modified(row, "domains")
+    await db.flush()
+    await db.commit()
+    return {"pet_id": str(pet.id), "domains": row.domains}
+
+
+@router.get("/pets/{pet_id}/welfare-profile")
+async def get_welfare_profile(pet_id: uuid.UUID, db: DBSession,
+                              user: CurrentUser) -> dict:
+    pet = await perm.get_pet_or_404(db, pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    from app.models import WelfareProfile as WP
+
+    row = (
+        await db.execute(select(WP).where(WP.pet_id == pet.id))
+    ).scalar_one_or_none()
+    if row is None:
+        return {"pet_id": str(pet.id), "domains": None,
+                "domains_schema": sorted(WELFARE_DOMAINS)}
+    return {"pet_id": str(pet.id), "domains": row.domains,
+            "updated_at": row.updated_at.isoformat()}

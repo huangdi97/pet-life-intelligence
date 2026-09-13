@@ -7,6 +7,7 @@ able to lower the triage level produced here (docs/05, GOAL §11.3).
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from importlib import resources
 from typing import Any
@@ -29,12 +30,17 @@ class Rule:
     triage: str
     description: str
     any_keywords: tuple[str, ...]
+    any_patterns: tuple[str, ...] = ()  # regex (GA hardening: defeat token-insertion evasion)
 
     def matches(self, species: str, text: str) -> list[str]:
         if species not in self.species:
             return []
         lowered = text.lower()
-        return [kw for kw in self.any_keywords if kw.lower() in lowered]
+        hits = [kw for kw in self.any_keywords if kw.lower() in lowered]
+        for pattern in self.any_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                hits.append(pattern)
+        return hits
 
 
 @dataclass
@@ -84,6 +90,7 @@ class RuleEngine:
                 triage=r["triage"],
                 description=r["description"],
                 any_keywords=tuple(r["any_keywords"]),
+                any_patterns=tuple(r.get("any_patterns", ())),
             )
             for r in data["rules"]
         )
