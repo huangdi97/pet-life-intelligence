@@ -36,7 +36,10 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 120
     max_upload_mb: int = 25
 
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    cors_origins: str = (
+        "http://localhost:3000,http://127.0.0.1:3000,"
+        "http://localhost:3100,http://127.0.0.1:3100"
+    )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

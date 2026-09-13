@@ -6,5 +6,8 @@
     "build:web": "pnpm --dir apps/web build",
     "lint:web": "pnpm --dir apps/web lint",
     "typecheck:web": "pnpm --dir apps/web typecheck"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
   }
 }
