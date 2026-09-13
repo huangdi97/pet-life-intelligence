@@ -1,0 +1,95 @@
+{
+  "environment": {
+    "api": "localhost:8800",
+    "db": "pg16 docker",
+    "note": "dev machine"
+  },
+  "dataset": {
+    "pet_id": "7dee91e9-ac6e-418a-ba43-f451ad2d5cc4",
+    "timeline_events": 500
+  },
+  "samples_per_endpoint": 60,
+  "results": [
+    {
+      "endpoint": "GET /health",
+      "p50_ms": 4.8,
+      "p95_ms": 8.8,
+      "p99_ms": 11.2,
+      "error_rate": 0.0,
+      "throughput_rps": 191.0
+    },
+    {
+      "endpoint": "POST auth/dev/login",
+      "p50_ms": 61.1,
+      "p95_ms": 100.3,
+      "p99_ms": 117.3,
+      "error_rate": 0.0,
+      "throughput_rps": 15.7
+    },
+    {
+      "endpoint": "GET /pets",
+      "p50_ms": 62.5,
+      "p95_ms": 92.7,
+      "p99_ms": 102.8,
+      "error_rate": 0.0,
+      "throughput_rps": 15.2
+    },
+    {
+      "endpoint": "GET pet detail",
+      "p50_ms": 54.9,
+      "p95_ms": 95.8,
+      "p99_ms": 104.1,
+      "error_rate": 0.0,
+      "throughput_rps": 16.7
+    },
+    {
+      "endpoint": "GET today",
+      "p50_ms": 83.4,
+      "p95_ms": 113.7,
+      "p99_ms": 134.6,
+      "error_rate": 0.0,
+      "throughput_rps": 11.8
+    },
+    {
+      "endpoint": "GET timeline(100)",
+      "p50_ms": 78.4,
+      "p95_ms": 160.0,
+      "p99_ms": 222.7,
+      "error_rate": 0.0,
+      "throughput_rps": 11.6
+    },
+    {
+      "endpoint": "GET timeline(type filter)",
+      "p50_ms": 79.8,
+      "p95_ms": 106.1,
+      "p99_ms": 128.7,
+      "error_rate": 0.0,
+      "throughput_rps": 12.5
+    },
+    {
+      "endpoint": "GET search",
+      "p50_ms": 91.8,
+      "p95_ms": 162.2,
+      "p99_ms": 191.2,
+      "error_rate": 0.0,
+      "throughput_rps": 10.3
+    },
+    {
+      "endpoint": "GET health-events",
+      "p50_ms": 66.1,
+      "p95_ms": 126.6,
+      "p99_ms": 130.7,
+      "error_rate": 0.0,
+      "throughput_rps": 13.4
+    },
+    {
+      "endpoint": "GET notifications",
+      "p50_ms": 70.3,
+      "p95_ms": 114.6,
+      "p99_ms": 165.5,
+      "error_rate": 0.0,
+      "throughput_rps": 13.3
+    }
+  ]
+}
+PERF BASELINE OK (no endpoint p95 > 1s)

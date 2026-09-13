@@ -1,8 +1,7 @@
 # WORK_STATUS
 
 ## Current terminal
-`PLI_V1_0_RELEASE_CANDIDATE_READY_WITH_FUTURE_BACKLOG`
-（v0.1 / v0.2 同为 RELEASE_CANDIDATE_READY；push BLOCKED：无远端）
+`PLI_V1_0_GA_READY`（Stage D GA Hardening 完成；push BLOCKED：无远端）
 
 ## Phase status
 
@@ -28,3 +27,13 @@
 ## 下一步（backlog，不阻塞当前终点）
 - Future 42 项按产品节奏排期
 - PARTIAL 27 项的 UI/下游通道补齐（见 FULL_PRODUCT_AUDIT.md）
+
+---
+
+## Stage D — v1.0 GA Hardening（2026-09-13）
+
+- 全部 G0–G17 Gate 判定见 reports/V10_GA_GATE_REPORT.md（critical 全 PASS）
+- pytest 235 passed；Playwright 7/7；ruff/typecheck/build 绿；smoke 12/12
+- 迁移重放+降级、备份/恢复 round 2（恢复库 API smoke）、性能基线完成
+- 228 项审计更新：DONE 160 / PARTIAL 22 / EXTERNAL 2 / Future 42
+- 发布报告：V10_RELEASE_REPORT.md；CHANGELOG.md；tag v1.0.0

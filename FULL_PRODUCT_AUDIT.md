@@ -54,9 +54,9 @@ PARTIAL：PLI-005（QR 目标/NFC payload 端点完成、前端二维码渲染�
 
 ### Stage C — v1.0（88）
 
-DONE：PLI-015, 030, 034, 043, 044, 048, 065, 066, 067, 072, 076, 077, 078, 082, 083, 089, 090, 093, 096, 097, 098, 101, 102, 105, 108, 114, 115, 116, 117, 119, 122, 125, 126, 127, 129, 132, 134, 135, 139, 142, 144, 148, 149, 164, 166, 167, 176, 177, 179, 184, 189, 191, 201, 202, 206, 207, 209, 210, 218, 222, 224, 226（62 项）
+DONE：PLI-015, 030, 034, 043, 044, 048, 065, 066, 067, 072, 076, 077, 078, 081, 082, 083, 089, 090, 093, 096, 097, 098, 099, 101, 102, 105, 108, 114, 115, 116, 117, 119, 122, 125, 126, 127, 128, 129, 131, 132, 134, 135, 139, 142, 143, 144, 146, 148, 149, 164, 166, 167, 176, 177, 179, 184, 189, 191, 201, 202, 206, 207, 209, 210, 218, 222, 224, 226（67 项；Stage D 升级 081/099/128/131/143/146，并修正上轮漏计）
 
-PARTIAL：PLI-006（合并请求登记+审计；执行人工）、PLI-009（转移请求登记；执行人工确认）、PLI-012（字段隐私校验+审计记录层；序列器掩码待接）、PLI-045（签名政策端点；导入签名强制未接）、PLI-094（专业链接；目标共享 UI 未接）、PLI-095（视频工件绑定；复盘 UI 未接）、PLI-099（五域档案表；无端点）、PLI-103（环境负荷 kind；无分析视图）、PLI-104（压力恢复 kind；无分析视图）、PLI-106（QOL 问卷 kind；无问卷 UI/计分）、PLI-128（attribution 字段+手动归因；自动归因规则未接）、PLI-130（CAMERA_CLIP kind；无真实摄像头）、PLI-131（AI 审核队列只读；复核写回未接）、PLI-140（服务 Care Card 关联字段）、PLI-143（服务前清单未接 handoff checklist）、PLI-145（升级走通知；无专门流程）、PLI-146（总结字段；无生成端点）、PLI-151（回流经 PROFESSIONAL_CONFIRMED 健康记录；专门流未接）、PLI-168（偏好学习为手动记录）、PLI-172（营养师计划经健康记录）、PLI-180（理赔材料列表字段；材料编译器未做）、PLI-181（理赔状态在列表内；无状态机）、PLI-220（Care Card 自包含 JSON；离线 PWA 未做）（22 项）
+PARTIAL：PLI-006（合并请求登记+审计；执行人工确认——设计边界）、PLI-009（转移请求登记；执行人工确认——设计边界）、PLI-045（签名状态标记 DONE 于 Stage D；专业签名 UI 未接→余项为 UX）、PLI-094（专业链接；目标共享 UI 未接）、PLI-095（视频工件绑定；复盘 UI 未接）、PLI-103（环境负荷 kind；无分析视图）、PLI-104（压力恢复 kind；无分析视图）、PLI-106（QOL 问卷 kind；无问卷 UI/计分）、PLI-130（CAMERA_CLIP kind；无真实摄像头）、PLI-140（服务 Care Card 关联字段；发卡联动未接）、PLI-145（升级走通知；无专门 SLA 流程）、PLI-151（回流经 PROFESSIONAL_CONFIRMED 健康记录；专门流未接）、PLI-168（偏好学习为手动记录）、PLI-172（营养师计划经健康记录）、PLI-180（理赔材料列表字段；编译器未做）、PLI-181（理赔状态在列表内；无状态机）、PLI-220（Care Card 自包含 JSON；离线 PWA 未做）（17 项；PLI-012/128/131/143/146 已于 Stage D 升级 DONE）
 
 BLOCKED_EXTERNAL：PLI-141（服务者真实撮合）、PLI-165（份量辅助需真实商品营养数据）、PLI-245 不存在（无此项）→ 修正：BLOCKED_EXTERNAL = PLI-141, PLI-165 及设备真实厂商接入（PLI-125/126 的 vendor 维度，主体 DONE 为沙箱）——按 Feature 计 PLI-141, PLI-165（2 项）
 
@@ -70,13 +70,17 @@ NOT_STARTED：无（Stage C 内无剩余）
 
 | 状态 | 数量 |
 |---|---|
-| DONE | 46 + 47 + 62 = 155 |
-| PARTIAL | 4 + 1 + 22 = 27 |
+| DONE | 46 + 47 + 67 = 160 |
+| PARTIAL | 4 + 1 + 17 = 22 |
 | BLOCKED_EXTERNAL | 2 |
 | BLOCKED_SAFETY | 0 |
 | NOT_STARTED (A/B/C) | 0 |
 | Future backlog | 42 |
 | **合计** | **228** |
+
+（Stage D 修正说明：上轮 Stage C 漏计 PLI-081 且计数 87≠88；Stage D 将
+PLI-012/045/099/128/131/143/146 升级 DONE（真实实现+测试），详见
+reports/PARTIAL_TRIAGE.md 与 reports/V10_GA_GATE_REPORT.md。）
 
 ## 各阶段证据
 
@@ -91,3 +95,16 @@ NOT_STARTED：无（Stage C 内无剩余）
 - 所有 device/服务/保险能力均为 adapter+沙箱或记录层；无任何"伪造真实接入"。
 - Playwright 浏览器级 E2E 未运行（GOAL 标注可选；主路径 API 级全覆盖）。
 - Git push 无远端 → BLOCKED（本地提交完整）。
+
+
+---
+
+# Stage D — v1.0 GA Hardening（2026-09-13 增补）
+
+- 终点：`PLI_V1_0_GA_READY`（见 reports/V10_GA_GATE_REPORT.md 逐 Gate 证据）
+- 新增测试：+54（tests/ga/*），全库 235 passed
+- 浏览器 E2E：Playwright 7 主路径全 PASS（reports/G05_BROWSER_E2E.md）
+- 真实缺陷修复：CORS 3100 缺失（仅浏览器可发现）、NUL 字节 500、
+  HealthEventCreate 决策字段 extra=forbid、PLI-012 真实字段掩码、
+  规则引擎正则模式对抗插词规避、webhook 重放 409
+- 观测性：结构化访问日志 + EXTERNAL_BLOCKED 错误码 + capability registry
