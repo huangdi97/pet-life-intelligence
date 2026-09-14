@@ -180,6 +180,25 @@ label.field > input, label.field > select, label.field > textarea { margin-top: 
 .quickgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; }
 .quickgrid button { padding: 12px 6px; font-size: 14px; min-height: 48px; }
 
+/* ---- share (H5) pages ---- */
+.share-page { max-width: 680px; margin: 0 auto; padding: 16px 16px 48px; }
+.share-head {
+  display: flex; gap: 12px; align-items: center;
+  padding: 12px 0 4px; border-bottom: 1px solid var(--pli-line-default, #e8e2d9);
+  margin-bottom: 16px;
+}
+.share-title { font-size: 18px; font-weight: 700; color: var(--pli-ink-primary, #2b2723); }
+.share-sub { font-size: 12px; color: var(--pli-ink-muted, #7c7369); }
+.share-foot {
+  margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--pli-line-default, #e8e2d9);
+  font-size: 12px; color: var(--pli-ink-muted, #7c7369); text-align: center;
+}
+@media print {
+  .share-head, .share-foot { display: none; }
+  .share-page { max-width: 100%; padding: 0; }
+  .card { box-shadow: none; break-inside: avoid; }
+}
+
 /* ---- mobile bottom nav (PWA-like tab bar) ---- */
 @media (max-width: 768px) {
   .topnav { flex-wrap: wrap; padding: 8px 10px; gap: 8px; }
