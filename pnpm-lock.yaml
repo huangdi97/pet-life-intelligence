@@ -17,6 +17,9 @@ importers:
       '@pli/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@pli/ui-tokens':
+        specifier: workspace:*
+        version: link:../../packages/ui-tokens
       next:
         specifier: 15.1.6
         version: 15.1.6(@playwright/test@1.63.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -44,6 +47,12 @@ importers:
     devDependencies:
       typescript:
         specifier: ^5.6.0
+        version: 5.7.3
+
+  packages/ui-tokens:
+    devDependencies:
+      typescript:
+        specifier: 5.7.3
         version: 5.7.3
 
 packages:

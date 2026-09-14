@@ -14,12 +14,12 @@ interface TodayData {
 }
 
 const QUICK_TYPES: Array<{ type: string; label: string; payload: Record<string, string | number> }> = [
-  { type: "daily.meal", label: "🍖 喂食", payload: { food_type: "狗粮", amount: "100", unit: "g" } },
-  { type: "daily.drink", label: "💧 饮水", payload: { amount: "200", unit: "ml" } },
-  { type: "daily.elimination", label: "🚽 排泄", payload: { kind: "urine", quality: "normal" } },
-  { type: "daily.walk", label: "🚶 散步", payload: { duration_minutes: 20, intensity: "normal" } },
-  { type: "daily.play", label: "🎾 玩耍", payload: { duration_minutes: 15, activity_type: "fetch" } },
-  { type: "daily.weight", label: "⚖️ 体重", payload: { weight_kg: "12.0" } },
+  { type: "daily.meal", label: "喂食", payload: { food_type: "狗粮", amount: "100", unit: "g" } },
+  { type: "daily.drink", label: "饮水", payload: { amount: "200", unit: "ml" } },
+  { type: "daily.elimination", label: "排泄", payload: { kind: "urine", quality: "normal" } },
+  { type: "daily.walk", label: "散步", payload: { duration_minutes: 20, intensity: "normal" } },
+  { type: "daily.play", label: "玩耍", payload: { duration_minutes: 15, activity_type: "fetch" } },
+  { type: "daily.weight", label: "体重", payload: { weight_kg: "12.0" } },
 ];
 
 export default function TodayPage() {
@@ -49,7 +49,7 @@ export default function TodayPage() {
   if (pets.length === 0) {
     return (
       <main>
-        <h1>Today</h1>
+        <h1>今日</h1>
         <div className="state">
           还没有宠物。先创建一只吧。
           <div style={{ marginTop: 12 }}>
@@ -86,7 +86,7 @@ export default function TodayPage() {
       {flash && <div className="alert info">{flash}</div>}
 
       <div className="card">
-        <h2>快速记录 Quick Log</h2>
+        <h2>快速记录</h2>
         <div className="quickgrid">
           {QUICK_TYPES.map((t) => (
             <button key={t.type} className="btn" onClick={() => quickLog(t)}>
@@ -94,7 +94,7 @@ export default function TodayPage() {
             </button>
           ))}
         </div>
-        <p className="muted">所有记录都会带 provenance（来源）与 actor（记录人）进入事件图。</p>
+        <p className="muted">所有记录都会带来源（provenance）与记录人（actor）进入事件图。</p>
       </div>
 
       <div className="card">

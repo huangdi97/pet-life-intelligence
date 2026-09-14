@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+# 禁止抓取需要授权的分享页与个人数据页
+Disallow: /share/
