@@ -1,0 +1,36 @@
+export default defineAppConfig({
+  pages: [
+    "pages/index/index",
+    "pages/timeline/index",
+    "pages/pets/index",
+    "pages/agent/index",
+    "pages/mine/index",
+    "pages/tasks/index",
+    "pages/care/index",
+    "pages/health/index",
+    "pages/medication/index",
+    "pages/behavior/index",
+    "pages/training/index",
+    "pages/notifications/index",
+  ],
+  window: {
+    backgroundTextStyle: "light",
+    navigationBarBackgroundColor: "#61795C",
+    navigationBarTitleText: "宠物生活",
+    navigationBarTextStyle: "white",
+    backgroundColor: "#FAF8F5",
+  },
+  tabBar: {
+    color: "#7C7369",
+    selectedColor: "#3D4F3A",
+    backgroundColor: "#FFFFFF",
+    borderStyle: "white",
+    list: [
+      { pagePath: "pages/index/index", text: "今日" },
+      { pagePath: "pages/timeline/index", text: "时间线" },
+      { pagePath: "pages/pets/index", text: "宠物" },
+      { pagePath: "pages/agent/index", text: "助手" },
+      { pagePath: "pages/mine/index", text: "我的" },
+    ],
+  },
+});
