@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, getDevUserId, setDevUserId, type Pet } from "@pli/api-client";
+import { api, clearSession, getDevUserId, setDevUserId, type Pet } from "@pli/api-client";
 import { useCurrentPet } from "../lib/hooks";
 import { t } from "../lib/i18n";
 
@@ -48,11 +48,25 @@ export default function TopNav() {
       .catch(() => setPets([]));
     const onChange = () => api.get<Pet[]>("/pets").then(setPets).catch(() => {});
     window.addEventListener("pli-pet-changed", onChange);
-    return () => window.removeEventListener("pli-pet-changed", onChange);
+    const onAuth = () => setUser(getDevUserId());
+    window.addEventListener("pli-auth-changed", onAuth);
+    return () => {
+      window.removeEventListener("pli-pet-changed", onChange);
+      window.removeEventListener("pli-auth-changed", onAuth);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function logout() {
+    const refresh = window.localStorage.getItem("pli_refresh_token");
+    if (refresh) {
+      try {
+        await api.post("/auth/logout", { refresh_token: refresh });
+      } catch {
+        /* ignore */
+      }
+    }
+    clearSession();
     setDevUserId(null);
     setUser(null);
     router.push("/login");

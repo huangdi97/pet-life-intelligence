@@ -6,10 +6,10 @@ import {
 const stamp = Date.now();
 
 test("E2E-01 创建宠物 → Quick Log → Timeline（刷新后仍存在，后端真实落库）", async ({ page, request }) => {
-  // 1. login through the real UI
+  // 1. login through the real UI (dev mode toggle → quick login button)
   await page.goto("/login");
-  await page.getByLabel("用户邮箱").fill("owner@pli.demo");
-  await page.getByRole("button", { name: "登录", exact: true }).click();
+  await page.getByRole("button", { name: "开发模式登录" }).click();
+  await page.getByRole("button", { name: "owner", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
 
   // 2. create a brand-new pet through the UI

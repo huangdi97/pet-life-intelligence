@@ -1,46 +1,39 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api, setDevUserId, type Pet } from "@pli/api-client";
+import { authApi, setRealSession, setDevUserId, clearSession, getSessionMode, type Pet } from "@pli/api-client";
+import { api } from "@pli/api-client";
 import { useCurrentPet } from "../../lib/hooks";
 
-
-interface DemoUser {
-  user_id: string;
-  display_name: string;
-  email: string;
-}
-
-/** Dev login: POST /auth/dev/login then pick a household user. In v0.1 the
- *  demo household members are listed from seeded pets' household members. */
 export default function LoginPage() {
   const router = useRouter();
   const { choose } = useCurrentPet();
-  const [email, setEmail] = useState("owner@pli.demo");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [checked, setChecked] = useState(false);
-  const [already, setAlready] = useState<string | null>(null);
+  const [mode, setMode] = useState<string>("none");
+  const [showDev, setShowDev] = useState(false);
 
   useEffect(() => {
-    api
-      .get<{ user_id: string }>("/auth/whoami")
-      .then((w) => {
-        setAlready(w.user_id);
-        setChecked(true);
-      })
-      .catch(() => setChecked(true));
+    setMode(getSessionMode());
   }, []);
 
-  async function login() {
+  async function selectPet(userId: string) {
+    const pets = await api.get<Pet[]>("/pets");
+    if (pets.length) choose(pets[0].id);
+    void userId;
+  }
+
+  async function realLogin() {
     setBusy(true);
     setError(null);
     try {
-      const r = await api.post<DemoUser>("/auth/dev/login", { email });
-      setDevUserId(r.user_id);
-      const pets = await api.get<Pet[]>("/pets");
-      if (pets.length) choose(pets[0].id);
+      const r = await authApi.login(email, password, "web");
+      setRealSession(r);
+      await selectPet(r.user_id);
       router.push("/");
       router.refresh();
     } catch (e) {
@@ -50,54 +43,85 @@ export default function LoginPage() {
     }
   }
 
+  async function devLogin(devEmail: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api.post<{ user_id: string }>("/auth/dev/login", { email: devEmail });
+      setDevUserId(r.user_id);
+      await selectPet(r.user_id);
+      router.push("/");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function logout() {
+    clearSession();
+    setMode("none");
+  }
+
   return (
-    <main>
-      <h1>登录（开发模式）</h1>
-      <p className="sub">
-        v0.1 使用开发认证（DEV_AUTH_ENABLED）。生产认证在 v0.2 计划中（PLI-217 部分）。
-      </p>
-      {checked && already && (
-        <div className="alert info">
-          已有会话（user {already.slice(0, 8)}…）。可直接使用顶部导航，或重新登录。
+    <main className="page-center">
+      <img src="/icons/icon-192.png" alt="" width={56} height={56} style={{ borderRadius: 14 }} />
+      <h1>登录</h1>
+      <p className="sub">宠物生活智能 · 全生命周期记录与健康照护</p>
+
+      {mode === "none" && (
+        <div className="card" style={{ width: 360, maxWidth: "100%", textAlign: "left" }}>
+          <label className="field">
+            邮箱
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+          </label>
+          <label className="field">
+            密码
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+          </label>
+          {error && <div className="alert emergency">{error}</div>}
+          <div className="row" style={{ marginTop: 12 }}>
+            <button className="btn primary" onClick={realLogin} disabled={busy || !email || !password}>
+              {busy ? "登录中…" : "登录"}
+            </button>
+          </div>
+          <div className="row" style={{ marginTop: 12 }}>
+            <Link href="/register" className="btn">
+              注册新账号
+            </Link>
+            <Link href="/forgot-password" className="muted" style={{ marginLeft: "auto" }}>
+              忘记密码？
+            </Link>
+          </div>
         </div>
       )}
-      <div className="card">
-        <h2>Demo 用户</h2>
-        <p className="muted">
-          种子数据提供三个账号：owner@pli.demo（Owner）、family@pli.demo（Family）、
-          sitter@pli.demo（临时照护者，无默认权限）。
-        </p>
-        <label className="field">
-          用户邮箱
-          <input value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
-        {error && <ErrorAlert message={error} />}
-        <div className="row">
-          <button className="btn primary" onClick={login} disabled={busy}>
-            {busy ? "登录中…" : "登录"}
-          </button>
-          <span className="muted">
-            或用快速按钮：
-          </span>
-          {["owner@pli.demo", "family@pli.demo", "sitter@pli.demo"].map((m) => (
-            <button
-              key={m}
-              className="btn"
-              disabled={busy}
-              onClick={() => {
-                setEmail(m);
-                void login();
-              }}
-            >
-              {m.split("@")[0]}
-            </button>
-          ))}
+
+      {mode === "real" && (
+        <div className="card" style={{ width: 360, maxWidth: "100%" }}>
+          <p>已登录（真实账号）。</p>
+          <div className="row">
+            <Link href="/" className="btn primary">进入</Link>
+            <button className="btn" onClick={logout}>退出登录</button>
+          </div>
         </div>
+      )}
+
+      <div style={{ marginTop: 24, textAlign: "center" }}>
+        <button className="btn" onClick={() => setShowDev((s) => !s)}>
+          {showDev ? "收起" : "开发模式登录"}
+        </button>
+        {showDev && (
+          <div className="card" style={{ width: 360, maxWidth: "100%", textAlign: "left", marginTop: 12 }}>
+            <p className="muted">仅限本地 / 测试 / 演示环境（DEV_AUTH_ENABLED）。</p>
+            {["owner@pli.demo", "family@pli.demo", "sitter@pli.demo"].map((m) => (
+              <button key={m} className="btn" style={{ margin: 4 }} onClick={() => devLogin(m)} disabled={busy}>
+                {m.split("@")[0]}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </main>
   );
-}
-
-function ErrorAlert({ message }: { message: string }) {
-  return <div className="alert emergency">{message}</div>;
 }
