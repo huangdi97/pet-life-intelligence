@@ -26,3 +26,9 @@ artifacts/backups/
 
 # expo export output
 apps/mobile/dist/
+
+tests/e2e-browser/artifacts/results.json
+tests/e2e-browser/artifacts/test-results/
+apps/web/.next/
+apps/admin/.next/
+.next/
