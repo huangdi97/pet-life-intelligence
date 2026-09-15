@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     session_secret: str = "CHANGE_ME_DEV_ONLY"
     care_card_signing_secret: str = "CHANGE_ME_DEV_ONLY"
 
+    # --- real auth (Stage E) ---
+    access_token_ttl_minutes: int = 30
+    refresh_token_ttl_days: int = 14
+    auth_max_login_attempts: int = 5
+    auth_lockout_minutes: int = 15
+    public_app_url: str = "http://localhost:3000"
+    email_from: str = "noreply@pli.example.com"
+    # verification delivery: console | smtp (smtp = EXTERNAL_BLOCKED until creds)
+    email_delivery: str = "console"
+
     rate_limit_enabled: bool = False
     rate_limit_per_minute: int = 120
     max_upload_mb: int = 25
@@ -56,6 +66,26 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    def validate_production(self) -> list[str]:
+        """Return a list of fatal config problems for production env.
+        Callers should refuse to start the app if non-empty (Stage E §8)."""
+        if self.app_env != "production":
+            return []
+        problems: list[str] = []
+        if self.dev_auth_enabled:
+            problems.append("DEV_AUTH_ENABLED must be false in production")
+        if self.session_secret in ("", "CHANGE_ME_DEV_ONLY"):
+            problems.append("SESSION_SECRET must be a real generated secret in production")
+        if self.care_card_signing_secret in ("", "CHANGE_ME_DEV_ONLY"):
+            problems.append("CARE_CARD_SIGNING_SECRET must be a real generated secret in production")
+        if "CHANGE_ME" in (self.s3_access_key + self.s3_secret_key):
+            problems.append("S3 credentials must be real in production")
+        if self.database_url.startswith("postgresql+asyncpg://pli:pli_dev_password"):
+            problems.append("DATABASE_URL must be the production database in production")
+        if not self.cors_origins or "*" in self.cors_origins.split(","):
+            problems.append("CORS_ORIGINS must be an explicit allowlist (no *) in production")
+        return problems
 
 
 @lru_cache

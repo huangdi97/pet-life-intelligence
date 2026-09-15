@@ -42,6 +42,17 @@ from app.core.logging import configure_logging
 settings = get_settings()
 configure_logging(settings)
 
+_production_problems = settings.validate_production()
+if _production_problems:
+    import sys as _sys
+
+    logging.getLogger("pli").critical(
+        "PRODUCTION CONFIG FAIL-FAST: refusing to start with invalid production settings"
+    )
+    for _p in _production_problems:
+        logging.getLogger("pli").critical("  - %s", _p)
+    _sys.exit(1)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

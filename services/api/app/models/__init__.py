@@ -1,3 +1,11 @@
+from app.models.auth import (
+    AuthSession,
+    Credential,
+    LoginAttempt,
+    PasswordResetToken,
+    SecurityEvent,
+    VerificationToken,
+)
 from app.models.care import (
     CareCard,
     CareHandoff,
@@ -74,6 +82,12 @@ from app.models.v10 import (  # noqa: F401 — v1.0 models
 
 __all__ = [
     "AgentActionLog",
+    "AuthSession",
+    "Credential",
+    "LoginAttempt",
+    "PasswordResetToken",
+    "SecurityEvent",
+    "VerificationToken",
     "CapabilityRegistry",
     "BehaviorInterventionPlan",
     "AutomationRule",

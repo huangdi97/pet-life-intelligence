@@ -61,26 +61,49 @@ def new_invitation_token() -> tuple[str, str, str]:
 
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)) -> User:
     settings = get_settings()
-    if not settings.dev_auth_enabled:
-        raise Unauthenticated("Interactive auth is not enabled in this environment.")
-
-    user_id: uuid.UUID | None = None
-
     auth_header = request.headers.get("Authorization", "")
     dev_header = request.headers.get("X-Dev-User-Id", "")
-    if auth_header.startswith("Bearer "):
-        user_id = parse_session_token(auth_header.removeprefix("Bearer "))
-        if user_id is None:
-            user_id = _try_uuid(auth_header.removeprefix("Bearer "))
-    elif dev_header:
+    bearer_token = auth_header.removeprefix("Bearer ").strip() if auth_header.startswith("Bearer ") else ""
+
+    # Real auth path: Bearer access token (hashed in auth_sessions)
+    if bearer_token:
+        from app.models import AuthSession
+        from app.services.auth import _hash_token
+
+        token_hash = _hash_token(bearer_token)
+        row = (await db.execute(
+            select(AuthSession).where(AuthSession.access_token_hash == token_hash)
+        )).scalar_one_or_none()
+        if row is not None:
+            from datetime import UTC, datetime
+
+            now = datetime.now(UTC)
+            if row.revoked_at is None and row.expires_at > now:
+                row.last_used_at = now
+                await db.flush()
+                user = (await db.execute(select(User).where(User.id == row.user_id))).scalar_one_or_none()
+                if user is not None and user.is_active:
+                    return user
+        raise Unauthenticated("Invalid or expired access token.")
+
+    # Dev auth path: only when dev auth enabled (local/test/staging-demo)
+    if not settings.dev_auth_enabled:
+        raise Unauthenticated("Authentication required.")
+
+    user_id: uuid.UUID | None = None
+    if dev_header:
         user_id = _try_uuid(dev_header)
     if user_id is None:
         cookie = request.cookies.get(SESSION_COOKIE)
         if cookie:
             user_id = parse_session_token(cookie)
+    if user_id is None and auth_header.startswith("Bearer "):
+        # allow dev login via a plain Bearer dev token for tests/tools
+        dev_raw = auth_header.removeprefix("Bearer ")
+        user_id = _try_uuid(dev_raw) or parse_session_token(dev_raw)
 
     if user_id is None:
-        raise Unauthenticated("No valid dev session. Use POST /api/v1/auth/dev/login.")
+        raise Unauthenticated("No valid session. Use POST /api/v1/auth/login.")
 
     user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if user is None or not user.is_active:
