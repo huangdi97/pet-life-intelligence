@@ -1,0 +1,27 @@
+FROM python:3.12-slim AS base
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /srv
+
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY services/api/pyproject.toml /srv/api/pyproject.toml
+COPY services/ai-gateway/pyproject.toml /srv/ai-gateway/pyproject.toml
+COPY packages/rules/pyproject.toml /srv/rules/pyproject.toml
+COPY packages/rules/pli_rules /srv/rules/pli_rules
+RUN pip install --no-cache-dir \
+    -e /srv/rules \
+    -e /srv/ai-gateway \
+    -e /srv/api
+
+COPY services/api /srv/api
+COPY services/ai-gateway /srv/ai-gateway
+COPY packages/rules /srv/rules
+COPY services/worker /srv/worker
+RUN pip install --no-cache-dir \
+    -e /srv/rules \
+    -e /srv/ai-gateway \
+    -e /srv/api
+
+WORKDIR /srv
+CMD ["python", "worker/main.py", "--loop", "60"]

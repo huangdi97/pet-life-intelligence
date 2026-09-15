@@ -4,10 +4,12 @@ The bootstrap app (single /health route) was superseded on 2026-09-13 by the
 full v0.1 router set; system health routes moved to app/api/routes/system.py.
 """
 
+import asyncio
 import logging
 import time
 import uuid as uuid_mod
 from collections import defaultdict, deque
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,10 +35,29 @@ from app.api.routes import (
     v10_platform,
 )
 from app.core.config import get_settings
-from app.core.db import get_session_factory
+from app.core.db import dispose_engine, get_session_factory
 from app.core.errors import install_error_handlers
+from app.core.logging import configure_logging
 
 settings = get_settings()
+configure_logging(settings)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # startup: verify DB reachability + seed content registry (idempotent)
+    async with get_session_factory()() as session:
+        await session.execute(text("SELECT 1"))
+        from app.api.routes.v02_behavior_training import ensure_content_seeded
+
+        await ensure_content_seeded(session)
+        await session.commit()
+    yield
+    # graceful shutdown: let in-flight work finish, then close DB pool.
+    if settings.graceful_shutdown_seconds > 0:
+        await asyncio.sleep(settings.graceful_shutdown_seconds)
+    await dispose_engine()
+
 
 app = FastAPI(
     title=settings.app_name,
@@ -44,6 +65,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -56,9 +78,6 @@ app.add_middleware(
 install_error_handlers(app)
 
 RATE_BUCKETS: dict[str, deque] = defaultdict(deque)
-
-
-logger = logging.getLogger("pli.access")
 
 
 @app.middleware("http")
@@ -84,7 +103,7 @@ async def request_context(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
     # structured access log: no bodies, no tokens, no health text
-    logger.info(
+    logging.getLogger("pli.access").info(
         "request",
         extra={
             "request_id": request_id,
@@ -105,13 +124,3 @@ for router in (
     v10_platform.router, v10_extras.router,
 ):
     app.include_router(router, prefix="/api/v1")
-
-
-@app.on_event("startup")
-async def startup() -> None:
-    async with get_session_factory()() as session:
-        await session.execute(text("SELECT 1"))
-        from app.api.routes.v02_behavior_training import ensure_content_seeded
-
-        await ensure_content_seeded(session)
-        await session.commit()

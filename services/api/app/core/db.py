@@ -17,6 +17,7 @@ __all__ = [
     "get_engine",
     "get_session_factory",
     "set_engine",
+    "dispose_engine",
 ]
 
 
@@ -28,15 +29,34 @@ def get_engine() -> AsyncEngine:
     global _engine
     if _engine is None:
         settings = get_settings()
-        _engine = create_async_engine(
-            settings.database_url, pool_pre_ping=True, poolclass=NullPool
-        )
+        if settings.db_pool_enabled:
+            _engine = create_async_engine(
+                settings.database_url,
+                pool_pre_ping=True,
+                pool_size=settings.db_pool_size,
+                max_overflow=settings.db_pool_max_overflow,
+                pool_timeout=settings.db_pool_timeout_seconds,
+                pool_recycle=1800,
+            )
+        else:
+            _engine = create_async_engine(
+                settings.database_url, pool_pre_ping=True, poolclass=NullPool
+            )
     return _engine
 
 
 def set_engine(engine: AsyncEngine) -> None:
     global _engine, _session_factory
     _engine = engine
+    _session_factory = None
+
+
+async def dispose_engine() -> None:
+    """Graceful shutdown: close pooled connections."""
+    global _engine, _session_factory
+    if _engine is not None:
+        await _engine.dispose()
+    _engine = None
     _session_factory = None
 
 

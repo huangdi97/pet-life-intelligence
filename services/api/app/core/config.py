@@ -36,6 +36,16 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 120
     max_upload_mb: int = 25
 
+    # production hardening
+    db_pool_enabled: bool = False  # tests/CI keep NullPool; production enables pooling
+    db_pool_size: int = 10
+    db_pool_max_overflow: int = 20
+    db_pool_timeout_seconds: float = 30.0
+    json_logs_enabled: bool = False  # structlog JSON formatter (production)
+    log_level: str = "INFO"
+    api_request_timeout_seconds: float = 30.0
+    graceful_shutdown_seconds: int = 15
+
     cors_origins: str = (
         "http://localhost:3000,http://127.0.0.1:3000,"
         "http://localhost:3100,http://127.0.0.1:3100"

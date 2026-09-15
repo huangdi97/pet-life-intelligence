@@ -1,0 +1,14 @@
+FROM python:3.12-slim AS base
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /srv
+
+COPY services/ai-gateway/pyproject.toml /srv/ai-gateway/pyproject.toml
+RUN pip install --no-cache-dir -e /srv/ai-gateway
+
+COPY services/ai-gateway /srv/ai-gateway
+RUN pip install --no-cache-dir -e /srv/ai-gateway
+
+WORKDIR /srv/ai-gateway
+# The gateway is an in-process library today; this image exists so a future
+# standalone gateway service can be launched here.
+CMD ["python", "-c", "from pli_ai_gateway import Gateway; print('pli-ai-gateway ready')"]
