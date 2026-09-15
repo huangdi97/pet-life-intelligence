@@ -1,39 +1,47 @@
 # WORK_STATUS
 
 ## Current terminal
-`PLI_V1_0_GA_READY`（Stage D GA Hardening 完成；push BLOCKED：无远端）
+
+`PLI_V1_0_PRODUCTION_READY_MULTI_CLIENT`（多端客户端 + 生产 UI + 生产工程全部就绪；外部发布条件 EXTERNAL_BLOCKED）
 
 ## Phase status
 
 | 阶段 | 状态 | 证据 |
 |---|---|---|
-| Stage A v0.1（50 P0） | PLI_V0_1_RELEASE_CANDIDATE_READY | FINAL_RELEASE_REPORT.md + reports/G0..G12 |
-| Stage B v0.2（48 P1） | PLI_V0_2_RELEASE_CANDIDATE_READY | reports/V02_RELEASE_REPORT.md |
-| Stage C v1.0（88 P2） | Gate 全 PASS，记录层/沙箱完成 | FULL_PRODUCT_AUDIT.md |
-| Stage D Future（42） | backlog（按 GOAL 不强制上线） | FULL_PRODUCT_AUDIT.md |
+| Phase A Reality Audit | DONE | reports/PRODUCTIONIZATION_PREFLIGHT.md |
+| Phase B Delivery Matrix | DONE | docs/product/PLATFORM_DELIVERY_MATRIX.md |
+| Phase C UI Design System | DONE | packages/ui-tokens |
+| Phase D Web/PWA | DONE | manifest+sw+offline+boundaries+中文导航 |
+| Phase E H5 Share | DONE | app/share（vet-brief/care-card） |
+| Phase F WeChat Mini | DONE | apps/mini（weapp/alipay/tt build 绿） |
+| Phase G Mobile | DONE | apps/mobile（android/ios bundle 绿） |
+| Phase H Admin/Pro | DONE | apps/admin（5 页 build 绿） |
+| Phase I Backend Hardening | DONE | lifespan/pool/JSON logs/OpenAPI/env 模板 |
+| Phase J-M Tests/Audits | DONE | 239 pytest + 10 Playwright + 4 multi-client + 审计报告 |
+| Phase N-R Deployment/Release | DONE | CI + compose.production + runbooks + release report |
 
 ## 最终验证（真实命令）
 
-- `pytest -q` → **181 passed**（Stage A 106 + B 34 + C 41）
-- `ruff check`（api/worker/rules/ai-gateway/tests）→ All checks passed
-- `pnpm --dir apps/web typecheck && build` → 绿（16 routes）
-- `alembic upgrade head` → 迁移链 5 个版本全部通过
-- `scripts/staging_smoke.py` → **12/12 PASS**（对运行中的 API:8800）
-- 备份/恢复演练 → pg_dump 64 表、restore 0 错误、数据计数验证通过
+- `pytest -q` → **239 passed**（235 + 4 multi-client）
+- `ruff check services packages tests` → All checks passed
+- `pnpm --dir apps/web build` / `apps/admin build` → Compiled successfully
+- `pnpm --dir apps/mini build:weapp` / `build:alipay` / `build:tt` → Compiled successfully
+- `pnpm --dir apps/mobile typecheck` → exit 0；`expo export android/ios` → 绿
+- Playwright → **10/10**（tests/e2e-browser）
+- staging_smoke.py → **12/12** PASS
+- 性能基线 → p95 全 <1s，0 error
 
-## Current blockers
-- `git push`：无远端仓库（用户需提供 URL 与凭据）。
+## Current blockers（外部条件）
+
+1. 真实账号系统（注册/登录/密码重置）— PLI-217 仅 dev-auth
+2. 微信小程序 AppID/主体/备案
+3. App Store / Google Play / HarmonyOS 账号与签名
+4. 生产域名/HTTPS 证书
+5. 生产服务器访问权
+6. git remote（无法 push/tag）
 
 ## 下一步（backlog，不阻塞当前终点）
-- Future 42 项按产品节奏排期
-- PARTIAL 27 项的 UI/下游通道补齐（见 FULL_PRODUCT_AUDIT.md）
 
----
-
-## Stage D — v1.0 GA Hardening（2026-09-13）
-
-- 全部 G0–G17 Gate 判定见 reports/V10_GA_GATE_REPORT.md（critical 全 PASS）
-- pytest 235 passed；Playwright 7/7；ruff/typecheck/build 绿；smoke 12/12
-- 迁移重放+降级、备份/恢复 round 2（恢复库 API smoke）、性能基线完成
-- 228 项审计更新：DONE 160 / PARTIAL 22 / EXTERNAL 2 / Future 42
-- 发布报告：V10_RELEASE_REPORT.md；CHANGELOG.md；tag v1.0.0
+- Future 42 项按产品节奏排期（见 FULL_PRODUCT_AUDIT.md）
+- PARTIAL 项的 UI/下游通道补齐
+- 真实认证（OIDC/password）作为 v1.0.1 最高优先

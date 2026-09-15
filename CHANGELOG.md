@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.1.0 (2026-09-14) — Multi-Client Productionization
+
+从 `PLI_V1_0_RELEASE_CANDIDATE_READY` 推进到 `PLI_V1_0_PRODUCTION_READY_MULTI_CLIENT`。
+
+### Added
+- **多端客户端**：`apps/mini`（Taro 微信/支付宝/抖音小程序，12 页 + 平台抽象层）、
+  `apps/mobile`（Expo iOS/Android，secure-store + 底部 Tab）、`apps/admin`（运营概览/Feature Flags/能力注册表/审计/就诊摘要）。
+- **H5 分享页**：Vet Brief / Care Card 匿名 token 访问（过期/撤销/审计）。
+- **设计系统**：`packages/ui-tokens`（Color/Typography/Spacing/Radius/Elevation/Motion/Risk/Semantic）+ 品牌视觉资产。
+- **Web/PWA**：manifest + service worker + 离线壳、loading/error/not-found 边界、
+  中文导航重构（今日/时间线/宠物/助手/我的）、i18n 基础、响应式。
+- **后端硬化**：lifespan 优雅启停、DB 连接池、structlog JSON 日志、
+  OpenAPI 契约 artifact（157 paths）、生产/staging/pilot env 模板。
+- **基础设施**：docker-compose.production + Dockerfiles + nginx、CI（.github/workflows/ci.yml）。
+- **测试**：`tests/multi-client`（跨端一致性 4 项）、Playwright 扩至 10 条（PWA/share/404/中文导航）、
+  OpenAPI 生成校验脚本。
+
+### Quality
+- pytest **239 passed**；ruff 全绿；Web/Admin build 绿；Mini（weapp/alipay/tt）build 绿；
+  Mobile（android/ios）bundle 绿 + typecheck 绿；Playwright **10/10**；staging smoke 12/12；
+  性能基线 p95<1s 0 error；备份/恢复（历史 round2）。
+
+### External blockers（诚实标注）
+- 微信 AppID/主体、App Store/Google Play/HarmonyOS 账号、域名备案/证书、生产服务器、git remote。
+
 ## v1.0.0 (2026-09-13) — GA
 
 Stage A v0.1（50 P0）→ Stage B v0.2（48 P1）→ Stage C v1.0（88 P2）→ Stage D GA Hardening。
