@@ -18,7 +18,7 @@ test("E2E-01 创建宠物 → Quick Log → Timeline（刷新后仍存在，后�
   await expect(page.locator(".topnav select")).toContainText(name);
 
   // 3. Today / Quick Log: add a meal
-  await page.getByRole("button", { name: "🍖 喂食" }).click();
+  await page.getByRole("button", { name: "喂食" }).click();
   await expect(page.locator(".alert.info")).toContainText("已记录");
 
   // 4. Timeline shows the event with provenance + actor

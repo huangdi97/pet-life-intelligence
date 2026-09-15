@@ -26,14 +26,14 @@ export default function TodayPage() {
   const { petId } = useCurrentPet();
   const [pets, setPets] = useState<Pet[] | null>(null);
   const today = useAsync<TodayData>(
-    () => (petId ? api.get<TodayData>(`/pets/${petId}/today`) : Promise.reject(new Error("no pet"))),
+    () => (petId ? api.get<TodayData>(`/pets/${petId}/today`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [petId],
   );
   const tasks = useAsync<Task[]>(
     () =>
       petId
         ? api.get<Task[]>(`/pets/${petId}/tasks?status=OPEN`)
-        : Promise.reject(new Error("no pet")),
+        : Promise.reject(new Error("NO_PET_SELECTED")),
     [petId],
   );
   const [flash, setFlash] = useState<string | null>(null);
@@ -63,6 +63,7 @@ export default function TodayPage() {
   }
 
   const current = pets.find((p) => p.id === petId) ?? pets[0];
+  const hasPet = !!petId && pets.some((p) => p.id === petId);
 
   async function quickLog(t: (typeof QUICK_TYPES)[number]) {
     const target = current.id;
@@ -107,47 +108,55 @@ export default function TodayPage() {
               </span>
             ))}
         </div>
-        <State
-          state={today.state}
-          error={today.error}
-          onRetry={today.reload}
-          empty="今天还没有记录。"
-        >
-          <ul className="tl">
-            {today.data?.events.map((e) => (
-              <li key={e.event_id}>
-                <div className="tl-head">
-                  <span className="tl-type">{e.event_type}</span>
-                  <ProvenanceBadge level={e.provenance_level} />
-                  <span className="tl-time">{fmtTime(e.occurred_at)}</span>
-                </div>
-                <div className="tl-body">
-                  {Object.entries(e.payload)
-                    .filter(([k]) => k !== "health_event_id" && k !== "task_id")
-                    .map(([k, v]) => `${k}: ${String(v)}`)
-                    .join(" · ")}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </State>
+        {hasPet ? (
+          <State
+            state={today.state}
+            error={today.error}
+            onRetry={today.reload}
+            empty="今天还没有记录。"
+          >
+            <ul className="tl">
+              {today.data?.events.map((e) => (
+                <li key={e.event_id}>
+                  <div className="tl-head">
+                    <span className="tl-type">{e.event_type}</span>
+                    <ProvenanceBadge level={e.provenance_level} />
+                    <span className="tl-time">{fmtTime(e.occurred_at)}</span>
+                  </div>
+                  <div className="tl-body">
+                    {Object.entries(e.payload)
+                      .filter(([k]) => k !== "health_event_id" && k !== "task_id")
+                      .map(([k, v]) => `${k}: ${String(v)}`)
+                      .join(" · ")}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </State>
+        ) : (
+          <div className="state">请先在顶部选择一只宠物。</div>
+        )}
       </div>
 
       <div className="card">
         <h2>待办任务</h2>
-        <State state={tasks.state} error={tasks.error} onRetry={tasks.reload} empty="没有待办任务。">
-          <ul className="tl">
-            {tasks.data?.map((t) => (
-              <li key={t.id}>
-                <div className="tl-head">
-                  <span className="tl-type">{t.title}</span>
-                  <span className={`badge status-${t.status}`}>{t.status}</span>
-                  <span className="tl-time">{t.due_at ? `due ${fmtTime(t.due_at)}` : "无截止"}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </State>
+        {hasPet ? (
+          <State state={tasks.state} error={tasks.error} onRetry={tasks.reload} empty="没有待办任务。">
+            <ul className="tl">
+              {tasks.data?.map((t) => (
+                <li key={t.id}>
+                  <div className="tl-head">
+                    <span className="tl-type">{t.title}</span>
+                    <span className={`badge status-${t.status}`}>{t.status}</span>
+                    <span className="tl-time">{t.due_at ? `due ${fmtTime(t.due_at)}` : "无截止"}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </State>
+        ) : (
+          <div className="state">请先在顶部选择一只宠物。</div>
+        )}
         <div className="row" style={{ marginTop: 8 }}>
           <Link href="/tasks" className="btn">
             管理任务

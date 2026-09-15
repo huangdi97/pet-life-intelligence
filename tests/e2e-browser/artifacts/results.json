@@ -3,9 +3,7 @@
     "argv": [
       "D:\\Code\\NodeJS\\node.exe",
       "E:\\AI\\Pet Life Intelligence\\node_modules\\@playwright\\test\\cli.js",
-      "test",
-      "--config",
-      "tests/e2e-browser/playwright.config.ts"
+      "test"
     ],
     "configFile": "E:\\AI\\Pet Life Intelligence\\tests\\e2e-browser\\playwright.config.ts",
     "rootDir": "E:/AI/Pet Life Intelligence/tests/e2e-browser/specs",
@@ -67,6 +65,116 @@
   },
   "suites": [
     {
+      "title": "pwa-share.spec.ts",
+      "file": "pwa-share.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "E2E-08 PWA manifest + service worker + offline fallback",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1083,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-15T08:53:02.250Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "06e001336affa1cd512d-59e0a14163dc04fcb796",
+          "file": "pwa-share.spec.ts",
+          "line": 6,
+          "column": 5
+        },
+        {
+          "title": "E2E-09 H5 分享页（Vet Brief 匿名访问 + 过期/撤销态）",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 997,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-15T08:53:03.759Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "06e001336affa1cd512d-045790a3885696b409b7",
+          "file": "pwa-share.spec.ts",
+          "line": 35,
+          "column": 5
+        },
+        {
+          "title": "E2E-10 中文导航 + 全新页面 states（错误页/404/离线文案）",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 714,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-15T08:53:04.773Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "06e001336affa1cd512d-faf3bd08850920948442",
+          "file": "pwa-share.spec.ts",
+          "line": 68,
+          "column": 5
+        }
+      ]
+    },
+    {
       "title": "seven-paths.spec.ts",
       "file": "seven-paths.spec.ts",
       "column": 0,
@@ -88,12 +196,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2049,
+                  "duration": 2039,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-13T06:59:53.940Z",
+                  "startTime": "2026-09-15T08:53:05.536Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -122,12 +230,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2361,
+                  "duration": 2362,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-13T06:59:56.392Z",
+                  "startTime": "2026-09-15T08:53:07.590Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -156,12 +264,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1454,
+                  "duration": 1284,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-13T06:59:58.762Z",
+                  "startTime": "2026-09-15T08:53:09.962Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -190,12 +298,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2116,
+                  "duration": 1995,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-13T07:00:00.227Z",
+                  "startTime": "2026-09-15T08:53:11.259Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -224,12 +332,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1880,
+                  "duration": 1460,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-13T07:00:02.355Z",
+                  "startTime": "2026-09-15T08:53:13.270Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -258,12 +366,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1323,
+                  "duration": 932,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-13T07:00:04.249Z",
+                  "startTime": "2026-09-15T08:53:14.742Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -292,12 +400,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2357,
+                  "duration": 1987,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-13T07:00:05.584Z",
+                  "startTime": "2026-09-15T08:53:15.685Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -315,9 +423,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-09-13T06:59:53.344Z",
-    "duration": 14744.741999999998,
-    "expected": 7,
+    "startTime": "2026-09-15T08:53:01.802Z",
+    "duration": 15995.999,
+    "expected": 10,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

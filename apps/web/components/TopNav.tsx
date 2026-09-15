@@ -122,7 +122,7 @@ export default function TopNav() {
             </button>
           </>
         ) : (
-          <Link href="/login" className="btn primary" role="button">
+          <Link href="/login" className="btn primary">
             {t("nav.login")}
           </Link>
         )}

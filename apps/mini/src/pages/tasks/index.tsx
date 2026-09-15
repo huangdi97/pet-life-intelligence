@@ -29,7 +29,7 @@ export default function Tasks() {
   async function create() {
     if (!title.trim() || !petId) return;
     try {
-      await api.post(`/pets/${petId}/tasks`, { title: title.trim(), task_type: "CUSTOM" });
+      await api.post(`/pets/${petId}/tasks`, { title: title.trim(), task_type: "OTHER" });
       setTitle("");
       load(petId);
       Taro.showToast({ title: "已创建", icon: "success" });
