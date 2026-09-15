@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "宠物生活智能",
+    "slug": "pli-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#FAF8F5"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pli.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "用于记录宠物照片作为健康与生活证据",
+        "NSPhotoLibraryUsageDescription": "用于从相册选择宠物照片/视频",
+        "NSUserNotificationsUsageDescription": "用于接收用药、任务与健康提醒"
+      }
+    },
+    "android": {
+      "package": "com.pli.mobile",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-image-picker",
+      "expo-secure-store"
+    ],
+    "extra": {
+      "apiUrl": "http://localhost:8800"
+    }
+  }
+}
