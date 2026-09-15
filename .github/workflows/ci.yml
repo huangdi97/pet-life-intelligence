@@ -1,0 +1,148 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (lint + unit + integration + safety)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: pli
+          POSTGRES_PASSWORD: pli_dev_password
+          POSTGRES_DB: pli
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U pli -d pli"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["56379:6379"]
+      minio:
+        image: minio/minio
+        command: server /data --console-address ":9001"
+        env:
+          MINIO_ROOT_USER: pli_minio
+          MINIO_ROOT_PASSWORD: pli_minio_dev_secret
+        ports: ["59000:9000", "59001:9001"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          pip install -e "services/api[dev]" -e "packages/rules" -e "services/ai-gateway"
+      - name: Ruff
+        run: ruff check services packages tests
+      - name: Migration replay
+        run: |
+          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
+          export TEST_DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli_test"
+          cd services/api && alembic upgrade head && alembic current
+      - name: Pytest
+        run: |
+          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
+          export TEST_DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli_test"
+          pytest -q --tb=short
+      - name: OpenAPI artifact freshness
+        run: |
+          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
+          python scripts/gen_openapi.py && git diff --exit-code docs/api/openapi.json
+
+  frontend:
+    name: Frontend (web + admin + mini + mobile checks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile=false
+      - name: ui-tokens build
+        run: pnpm --dir packages/ui-tokens build
+      - name: Web typecheck
+        run: pnpm --dir apps/web typecheck
+      - name: Web build
+        run: pnpm --dir apps/web build
+      - name: Admin typecheck
+        run: pnpm --dir apps/admin typecheck
+      - name: Admin build
+        run: pnpm --dir apps/admin build
+      - name: Mini typecheck
+        run: pnpm --dir apps/mini typecheck
+      - name: Mini build (weapp)
+        run: pnpm --dir apps/mini build:weapp
+      - name: Mini build (alipay + tt)
+        run: pnpm --dir apps/mini build:alipay && pnpm --dir apps/mini build:tt
+      - name: Mobile typecheck
+        run: pnpm --dir apps/mobile typecheck
+      - name: Mobile bundle (android)
+        run: pnpm --dir apps/mobile exec expo export --platform android
+      - name: Mobile bundle (ios)
+        run: pnpm --dir apps/mobile exec expo export --platform ios
+
+  e2e:
+    name: Browser E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: pli
+          POSTGRES_PASSWORD: pli_dev_password
+          POSTGRES_DB: pli
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U pli -d pli"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["56379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Backend install + seed
+        run: |
+          pip install -e "services/api[dev]" -e "packages/rules" -e "services/ai-gateway"
+          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
+          cd services/api && alembic upgrade head && python -m app.seed
+      - name: Frontend install + build
+        run: |
+          pnpm install --frozen-lockfile=false
+          pnpm --dir packages/ui-tokens build
+          pnpm --dir apps/web build
+      - name: Start API + Web
+        run: |
+          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
+          (cd services/api && python -m uvicorn app.main:app --port 8800 &)
+          (cd apps/web && pnpm start -p 3100 &)
+          sleep 15
+      - name: Playwright
+        run: |
+          cd tests/e2e-browser && pnpm exec playwright install --with-deps chromium
+          pnpm exec playwright test
