@@ -12,6 +12,37 @@ importers:
         specifier: ^1.63.0
         version: 1.63.0
 
+  apps/admin:
+    dependencies:
+      '@pli/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@pli/ui-tokens':
+        specifier: workspace:*
+        version: link:../../packages/ui-tokens
+      next:
+        specifier: 15.1.6
+        version: 15.1.6(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.63.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(sass@1.104.1)
+      react:
+        specifier: 19.0.0
+        version: 19.0.0
+      react-dom:
+        specifier: 19.0.0
+        version: 19.0.0(react@19.0.0)
+    devDependencies:
+      '@types/node':
+        specifier: 22.10.5
+        version: 22.10.5
+      '@types/react':
+        specifier: 19.0.6
+        version: 19.0.6
+      '@types/react-dom':
+        specifier: 19.0.3
+        version: 19.0.3(@types/react@19.0.6)
+      typescript:
+        specifier: 5.7.3
+        version: 5.7.3
+
   apps/mini:
     dependencies:
       '@babel/runtime':

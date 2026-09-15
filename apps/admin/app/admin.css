@@ -1,0 +1,45 @@
+/* PLI Admin shell styles — 管理端，视觉克制、密度适中 */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--pli-font_family-base, Inter, "Microsoft YaHei", system-ui, sans-serif);
+  background: var(--pli-bg-canvas, #faf8f5);
+  color: var(--pli-ink-primary, #2b2723);
+}
+.admin-topnav {
+  position: sticky; top: 0; z-index: 100;
+  background: #fff; border-bottom: 1px solid var(--pli-line-default, #e8e2d9);
+  display: flex; align-items: center; gap: 4px; padding: 8px 16px; flex-wrap: wrap;
+}
+.admin-topnav .brand { font-weight: 700; color: var(--pli-primary-700, #3d4f3a); text-decoration: none; margin-right: 10px; font-size: 15px; }
+.admin-topnav a {
+  color: var(--pli-ink-muted, #7c7369); text-decoration: none; font-size: 13px;
+  padding: 7px 10px; border-radius: 8px;
+}
+.admin-topnav a:hover { background: var(--pli-primary-50, #f3f6f2); }
+.admin-topnav a.active { background: var(--pli-primary-100, #e4eae0); color: var(--pli-primary-800, #2f3d2d); font-weight: 600; }
+.admin-page { max-width: 1080px; margin: 0 auto; padding: 20px 16px 80px; }
+.admin-page h1 { font-size: 24px; margin: 12px 0 4px; }
+.admin-page .sub { color: var(--pli-ink-muted, #7c7369); margin: 0 0 16px; font-size: 14px; }
+.card { background: #fff; border: 1px solid var(--pli-line-default, #e8e2d9); border-radius: 12px; padding: 16px; margin: 12px 0; }
+.card h2 { font-size: 15px; margin: 0 0 10px; }
+.muted { color: var(--pli-ink-muted, #7c7369); font-size: 13px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.btn {
+  border: 1px solid var(--pli-line-default, #e8e2d9); background: #fff; color: var(--pli-ink-primary, #2b2723);
+  border-radius: 10px; padding: 8px 14px; font-size: 13px; cursor: pointer;
+}
+.btn.primary { background: var(--pli-primary-600, #4e6349); border-color: var(--pli-primary-600, #4e6349); color: #fff; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--pli-line-default, #e8e2d9); vertical-align: top; }
+th { color: var(--pli-ink-muted, #7c7369); font-weight: 600; font-size: 12px; }
+.badge {
+  display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--pli-line-default, #e8e2d9); background: #f3f0eb; color: #57504a;
+}
+.badge.on { border-color: #bfddc4; color: #4e7a5a; background: #edf3ee; }
+.badge.off { border-color: #e9a79f; color: #b42318; background: #fbeae6; }
+.state { border: 1px dashed var(--pli-line-strong, #d8d0c4); border-radius: 12px; padding: 24px 16px; text-align: center; color: var(--pli-ink-muted, #7c7369); background: #fff; }
+.state.error { border-color: #e9a79f; color: #b42318; background: #fbeae6; }
+.mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; word-break: break-all; }
