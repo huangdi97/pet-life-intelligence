@@ -52,6 +52,12 @@ class Settings(BaseSettings):
     pilot_mode: bool = False  # invite-only real-user environment
     app_version: str = "1.1.0"
 
+    # --- WeChat mini program (Stage E Phase P) ---
+    wechat_app_id: str = ""
+    wechat_app_secret: str = ""
+    # allow mini-program dev login via backend dev-auth sandbox (never in prod)
+    mini_dev_login_enabled: bool = True
+
     rate_limit_enabled: bool = False
     rate_limit_per_minute: int = 120
     max_upload_mb: int = 25

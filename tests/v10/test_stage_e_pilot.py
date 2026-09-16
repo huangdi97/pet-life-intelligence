@@ -46,7 +46,6 @@ async def test_create_and_redeem_invite_code(client, seeded):
         "password": "PilotPass!w0rd", "display_name": "试点用户",
     })
     assert reg.status_code == 201, reg.text
-    uid = reg.json()["user_id"]
     login = await client.post("/api/v1/auth/login", json={
         "email": reg.json()["email"], "password": "PilotPass!w0rd",
     })
@@ -98,16 +97,11 @@ async def test_pilot_registration_requires_code_when_enabled(client, seeded):
 
 @pytest.mark.asyncio
 async def test_feedback_submission(client, seeded):
-    owner = seeded["owner_id"]
-    login = await client.post("/api/v1/auth/login", json={
-        "email": "owner@pli.demo", "password": "x" * 12,
-    }) if False else None
     # use real-auth user
     reg = await client.post("/api/v1/auth/register", json={
         "email": f"fb-{uuid.uuid4().hex[:8]}@pli.test",
         "password": "PilotPass!w0rd", "display_name": "反馈用户",
     })
-    uid = reg.json()["user_id"]
     login = await client.post("/api/v1/auth/login", json={
         "email": reg.json()["email"], "password": "PilotPass!w0rd",
     })

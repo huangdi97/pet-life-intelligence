@@ -198,4 +198,25 @@ async def auth_status() -> dict:
         "access_token_ttl_minutes": settings.access_token_ttl_minutes,
         "refresh_token_ttl_days": settings.refresh_token_ttl_days,
         "email_delivery": settings.email_delivery,
+        "wechat_login": "real" if (settings.wechat_app_id and settings.wechat_app_secret) else "external_blocked",
+        "pilot_mode": settings.pilot_mode,
     }
+
+
+# ---- WeChat mini-program login (Stage E §29) ----
+
+class WechatLoginIn(BaseModel):
+    code: str = Field(min_length=1)
+    device_label: str = ""
+
+
+@router.post("/wechat/login")
+async def wechat_login(body: WechatLoginIn, request: Request, db: DBSession) -> dict:
+    """Exchange wx.login code → openid → PLI user → session.
+
+    Requires WECHAT_APP_ID / WECHAT_APP_SECRET. Without them this returns a
+    clear EXTERNAL_BLOCKED response (never a fake session in production).
+    """
+    from app.services import wechat_auth as wechat_svc
+
+    return await wechat_svc.login(db, body.code, request, body.device_label)
