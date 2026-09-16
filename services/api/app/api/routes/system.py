@@ -69,3 +69,66 @@ async def ai_status() -> dict:
     from app.services.ai_gateway import ai_provider_status
 
     return ai_provider_status()
+
+
+@router.get("/metrics")
+async def metrics() -> dict:
+    """Lightweight operational metrics for monitoring (Stage E §17).
+
+    Counts aggregate rows (safe, non-sensitive). Production dashboards can
+    poll this; Prometheus adapter can be layered without touching logic.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    from app.core.db import get_session_factory
+    from app.models import (
+        AIInferenceLog,
+        AuditEntry,
+        Incident,
+        LifeEvent,
+        LoginAttempt,
+        Pet,
+        SecurityEvent,
+    )
+    from sqlalchemy import func, select
+
+    async with get_session_factory()() as db:
+        now = datetime.now(UTC)
+        day_ago = now - timedelta(hours=24)
+        pets = (await db.execute(select(func.count()).select_from(Pet))).scalar_one()
+        events_24h = (await db.execute(
+            select(func.count()).select_from(LifeEvent)
+            .where(LifeEvent.recorded_at >= day_ago)
+        )).scalar_one()
+        ai_calls_24h = (await db.execute(
+            select(func.count()).select_from(AIInferenceLog)
+            .where(AIInferenceLog.created_at >= day_ago)
+        )).scalar_one()
+        login_fail_24h = (await db.execute(
+            select(func.count()).select_from(LoginAttempt)
+            .where(LoginAttempt.attempted_at >= day_ago, LoginAttempt.success.is_(False))
+        )).scalar_one()
+        security_events_24h = (await db.execute(
+            select(func.count()).select_from(SecurityEvent)
+            .where(SecurityEvent.created_at >= day_ago)
+        )).scalar_one()
+        open_incidents = (await db.execute(
+            select(func.count()).where(Incident.status == "OPEN")
+        )).scalar_one()
+        audit_24h = (await db.execute(
+            select(func.count()).select_from(AuditEntry)
+            .where(AuditEntry.occurred_at >= day_ago)
+        )).scalar_one()
+
+    return {
+        "time": now.isoformat(),
+        "counters": {
+            "pets_total": pets,
+            "life_events_24h": events_24h,
+            "ai_calls_24h": ai_calls_24h,
+            "login_failures_24h": login_fail_24h,
+            "security_events_24h": security_events_24h,
+            "audit_entries_24h": audit_24h,
+            "open_incidents": open_incidents,
+        },
+    }
