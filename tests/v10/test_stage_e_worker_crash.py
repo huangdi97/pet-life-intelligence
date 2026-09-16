@@ -10,9 +10,8 @@ import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select
-
 from app.models import Grant, LifeEvent, Notification
+from sqlalchemy import func, select
 
 
 def _run_async(coro):

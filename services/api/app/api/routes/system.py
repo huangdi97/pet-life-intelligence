@@ -80,6 +80,8 @@ async def metrics() -> dict:
     """
     from datetime import UTC, datetime, timedelta
 
+    from sqlalchemy import func, select
+
     from app.core.db import get_session_factory
     from app.models import (
         AIInferenceLog,
@@ -90,7 +92,6 @@ async def metrics() -> dict:
         Pet,
         SecurityEvent,
     )
-    from sqlalchemy import func, select
 
     async with get_session_factory()() as db:
         now = datetime.now(UTC)

@@ -28,6 +28,8 @@ class RegisterIn(BaseModel):
     email: str = Field(min_length=3, max_length=320)
     password: str = Field(min_length=8, max_length=200)
     display_name: str = Field(min_length=1, max_length=120)
+    invite_code: str = ""
+    role: str = "owner"
 
 
 class LoginIn(BaseModel):
@@ -78,6 +80,7 @@ async def register(body: RegisterIn, request: Request, db: DBSession) -> dict:
     return await auth_svc.register(
         db, body.email, body.password, body.display_name,
         request, verify_email=True,
+        invite_code=body.invite_code, role=body.role,
     )
 
 

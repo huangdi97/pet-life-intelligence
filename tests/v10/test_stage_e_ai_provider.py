@@ -6,10 +6,9 @@
 """
 
 import pytest
-from httpx import ASGITransport, AsyncClient
-
 from app.main import app
 from app.services.ai_gateway import ai_provider_status, get_gateway
+from httpx import ASGITransport, AsyncClient
 
 
 @pytest.mark.asyncio
@@ -27,11 +26,6 @@ async def test_ai_status_endpoint_reports_honestly(seeded):
 def test_gateway_falls_back_when_provider_has_no_key():
     """Provider configured as openai_compatible without a key must not break
     the capability path — Gateway falls back to MockProvider."""
-    from app.adapters.ai_provider import OpenAICompatibleProvider
-    from pli_ai_gateway import MockProvider
-
-    broken = OpenAICompatibleProvider()
-    # no key in test env → invoke raises → gateway fallback
     gateway = get_gateway()
     result = gateway.invoke("intake_questions", {"chief_complaint": "吐了", "species": "dog"})
     assert result.metadata.fallback_used is True or result.result["questions"]

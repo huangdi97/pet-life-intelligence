@@ -118,6 +118,7 @@ async def _too_many_attempts(db: AsyncSession, email: str, ip: str) -> bool:
 async def register(
     db: AsyncSession, email: str, password: str, display_name: str,
     request: Request, verify_email: bool = False,
+    invite_code: str = "", role: str = "owner",
 ) -> dict:
     email = email.lower().strip()
     existing = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
@@ -134,6 +135,11 @@ async def register(
     await db.flush()
     cred = Credential(user_id=user.id, password_hash=hash_password(password))
     db.add(cred)
+
+    # pilot mode: require invite code (Stage E §22)
+    from app.services.pilot import require_pilot_registration
+
+    await require_pilot_registration(db, user.id, invite_code, role)
     await _log_security(db, user.id, "account.register", request)
 
     result: dict = {"user_id": str(user.id), "email": email,

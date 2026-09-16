@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
 
+    # --- pilot mode (Stage E Phase O) ---
+    pilot_mode: bool = False  # invite-only real-user environment
+    app_version: str = "1.1.0"
+
     rate_limit_enabled: bool = False
     rate_limit_per_minute: int = 120
     max_upload_mb: int = 25
