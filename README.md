@@ -5,13 +5,15 @@
 ## 当前状态
 
 ```
-PLI_V1_0_PRODUCTION_READY_MULTI_CLIENT
-RELEASE_READY_EXTERNAL_BLOCKED   # 平台账号/域名/服务器为外部条件
+PLI_V1_0_WEB_READY_PILOT_READY
+RELEASE_READY_EXTERNAL_BLOCKED   # 公网部署/域名/平台账号为外部条件
 ```
 
-- 后端测试：**239 passed**；ruff 全绿；Web/Admin/Mini/Mobile 构建全绿；Playwright **10/10**。
-- 多端一致性：`tests/multi-client` 4/4（同一事件/任务/风险/分享在所有客户端一致）。
-- 详细证据：`PLI_V1_0_PRODUCTION_RELEASE_REPORT.md`、`reports/PRODUCTION_READINESS_REPORT.md`。
+- 后端测试：**267 passed**；ruff 全绿；Web/Admin/Mini/Mobile 构建全绿；Playwright **12/12**。
+- **真实 Auth**：注册/登录/刷新/密码重置/邮箱验证/会话管理（Argon2id + rotating tokens）。
+- **真实 AI**：OpenAI-compatible provider（经 AI Gateway，mock fallback 保可用）。
+- **Pilot**：invite-only 模式 + 反馈 + 指标 + 业务包（医院/门店/训练师/寄养）。
+- 详细证据：`PLI_STAGE_E_REAL_LAUNCH_REPORT.md`、`reports/STAGE_E_FINAL_GATE.md`。
 
 ## 客户端矩阵
 
@@ -79,6 +81,8 @@ cd tests\e2e-browser; pnpm exec playwright test   # 需 API+Web 已起
 - 事故：`docs/INCIDENT_RUNBOOK.md`
 - 多端矩阵：`docs/product/PLATFORM_DELIVERY_MATRIX.md`
 - 功能审计：`FULL_PRODUCT_AUDIT.md`、`reports/PRODUCTIONIZATION_PREFLIGHT.md`
+- Pilot：`docs/pilot/`（DEMO_SCRIPT / VET_PILOT / PET_STORE_PILOT / TRAINER_PILOT / CARE_SERVICE_PILOT / PILOT_CONSENT / SUPPORT_OPS）
+- Git 远端交接：`docs/release/GIT_REMOTE_HANDOFF.md`
 
 ## 安全边界（务必阅读）
 

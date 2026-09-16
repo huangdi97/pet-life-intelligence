@@ -1,5 +1,31 @@
 # Changelog
 
+## v1.1.1 (2026-09-14) — Stage E Real Launch Preparation
+
+从 `PRODUCTION_READY_MULTI_CLIENT` 推进到 `WEB_READY_PILOT_READY`（发布步骤外部 blocker）。
+
+### Added
+- **Real Auth**：Argon2id 密码、rotating refresh tokens（family reuse detection）、
+  注册/登录/刷新/登出/忘记密码/重置/邮箱验证/会话管理/改密/删号/登录限流；
+  dev-auth 生产 fail-fast；注册自动创建 household（修复真实用户无法建档）。
+- **Real AI**：OpenAI-compatible provider（经 AI Gateway，JSON+schema 强制，
+  mock fallback 保产品可用）；`/ai/status` 如实报告 real/mock。
+- **Pilot Mode**：invite-only（管理员单次邀请码）、注册门禁、反馈通道、
+  指标（北极星：Active Pets with Continuous Evidence Chain）；业务包全套文档。
+- **WeChat 登录**：jscode2session 后端 exchange + find-or-create；无凭据诚实
+  EXTERNAL_BLOCKED。
+- **监控**：/metrics 端点；worker crash/restart 语义测试。
+- **配置**：生产 fail-fast 校验；staging compose + nginx（HSTS/CSP）。
+- **Demo**：`scripts/pilot_demo_seed.py`（虚构宠物"豆包"全链路）。
+
+### Quality
+- pytest **267 passed**（+28：auth 11 / pilot 5 / config 4 / onboarding 2 / worker crash 2 / ai provider 4）；
+  Playwright **12/12**（+2 真实注册/登录/重置浏览器 E2E）；ruff 全绿；
+  Web/Admin/Mini/Mobile build 全绿。
+
+### External blockers（诚实）
+git remote、服务器/域名/证书、AI key、微信 AppID、移动商店账号、SMTP。
+
 ## v1.1.0 (2026-09-14) — Multi-Client Productionization
 
 从 `PLI_V1_0_RELEASE_CANDIDATE_READY` 推进到 `PLI_V1_0_PRODUCTION_READY_MULTI_CLIENT`。
