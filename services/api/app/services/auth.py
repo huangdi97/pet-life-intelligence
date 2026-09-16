@@ -136,6 +136,20 @@ async def register(
     cred = Credential(user_id=user.id, password_hash=hash_password(password))
     db.add(cred)
 
+    # Every new real user starts with their own household + owner membership so
+    # they can create pets immediately (Stage E onboarding). Pilot owners may
+    # later join/invite others into this household.
+    from app.domain import enums
+    from app.models import Household, HouseholdMember
+
+    hh = Household(name=f"{display_name.strip()[:20]}的家")
+    db.add(hh)
+    await db.flush()
+    db.add(HouseholdMember(
+        household_id=hh.id, user_id=user.id,
+        role=enums.HouseholdRole.OWNER.value, status="ACTIVE",
+    ))
+
     # pilot mode: require invite code (Stage E §22)
     from app.services.pilot import require_pilot_registration
 
