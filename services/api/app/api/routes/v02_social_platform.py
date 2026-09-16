@@ -12,7 +12,6 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Query
-from pli_ai_gateway import Gateway
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
@@ -35,11 +34,12 @@ from app.models import (
     SocialProfile,
 )
 from app.services import permissions as perm
+from app.services.ai_gateway import get_gateway
 from app.services.eventlog import create_life_event, write_audit
 
 router = APIRouter(tags=["v02-social-platform"])
 
-_GATEWAY = Gateway()
+_GATEWAY = get_gateway()
 
 
 # --- PLI-111 social profile ---------------------------------------------------

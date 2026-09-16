@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     ai_model: str = "mock-v1"
     ai_api_key: str = ""
     ai_timeout_seconds: float = 30.0
+    ai_base_url: str = ""
+    ai_max_retries: int = 2
 
     dev_auth_enabled: bool = True
     dev_auth_user_id: str = "00000000-0000-0000-0000-000000000001"
@@ -41,6 +43,10 @@ class Settings(BaseSettings):
     email_from: str = "noreply@pli.example.com"
     # verification delivery: console | smtp (smtp = EXTERNAL_BLOCKED until creds)
     email_delivery: str = "console"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
 
     rate_limit_enabled: bool = False
     rate_limit_per_minute: int = 120

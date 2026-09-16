@@ -5,7 +5,6 @@ vet brief generation. Rule engine output can never be lowered by AI (GOAL
 import uuid
 from datetime import UTC, datetime
 
-from pli_ai_gateway import Gateway
 from pli_rules import get_engine, max_level
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,9 +19,10 @@ from app.models import (
     TriageAssessment,
     VetBrief,
 )
+from app.services.ai_gateway import get_gateway
 from app.services.eventlog import create_life_event, create_notification
 
-_GATEWAY = Gateway()
+_GATEWAY = get_gateway()
 
 
 def _utcnow() -> datetime:

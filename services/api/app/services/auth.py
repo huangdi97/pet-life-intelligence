@@ -19,6 +19,7 @@ from fastapi import Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.adapters import email as email_adapter
 from app.core.config import get_settings
 from app.core.errors import (
     ConflictError,
@@ -147,6 +148,17 @@ async def register(
             expires_at=datetime.now(UTC) + timedelta(hours=24),
         )
         db.add(vt)
+        email_adapter.send_email(
+            to=email,
+            subject="【宠物生活智能】验证您的邮箱",
+            body=(
+                f"您好 {user.display_name}，\n\n"
+                "请点击以下链接验证邮箱（24 小时内有效）：\n"
+                f"{email_adapter.build_verify_url(raw)}\n\n"
+                f"验证码：{raw}\n"
+                "如果这不是您本人操作，请忽略此邮件。"
+            ),
+        )
         result["verification_token"] = raw
         result["verification_sent_to"] = email
     await db.commit()
@@ -349,6 +361,17 @@ async def request_password_reset(db: AsyncSession, email: str, request: Request)
         expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(prt)
+    email_adapter.send_email(
+        to=email,
+        subject="【宠物生活智能】重置密码",
+        body=(
+            f"您好 {user.display_name}，\n\n"
+            "请点击以下链接重置密码（1 小时内有效）：\n"
+            f"{email_adapter.build_reset_url(raw)}\n\n"
+            f"重置码：{raw}\n"
+            "如果这不是您本人操作，请忽略此邮件。"
+        ),
+    )
     await _log_security(db, user.id, "password.reset_requested", request)
     await db.commit()
     result["reset_token"] = raw

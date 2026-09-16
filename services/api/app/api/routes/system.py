@@ -61,3 +61,11 @@ async def engine_info() -> dict:
         "rule_engine_version": engine.engine_version,
         "rule_count": len(engine.rules),
     }
+
+
+@router.get("/ai/status")
+async def ai_status() -> dict:
+    """Honest AI provider status: real vs mock (Stage E §7)."""
+    from app.services.ai_gateway import ai_provider_status
+
+    return ai_provider_status()

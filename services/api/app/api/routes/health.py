@@ -11,7 +11,6 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter
-from pli_ai_gateway import Gateway
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
@@ -30,11 +29,12 @@ from app.models import (
 )
 from app.services import health as health_svc
 from app.services import permissions as perm
+from app.services.ai_gateway import get_gateway
 from app.services.eventlog import create_life_event, write_audit
 
 router = APIRouter(tags=["health"])
 
-_GATEWAY = Gateway()
+_GATEWAY = get_gateway()
 
 INTAKE_QUESTIONS = [
     {"id": "onset_detail", "question": "最早什么时候发现？持续多久了？"},
