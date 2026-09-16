@@ -1,33 +1,27 @@
-# PLI web (Next.js) production image.
+# PLI web (Next.js standalone) production image — lean.
+# Monorepo build: install whole workspace so `next` binary resolves, then
+# produce the standalone output.
 FROM node:22-alpine AS base
 WORKDIR /app
 RUN corepack enable
 
 FROM base AS deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY apps/web/package.json apps/web/package.json
-COPY packages/api-client/package.json packages/api-client/package.json
-COPY packages/ui-tokens/package.json packages/ui-tokens/package.json
-COPY packages/ui-tokens/tokens.json packages/ui-tokens/tokens.json
-COPY packages/ui-tokens/scripts packages/ui-tokens/scripts
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --filter @pli/web --frozen-lockfile=false
+COPY apps apps
+COPY packages packages
+RUN pnpm install --frozen-lockfile=false
 
 FROM deps AS build
-COPY apps/web apps/web
-COPY packages/api-client packages/api-client
-COPY packages/ui-tokens packages/ui-tokens
-RUN pnpm --dir packages/ui-tokens build
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm --dir apps/web build
+ARG NEXT_BASE_PATH=""
+ENV NEXT_BASE_PATH=$NEXT_BASE_PATH
+RUN pnpm --dir packages/ui-tokens build && pnpm --dir apps/web build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
-ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
-COPY --from=build /app/apps/web/.next ./.next
-COPY --from=build /app/apps/web/public ./public
-COPY --from=build /app/apps/web/node_modules ./node_modules
-COPY --from=build /app/apps/web/package.json ./package.json
-COPY --from=build /app/node_modules ./node_modules
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3100 HOSTNAME=0.0.0.0
+COPY --from=build /app/apps/web/.next/standalone ./
+COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build /app/apps/web/public ./apps/web/public
 EXPOSE 3100
-CMD ["pnpm", "start"]
+CMD ["node", "apps/web/server.js"]

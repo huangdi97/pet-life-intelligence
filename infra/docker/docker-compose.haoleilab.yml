@@ -1,0 +1,99 @@
+# PLI deployment on haoleilab staging server (path-prefix behind Caddy).
+# Services bind to 127.0.0.1 only; Caddy fronts /pli, /pli-api, /pli-admin.
+# Isolated DB/Redis/volumes from other projects on the host.
+
+name: pli
+
+services:
+  api:
+    image: pli-api:staging
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      JSON_LOGS_ENABLED: "true"
+      DB_POOL_ENABLED: "true"
+      RATE_LIMIT_ENABLED: "true"
+      STORAGE_BACKEND: local
+      LOCAL_UPLOAD_DIR: /data/uploads
+      PUBLIC_APP_URL: https://staging.haoleilab.com/pli
+    volumes:
+      - pli_uploads:/data/uploads
+    ports:
+      - "127.0.0.1:18800:8800"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8800/api/v1/health', timeout=5)"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    image: pli-worker:staging
+    restart: unless-stopped
+    env_file: .env
+    command: ["python", "worker/main.py", "--loop", "60"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    image: pli-web:staging
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: https://staging.haoleilab.com/pli-api
+      NEXT_BASE_PATH: /pli
+    ports:
+      - "127.0.0.1:13100:3100"
+    depends_on: [api]
+
+  admin:
+    image: pli-admin:staging
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: https://staging.haoleilab.com/pli-api
+      NEXT_BASE_PATH: /pli-admin
+    ports:
+      - "127.0.0.1:13200:3200"
+    depends_on: [api]
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pli}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-pli}
+    volumes:
+      - pli_postgres:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:18802:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-pli} -d $${POSTGRES_DB:-pli}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - pli_redis:/data
+    ports:
+      - "127.0.0.1:18801:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pli_postgres:
+  pli_redis:
+  pli_uploads:

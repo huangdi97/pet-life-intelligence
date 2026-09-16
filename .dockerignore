@@ -1,0 +1,40 @@
+# build caches & deps — never copied into images
+node_modules/
+**/node_modules/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.pyc
+
+# local artifacts
+apps/web/.next/
+apps/admin/.next/
+apps/mobile/dist/
+apps/mini/dist/
+apps/*/.next/
+artifacts/
+evidence/
+reports/
+reports/*.html
+tests/e2e-browser/artifacts/
+
+# secrets / env (templates only, never real env)
+.env
+.env.*
+!.env.example
+
+# media/db
+.minio/
+postgres-data/
+redis-data/
+artifacts/backups/
+
+# misc
+.DS_Store
+Thumbs.db
+*.egg-info/
+build/
+.next/
+*.tsbuildinfo

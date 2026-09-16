@@ -38,7 +38,7 @@ services:
     env_file:
       - path: ../../.env.production
         required: false
-    command: ["--loop", "60"]
+    command: ["python", "worker/main.py", "--loop", "60"]
     depends_on:
       postgres:
         condition: service_healthy
