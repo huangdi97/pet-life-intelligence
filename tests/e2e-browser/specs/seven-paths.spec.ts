@@ -1,4 +1,4 @@
-import { patchGoto, test, expect } from "./fixtures";
+import { patchGoto, test, expect, urlRe, urlReTail } from "./fixtures";
 import {
   API, createPetViaUI, expectNoFatalState, loginAsEmail, useCurrentPet, userIdFor,
 } from "./helpers";
@@ -10,7 +10,7 @@ test("E2E-01 创建宠物 → Quick Log → Timeline（刷新后仍存在，后�
   await page.goto("/login");
   await page.getByRole("button", { name: "开发模式登录" }).click();
   await page.getByRole("button", { name: "owner", exact: true }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(urlRe("/"));
 
   // 2. create a brand-new pet through the UI
   const name = `BW-Coco-${stamp}`;
@@ -88,6 +88,7 @@ test("E2E-02 家庭协作 / 权限（成员可完成，Owner-only 被拒，API 4
   });
   expect(denied.status()).toBe(403);
   const famPage2 = await browser.newPage();
+  patchGoto(famPage2);
   await loginAsEmail(famPage2, request, "family@pli.demo");
   await useCurrentPet(famPage2, coco.id);
   await famPage2.goto("/settings");
@@ -105,7 +106,7 @@ test("E2E-03 红旗 → EMERGENCY → Vet Brief（前端不降级、刷新一致
   await page.goto("/health");
   await page.getByLabel(/主诉/).fill("反复进猫砂盆但几乎尿不出来");
   await page.getByRole("button", { name: "打开健康事件" }).click();
-  await expect(page).toHaveURL(/\/health\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(urlReTail("/health/[0-9a-f-]{36}"));
   await expect(page.locator(".badge.EMERGENCY").first()).toBeVisible();
   await expect(page.locator(".alert.emergency")).toContainText("立即");
 
@@ -253,6 +254,7 @@ test("E2E-07 IDOR / URL 篡改（跨 owner 访问必须 403/404 且不泄露）"
 
   // sitter has an EXPIRED historical grant on Coco only; Mimi never granted
   const sitter = await browser.newPage();
+  patchGoto(sitter);
   await loginAsEmail(sitter, request, "sitter@pli.demo");
 
   for (const target of [coco.id, mimi.id, fakeId]) {

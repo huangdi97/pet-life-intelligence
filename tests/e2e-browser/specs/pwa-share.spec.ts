@@ -1,5 +1,7 @@
-import { test, expect } from "./fixtures";
-import { API, expectNoFatalState, loginAsEmail, userIdFor } from "./helpers";
+import { patchGoto, test, expect } from "./fixtures";
+import {
+  API, assetPath, expectNoFatalState, loginAsEmail, userIdFor,
+} from "./helpers";
 
 const stamp = Date.now();
 
@@ -7,27 +9,28 @@ test("E2E-08 PWA manifest + service worker + offline fallback", async ({ page, r
   const ownerId = await loginAsEmail(page, request, "owner@pli.demo");
 
   // manifest is served and installable
-  const manifest = await (await page.request.get("/manifest.webmanifest")).json();
+  const manifest = await (await page.request.get(assetPath("/manifest.webmanifest"))).json();
   expect(manifest.name).toBeTruthy();
   expect(manifest.icons.length).toBeGreaterThanOrEqual(2);
-  expect(manifest.start_url).toBe("/");
+  expect(manifest.start_url).toBe(process.env.PLI_E2E_BASE_PATH ?? "/");
 
   // service worker registers
   await page.goto("/");
-  const swState = await page.evaluate(async () => {
+  const swScope = assetPath("/");
+  const swState = await page.evaluate(async (scope) => {
     if (!("serviceWorker" in navigator)) return "unsupported";
     for (let i = 0; i < 10; i++) {
-      const reg = await navigator.serviceWorker.getRegistration("/");
+      const reg = await navigator.serviceWorker.getRegistration(scope);
       if (reg?.active) return "active";
       if (reg?.installing || reg?.waiting) return "installing";
       await new Promise((r) => setTimeout(r, 500));
     }
     return "not-found";
-  });
+  }, swScope);
   expect(["active", "installing"]).toContain(swState);
 
   // offline page is pre-cached
-  const offline = await page.request.get("/offline");
+  const offline = await page.request.get(assetPath("/offline"));
   expect(offline.status()).toBe(200);
   await expectNoFatalState(page);
 });
@@ -57,6 +60,7 @@ test("E2E-09 H5 分享页（Vet Brief 匿名访问 + 过期/撤销态）", async
 
   // anonymous H5 page renders the shared content
   const page = await browser.newPage();
+  patchGoto(page);
   await page.goto(`/share/vet-brief/${share.share_token}`);
   await expect(page.getByText("就诊摘要 · Vet Brief")).toBeVisible();
   await expect(page.getByText(`BW-share-${stamp}`).first()).toBeVisible();

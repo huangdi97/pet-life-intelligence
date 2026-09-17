@@ -1,6 +1,8 @@
 import { expect, test as base, type Page } from "@playwright/test";
 
 export { expect };
+export { urlRe } from "./helpers";
+export { urlReTail } from "./helpers";
 
 /**
  * Remote-capable page fixture (Stage F §19): when PLI_E2E_BASE_PATH is set

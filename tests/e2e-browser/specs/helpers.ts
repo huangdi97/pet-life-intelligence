@@ -42,9 +42,40 @@ export async function createPetViaUI(page: Page, name: string): Promise<void> {
   await page.goto("/pets/new");
   await page.getByLabel("名字").fill(name);
   await page.getByRole("button", { name: "创建", exact: true }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(urlRe("/"));
 }
 
 export async function expectNoFatalState(page: Page): Promise<void> {
   await expect(page.locator(".state.error")).toHaveCount(0);
+}
+
+/**
+ * Base-path-aware URL regex from a regex tail (Stage F §19): urlReTail(
+ * "/health/[0-9a-f-]{36}") matches the UUID detail URL under any deployment.
+ */
+export function urlReTail(tail: string): RegExp {
+  const basePath = process.env.PLI_E2E_BASE_PATH ?? "";
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(esc(basePath) + tail + "$");
+}
+
+/** Base-path-aware asset/API path for request.get() (baseURL has no prefix). */
+export function assetPath(path: string): string {
+  const basePath = process.env.PLI_E2E_BASE_PATH ?? "";
+  return path.startsWith("/") ? basePath + path : path;
+}
+
+/**
+ * Base-path-aware URL regex (Stage F §19): urlRe("/login") matches "/login"
+ * on localhost and "/pli/login" on a /pli deployment. Home ("/") matches the
+ * basePath itself (with optional trailing slash).
+ */
+export function urlRe(path: string): RegExp {
+  const basePath = process.env.PLI_E2E_BASE_PATH ?? "";
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (path === "/") {
+    if (!basePath) return /\/$/;
+    return new RegExp(esc(basePath) + "\\/?$");
+  }
+  return new RegExp(esc(basePath + path) + "$");
 }
