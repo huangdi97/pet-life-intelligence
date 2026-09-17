@@ -2,42 +2,40 @@
 
 ## Current terminal
 
-`PLI_V1_0_WEB_READY_PILOT_READY`（真实 Auth/AI/Pilot 完成；公网部署与平台账号为外部 blocker → RELEASE_READY_EXTERNAL_BLOCKED）
+`PLI_V1_0_WEB_LIVE_PILOT_LIVE`（公网 staging 真实可用；生产域名/AI key/SMTP/git remote 为外部 blocker → Stage F 收口）
 
-## Stage E 完成情况
+## Stage F 完成情况（跨 Agent 接续，全部真实命令验证）
 
 | 阶段 | 状态 | 证据 |
 |---|---|---|
-| Preflight | DONE | reports/STAGE_E_PREFLIGHT.md |
-| Git Remote | BLOCKED_EXTERNAL | docs/release/GIT_REMOTE_HANDOFF.md |
-| Real Auth | DONE | Argon2id + rotating tokens + 全流程；11 后端 + 2 浏览器 E2E |
-| Real AI | DONE (adapter) | OpenAI-compatible provider REAL_READY；key EXTERNAL_BLOCKED |
-| Production Config | DONE | fail-fast 校验（生产拒绝 dev-auth/弱 secret） |
-| Domain/HTTPS | CONFIG READY | nginx HSTS/CSP/安全头；证书 BLOCKED_EXTERNAL |
-| Staging | CONFIG READY | docker-compose.staging + nginx；无服务器 |
-| Worker/监控 | DONE | crash/restart 测试 + /metrics 端点 |
-| Pilot Mode | DONE | invite-only + 反馈 + 指标 + 业务包 |
-| Mini Release | BUILD_READY | 真机构建 + 微信登录 adapter；AppID BLOCKED_EXTERNAL |
-| Mobile | BUILD_READY_SIGNING_BLOCKED | bundle 绿；无签名 |
-| Final Gate | DONE | reports/STAGE_E_FINAL_GATE.md |
+| Handoff Reality Audit | DONE | reports/STAGE_F_HANDOFF_CURRENT_STATE.md |
+| Remote Staging | DONE（LIVE） | 6 容器 Up + Caddy TLS；https://staging.haoleilab.com/pli · /pli-api · /pli-admin 全 200 |
+| Remote 全链路 smoke | DONE | scripts/remote_staging_smoke.py **20/20 PASS**（register→…→cross-user deny→data persists） |
+| Remote Auth 矩阵 | DONE | scripts/remote_auth_matrix.py **15/15 PASS**（Argon2id 全流程 + 限流 + 删号） |
+| Remote 医疗安全 | DONE | scripts/remote_medical_safety.py **9/9 PASS**（红旗/弱化/injection/单调升级/免责） |
+| Remote 存储 | DONE | scripts/remote_storage_check.py **9/9 PASS**（上传/下载/IDOR/MIME/签名） |
+| Remote 隐私 | DONE | scripts/remote_privacy_check.py **8/8 PASS** + share-revoke 演练 7/7（撤销 403） |
+| Remote Pilot | DONE | scripts/remote_pilot_check.py **8/8** + 闸门演练 **9/9**（PILOT_MODE=true 无码 422/有码 201；恢复 false） |
+| 备份/恢复 | DONE | 远程 staging 演练 **10/10 ALL-PASS exit 0**（73 表 counts 一致 + 恢复库 API smoke） |
+| Monitoring | ACTIVE | /metrics 真实流量（events 25→158、security 14→59、audit 18→119，时间戳快照 ×3） |
+| Remote E2E | DONE | Playwright **12/12 PASS** against 公网 staging（真实浏览器注册→登录→退出→重置、PWA、分享、IDOR） |
+| 部署 bug 修复 | DONE | bundle localhost 烘焙 / seed FK 顺序 / 健康页 basePath 跳转 / PWA basePath 缺口（4 项，详见 STAGE_F_FINAL_GATE） |
+| Local 质量回归 | DONE | pytest 267 / ruff clean / typecheck 0 / 本地 Playwright 12/12 |
+| Final Gate | DONE | reports/STAGE_F_FINAL_GATE.md（F0–F20 逐 Gate 判定） |
+| 完成报告 | DONE | PLI_STAGE_F_HANDOFF_COMPLETION_REPORT.md |
 
-## 最终验证（真实命令）
+## FEATURE FREEZE
 
-- `pytest -q` → **267 passed**
-- `ruff check services packages tests` → All checks passed
-- Web/Admin build → Compiled successfully；Mini（weapp/alipay/tt）build 绿；Mobile tsc 0 + bundle 绿
-- Playwright → **12/12 PASS**
-- Migration → head（含 auth + pilot 新表）
-- Demo seed → PASS（虚构宠物"豆包"全链路）
+已达到 WEB_LIVE + PILOT_LIVE（staging 公网）。停止功能开发。
+下一阶段：**REAL PILOT OPERATIONS**（真实反馈/usage/errors 驱动），不再扩 Feature。
 
 ## Current blockers（外部）
 
-1. git remote URL
-2. 生产服务器 SSH / 域名 DNS / TLS 证书
-3. 真实 AI Provider API key
-4. 微信 AppID / 主体 / 备案
-5. Apple / Google / HarmonyOS 账号与签名
-6. SMTP 邮件账号
+1. git remote URL（仓库就绪，提供即 push）
+2. 真实 AI Provider API key（代码 REAL_PROVIDER_READY，配置即激活）
+3. SMTP 邮件账号（代码+模板齐备）
+4. 独立生产域名 + DNS 控制（staging 已 path-prefix 上线；生产需独立域名）
+5. 微信 AppID / 主体 / 备案；Apple / Google / HarmonyOS 账号与签名
 
 ## 下一步（真实输入驱动）
 

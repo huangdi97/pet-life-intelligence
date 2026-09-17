@@ -1,5 +1,21 @@
 # Changelog
+## v1.2.0 (2026-09-17) — Stage F Deployment Activation（WEB_LIVE + PILOT_LIVE）
 
+从 `WEB_READY_PILOT_READY` 推进到 `PLI_V1_0_WEB_LIVE_PILOT_LIVE`（公网 staging 真实可用）。
+### Added
+- **真实公网部署**：https://staging.haoleilab.com（path-prefix /pli web · /pli-api API · /pli-admin admin；独立 DB/Redis/volume；Caddy Let's Encrypt TLS + HSTS 安全头）。
+- **远程验证套件**（scripts/remote_*.py，全部真实公网执行）：全链路 smoke 20/20、Auth 矩阵 15/15、医疗安全 9/9、存储 9/9、隐私 8/8、share-revoke 7/7、Pilot 8/8、Pilot 闸门 9/9、备份恢复 10/10（exit 0）。
+- **Playwright 远程化**：PLI_E2E_BASE_URL / PLI_E2E_BASE_PATH / PLI_E2E_API 环境变量驱动 + goto base-path fixture；本地 12/12 + 远程公网 12/12。
+- **PWA basePath 感知**：动态 manifest 路由（start_url/scope/icons 随 NEXT_BASE_PATH）、PwaShell basePath prop、sw.js v2 从 registration.scope 派生 BASE、API/share 响应同域前缀下永不缓存。
+### Fixed
+- web/admin 镜像缺 NEXT_PUBLIC_API_URL 构建 ARG → bundle 烘焙 localhost:8800，公网浏览器端 API 全断（远程 Playwright 发现）。
+- seed 清理列表漏 auth/pilot 表（FK 引用 users）→ 服务器有会话时 seed 崩溃（远程 seed 发现）。
+- 健康页 window.location.href 不感知 basePath → 公网部署健康详情流 404；改 router.push。
+- Web typecheck：本地 node_modules 漂移（stale react 19.3.0）致 Suspense/ReactNode 伪错误；pnpm install --force 修复（无代码 hack）。
+### Quality
+- pytest **267 passed**；ruff 全绿；typecheck 0 error；本地 + 远程 Playwright **12/12**；远程部署后全链路回归绿。
+### External blockers（诚实标注）
+git remote URL、真实 AI API key（代码 REAL_PROVIDER_READY）、SMTP（代码+模板齐备）、独立生产域名/DNS 控制、微信 AppID / 商店账号 / 签名。
 ## v1.1.1 (2026-09-14) — Stage E Real Launch Preparation
 
 从 `PRODUCTION_READY_MULTI_CLIENT` 推进到 `WEB_READY_PILOT_READY`（发布步骤外部 blocker）。
