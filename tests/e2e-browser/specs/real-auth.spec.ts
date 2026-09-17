@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { test, expect, urlRe } from "./fixtures";
 
 /** Real-auth browser E2E against the running stack (Stage E §6.5). */
 
@@ -12,17 +12,17 @@ test("AUTH-E2E-B01 注册 → 登录 → 进入 → 退出 → 再登录", async
   await page.getByLabel("密码", { exact: true }).first().fill("RealPass!w0rd");
   await page.getByPlaceholder("再次输入密码").fill("RealPass!w0rd");
   await page.getByRole("button", { name: "注册", exact: true }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(urlRe("/"));
 
   // logout
   await page.getByRole("button", { name: "退出" }).click();
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(urlRe("/login"));
 
   // login again with the same credentials — data persists (new account, no pets)
   await page.getByLabel("邮箱").fill(email);
   await page.getByLabel("密码").fill("RealPass!w0rd");
   await page.getByRole("button", { name: "登录", exact: true }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(urlRe("/"));
   await expect(page.getByText("还没有宠物")).toBeVisible();
 });
 
@@ -35,11 +35,11 @@ test("AUTH-E2E-B02 错误密码被拒 + 忘记密码→重置→新密码登录"
   await page.getByLabel("密码", { exact: true }).first().fill("ResetPass!w0rd");
   await page.getByPlaceholder("再次输入密码").fill("ResetPass!w0rd");
   await page.getByRole("button", { name: "注册", exact: true }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(urlRe("/"));
 
   // logout
   await page.getByRole("button", { name: "退出" }).click();
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(urlRe("/login"));
 
   // wrong password rejected
   await page.getByLabel("邮箱").fill(email);
@@ -66,5 +66,5 @@ test("AUTH-E2E-B02 错误密码被拒 + 忘记密码→重置→新密码登录"
   await page.getByLabel("邮箱").fill(email);
   await page.getByLabel("密码").fill("NewPass!w0rd22");
   await page.getByRole("button", { name: "登录", exact: true }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(urlRe("/"));
 });
