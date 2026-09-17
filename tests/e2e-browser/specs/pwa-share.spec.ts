@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { API, expectNoFatalState, loginAsEmail, userIdFor } from "./helpers";
 
 const stamp = Date.now();

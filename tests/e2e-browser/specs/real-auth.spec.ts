@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 /** Real-auth browser E2E against the running stack (Stage E §6.5). */
 

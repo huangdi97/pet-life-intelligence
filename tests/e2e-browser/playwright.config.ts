@@ -9,7 +9,7 @@ export default defineConfig({
   reporter: [["list"], ["json", { outputFile: "artifacts/results.json" }]],
   outputDir: "artifacts/test-results",
   use: {
-    baseURL: "http://localhost:3100",
+    baseURL: process.env.PLI_E2E_BASE_URL ?? "http://localhost:3100",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     locale: "zh-CN",

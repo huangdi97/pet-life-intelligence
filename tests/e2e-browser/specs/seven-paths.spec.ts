@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { patchGoto, test, expect } from "./fixtures";
 import {
   API, createPetViaUI, expectNoFatalState, loginAsEmail, useCurrentPet, userIdFor,
 } from "./helpers";
@@ -55,6 +55,7 @@ test("E2E-02 家庭协作 / 权限（成员可完成，Owner-only 被拒，API 4
 
   // owner creates a task in the browser
   const ownerPage = await browser.newPage();
+  patchGoto(ownerPage);
   await loginAsEmail(ownerPage, request, "owner@pli.demo");
   await useCurrentPet(ownerPage, coco.id);
   await ownerPage.goto("/tasks");
@@ -66,6 +67,7 @@ test("E2E-02 家庭协作 / 权限（成员可完成，Owner-only 被拒，API 4
 
   // family member completes it in their own browser session
   const famPage = await browser.newPage();
+  patchGoto(famPage);
   await loginAsEmail(famPage, request, "family@pli.demo");
   await useCurrentPet(famPage, coco.id);
   await famPage.goto("/tasks");

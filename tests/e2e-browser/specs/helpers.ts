@@ -1,6 +1,8 @@
 import { APIRequestContext, Page, expect } from "@playwright/test";
 
-export const API = "http://localhost:8800/api/v1";
+/** Remote-capable API base (Stage F §19): override with PLI_E2E_API to run
+ *  the suite against a public deployment, e.g. the /pli-api prefix. */
+export const API = process.env.PLI_E2E_API ?? "http://localhost:8800/api/v1";
 
 /** Resolve a seeded demo user id by email (ids change on every reseed). */
 export async function userIdFor(request: APIRequestContext, email: string): Promise<string> {
