@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@pli/api-client";
 import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
@@ -18,6 +19,7 @@ interface HealthEventRow {
 /** Surface 9: Health Event list + “发现异常”入口 (PLI-049, E2E-05). */
 export default function HealthPage() {
   const { petId } = useCurrentPet();
+  const router = useRouter();
   const list = useAsync<HealthEventRow[]>(
     () =>
       petId
@@ -42,7 +44,7 @@ export default function HealthPage() {
       setComplaint("");
       list.reload();
       // jump straight into the intake flow
-      window.location.href = `/health/${r.health_event_id}`;
+      router.push(`/health/${r.health_event_id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

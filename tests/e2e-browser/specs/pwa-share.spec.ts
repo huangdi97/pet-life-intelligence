@@ -12,7 +12,7 @@ test("E2E-08 PWA manifest + service worker + offline fallback", async ({ page, r
   const manifest = await (await page.request.get(assetPath("/manifest.webmanifest"))).json();
   expect(manifest.name).toBeTruthy();
   expect(manifest.icons.length).toBeGreaterThanOrEqual(2);
-  expect(manifest.start_url).toBe(process.env.PLI_E2E_BASE_PATH ?? "/");
+  expect(manifest.start_url).toBe(`${process.env.PLI_E2E_BASE_PATH ?? ""}/`);
 
   // service worker registers
   await page.goto("/");
