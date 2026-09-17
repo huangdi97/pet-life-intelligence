@@ -48,7 +48,7 @@ export function State({
         )}
       </div>
     );
-  if (empty && !children) return <div className="state">{String(empty)}</div>;
+  if (empty && !children) return <div className="state">{empty}</div>;
   return <>{children}</>;
 }
 

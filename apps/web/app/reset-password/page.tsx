@@ -60,7 +60,6 @@ export default function ResetPasswordPage() {
     <main className="page-center">
       <h1>重置密码</h1>
       <p className="sub">设置新的登录密码</p>
-      {/* @ts-expect-error environmental mixed @types/react (web 19 vs older JSX ns): runtime identical */}
       <Suspense fallback={<div className="state loading">加载中……</div>}>
         <ResetForm />
       </Suspense>
