@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 
-/** PWA 壳注册 + 安装提示（不强制，尊重用户）。 */
-export function PwaShell() {
+/** PWA 壳注册 + 安装提示（不强制，尊重用户）。
+ *  basePath 由服务端 layout 传入（Stage F path-prefix 部署感知）。 */
+export function PwaShell({ basePath = "" }: { basePath?: string }) {
   const [installEvt, setInstallEvt] = useState<unknown>(null);
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
-        .register("/sw.js")
+        .register(`${basePath}/sw.js`)
         .catch(() => {
           /* 不支持则静默降级 */
         });

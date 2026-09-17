@@ -7,7 +7,7 @@ import { PwaShell } from "../components/PwaShell";
 export const metadata: Metadata = {
   title: { default: "宠物生活智能", template: "%s — 宠物生活智能" },
   description: "宠物全生命周期记录与健康照护助手",
-  manifest: "/manifest.webmanifest",
+  manifest: `${process.env.NEXT_BASE_PATH || ""}/manifest.webmanifest`,
   applicationName: "Pet Life Intelligence",
   icons: {
     icon: [
@@ -37,7 +37,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <TopNav />
         <div className="page">{children}</div>
-        <PwaShell />
+        <PwaShell basePath={process.env.NEXT_BASE_PATH || ""} />
       </body>
     </html>
   );
