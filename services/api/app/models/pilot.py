@@ -61,6 +61,30 @@ class PilotUserProfile(UUIDPk, CreatedAt, Base):
     organization: Mapped[str] = mapped_column(String(120), default="", nullable=False)
 
 
+class PilotOrg(UUIDPk, CreatedAt, Base):
+    """Wave 0 pilot organization metadata (PLI-GW0).
+
+    Lifecycle status (no hard delete — historical facts are immutable):
+    LEAD -> ONBOARDING -> ACTIVE -> PAUSED -> COMPLETED
+    abnormal: WITHDRAWN / TERMINATED_SAFETY / TERMINATED_PRIVACY /
+              TERMINATED_OPERATIONAL
+    """
+
+    __tablename__ = "pilot_orgs"
+    __table_args__ = (Index("ix_pilot_orgs_name", "name"),)
+
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    org_type: Mapped[str] = mapped_column(String(30), default="OWNER_COHORT", nullable=False)
+    # VET | TRAINER | STORE | CARE_SERVICE | OWNER_COHORT | OTHER
+    contact: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="LEAD", nullable=False)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expected_end_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    participant_limit: Mapped[int | None] = mapped_column(nullable=True)
+    consent_version: Mapped[str] = mapped_column(String(30), default="", nullable=False)
+    notes: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
+
 class PilotFeedback(UUIDPk, CreatedAt, Base):
     """Lightweight in-product feedback (bug/confusing/feature/health/other)."""
 

@@ -2,7 +2,21 @@
 
 ## Current terminal
 
-`PLI_V1_0_WEB_LIVE_PILOT_LIVE`（公网 staging 真实可用；生产域名/AI key/SMTP/git remote 为外部 blocker → Stage F 收口）
+`PLI_V1_0_WEB_LIVE_PILOT_LIVE` + `PILOT_OPERATIONS_READY`（Stage G 试点运营就绪；公网 staging 真实可用；
+生产域名/AI key/SMTP/git remote 仍为外部 blocker → 待真实输入与决策）
+
+## Stage G 启动完成情况（真实命令/代码验证）
+
+| 阶段 | 状态 | 证据 |
+|---|---|---|
+| Reality Audit（§6 十五问） | DONE | reports/STAGE_G_PILOT_READINESS.md（15 问逐条 + 缺口清单） |
+| 注册页邀请码输入 | DONE | apps/web/app/register/page.tsx + api-client authApi.register(…, invite_code?) |
+| 产品内反馈 UI | DONE | 设置页「试点反馈」10 类卡片 + pilotApi.feedback()；后端类别集合扩展 |
+| Admin Pilot 状态卡 | DONE | apps/admin/app/page.tsx（/pilot/status 实时） |
+| 运营文档 | DONE | docs/pilot/：PILOT_OPERATIONS / PILOT_ONBOARDING / PILOT_METRIC_DEFINITIONS / INTERVIEW_GUIDES / PILOT_SUPPORT |
+| 周报体系 | DONE | reports/pilot/：README + ACTIVATION_FUNNEL / UX_FRICTION_LOG / FEATURE_USAGE / FEATURE_REQUEST_BACKLOG / COMPANION_DISCOVERY / DEVICE_DISCOVERY / COMMERCIAL_DISCOVERY / WEEK_01 |
+| 回归 | PASS | pytest 267 / web+admin typecheck 0 / ruff clean |
+| 真实参与者 | AWAITING | 尚无真实用户/机构/宠物（NOT_YET_OBSERVED，不伪造） |
 
 ## Stage F 完成情况（跨 Agent 接续，全部真实命令验证）
 

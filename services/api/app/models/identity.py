@@ -30,6 +30,10 @@ class User(UUIDPk, CreatedAt, Base):
     email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False)
     display_name: Mapped[str] = mapped_column(String(120), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # PLI-GW0 pilot isolation: demo/internal/test data must never appear in
+    # real pilot metrics (exclude_demo=true / exclude_internal=true).
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_internal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
 class Household(UUIDPk, CreatedAt, Base):
@@ -101,6 +105,9 @@ class Pet(UUIDPk, CreatedAt, Base):
     # e.g. ["weight_note", "birth_date", "breed"] — enforced by serializers.
     field_privacy: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # PLI-GW0 pilot isolation: demo pets excluded from real pilot metrics.
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_internal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
 class Relationship(UUIDPk, CreatedAt, Base):

@@ -228,11 +228,17 @@ export const api = {
 
 /** Convenience for auth flows. */
 export const authApi = {
-  register: (email: string, password: string, display_name: string) =>
+  register: (
+    email: string,
+    password: string,
+    display_name: string,
+    invite_code = "",
+  ) =>
     api.post<{ user_id: string; verification_token?: string }>("/auth/register", {
       email,
       password,
       display_name,
+      invite_code: invite_code.trim() || undefined,
     }),
   verifyEmail: (token: string) => api.post("/auth/verify-email", { token }),
   login: (email: string, password: string, device_label = "") =>
@@ -257,4 +263,33 @@ export const authApi = {
   deleteAccount: (password: string) =>
     api.post("/auth/delete-account", { password }),
   status: () => api.get<{ mode: string; real_auth: string; dev_auth_enabled: boolean }>("/auth/status"),
+};
+
+/** Pilot mode helpers (invite gating + feedback). */
+export const pilotApi = {
+  status: () =>
+    api.get<{
+      pilot_mode: boolean;
+      pets_total: number;
+      active_pets_3d: number;
+      active_pets_7d: number;
+      feedback_count: number;
+      invited: number;
+      registered: number;
+      activated_owners: number;
+      north_star: string;
+      excludes: string[];
+    }>("/pilot/status"),
+  feedback: (body: {
+    category: string;
+    message: string;
+    page_url?: string;
+    pet_id?: string;
+    client?: string;
+    extra?: Record<string, unknown>;
+  }) =>
+    api.post<{ feedback_id: string; category: string }>("/pilot/feedback", {
+      ...body,
+      client: body.client ?? "web",
+    }),
 };

@@ -10,7 +10,7 @@ import { useCurrentPet } from "../../lib/hooks";
 export default function RegisterPage() {
   const router = useRouter();
   const { choose } = useCurrentPet();
-  const [form, setForm] = useState({ display_name: "", email: "", password: "", confirm: "" });
+  const [form, setForm] = useState({ display_name: "", email: "", password: "", confirm: "", invite_code: "" });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [verifyToken, setVerifyToken] = useState<string | null>(null);
@@ -22,7 +22,12 @@ export default function RegisterPage() {
     if (form.password !== form.confirm) return setError("两次密码不一致。");
     setBusy(true);
     try {
-      const r = await authApi.register(form.email.trim(), form.password, form.display_name.trim());
+      const r = await authApi.register(
+        form.email.trim(),
+        form.password,
+        form.display_name.trim(),
+        form.invite_code,
+      );
       if (r.verification_token) {
         // dev/console delivery: auto-verify so pilot users can proceed
         await authApi.verifyEmail(r.verification_token);
@@ -62,6 +67,15 @@ export default function RegisterPage() {
         <label className="field">
           确认密码
           <input type="password" value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} placeholder="再次输入密码" />
+        </label>
+        <label className="field">
+          邀请码（试点邀请制填写，选填）
+          <input
+            value={form.invite_code}
+            onChange={(e) => setForm({ ...form, invite_code: e.target.value })}
+            placeholder="如：AB12CD34EF（机构/个人邀请码）"
+            autoCapitalize="characters"
+          />
         </label>
         {error && <div className="alert emergency">{error}</div>}
         {verifyToken && <div className="alert info">验证 token：{verifyToken}</div>}

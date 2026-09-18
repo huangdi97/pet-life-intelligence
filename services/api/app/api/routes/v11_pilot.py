@@ -3,6 +3,7 @@ gating, feedback, pilot dashboard.
 """
 
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -77,5 +78,57 @@ async def submit_feedback(body: FeedbackIn, db: DBSession, user: CurrentUser) ->
     )
     await write_audit(db, action="pilot.feedback", actor_user_id=user.id,
                       resource_type="PilotFeedback", resource_id=result["feedback_id"])
+    await db.commit()
+    return result
+
+
+class OrgCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    org_type: str = "OWNER_COHORT"
+    contact: str = ""
+    status: str = "LEAD"
+    started_at: datetime | None = None
+    expected_end_at: datetime | None = None
+    participant_limit: int | None = Field(default=None, ge=1, le=100000)
+    consent_version: str = ""
+    notes: str = ""
+
+
+class OrgTransition(BaseModel):
+    status: str
+
+
+@router.post("/orgs", status_code=201)
+async def create_org(body: OrgCreate, db: DBSession, user: CurrentUser) -> dict:
+    """Create a pilot organization (metadata only, no fake real users)."""
+    from app.services.eventlog import write_audit
+
+    result = await pilot_svc.create_pilot_org(
+        db, name=body.name, org_type=body.org_type, contact=body.contact,
+        status=body.status, started_at=body.started_at,
+        expected_end_at=body.expected_end_at,
+        participant_limit=body.participant_limit,
+        consent_version=body.consent_version, notes=body.notes,
+    )
+    await write_audit(db, action="pilot.org.create", actor_user_id=user.id,
+                      resource_type="PilotOrg", resource_id=result["pilot_org_id"])
+    await db.commit()
+    return result
+
+
+@router.get("/orgs")
+async def list_orgs(db: DBSession, user: CurrentUser) -> list[dict]:
+    return await pilot_svc.list_pilot_orgs(db)
+
+
+@router.patch("/orgs/{org_id}/status")
+async def transition_org(org_id: uuid.UUID, body: OrgTransition,
+                         db: DBSession, user: CurrentUser) -> dict:
+    from app.services.eventlog import write_audit
+
+    result = await pilot_svc.transition_pilot_org(db, org_id, body.status)
+    await write_audit(db, action="pilot.org.transition", actor_user_id=user.id,
+                      resource_type="PilotOrg", resource_id=str(org_id),
+                      detail={"to_status": body.status})
     await db.commit()
     return result

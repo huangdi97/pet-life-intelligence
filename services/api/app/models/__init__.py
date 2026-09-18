@@ -39,7 +39,7 @@ from app.models.identity import (
     Relationship,
     User,
 )
-from app.models.pilot import PilotFeedback, PilotInviteCode, PilotUserProfile
+from app.models.pilot import PilotFeedback, PilotInviteCode, PilotOrg, PilotUserProfile
 from app.models.v02 import (  # noqa: F401 — v0.2 models register on the same metadata
     AnalyticsCounter,
     Baseline,
@@ -91,6 +91,7 @@ __all__ = [
     "VerificationToken",
     "PilotFeedback",
     "PilotInviteCode",
+    "PilotOrg",
     "PilotUserProfile",
     "CapabilityRegistry",
     "BehaviorInterventionPlan",

@@ -86,7 +86,7 @@ WIPE_TABLES = [
     "household_members", "households", "ai_inference_logs", "audit_entries",
     "security_events", "login_attempts", "password_reset_tokens",
     "verification_tokens", "auth_sessions", "credentials",
-    "pilot_feedback", "pilot_user_profiles", "pilot_invite_codes",
+    "pilot_feedback", "pilot_user_profiles", "pilot_invite_codes", "pilot_orgs",
     "users",
 ]
 

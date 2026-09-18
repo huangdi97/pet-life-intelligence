@@ -152,9 +152,9 @@ async def seed() -> dict:
             await db.execute(delete(t))
         await db.flush()
 
-        owner = User(email="owner@pli.demo", display_name="Demo Owner")
-        family = User(email="family@pli.demo", display_name="Demo Family Member")
-        sitter = User(email="sitter@pli.demo", display_name="Demo Sitter")
+        owner = User(email="owner@pli.demo", display_name="Demo Owner", is_demo=True)
+        family = User(email="family@pli.demo", display_name="Demo Family Member", is_demo=True)
+        sitter = User(email="sitter@pli.demo", display_name="Demo Sitter", is_demo=True)
         db.add_all([owner, family, sitter])
         await db.flush()
 
@@ -173,10 +173,12 @@ async def seed() -> dict:
 
         coco = Pet(household_id=hh.id, name="Coco", species="dog", breed="Corgi",
                    sex="FEMALE", birth_date=datetime(2022, 5, 1).date(),
-                   neutered=True, weight_note="12kg", created_by_user_id=owner.id)
+                   neutered=True, weight_note="12kg", created_by_user_id=owner.id,
+                   is_demo=True)
         mimi = Pet(household_id=hh.id, name="Mimi", species="cat", breed="DLH",
                    sex="MALE", birth_date=datetime(2021, 11, 20).date(),
-                   neutered=True, weight_note="4.5kg", created_by_user_id=owner.id)
+                   neutered=True, weight_note="4.5kg", created_by_user_id=owner.id,
+                   is_demo=True)
         db.add_all([coco, mimi])
         await db.flush()
         db.add_all(

@@ -1,4 +1,32 @@
 # Changelog
+## v1.2.1 (Stage G 启动) — REAL PILOT OPERATIONS READY
+
+从 `PLI_V1_0_WEB_LIVE_PILOT_LIVE` 进入 Stage G：真实试点运营准备完成，待真实参与者。
+
+### Added
+- **Stage G 就绪审计**：`reports/STAGE_G_PILOT_READINESS.md`（§6 十五问逐条回答；结论
+  `PILOT_OPERATIONS_READY / AWAITING_REAL_PARTICIPANTS`；公网 staging 当前 PILOT_MODE=false）。
+- **试点运营文档**：docs/pilot/ 新增 PILOT_OPERATIONS（组织模型/状态机/隔离/发布/退出/成本）、
+  PILOT_ONBOARDING（宠主 ≤5min + 机构流程 + Activation 定义）、PILOT_METRIC_DEFINITIONS（M-01~M-16 指标字典）、
+  INTERVIEW_GUIDES（宠主/兽医/训练师/Companion/价格访谈）、PILOT_SUPPORT（支持/SLA/健康边界/incident/导出删除）。
+- **周报体系**：reports/pilot/ 新增 README + ACTIVATION_FUNNEL / UX_FRICTION_LOG / FEATURE_USAGE /
+  FEATURE_REQUEST_BACKLOG / COMPANION_DISCOVERY / DEVICE_DISCOVERY / COMMERCIAL_DISCOVERY /
+  WEEK_01_PILOT_REPORT 模板（全部 NOT_YET_OBSERVED，无伪造）。
+
+### Changed
+- 注册页新增「邀请码（选填）」输入并透传（PILOT_MODE=true 时真实用户可完成邀请制注册）：
+  `apps/web/app/register/page.tsx` + `packages/api-client` `authApi.register(…, invite_code?)`。
+- 设置页新增「试点反馈」卡片（10 类：bug/confusing/slow/missing/unnecessary/safety/privacy/
+  feature_request/health_concern/other）：`apps/web/app/settings/page.tsx` + `pilotApi.feedback()`。
+- 反馈类别集合扩展为 Stage G 全集：`services/api/app/services/pilot.py`。
+- Admin 首页新增「试点 Pilot 状态」卡片（/pilot/status：pilot_mode/pets/3d/7d/反馈数）：`apps/admin/app/page.tsx`。
+
+### Quality
+- pytest **267 passed**（全量重跑）；web + admin typecheck 0 error；ruff 全绿。
+
+### Known gaps（诚实标注，进入 backlog）
+- 无 is_demo/is_internal 隔离字段（Pilot DB 不进 demo 运营缓解）；无 pilot_org 元数据表（运营台账过渡）；
+  Admin 邀请码批量生成/反馈分诊页未建；AI/SMTP/git remote 仍为外部 blocker。
 ## v1.2.0 (2026-09-17) — Stage F Deployment Activation（WEB_LIVE + PILOT_LIVE）
 
 从 `WEB_READY_PILOT_READY` 推进到 `PLI_V1_0_WEB_LIVE_PILOT_LIVE`（公网 staging 真实可用）。

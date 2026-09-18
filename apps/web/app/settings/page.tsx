@@ -8,6 +8,7 @@ import {
   clearSession,
   getRefreshToken,
   getUserMeta,
+  pilotApi,
   type Consent,
   type Pet,
 } from "@pli/api-client";
@@ -58,7 +59,27 @@ export default function SettingsPage() {
   const [form, setForm] = useState<EmergencyProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  const [fbCat, setFbCat] = useState("bug");
+  const [fbMsg, setFbMsg] = useState("");
   const [delReason, setDelReason] = useState("");
+  const [fbDone, setFbDone] = useState(false);
+
+  async function sendFeedback() {
+    setError(null);
+    setFbDone(false);
+    try {
+      await pilotApi.feedback({
+        category: fbCat,
+        message: fbMsg.trim(),
+        page_url: typeof window !== "undefined" ? window.location.pathname : "",
+        pet_id: pid,
+      });
+      setFbMsg("");
+      setFbDone(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
 
   function set<K extends keyof EmergencyProfile>(k: K, v: string) {
     setForm((f) => (f ? { ...f, [k]: v } : f));
@@ -223,6 +244,40 @@ export default function SettingsPage() {
             ))}
           </ul>
         </State>
+      <div className="card">
+        <h2>试点反馈</h2>
+        <p className="muted">
+          反馈用于改进试点（Stage G）。安全 / 隐私问题请选对应类别，我们会优先处理。
+        </p>
+        <label className="field">
+          类别
+          <select value={fbCat} onChange={(e) => setFbCat(e.target.value)}>
+            <option value="bug">Bug / 出错</option>
+            <option value="confusing">困惑 / 看不懂</option>
+            <option value="slow">慢 / 卡顿</option>
+            <option value="missing">缺少内容</option>
+            <option value="unnecessary">多余 / 没必要</option>
+            <option value="safety">安全担忧</option>
+            <option value="privacy">隐私担忧</option>
+            <option value="feature_request">功能建议</option>
+            <option value="health_concern">健康担忧</option>
+            <option value="other">其他</option>
+          </select>
+        </label>
+        <label className="field">
+          内容
+          <textarea
+            rows={3}
+            value={fbMsg}
+            onChange={(e) => setFbMsg(e.target.value)}
+            placeholder="请描述你遇到的问题或建议（不填写病历全文 / 联系方式）。"
+          />
+        </label>
+        <button className="btn" onClick={sendFeedback} disabled={!fbMsg.trim()}>
+          提交反馈
+        </button>
+        {fbDone && <div className="alert info">反馈已提交，感谢！</div>}
+      </div>
       </div>
     </main>
   );
