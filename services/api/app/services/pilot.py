@@ -121,22 +121,33 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
     """Pilot metrics (Stage E §26) — isolation-aware (PLI-GW0).
 
     Demo / internal pets and users are excluded from real pilot metrics
-    (exclude_demo=true / exclude_internal=true). Active pets = distinct pets
-    with a valid LifeEvent in the window, excluding demo/internal pets.
-    Feedback counts exclude submissions from demo/internal users.
+    (exclude_demo=true / exclude_internal=true). Synthetic reserved domains
+    (@pli.demo seed, @pli.test tests/remote scripts, @pli.pilot demo seed)
+    are excluded at query time as a safety net, covering legacy rows and
+    future synthetic registrations alike.
     """
-    from sqlalchemy import func
+    from sqlalchemy import func, or_
 
     from app.models import LifeEvent, Pet, User
+
+    synthetic_suffixes = ("%@pli.demo", "%@pli.test", "%@pli.pilot")
+
+    def real_email_cond():
+        return or_(*[User.email.notlike(s) for s in synthetic_suffixes])
 
     now = datetime.now(UTC)
     d3 = now - timedelta(days=3)
     d7 = now - timedelta(days=7)
 
-    # 1) total real pets (exclude demo/internal)
+    # 1) total real pets (exclude demo/internal + synthetic-domain creators)
     pets_total = (await db.execute(
         select(func.count()).select_from(Pet)
-        .where(Pet.is_demo.is_(False), Pet.is_internal.is_(False))
+        .join(User, User.id == Pet.created_by_user_id)
+        .where(
+            Pet.is_demo.is_(False),
+            Pet.is_internal.is_(False),
+            real_email_cond(),
+        )
     )).scalar_one()
 
     # 2) active pets (distinct pet with event in window, real pet only)
@@ -144,10 +155,12 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
         return (await db.execute(
             select(func.count(func.distinct(LifeEvent.pet_id)))
             .join(Pet, Pet.id == LifeEvent.pet_id)
+            .join(User, User.id == Pet.created_by_user_id)
             .where(
                 LifeEvent.recorded_at >= since,
                 Pet.is_demo.is_(False),
                 Pet.is_internal.is_(False),
+                real_email_cond(),
             )
         )).scalar_one()
 
@@ -158,7 +171,7 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
     feedback_count = (await db.execute(
         select(func.count()).select_from(PilotFeedback)
         .join(User, User.id == PilotFeedback.user_id)
-        .where(User.is_demo.is_(False), User.is_internal.is_(False))
+        .where(User.is_demo.is_(False), User.is_internal.is_(False), real_email_cond())
     )).scalar_one()
 
     # 4) invite/registration funnel counts (real users only)
@@ -170,7 +183,7 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
     registered = (await db.execute(
         select(func.count()).select_from(PilotUserProfile)
         .join(User, User.id == PilotUserProfile.user_id)
-        .where(User.is_demo.is_(False), User.is_internal.is_(False))
+        .where(User.is_demo.is_(False), User.is_internal.is_(False), real_email_cond())
     )).scalar_one()
 
     # 5) activated owners — proxy per PILOT_ONBOARDING §4: real pets with
@@ -178,7 +191,11 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
     activated_owners = (await db.execute(
         text(
             "SELECT count(*) FROM pets p "
+            "JOIN users u ON u.id = p.created_by_user_id "
             "WHERE p.is_demo = false AND p.is_internal = false "
+            "AND u.email NOT LIKE '%@pli.demo' "
+            "AND u.email NOT LIKE '%@pli.test' "
+            "AND u.email NOT LIKE '%@pli.pilot' "
             "AND (SELECT count(*) FROM life_events e "
             "     WHERE e.pet_id = p.id AND e.recorded_at >= p.created_at) >= 3"
         )
@@ -193,7 +210,7 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
         "registered": registered,
         "activated_owners": activated_owners,
         "north_star": "Active Pets with Continuous Evidence Chain",
-        "excludes": ["demo", "internal"],
+        "excludes": ["demo", "internal", "synthetic_domain"],
     }
 
 

@@ -7,7 +7,8 @@ services:
       POSTGRES_DB: pli
     ports:
       # host 5432 occupied by other local projects; PLI uses 55432
-      - "55432:5432"
+      # (override with PLI_PG_PORT when Windows WinNAT reserves 55432)
+      - "${PLI_PG_PORT:-55432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U pli -d pli"]
       interval: 5s
