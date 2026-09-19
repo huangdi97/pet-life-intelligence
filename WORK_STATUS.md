@@ -2,8 +2,35 @@
 
 ## Current terminal
 
-`PLI_V1_0_WEB_LIVE_PILOT_LIVE` + `PILOT_OPERATIONS_READY`（Stage G 试点运营就绪；公网 staging 真实可用；
-生产域名/AI key/SMTP/git remote 仍为外部 blocker → 待真实输入与决策）
+`WAVE_0_READY` + `AWAITING_REAL_PARTICIPANTS`（Stage G-W0 就绪：隔离上线、邀请制演练 9/9、
+dry-run 11/11、备份 10/10、隐私 8/8、Playwright 12/12；真实参与者确认后 Wave 0-A）
+
+## Wave 0（Stage G-W0）完成情况（真实命令验证）
+
+| 阶段 | 状态 | 证据 |
+|---|---|---|
+| Wave 0 Preflight | DONE | reports/pilot/WAVE_0_PREFLIGHT.md（FINAL STATUS 块 + 全部证据） |
+| demo/internal 工程隔离 | DONE（已上线） | is_demo/is_internal 列 + pilot_orgs 表 + 回填（migration c4d8e2a71b93）；/pilot/status 7→0 诚实化 + excludes 声明 |
+| P1 测量 bug 修复 | DONE | 合成域过滤 OR→AND（8bcc0bf）+ 回归测试；由 live dry-run DR-11 发现 |
+| 邀请制门控演练 | 9/9 PASS | scripts/pli_pilot_gating_drill.sh（临时 true 全链路 → 恢复 false） |
+| 无干预 dry-run | 11/11 PASS | scripts/pli_wave0_dryrun.sh（新增入库；注册(带码)→登录→建宠→Quick Log→Timeline→Today→反馈→指标排除） |
+| 数据保护复查 | 8/8 PASS | scripts/remote_privacy_check.py（跨用户 403/导出/consent/删除登记） |
+| 浏览器回归 | 12/12 PASS | Playwright against 公网 staging（含七路径医疗安全/IDOR） |
+| PRE_WAVE0_BACKUP | 10/10 PASS | scripts/pli_backup_drill.sh（74 表 + 恢复库 API smoke） |
+| W0 运营模板 | DONE | reports/pilot/ORG_LEDGER.md（W0-OWNER-01 / W0-PROFESSIONAL-01 占位 LEAD，不伪造机构） |
+| 部署 | DONE | 服务器源码备份 → 三镜像重建 → 迁移 c4d8e2a71b93 → 容器重建（回滚可用） |
+| 质量回归 | PASS | pytest 273（+1 回归）/ ruff clean / web+admin typecheck 0 |
+| 真实参与者 | AWAITING | 0（NOT_YET_OBSERVED，不伪造） |
+
+## FINAL STATUS（W0）
+
+```
+PILOT MODE: OFF（演练后恢复；正式切换待第一波真实邀请）
+WAVE 0: READY / REAL PARTICIPANTS: 0 / REAL PETS: 0 / ACTIVATED OWNERS: 0
+P0: 0 未解决 / P1: 3（外部 blocker：AI key / SMTP / git remote）
+AI: EXTERNAL_BLOCKED / EMAIL: LIMITED(console) / PUBLIC STAGING: LIVE
+BACKUP: PASS / MONITORING: PASS / NEXT: 真实用户确认后 Wave 0-A
+```
 
 ## Stage G 启动完成情况（真实命令/代码验证）
 

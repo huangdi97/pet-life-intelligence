@@ -1,4 +1,32 @@
 # Changelog
+## v1.2.2 (Stage G-W0) — WAVE_0_READY（隔离上线 + 邀请制演练 + 无干预 dry-run）
+
+从 `PILOT_OPERATIONS_READY / AWAITING_REAL_PARTICIPANTS` 推进到 `WAVE_0_READY / AWAITING_REAL_PARTICIPANTS`。
+
+### Added
+- **demo/internal/test 工程级隔离（已上线 staging）**：users/pets `is_demo`/`is_internal` 标记 +
+  `pilot_orgs` 元数据表（状态机 LEAD→ONBOARDING→ACTIVE→PAUSED→COMPLETED + WITHDRAWN/TERMINATED_*，
+  无硬删除）+ legacy 回填（@pli.demo→is_demo、@pli.test→is_internal）；查询时合成域安全网
+  （@pli.demo/@pli.test/@pli.pilot）。`/pilot/status` 诚实化：**pets_total 7(合成污染)→0(真实)** +
+  excludes 声明 + invited/registered/activated_owners 字段（migration `48f7e9c2ab01` + `c4d8e2a71b93`）。
+- **无干预 dry-run 脚本**：`scripts/pli_wave0_dryrun.sh`（注册(带邀请码)→验证→登录→建宠→
+  Quick Log→Timeline→Today→反馈→指标排除，PILOT_MODE 临时 true 自动恢复）。
+- **W0 运营模板**：reports/pilot/ORG_LEDGER.md（W0-OWNER-01 / W0-PROFESSIONAL-01 占位 LEAD，不伪造机构）。
+
+### Fixed
+- **P1 测量 bug（live dry-run 发现）**：/pilot/status 合成域过滤 OR-of-NOT-LIKEs 恒真 →
+  dry-run @pli.test 宠物漏入 pets_total；改 AND 排除（`8bcc0bf`）+ 回归测试。
+- 本地 WinNAT 保留 55432 端口 → docker-compose PG 端口支持 `PLI_PG_PORT` 覆盖。
+
+### Verification（全部真实命令）
+- 邀请制门控演练 **9/9 PASS**（临时 true → 无码 422/有码 201/恢复 false）；无干预 dry-run **11/11 PASS**；
+  隐私 **8/8 PASS**（跨用户 403/导出/consent/删除登记）；备份 **10/10 PASS**（74 表 + 恢复库 smoke）；
+  Playwright **12/12 PASS**（公网 staging，含七路径医疗安全/IDOR）。
+- pytest **273 passed**；ruff 全绿；web/admin typecheck 0。
+
+### External blockers（诚实标注）
+git remote URL、真实 AI API key、SMTP 凭据、独立生产域名/DNS、小程序账号/签名。
+
 ## v1.2.1 (Stage G 启动) — REAL PILOT OPERATIONS READY
 
 从 `PLI_V1_0_WEB_LIVE_PILOT_LIVE` 进入 Stage G：真实试点运营准备完成，待真实参与者。
