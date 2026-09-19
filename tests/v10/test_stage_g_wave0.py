@@ -54,6 +54,32 @@ async def test_demo_seed_excluded_from_pilot_metrics(client, seeded):
     assert body["active_pets_3d"] == 0
     assert body["active_pets_7d"] == 0
     assert body["feedback_count"] == 0
+
+@pytest.mark.asyncio
+async def test_synthetic_domain_excluded_even_without_flag(client, seeded):
+    """Regression (PLI-GW0, found by live dry-run DR-11): a pet created by a
+    synthetic-domain user (@pli.test) with is_internal still false (fresh
+    registration, never backfilled) must be excluded by the query-time
+    synthetic-domain safety net. The old OR-of-NOT-LIKEs condition was almost
+    always true and leaked this pet into pets_total."""
+    email = f"dryrun-{uuid.uuid4().hex[:8]}@pli.test"
+    reg = await client.post("/api/v1/auth/register", json={
+        "email": email, "password": "RealPass!w0rd", "display_name": "演练宠主",
+    })
+    assert reg.status_code == 201, reg.text
+    login = await client.post("/api/v1/auth/login", json={
+        "email": email, "password": "RealPass!w0rd",
+    })
+    h = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    pet = await client.post("/api/v1/pets", headers=h,
+                            json={"name": "演练犬", "species": "dog"})
+    assert pet.status_code == 201, pet.text
+    assert pet.json()["is_internal"] is False  # flag absent (never backfilled)
+    # …but the query-time filter still excludes the synthetic-domain creator
+    r = await client.get("/api/v1/pilot/status")
+    body = r.json()
+    assert body["pets_total"] == 0, f"synthetic-domain pet leaked: {body}"
+    assert "synthetic_domain" in body["excludes"]
     assert "demo" in body["excludes"]
 @pytest.mark.asyncio
 async def test_internal_user_excluded_from_pilot_metrics(client, seeded):

@@ -126,14 +126,16 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
     are excluded at query time as a safety net, covering legacy rows and
     future synthetic registrations alike.
     """
-    from sqlalchemy import func, or_
+    from sqlalchemy import and_, func
 
     from app.models import LifeEvent, Pet, User
 
     synthetic_suffixes = ("%@pli.demo", "%@pli.test", "%@pli.pilot")
 
     def real_email_cond():
-        return or_(*[User.email.notlike(s) for s in synthetic_suffixes])
+        # AND of NOT-LIKEs: exclude a row if its creator email matches ANY
+        # synthetic suffix. (OR of NOT-LIKEs is almost always true — bug.)
+        return and_(*[User.email.notlike(s) for s in synthetic_suffixes])
 
     now = datetime.now(UTC)
     d3 = now - timedelta(days=3)
