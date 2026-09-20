@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import io
+
 """One-shot patch 2: signature enforcement, welfare profile, field masking,
 capability registry, access logging."""
 

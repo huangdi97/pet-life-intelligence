@@ -2,8 +2,50 @@
 
 ## Current terminal
 
-`WAVE_0_READY` + `AWAITING_REAL_PARTICIPANTS`（Stage G-W0 就绪：隔离上线、邀请制演练 9/9、
-dry-run 11/11、备份 10/10、隐私 8/8、Playwright 12/12；真实参与者确认后 Wave 0-A）
+`STAGE_H_COMPLETE` + `PRODUCT_DESIGN_FREEZE + UI_UX_FREEZE + MULTI_CLIENT_EXPERIENCE_FREEZE`
+（Stage H 全产品设计 / UI·UX / 多端前端完成；设计基线 v3.1-R1 + 228 Feature Inventory；
+pytest 273 / ruff 0 / 五端 typecheck 0 / 五端 build OK / vitest 22/22 / Playwright 17/17；
+
+## Stage H 完成情况（2026-09-20，全部真实命令验证）
+
+| 阶段 | 状态 | 证据 |
+|---|---|---|
+| Reality Audit（§6 十问） | DONE | reports/STAGE_H_DESIGN_PREFLIGHT.md |
+| Feature → Experience Matrix | COMPLETE | docs/product/FEATURE_EXPERIENCE_MATRIX.md（PLI-001..228 全覆盖：FULL_UI 30 / PARTIAL_UI 128 / BACKGROUND_ONLY 17 / EXTERNAL_BLOCKED 11 / FUTURE 42） |
+| Master Page Inventory | COMPLETE | docs/product/MASTER_PAGE_INVENTORY.md（OWN-001..021 / ADM-001..010 / PRO-001..006） |
+| IA / 导航冻结 | COMPLETE | docs/product/INFORMATION_ARCHITECTURE.md + NAVIGATION_MODEL.md |
+| Design System v1 | COMPLETE | docs/ui/PLI_DESIGN_SYSTEM_V1.md + COMPONENT_INVENTORY.md + COPY/RESPONSIVE/ACCESSIBILITY_GUIDELINES |
+| ui-tokens 扩展 | COMPLETE | packages/ui-tokens（11 类 tokens + semantic + build OK） |
+| ui-kit（新建） | COMPLETE | packages/ui-kit 30 组件；Web 10 核心页引用（契约 B6） |
+| Owner Web 重构 | COMPLETE | Today/Timeline/Pet Profile/Health/Vet Brief/Medication/Behavior/Training/Welfare/Social/Monitoring/Companion/Agent/Notifications/Settings；PWA 保持 |
+| Offline UX | COMPLETE | apps/web/lib/drafts.ts（Quick Log/Behavior/Health Intake/Care Note + 四档同步态） |
+| i18n | COMPLETE | apps/web/lib/i18n.ts（zh-CN 全量集中 + mapErrorMessage 人类语言映射） |
+| Mini 对齐 | COMPLETE | apps/mini（Bottom Tab 5 + Sheet + tokens.scss + companion 页；build weapp OK） |
+| Mobile 对齐 | COMPLETE | apps/mobile（8 screens + tokens.ts；typecheck OK） |
+| Admin 收口 | COMPLETE | apps/admin（11 项 IA；typecheck/build OK） |
+| Professional（新建） | COMPLETE | apps/pro（Vet/Trainer/Service 角色 IA；typecheck/build OK） |
+| Companion 设计与原型 | COMPLETE | COMPANION_DESIGN_COMPLETE + FRONTEND_PROTOTYPE_COMPLETE；HARDWARE_INTEGRATION_NOT_ACTIVATED（feature flag，不伪装硬件） |
+| Monitoring UI | COMPLETE | MONITORING_UI_COMPLETE（connected/offline/empty/candidate/review/summary 状态完整；provider EXTERNAL_BLOCKED） |
+| 前端测试 | PASS | apps/web vitest 22/22（i18n/today-page/topnav/ui-kit） |
+| Browser E2E | PASS | Playwright 17/17（12 旧零回归 + 5 新：welfare/social/monitoring/agent/companion） |
+| 质量回归 | PASS | pytest 273 / ruff 0 / 五端 typecheck 0 / web·admin·pro·mini build OK |
+| 禁止文案扫描 | CLEAN | apps/ 无「AI 确诊/宠物想你了/98% 开心/100% 安全」及 Companion 拟人表述 |
+| Pilot 数据治理 | 保持 | /pilot/status 实测：PILOT_MODE=false、REAL=0、excludes[demo,internal,synthetic_domain]；未部署 staging；未创建真实 Participant |
+| 最终报告 | DONE | reports/STAGE_H_FINAL_REPORT.md（含 §116 状态块 + Known limitations + External blockers） |
+
+## FINAL STATUS（Stage H）
+
+```
+PRODUCT DESIGN: COMPLETE / IA: COMPLETE / DESIGN SYSTEM: COMPLETE
+OWNER WEB: COMPLETE / PWA: COMPLETE / MINI: COMPLETE(代码) / MOBILE: COMPLETE(代码)
+ADMIN: COMPLETE / PROFESSIONAL: COMPLETE / MONITORING: COMPLETE / SOCIAL: COMPLETE
+COMPANION: DESIGN_COMPLETE + FRONTEND_PROTOTYPE_COMPLETE（硬件 EXTERNAL_BLOCKED，不写 LIVE）
+RESPONSIVE: PASS / ACCESSIBILITY: PASS(附 prefers-reduced-motion LIMITATION) / E2E: PASS(17/17)
+FEATURE EXPERIENCE MATRIX: COMPLETE（228/228）
+FREEZE: PRODUCT_DESIGN_FREEZE + UI_UX_FREEZE + MULTI_CLIENT_EXPERIENCE_FREEZE
+WAVE_0_REENTRY_READY —— 下一步 Stage G-W0A First Real Participants；不自行进入 Stage I / v1.3
+```
+真实参与者仍 0（不伪造）；下一步 = Stage G-W0A First Real Participants）
 
 ## Wave 0（Stage G-W0）完成情况（真实命令验证）
 

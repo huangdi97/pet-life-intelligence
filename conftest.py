@@ -110,9 +110,8 @@ def _wipe_between_tests():
 
 @pytest.fixture(scope="session")
 def client():
-    from fastapi.testclient import TestClient
-
     from app.main import app
+    from fastapi.testclient import TestClient
 
     with TestClient(app) as c:
         yield c

@@ -7,9 +7,7 @@ Run (API must be up, dev-auth or real auth):
 """
 
 import asyncio
-import json
 import sys
-import uuid
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -164,7 +162,7 @@ async def main() -> int:
                          json={"outcome": "IMPROVED", "notes": "调整饮食后恢复（演示）"})
 
         # 9. verify
-        tl = await c.get(f"/pets/{pid}/events?limit=5", headers=headers)
+        _ = await c.get(f"/pets/{pid}/events?limit=5", headers=headers)
         print("demo pet:", pid, "name=豆包")
         print("timeline events:", (await c.get(f"/pets/{pid}/events", headers=headers)).json().get("count"))
         print("health events:", len((await c.get(f"/pets/{pid}/health-events", headers=headers)).json()))

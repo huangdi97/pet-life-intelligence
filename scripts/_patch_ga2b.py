@@ -73,8 +73,10 @@ async def list_capabilities(db: DBSession, user: CurrentUser) -> list[dict]:
         for r in rows
     ]
 '''
-anchor = '    return {"pet_id": str(pet.id), "score": round(score, 2), "checks": checks,
-            "event_count": event_count}'
+anchor = (
+    '    return {"pet_id": str(pet.id), "score": round(score, 2), "checks": checks,'
+    '            "event_count": event_count}'
+)
 assert anchor in src, "incidents anchor missing"
 src = src.replace(anchor, addition + "\n\n" + anchor, 1)
 src = src.replace(

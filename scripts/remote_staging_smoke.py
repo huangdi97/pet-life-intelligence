@@ -8,7 +8,6 @@ Journey:
   outcome → search → logout → login again → data persists → cross-user deny.
 """
 
-import json
 import sys
 import uuid
 

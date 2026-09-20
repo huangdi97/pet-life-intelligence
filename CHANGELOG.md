@@ -1,4 +1,63 @@
 # Changelog
+
+## v1.3.0 (Stage H) — PRODUCT_DESIGN_FREEZE + UI_UX_FREEZE + MULTI_CLIENT_EXPERIENCE_FREEZE
+
+从 `WAVE_0_READY / AWAITING_REAL_PARTICIPANTS` 推进到 `PLI_PRODUCT_DESIGN_COMPLETE +
+PLI_UI_UX_COMPLETE + PLI_FRONTEND_COMPLETE + PLI_MULTI_CLIENT_EXPERIENCE_FROZEN + WAVE_0_REENTRY_READY`。
+设计基线 v3.1-R1 母版 + 228 Feature Inventory；不重新设计产品方向（仍为 Pet Life Intelligence）。
+
+### Added（产品设计 / 信息架构 / 设计系统）
+- **docs/product**：`FEATURE_EXPERIENCE_MATRIX`（PLI-001..228 全覆盖，8 类状态词）、`MASTER_PAGE_INVENTORY`
+  （OWN-001..021 / ADM-001..010 / PRO-001..006）、`INFORMATION_ARCHITECTURE`、`NAVIGATION_MODEL`。
+- **docs/ui**：`PLI_DESIGN_SYSTEM_V1`（11 类 tokens + 语义色 Normal..Emergency + Risk Status）、
+  `COMPONENT_INVENTORY`（29 组件）、`COPY_GUIDELINES`（§75 禁止文案 + 错误映射）、`RESPONSIVE_GUIDELINES`
+  （360/390/768/1024/1440）、`ACCESSIBILITY_GUIDELINES`、`COMPANION_UX`（四层 + Interaction Welfare Guard）、
+  `MONITORING_UX`（五问 + 设备五档 + Camera Candidate Review）、`MULTI_CLIENT_EXPERIENCE_MATRIX`。
+- **packages/ui-tokens**：扩展为完整 token 集（Grid/Breakpoint/Z-index/Border + semantic）+ build 脚本 + src helpers。
+- **packages/ui-kit**（新建）：30 组件（PetAvatar/PetSwitcher/QuickLogSheet/EventCard/TimelineItem/MetricCard/
+  TrendCard/RiskBanner/RedFlagReason/NextActionCard/EmergencyAction/EvidenceList/EvidenceCard/VetBriefSection/
+  CareTask/PersonChip/DeviceStatus/InteractionCard/CompanionControl/AIAnswer/CitationChip/ConsentPanel/
+  EmptyState/ErrorState/Skeleton/Toast/Modal/Sheet/State/TokenIcon）；Web 10 个核心页面实际引用。
+
+### Added（五端前端产品化）
+- **Web**：Today 重构为产品首页（Current State/Attention/Quick Log ≤10s/Tasks/Recent Events/AI Summary/Timeline
+  Preview）；Timeline 完整重构（Domain/Source/Media 筛选 + 搜索 + AI/真实视觉区分 + Skeleton/EmptyState）；
+  Pet Profile（/pets/[id]）；Health 全流程（Intake/Evidence/Triage/Vet Brief/Outcome + 独立医疗安全组件）；
+  Medication 状态区分（Plan/Pending/Given/Missed）；新增 **/welfare /social /monitoring /companion /agent** 五个领域页；
+  Offline UX（Quick Log/Behavior/Health Intake/Care Note 草稿 + 未同步/同步中/已同步/同步失败，lib/drafts.ts）；
+  i18n zh-CN 全量集中（lib/i18n.ts + mapErrorMessage 人类语言映射）；PWA basePath/manifest/SW 保持。
+- **Mini（Taro）**：Bottom Tab 5 + Sheet + tokens.scss 镜像；companion 入口卡；信息密度收口。
+- **Mobile（Expo）**：Today/Timeline/Monitoring/Companion/Me/Notifications/QuickLog/Health 8 屏 + tokens.ts 镜像。
+- **Admin**：11 项 IA（Overview/Pilot/Users/Pets/Safety/AI/Devices/Integrations/Audit/Incidents/Flags，
+  capabilities 折叠）；不混 Owner 页面。
+- **Pro（apps/pro 新建）**：Vet（Assigned Pets/Vet Brief/Evidence/Timeline/Outcome）+ Trainer（Behavior/Training）
+  + Service（Care Card/Tasks）；Vet Brief 专业布局 + 打印友好。
+- **H5 Share**：Vet Brief / Care Card mobile-first、revocable、expiry 可见（E2E-09 保持）。
+
+### Fixed
+- `useCurrentPet` 监听 `pli-pet-changed`/`storage`：TopNav 切换宠物后各页面即时获得上下文
+  （修复直接访问 /welfare、/social、/monitoring 时 petId 恒空导致 3 个 error 态的问题）。
+- 历史遗留 ruff：`scripts/_patch_ga2b.py` 字符串拼接语法损坏 + 2 处 unused（pilot_demo_seed/remote_privacy_check）。
+- 本地 E2E：WinNAT 保留 55432 → `.env.local` 指向 55679（Stage H 临时，不部署、不污染 Pilot 数据）。
+
+### Verification（全部真实命令，2026-09-20）
+- pytest **273 passed**；ruff **0 errors**；web/admin/mini/mobile/pro typecheck **0**；
+  web/admin/pro/mini build **OK**；vitest（apps/web）**22/22**；Playwright 本地 **17/17**
+  （12 旧路径零回归 + 5 新 Stage H UX：welfare/social/monitoring/agent/companion）。
+- 禁止文案扫描（AI 确诊/宠物想你了/98% 开心/100% 安全）**CLEAN**；/pilot/status 诚实（PILOT_MODE=false，
+  REAL=0，excludes[demo,internal,synthetic_domain]）；未部署 staging；未创建真实 Participant。
+
+### Reports
+- `reports/STAGE_H_DESIGN_PREFLIGHT` · `STAGE_H_FEATURE_UI_AUDIT` · `STAGE_H_UX_ACCEPTANCE_MATRIX` ·
+  `STAGE_H_ACCESSIBILITY_AUDIT` · `STAGE_H_RESPONSIVE_AUDIT` · `STAGE_H_MULTI_CLIENT_AUDIT` · `STAGE_H_FINAL_REPORT`。
+
+### External blockers（诚实标注，同 Stage G）
+git remote URL、真实 AI API key、SMTP 凭据、独立生产域名/DNS、小程序账号/签名；
+Companion 硬件（Camera/Audio/Treat/Toy/Robot）= EXTERNAL_BLOCKED / DESIGN_ONLY。
+
+### 停止点
+达到 `STAGE_H_COMPLETE`（PRODUCT_DESIGN_FREEZE / UI_UX_FREEZE / MULTI_CLIENT_EXPERIENCE_FREEZE）。
+下一步为 **Stage G-W0A First Real Participants**；不自行进入 Stage I / v1.3。
 ## v1.2.2 (Stage G-W0) — WAVE_0_READY（隔离上线 + 邀请制演练 + 无干预 dry-run）
 
 从 `PILOT_OPERATIONS_READY / AWAITING_REAL_PARTICIPANTS` 推进到 `WAVE_0_READY / AWAITING_REAL_PARTICIPANTS`。

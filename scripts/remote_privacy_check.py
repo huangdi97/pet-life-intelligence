@@ -50,7 +50,7 @@ async def main() -> int:
         HA = await new_user(c, "priva")
         HB = await new_user(c, "privb")
         pidA = await make_pet(c, HA)
-        pidB = await make_pet(c, HB, "B的宠物")
+        _ = await make_pet(c, HB, "B的宠物")
 
         # P1 care card → public view
         cc = await c.post(f"/pets/{pidA}/care-cards", headers=HA, json={"expires_in_hours": 24})
