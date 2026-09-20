@@ -27,3 +27,11 @@
 ## 3. 验证记录
 
 见 `reports/STAGE_H_ACCESSIBILITY_AUDIT.md`（逐项检查 + 已知问题）。
+
+## 4. H.1 更新（2026-09-20）
+
+- **Reduced Motion 已全局实现**：`apps/web/app/globals.css` 与 `apps/mini/src/app.scss` 顶层增加
+  `@media (prefers-reduced-motion: reduce)` —— 关闭 animation / transition / scroll-behavior，
+  spinner 与 skeleton 静态化，btn:active 无位移；Mobile（Expo）无动画实现（N/A）。
+- 验证：web/mini typecheck 0 · mini build（Taro weapp）Compiled successfully · 审计见
+  `reports/STAGE_H_ACCESSIBILITY_AUDIT.md`（H.1 复查：LIMITATION 归零）。

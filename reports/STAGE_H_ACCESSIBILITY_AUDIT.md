@@ -14,7 +14,7 @@
 | Screen Reader Basics | 语义 HTML（main/nav/h1-h3/list）；时间线含时间/角色文本 | web 各页 `<main><h1>`；TimelineItem 时间/actor/source 为文本节点；Timeline ul/li 语义；Ordered lists（喂食记录等）用 ul/li | **PASS** |
 | Tap Target | ≥44×44px | tokens.touch min_target 40px（btn 组件 min-height 40px）；Mobile 底部 Tab 高度 ≥48（RN style） | **PASS_WITH_LIMITATION**（btn 40px、触控目标在桌面优化；移动端 Tab 已达 48） |
 | Font Scaling | 相对单位；支持浏览器字号缩放 | global: body font 继承；`font-size` 大多用 px（缩放兼容 zoom 浏览器）；强制要求见 RESPONSIVE_GUIDELINES（不破版） | **PASS_WITH_LIMITATION**（px 为主，未系统性 rem 迁移；浏览器缩放可正常放大不破版） |
-| Reduced Motion | `prefers-reduced-motion: reduce` 关闭非必要动画 | 未发现全局 `@media (prefers-reduced-motion)` —— Stage H 审计发现**缺口** | **LIMITATION**（建议：后续 UI Polish 在 globals.css 补 `@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important } }`） |
+| Reduced Motion | `prefers-reduced-motion: reduce` 关闭非必要动画 | **H.1（2026-09-20）已实现**：apps/web/app/globals.css 顶层 `@media (prefers-reduced-motion: reduce)`（关闭 animation/transition/scroll-behavior + spinner/skeleton 静态化 + btn:active 无位移）；apps/mini/src/app.scss 同款降级；Mobile 无动画实现（N/A） | **PASS** |
 
 ## 2. 组件级确认（颜色不是唯一表达）
 
@@ -26,12 +26,12 @@
 
 ## 3. 已知问题与建议
 
-1. **prefers-reduced-motion 缺失**（唯一 LIMITATION）：建议在 globals.css 顶层补 media query，成本低。
+1. ~~prefers-reduced-motion 缺失~~ —— **H.1 已修复**（globals.css + app.scss `@media (prefers-reduced-motion: reduce)`，2026-09-20 实现并 typecheck 通过）。
 2. 触控目标 40px vs 44px：按 tokens.touch 当前设计意图（40px 已接近），移动端主要操作（Tab/Card/主按钮）≥44；次级按钮 40。可接受。
 3. 字体缩放：浏览器 zoom 兼容已验证（fluid 布局）；rem 迁移列入后续 Polish 候选，不阻塞 Freeze。
 
 ## 4. 结论
 
-- 8 项检查：6 PASS + 2 PASS_WITH_LIMITATION（触控 40px / px 字体缩放 zoom 兼容）；
-- 1 项 LIMITATION（prefers-reduced-motion）在 STAGE_H_FINAL_REPORT Known limitations 如实登记，不影响核心交互；
+- 8 项检查：**7 PASS**（含 H.1 修复的 Reduced Motion）+ 2 PASS_WITH_LIMITATION（触控 40px / px 字体缩放 zoom 兼容）；
+- **STAGE_H_ACCESSIBILITY_AUDIT（H.1 复查）：PASS —— LIMITATION 归零**（prefers-reduced-motion 已真实实现）。
 - **STAGE_H_ACCESSIBILITY_AUDIT：PASS（附 1 项已登记 LIMITATION）**。

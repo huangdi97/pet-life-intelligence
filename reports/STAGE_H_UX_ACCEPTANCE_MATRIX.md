@@ -48,3 +48,13 @@
 - 核心页面 19 组 × 6 端（含 Admin/Pro/H5）逐项验收完成；
 - 全部核心页面无 `EXTERNAL_BLOCKED` 文案暴露（均映射人类语言「该服务暂未开放」）；无 raw error codes（Schema validation failed / 500 / payload invalid 均映射）；
 - 通过：**STAGE_H_UX_ACCEPTANCE_MATRIX PASS**（4 项 PASS_WITH_LIMITATION 均因真实外部依赖尚缺，非 UI 缺陷）。
+
+---
+
+## 5. H.1 复查（2026-09-20）
+
+- 128 项 PARTIAL_UI 逐项代码级审计完成（GOAL PHASE B）：`PARTIAL_UI = 0`。
+- 终态分布：FULL_UI +47 / BACKGROUND_ONLY +30 / PRO_ONLY +13 / EXTERNAL_BLOCKED +10 / ACCEPTED_UI_LIMITATION 28。
+- `prefers-reduced-motion` 已全局实现（globals.css + mini app.scss），ACCESSIBILITY LIMITATION 归零。
+- 多端职责保持：Mini/Mobile 为 Compact 职责，Pro/Admin 为专业/运营职责（无需像素相同）。
+- 结论：**STAGE_H_UX_ACCEPTANCE_MATRIX（H.1 复查）：PASS** —— 无无原因 PARTIAL。

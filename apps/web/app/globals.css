@@ -212,3 +212,17 @@ label.field > input, label.field > select, label.field > textarea { margin-top: 
 @media (min-width: 1024px) {
   .page { padding-bottom: 56px; }
 }
+/* ---- prefers-reduced-motion（H.1 必修 §B5）：减少动效偏好全局降级 ---- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .state .spinner { animation: none; border-top-color: var(--pli-primary-500, #61795c); }
+  .skeleton { animation: none; }
+  .btn:active { transform: none; }
+  .navlinks a { transition: none; }
+}

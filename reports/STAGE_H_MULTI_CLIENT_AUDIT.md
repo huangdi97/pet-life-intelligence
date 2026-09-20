@@ -60,3 +60,11 @@
 - 多端体验矩阵（Web/Mini/Mobile/Admin/Pro/H5）逐项确认一致；
 - Pilot 数据治理（is_demo/is_internal/synthetic filtering/pilot_org）+ 真实指标诚实性（全 0）**无回归**；
 - **STAGE_H_MULTI_CLIENT_AUDIT：PASS**。
+
+## 6. H.1 复查（2026-09-20）
+
+- PARTIAL_UI 128 项全部给出终态：PRO_ONLY 13 项（Vet/Trainer/Service 职责由 apps/pro 承载）、
+  BACKGROUND_ONLY 30 项（后台聚合/规则/记忆）、EXTERNAL_BLOCKED +10（AI/服务市场/摄像头）、
+  ACCEPTED_UI_LIMITATION 28 项（低频管理/偏好，带 reason/impact/workaround/owner/revisit_condition）。
+- 前端契约保持：统一走 packages/domain-schema + api-client；未自造 DTO。
+- 结论：**STAGE_H_MULTI_CLIENT_AUDIT（H.1 复查）：PASS**。

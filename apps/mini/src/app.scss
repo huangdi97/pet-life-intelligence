@@ -151,3 +151,9 @@ page {
 .menu-item:last-child { border-bottom: none; }
 .menu-label { font-size: $font-size-base; color: $color-ink-primary; }
 .menu-arrow { color: $color-ink-disabled; }
+
+// --- H.1 必修 §B5: prefers-reduced-motion 全局降级 ---
+@media (prefers-reduced-motion: reduce) {
+  page { transition: none !important; }
+  .card, .btn, .chip, .sheet, .layer-card { transition: none !important; }
+}

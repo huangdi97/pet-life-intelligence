@@ -124,3 +124,15 @@ BACKUP: PASS / MONITORING: PASS / NEXT: 真实用户确认后 Wave 0-A
 
 下一阶段输入必须来自真实用户行为 / 医院 / 门店 / 训练师反馈 / 监控 / Outcome，
 不再凭空扩 Feature。
+
+## Stage H.1（2026-09-20，GOAL PLI_v3.3-R1 PHASE A–B）—— 进行中
+
+| 阶段 | 状态 | 证据 |
+|---|---|---|
+| PHASE A Reality Audit | DONE | reports/STAGE_H1_PREFLIGHT_CURRENT.md（git/repo/canonical 全记录；pytest 273 / ruff 0 / 五端 typecheck 0 / 四端 build OK / vitest 22 / PW 17 复跑通过） |
+| L3 母版差异 | 已记录 | GOAL 引 v3.3-R1（09-20），repo 实为 v3.1-R1（09-18）——以 repo 实际为准 |
+| PHASE B H.1 Audit（128 PARTIAL_UI） | DONE | reports/STAGE_H1_FEATURE_CLOSURE_AUDIT.md + STAGE_H1_FINAL_CLASSIFICATION.md；FEATURE_EXPERIENCE_MATRIX 更新（PARTIAL_UI=0） |
+| B5 prefers-reduced-motion | DONE | globals.css + mini app.scss 全局 `@media (prefers-reduced-motion: reduce)`；ACCESSIBILITY LIMITATION 归零 |
+| 终态分布 | 186 | FULL_UI 77 / BACKGROUND_ONLY 47 / PRO_ONLY 13 / EXTERNAL_BLOCKED 21 / ACCEPTED_UI_LIMITATION 28 / FUTURE 42（未开发） |
+
+下一步：PHASE C+（Stage H.2 Living Pet）——Living Canvas / Pet Living Model / 3D Life View（provider 外部受限时 adapter+fallback）。

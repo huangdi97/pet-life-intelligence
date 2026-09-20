@@ -87,7 +87,7 @@ FEATURE EXPERIENCE MATRIX      COMPLETE（228/228，docs/product/FEATURE_EXPERIE
 
 ## 5. Known limitations（如实登记）
 
-1. **prefers-reduced-motion**：声音/动效减少偏好未全局实现（ACCESSIBILITY_AUDIT 已登记；建议 globals.css 补 media query）。
+1. **prefers-reduced-motion**：~~声音/动效减少偏好未全局实现~~ —— **H.1（2026-09-20）已修复**：globals.css + mini app.scss 顶层 `@media (prefers-reduced-motion: reduce)`，ACCESSIBILITY LIMITATION 归零。
 2. **真机像素级响应式 QA**：360/390 断点基于流体 CSS + 视口验证 + 本地构建；微信 devtools / Expo Go 真机勘验待 Wave 0-A 前设备环境。
 3. **Alipay / Douyin Mini**：Taro 工程已支持（build:alipay / build:tt），与 WeChat 同源页面；未单独真机验收（无对应主体/开发者账号）。
 4. **Mobile 发布**：Expo 代码级 complete；iOS/Android 签名账号与商店发布待外部配置。
