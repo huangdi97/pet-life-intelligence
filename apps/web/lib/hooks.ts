@@ -50,14 +50,27 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []): Async<T
 /** Current-pet context persisted across pages (GOAL Phase 10: 永远显示当前 Pet). */
 export function useCurrentPet() {
   const [petId, setPetId] = useState<string | null>(null);
-  useEffect(() => {
+
+  const sync = useCallback(() => {
     setPetId(window.localStorage.getItem("pli_current_pet"));
   }, []);
+
+  useEffect(() => {
+    sync();
+    window.addEventListener("pli-pet-changed", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("pli-pet-changed", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [sync]);
+
   const choose = useCallback((id: string) => {
     window.localStorage.setItem("pli_current_pet", id);
     setPetId(id);
     window.dispatchEvent(new Event("pli-pet-changed"));
   }, []);
+
   return { petId, choose };
 }
 

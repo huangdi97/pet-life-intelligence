@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "@pli/ui-tokens/css";
+import "@pli/ui-kit/styles.css";
 import "./globals.css";
 import TopNav from "../components/TopNav";
 import { PwaShell } from "../components/PwaShell";

@@ -11,7 +11,7 @@ const NAV = [
   { href: "/", label: () => t("nav.today"), icon: "◉" },
   { href: "/timeline", label: () => t("nav.timeline"), icon: "≡" },
   { href: "/pets", label: () => t("nav.pet"), icon: "◯" },
-  { href: "/search", label: () => t("nav.agent"), icon: "✳" },
+  { href: "/agent", label: () => t("nav.agent"), icon: "✳" },
   { href: "/settings", label: () => t("nav.more"), icon: "☰" },
 ];
 
@@ -23,6 +23,10 @@ export const MORE_LINKS = [
   { href: "/health", label: "健康" },
   { href: "/training", label: "训练" },
   { href: "/medication", label: "用药" },
+  { href: "/welfare", label: "福祉" },
+  { href: "/social", label: "社交" },
+  { href: "/monitoring", label: "在家" },
+  { href: "/companion", label: "陪伴" },
   { href: "/notifications", label: "通知" },
 ];
 

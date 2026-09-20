@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api, type MedicationPlan } from "@pli/api-client";
 import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State } from "../../components/ui";
-
+import { CareTask, EmptyState } from "@pli/ui-kit";
 /** Surface 11: Medication (PLI-059/060) — plan, administrations, missed
  *  reminders, duplicate protection. v0.1 never recommends doses. */
 export default function MedicationPage() {
@@ -128,6 +128,9 @@ export default function MedicationPage() {
       </div>
 
       <State state={plans.state} error={plans.error} onRetry={plans.reload} empty="还没有用药计划。">
+        {plans.data?.length === 0 && (
+          <EmptyState title="还没有用药计划" description="创建计划后，这里会显示待给剂量与给药时间表。" />
+        )}
         {plans.data?.map((p) => {
           const pending = p.doses.filter((d) => d.status === "PENDING");
           const missed = p.doses.filter((d) => d.status === "MISSED");
@@ -148,13 +151,20 @@ export default function MedicationPage() {
               </p>
               <h3>待给药</h3>
               {pending.length === 0 && <p className="muted">没有待给剂量。</p>}
-              <div className="row">
-                {pending.slice(0, 6).map((d) => (
-                  <button key={d.dose_id} className="btn" onClick={() => give(p.plan_id, d.dose_id)}>
+              {pending.slice(0, 6).map((d) => (
+                <div key={d.dose_id} className="row" style={{ marginBottom: 6, gap: 8 }}>
+                  <CareTask
+                    task={{
+                      title: `给 ${p.medicine_name} · ${p.dose_text}`,
+                      status: "OPEN",
+                      due_at: d.planned_at,
+                    }}
+                  />
+                  <button className="btn" onClick={() => give(p.plan_id, d.dose_id)}>
                     记录给药 {fmtTime(d.planned_at)}
                   </button>
-                ))}
-              </div>
+                </div>
+              ))}
               <h3>时间表（近 10 条）</h3>
               <ul className="tl">
                 {p.doses.slice(0, 10).map((d) => (

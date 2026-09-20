@@ -1,5 +1,7 @@
 "use client";
 
+import { ApiError } from "@pli/api-client";
+
 /** 极简 i18n 基础：zh-CN 优先，键值集中管理，避免 UI 文案散落硬编码。
  *  v1.0 不引入多语言运行时，仅为未来 en-US 预留结构。 */
 
@@ -106,6 +108,171 @@ const zhCN = {
     desc: "请重试；如果问题持续，请联系支持。",
     reload: "刷新重试",
   },
+  today: {
+    title: "今天怎么样",
+    currentState: "今天总体稳定",
+    lastActivity: "最后活动",
+    attention: "值得关注",
+    quicklog: "快速记录",
+    tasks: "今天",
+    recent: "最近",
+    seeIt: "看看它",
+    viewTimeline: "查看时间线",
+    aiSummary: "AI 摘要",
+    aiSummaryOff: "服务暂未开放",
+    manageTasks: "管理任务",
+    allTasks: "查看完整时间线",
+    switchHint: "可在顶部切换多宠",
+    noPetSelected: "请先在顶部选择一只宠物。",
+    provenanceNote: "所有记录都会带来源（provenance）与记录人（actor）进入事件图。",
+  },
+  welfare: {
+    title: "福祉 · Welfare",
+    sub: "生活质量 / 舒适 / 压力 / 活动 / 丰富化 —— 基于证据与趋势，不是医疗结论。",
+    record: "记录福祉观察",
+    evidence: "证据",
+    trend: "趋势",
+    activity: "活动",
+    enrichment: "丰富化",
+    rest: "休息",
+    uncertainty: "基于现有记录推断，可能不完整",
+    noData: "还没有福祉记录。",
+  },
+  social: {
+    title: "社交 · Social",
+    sub: "关系图谱 / 互动历史 / 安全 / 反馈 —— 不是传统信息流。",
+    relations: "宠物关系",
+    interactions: "互动历史",
+    safety: "安全",
+    feedback: "双方反馈",
+    baseline: "互动基线",
+    noData: "还没有社交记录。",
+    familiar: "熟悉关系",
+    conflict: "冲突",
+    noConflict: "无",
+    block: "屏蔽",
+  },
+  monitoring: {
+    title: "在家 · Monitoring",
+    sub: "宠物在哪 / 最近发生什么 / 今天状态 / 设备是否正常 / 与自己历史相比的变化。",
+    lastSeen: "最近看到",
+    today: "今天",
+    devices: "设备",
+    changes: "近期变化",
+    recentEvents: "最近事件",
+    reviewQueue: "待确认（摄像头候选）",
+    reviewConfirm: "确认",
+    reviewCorrect: "纠正",
+    reviewReject: "拒绝",
+    devicesOff: "设备接入暂未开放",
+    prototype: "PROTOTYPE",
+    baseline: "比自己的 30 日范围低",
+    baselineHigh: "比自己的 30 日范围高",
+    noData: "还没有设备数据。",
+    deviceStates: {
+      connected: "在线",
+      offline: "离线",
+      degraded: "降级",
+      needs_review: "需检查",
+      unknown: "未知",
+    },
+  },
+  companion: {
+    title: "陪伴 · Companion",
+    gateTitle: "PROTOTYPE",
+    gateDesc: "陪伴为前端原型，硬件集成未激活。真实设备接入前不会伪装执行。",
+    gateBack: "回到今日",
+    layers: {
+      observe: "观察",
+      presence: "陪伴声音",
+      enrichment: "互动",
+      learned: "学习互动",
+    },
+    liveView: "实时画面",
+    speak: "讲话",
+    audio: "短语音",
+    treat: "零食",
+    play: "玩耍",
+    cue: "简单指令",
+    button: "互动按钮",
+    sessionToday: "今天已互动",
+    suggestion: "当前建议",
+    welfareGuard: "互动保护",
+    guard: {
+      rest: "刚结束休息，可短时互动",
+      cooldown: "互动间隔 ≥30 分钟",
+      treatLimit: "每日零食上限 3 次",
+      sessionDuration: "单次 ≤15 分钟",
+      noise: "音量已限制",
+      nightQuiet: "夜间静默模式",
+    },
+    summary: "本次小结",
+    prototypeNotice: "原型演示：未连接真实设备",
+  },
+  agent: {
+    title: "助手 · Agent",
+    sub: "问 / 摘要 / 找 / 计划 / 解释 —— 基于真实记录回答，不诊断。",
+    tabAsk: "问",
+    tabBrief: "摘要",
+    tabFind: "找",
+    tabPlan: "计划",
+    tabExplain: "解释",
+    askPlaceholder: "例如：最近体重有什么变化？",
+    suggestions: [
+      "最近体重有什么变化？",
+      "上次耳朵异常是什么时候？",
+      "今天还有什么没完成？",
+      "最近训练进度怎么样？",
+    ],
+    ask: "提问",
+    answer: "回答",
+    facts: "事实",
+    inference: "推断",
+    sources: "来源",
+    uncertainty: "不确定性",
+    action: "建议动作",
+    aiBadge: "AI 生成",
+    briefLink: "查看就诊摘要",
+    planLink: "查看任务与训练",
+    findLink: "全局搜索",
+    explainDesc: "PLI 如何工作：所有记录围绕同一宠物 ID 形成时间线，AI 回答必须引用真实记录；医疗风险由独立规则引擎判断，不由 AI 决定。",
+    off: "服务暂未开放",
+    noAnswer: "还没有回答。",
+  },
+  pets2: {
+    detail: "宠物档案",
+    viewProfile: "查看档案",
+    sections: {
+      identity: "基本信息",
+      health: "健康概览",
+      behavior: "行为概览",
+      care: "照护网络",
+      baseline: "基线",
+      devices: "设备",
+      consent: "授权同意",
+      data: "数据",
+    },
+  },
+  sync: {
+    unsynced: "未同步",
+    syncing: "同步中",
+    synced: "已同步",
+    failed: "同步失败",
+    drafts: "本地草稿",
+    offlineNote: "离线时记录会先保存为草稿，恢复后自动同步。",
+  },
+  notifications2: {
+    categories: {
+      tasks: "任务",
+      care: "照护",
+      health: "健康",
+      medication: "用药",
+      monitoring: "监测",
+      system: "系统",
+    },
+    markRead: "标记已读",
+    all: "全部",
+  },
 } as const;
 
 export type I18nDict = typeof zhCN;
@@ -131,4 +298,28 @@ export function t(key: string, vars?: Record<string, string>): string {
   let out = val;
   if (vars) for (const [k, v] of Object.entries(vars)) out = out.replace(`{${k}}`, v);
   return out;
+}
+
+/** 错误映射（Stage H COPY_GUIDELINES §6）：用户不可见 raw codes。 */
+export function mapErrorMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.code === "PERMISSION_DENIED") return zhCN.common.permissionDenied;
+    if (err.status === 404 || err.code === "NOT_FOUND") return zhCN.notFound.title;
+    if (err.status === 401 || err.code === "UNAUTHORIZED") return "请先登录。";
+    if (err.status === 422 || err.code === "VALIDATION_ERROR") return "提交的内容格式有误，请检查后重试";
+    if (err.status !== undefined && err.status >= 500) return "服务暂时不可用，请稍后重试";
+    if (err.code === "EXTERNAL_BLOCKED" || err.code === "EXTERNAL") return zhCN.common.externalBlocked;
+    if (err.code === "TIMEOUT" || err.code === "ABORT") return "连接超时，请重试";
+    return "服务暂时不可用，请稍后重试";
+  }
+  if (err instanceof Error) {
+    const msg = err.message;
+    if (msg === "NO_PET_SELECTED") return zhCN.today.noPetSelected;
+    if (msg.includes("EXTERNAL_BLOCKED")) return zhCN.common.externalBlocked;
+    if (msg.includes("timeout") || msg.includes("abort")) return "连接超时，请重试";
+    if (msg.includes("fetch") || msg.includes("network") || msg.includes("Failed to fetch"))
+      return "服务暂时不可用，请稍后重试";
+    return "服务暂时不可用，请稍后重试";
+  }
+  return "服务暂时不可用，请稍后重试";
 }

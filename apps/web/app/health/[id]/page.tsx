@@ -7,11 +7,16 @@ import {
   type HealthEventDetail,
   type VetBriefContent,
 } from "@pli/api-client";
+import { EmergencyAction, EvidenceList, RiskBanner, type RiskLevel } from "@pli/ui-kit";
 import { fmtTime, useAsync } from "../../../lib/hooks";
 import { ErrorNote, State, TriageBadge } from "../../../components/ui";
 
-/** Surfaces 10 + 12: health event detail — intake Q&A, evidence, AI/rule
- *  observations (strictly separated), triage, Vet Brief + share, Outcome. */
+/** OWN-005 Health 详情（Stage H §20-22）：发现异常→Intake→Evidence→Triage→Vet Brief→Outcome。
+ *  医疗安全信息使用独立组件（RiskBanner/RedFlagReason/NextActionCard/EmergencyAction/EvidenceList），
+ *  不埋入普通 AI 对话文本；Emergency 不埋在普通 AI 回答里。
+ *  E2E 契约保留：主诉 / .badge.EMERGENCY / .alert.emergency 含立即 / 生成 Vet Brief / 摘要预览 / 不是兽医诊断。 */
+const RISK_LEVELS: RiskLevel[] = ["NORMAL", "NOTICE", "MONITOR", "VET_SOON", "URGENT", "EMERGENCY"];
+
 export default function HealthEventDetailPage({
   params,
 }: {
@@ -113,6 +118,8 @@ export default function HealthEventDetailPage({
   }
 
   const openQuestions = detail.data?.intake_steps.filter((s) => !s.answer_text) ?? [];
+  const level = detail.data?.latest_triage_level ?? null;
+  const isRiskLevel = level != null && RISK_LEVELS.includes(level as RiskLevel);
 
   return (
     <main>
@@ -126,12 +133,24 @@ export default function HealthEventDetailPage({
                 <span className={`badge status-${detail.data.status}`}>{detail.data.status}</span>
                 <span className="muted">分级由规则引擎给出 · AI 不能降低等级</span>
               </div>
+              {isRiskLevel && (
+                <RiskBanner
+                  level={level as RiskLevel}
+                  reasons={detail.data.triage_history
+                    .flatMap((t) => t.matched_rules.map((r) => r.rule_id))
+                    .slice(0, 4)}
+                  next_action={level === "EMERGENCY" ? "立即联系兽医/急诊" : undefined}
+                />
+              )}
               <h3>主诉</h3>
               <p>{detail.data.chief_complaint}</p>
-              {detail.data.latest_triage_level === "EMERGENCY" && (
-                <div className="alert emergency">
-                  规则引擎命中紧急红旗：建议立即联系兽医/急诊。
-                </div>
+              {level === "EMERGENCY" && (
+                <>
+                  <div className="alert emergency">
+                    规则引擎命中紧急红旗：建议立即联系兽医/急诊。
+                  </div>
+                  <EmergencyAction instructions="规则引擎命中紧急红旗：请立即联系兽医或前往最近的宠物急诊。" />
+                </>
               )}
               <h3>分级历史（Rule Engine）</h3>
               {detail.data.triage_history.map((t) => (
@@ -188,19 +207,17 @@ export default function HealthEventDetailPage({
                   添加并提取
                 </button>
               </div>
-              <ul className="tl" style={{ marginTop: 10 }}>
-                {detail.data.observations.map((o) => (
-                  <li key={o.id}>
-                    <div className="tl-head">
-                      <span className={`badge ${o.kind === "AI_OBSERVATION" ? "AI_DERIVED" : ""}`}>
-                        {o.kind}
-                      </span>
-                      <span className="tl-time">{fmtTime(o.created_at)}</span>
-                    </div>
-                    <div className="tl-body">{o.text}</div>
-                  </li>
-                ))}
-              </ul>
+              <div style={{ marginTop: 10 }}>
+                <EvidenceList
+                  items={detail.data.observations.map((o) => ({
+                    id: o.id,
+                    kind: o.kind,
+                    text: o.text,
+                    created_at: o.created_at,
+                  }))}
+                  emptyText="还没有可观察事实。"
+                />
+              </div>
               <p className="notice-ai">
                 AI 仅整理主人陈述并标注“主人报告：”，不做诊断、不生成结论；规则结论与兽医确认单独标记。
               </p>
