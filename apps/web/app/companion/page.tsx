@@ -146,6 +146,10 @@ export default function CompanionPage() {
         {t("companion.title")} · <span className="badge pli-tag--prototype">{t("companion.gateTitle")}</span>
       </h1>
       <p className="sub">Remote Presence & Interaction（原型）。真实硬件调用走 Feature Flag / Sandbox；未连接真实设备时不伪装执行。</p>
+      <div className="alert info">
+        现在看到的是 <strong>GENERATED_3D / 原型</strong>，不是实时画面（LIVE）也不是录像（RECORDED）。
+        3D 形象只描述外观，不包含任何健康信息。
+      </div>
 
       {/* Observe 层：宠物什么都不用理解 */}
       <div className="card">

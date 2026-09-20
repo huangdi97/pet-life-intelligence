@@ -152,3 +152,16 @@ BACKUP: PASS / MONITORING: PASS / NEXT: 真实用户确认后 Wave 0-A
 | 回归 | PASS | pytest 281（+8 PLM）· ruff 0 · web/mini typecheck 0 · vitest 22 · Playwright 17 |
 
 外部 blocker：REAL_3D_PROVIDER（无真实生成服务）· OWNER_IDENTITY_VALIDATION=NOT_YET_OBSERVED（无真人）。
+
+## Stage H.2 收尾（2026-09-20）—— 最终验收
+
+| 交付 | 状态 |
+|---|---|
+| PHASE E Capture Wizard | DONE（web /pets/[id]/capture：6 角度引导 + 上传 + QC + 隐私提示；life-view 入口） |
+| PHASE J Timeline 回到那一天 | DONE（日期过滤 + 仅真实事件 + 当日激活模型版本提示；禁用 3D 伪装过去） |
+| PHASE K Companion 标注 | DONE（GENERATED_3D ≠ LIVE/RECORDED 显式声明） |
+| 最终验收报告 | DONE（MULTI_CLIENT_FINAL_ACCEPTANCE / WAVE_0_REENTRY_READINESS / FINAL_PRODUCT_READINESS_REPORT） |
+| 回归 | PASS（web typecheck 0 · vitest 22 · Playwright 17） |
+
+**FINAL PRODUCT READINESS：H.1 COMPLETE + H.2 CORE COMPLETE + WAVE_0_REENTRY_READY**
+（3D provider / AI / staging 部署 / 真人均为诚实 EXTERNAL_BLOCKED，不伪造）
