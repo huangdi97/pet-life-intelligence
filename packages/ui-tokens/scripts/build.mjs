@@ -34,7 +34,11 @@ walk("", tokens.typography);
 walk("-space", tokens.spacing);
 walk("-radius", tokens.radius);
 walk("-elev", tokens.elevation);
+if (tokens.border) walk("-border", tokens.border);
 walk("-motion", tokens.motion);
+if (tokens.grid) walk("-grid", tokens.grid);
+if (tokens.breakpoint) walk("-breakpoint", tokens.breakpoint);
+if (tokens.z_index) walk("-z", tokens.z_index);
 for (const [k, v] of Object.entries(tokens.layout)) {
   if (typeof v === "string") cssLines.push(`  --pli-layout-${k}: ${v};`);
 }
@@ -76,7 +80,11 @@ writeFileSync(
     "  elevation: Record<string, string>;\n" +
     "  motion: Record<string, unknown>;\n" +
     "  icon: Record<string, unknown>;\n" +
-    "  risk_status: Record<RiskStatus, RiskStatusDef>;\n" +
+"  risk_status: Record<RiskStatus, RiskStatusDef>;\n" +
+"  border: Record<string, string>;\n" +
+"  grid: Record<string, string>;\n" +
+"  breakpoint: Record<string, string>;\n" +
+"  z_index: Record<string, string>;\n" +
     "  semantic_state: Record<string, { label: string }>;\n" +
     "  layout: Record<string, unknown>;\n" +
     "  touch: Record<string, string>;\n" +
