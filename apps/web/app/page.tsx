@@ -124,7 +124,6 @@ export default function TodayPage() {
     await quickLog({ type: q.type, label: q.label, payload: (q.payload as Record<string, string | number>) ?? {} });
     setSheetOpen(false);
   }
-
   return (
     <main>
       <h1>{current.name} 今天怎么样？</h1>
@@ -134,12 +133,31 @@ export default function TodayPage() {
       </p>
       {flash && <div className="alert info">{flash}</div>}
 
-      {/* Current State — 事实陈述，不是医疗诊断，不是伪精确情绪 */}
+      {/* Living Canvas 主轴：Pet → Now → Change → Attention → Action（GOAL PHASE C）
+          3D 生命视图入口始终可用；真实照片/记录是基础，不依赖 3D。 */}
       <div className="card">
-        <h2>今天总体稳定</h2>
+        <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+          <div>
+            <h2 style={{ margin: 0 }}>{current.name} · 生命视图</h2>
+            <p className="sub" style={{ margin: "4px 0 0" }}>
+              {current.species}{current.breed ? ` · ${current.breed}` : ""} · 3D 形象与当前状态
+            </p>
+          </div>
+          <Link href={`/pets/${current.id}/life-view`} className="btn primary" role="button">
+            打开生命视图
+          </Link>
+        </div>
+        <p className="muted" style={{ margin: "10px 0 0" }}>
+          3D 形象由真实照片生成并经你确认；它只描述外观，不推断任何健康信息。
+        </p>
+      </div>
+
+      {/* Now — 现在怎么样（真实事实） */}
+      <div className="card">
+        <h2>现在</h2>
         {lastEvent ? (
           <p className="sub" style={{ margin: 0 }}>
-            最后活动 · {fmtTime(lastEvent.occurred_at)}
+            最后活动 · {fmtTime(lastEvent.occurred_at)}（{EVENT_LABELS[lastEvent.event_type] ?? lastEvent.event_type}）
           </p>
         ) : (
           <p className="sub" style={{ margin: 0 }}>
@@ -155,10 +173,10 @@ export default function TodayPage() {
         </div>
       </div>
 
-      {/* Important Attention — 值得关注（基线对比，非诊断） */}
-      {hints.length > 0 && (
-        <div className="card">
-          <h2>值得关注</h2>
+      {/* Change — 与它自己相比（基线对比，非诊断） */}
+      <div className="card">
+        <h2>变化</h2>
+        {hints.length > 0 ? (
           <ul className="tl">
             {hints.slice(0, 3).map((h, i) => (
               <li key={i}>
@@ -168,13 +186,37 @@ export default function TodayPage() {
               </li>
             ))}
           </ul>
-          <p className="muted">基于它自己的近期范围（Personal Baseline），不是医疗诊断。</p>
-        </div>
-      )}
+        ) : (
+          <p className="sub" style={{ margin: 0 }}>
+            与它自己的近期基线相比，今天没有明显变化。
+          </p>
+        )}
+        <p className="muted" style={{ marginTop: 8 }}>
+          基于它自己的近期范围（Personal Baseline），不是医疗诊断。
+        </p>
+      </div>
 
-      {/* Primary Action — Quick Log（直接按钮 + 完整 Sheet） */}
+      {/* Attention — 今天最值得注意什么 */}
       <div className="card">
-        <h2>快速记录</h2>
+        <h2>值得注意</h2>
+        {hints.length > 0 ? (
+          <ul className="tl">
+            {hints.slice(0, 2).map((h, i) => (
+              <li key={i}>
+                <div className="tl-body">{h.message || h.hint || h.detail || "值得关注"}</div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="sub" style={{ margin: 0 }}>
+            没有需要特别注意的事项。
+          </p>
+        )}
+      </div>
+
+      {/* Action — 下一步能做什么 */}
+      <div className="card">
+        <h2>下一步</h2>
         <div className="quickgrid">
           {QUICK_TYPES.map((q) => (
             <button key={q.type} className="btn" onClick={() => quickLog(q)}>

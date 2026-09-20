@@ -216,6 +216,20 @@ class GenericPayload(_Strict):
     pass
 
 
+
+class VisualModelGeneratedPayload(_Strict):
+    """Stage H.2: 3D generation enqueued for this pet (GENERATED_3D provenance)."""
+
+    version: int
+    provider: str = ""
+    status: str = "GENERATING"
+
+
+class VisualModelActivatedPayload(_Strict):
+    """Stage H.2: 3D model activated after owner identity verification."""
+
+    version: int
+    provenance: str = "GENERATED_3D"
 class PetCreatedPayload(_Strict):
     name: str
     species: str
@@ -529,6 +543,8 @@ _register("record.versioned", "Record superseded (no silent overwrite)", RecordV
 _register("provenance.attached", "Provenance level attached", ProvenanceAttachedPayload, "platform")
 _register("timeline.viewed", "Timeline viewed", TimelineViewedPayload, "platform")
 _register("today.viewed", "Today summary viewed", DailySummaryViewedPayload, "platform")
+_register("visual.model_generated", "3D visual model generation enqueued (H.2)", VisualModelGeneratedPayload, "platform")
+_register("visual.model_activated", "3D visual model activated (H.2)", VisualModelActivatedPayload, "platform")
 _register("safety.policy_applied", "Medical action hard boundary applied", SafetyPolicyAppliedPayload, "platform")
 _register("ai.inference_logged", "AI inference metadata logged", AIInferenceLoggedPayload, "platform")
 

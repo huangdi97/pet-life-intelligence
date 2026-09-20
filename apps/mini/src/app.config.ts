@@ -1,4 +1,4 @@
-export default defineAppConfig({
+﻿export default defineAppConfig({
   pages: [
     "pages/index/index",
     "pages/timeline/index",
@@ -7,6 +7,7 @@ export default defineAppConfig({
     "pages/mine/index",
     // 二级页保留（从对应 tab 页内入口进入；IA §5）
     "pages/pets/index",
+    "pages/pets/life-view/index",
     "pages/tasks/index",
     "pages/care/index",
     "pages/medication/index",

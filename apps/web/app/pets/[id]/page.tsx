@@ -55,6 +55,18 @@ export default function PetProfilePage() {
       </p>
 
       <div className="card">
+        <h2>3D 生命视图</h2>
+        <p className="sub" style={{ margin: 0 }}>
+          3D 形象与当前状态（真实照片为基础；3D 生成服务接入前诚实显示不可用）。
+        </p>
+        <div className="row" style={{ marginTop: 8 }}>
+          <Link href={`/pets/${id}/life-view`} className="btn primary">
+            打开生命视图
+          </Link>
+        </div>
+      </div>
+
+      <div className="card">
         <h2>{t("pets2.sections.identity")}</h2>
         <State state={pet.state} error={pet.error ? mapErrorMessage(pet.error) : null} onRetry={pet.reload} empty="—">
           <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>

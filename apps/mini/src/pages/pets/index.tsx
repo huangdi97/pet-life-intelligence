@@ -116,6 +116,13 @@ export default function Pets() {
             {p.sex ? ` · ${sexLabel(p.sex)}` : ""}
             {p.birth_date ? ` · 出生 ${p.birth_date}` : ""}
           </View>
+          <Button
+            className="btn"
+            style={{ marginTop: 8 }}
+            onClick={() => Taro.navigateTo({ url: `/pages/pets/life-view/index` })}
+          >
+            生命视图
+          </Button>
         </View>
       ))}
     </View>

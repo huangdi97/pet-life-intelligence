@@ -136,3 +136,19 @@ BACKUP: PASS / MONITORING: PASS / NEXT: 真实用户确认后 Wave 0-A
 | 终态分布 | 186 | FULL_UI 77 / BACKGROUND_ONLY 47 / PRO_ONLY 13 / EXTERNAL_BLOCKED 21 / ACCEPTED_UI_LIMITATION 28 / FUTURE 42（未开发） |
 
 下一步：PHASE C+（Stage H.2 Living Pet）——Living Canvas / Pet Living Model / 3D Life View（provider 外部受限时 adapter+fallback）。
+
+## Stage H.2（2026-09-20，GOAL PHASE C–P）—— 进行中
+
+| 阶段 | 状态 | 证据 |
+|---|---|---|
+| Living Canvas Today 重构 | DONE | apps/web/app/page.tsx（Pet→Now→Change→Attention→Action 主轴）；vitest 22/22 + Playwright 17/17 |
+| Pet Living Model 数据层 | DONE | models/visual.py（Capture/Model/RenderManifest）+ migration 21b4b571112a（3 表，可回滚） |
+| PLM API | DONE | routes/visual.py（capture/qc/model/verify/activate/retire/manifest/state-overlay/status）；event_types 注册 visual.* |
+| Provider 适配层 | DONE | adapters/visual_provider.py（Provider protocol + Sandbox + ExternalBlocked）；REAL_3D_PROVIDER_EXTERNAL_BLOCKED 诚实 |
+| 3D Life View（Web+Mini） | DONE | /pets/[id]/life-view + pages/pets/life-view（诚实 blocked 态 + 版本 + overlay + 照片 fallback） |
+| PLM contract 测试 | DONE | tests/contract/test_plm_visual.py 8/8（含 not_like 不能激活安全规则） |
+| 文档 | DONE | docs/architecture/PET_LIVING_MODEL_ARCHITECTURE + THREED_PROVIDER_ADAPTER + docs/safety/PET_LIVING_MODEL_SAFETY + docs/ui/LIVING_CANVAS_UX + PET_3D_LIFE_VIEW |
+| 报告 | DONE | reports/LIVING_CANVAS_UX_ACCEPTANCE + PET_LIVING_MODEL_IDENTITY_QA + PRIVACY_SAFETY + PERFORMANCE（3D 性能 EXPLICIT LIMITATION：无真实资产） |
+| 回归 | PASS | pytest 281（+8 PLM）· ruff 0 · web/mini typecheck 0 · vitest 22 · Playwright 17 |
+
+外部 blocker：REAL_3D_PROVIDER（无真实生成服务）· OWNER_IDENTITY_VALIDATION=NOT_YET_OBSERVED（无真人）。

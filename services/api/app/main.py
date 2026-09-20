@@ -34,6 +34,7 @@ from app.api.routes import (
     v10_extras,
     v10_platform,
     v11_pilot,
+    visual,
 )
 from app.core.config import get_settings
 from app.core.db import dispose_engine, get_session_factory
@@ -134,5 +135,6 @@ for router in (
     artifacts.router, v02_identity_daily.router, v02_care_health.router,
     v02_behavior_training.router, v02_social_platform.router,
     v10_platform.router, v10_extras.router, v11_pilot.router,
+    visual.router,
 ):
     app.include_router(router, prefix="/api/v1")
