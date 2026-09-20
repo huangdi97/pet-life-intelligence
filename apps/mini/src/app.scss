@@ -1,68 +1,153 @@
+// app.scss — global styles for all mini pages.
+// Colors/sizes come from styles/tokens.scss (mirror of packages/ui-tokens).
+// Information density is LOWER than desktop: cards + chips + bottom sheet,
+// no wide tables, no sidebars, no multi-layer modals (IA §5 / 母版 §68).
+@use "./styles/tokens.scss" as *;
+
 page {
-  background: #faf8f5;
-  color: #2b2723;
+  background: $color-bg-canvas;
+  color: $color-ink-primary;
   font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-  font-size: 28px;
+  font-size: $font-size-base;
 }
-.page { padding: 20px 24px 60px; }
+.page { padding: $space-1 $space-3 $space-6; }
+
 .card {
-  background: #ffffff;
-  border: 1px solid #e8e2d9;
-  border-radius: 20px;
-  padding: 24px;
-  margin: 16px 0;
-  box-shadow: 0 2px 8px rgba(43, 39, 35, 0.06);
+  background: $color-bg-surface;
+  border: 1px solid $color-line-default;
+  border-radius: $radius-md;
+  padding: $space-3;
+  margin: $space-2 0;
+  box-shadow: $elevation-sm;
 }
-.card h2 { font-size: 30px; margin: 0 0 16px; color: #2b2723; }
-.card h3 { font-size: 26px; margin: 16px 0 8px; color: #7c7369; }
-.muted { color: #7c7369; font-size: 24px; }
-.row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-.h1 { font-size: 40px; font-weight: 700; margin: 12px 0 4px; }
-.sub { color: #7c7369; font-size: 26px; margin: 0 0 20px; }
+.card h2 { font-size: $font-size-3xl * 0.5; margin: 0 0 $space-2; color: $color-ink-primary; }
+.card h3 { font-size: $font-size-sm; margin: $space-2 0 $space-1; color: $color-ink-muted; }
+.muted { color: $color-ink-muted; font-size: $font-size-xs; }
+.row { display: flex; gap: $space-2; align-items: center; flex-wrap: wrap; }
+.h1 { font-size: $font-size-xl; font-weight: $font-weight-bold; margin: $space-3 0 $space-1; }
+.sub { color: $color-ink-muted; font-size: $font-size-sm; margin: 0 0 $space-3; }
 
 .btn {
-  background: #ffffff;
-  border: 1px solid #e8e2d9;
-  color: #2b2723;
-  border-radius: 16px;
-  padding: 14px 24px;
-  font-size: 28px;
-  line-height: 1.4;
-  margin: 8px 0;
+  background: $color-bg-surface;
+  border: 1px solid $color-line-default;
+  color: $color-ink-primary;
+  border-radius: $radius-xl;
+  padding: 14px $space-3;
+  font-size: $font-size-base;
+  line-height: $line-height-normal;
+  margin: $space-1 0;
 }
-.btn-primary { background: #4e6349; border-color: #4e6349; color: #ffffff; }
-.btn-danger { color: #b42318; border-color: #f3c9c4; background: #fbeae6; }
+.btn-primary { background: $color-primary-600; border-color: $color-primary-600; color: $color-bg-surface; }
+.btn-accent { background: $color-accent-50; border-color: $color-accent-200; color: $color-accent-600; }
+.btn-danger { color: $color-semantic-danger; border-color: #f3c9c4; background: $color-semantic-danger-bg; }
 .btn[disabled] { opacity: 0.5; }
 
 .badge {
-  display: inline-block; font-size: 22px; padding: 4px 16px; border-radius: 999px;
-  border: 1px solid #e8e2d9; background: #f3f0eb; color: #57504a; margin: 4px;
+  display: inline-block; font-size: $font-size-xs * 0.9; padding: 4px $space-2; border-radius: $radius-pill;
+  border: 1px solid $color-line-default; background: $color-bg-surface-muted; color: $color-ink-secondary; margin: 4px;
 }
-.badge-EMERGENCY, .badge-URGENT { border-color: #e9a79f; color: #b42318; background: #fbeae6; font-weight: 600; }
-.badge-VET_SOON { border-color: #f0d0a2; color: #c07a2d; background: #fdf2e3; }
-.badge-MONITOR, .badge-NORMAL { border-color: #bfddc4; color: #4e7a5a; background: #edf3ee; }
+.badge-EMERGENCY, .badge-URGENT { border-color: #e9a79f; color: $color-semantic-emergency; background: $color-semantic-emergency-bg; font-weight: $font-weight-semibold; }
+.badge-VET_SOON { border-color: #f0d0a2; color: $color-semantic-vet-soon; background: $color-semantic-vet-soon-bg; }
+.badge-NOTICE { border-color: #e3d39a; color: $color-semantic-notice; background: $color-semantic-notice-bg; }
+.badge-MONITOR, .badge-NORMAL { border-color: #bfddc4; color: $color-semantic-ok; background: $color-semantic-ok-bg; }
 
 .state {
-  border: 1px dashed #d8d0c4; border-radius: 20px; padding: 48px 24px;
-  text-align: center; color: #7c7369; background: #ffffff; margin: 16px 0;
+  border: 1px dashed $color-line-strong; border-radius: $radius-md; padding: $space-6 $space-3;
+  text-align: center; color: $color-ink-muted; background: $color-bg-surface; margin: $space-2 0;
 }
-.state-error { border-color: #e9a79f; color: #b42318; background: #fbeae6; }
+.state-error { border-color: #e9a79f; color: $color-semantic-danger; background: $color-semantic-danger-bg; }
 
 .tl-item {
-  background: #ffffff; border: 1px solid #e8e2d9; border-radius: 20px;
-  padding: 20px 24px; margin: 12px 0;
+  background: $color-bg-surface; border: 1px solid $color-line-default; border-radius: $radius-md;
+  padding: $space-1 $space-3; margin: $space-3 * 0.5 0;
 }
-.tl-head { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.tl-type { font-weight: 600; font-size: 26px; }
-.tl-time { color: #7c7369; font-size: 22px; margin-left: auto; }
-.tl-body { margin-top: 8px; font-size: 24px; word-break: break-all; }
+.tl-head { display: flex; gap: $space-3; align-items: center; flex-wrap: wrap; }
+.tl-type { font-weight: $font-weight-semibold; font-size: $font-size-sm; }
+.tl-time { color: $color-ink-muted; font-size: $font-size-xs; margin-left: auto; }
+.tl-body { margin-top: $space-1; font-size: $font-size-xs; word-break: break-all; color: $color-ink-secondary; }
 
-.quickgrid { display: flex; flex-wrap: wrap; gap: 16px; }
-.quickgrid .btn { flex: 1 1 30%; min-width: 150px; text-align: center; padding: 20px 8px; }
+.quickgrid { display: flex; flex-wrap: wrap; gap: $space-2; }
+.quickgrid .btn { flex: 1 1 30%; min-width: 150px; text-align: center; padding: $space-1 $space-1; }
 
-.field { display: block; font-size: 26px; color: #7c7369; margin: 16px 0; }
-.field input, .field picker, .field textarea { margin-top: 8px; }
+.field { display: block; font-size: $font-size-sm; color: $color-ink-muted; margin: $space-2 0; }
+.field input, .field picker, .field textarea { margin-top: $space-1; }
 .input {
-  background: #fff; border: 1px solid #e8e2d9; border-radius: 16px;
-  padding: 14px 18px; font-size: 28px; width: 100%;
+  background: $color-bg-surface; border: 1px solid $color-line-default; border-radius: $radius-xl;
+  padding: 14px 18px; font-size: $font-size-base; width: 100%; color: $color-ink-primary;
 }
+
+// --- Stage H: 页内 chips（二级导航，不做侧栏） ---
+.chips { display: flex; flex-wrap: wrap; gap: $space-1; margin: $space-2 0; }
+.chip {
+  padding: 10px $space-3; border-radius: $radius-pill; font-size: $font-size-sm;
+  border: 1px solid $color-line-default; background: $color-bg-surface-muted; color: $color-ink-secondary;
+}
+.chip-active { border-color: $color-line-focus; background: $color-primary-100; color: $color-primary-800; font-weight: $font-weight-medium; }
+
+// --- Stage H: 今日页 当前状态卡（低密度统计） ---
+.statgrid { display: flex; flex-wrap: wrap; gap: $space-2; }
+.stat {
+  flex: 1 1 30%; min-width: 180px; background: $color-bg-surface-muted;
+  border-radius: $radius-sm; padding: $space-2; text-align: center;
+}
+.stat-n { font-size: $font-size-lg; font-weight: $font-weight-semibold; color: $color-ink-primary; }
+.stat-label { font-size: $font-size-xs; color: $color-ink-muted; margin-top: 2px; }
+
+// --- Stage H: 入口卡（监测 / 陪伴） ---
+.entry-card {
+  display: flex; align-items: center; justify-content: space-between;
+  background: $color-bg-surface; border: 1px solid $color-line-default; border-radius: $radius-md;
+  padding: $space-3; margin: $space-2 0;
+}
+.entry-title { font-weight: $font-weight-semibold; font-size: $font-size-base; color: $color-ink-primary; }
+.entry-desc { font-size: $font-size-xs; color: $color-ink-muted; margin-top: 4px; }
+.entry-arrow { color: $color-ink-disabled; font-size: $font-size-md; }
+
+// --- Stage H: Bottom Sheet（快速记录，单层，非多层 Modal） ---
+.sheet-mask {
+  position: fixed; left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(43, 39, 35, 0.4); z-index: 1000;
+}
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 1001;
+  background: $color-bg-surface; border-radius: $radius-lg $radius-lg 0 0;
+  padding: $space-3 $space-3 $space-6;
+  box-shadow: $elevation-lg;
+}
+.sheet-title {
+  font-size: $font-size-md; font-weight: $font-weight-semibold; color: $color-ink-primary;
+  text-align: center; margin-bottom: $space-2;
+}
+.sheet-close { position: absolute; right: $space-3; top: $space-3; color: $color-ink-muted; font-size: $font-size-md; }
+.sheet-types { display: flex; flex-wrap: wrap; gap: $space-2; margin: $space-2 0; }
+.sheet-types .btn { flex: 1 1 30%; min-width: 150px; text-align: center; }
+
+// --- Stage H: Companion 原型四层 ---
+.proto-tag {
+  display: inline-block; font-size: $font-size-xs * 0.9; padding: 2px $space-2; border-radius: $radius-pill;
+  border: 1px solid $color-accent-200; background: $color-accent-50; color: $color-accent-600; font-weight: $font-weight-medium;
+}
+.layer-card {
+  background: $color-bg-surface; border: 1px solid $color-line-default; border-radius: $radius-md;
+  padding: $space-3; margin: $space-2 0;
+}
+.layer-name { font-weight: $font-weight-semibold; font-size: $font-size-base; color: $color-ink-primary; }
+.layer-en { font-size: $font-size-xs; color: $color-ink-disabled; margin-left: $space-1; }
+.layer-desc { font-size: $font-size-xs; color: $color-ink-muted; margin: $space-1 0; }
+
+// --- Stage H: Agent 5 页内 tab（问/摘要/找/计划/解释） ---
+.agent-tabs { display: flex; gap: $space-1; margin: $space-2 0; }
+.agent-tab {
+  flex: 1; text-align: center; padding: $space-2 0; border-radius: $radius-sm;
+  border: 1px solid $color-line-default; background: $color-bg-surface-muted; color: $color-ink-secondary;
+  font-size: $font-size-sm;
+}
+.agent-tab-active { border-color: $color-line-focus; background: $color-primary-100; color: $color-primary-800; font-weight: $font-weight-medium; }
+
+.menu-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: $space-1 0; border-bottom: 1px solid $color-line-default;
+}
+.menu-item:last-child { border-bottom: none; }
+.menu-label { font-size: $font-size-base; color: $color-ink-primary; }
+.menu-arrow { color: $color-ink-disabled; }

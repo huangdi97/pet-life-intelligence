@@ -1,4 +1,6 @@
-/** Canonical shared types for mobile client (mirror of API DTOs). */
+/** Canonical shared types for mobile client (mirror of API DTOs).
+ *  Field-for-field mirror of the canonical event schema. No per-client field
+ *  inventions. */
 
 export interface Pet {
   id: string;
@@ -31,4 +33,46 @@ export interface LifeEvent {
   artifact_ids: string[];
   supersedes_event_id: string | null;
   retracted_at: string | null;
+}
+
+export interface Task {
+  id: string;
+  pet_id: string;
+  title: string;
+  task_type: string;
+  due_at: string | null;
+  repeat_rule: string;
+  assignee_user_id: string | null;
+  status: string;
+  completed_by_user_id: string | null;
+  completed_at: string | null;
+  completion_note: string;
+  conflict_count: number;
+}
+
+export interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  pet_id: string | null;
+  created_at: string;
+  read_at: string | null;
+  data: Record<string, unknown>;
+}
+
+export interface HealthEventRow {
+  health_event_id: string;
+  status: string;
+  chief_complaint: string;
+  latest_triage_level: string | null;
+  opened_at: string;
+  closed_at: string | null;
+}
+
+export interface DeviceRow {
+  device_id: string;
+  provider: string;
+  display_name: string;
+  status: string;
 }

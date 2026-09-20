@@ -1,0 +1,155 @@
+// tokens.scss — mirror of packages/ui-tokens/tokens.json (Stage H).
+// SCSS vars for compile-time use + CSS custom props for runtime theming.
+// Single source of truth for the warm/professional look across mini pages.
+// Do not hardcode colors outside this file.
+
+// --- color.bg ---
+$color-bg-canvas: #faf8f5;
+$color-bg-surface: #ffffff;
+$color-bg-surface-muted: #f3f0eb;
+$color-bg-surface-strong: #ece8e0;
+
+// --- color.ink ---
+$color-ink-primary: #2b2723;
+$color-ink-secondary: #57504a;
+$color-ink-muted: #7c7369;
+$color-ink-disabled: #b5aca0;
+
+// --- color.line ---
+$color-line-default: #e8e2d9;
+$color-line-strong: #d8d0c4;
+$color-line-focus: #61795c;
+
+// --- color.primary (green, trusted) ---
+$color-primary-50: #f3f6f2;
+$color-primary-100: #e4eae0;
+$color-primary-200: #c9d4c3;
+$color-primary-300: #a6b7a0;
+$color-primary-400: #81977b;
+$color-primary-500: #61795c;
+$color-primary-600: #4e6349;
+$color-primary-700: #3d4f3a;
+$color-primary-800: #2f3d2d;
+$color-primary-900: #222c21;
+
+// --- color.accent (warm amber) ---
+$color-accent-50: #fbf6ee;
+$color-accent-100: #f5e9d6;
+$color-accent-200: #ead3a8;
+$color-accent-300: #dbb275;
+$color-accent-400: #c98a3d;
+$color-accent-500: #b9762a;
+$color-accent-600: #9c5f22;
+$color-accent-700: #7a4919;
+
+// --- color.semantic (incl. risk colors; display backend triage values only) ---
+$color-semantic-ok: #4e7a5a;
+$color-semantic-ok-bg: #edf3ee;
+$color-semantic-notice: #b08a2e;
+$color-semantic-notice-bg: #fbf4e2;
+$color-semantic-monitor: #61795c;
+$color-semantic-monitor-bg: #f3f6f2;
+$color-semantic-vet-soon: #c07a2d;
+$color-semantic-vet-soon-bg: #fdf2e3;
+$color-semantic-urgent: #c2503c;
+$color-semantic-urgent-bg: #fbece7;
+$color-semantic-emergency: #b42318;
+$color-semantic-emergency-bg: #fbeae6;
+$color-semantic-info: #3e7c83;
+$color-semantic-info-bg: #e8f1f2;
+$color-semantic-danger: #b42318;
+$color-semantic-danger-bg: #fbeae6;
+
+// --- typography scale (px in the weapp 750 design-width convention) ---
+$font-size-xs: 24px;
+$font-size-sm: 26px;
+$font-size-base: 28px;
+$font-size-md: 32px;
+$font-size-lg: 36px;
+$font-size-xl: 40px;
+$font-size-2xl: 48px;
+$font-size-3xl: 60px;
+
+$line-height-tight: 1.25;
+$line-height-normal: 1.5;
+$line-height-loose: 1.75;
+
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// --- spacing ---
+$space-0: 0px;
+$space-1: 8px;
+$space-2: 16px;
+$space-3: 24px;
+$space-4: 32px;
+$space-5: 40px;
+$space-6: 48px;
+$space-8: 64px;
+$space-10: 80px;
+$space-12: 96px;
+
+// --- radius ---
+$radius-sm: 16px;
+$radius-md: 20px;
+$radius-lg: 24px;
+$radius-xl: 32px;
+$radius-2xl: 40px;
+$radius-pill: 999px;
+
+// --- elevation ---
+$elevation-sm: 0 2px 4px rgba(43, 39, 35, 0.06);
+$elevation-md: 0 4px 16px rgba(43, 39, 35, 0.08);
+$elevation-lg: 0 16px 48px rgba(43, 39, 35, 0.1);
+$elevation-focus: 0 0 0 6px rgba(97, 121, 92, 0.25);
+
+// --- CSS custom props (runtime theming; `page` is the weapp root) ---
+page {
+  --color-bg-canvas: #{$color-bg-canvas};
+  --color-bg-surface: #{$color-bg-surface};
+  --color-bg-surface-muted: #{$color-bg-surface-muted};
+  --color-bg-surface-strong: #{$color-bg-surface-strong};
+  --color-ink-primary: #{$color-ink-primary};
+  --color-ink-secondary: #{$color-ink-secondary};
+  --color-ink-muted: #{$color-ink-muted};
+  --color-ink-disabled: #{$color-ink-disabled};
+  --color-line-default: #{$color-line-default};
+  --color-line-strong: #{$color-line-strong};
+  --color-line-focus: #{$color-line-focus};
+  --color-primary-500: #{$color-primary-500};
+  --color-primary-600: #{$color-primary-600};
+  --color-primary-700: #{$color-primary-700};
+  --color-accent-400: #{$color-accent-400};
+  --color-accent-500: #{$color-accent-500};
+  --color-semantic-ok: #{$color-semantic-ok};
+  --color-semantic-ok-bg: #{$color-semantic-ok-bg};
+  --color-semantic-notice: #{$color-semantic-notice};
+  --color-semantic-notice-bg: #{$color-semantic-notice-bg};
+  --color-semantic-monitor: #{$color-semantic-monitor};
+  --color-semantic-monitor-bg: #{$color-semantic-monitor-bg};
+  --color-semantic-vet-soon: #{$color-semantic-vet-soon};
+  --color-semantic-vet-soon-bg: #{$color-semantic-vet-soon-bg};
+  --color-semantic-urgent: #{$color-semantic-urgent};
+  --color-semantic-urgent-bg: #{$color-semantic-urgent-bg};
+  --color-semantic-emergency: #{$color-semantic-emergency};
+  --color-semantic-emergency-bg: #{$color-semantic-emergency-bg};
+  --color-semantic-info: #{$color-semantic-info};
+  --color-semantic-info-bg: #{$color-semantic-info-bg};
+  --color-semantic-danger: #{$color-semantic-danger};
+  --color-semantic-danger-bg: #{$color-semantic-danger-bg};
+  --font-size-xs: #{$font-size-xs};
+  --font-size-sm: #{$font-size-sm};
+  --font-size-base: #{$font-size-base};
+  --font-size-md: #{$font-size-md};
+  --font-size-lg: #{$font-size-lg};
+  --font-size-xl: #{$font-size-xl};
+  --space-1: #{$space-1};
+  --space-2: #{$space-2};
+  --space-3: #{$space-3};
+  --space-4: #{$space-4};
+  --radius-md: #{$radius-md};
+  --radius-xl: #{$radius-xl};
+  --radius-pill: #{$radius-pill};
+}

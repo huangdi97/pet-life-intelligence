@@ -62,6 +62,14 @@ export default function Health() {
     <View className="page">
       <View className="h1">健康</View>
       <View className="sub">发现异常 → 追问 → 红旗 → 分级 → 就诊摘要 → 结局</View>
+      <View className="entry-card" onClick={() => Taro.navigateTo({ url: "/pages/medication/index" })}>
+        <View>
+          <View className="entry-title">用药</View>
+          <View className="entry-desc">用药计划与给药记录 · 剂量以兽医处方为准</View>
+        </View>
+        <Text className="entry-arrow">›</Text>
+      </View>
+
 
       <Button className="btn btn-primary" onClick={() => setShowCreate((v) => !v)}>
         {showCreate ? "收起" : "＋ 发现异常"}

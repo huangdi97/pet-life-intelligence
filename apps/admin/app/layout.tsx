@@ -11,8 +11,10 @@ export default function AdminLayout({ children }: Readonly<{ children: React.Rea
   return (
     <html lang="zh-CN">
       <body>
-        <AdminNav />
-        <div className="admin-page">{children}</div>
+        <div className="admin-shell">
+          <AdminNav />
+          <div className="admin-page">{children}</div>
+        </div>
       </body>
     </html>
   );

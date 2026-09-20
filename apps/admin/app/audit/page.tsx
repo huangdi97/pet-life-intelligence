@@ -67,7 +67,12 @@ export default function AuditPage() {
                     </td>
                     <td className="mono">{a.actor_user_id?.slice(0, 8) ?? "匿名"}</td>
                     <td className="mono">
-                      {a.detail ? JSON.stringify(a.detail).slice(0, 120) : "—"}
+                      {a.detail
+                        ? Object.entries(a.detail)
+                            .map(([k, v]) => `${k}: ${String(v)}`)
+                            .join(" · ")
+                            .slice(0, 140)
+                        : "—"}
                     </td>
                   </tr>
                 ))}

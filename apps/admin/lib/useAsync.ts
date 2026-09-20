@@ -30,7 +30,8 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []): Async<T
       })
       .catch((e: unknown) => {
         if (!alive) return;
-        if (e instanceof ApiError && e.code === "PERMISSION_DENIED") setState("denied");
+        if (e instanceof ApiError && (e.code === "PERMISSION_DENIED" || e.code === "UNAUTHENTICATED"))
+          setState("denied");
         else {
           setState("error");
           setError(e instanceof Error ? e.message : String(e));

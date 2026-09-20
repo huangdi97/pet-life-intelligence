@@ -5,19 +5,44 @@ import { api, type LifeEvent } from "../../services/api";
 import { usePets } from "../../utils/usePets";
 import { fmtTime } from "../../utils/format";
 
+/** 时间线（MIN-002）：低密度时间线 + 页内筛选 chips。
+ *  筛选只使用后端 event_types.py 已注册的真实事件类型（GET /events 会校验并拒绝未知类型）。 */
 const FILTERS: Array<{ label: string; types: string[] | null }> = [
   { label: "全部", types: null },
   {
     label: "日常",
-    types: ["daily.meal", "daily.drink", "daily.elimination", "daily.walk", "daily.play", "daily.weight", "daily.note", "daily.sleep"],
+    types: ["daily.meal", "daily.drink", "daily.elimination", "daily.walk", "daily.play", "daily.weight", "daily.sleep"],
   },
   {
     label: "健康",
-    types: ["health.opened", "health.triage", "health.observation", "health.vet_brief", "health.outcome_recorded", "medication.plan", "medication.administered", "medication.missed"],
+    types: [
+      "health.event_opened",
+      "health.intake_step",
+      "health.observation_added",
+      "health.artifact_added",
+      "health.red_flag",
+      "health.triage_assigned",
+      "health.vet_brief_generated",
+      "health.vet_brief_shared",
+      "health.outcome_recorded",
+      "health.record_imported",
+    ],
   },
-  { label: "行为", types: ["behavior.event", "behavior.observation"] },
-  { label: "训练", types: ["training.goal", "training.session"] },
-  { label: "照护", types: ["care.handoff_started", "care.handoff_ended", "task.created", "task.completed", "grant.granted", "grant.expired"] },
+  { label: "用药", types: ["medication.plan_created", "medication.administered", "medication.missed"] },
+  { label: "行为", types: ["behavior.observed"] },
+  { label: "训练", types: ["training.goal_created", "training.session_logged"] },
+  {
+    label: "照护",
+    types: [
+      "care.task_created",
+      "care.task_completed",
+      "care.task_conflict",
+      "care.handoff_started",
+      "care.handoff_ended",
+      "care.card_issued",
+      "care.checklist_updated",
+    ],
+  },
 ];
 
 export default function Timeline() {
@@ -68,18 +93,20 @@ export default function Timeline() {
         </Picker>
       )}
 
-      <Picker
-        mode="selector"
-        range={FILTERS.map((f) => f.label)}
-        value={filter}
-        onChange={(e) => {
-          const f = Number(e.detail.value);
-          setFilter(f);
-          if (petId) load(petId, f);
-        }}
-      >
-        <View className="btn">筛选：{FILTERS[filter].label}</View>
-      </Picker>
+      <View className="chips">
+        {FILTERS.map((f, i) => (
+          <View
+            key={f.label}
+            className={`chip${filter === i ? " chip-active" : ""}`}
+            onClick={() => {
+              setFilter(i);
+              if (petId) load(petId, i);
+            }}
+          >
+            {f.label}
+          </View>
+        ))}
+      </View>
 
       {state === "loading" && <View className="state">加载中……</View>}
       {state === "error" && (

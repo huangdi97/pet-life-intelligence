@@ -2,16 +2,18 @@ export default defineAppConfig({
   pages: [
     "pages/index/index",
     "pages/timeline/index",
-    "pages/pets/index",
+    "pages/health/index",
     "pages/agent/index",
     "pages/mine/index",
+    // 二级页保留（从对应 tab 页内入口进入；IA §5）
+    "pages/pets/index",
     "pages/tasks/index",
     "pages/care/index",
-    "pages/health/index",
     "pages/medication/index",
     "pages/behavior/index",
     "pages/training/index",
     "pages/notifications/index",
+    "pages/companion/index",
   ],
   window: {
     backgroundTextStyle: "light",
@@ -28,7 +30,7 @@ export default defineAppConfig({
     list: [
       { pagePath: "pages/index/index", text: "今日" },
       { pagePath: "pages/timeline/index", text: "时间线" },
-      { pagePath: "pages/pets/index", text: "宠物" },
+      { pagePath: "pages/health/index", text: "健康" },
       { pagePath: "pages/agent/index", text: "助手" },
       { pagePath: "pages/mine/index", text: "我的" },
     ],
