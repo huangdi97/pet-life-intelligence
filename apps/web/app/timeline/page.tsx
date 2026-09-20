@@ -11,6 +11,14 @@ import { EmptyState, Skeleton } from "@pli/ui-kit";
  *  AI 生成内容与真实记录视觉区分（tl-ai 类 + AI 徽章，非仅颜色）。
  *  E2E 契约保留：.tl / .tl-type / .tl-body / OWNER_REPORTED / 事件类型过滤 select。 */
 
+interface VisualModelRow {
+  version: number;
+  status: string;
+  provenance_kind: string;
+  activated_at: string | null;
+  retired_at: string | null;
+}
+
 const FILTERS = [
   "", "daily.meal", "daily.drink", "daily.elimination", "daily.walk",
   "daily.play", "daily.weight", "daily.sleep", "care.task_completed", "care.task_conflict",
@@ -62,6 +70,11 @@ export default function TimelinePage() {
   const [source, setSource] = useState("");
   const [mediaOnly, setMediaOnly] = useState(false);
   const [search, setSearch] = useState("");
+  const [day, setDay] = useState("");
+  const visual = useAsync<{ models: VisualModelRow[] }>(
+    () => (petId ? api.get(`/pets/${petId}/visual-models`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [petId],
+  );
   const timeline = useAsync<{ events: LifeEvent[]; count: number }>(
     () =>
       petId
@@ -74,6 +87,10 @@ export default function TimelinePage() {
 
   const events = useMemo(() => {
     let rows = timeline.data?.events ?? [];
+    if (day) {
+      const target = day; // yyyy-mm-dd
+      rows = rows.filter((e) => (e.occurred_at ?? "").slice(0, 10) === target);
+    }
     if (domain) {
       const chip = DOMAIN_CHIPS.find((c) => c.id === domain);
       if (chip) rows = rows.filter((e) => chip.match(e.event_type));
@@ -98,6 +115,28 @@ export default function TimelinePage() {
       <p className="sub">
         同一宠物 ID 下带来源的连续事件。点开任何记录都能看到谁记录的、来源是什么；AI 生成与真实记录有视觉区分。
       </p>
+      {day && (
+        <div className="card">
+          <h2>回到那一天 · {day}</h2>
+          <p className="sub" style={{ margin: 0 }}>
+            这里只展示 {day} 的真实照片/视频/事件/观察；不会用当前 3D 形象伪装过去的真实外观。
+          </p>
+          {(() => {
+            const onDay = (visual.data?.models ?? []).filter(
+              (m) => m.activated_at && m.activated_at.slice(0, 10) === day,
+            );
+            return onDay.length > 0 ? (
+              <p className="muted" style={{ marginTop: 6 }}>
+                当日激活的 3D 形象版本：{onDay.map((m) => `v${m.version}（${m.provenance_kind}）`).join("、")}
+              </p>
+            ) : (
+              <p className="muted" style={{ marginTop: 6 }}>
+                当天没有激活的 3D 形象版本。
+              </p>
+            );
+          })()}
+        </div>
+      )}
 
       {/* Filter chips（域） */}
       <div className="row" style={{ marginBottom: 8, flexWrap: "wrap", gap: 6 }} role="group" aria-label="按域筛选">
@@ -151,6 +190,18 @@ export default function TimelinePage() {
           placeholder={t("timeline.search")}
           aria-label={t("timeline.search")}
         />
+        <input
+          type="date"
+          value={day}
+          onChange={(e) => setDay(e.target.value)}
+          aria-label="回到那一天"
+          style={{ maxWidth: 170 }}
+        />
+        {day && (
+          <button className="btn" onClick={() => setDay("")} aria-label="清除日期">
+            清除日期
+          </button>
+        )}
         <button className="btn" onClick={timeline.reload}>
           刷新
         </button>

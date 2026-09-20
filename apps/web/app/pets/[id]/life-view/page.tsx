@@ -147,6 +147,9 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
                 <button className="btn" disabled={generating} onClick={startGeneration}>
                   {generating ? "提交中…" : "尝试提交生成请求"}
                 </button>
+                <Link href={`/pets/${petId}/capture`} className="btn primary">
+                  拍摄宠物照片
+                </Link>
               </div>
             </>
           ) : (
