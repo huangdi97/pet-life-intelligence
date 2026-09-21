@@ -42,15 +42,19 @@ STAGING_DEPLOY                      —— EXTERNAL_BLOCKED（未部署；需要
 ## 5. 结论
 
 **FINAL_PRODUCT_READINESS: H.1 COMPLETE + H.2 CORE COMPLETE + WAVE_0_REENTRY_READY**；
+
 所有外部依赖诚实标注，无伪造真人/指标/3D/诊断。下一阶段唯一允许动作：继续 H.2 剩余 PHASE（本地可完成）或真实 Pilot 输入。
 
-## 6. 附：本轮（继续）E2E 补充与环境事件（2026-09-20 深夜）
+## 6. 附：H.2 E2E 补充与环境事件（2026-09-20 深夜，已解决见 §7）
 
-- 新增 `tests/e2e-browser/specs/stage-h2-3d.spec.ts`（6 项：life-view 诚实 blocked / 真实照片 fallback /
-  capture 六角度引导 / timeline 回到那一天 / companion GENERATED_3D≠LIVE / today 入口）。
-- 已通过：life-view blocked、fallback、capture、timeline、today 入口 5 项 + 全量 17/17 历史回归。
-- **环境事件**：本轮验证后期 Docker Desktop 引擎故障（PG 容器假死 → 引擎反复崩溃），
-  `stage-h2-3d` 的 companion 项与最终全量复跑未能闭环；
-  companion 页已修复（gate 内 GENERATED_3D≠LIVE 声明对所有人可见）并提交。
-  恢复后复跑：`npx playwright test --config tests/e2e-browser/playwright.config.ts`
-  （需 8800 API + 3100 web + 55679 PG 在线，见 STAGE_H1_PREFLIGHT §4）。
+- 新增 `tests/e2e-browser/specs/stage-h2-3d.spec.ts`（6 项：life-view 诚实 blocked / 真实照片 fallback / capture 六角度引导 / timeline 回到那一天 / companion GENERATED_3D≠LIVE / today 入口）。
+- 事件：验证后期 Docker Desktop 引擎故障，companion 项一度未闭环；companion 页修复（gate 内 GENERATED_3D≠LIVE 声明）已提交。
+
+## 7. 附：环境故障已解决（2026-09-21）
+
+- **根因**：C 盘空间耗尽（<7GB）+ Agent 工具会话结束时清理 Start-Process 子进程树 → Docker Desktop 引擎反复被终止。
+- **修复**：清理 Temp/uv/pnpm/pip 缓存释放 ≈24GB（C 盘 38GB 可用）；写 `.wslconfig` 限制 WSL2 为 6GB/4核/2GB swap；用 `explorer.exe` detach 启动 Docker Desktop（脱离会话清理）；`docker start` 恢复 PG/Redis/MinIO 容器。
+- **回归复跑（全部真实通过）**：
+  - Playwright **23/23**（17 历史 + 6 新增 stage-h2-3d，含 companion GENERATED_3D≠LIVE 项）
+  - pytest **281 passed** · ruff **0** · web typecheck 0 · vitest 22/22
+- stage-h2-3d 6/6 全绿，PHASE O E2E 闭环。环境 blocker 解除。

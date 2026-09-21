@@ -175,3 +175,11 @@ BACKUP: PASS / MONITORING: PASS / NEXT: 真实用户确认后 Wave 0-A
 | web build 回归 | PASS（全部 H.2 前端页面可完整编译） |
 | vitest | PASS（22/22） |
 | 环境 blocker | Docker Desktop 引擎持续故障（7 轮恢复未稳定）；PG/Redis/MinIO 容器 Exited(255)；stage-h2-3d 补跑待环境恢复 |
+
+
+## Stage H.2 环境 blocker 解除（2026-09-21）—— 全量回归闭环
+
+- **根因**：C 盘空间耗尽（<7GB）+ Agent 工具会话结束清理子进程树 → Docker Desktop 引擎反复被终止。
+- **修复**：清理缓存释放 ≈24GB · 写 .wslconfig 限 WSL2 6GB/4核/2GB swap · explorer detach 启动 Docker Desktop · docker start 恢复容器。
+- **全量回归（真实通过）**：Playwright **23/23**（17 旧 + 6 stage-h2-3d，含 companion GENERATED_3D≠LIVE）· pytest **281** · ruff **0** · vitest 22/22。
+- PHASE O E2E 闭环。环境 blocker 解除。
