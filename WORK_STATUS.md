@@ -183,3 +183,13 @@ BACKUP: PASS / MONITORING: PASS / NEXT: 真实用户确认后 Wave 0-A
 - **修复**：清理缓存释放 ≈24GB · 写 .wslconfig 限 WSL2 6GB/4核/2GB swap · explorer detach 启动 Docker Desktop · docker start 恢复容器。
 - **全量回归（真实通过）**：Playwright **23/23**（17 旧 + 6 stage-h2-3d，含 companion GENERATED_3D≠LIVE）· pytest **281** · ruff **0** · vitest 22/22。
 - PHASE O E2E 闭环。环境 blocker 解除。
+
+
+## Stage H.2 本地剩余项补齐（2026-09-21）—— 完成
+
+| 项 | 状态 |
+|---|---|
+| PHASE O provider adapter 单测 | DONE（tests/unit/test_visual_provider.py 6/6：sandbox contract / 诚实失败 / cancel / artifacts+metadata / status / singleton） |
+| PHASE C6 状态位 Explain | DONE（Timeline 每条事件「[为什么]」+ Today 关注区「[查看依据]」→ /agent?tab=explain&ctx=… 带上下文；agent 页支持 URL 进入 explain） |
+| Mobile 3D Life View | DONE（apps/mobile LifeViewScreen：诚实 blocked + 版本 + overlay；Me 页入口；navigation 注册） |
+| 全量回归 | Playwright **23/23** · pytest **287**（+6）· ruff 0 · vitest 22/22 · web/mobile typecheck 0 · web build OK |
