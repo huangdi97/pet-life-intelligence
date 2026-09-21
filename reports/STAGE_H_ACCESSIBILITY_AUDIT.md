@@ -34,4 +34,5 @@
 
 - 8 项检查：**7 PASS**（含 H.1 修复的 Reduced Motion）+ 2 PASS_WITH_LIMITATION（触控 40px / px 字体缩放 zoom 兼容）；
 - **STAGE_H_ACCESSIBILITY_AUDIT（H.1 复查）：PASS —— LIMITATION 归零**（prefers-reduced-motion 已真实实现）。
+- **H.2 新页面复查**：3D Life View / Capture Wizard 均使用原生控件（button/input/link）语义、可见 focus ring、label 关联（capture 六角度 label.field）、状态用 role=alert；阶段性 PASS（随 stage-h2-3d E2E 持续回验）。
 - **STAGE_H_ACCESSIBILITY_AUDIT：PASS（附 1 项已登记 LIMITATION）**。

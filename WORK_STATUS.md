@@ -165,3 +165,13 @@ BACKUP: PASS / MONITORING: PASS / NEXT: 真实用户确认后 Wave 0-A
 
 **FINAL PRODUCT READINESS：H.1 COMPLETE + H.2 CORE COMPLETE + WAVE_0_REENTRY_READY**
 （3D provider / AI / staging 部署 / 真人均为诚实 EXTERNAL_BLOCKED，不伪造）
+
+## Stage H.2 补充（2026-09-21 凌晨）—— PHASE M / N 完成
+
+| 交付 | 状态 |
+|---|---|
+| PHASE M 视觉系统 v3 | DONE（docs/ui/PLI_DESIGN_SYSTEM_V3.md：M1 视觉目标 / M2 3D 场景风格 / M3 文案规范 / M4 设计稿范围 16 项落点） |
+| PHASE N 报告更新 | DONE（RESPONSIVE：3D Life View + Capture Wizard 断点行；ACCESSIBILITY：H.2 新页面原生语义复核） |
+| web build 回归 | PASS（全部 H.2 前端页面可完整编译） |
+| vitest | PASS（22/22） |
+| 环境 blocker | Docker Desktop 引擎持续故障（7 轮恢复未稳定）；PG/Redis/MinIO 容器 Exited(255)；stage-h2-3d 补跑待环境恢复 |

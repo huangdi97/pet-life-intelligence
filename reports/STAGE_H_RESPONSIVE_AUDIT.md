@@ -21,6 +21,8 @@
 | Pro（PRO） | PASS | PASS | PASS | PASS | PASS | 同 Web；print 隐藏导航 |
 | Mini（Taro） | — | PASS（基准 390） | — | — | — | Bottom Tab 5 + Sheet；无大表格/侧栏/多层 Modal |
 | Mobile（Expo） | — | PASS（基准 390） | — | — | — | safe-area 适配（刘海/手势条）；Bottom Tab ≥48 |
+| 3D Life View（H.2） | PASS | PASS | PASS | PASS | PASS | fluid 卡片 + badge 行 wrap；无重型 3D 渲染（provider blocked 时纯信息页） |
+| Capture Wizard（H.2） | PASS | PASS | PASS | PASS | PASS | grid2 拍照引导单列回落；file input 全宽 |
 
 ## 2. 实现依据（代码）
 
@@ -37,8 +39,10 @@
 - 断点结论来自代码审计 + fluid CSS 结构推演 + Playwright 视口级验证（`devices["Desktop Chrome"]` + 手动 viewport 检查）——**未在 360/390 真机/模拟器上逐像素验收**；
 - Mini/Mobile 以 390 构建基准通过本地构建验证（build/typecheck）；真机适配（微信 devtools 预览、Expo Go）列入 Wave 0-A 前的最终设备勘验。
 
-## 4. 结论
+## 4. 结论（H.2 追加）
 
+- H.2 新页面（3D Life View / Capture Wizard）沿用 fluid grid + minmax 单列回落，360-1440 无 overflow 风险；
+- 3D 场景遵循「poster first → low LOD → fallback」加载策略，不阻塞窄屏；
 - 核心页面 360/390/768/1024/1440 全部无 overflow 风险（fluid grid + minmax 单列回落）；
 - 已知限制：真机像素级 QA 待设备环境（如实登记，不伪造）；
 - **STAGE_H_RESPONSIVE_AUDIT：PASS（附真机 QA 待办）**。
