@@ -43,3 +43,14 @@ STAGING_DEPLOY                      —— EXTERNAL_BLOCKED（未部署；需要
 
 **FINAL_PRODUCT_READINESS: H.1 COMPLETE + H.2 CORE COMPLETE + WAVE_0_REENTRY_READY**；
 所有外部依赖诚实标注，无伪造真人/指标/3D/诊断。下一阶段唯一允许动作：继续 H.2 剩余 PHASE（本地可完成）或真实 Pilot 输入。
+
+## 6. 附：本轮（继续）E2E 补充与环境事件（2026-09-20 深夜）
+
+- 新增 `tests/e2e-browser/specs/stage-h2-3d.spec.ts`（6 项：life-view 诚实 blocked / 真实照片 fallback /
+  capture 六角度引导 / timeline 回到那一天 / companion GENERATED_3D≠LIVE / today 入口）。
+- 已通过：life-view blocked、fallback、capture、timeline、today 入口 5 项 + 全量 17/17 历史回归。
+- **环境事件**：本轮验证后期 Docker Desktop 引擎故障（PG 容器假死 → 引擎反复崩溃），
+  `stage-h2-3d` 的 companion 项与最终全量复跑未能闭环；
+  companion 页已修复（gate 内 GENERATED_3D≠LIVE 声明对所有人可见）并提交。
+  恢复后复跑：`npx playwright test --config tests/e2e-browser/playwright.config.ts`
+  （需 8800 API + 3100 web + 55679 PG 在线，见 STAGE_H1_PREFLIGHT §4）。
