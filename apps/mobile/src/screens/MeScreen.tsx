@@ -71,6 +71,7 @@ export function MeScreen() {
           <View style={styles.linksRow}>
             <GhostButton label="通知" onPress={() => navigation.navigate("Notifications")} />
             <GhostButton label="健康" onPress={() => navigation.navigate("Health")} />
+            <GhostButton label="生命视图" onPress={() => navigation.navigate("LifeView")} />
           </View>
         </Card>
 

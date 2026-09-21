@@ -16,6 +16,7 @@ import { MeScreen } from "./screens/MeScreen";
 import { QuickLogScreen } from "./screens/QuickLogScreen";
 import { NotificationsScreen } from "./screens/NotificationsScreen";
 import { HealthScreen } from "./screens/HealthScreen";
+import { LifeViewScreen } from "./screens/LifeViewScreen";
 
 export type TabParamList = {
   Today: undefined;
@@ -30,6 +31,7 @@ export type StackParamList = {
   QuickLog: undefined;
   Notifications: undefined;
   Health: undefined;
+  LifeView: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -78,6 +80,7 @@ export function AppNavigation() {
         />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Health" component={HealthScreen} />
+        <Stack.Screen name="LifeView" component={LifeViewScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

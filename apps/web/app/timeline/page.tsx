@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { api, type LifeEvent } from "@pli/api-client";
 import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
@@ -236,6 +237,14 @@ export default function TimelinePage() {
                       </span>
                       <ProvenanceBadge level={e.provenance_level} />
                       <span className="badge">{e.actor_name ?? e.actor_id}</span>
+                      <Link
+                        href={`/agent?tab=explain&ctx=${encodeURIComponent(TYPE_LABELS[e.event_type] ?? e.event_type)}`}
+                        className="btn"
+                        style={{ fontSize: 12, minHeight: 30, padding: "3px 10px" }}
+                        aria-label={`解释为什么发生 ${TYPE_LABELS[e.event_type] ?? e.event_type}`}
+                      >
+                        [为什么]
+                      </Link>
                       {e.retracted_at && <span className="badge EMERGENCY">已撤回</span>}
                       {e.supersedes_event_id && <span className="badge">修订版本</span>}
                       <span className="tl-time">{fmtTime(e.occurred_at)}</span>

@@ -38,7 +38,18 @@ const SUGGESTIONS = [
  *  无 AI provider 时诚实显示「服务暂未开放」，不编造内容。 */
 export default function AgentPage() {
   const { petId } = useCurrentPet();
-  const [tab, setTab] = useState<Tab>("ask");
+  const [tab, setTab] = useState<Tab>(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      const t = p.get("tab");
+      if (t === "ask" || t === "brief" || t === "find" || t === "plan" || t === "explain") return t;
+    }
+    return "ask";
+  });
+  const [ctx, setCtx] = useState<string>(() => {
+    if (typeof window !== "undefined") return new URLSearchParams(window.location.search).get("ctx") ?? "";
+    return "";
+  });
   const [question, setQuestion] = useState("");
   const [asking, setAsking] = useState(false);
   const [askErr, setAskErr] = useState<string | null>(null);
@@ -256,6 +267,11 @@ export default function AgentPage() {
         <div className="card">
           <h2>{t("agent.tabExplain")}</h2>
           <p className="sub">{t("agent.explainDesc")}</p>
+          {ctx && (
+            <div className="alert info" role="status">
+              正在解释：<strong>{ctx}</strong> —— 查看这个现象的依据与来源（AI 服务接入前显示可用的规则/事实，不编造）。
+            </div>
+          )}
           <State
             state={aiStatus.state}
             error={aiStatus.error ? mapErrorMessage(aiStatus.error) : null}
