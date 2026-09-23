@@ -253,3 +253,13 @@ Stage A v0.1（50 P0）→ Stage B v0.2（48 P1）→ Stage C v1.0（88 P2）→
 - pytest 235 passed；Playwright 7 passed；ruff/typecheck/build 绿；
   迁移重放+降级验证；备份恢复（恢复库可读写）；staging smoke 12/12；
   性能基线全端点 p95<100ms。
+
+## v1.5.0 (Stage V.2) — 全仓代码审核、重构、注释、风格、架构、类型、安全与可维护性最终收口
+
+- 逐文件审核 + 可复现扫描（scripts/scan_codebase_scale.py）：生产源码 >300 行 / React >200 行 / 非组件 TS >300 行 = 0；裸 TODO = 0。
+- 历史违规清单（14 Python + 12 React + 1 TS）全部处置：本轮拆分 4 个 Python 路由模块（health / v02_care_health / v02_behavior_training / v02_identity_daily → 聚合器 + 子模块，路由/状态码/权限/安全不变量逐一保留）、16 个 React 页面、1 个 TS 数据模块（lib/i18n.ts → lib/i18n_zh_cn.ts）。
+- SV-006（mobile 双 API 层）CLOSED：单一契约层统一引用，`pnpm --dir apps/mobile typecheck` 0。
+- SV-007（限流）CLOSED：Redis 分布式（INCR+EXPIRE）+ in-process 回退 adapter；backend auto/redis/in_process；`tests/unit/test_rate_limit.py` 7 用例，不依赖常驻 Redis。
+- 修复既有工作树损坏：AskPanel 签名重建、TodayScreen 缺类型导入、mini `_components` 重复 import、agent 面板 i18n 相对路径深度、auth.py import 排序（I001）。
+- 类型收口：network.ts `unknown as` 转义消除（`# PROVIDER:` 边界函数）；28 个逃逸标记逐条判定、0 个未解释转义。
+- 回归（真实命令，command/date/duration 见 WORK_STATUS.md 与 STAGE_V2_FULL_CODEBASE_REVIEW.md）：pytest **427** passed / 0 failed；ruff 0；五端 typecheck 0；五端 build OK（web/admin 清理陈旧 `.next/standalone` 后重跑全绿）；vitest 22/22；Playwright **29/29**（完整套件）。

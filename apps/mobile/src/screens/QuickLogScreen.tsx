@@ -6,44 +6,19 @@
  *  event type — its tile opens the Health screen instead. Success shows
  *  feedback text; errors map to human language, never raw codes. */
 import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { api, humanizeError } from "../api";
 import { usePets } from "../context";
-import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
+import { COLORS, SPACE, TYPE } from "../tokens";
 import type { StackParamList } from "../navigation";
-import { Card, Chip, EmptyText, ErrorText, GhostButton, PrimaryButton, ScreenTitle } from "./ui";
+import { Card, EmptyText, ErrorText, GhostButton, ScreenTitle } from "./ui";
+import { clampMinutes, LOG_TYPES, type LogType } from "./quicklog_types";
+import { QuickLogForm, QuickLogGrid, type QuickLogFields } from "./quicklog_sections";
 
 type StackNav = NativeStackNavigationProp<StackParamList>;
-
-type LogType = (typeof LOG_TYPES)[number];
-
-const LOG_TYPES: Array<{ key: string; zh: string; event_type: string }> = [
-  { key: "meal", zh: "喂食", event_type: "daily.meal" },
-  { key: "drink", zh: "饮水", event_type: "daily.drink" },
-  { key: "elimination", zh: "排泄", event_type: "daily.elimination" },
-  { key: "walk", zh: "散步", event_type: "daily.walk" },
-  { key: "play", zh: "玩耍", event_type: "daily.play" },
-  { key: "sleep", zh: "睡觉", event_type: "daily.sleep" },
-  { key: "weight", zh: "体重", event_type: "daily.weight" },
-  { key: "medication", zh: "用药", event_type: "medication.administered" },
-  { key: "behavior", zh: "行为", event_type: "behavior.observed" },
-  { key: "diary", zh: "备注", event_type: "diary.created" },
-];
-
-const ELIMINATION_KINDS: Array<{ key: string; zh: string }> = [
-  { key: "urine", zh: "尿" },
-  { key: "stool", zh: "便" },
-  { key: "both", zh: "都有" },
-];
-
-function clampMinutes(raw: string): number {
-  const n = parseInt(raw, 10);
-  if (!Number.isFinite(n) || n < 0) return 0;
-  return Math.min(n, 24 * 60);
-}
 
 export function QuickLogScreen() {
   const { pets, petId } = usePets();
@@ -84,6 +59,11 @@ export function QuickLogScreen() {
     setDiaryText("");
     setKind(null);
   }
+
+  const fields: QuickLogFields = {
+    amount, setAmount, unit, setUnit, minutes, setMinutes, weight, setWeight,
+    behavior, setBehavior, diaryText, setDiaryText, kind, setKind,
+  };
 
   async function save() {
     if (!current || !selected || saving) return;
@@ -150,98 +130,6 @@ export function QuickLogScreen() {
     }
   }
 
-  function renderForm(t: LogType) {
-    return (
-      <View>
-        {(t.event_type === "daily.meal" || t.event_type === "daily.drink") && (
-          <>
-            <Text style={styles.fieldLabel}>数量</Text>
-            <TextInput
-              style={styles.input}
-              value={amount}
-              onChangeText={setAmount}
-              placeholder="如 50"
-              placeholderTextColor={COLORS.inkDisabled}
-            />
-            <Text style={styles.fieldLabel}>单位</Text>
-            <TextInput
-              style={styles.input}
-              value={unit}
-              onChangeText={setUnit}
-              placeholder={t.event_type === "daily.drink" ? "ml" : "g"}
-              placeholderTextColor={COLORS.inkDisabled}
-            />
-          </>
-        )}
-        {t.event_type === "daily.elimination" && (
-          <>
-            <Text style={styles.fieldLabel}>类型</Text>
-            <View style={styles.chipRow}>
-              {ELIMINATION_KINDS.map((k) => (
-                <Chip key={k.key} label={k.zh} active={kind === k.key} onPress={() => setKind(k.key)} />
-              ))}
-            </View>
-          </>
-        )}
-        {(t.event_type === "daily.walk" || t.event_type === "daily.play" || t.event_type === "daily.sleep") && (
-          <>
-            <Text style={styles.fieldLabel}>时长（分钟）</Text>
-            <TextInput
-              style={styles.input}
-              value={minutes}
-              onChangeText={setMinutes}
-              keyboardType="number-pad"
-              placeholder="如 30"
-              placeholderTextColor={COLORS.inkDisabled}
-            />
-          </>
-        )}
-        {t.event_type === "daily.weight" && (
-          <>
-            <Text style={styles.fieldLabel}>体重（kg）</Text>
-            <TextInput
-              style={styles.input}
-              value={weight}
-              onChangeText={setWeight}
-              keyboardType="decimal-pad"
-              placeholder="如 4.5"
-              placeholderTextColor={COLORS.inkDisabled}
-            />
-          </>
-        )}
-        {t.event_type === "medication.administered" && (
-          <Text style={styles.mutedForm}>将记录一次用药时间（未绑定用药计划）。</Text>
-        )}
-        {t.event_type === "behavior.observed" && (
-          <>
-            <Text style={styles.fieldLabel}>行为描述</Text>
-            <TextInput
-              style={styles.input}
-              value={behavior}
-              onChangeText={setBehavior}
-              placeholder="如 连续吠叫约1分钟"
-              placeholderTextColor={COLORS.inkDisabled}
-            />
-          </>
-        )}
-        {t.event_type === "diary.created" && (
-          <>
-            <Text style={styles.fieldLabel}>备注</Text>
-            <TextInput
-              style={[styles.input, styles.inputMultiline]}
-              value={diaryText}
-              onChangeText={setDiaryText}
-              multiline
-              placeholder="想记录点什么？"
-              placeholderTextColor={COLORS.inkDisabled}
-            />
-          </>
-        )}
-        <PrimaryButton label={saving ? "保存中…" : "保存"} onPress={() => void save()} disabled={saving} />
-      </View>
-    );
-  }
-
   const selectedType: LogType | undefined = selected
     ? LOG_TYPES.find((x) => x.key === selected)
     : undefined;
@@ -261,18 +149,9 @@ export function QuickLogScreen() {
         {error && <ErrorText>{error}</ErrorText>}
 
         {selectedType ? (
-          renderForm(selectedType)
+          <QuickLogForm t={selectedType} fields={fields} saving={saving} onSave={() => void save()} />
         ) : (
-          <View style={styles.grid}>
-            {LOG_TYPES.map((t) => (
-              <Pressable key={t.key} style={styles.tile} onPress={() => pick(t.key)}>
-                <Text style={styles.tileText}>{t.zh}</Text>
-              </Pressable>
-            ))}
-            <Pressable style={styles.tile} onPress={() => navigation.navigate("Health")}>
-              <Text style={styles.tileText}>健康</Text>
-            </Pressable>
-          </View>
+          <QuickLogGrid onPick={pick} onOpenHealth={() => navigation.navigate("Health")} />
         )}
 
         <GhostButton label="完成" onPress={() => navigation.goBack()} />
@@ -285,30 +164,5 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.bgCanvas },
   flex: { flex: 1 },
   content: { padding: SPACE.s4, paddingBottom: SPACE.s8 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s3 },
-  tile: {
-    width: 104,
-    paddingVertical: SPACE.s5,
-    borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.bgSurface,
-    borderWidth: 1,
-    borderColor: COLORS.lineDefault,
-    alignItems: "center",
-  },
-  tileText: { fontSize: TYPE.base, color: COLORS.inkPrimary },
-  fieldLabel: { fontSize: TYPE.sm, color: COLORS.inkSecondary, marginTop: SPACE.s3, marginBottom: SPACE.s1 },
-  input: {
-    borderWidth: 1,
-    borderColor: COLORS.lineStrong,
-    borderRadius: RADIUS.md,
-    backgroundColor: COLORS.bgSurface,
-    paddingHorizontal: SPACE.s3,
-    paddingVertical: SPACE.s2,
-    fontSize: TYPE.base,
-    color: COLORS.inkPrimary,
-  },
-  inputMultiline: { minHeight: 80, textAlignVertical: "top" },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
   successText: { fontSize: TYPE.base, color: COLORS.ok, fontWeight: TYPE.weightMedium },
-  mutedForm: { fontSize: TYPE.sm, color: COLORS.inkMuted, marginTop: SPACE.s3 },
 });

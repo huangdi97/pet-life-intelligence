@@ -1,15 +1,15 @@
 "use client";
 
 import { use, useState } from "react";
-import {
-  api,
-
-  type HealthEventDetail,
-  type VetBriefContent,
-} from "@pli/api-client";
-import { EmergencyAction, EvidenceList, RiskBanner, type RiskLevel } from "@pli/ui-kit";
-import { fmtTime, useAsync } from "../../../lib/hooks";
-import { ErrorNote, State, TriageBadge } from "../../../components/ui";
+import { api, type HealthEventDetail, type VetBriefContent } from "@pli/api-client";
+import type { RiskLevel } from "@pli/ui-kit";
+import { useAsync } from "../../../lib/hooks";
+import { ErrorNote, State } from "../../../components/ui";
+import { IntakeCard } from "../../_components/health/IntakeCard";
+import { ObservationCard } from "../../_components/health/ObservationCard";
+import { OutcomeCard } from "../../_components/health/OutcomeCard";
+import { OverviewCard } from "../../_components/health/OverviewCard";
+import { VetBriefCard } from "../../_components/health/VetBriefCard";
 
 /** OWN-005 Health 详情（Stage H §20-22）：发现异常→Intake→Evidence→Triage→Vet Brief→Outcome。
  *  医疗安全信息使用独立组件（RiskBanner/RedFlagReason/NextActionCard/EmergencyAction/EvidenceList），
@@ -118,6 +118,7 @@ export default function HealthEventDetailPage({
   }
 
   const openQuestions = detail.data?.intake_steps.filter((s) => !s.answer_text) ?? [];
+  const answeredQuestions = detail.data?.intake_steps.filter((s) => s.answer_text) ?? [];
   const level = detail.data?.latest_triage_level ?? null;
   const isRiskLevel = level != null && RISK_LEVELS.includes(level as RiskLevel);
 
@@ -127,163 +128,41 @@ export default function HealthEventDetailPage({
       <State state={detail.state} error={detail.error} onRetry={detail.reload}>
         {detail.data && (
           <>
-            <div className="card">
-              <div className="row">
-                <TriageBadge level={detail.data.latest_triage_level} />
-                <span className={`badge status-${detail.data.status}`}>{detail.data.status}</span>
-                <span className="muted">分级由规则引擎给出 · AI 不能降低等级</span>
-              </div>
-              {isRiskLevel && (
-                <RiskBanner
-                  level={level as RiskLevel}
-                  reasons={detail.data.triage_history
-                    .flatMap((t) => t.matched_rules.map((r) => r.rule_id))
-                    .slice(0, 4)}
-                  next_action={level === "EMERGENCY" ? "立即联系兽医/急诊" : undefined}
-                />
-              )}
-              <h3>主诉</h3>
-              <p>{detail.data.chief_complaint}</p>
-              {level === "EMERGENCY" && (
-                <>
-                  <div className="alert emergency">
-                    规则引擎命中紧急红旗：建议立即联系兽医/急诊。
-                  </div>
-                  <EmergencyAction instructions="规则引擎命中紧急红旗：请立即联系兽医或前往最近的宠物急诊。" />
-                </>
-              )}
-              <h3>分级历史（Rule Engine）</h3>
-              {detail.data.triage_history.map((t) => (
-                <div key={t.id} className="row" style={{ margin: "4px 0" }}>
-                  <TriageBadge level={t.level} />
-                  <span className="muted">
-                    {t.engine} v{t.version} · 规则 {t.matched_rules.map((r) => r.rule_id).join(", ") || "无"} ·{" "}
-                    {fmtTime(t.assessed_at)}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <OverviewCard data={detail.data} level={level} isRiskLevel={isRiskLevel} />
 
-            <div className="card">
-              <h2>动态追问（Intake）</h2>
-              <button className="btn" onClick={generateQuestions}>
-                生成追问问题（规则 + AI）
-              </button>
-              {openQuestions.map((q) => (
-                <div key={q.question_id} style={{ marginTop: 10 }}>
-                  <div>
-                    <span className="badge">{q.asked_by}</span> {q.question_text}
-                  </div>
-                  <div className="row" style={{ marginTop: 6 }}>
-                    <input
-                      style={{ maxWidth: 420 }}
-                      value={answer}
-                      onChange={(e) => setAnswer(e.target.value)}
-                      placeholder="回答这个问题…"
-                    />
-                    <button className="btn primary" onClick={() => submitAnswer(q.question_id)}>
-                      提交
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {detail.data.intake_steps.filter((s) => s.answer_text).map((s) => (
-                <div key={s.question_id} className="muted" style={{ marginTop: 6 }}>
-                  ✔ {s.question_text} → {s.answer_text}
-                </div>
-              ))}
-            </div>
+            <IntakeCard
+              openQuestions={openQuestions}
+              answeredQuestions={answeredQuestions}
+              answer={answer}
+              setAnswer={setAnswer}
+              onSubmit={submitAnswer}
+              onGenerate={generateQuestions}
+            />
 
-            <div className="card">
-              <h2>可观察事实（严格分来源）</h2>
-              <div className="row">
-                <input
-                  style={{ maxWidth: 420 }}
-                  value={obsText}
-                  onChange={(e) => setObsText(e.target.value)}
-                  placeholder="补充一段主人陈述，AI 会提取可观察事实"
-                />
-                <button className="btn" onClick={addObservation}>
-                  添加并提取
-                </button>
-              </div>
-              <div style={{ marginTop: 10 }}>
-                <EvidenceList
-                  items={detail.data.observations.map((o) => ({
-                    id: o.id,
-                    kind: o.kind,
-                    text: o.text,
-                    created_at: o.created_at,
-                  }))}
-                  emptyText="还没有可观察事实。"
-                />
-              </div>
-              <p className="notice-ai">
-                AI 仅整理主人陈述并标注“主人报告：”，不做诊断、不生成结论；规则结论与兽医确认单独标记。
-              </p>
-            </div>
+            <ObservationCard
+              obsText={obsText}
+              setObsText={setObsText}
+              onAdd={addObservation}
+              observations={detail.data.observations}
+            />
 
-            <div className="card">
-              <h2>Vet Brief（就诊前摘要）</h2>
-              <p className="muted">信息整理，不是兽医诊断。可生成只读分享链接（72 小时有效，可撤销，访问留审计）。</p>
-              <button className="btn primary" onClick={makeBrief}>
-                生成 Vet Brief
-              </button>
-              {detail.data.vet_briefs.length > 0 && (
-                <p className="muted">已有 {detail.data.vet_briefs.length} 份摘要。</p>
-              )}
-              {brief && (
-                <div style={{ marginTop: 10 }}>
-                  <h3>摘要预览</h3>
-                  <p>{brief.content.ai_narrative_draft}</p>
-                  <p className="muted">
-                    引擎：规则 {brief.content.engine_versions.rule_engine || "—"} · AI{" "}
-                    {brief.content.engine_versions.ai_model}
-                  </p>
-                  <div className="notice-ai">{brief.content.ai_disclaimer}</div>
-                  <div className="row" style={{ marginTop: 8 }}>
-                    <button className="btn" onClick={() => shareBrief(brief.id)}>
-                      生成分享链接
-                    </button>
-                  </div>
-                  {share && (
-                    <div className="alert info">
-                      分享链接：{`/api/v1/vet-briefs/shared/${share.token}`}（至 {fmtTime(share.expires_at)}）
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <VetBriefCard
+              brief={brief}
+              share={share}
+              briefCount={detail.data.vet_briefs.length}
+              hasBriefs={detail.data.vet_briefs.length > 0}
+              onMakeBrief={makeBrief}
+              onShareBrief={shareBrief}
+            />
 
-            <div className="card">
-              <h2>Outcome / 随访结局</h2>
-              <p className="muted">关闭本次健康事件并记录结局（PLI-063）。</p>
-              <div className="grid2">
-                <label className="field">
-                  结局
-                  <select value={outcome} onChange={(e) => setOutcome(e.target.value)}>
-                    <option value="">选择…</option>
-                    {["RECOVERED", "IMPROVED", "UNCHANGED", "WORSENED", "RELAPSED", "REFERRED", "UNRESOLVED"].map(
-                      (o) => (
-                        <option key={o}>{o}</option>
-                      ),
-                    )}
-                  </select>
-                </label>
-                <label className="field">
-                  备注
-                  <input value={outcomeNotes} onChange={(e) => setOutcomeNotes(e.target.value)} />
-                </label>
-              </div>
-              <button className="btn primary" onClick={recordOutcome} disabled={!outcome}>
-                记录结局
-              </button>
-              {detail.data.outcomes.map((o, i) => (
-                <div key={i} className="muted" style={{ marginTop: 6 }}>
-                  已记录：{o.outcome} · {o.notes} · {fmtTime(o.recorded_at)}
-                </div>
-              ))}
-            </div>
+            <OutcomeCard
+              outcome={outcome}
+              setOutcome={setOutcome}
+              outcomeNotes={outcomeNotes}
+              setOutcomeNotes={setOutcomeNotes}
+              onRecord={recordOutcome}
+              outcomes={detail.data.outcomes}
+            />
             <ErrorNote message={error} />
           </>
         )}

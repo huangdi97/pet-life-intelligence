@@ -7,6 +7,9 @@
 五端 typecheck 0 / 五端 build OK / vitest 22/22 / Playwright 29/29；REAL_PARTICIPANTS=0 诚实保留）
 （Stage H 全产品设计 / UI·UX / 多端前端完成；设计基线 v3.1-R1 + 228 Feature Inventory；
 pytest 273 / ruff 0 / 五端 typecheck 0 / 五端 build OK / vitest 22/22 / Playwright 17/17；
+（Stage V.2 全仓质量收口完成：逐文件审核 + 21 个超限生产文件拆分 + SV-006/SV-007 CLOSED；
+pytest 427 / ruff 0 / 五端 typecheck 0 / 五端 build OK / vitest 22/22 / Playwright 29/29；
+生产源码 >300 / React >200 / TS >300 = 0；裸 TODO = 0；reports/STAGE_V2_* 已交付）
 
 ## Stage H 完成情况（2026-09-20，全部真实命令验证）
 
@@ -237,3 +240,15 @@ BACKUP: PASS / MONITORING: PASS / NEXT: 真实用户确认后 Wave 0-A
 | PHASE C6 状态位 Explain | DONE（Timeline 每条事件「[为什么]」+ Today 关注区「[查看依据]」→ /agent?tab=explain&ctx=… 带上下文；agent 页支持 URL 进入 explain） |
 | Mobile 3D Life View | DONE（apps/mobile LifeViewScreen：诚实 blocked + 版本 + overlay；Me 页入口；navigation 注册） |
 | 全量回归 | Playwright **23/23** · pytest **287**（+6）· ruff 0 · vitest 22/22 · web/mobile typecheck 0 · web build OK |
+
+
+## Stage V.2 全仓质量收口（2026-09-24）—— 完成
+
+| 项 | 状态 |
+|---|---|
+| 规模收口 | 生产源码 >300 行 = 0、React 页面/组件 >200 行 = 0、非组件 TS >300 行 = 0（scripts/scan_codebase_scale.py 400 文件可复现扫描；3 个手写测试文件例外已落表 §2.3） |
+| 历史违规清单 | 14 Python + 12 React + 1 TS 全部有处置记录（10 个 Python 为既有工作树拆分映射；本轮拆分 4 Python + 16 React + 1 TS） |
+| 逐文件审核报告 | reports/STAGE_V2_FULL_CODEBASE_REVIEW.md（方法 + 证据 + 映射表 + 例外表） |
+| Issue Ledger | reports/STAGE_V2_ISSUE_LEDGER.md：SV-006 = CLOSED、SV-007 = CLOSED、P0/P1 剩余 = 0 |
+| 注释/类型收口 | 裸 TODO = 0；28 个类型逃逸标记逐条判定；代码级转义 0 新增（network.ts `unknown as` 已消除） |
+| 回归 | pytest **427** passed / 0 failed · ruff 0 · 五端 typecheck 0 · 五端 build OK · vitest 22/22 · Playwright **29/29**（真实完整套件，Postgres 55679 + API 8800 + Web 3100） |

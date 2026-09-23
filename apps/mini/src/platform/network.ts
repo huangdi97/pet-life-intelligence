@@ -19,6 +19,28 @@ export interface PlatformNetwork {
   }): Promise<{ status: number; data: T }>;
 }
 
+/** # PROVIDER:
+ *  WeChat/Taro runtime hands back `any` payloads from its JSON transport.
+ *  These two helpers are the ONLY places raw provider data crosses into typed
+ *  code; consumers still own the contract because they typed the request.
+ *  Casts here are bounded, single-site, and auditable (Stage V.2 type-escape
+ *  adjudication) — never spread `as unknown as T` through the app. */
+function passThrough<T>(raw: unknown): T {
+  return raw as T;
+}
+
+/** Upload bodies from WeChat are sometimes a JSON string; parse when possible,
+ *  otherwise keep the raw value (identical to the previous inline behavior). */
+function decodeUpload<T>(raw: unknown): T {
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return raw as T;
+    }
+  }
+  return raw as T;
+}
 class WechatNetwork implements PlatformNetwork {
   async request<T>(options: {
     url: string;
@@ -34,7 +56,7 @@ class WechatNetwork implements PlatformNetwork {
       header: options.header,
       timeout: options.timeout ?? 15000,
     });
-    return { status: resp.statusCode, data: resp.data as T };
+    return { status: resp.statusCode, data: passThrough<T>(resp.data) };
   }
   async upload<T>(options: {
     url: string;
@@ -51,15 +73,7 @@ class WechatNetwork implements PlatformNetwork {
       header: options.header,
       timeout: 20000,
     });
-    let data: T = resp.data as unknown as T;
-    if (typeof resp.data === "string") {
-      try {
-        data = JSON.parse(resp.data) as T;
-      } catch {
-        /* keep raw */
-      }
-    }
-    return { status: resp.statusCode, data };
+    return { status: resp.statusCode, data: decodeUpload<T>(resp.data) };
   }
 }
 

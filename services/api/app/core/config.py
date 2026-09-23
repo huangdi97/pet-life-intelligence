@@ -60,7 +60,11 @@ class Settings(BaseSettings):
 
     rate_limit_enabled: bool = False
     rate_limit_per_minute: int = 120
+    # SV-007: distributed limiting backend — "auto" | "redis" | "in_process".
+    # auto = try Redis, log + fall back to in-process when unreachable.
+    rate_limit_backend: str = "auto"
     max_upload_mb: int = 25
+
 
     # production hardening
     db_pool_enabled: bool = False  # tests/CI keep NullPool; production enables pooling

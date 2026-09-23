@@ -7,9 +7,7 @@ Amounts/units are transported as strings — never bare floats (GOAL §6).
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-from app.domain.enums import SourceType
+from pydantic import BaseModel, ConfigDict
 
 
 class EventTypeDef(BaseModel):
@@ -29,445 +27,8 @@ def _amount_str(v: Any) -> str:
     return str(v)
 
 
-# --- daily.* -------------------------------------------------------------
-
-
-class MealPayload(_Strict):
-    food_type: str = ""
-    amount: str = ""
-    unit: str = ""
-    notes: str = ""
-
-    @field_validator("amount", "unit", "food_type", "notes", mode="before")
-    @classmethod
-    def _s(cls, v: Any) -> str:
-        return _amount_str(v) if v is not None else ""
-
-
-class DrinkPayload(_Strict):
-    amount: str = ""
-    unit: str = "ml"
-    notes: str = ""
-
-    @field_validator("amount", "unit", "notes", mode="before")
-    @classmethod
-    def _s(cls, v: Any) -> str:
-        return _amount_str(v) if v is not None else ""
-
-
-class EliminationPayload(_Strict):
-    kind: str = ""  # urine | stool | both
-    quality: str = ""  # normal | abnormal | concerning
-    notes: str = ""
-
-
-class WalkPayload(_Strict):
-    duration_minutes: int = Field(default=0, ge=0, le=24 * 60)
-    distance_meters: str = ""
-    intensity: str = "normal"
-    notes: str = ""
-
-    @field_validator("distance_meters", "notes", mode="before")
-    @classmethod
-    def _s(cls, v: Any) -> str:
-        return _amount_str(v) if v is not None else ""
-
-
-class PlayPayload(_Strict):
-    duration_minutes: int = Field(default=0, ge=0, le=24 * 60)
-    activity_type: str = ""
-    notes: str = ""
-
-
-class WeightPayload(_Strict):
-    weight_kg: str
-    body_condition_score: int | None = Field(default=None, ge=1, le=9)
-    notes: str = ""
-
-    @field_validator("weight_kg", mode="before")
-    @classmethod
-    def _w(cls, v: Any) -> str:
-        return _amount_str(v)
-
-
-DAILY_EVENT_TYPES: dict[str, tuple[type[BaseModel], str]] = {
-    "daily.meal": (MealPayload, " meal"),
-    "daily.drink": (DrinkPayload, "drink"),
-    "daily.elimination": (EliminationPayload, "elimination"),
-    "daily.walk": (WalkPayload, "walk/outdoor"),
-    "daily.play": (PlayPayload, "play/enrichment"),
-    "daily.weight": (WeightPayload, "weight/body condition"),
-}
-
-
-class SleepPayload(_Strict):
-    duration_minutes: int = Field(default=0, ge=0, le=24 * 60)
-    quality: str = ""
-    notes: str = ""
-
-
-DAILY_EVENT_TYPES["daily.sleep"] = (SleepPayload, "sleep/rest (PLI-024)")
-
-
-# --- v0.2 system event payloads (strict; system-generated) -------------------
-
-
-class PetStatusPayload(_Strict):
-    status: str
-    previous: str = ""
-    note: str = ""
-
-
-class IdentifierAddedPayload(_Strict):
-    identifier_type: str
-    verified: bool = False
-
-
-class DiaryCreatedPayload(_Strict):
-    diary_id: str
-    has_audio: bool = False
-
-
-class SummaryGeneratedPayload(_Strict):
-    summary_id: str
-    date: str = ""
-    fact_count: int = 0
-
-
-class ChecklistUpdatedPayload(_Strict):
-    handoff_id: str
-    items: int | None = None
-    index: int | None = None
-    done: bool | None = None
-
-
-class ReminderPayload(_Strict):
-    reminder_id: str
-    kind: str
-    due_date: str | None = None
-
-
-class RecordImportedPayload(_Strict):
-    record_id: str
-    kind: str
-    source_type: str = ""
-
-
-class RecoveryPlanPayload(_Strict):
-    plan_id: str
-    items: int = 0
-
-
-class TrainingGoalPayload(_Strict):
-    goal_id: str
-    title: str = ""
-
-
-class TrainingSessionPayload(_Strict):
-    session_id: str
-    goal_id: str | None = None
-    duration_minutes: int = 0
-
-
-class FriendRequestedPayload(_Strict):
-    friend_pet_id: str
-    request_id: str = ""
-
-
-class InteractionPayload(_Strict):
-    interaction_id: str
-    friend_pet_id: str
-    quality: str = ""
-
-
-class SocialBlockedPayload(_Strict):
-    friend_pet_id: str
-    action: str = "BLOCK"
-
-
-class ExpenseLoggedPayload(_Strict):
-    expense_id: str
-    category: str
-    amount: str = ""
-    currency: str = "CNY"
-
-
-class MilestonePayload(_Strict):
-    milestone_id: str
-    title: str = ""
-    kind: str = "OTHER"
-
-
-class PetAskedPayload(_Strict):
-    question: str = ""
-    sufficient: bool = False
-    citations: list[str] = []
-
-
-class AdviceFilteredPayload(_Strict):
-    count: int = 0
-    reasons: list[str] = []
-
-
-# --- identity / platform -------------------------------------------------
-
-
 class GenericPayload(_Strict):
     pass
-
-
-
-class VisualModelGeneratedPayload(_Strict):
-    """Stage H.2: 3D generation enqueued for this pet (GENERATED_3D provenance)."""
-
-    version: int
-    provider: str = ""
-    status: str = "GENERATING"
-
-
-class VisualModelActivatedPayload(_Strict):
-    """Stage H.2: 3D model activated after owner identity verification."""
-
-    version: int
-    provenance: str = "GENERATED_3D"
-class PetCreatedPayload(_Strict):
-    name: str
-    species: str
-    breed: str = ""
-
-
-class PetMediaAddedPayload(_Strict):
-    artifact_id: str
-    purpose: str = "avatar"
-
-
-class RelationshipCreatedPayload(_Strict):
-    user_id: str
-    role: str
-
-
-class GrantChangedPayload(_Strict):
-    grant_id: str
-    user_id: str
-    action: str  # created | revoked | expired | invited_role
-    scopes: list[str] = []
-    expires_at: str | None = None
-
-
-class GrantExpiredPayload(_Strict):
-    grant_id: str
-    user_id: str
-
-
-class ConsentChangedPayload(_Strict):
-    purpose: str
-    granted: bool
-
-
-class EmergencyProfileUpdatedPayload(_Strict):
-    updated_fields: list[str] = []
-
-
-class AuditAccessedPayload(_Strict):
-    action: str
-    resource_type: str = ""
-    resource_id: str = ""
-
-
-class NotificationCreatedPayload(_Strict):
-    notification_id: str
-    notification_type: str
-    title: str
-
-
-class DeletionRequestedPayload(_Strict):
-    request_id: str
-    reason: str = ""
-
-
-class SecurityEventPayload(_Strict):
-    action: str
-    detail: str = ""
-
-
-class DuplicateEventDetectedPayload(_Strict):
-    duplicate_of: str
-    event_type: str
-
-
-class SchemaEventPayload(_Strict):
-    change: str = ""
-
-
-# --- care ----------------------------------------------------------------
-
-
-class CareTaskCreatedPayload(_Strict):
-    task_id: str
-    title: str
-    task_type: str
-    due_at: str | None = None
-    repeat_rule: str = "NONE"
-    assignee_user_id: str | None = None
-
-
-class CareTaskCompletedPayload(_Strict):
-    task_id: str
-    completed_by: str
-    note: str = ""
-
-
-class CareConflictDetectedPayload(_Strict):
-    task_id: str
-    attempted_by: str
-    completed_by: str
-
-
-class CareHandoffStartedPayload(_Strict):
-    handoff_id: str
-    caregiver_user_id: str
-    scope: list[str] = []
-    end_at: str | None = None
-
-
-class CareHandoffEndedPayload(_Strict):
-    handoff_id: str
-    caregiver_user_id: str
-    ended_by: str
-
-
-class CareCardGeneratedPayload(_Strict):
-    card_id: str
-    token_prefix: str
-    expires_at: str | None = None
-
-
-# --- behavior ------------------------------------------------------------
-
-
-class BehaviorObservedPayload(_Strict):
-    behavior_event_id: str
-    behavior: str
-    intensity: str = ""
-    intensity_source: str = "OWNER_REPORTED"
-
-
-# --- health / medication -------------------------------------------------
-
-
-class HealthEventOpenedPayload(_Strict):
-    health_event_id: str
-    chief_complaint: str
-
-
-class ClinicalIntakeStepPayload(_Strict):
-    health_event_id: str
-    question_id: str
-    asked_by: str  # RULE | AI
-    answered: bool = True
-
-
-class AIObservationPayload(_Strict):
-    health_event_id: str
-    observation_id: str
-    ai_inference_id: str
-    text: str
-
-
-class ClinicalArtifactAddedPayload(_Strict):
-    health_event_id: str
-    artifact_id: str
-    kind: str = ""
-
-
-class RedFlagTriggeredPayload(_Strict):
-    health_event_id: str
-    rule_id: str
-    rule_version: str
-    triage_level: str
-
-
-class TriageAssignedPayload(_Strict):
-    health_event_id: str
-    triage_id: str
-    level: str
-    engine: str
-    matched_rules: list[str] = []
-
-
-class VetBriefGeneratedPayload(_Strict):
-    health_event_id: str
-    vet_brief_id: str
-
-
-class VetBriefSharedPayload(_Strict):
-    health_event_id: str
-    vet_brief_id: str
-    token_prefix: str
-    expires_at: str | None = None
-
-
-class MedicationPlanCreatedPayload(_Strict):
-    plan_id: str
-    medicine_name: str
-    dose_text: str
-    source_type: str = SourceType.OWNER_REPORTED.value
-
-
-class MedicationAdministeredPayload(_Strict):
-    plan_id: str
-    dose_id: str | None = None
-    administered_at: str
-    by_actor: str
-    status: str = "GIVEN"
-
-
-class MedicationMissedPayload(_Strict):
-    plan_id: str
-    dose_id: str
-    planned_at: str
-
-
-class HealthOutcomePayload(_Strict):
-    health_event_id: str
-    outcome_id: str
-    outcome: str
-
-
-class ArtifactAddedPayload(_Strict):
-    artifact_id: str
-    kind: str
-    content_type: str
-
-
-class RecordVersionedPayload(_Strict):
-    supersedes_event_id: str
-    event_type: str
-
-
-class ProvenanceAttachedPayload(_Strict):
-    event_id: str
-    provenance_level: str
-
-
-class TimelineViewedPayload(_Strict):
-    filters: dict[str, str] = {}
-
-
-class DailySummaryViewedPayload(_Strict):
-    date: str = ""
-
-
-class SafetyPolicyAppliedPayload(_Strict):
-    context: str
-    policy: str
-    detail: str = ""
-
-
-class AIInferenceLoggedPayload(_Strict):
-    ai_inference_id: str
-    capability: str
-    model: str
 
 
 EVENT_REGISTRY: dict[str, EventTypeDef] = {}
@@ -482,6 +43,90 @@ def _register(event_type: str, description: str, payload_model: type[BaseModel],
         domain=domain,
     )
 
+
+# INVARIANT:
+# Payload classes live in per-domain modules and import _Strict/_amount_str
+# from this module, so these imports must stay below those definitions to
+# avoid a partial-module circular import. The _register calls below keep the
+# original order — EVENT_REGISTRY insertion order is observable by tests.
+from .event_types_care import (  # noqa: E402
+    CareCardGeneratedPayload,
+    CareConflictDetectedPayload,
+    CareHandoffEndedPayload,
+    CareHandoffStartedPayload,
+    CareTaskCompletedPayload,
+    CareTaskCreatedPayload,
+)
+
+# Re-exported for API compatibility: consumers may import payload classes
+# from app.domain.event_types. The daily.* classes are registered through
+# DAILY_EVENT_TYPES below, so ruff would otherwise see them as unused.
+from .event_types_daily import (  # noqa: E402
+    DAILY_EVENT_TYPES,
+    AdviceFilteredPayload,
+    ChecklistUpdatedPayload,
+    DrinkPayload,  # noqa: F401
+    EliminationPayload,  # noqa: F401
+    ExpenseLoggedPayload,
+    FriendRequestedPayload,
+    InteractionPayload,
+    MealPayload,  # noqa: F401
+    MilestonePayload,
+    PetAskedPayload,
+    PetStatusPayload,
+    PlayPayload,  # noqa: F401
+    RecordImportedPayload,
+    RecoveryPlanPayload,
+    ReminderPayload,
+    SleepPayload,  # noqa: F401
+    SocialBlockedPayload,
+    TrainingGoalPayload,
+    TrainingSessionPayload,
+    WalkPayload,  # noqa: F401
+    WeightPayload,  # noqa: F401
+)
+from .event_types_health import (  # noqa: E402
+    AIInferenceLoggedPayload,
+    AIObservationPayload,
+    ArtifactAddedPayload,
+    BehaviorObservedPayload,
+    ClinicalArtifactAddedPayload,
+    ClinicalIntakeStepPayload,
+    DailySummaryViewedPayload,
+    HealthEventOpenedPayload,
+    HealthOutcomePayload,
+    MedicationAdministeredPayload,
+    MedicationMissedPayload,
+    MedicationPlanCreatedPayload,
+    ProvenanceAttachedPayload,
+    RecordVersionedPayload,
+    RedFlagTriggeredPayload,
+    SafetyPolicyAppliedPayload,
+    TimelineViewedPayload,
+    TriageAssignedPayload,
+    VetBriefGeneratedPayload,
+    VetBriefSharedPayload,
+)
+from .event_types_identity import (  # noqa: E402
+    AuditAccessedPayload,
+    ConsentChangedPayload,
+    DeletionRequestedPayload,
+    DiaryCreatedPayload,
+    DuplicateEventDetectedPayload,
+    EmergencyProfileUpdatedPayload,
+    GrantChangedPayload,
+    GrantExpiredPayload,
+    IdentifierAddedPayload,
+    NotificationCreatedPayload,
+    PetCreatedPayload,
+    PetMediaAddedPayload,
+    RelationshipCreatedPayload,
+    SchemaEventPayload,
+    SecurityEventPayload,
+    SummaryGeneratedPayload,
+    VisualModelActivatedPayload,
+    VisualModelGeneratedPayload,
+)
 
 for et, (model, desc) in DAILY_EVENT_TYPES.items():
     _register(et, f"Quick log: {desc.strip()}", model, "daily")

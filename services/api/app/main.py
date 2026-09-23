@@ -8,7 +8,6 @@ import asyncio
 import logging
 import time
 import uuid as uuid_mod
-from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -40,6 +39,7 @@ from app.core.config import get_settings
 from app.core.db import dispose_engine, get_session_factory
 from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging
+from app.core.rate_limit import get_limiter
 
 settings = get_settings()
 configure_logging(settings)
@@ -90,7 +90,17 @@ app.add_middleware(
 )
 install_error_handlers(app)
 
-RATE_BUCKETS: dict[str, deque] = defaultdict(deque)
+# SV-007: rate limiting moved to app.core.rate_limit (Redis + in-process
+# fallback). The limiter is created lazily on first use so tests never need
+# Redis when rate limiting is disabled.
+_rate_limiter_cached: object | None = None
+
+
+async def _rate_limiter():
+    global _rate_limiter_cached
+    if _rate_limiter_cached is None:
+        _rate_limiter_cached = await get_limiter()
+    return _rate_limiter_cached
 
 
 @app.middleware("http")
@@ -100,18 +110,16 @@ async def request_context(request: Request, call_next):
     started = time.perf_counter()
 
     if settings.rate_limit_enabled and request.method in ("POST", "PUT", "DELETE"):
-        now = time.monotonic()
-        bucket = RATE_BUCKETS[request.client.host if request.client else "unknown"]
-        while bucket and now - bucket[0] > 60:
-            bucket.popleft()
-        if len(bucket) >= settings.rate_limit_per_minute:
+        limiter = await _rate_limiter()
+        key = request.client.host if request.client else "unknown"
+        allowed = await limiter.allow(key, settings.rate_limit_per_minute, 60)
+        if not allowed:
             return JSONResponse(
                 status_code=429,
                 content={"error": {"code": "RATE_LIMITED",
                                    "message": "Too many requests.",
                                    "request_id": request_id}},
             )
-        bucket.append(now)
 
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id

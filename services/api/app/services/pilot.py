@@ -2,7 +2,8 @@
 
 - Invite-only: registration in pilot mode requires a valid admin-created code.
 - Feedback: lightweight channel, no auto-attached sensitive content.
-- Metrics: active-pet continuity counts for the pilot dashboard.
+- Dashboard metrics and PilotOrg lifecycle live in app.services.pilot_dashboard
+  and are re-exported here so `from app.services import pilot` keeps working.
 """
 
 import hashlib
@@ -10,12 +11,32 @@ import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.errors import ValidationFailed
 from app.models import PilotFeedback, PilotInviteCode, PilotUserProfile
+from app.services.pilot_dashboard import (
+    create_pilot_org,
+    list_pilot_orgs,
+    pilot_dashboard,
+    transition_pilot_org,
+)
+
+__all__ = [
+    "create_invite_code",
+    "create_pilot_org",
+    "hash_invite_code",
+    "list_pilot_orgs",
+    "new_invite_code",
+    "pilot_dashboard",
+    "pilot_enabled",
+    "require_pilot_registration",
+    "submit_feedback",
+    "transition_pilot_org",
+    "validate_invite_code",
+]
 
 _INVITE_SALT = "pli-pilot-invite-v1"
 
@@ -115,194 +136,3 @@ async def submit_feedback(db: AsyncSession, user_id: uuid.UUID, *,
     db.add(fb)
     await db.flush()
     return {"feedback_id": str(fb.id), "category": category}
-
-
-async def pilot_dashboard(db: AsyncSession) -> dict:
-    """Pilot metrics (Stage E §26) — isolation-aware (PLI-GW0).
-
-    Demo / internal pets and users are excluded from real pilot metrics
-    (exclude_demo=true / exclude_internal=true). Synthetic reserved domains
-    (@pli.demo seed, @pli.test tests/remote scripts, @pli.pilot demo seed)
-    are excluded at query time as a safety net, covering legacy rows and
-    future synthetic registrations alike.
-    """
-    from sqlalchemy import and_, func
-
-    from app.models import LifeEvent, Pet, User
-
-    synthetic_suffixes = ("%@pli.demo", "%@pli.test", "%@pli.pilot")
-
-    def real_email_cond():
-        # AND of NOT-LIKEs: exclude a row if its creator email matches ANY
-        # synthetic suffix. (OR of NOT-LIKEs is almost always true — bug.)
-        return and_(*[User.email.notlike(s) for s in synthetic_suffixes])
-
-    now = datetime.now(UTC)
-    d3 = now - timedelta(days=3)
-    d7 = now - timedelta(days=7)
-
-    # 1) total real pets (exclude demo/internal + synthetic-domain creators)
-    pets_total = (await db.execute(
-        select(func.count()).select_from(Pet)
-        .join(User, User.id == Pet.created_by_user_id)
-        .where(
-            Pet.is_demo.is_(False),
-            Pet.is_internal.is_(False),
-            real_email_cond(),
-        )
-    )).scalar_one()
-
-    # 2) active pets (distinct pet with event in window, real pet only)
-    async def active_count(since: datetime) -> int:
-        return (await db.execute(
-            select(func.count(func.distinct(LifeEvent.pet_id)))
-            .join(Pet, Pet.id == LifeEvent.pet_id)
-            .join(User, User.id == Pet.created_by_user_id)
-            .where(
-                LifeEvent.recorded_at >= since,
-                Pet.is_demo.is_(False),
-                Pet.is_internal.is_(False),
-                real_email_cond(),
-            )
-        )).scalar_one()
-
-    active_3d = await active_count(d3)
-    active_7d = await active_count(d7)
-
-    # 3) feedback from real users only
-    feedback_count = (await db.execute(
-        select(func.count()).select_from(PilotFeedback)
-        .join(User, User.id == PilotFeedback.user_id)
-        .where(User.is_demo.is_(False), User.is_internal.is_(False), real_email_cond())
-    )).scalar_one()
-
-    # 4) invite/registration funnel counts (real users only)
-    from app.models import PilotInviteCode, PilotUserProfile
-
-    invited = (await db.execute(
-        select(func.count()).select_from(PilotInviteCode)
-    )).scalar_one()
-    registered = (await db.execute(
-        select(func.count()).select_from(PilotUserProfile)
-        .join(User, User.id == PilotUserProfile.user_id)
-        .where(User.is_demo.is_(False), User.is_internal.is_(False), real_email_cond())
-    )).scalar_one()
-
-    # 5) activated owners — proxy per PILOT_ONBOARDING §4: real pets with
-    # ≥3 valid events since pet creation (Pet + 24h ≥3 Events)
-    activated_owners = (await db.execute(
-        text(
-            "SELECT count(*) FROM pets p "
-            "JOIN users u ON u.id = p.created_by_user_id "
-            "WHERE p.is_demo = false AND p.is_internal = false "
-            "AND u.email NOT LIKE '%@pli.demo' "
-            "AND u.email NOT LIKE '%@pli.test' "
-            "AND u.email NOT LIKE '%@pli.pilot' "
-            "AND (SELECT count(*) FROM life_events e "
-            "     WHERE e.pet_id = p.id AND e.recorded_at >= p.created_at) >= 3"
-        )
-    )).scalar_one()
-    return {
-        "pilot_mode": await pilot_enabled(),
-        "pets_total": pets_total,
-        "active_pets_3d": active_3d,
-        "active_pets_7d": active_7d,
-        "feedback_count": feedback_count,
-        "invited": invited,
-        "registered": registered,
-        "activated_owners": activated_owners,
-        "north_star": "Active Pets with Continuous Evidence Chain",
-        "excludes": ["demo", "internal", "synthetic_domain"],
-    }
-
-
-# ---- PilotOrg metadata (PLI-GW0) ----
-
-_ORG_STATUSES = {
-    "LEAD", "ONBOARDING", "ACTIVE", "PAUSED", "COMPLETED",
-    "WITHDRAWN", "TERMINATED_SAFETY", "TERMINATED_PRIVACY",
-    "TERMINATED_OPERATIONAL",
-}
-
-
-async def create_pilot_org(
-    db: AsyncSession,
-    *,
-    name: str,
-    org_type: str = "OWNER_COHORT",
-    contact: str = "",
-    status: str = "LEAD",
-    started_at: datetime | None = None,
-    expected_end_at: datetime | None = None,
-    participant_limit: int | None = None,
-    consent_version: str = "",
-    notes: str = "",
-) -> dict:
-    from app.models import PilotOrg
-
-    if not name or not name.strip():
-        raise ValidationFailed("机构名称不能为空。")
-    if org_type not in {"VET", "TRAINER", "STORE", "CARE_SERVICE",
-                        "OWNER_COHORT", "OTHER"}:
-        raise ValidationFailed("org_type 必须是 VET/TRAINER/STORE/CARE_SERVICE/OWNER_COHORT/OTHER。")
-    if status not in _ORG_STATUSES:
-        raise ValidationFailed(f"status 必须是 {sorted(_ORG_STATUSES)} 之一。")
-    row = PilotOrg(
-        name=name.strip(),
-        org_type=org_type,
-        contact=contact.strip(),
-        status=status,
-        started_at=started_at,
-        expected_end_at=expected_end_at,
-        participant_limit=participant_limit,
-        consent_version=consent_version,
-        notes=notes,
-    )
-    db.add(row)
-    await db.flush()
-    return _org_to_dict(row)
-
-
-async def list_pilot_orgs(db: AsyncSession) -> list[dict]:
-    from app.models import PilotOrg
-
-    rows = (await db.execute(
-        select(PilotOrg).order_by(PilotOrg.created_at)
-    )).scalars().all()
-    return [_org_to_dict(r) for r in rows]
-
-
-async def transition_pilot_org(
-    db: AsyncSession, org_id: uuid.UUID, status: str,
-) -> dict:
-    """Controlled lifecycle transition. No hard delete — history is immutable."""
-    from app.models import PilotOrg
-
-    if status not in _ORG_STATUSES:
-        raise ValidationFailed(f"status 必须是 {sorted(_ORG_STATUSES)} 之一。")
-    row = (await db.execute(
-        select(PilotOrg).where(PilotOrg.id == org_id)
-    )).scalar_one_or_none()
-    if row is None:
-        raise ValidationFailed("机构不存在。")
-    row.status = status
-    if status in {"ACTIVE", "ONBOARDING"} and row.started_at is None:
-        row.started_at = datetime.now(UTC)
-    await db.flush()
-    return _org_to_dict(row)
-
-
-def _org_to_dict(row) -> dict:
-    return {
-        "pilot_org_id": str(row.id),
-        "name": row.name,
-        "type": row.org_type,
-        "contact": row.contact,
-        "status": row.status,
-        "started_at": row.started_at.isoformat() if row.started_at else None,
-        "expected_end_at": row.expected_end_at.isoformat() if row.expected_end_at else None,
-        "participant_limit": row.participant_limit,
-        "consent_version": row.consent_version,
-        "notes": row.notes,
-        "created_at": row.created_at.isoformat(),
-    }
