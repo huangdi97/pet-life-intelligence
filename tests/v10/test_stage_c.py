@@ -3,7 +3,7 @@ services record layer, commerce constraints, finance records, platform)."""
 
 from datetime import datetime, timedelta, timezone
 
-from tests.conftest import auth
+from tests.conftest import auth, create_internal_operator
 
 NOW = datetime.now(timezone.utc)
 
@@ -20,7 +20,7 @@ def test_feature_flags_gate_webhook(client, seeded):
     # enable flag → still 404 (no linked device) proving the gate passes
     client.post("/api/v1/ops/feature-flags",
                 json={"key": "device.fake", "enabled": True, "note": "test"},
-                headers=auth(owner))
+                headers=auth(create_internal_operator()))
     r2 = client.post("/api/v1/adapters/device-webhook/fake",
                      json={"provider": "fake", "device_key": "dev-1",
                            "provider_event_id": "w1", "event_kind": "ACTIVITY",

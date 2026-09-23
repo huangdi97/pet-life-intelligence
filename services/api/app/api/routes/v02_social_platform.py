@@ -17,6 +17,7 @@ from sqlalchemy import func, select
 
 from app.api.deps import CurrentUser, DBSession
 from app.core.errors import NotFound, PermissionDenied, ValidationFailed
+from app.core.security import require_ops_admin
 from app.domain import enums
 from app.models import (
     AnalyticsCounter,
@@ -694,6 +695,7 @@ async def bump_counter(body: CounterIn, db: DBSession, user: CurrentUser) -> dic
 
 @router.get("/ops/status")
 async def ops_status(db: DBSession, user: CurrentUser) -> dict:
+    await require_ops_admin(user)
     counts = {}
     for name, stmt in (
         ("pets", select(func.count()).select_from(Pet)),
@@ -719,6 +721,7 @@ class IncidentIn(BaseModel):
 
 @router.post("/ops/incidents", status_code=201)
 async def create_incident(body: IncidentIn, db: DBSession, user: CurrentUser) -> dict:
+    await require_ops_admin(user)
     row = Incident(severity=body.severity, title=body.title,
                    detail=body.detail, created_by_user_id=user.id)
     db.add(row)
@@ -732,6 +735,7 @@ async def create_incident(body: IncidentIn, db: DBSession, user: CurrentUser) ->
 
 @router.get("/ops/incidents")
 async def list_incidents(db: DBSession, user: CurrentUser) -> list[dict]:
+    await require_ops_admin(user)
     rows = (
         await db.execute(
             select(Incident).order_by(Incident.created_at.desc()).limit(50)

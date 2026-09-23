@@ -125,3 +125,20 @@ async def require_dev_auth_enabled() -> None:
 
 def default_token_expiry() -> datetime:
     return datetime.now(UTC) + timedelta(hours=72)
+
+
+async def require_ops_admin(user: "User") -> None:
+    """Ops/admin operations (feature flags, operator switches) require a
+    platform-internal operator account (PLI-223 admin boundary).
+
+    Why: feature flags can enable/disable infrastructure and device-provider
+    gates, so a regular owner/participant must never be able to toggle them.
+    Invariants that must never change:
+      - is_internal marks platform-owned operators (excluded from pilot
+        metrics by design — see app/services/pilot.py).
+      - Synthetic/demo accounts (is_demo) are never operators.
+    """
+    if user is None or not getattr(user, "is_internal", False):
+        raise PermissionDenied(
+            "Ops administration requires an internal operator account."
+        )

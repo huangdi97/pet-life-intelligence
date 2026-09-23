@@ -2,7 +2,9 @@
 
 ## Current terminal
 
-`STAGE_H_COMPLETE` + `PRODUCT_DESIGN_FREEZE + UI_UX_FREEZE + MULTI_CLIENT_EXPERIENCE_FREEZE`
+`STAGE_V_COMPLETE` + `PRE_PILOT_TECHNICAL_AUDIT_PASS` + `WAVE_0_REENTRY_READY`
+（Stage V Pre-Pilot 全量验证与仓库终极审计完成：24 份报告 + Issue Ledger；pytest 420 / ruff 0 /
+五端 typecheck 0 / 五端 build OK / vitest 22/22 / Playwright 29/29；REAL_PARTICIPANTS=0 诚实保留）
 （Stage H 全产品设计 / UI·UX / 多端前端完成；设计基线 v3.1-R1 + 228 Feature Inventory；
 pytest 273 / ruff 0 / 五端 typecheck 0 / 五端 build OK / vitest 22/22 / Playwright 17/17；
 
@@ -46,6 +48,48 @@ FREEZE: PRODUCT_DESIGN_FREEZE + UI_UX_FREEZE + MULTI_CLIENT_EXPERIENCE_FREEZE
 WAVE_0_REENTRY_READY —— 下一步 Stage G-W0A First Real Participants；不自行进入 Stage I / v1.3
 ```
 真实参与者仍 0（不伪造）；下一步 = Stage G-W0A First Real Participants）
+
+
+## Stage V 完成情况（2026-09-23，全部真实命令验证）
+
+| 阶段 | 状态 | 证据 |
+|---|---|---|
+| Repository Baseline | DONE | reports/STAGE_V_REPOSITORY_BASELINE.md |
+| Design→Code Traceability | COMPLETE | reports/DESIGN_TO_CODE_TRACEABILITY_MATRIX.md（228/228；MISSING=0 / DOC_DRIFT=0） |
+| Synthetic Cohort | COMPLETE | reports/SYNTHETIC_COHORT_SPEC.md（40 pets / 12 households，SYN-01..20；SYNTHETIC_NEVER_COUNTS_AS_REAL 回归 + 查询级过滤 Grep 双验证） |
+| Scenario Replay | PASS | tests/scenarios/test_replays.py（REPLAY-01..12 全 PASS） |
+| Adversarial | PASS | tests/stage_v/test_adversarial_*.py（§14 输入 / §15 权限 0 unintended access / §16 医疗安全） |
+| Property | PASS | tests/stage_v/test_properties.py（§18 全部 invariants） |
+| Time Travel | PASS | tests/stage_v/test_time_travel.py（§19 可控时钟 1d..3y） |
+| AI Goldset | PASS | evals/PLI_AI_GOLDSET_V1（21 例，§20-22 全覆盖，离线确定性） |
+| Visual Regression | PASS | stage-v-visual.spec.ts（12 页 × 5 宽度 = 60 张基线 + 状态空间探针） |
+| 3D Viewer Runtime | READY | stage-v-3d-runtime.spec.ts（glTF 加载/WebGL/context-loss/FPS/fallback；REAL_PET_3D_IDENTITY=NOT_YET_OBSERVED） |
+| 架构/代码质量/注释 | PASS | ARCHITECTURE_AUDIT / CODE_QUALITY_AUDIT / COMMENT_AND_DOCUMENTATION_AUDIT |
+| 死代码/Ghost | PASS | DEAD_CODE_AND_GHOST_FEATURE_AUDIT（DOC_ONLY_GHOST=0 / CODE_ONLY_GHOST=0；FUTURE 42 预期冻结） |
+| DB/API 审计 | PASS | DATABASE_API_AUDIT（11 迁移链可重放；OpenAPI 187 ↔ routes 186 ↔ 0 未匹配） |
+| Security（重写） | PASS | SECURITY_AUDIT（2026-09-23 版；SV-001 ops 门禁已修；secrets 无提交） |
+| 依赖/性能 | PASS | DEPENDENCY_AUDIT（MUST_FIX=0）+ PERFORMANCE_AUDIT（50/200/1000 事件实测平坦） |
+| 文档漂移 | PASS | DOCUMENTATION_DRIFT_AUDIT（§56 十项全对齐） |
+| 测试质量 | PASS | TEST_QUALITY_AUDIT（含 Mutation-thinking 人工 review） |
+| 多端一致性 | PASS | MULTI_CLIENT_PARITY_AUDIT（Welfare/Social Mini 入口级为设计差异，已登记） |
+| 无障碍最终 | PASS | ACCESSIBILITY_FINAL_AUDIT（含 3D textual equivalent；真机朗读 EXTERNAL_BLOCKED 登记） |
+| UX Copy | CLEAN | 禁止文案 Grep 0 命中（「数字孪生」仅注释声明禁用） |
+| Issue Ledger | 收口 | STAGE_V_ISSUE_LEDGER.md（P0=0 / P1=0 / P2=0 剩余） |
+| 全量回归 | PASS | pytest **420 passed**（339s）/ ruff 0 / 五端 typecheck 0 / 五端 build OK / vitest 22/22 / Playwright **29/29**（123.6s） |
+| /pilot/status | 诚实 | PILOT_MODE=false、pets_total=0、activated_owners=0、excludes[demo,internal,synthetic_domain]；perf 探针 1250 synthetic 事件零污染 |
+
+## FINAL STATUS（Stage V）
+
+```
+STAGE V: COMPLETE / PRE_PILOT_TECHNICAL_AUDIT_PASS
+DESIGN_COMPLETE / ENGINEERING_LOCALLY_VERIFIED / SYNTHETIC_VALIDATION_COMPLETE
+SCENARIO_REPLAY_PASS / SAFETY_AUDIT_PASS / ARCHITECTURE_AUDIT_PASS / CODE_QUALITY_AUDIT_PASS
+DOCUMENTATION_AUDIT_PASS / MULTI_CLIENT_AUDIT_PASS / 3D_VIEWER_RUNTIME_READY
+REAL_PET_3D_IDENTITY=NOT_YET_OBSERVED / REAL_3D_PROVIDER=EXTERNAL_BLOCKED
+WAVE_0_REENTRY_READY / REAL_PARTICIPANTS=0 / REAL_PETS=0 / PRODUCT_VALIDATION=NOT_YET_OBSERVED
+下一步 Stage G-W0A First Real Participants；不自行进入 Stage I / v1.3 / Future 42
+```
+
 
 ## Wave 0（Stage G-W0）完成情况（真实命令验证）
 

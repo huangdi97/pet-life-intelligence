@@ -8,14 +8,13 @@ export type LoadState = "loading" | "ready" | "error" | "denied";
 export interface Async<T> {
   state: LoadState;
   data: T | null;
-  error: string | null;
+  error: Error | null;
   reload: () => void;
 }
-
 export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []): Async<T> {
   const [state, setState] = useState<LoadState>("loading");
   const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -34,7 +33,7 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []): Async<T
           setState("denied");
         } else {
           setState("error");
-          setError(e instanceof Error ? e.message : String(e));
+          setError(e instanceof Error ? e : new Error(String(e)));
         }
       });
     return () => {

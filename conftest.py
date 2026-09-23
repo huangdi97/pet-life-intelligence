@@ -20,9 +20,26 @@ for p in (
     if p not in sys.path:
         sys.path.insert(0, p)
 
+def _env_file_test_db_url() -> str | None:
+    """Fall back to the repo's env files so local pytest does not silently hit
+    the docker-compose default port when WinNAT shifted it (.env.local is the
+    machine-local override — see reports/STAGE_H1_PREFLIGHT_CURRENT.md)."""
+    for name in (".env.local", ".env"):
+        path = os.path.join(ROOT, name)
+        if not os.path.exists(path):
+            continue
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if line.startswith("TEST_DATABASE_URL="):
+                    return line.split("=", 1)[1].strip().strip('"').strip("'")
+    return None
+
+
 TEST_DB_URL = os.environ.get(
     "TEST_DATABASE_URL",
-    "postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli_test",
+    _env_file_test_db_url()
+    or "postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli_test",
 )
 os.environ["DATABASE_URL"] = TEST_DB_URL
 

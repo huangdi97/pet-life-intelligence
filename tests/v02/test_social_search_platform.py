@@ -176,8 +176,13 @@ def test_analytics_counters_no_raw_payload(client, seeded):
 
 
 def test_ops_status_and_incidents(client, seeded):
+    from tests.conftest import create_internal_operator
+
+    op = create_internal_operator()
+    # regular owner must not reach ops endpoints (Stage V admin boundary)
     owner = seeded["owner_id"]
-    status = client.get("/api/v1/ops/status", headers=auth(owner))
+    assert client.get("/api/v1/ops/status", headers=auth(owner)).status_code == 403
+    status = client.get("/api/v1/ops/status", headers=auth(op))
     assert status.status_code == 200
     body = status.json()
     assert body["counts"]["pets"] >= 2
@@ -185,9 +190,9 @@ def test_ops_status_and_incidents(client, seeded):
     inc = client.post("/api/v1/ops/incidents",
                       json={"severity": "WARN", "title": "Redis 延迟升高",
                             "detail": "p99 > 50ms"},
-                      headers=auth(owner))
+                      headers=auth(op))
     assert inc.status_code == 201
-    lst = client.get("/api/v1/ops/incidents", headers=auth(owner)).json()
+    lst = client.get("/api/v1/ops/incidents", headers=auth(op)).json()
     assert any(i["title"] == "Redis 延迟升高" for i in lst)
 
 

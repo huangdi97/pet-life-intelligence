@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from app.models import Grant, LifeEvent, Notification
 from sqlalchemy import func, select
 
-from tests.conftest import auth
+from tests.conftest import auth, create_internal_operator
 
 NOW = datetime.now(timezone.utc)
 
@@ -138,7 +138,7 @@ def test_webhook_replay_deduped(client, seeded):
                       json={"provider": "fake", "device_key": "replay-1"},
                       headers=auth(owner)).json()
     client.post("/api/v1/ops/feature-flags",
-                json={"key": "device.fake", "enabled": True}, headers=auth(owner))
+                json={"key": "device.fake", "enabled": True}, headers=auth(create_internal_operator()))
     body = {"provider": "fake", "device_key": "replay-1",
             "provider_event_id": "evt-1", "event_kind": "ACTIVITY",
             "occurred_at": NOW.isoformat(), "payload": {"minutes": 10}}

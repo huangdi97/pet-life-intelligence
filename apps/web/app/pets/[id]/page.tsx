@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { api, type Pet } from "@pli/api-client";
+import { api, ApiError, type Pet } from "@pli/api-client";
 import { fmtDate, useAsync } from "../../../lib/hooks";
 import { mapErrorMessage, t } from "../../../lib/i18n";
 import { State } from "../../../components/ui";
@@ -41,6 +41,26 @@ export default function PetProfilePage() {
       <main>
         <h1>{t("pets.detail")}</h1>
         <div className="state denied">没有查看此内容的权限。如需访问，请联系宠物主人授权。</div>
+      </main>
+    );
+  }
+
+  // OWN-004 not-found state: unknown pet id renders a 404 state (Stage V
+  // state-space, not a generic error).
+  const notFound =
+    pet.state === "error" &&
+    pet.error instanceof ApiError &&
+    (pet.error.status === 404 || pet.error.code === "NOT_FOUND");
+  if (notFound) {
+    return (
+      <main>
+        <h1>404</h1>
+        <div className="state">{t("notFound.title")}</div>
+        <div style={{ marginTop: 12 }}>
+          <Link href="/" className="btn primary" role="button">
+            {t("notFound.home")}
+          </Link>
+        </div>
       </main>
     );
   }

@@ -24,6 +24,7 @@ from sqlalchemy import func, select
 from app.adapters.devices import AdapterError, get_provider, quality_check
 from app.api.deps import CurrentUser, DBSession
 from app.core.errors import APIError, NotFound, PermissionDenied, ValidationFailed
+from app.core.security import require_ops_admin
 from app.domain import enums
 from app.models import (
     AgentActionLog,
@@ -71,6 +72,7 @@ class FlagIn(BaseModel):
 
 @router.post("/ops/feature-flags", status_code=201)
 async def set_flag(body: FlagIn, db: DBSession, user: CurrentUser) -> dict:
+    await require_ops_admin(user)
     row = (
         await db.execute(select(FeatureFlag).where(FeatureFlag.key == body.key))
     ).scalar_one_or_none()
@@ -90,6 +92,7 @@ async def set_flag(body: FlagIn, db: DBSession, user: CurrentUser) -> dict:
 
 @router.get("/ops/feature-flags")
 async def list_flags(db: DBSession, user: CurrentUser) -> list[dict]:
+    await require_ops_admin(user)
     rows = (await db.execute(select(FeatureFlag))).scalars().all()
     return [{"key": r.key, "enabled": r.enabled, "note": r.note} for r in rows]
 

@@ -2,6 +2,14 @@
 
 import type { ReactNode } from "react";
 import type { LoadState } from "../lib/hooks";
+import { mapErrorMessage } from "../lib/i18n";
+
+/** Render a user-facing message from a string or an Error/ApiError. */
+function humanize(error: string | Error | null | undefined): string | null {
+  if (error == null) return null;
+  if (typeof error === "string") return error;
+  return mapErrorMessage(error);
+}
 
 export function State({
   state,
@@ -11,11 +19,12 @@ export function State({
   children,
 }: {
   state: LoadState;
-  error?: string | null;
+  error?: string | Error | null;
   empty?: ReactNode;
   onRetry?: () => void;
   children: ReactNode;
 }) {
+  const msg = humanize(error);
   if (state === "loading")
     return (
       <div className="state loading" role="status">
@@ -38,7 +47,7 @@ export function State({
   if (state === "error")
     return (
       <div className="state error">
-        出错了：{error ?? "未知错误"}
+        出错了：{msg ?? "未知错误"}
         {onRetry && (
           <div style={{ marginTop: 10 }}>
             <button className="btn" onClick={onRetry}>
@@ -61,7 +70,8 @@ export function TriageBadge({ level }: { level: string | null }) {
   return <span className={`badge ${level}`}>{level}</span>;
 }
 
-export function ErrorNote({ message }: { message: string | null }) {
-  if (!message) return null;
-  return <div className="alert emergency">操作失败：{message}</div>;
+export function ErrorNote({ message }: { message: string | Error | null }) {
+  const msg = humanize(message);
+  if (!msg) return null;
+  return <div className="alert emergency">操作失败：{msg}</div>;
 }

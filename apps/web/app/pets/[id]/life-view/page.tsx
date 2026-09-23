@@ -122,6 +122,24 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  // Permission denied: render an explicit, human-language blocked state
+  // (never a crash). Covers sitter-without-grant etc.
+  if (pet.state === "denied") {
+    return (
+      <main>
+        <h1>{t("pets.detail")} · 生命视图</h1>
+        <div className="state denied" role="alert">
+          没有查看此内容的权限（403）。如需访问，请联系宠物主人授权。
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <Link href="/" className="btn primary" role="button">
+            {t("notFound.home")}
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main>
       <h1>{pet.data?.name ?? t("pets.detail")} · 生命视图</h1>

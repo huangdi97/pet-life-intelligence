@@ -1,5 +1,33 @@
 # Changelog
 
+## v1.4.0 (Stage V) — PRE_PILOT_TECHNICAL_AUDIT_PASS（Pre-Pilot 全量验证与仓库终极审计）
+
+在 REAL_PARTICIPANTS=0 / REAL_PETS=0 条件下完成 24 份 Stage V 报告 + Issue Ledger（12 份新建 + 12 份复核修正），
+Canonical→Code Traceability（MISSING=0 / DOC_DRIFT=0）、Synthetic Cohort（SYN-01..20，查询级隔离双验证）、
+Scenario Replay（REPLAY-01..12）、Adversarial（§14-16，0 unintended access，SV-001 ops 门禁修复）、
+Property（§18）、Time-Travel（§19 可控时钟）、AI Goldset（§20-22，21 例）、Visual Regression（12 页×5 宽度基线）、
+3D Viewer Runtime（glTF/WebGL/context-loss/FPS/fallback，诚实 blocked）、架构/代码质量/注释/死代码/DB/API/安全/依赖/性能/
+文档漂移/测试质量/多端/无障碍/UX Copy 全量审计。
+
+### Verification（2026-09-23 全部真实命令）
+- pytest **420 passed**（339.25s，含 Stage V 新增 133）· ruff **0** · 五端 typecheck **0**
+- 五端 build **OK**（web/admin/pro next build + mini weapp）· vitest **22/22** · Playwright **29/29**（123.6s）
+- OpenAPI **187** ↔ routes **186** ↔ 0 未匹配；/pilot/status 实测 pets_total=0 / activated=0 / excludes[demo,internal,synthetic_domain]
+- 禁止文案 Grep **0 命中**；secrets 审计无 committed secret（只报位置/类型/严重度）
+
+### Fixed
+- **SV-001 (P1)**：`POST /ops/feature-flags` 无管理门禁 → 增加 `require_ops_admin`（is_internal 平台运营），普通 owner 403（对抗 §15 实测）
+- **SV-010 (P2)**：已起草 5 份报告 pytest 数字 419 → 按本轮真实重跑统一修正为 420
+- Docker 引擎本 Stage 恢复（容器 healthy），本地全 gate 跑通；staging 部署保持 EXTERNAL_BLOCKED（无权限，不伪造）
+
+### External blockers（诚实保留，同 Stage H/G）
+REAL_3D_PROVIDER · REAL_3D_PET_ASSET · 真机 QA · STAGING_DEPLOY · COMPANION_HARDWARE · SMTP · AI Provider · git remote
+
+### 停止点
+达到 `PRE_PILOT_TECHNICAL_AUDIT_PASS` + `WAVE_0_REENTRY_READY`；下一步 **Stage G-W0A First Real Participants**；
+不自行进入 Stage I / v1.3 / Future 42 / 新功能开发。
+
+
 ## v1.3.0 (Stage H) — PRODUCT_DESIGN_FREEZE + UI_UX_FREEZE + MULTI_CLIENT_EXPERIENCE_FREEZE
 
 从 `WAVE_0_READY / AWAITING_REAL_PARTICIPANTS` 推进到 `PLI_PRODUCT_DESIGN_COMPLETE +
