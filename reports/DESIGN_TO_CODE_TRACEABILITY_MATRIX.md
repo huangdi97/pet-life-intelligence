@@ -12,7 +12,7 @@
 
 | Status | Count | 说明 |
 |---|---|---|
-| IMPLEMENTED | 77 | 完整 UI + 后端 + 测试 |
+| IMPLEMENTED | 77 | 完整 UI + 后端 + 测试（2026-09-23 复核，按正文 Status 列实测） |
 | BACKGROUND_IMPLEMENTED | 60 | 后端/后台能力实现（部分无独立领域页） |
 | EXTERNAL_BLOCKED | 21 | 真实外部依赖（AI/设备/服务/保险/跨来源）未激活，不伪装通过 |
 | NOT_APPLICABLE | 42 | Future 42 冻结项（不在 v0.1 执行范围） |
