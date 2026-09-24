@@ -189,7 +189,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-test-results
-          path: tests/e2e-browser/artifacts/test-results/
+          path: tests/e2e-browser/artifacts/
           if-no-files-found: warn
       - name: Upload approved visual baseline (refresh output)
         if: ${{ inputs.update-visual-baseline == true }}
