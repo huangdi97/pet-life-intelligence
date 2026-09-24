@@ -145,4 +145,7 @@ jobs:
       - name: Playwright
         run: |
           cd tests/e2e-browser && pnpm exec playwright install --with-deps chromium
-          pnpm exec playwright test
+          # --config explicit: pin discovery to this repo's e2e suite (CI-only
+          # quirk seen 2026-09-24: bare `playwright test` fell back to whole-repo
+          # default testDir and collected apps/web vitest files).
+          pnpm exec playwright test --config=playwright.config.ts
