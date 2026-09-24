@@ -4,7 +4,12 @@ on:
   push:
     branches: [main]
   pull_request:
-
+  workflow_dispatch:
+    inputs:
+      update-visual-baseline:
+        description: "Regenerate approved visual baseline on Linux (fonts-noto-cjk) and upload it; run visual chain with PLI_UPDATE_VISUAL_BASELINE=1"
+        type: boolean
+        default: false
 jobs:
   backend:
     name: Backend (lint + unit + integration + safety)
@@ -136,6 +141,13 @@ jobs:
           pnpm install --frozen-lockfile=false
           pnpm --dir packages/ui-tokens build
           pnpm --dir apps/web build
+      - name: Install CJK fonts (visual regression parity)
+        run: |
+          # Headless chromium on ubuntu renders CJK as tofu boxes without a
+          # CJK font; the approved baseline must be captured & compared in the
+          # SAME environment (Linux + Noto CJK) to be reproducible.
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
       - name: Start API + Web
         run: |
           export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
@@ -157,8 +169,19 @@ jobs:
           export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
           cd services/api && python -m app.seed
       - name: Playwright (visual chain)
+        env:
+          # workflow_dispatch input pipelines the explicit-baseline-refresh
+          # decision into CI; ordinary push/PR runs compare only.
+          PLI_UPDATE_VISUAL_BASELINE: ${{ inputs.update-visual-baseline == true && '1' || '' }}
         run: |
           # stage-v-visual regenerates visual-current from clean seed, then
           # visual-regression-v2 diffs approved baseline vs current (explicit
           # refresh only via PLI_UPDATE_VISUAL_BASELINE=1).
           pnpm exec playwright test --config=tests/e2e-browser/playwright.config.ts --grep "STAGE-V-VISUAL|VISUAL-V2"
+      - name: Upload approved visual baseline (refresh output)
+        if: ${{ inputs.update-visual-baseline == true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-baseline-approved-linux
+          path: artifacts/visual-baseline-approved/
+          if-no-files-found: error
