@@ -58,7 +58,7 @@ diff 空间分布实测（Playwright canvas 逐像素，品红像素 bbox 与分
 State-space probes（empty/error/permission-denied/offline）同时通过，确认非崩溃性变化。
 
 ## 2b. 本轮出现的两个真实问题与修复（架构级，非弱化断言）
-
+## 2b. 本轮出现的三个真实问题与修复（架构级，非弱化断言）
 ### 问题 1 — 跨测试数据污染（false diff）
 
 功能 spec（seven-paths 等）会在 dev DB 创建 `BW-*` 健康事件；health 页列表
@@ -82,6 +82,19 @@ State-space probes（empty/error/permission-denied/offline）同时通过，确�
 baseline 若在 dev server 模式冻结，production 模式下复跑会整体 diff
 （本轮 dev→prod：所有页面 `0.4–1.4%`、health 17–29%）。
 修复：视觉基线一律在 **production 渲染**（`next start`，CI 同语义）下
+
+### 问题 3 — seed 时间戳漂移（timeline 跨运行 diff）
+
+seed 的 health/care 事件时间戳基于真实 `now`（含分钟秒），两次 CI 运行之间
+seed 时刻不同 → timeline 显示的具体日期/时间文本不同 → 像素 diff
+（本轮实测 360/768 timeline 1.5–1.8% 残差，跨天必然更大）。
+该区域展示**墙钟时间**，本质是动态内容，无法用固定 seed 日期解决
+（Today 端点按运行当天筛 seed 事件，固定日期会令 Today demo 变空）。
+
+修复（视觉回归标准实践）：视觉采集（stage-v-visual）截图前把动态时间
+文本 `.tl-time` **mask** 为固定 token（"🕘 08:00"），baseline 与 current
+同等处理，时间区域不参与像素 diff；其余所有像素仍严格断言
+（layout / 文案 / 状态 / 数据内容均照常比对）。
 冻结/对比；本地 Windows 用 `PLIT_LOCAL_BUILD=1` 构建（跳过 standalone
 组装，规避 pnpm symlink EPERM）后 `next start` 即为生产模式。
 
