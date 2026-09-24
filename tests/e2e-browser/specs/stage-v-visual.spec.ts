@@ -51,6 +51,15 @@ test("STAGE-V-VISUAL-01 capture baseline screenshots at 5 widths x 12 pages", as
       const url = def.buildUrl(coco.id);
       await page.goto(url);
       await page.waitForLoadState("networkidle");
+      // VISUAL-STABILITY: timestamps (e.g. .tl-time) show wall-clock values
+      // derived from seed's `now`, which drifts between runs/days. Mask them to
+      // a fixed token so capture & compare stay reproducible; all other pixels
+      // remain strictly compared. (Visual regression standard practice.)
+      await page.evaluate(() => {
+        for (const el of document.querySelectorAll<HTMLElement>(".tl-time")) {
+          el.textContent = "🕘 08:00";
+        }
+      });
       const shots: string[] = [];
       await page.screenshot({ path: join(OUT, `${width}_${def.key}.png`), fullPage: false });
       shots.push("ok");
