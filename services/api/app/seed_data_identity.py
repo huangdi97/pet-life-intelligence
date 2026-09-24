@@ -35,11 +35,11 @@ async def insert_identity(db: AsyncSession) -> dict:
     )
     await db.flush()
 
-    coco = Pet(household_id=hh.id, name="Coco", species="dog", breed="Corgi",
+    coco = Pet(household_id=hh.id, name="豆豆", species="dog", breed="Corgi",
                sex="FEMALE", birth_date=datetime(2022, 5, 1).date(),
                neutered=True, weight_note="12kg", created_by_user_id=owner.id,
                is_demo=True)
-    mimi = Pet(household_id=hh.id, name="Mimi", species="cat", breed="DLH",
+    mimi = Pet(household_id=hh.id, name="咪咪", species="cat", breed="DLH",
                sex="MALE", birth_date=datetime(2021, 11, 20).date(),
                neutered=True, weight_note="4.5kg", created_by_user_id=owner.id,
                is_demo=True)

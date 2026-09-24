@@ -30,10 +30,10 @@ $login = Invoke-RestMethod -Method Post "$Base/auth/dev/login" `
 $H = @{ "X-Dev-User-Id" = $login.user_id }
 Check "login" ($login.user_id.Length -gt 0) "True"
 
-# 2. pets visible (seeded Coco + Mimi)
+# 2. pets visible (seeded 豆豆 + 咪咪)
 $pets = Invoke-RestMethod "$Base/pets" -Headers $H
 Check "pets.count>=2" ($pets.Count -ge 2) "True"
-$coco = ($pets | Where-Object { $_.name -eq "Coco" })[0]
+$coco = ($pets | Where-Object { $_.name -eq "豆豆" })[0]
 
 # 3. quick log meal
 $meal = Invoke-RestMethod -Method Post "$Base/pets/$($coco.id)/events" `
@@ -41,9 +41,9 @@ $meal = Invoke-RestMethod -Method Post "$Base/pets/$($coco.id)/events" `
     -Body '{"event_type":"daily.meal","payload":{"amount":"90","unit":"g"},"allow_duplicate":true}'
 Check "quicklog.meal" $meal.event_type "daily.meal"
 
-# 4. red-flag health event on Mimi (body must be sent as UTF-8 bytes; PS5.1
+# 4. red-flag health event on 咪咪 (body must be sent as UTF-8 bytes; PS5.1
 #    otherwise mangles CJK text before it reaches the API)
-$mimi = ($pets | Where-Object { $_.name -eq "Mimi" })[0]
+$mimi = ($pets | Where-Object { $_.name -eq "咪咪" })[0]
 $heBody = [System.Text.Encoding]::UTF8.GetBytes(
     '{"chief_complaint":"反复进猫砂盆但几乎尿不出来"}')
 $he = Invoke-RestMethod -Method Post "$Base/pets/$($mimi.id)/health-events" `

@@ -11,8 +11,7 @@ import { join } from "node:path";
 import { loginAsEmail, userIdFor } from "./helpers";
 
 const WIDTHS = [360, 390, 768, 1024, 1440];
-const OUT = join(__dirname, "..", "artifacts", "visual-baseline");
-
+const OUT = join(__dirname, "..", "artifacts", "visual-current");
 interface PageDef {
   key: string;
   buildUrl: (petId: string) => string;
@@ -42,7 +41,7 @@ test("STAGE-V-VISUAL-01 capture baseline screenshots at 5 widths x 12 pages", as
   const pets = await (await request.get("http://localhost:8800/api/v1/pets", {
     headers: { "X-Dev-User-Id": ownerId },
   })).json();
-  const coco = pets.find((p: { name: string }) => p.name.startsWith("Coco"));
+  const coco = pets.find((p: { name: string }) => p.name.startsWith("豆豆"));
   expect(coco).toBeTruthy();
 
   await loginAsEmail(page, request, "owner@pli.demo");
@@ -66,13 +65,15 @@ test("STAGE-V-VISUAL-02 core state-space probes (empty/error/permission-denied/o
   const pets = await (await request.get("http://localhost:8800/api/v1/pets", {
     headers: { "X-Dev-User-Id": ownerId },
   })).json();
-  const coco = pets.find((p: { name: string }) => p.name.startsWith("Coco"));
+  const coco = pets.find((p: { name: string }) => p.name.startsWith("豆豆"));
   await loginAsEmail(page, request, "owner@pli.demo");
 
   // unknown pet → error/not-found state renders, not a crash
   await page.goto("/pets/00000000-0000-0000-0000-00000000dead");
   await page.waitForLoadState("networkidle");
-  expect(await page.locator("body").innerText()).toContain("404");
+  // The 404 branch renders only after the API 404 resolves; use the
+  // auto-retrying assertion so a slow first compile cannot false-negative.
+  await expect(page.locator("body")).toContainText("404", { timeout: 15_000 });
 
   // offline fallback page is reachable
   const offline = await page.request.get("/offline");
@@ -89,6 +90,5 @@ test("STAGE-V-VISUAL-02 core state-space probes (empty/error/permission-denied/o
   await page.addInitScript((id) => window.localStorage.setItem("pli_dev_user_id", id as string), sitterId);
   await page.goto(`/pets/${coco.id}/life-view`);
   await page.waitForLoadState("networkidle");
-  const body = await page.locator("body").innerText();
-  expect(body).toMatch(/无权限|403|拒绝|无法访问/i);
+  await expect(page.locator("body")).toContainText(/无权限|403|拒绝|无法访问/, { timeout: 15_000 });
 });

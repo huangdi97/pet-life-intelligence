@@ -1,5 +1,5 @@
-"""Demo seed (GOAL Phase 12 / G12): Demo Family household with Coco (dog) +
-Mimi (cat), owner/family/temp-caregiver users, one day of daily events, a
+"""Demo seed (GOAL Phase 12 / G12): Demo Family household with 豆豆 (dog) +
+咪咪 (cat), owner/family/temp-caregiver users, one day of daily events, a
 task, a behavior event, a non-emergency health event, an emergency red-flag
 sample, a medication plan with administrations, and an outcome.
 

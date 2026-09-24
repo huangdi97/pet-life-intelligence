@@ -29,7 +29,7 @@ async def insert_health(db: AsyncSession, ids: dict, now: datetime) -> dict:
     coco_id = ids["coco_id"]
     mimi_id = ids["mimi_id"]
 
-    # non-emergency health event (Mimi ear issue)
+    # non-emergency health event (咪咪 ear issue)
     he = HealthEvent(
         pet_id=mimi_id, chief_complaint="左耳抓挠三天，有棕色分泌物，精神食欲正常",
         onset_at=now - timedelta(days=3), duration_text="3天",
@@ -69,7 +69,7 @@ async def insert_health(db: AsyncSession, ids: dict, now: datetime) -> dict:
     db.add(step)
     await db.flush()
 
-    # medication plan for Coco (linked to nothing, owner-reported vet instruction)
+    # medication plan for 豆豆 (linked to nothing, owner-reported vet instruction)
     plan = MedicationPlan(
         pet_id=coco_id, medicine_name="Doxycycline", dose_text="50mg",
         route="oral", frequency_text="每天2次，连用7天", frequency_per_day=2,
@@ -104,7 +104,7 @@ async def insert_health(db: AsyncSession, ids: dict, now: datetime) -> dict:
         actor_id=owner_id,
     )
 
-    # outcome for Mimi health event
+    # outcome for 咪咪 health event
     outcome = Outcome(
         pet_id=mimi_id, health_event_id=he.id,
         outcome=enums.OutcomeValue.IMPROVED.value,

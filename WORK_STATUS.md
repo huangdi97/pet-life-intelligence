@@ -2,26 +2,54 @@
 
 ## Current terminal
 
-`PLI_V0_1_0_RELEASED`（Stage R 完成，2026-09-24）· `PRE_PILOT_TECHNICAL_AUDIT_PASS` 保持
-（pytest 427 / ruff 0 / 五端 typecheck 0 / 五端 build OK / vitest 22/22 / Playwright 29/29；
-GitHub 公开仓库 + CI 全绿 + Release v0.1.0；REAL_PARTICIPANTS=0 诚实保留）
+`PLI_V0_1_1_INTERNAL_READY`（Stage R.1 完成，2026-09-24）· `PRE_PILOT_TECHNICAL_AUDIT_PASS` 保持
+（pytest 427 / ruff 0 / 五端 typecheck 0 / vitest 22/22 / Playwright 30（27 功能 + 视觉链 3）
+production 模式全 PASS；GitHub 公开仓库 + Release v0.1.0；v0.1.1 为内部收口续版未发布 tag；
+REAL_PARTICIPANTS=0 诚实保留）
 
-## Stage R 完成情况（2026-09-24，全部真实命令/CI 验证）
+## Stage R.1 完成情况（2026-09-24，全部真实命令/CI 验证）
 
 | 交付项 | 状态 | 证据 |
 |---|---|---|
-| GitHub 正式化 | DONE | github.com/huangdi97/pet-life-intelligence（public）；main + tags 全量推送；CI 全绿；LICENSE/CONTRIBUTING/README 对齐 |
-| Web 成品 | DONE | 生产构建 exit 0；GET /、/manifest.webmanifest、/sw.js 200；Playwright 29/29；standalone 产物入 Release |
-| Android 成品（CI 构建、未签名） | DONE | android.yml：expo prebuild + gradle assembleRelease；app-release.apk（84MB，debug 签名）产出为 workflow artifact + Release 资产 |
-| UI/UX 实装验收 | ACCEPTED | reports/STAGE_R_UIUX_ACCEPTANCE.md（P0=0/P1=0/P2=5 登记；基准 v3.1-R1 + DESIGN_SYSTEM_V3 + IA 冻结） |
-| v0.1.0 发布 | DONE | git tag v0.1.0；CHANGELOG v0.1.0；README 对齐；GitHub Release 含 APK + Web 产物；reports/STAGE_R_RELEASE_REPORT.md |
-| CI 修复（线上化首跑暴露） | DONE | minio→quay.io、jsonschema dev-extra、OpenAPI 再生成、pnpm autolinking 依赖补全、Playwright --config 显式化 |
+| v3.3-R1 canonical 入库 | DONE | `docs/canonical/PLI_v3.3-R1.md`（CURRENT）+ `docs/canonical/README.md` 索引（v3.1/3.2=HISTORICAL）；`reports/V3_3_CANONICAL_DELTA_AUDIT.md` V3_3_MISSING_CRITICAL=0 |
+| Android API 环境化 | DONE | 不再写死 localhost；`app.config.js`（EXPO_PUBLIC_PLI_API_URL）+ `apiConfig.ts`（fail-safe）+ `ApiConfigErrorScreen`；`dev.ps1` API 绑 0.0.0.0 |
+| Android 品牌基线 | DONE | icon/adaptive-icon/splash 替换 Expo 默认；`scripts/gen-brand-assets.mjs`；App 名「宠物生活智能」 |
+| Android v0.1.1 internal-LAN APK | DONE | `artifacts/release/v0.1.1/Pet-Life-Intelligence-v0.1.1-internal-lan.apk`（84.1MB，sha256 见 SHA256SUMS，DEBUG_SIGNED_INSTALLABLE_APK） |
+| 真机 QA | NOT_YET_OBSERVED | `reports/ANDROID_REAL_DEVICE_QA.md` J1–J8 checklist 就绪，未实测（无设备） |
+| Web env 化 + 部署就绪 | DONE | `NEXT_PUBLIC_API_URL` + runtime 推导；产物无 localhost:8800；standalone tgz 验证；PUBLIC_DEPLOYMENT=EXTERNAL_BLOCKED |
+| Visual Regression V2 | DONE | `visual-regression-v2.spec.ts` 逐像素 diff（tolerance 5/255、≤0.2%）；冻结 `artifacts/visual-baseline-approved/` 60 张；显式刷新；修复跨测试数据污染（功能→seed→视觉链）与 dev/production 渲染差异；最终 60/60 = 0 diff |
+| UI/UX v3.3 复验收 | ACCEPTED | `reports/STAGE_R1_V3_3_UIUX_REACCEPTANCE.md` → UI_UX_V3_3_ACCEPTED（6 屏 + 状态全覆盖，production 模式复跑） |
+| Demo 双宠正式化 | DONE | seed Coco/Mimi → 豆豆(dog)/咪咪(cat)；全仓测试/文档同步；synthetic 排除机制回归通过 |
+| signing 措辞统一 | DONE | 全库统一 DEBUG_SIGNED_INSTALLABLE_APK/NOT_PLAY_STORE_SIGNED/PLAY_STORE_SIGNING=EXTERNAL_BLOCKED；v0.1.0 历史只加注记 |
+| 截图包 | DONE | `artifacts/release/v0.1.1/screenshots/web/` 12 张；android/ 为回填说明 |
+
+```text
+PLI_V0_1_1_INTERNAL_READY · REAL_PARTICIPANTS=0 · REAL_PETS=0 · PILOT_MODE=false
+ANDROID_REAL_DEVICE_QA=NOT_YET_OBSERVED · PUBLIC_DEPLOYMENT=EXTERNAL_BLOCKED
+PRODUCT_VALIDATION=NOT_YET_OBSERVED
+下一步：Stage G-W0A First Real Participants（Web/Android 真可访问后）；不进入 Stage I / v1.3 / Future 42
+```
+
+## Stage R 完成情况（历史快照，2026-09-24，Stage R 当时全部真实命令/CI 验证）
+
+> Historical wording note: v0.1.0 时期的「未签名」表述已由 Stage R.1 统一为
+> `DEBUG_SIGNED_INSTALLABLE_APK` + `NOT_PLAY_STORE_SIGNED` + `PLAY_STORE_SIGNING=EXTERNAL_BLOCKED`。<br>
+> 真机 QA 状态由当时的 `EXTERNAL_BLOCKED` 细化为本轮 `ANDROID_BUILD_READY` + `NOT_YET_OBSERVED`。
+
+<table><tr><td>交付项</td><td>状态</td><td>证据</td></tr>
+<tr><td>GitHub 正式化</td><td>DONE</td><td>github.com/huangdi97/pet-life-intelligence（public）；main + tags 全量推送；CI 全绿；LICENSE/CONTRIBUTING/README 对齐</td></tr>
+<tr><td>Web 成品</td><td>DONE</td><td>生产构建 exit 0；GET /、/manifest.webmanifest、/sw.js 200；Playwright 29/29；standalone 产物入 Release</td></tr>
+<tr><td>Android 成品</td><td>DONE</td><td>android.yml：expo prebuild + gradle assembleRelease；app-release.apk（84MB，debug 签名 = DEBUG_SIGNED_INSTALLABLE_APK）产出为 workflow artifact + Release 资产</td></tr>
+<tr><td>UI/UX 实装验收</td><td>ACCEPTED</td><td>reports/STAGE_R_UIUX_ACCEPTANCE.md（P0=0/P1=0/P2=5 登记；基准 v3.1-R1 + DESIGN_SYSTEM_V3 + IA 冻结；v3.3 基准升级由 Stage R.1 完成）</td></tr>
+<tr><td>v0.1.0 发布</td><td>DONE</td><td>git tag v0.1.0；CHANGELOG v0.1.0；README 对齐；GitHub Release 含 APK + Web 产物；reports/STAGE_R_RELEASE_REPORT.md</td></tr>
+<tr><td>CI 修复（线上化首跑暴露）</td><td>DONE</td><td>minio→quay.io、jsonschema dev-extra、OpenAPI 再生成、pnpm autolinking 依赖补全、Playwright --config 显式化</td></tr>
+</table>
 
 ```text
 PLI_V0_1_0_RELEASED · REAL_PARTICIPANTS=0 · PILOT_MODE=false
-PLAY_STORE_SIGNING=EXTERNAL_BLOCKED · 真机 QA=EXTERNAL_BLOCKED
-下一步 Stage G-W0A First Real Participants；不进入 Stage I / v1.3 / Future 42
+PLAY_STORE_SIGNING=EXTERNAL_BLOCKED · 真机 QA=EXTERNAL_BLOCKED（当时）
 ```
+
 
 ## Stage H 完成情况（2026-09-20，全部真实命令验证）
 

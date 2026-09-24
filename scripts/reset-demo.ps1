@@ -7,5 +7,5 @@ Write-Host "== PLI demo reset (dev only) =="
 Push-Location services\api
 ..\..\.venv\Scripts\python.exe -m app.seed
 Pop-Location
-Write-Host "Demo data reseeded: Demo Family / Coco (dog) / Mimi (cat)"
+Write-Host "Demo data reseeded: Demo Family / 豆豆 (dog) / 咪咪 (cat)"
 Write-Host "Login at http://localhost:3100/login with owner@pli.demo"

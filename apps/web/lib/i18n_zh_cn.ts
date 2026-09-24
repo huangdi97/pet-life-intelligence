@@ -213,7 +213,11 @@ export const zhCN = {
     tabFind: "找",
     tabPlan: "计划",
     tabExplain: "解释",
+    explainFacts: "事实（Fact）",
+    explainBaseline: "与它自己相比（Personal Baseline）",
     askPlaceholder: "例如：最近体重有什么变化？",
+    explainInference: "推断与不确定（Inference & Uncertainty）",
+    explainNext: "下一步（Next step）",
     suggestions: [
       "最近体重有什么变化？",
       "上次耳朵异常是什么时候？",

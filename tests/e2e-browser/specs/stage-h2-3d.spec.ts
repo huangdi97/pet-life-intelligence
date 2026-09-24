@@ -21,8 +21,8 @@ async function demoPetId(request: import("@playwright/test").APIRequestContext):
     headers: { "X-Dev-User-Id": body.user_id },
   });
   const pets = (await r.json()) as Array<{ id: string; name: string }>;
-  const coco = pets.find((p) => p.name === "Coco");
-  expect(coco, "seeded Coco pet should exist").toBeTruthy();
+  const coco = pets.find((p) => p.name === "豆豆");
+  expect(coco, "seeded 豆豆 pet should exist").toBeTruthy();
   return coco!.id;
 }
 

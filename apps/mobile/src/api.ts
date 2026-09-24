@@ -1,14 +1,14 @@
 /** Mobile API client — thin fetch wrapper over the same endpoints the web app
  *  uses (services/api, /api/v1). Auth: real session token from secure storage
  *  or dev-mode X-Dev-User-Id (same header pattern as packages/api-client).
- *  Timeout on every request; errors map to human language — never raw codes. */
-import Constants from "expo-constants";
+ *  Timeout on every request; errors map to human language — never raw codes.
+ *  The base URL is env-injected (Stage R.1); there is no loopback fallback. */
 import { getDevUserId, getToken, setDevUserId } from "./storage/session";
+import { resolveApiBaseUrl } from "./apiConfig";
 
 const TIMEOUT_MS = 15000;
 
-const BASE: string =
-  (Constants.expoConfig?.extra?.apiUrl as string | undefined) ?? "http://localhost:8800";
+const BASE: string | null = resolveApiBaseUrl();
 
 export interface ApiErrorBody {
   error: { code: string; message: string; request_id: string; details?: Record<string, unknown> };

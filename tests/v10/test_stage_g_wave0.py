@@ -46,7 +46,7 @@ async def test_is_demo_flags_default_false(client):
 
 @pytest.mark.asyncio
 async def test_demo_seed_excluded_from_pilot_metrics(client, seeded):
-    """Demo pets (Coco/Mimi, is_demo=True) never count as real pilot pets."""
+    """Demo pets (豆豆/咪咪, is_demo=True) never count as real pilot pets."""
     r = await client.get("/api/v1/pilot/status")
     assert r.status_code == 200
     body = r.json()

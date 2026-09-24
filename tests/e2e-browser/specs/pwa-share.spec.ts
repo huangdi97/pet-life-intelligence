@@ -38,7 +38,7 @@ test("E2E-08 PWA manifest + service worker + offline fallback", async ({ page, r
 test("E2E-09 H5 分享页（Vet Brief 匿名访问 + 过期/撤销态）", async ({ browser, request }) => {
   const ownerId = await userIdFor(request, "owner@pli.demo");
   const pets = await (await request.get(`${API}/pets`, { headers: { "X-Dev-User-Id": ownerId } })).json();
-  const coco = pets.find((p: { name: string }) => p.name.startsWith("Coco"));
+  const coco = pets.find((p: { name: string }) => p.name.startsWith("豆豆"));
 
   const he = await (
     await request.post(`${API}/pets/${coco.id}/health-events`, {

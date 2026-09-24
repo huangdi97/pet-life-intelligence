@@ -1,7 +1,7 @@
 "use client";
 
+import { api, API_URL, type Grant, type HouseholdMemberRow } from "@pli/api-client";
 import { useState } from "react";
-import { api, type Grant, type HouseholdMemberRow } from "@pli/api-client";
 import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State } from "../../components/ui";
 
@@ -157,7 +157,7 @@ export default function CarePage() {
           <div className="alert info" style={{ marginTop: 10 }}>
             分享链接（72h 有效）：<code>/care-card/{card.token}</code>
             <br />
-            <span className="muted">在浏览器打开 {`http://localhost:8800/api/v1/care-card/${card.token}`} 查看效果</span>
+            <span className="muted">在浏览器打开 {`${API_URL}/api/v1/care-card/${card.token}`} 查看效果</span>
           </div>
         )}
       </div>

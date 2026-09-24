@@ -4,7 +4,7 @@
  *  - 医疗高风险数据与 API 响应一律 network-first，绝不缓存到本地持久化。
  *  - 离线时访问未缓存页 → 显示 /offline 离线页。
  *  - basePath-aware（Stage F）：从自身 registration.scope 推导部署前缀
- *    （localhost → ""，/pli 部署 → "/pli"），所有缓存/匹配路径随前缀走。
+ *    （dev 根路径部署 → 空字符串，/pli 部署 → /pli），所有缓存/匹配路径随前缀走。
  */
 const VERSION = "pli-sw-v2";
 const SHELL_CACHE = `${VERSION}-shell`;

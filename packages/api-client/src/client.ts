@@ -1,7 +1,20 @@
 import type { ApiErrorBody } from "./types";
 
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8800";
+// API base URL resolution — Stage R.1 (Web real-access closure).
+// Primary source: NEXT_PUBLIC_API_URL injected at build time (production-like
+// builds MUST set it explicitly). No bundle may embed a hardcoded loopback:
+// when the env value is absent we derive a dev convenience fallback at RUNTIME
+// from window.location (<protocol>//<host>:8800), so a browser page served
+// from localhost:3000/3100 reaches the local API without putting the literal
+// "localhost:8800" into the shipped JavaScript.
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").trim() || resolveRuntimeApiUrl();
+
+function resolveRuntimeApiUrl(): string {
+  if (typeof window === "undefined") return "";
+  const host = window.location.hostname;
+  if (!host) return "";
+  return `${window.location.protocol}//${host}:8800`;
+}
 
 const USER_KEY = "pli_dev_user_id";
 const REFRESH_KEY = "pli_refresh_token";

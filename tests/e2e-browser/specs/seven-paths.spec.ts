@@ -51,7 +51,7 @@ test("E2E-02 家庭协作 / 权限（成员可完成，Owner-only 被拒，API 4
   const ownerId = await userIdFor(request, "owner@pli.demo");
   const familyId = await userIdFor(request, "family@pli.demo");
   const pets = await (await request.get(`${API}/pets`, { headers: { "X-Dev-User-Id": ownerId } })).json();
-  const coco = pets.find((p: { name: string }) => p.name.startsWith("Coco"));
+  const coco = pets.find((p: { name: string }) => p.name.startsWith("豆豆"));
 
   // owner creates a task in the browser
   const ownerPage = await browser.newPage();
@@ -100,7 +100,7 @@ test("E2E-03 红旗 → EMERGENCY → Vet Brief（前端不降级、刷新一致
   await loginAsEmail(page, request, "owner@pli.demo");
   const ownerId = await userIdFor(request, "owner@pli.demo");
   const pets = await (await request.get(`${API}/pets`, { headers: { "X-Dev-User-Id": ownerId } })).json();
-  const mimi = pets.find((p: { name: string }) => p.name === "Mimi");
+  const mimi = pets.find((p: { name: string }) => p.name === "咪咪");
   await useCurrentPet(page, mimi.id);
 
   await page.goto("/health");
@@ -128,7 +128,7 @@ test("E2E-03 红旗 → EMERGENCY → Vet Brief（前端不降级、刷新一致
 test("E2E-04 Medication → 给药 → Outcome → Timeline（重复提交无重复数据）", async ({ page, request }) => {
   const ownerId = await userIdFor(request, "owner@pli.demo");
   const pets = await (await request.get(`${API}/pets`, { headers: { "X-Dev-User-Id": ownerId } })).json();
-  const coco = pets.find((p: { name: string }) => p.name.startsWith("Coco"));
+  const coco = pets.find((p: { name: string }) => p.name.startsWith("豆豆"));
   await loginAsEmail(page, request, "owner@pli.demo");
   await useCurrentPet(page, coco.id);
 
@@ -183,8 +183,8 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
   const ownerId = await userIdFor(request, "owner@pli.demo");
   const sitterId = await userIdFor(request, "sitter@pli.demo");
   const pets = await (await request.get(`${API}/pets`, { headers: { "X-Dev-User-Id": ownerId } })).json();
-  const coco = pets.find((p: { name: string }) => p.name.startsWith("Coco"));
-  const mimi = pets.find((p: { name: string }) => p.name === "Mimi");
+  const coco = pets.find((p: { name: string }) => p.name.startsWith("豆豆"));
+  const mimi = pets.find((p: { name: string }) => p.name === "咪咪");
   await loginAsEmail(page, request, "owner@pli.demo");
   await useCurrentPet(page, coco.id);
 
@@ -205,7 +205,7 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
   expect(cardBody.content.triage_history).toBeUndefined();
   expect(cardBody.content.observations).toBeUndefined();
 
-  // caregiver sees only the handed-off pet — Mimi must stay hidden
+  // caregiver sees only the handed-off pet — 咪咪 must stay hidden
   const sitterPage = await browser.newPage();
   await loginAsEmail(sitterPage, request, "sitter@pli.demo");
   const mimiDenied = await sitterPage.request.get(`${API}/pets/${mimi.id}`, {
@@ -226,7 +226,7 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
 test("E2E-06 Behavior ABC（中文+emoji 输入，Timeline 可见，页面不崩）", async ({ page, request }) => {
   const ownerId = await userIdFor(request, "owner@pli.demo");
   const pets = await (await request.get(`${API}/pets`, { headers: { "X-Dev-User-Id": ownerId } })).json();
-  const coco = pets.find((p: { name: string }) => p.name.startsWith("Coco"));
+  const coco = pets.find((p: { name: string }) => p.name.startsWith("豆豆"));
   await loginAsEmail(page, request, "owner@pli.demo");
   await useCurrentPet(page, coco.id);
 
@@ -248,11 +248,11 @@ test("E2E-07 IDOR / URL 篡改（跨 owner 访问必须 403/404 且不泄露）"
   const ownerId = await userIdFor(request, "owner@pli.demo");
   const sitterId = await userIdFor(request, "sitter@pli.demo"); // no membership
   const pets = await (await request.get(`${API}/pets`, { headers: { "X-Dev-User-Id": ownerId } })).json();
-  const coco = pets.find((p: { name: string }) => p.name.startsWith("Coco"));
-  const mimi = pets.find((p: { name: string }) => p.name === "Mimi");
+  const coco = pets.find((p: { name: string }) => p.name.startsWith("豆豆"));
+  const mimi = pets.find((p: { name: string }) => p.name === "咪咪");
   const fakeId = "00000000-0000-0000-0000-00000000dead";
 
-  // sitter has an EXPIRED historical grant on Coco only; Mimi never granted
+  // sitter has an EXPIRED historical grant on 豆豆 only; 咪咪 never granted
   const sitter = await browser.newPage();
   patchGoto(sitter);
   await loginAsEmail(sitter, request, "sitter@pli.demo");
@@ -262,8 +262,8 @@ test("E2E-07 IDOR / URL 篡改（跨 owner 访问必须 403/404 且不泄露）"
       headers: { "X-Dev-User-Id": sitterId },
     });
     expect([403, 404]).toContain(r.status());
-    if (r.status() === 404) expect(await r.text()).not.toContain("Mimi");
-    expect(await r.text()).not.toContain('"name":"Coco"');
+    if (r.status() === 404) expect(await r.text()).not.toContain("咪咪");
+    expect(await r.text()).not.toContain('"name":"豆豆"');
 
     const tl = await sitter.request.get(`${API}/pets/${target}/events`, {
       headers: { "X-Dev-User-Id": sitterId },
@@ -283,7 +283,7 @@ test("E2E-07 IDOR / URL 篡改（跨 owner 访问必须 403/404 且不泄露）"
   await sitter.waitForLoadState("networkidle");
   await sitter.waitForLoadState("networkidle");
   const body = await sitter.content();
-  expect(body).not.toContain("Coco");
+  expect(body).not.toContain("豆豆");
   await sitter.goto(`/health/${(await (await request.get(`${API}/pets/${mimi.id}/health-events`, { headers: { "X-Dev-User-Id": ownerId } })).json())[0].health_event_id}`);
   await expect(sitter.getByText(/没有查看此内容的权限|出错了/).first()).toBeVisible({ timeout: 15_000 });
   const detail = await sitter.content();

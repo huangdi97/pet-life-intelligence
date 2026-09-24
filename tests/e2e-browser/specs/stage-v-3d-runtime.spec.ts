@@ -97,7 +97,7 @@ test("STAGE-V-3D-04 product life-view honest blocked + reduced-motion guard", as
   const pets = await (await request.get("http://localhost:8800/api/v1/pets", {
     headers: { "X-Dev-User-Id": ownerId },
   })).json();
-  const coco = pets.find((p: { name: string }) => p.name.startsWith("Coco"));
+  const coco = pets.find((p: { name: string }) => p.name.startsWith("豆豆"));
   expect(coco).toBeTruthy();
   await loginAsEmail(page, request, "owner@pli.demo");
   await page.goto(`/pets/${coco.id}/life-view`);

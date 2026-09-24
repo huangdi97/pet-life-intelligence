@@ -30,8 +30,8 @@ def main() -> int:
 
     pets = httpx.get(f"{BASE}/pets", headers=headers).json()
     check("pets.count>=2", len(pets) >= 2, True)
-    coco = next(p for p in pets if p["name"] == "Coco")
-    mimi = next(p for p in pets if p["name"] == "Mimi")
+    coco = next(p for p in pets if p["name"] == "豆豆")
+    mimi = next(p for p in pets if p["name"] == "咪咪")
 
     meal = httpx.post(
         f"{BASE}/pets/{coco['id']}/events",

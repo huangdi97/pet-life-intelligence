@@ -142,9 +142,23 @@ jobs:
           (cd services/api && python -m uvicorn app.main:app --port 8800 &)
           (cd apps/web && pnpm start -p 3100 &)
           sleep 15
-      - name: Playwright
+      - name: Playwright (functional specs)
         run: |
-          # Playwright runs from the repo root in this workflow (cd does not
-          # persist across lines here), so pin the config by root-relative path.
+          # Functional specs create BW-* health events / pets in the dev DB;
+          # they must run BEFORE the visual chain so the visual baseline diff
+          # compares a clean seed state against itself (see next step).
           pnpm exec playwright install --with-deps chromium
-          pnpm exec playwright test --config=tests/e2e-browser/playwright.config.ts
+          pnpm exec playwright test --config=tests/e2e-browser/playwright.config.ts --grep-invert "STAGE-V-VISUAL|VISUAL-V2"
+      - name: Reset demo data (visual baseline source of truth)
+        run: |
+          # Idempotent seed wipes all rows then recreates the demo household,
+          # so stage-v-visual captures and visual-regression-v2 diff start from
+          # an identical clean data state (no cross-test pollution).
+          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
+          cd services/api && python -m app.seed
+      - name: Playwright (visual chain)
+        run: |
+          # stage-v-visual regenerates visual-current from clean seed, then
+          # visual-regression-v2 diffs approved baseline vs current (explicit
+          # refresh only via PLI_UPDATE_VISUAL_BASELINE=1).
+          pnpm exec playwright test --config=tests/e2e-browser/playwright.config.ts --grep "STAGE-V-VISUAL|VISUAL-V2"

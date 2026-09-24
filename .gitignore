@@ -31,7 +31,6 @@ tests/e2e-browser/artifacts/results.json
 tests/e2e-browser/artifacts/test-results/
 apps/web/.next/
 apps/admin/.next/
-PUT >$:
 
 # generated native projects (prebuild in CI; never commit)
 apps/mobile/android/
@@ -41,3 +40,11 @@ apps/mobile/ios/
 # signing material must never be committed
 *.jks
 *.keystore
+
+# generated artifact dirs (Stage R.1 Visual Regression V2)
+tests/e2e-browser/artifacts/visual-current/
+tests/e2e-browser/artifacts/visual-regression-failures/
+
+# release binaries are attached to GitHub Releases, not stored in git
+artifacts/release/**/*.apk
+artifacts/release/**/*.tgz

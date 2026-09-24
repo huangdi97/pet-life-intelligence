@@ -34,7 +34,7 @@ async def insert_care(db: AsyncSession, ids: dict, now: datetime) -> dict:
         actor_id=owner_id,
     )
 
-    # expired temporary grant sample for Coco→sitter (historical)
+    # expired temporary grant sample for 豆豆→sitter (historical)
     grant = Grant(
         pet_id=coco_id, user_id=sitter_id,
         scopes=[enums.Capability.DAILY_READ.value, enums.Capability.DAILY_WRITE.value],

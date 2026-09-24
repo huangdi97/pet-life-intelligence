@@ -25,7 +25,7 @@ def test_every_event_belongs_to_a_valid_pet(client, seeded):
     owner = seeded["owner_id"]
     pets = client.get("/api/v1/pets", headers=auth(owner)).json()
     pet_ids = {p["id"] for p in pets}
-    assert pet_ids  # at least Coco + Mimi
+    assert pet_ids  # at least 豆豆 + 咪咪
     evs = client.get(f"/api/v1/pets/{seeded['coco_id']}/events?limit=100",
                      headers=auth(owner)).json()["events"]
     for e in evs:

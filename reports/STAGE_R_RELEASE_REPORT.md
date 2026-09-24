@@ -1,6 +1,11 @@
 # STAGE_R_RELEASE_REPORT — v0.1.0 发布报告
 
 日期：2026-09-24 · Stage R（Repository, UI & Release Productization Closure）
+>
+> **Historical wording corrected by Stage R.1 (2026-09-24, v0.1.1):**
+> 本报告为 v0.1.0 历史快照，不改写。其中 APK "未签名/UNSIGNED" 表述在本轮统一为：
+> `DEBUG_SIGNED_INSTALLABLE_APK` + `NOT_PLAY_STORE_SIGNED` + `PLAY_STORE_SIGNING=EXTERNAL_BLOCKED`，
+> 详见 `reports/MOBILE_API_CONFIGURATION_REPORT.md` 与 v0.1.1 报告。
 前置：Stage V / V.2 完成态（HEAD 演进见下）；本报告证据全部为当日真实命令/CI 输出。
 
 ---

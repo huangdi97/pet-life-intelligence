@@ -2,11 +2,13 @@
   "expo": {
     "name": "宠物生活智能",
     "slug": "pli-mobile",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
       "backgroundColor": "#FAF8F5"
     },
     "ios": {
@@ -20,7 +22,11 @@
     },
     "android": {
       "package": "com.pli.mobile",
-      "versionCode": 1,
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FAF8F5"
+      },
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -31,9 +37,6 @@
       "expo-camera",
       "expo-image-picker",
       "expo-secure-store"
-    ],
-    "extra": {
-      "apiUrl": "http://localhost:8800"
-    }
+    ]
   }
 }

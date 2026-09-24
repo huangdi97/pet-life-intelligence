@@ -1,12 +1,15 @@
 name: Android + Release Artifacts
 
-# Stage R (Contract C1): builds an installable (unsigned/debug-signed) Android
-# APK via expo prebuild + Gradle, and the lean Web standalone artifact, on
-# GitHub-hosted Linux runners (no local Android SDK required).
+# Stage R/Stage R.1: builds an installable Android APK via expo prebuild +
+# Gradle, and the lean Web standalone artifact, on GitHub-hosted Linux
+# runners (no local Android SDK required).
 #
-# PLAY_STORE_SIGNING=EXTERNAL_BLOCKED by design: no Google Play account.
-# The APK is intentionally NOT release-signed; signing stays a manual,
-# account-bound step.
+# Signing posture (unified by Stage R.1):
+#   DEBUG_SIGNED_INSTALLABLE_APK — the artifact is debug-signed (a release-
+#     flavor APK signed with the debug key) and installable on real devices.
+#   NOT_PLAY_STORE_SIGNED — it is not Play-Store signed.
+#   PLAY_STORE_SIGNING=EXTERNAL_BLOCKED — no Google Play account; account-
+#     bound signing stays a manual step.
 
 on:
   push:
@@ -29,7 +32,7 @@ env:
 
 jobs:
   android-apk:
-    name: Android APK (unsigned/debug)
+    name: Android APK (DEBUG_SIGNED_INSTALLABLE_APK / NOT_PLAY_STORE_SIGNED)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +49,7 @@ jobs:
         run: pnpm --dir apps/mobile typecheck
       - name: Expo prebuild (android)
         run: pnpm --dir apps/mobile exec expo prebuild --platform android --non-interactive
-      - name: Gradle assembleRelease (unsigned)
+      - name: Gradle assembleRelease
         working-directory: apps/mobile/android
         run: ./gradlew assembleRelease --no-daemon
       - name: Collect APK

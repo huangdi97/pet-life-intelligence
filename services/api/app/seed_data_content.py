@@ -1,4 +1,4 @@
-"""Demo content rows for ``app.seed``: Coco/Mimi daily life events and Coco's
+"""Demo content rows for ``app.seed``: 豆豆/咪咪 daily life events and 豆豆's
 behavior event (GOAL Phase 12 / G12 demo family).
 """
 
@@ -14,13 +14,13 @@ from app.services.eventlog import create_life_event
 async def insert_content(
     db: AsyncSession, ids: dict, now: datetime, today8: datetime,
 ) -> None:
-    """Insert daily life events for both pets and Coco's behavior event."""
+    """Insert daily life events for both pets and 豆豆's behavior event."""
     owner_id = ids["owner_id"]
     family_id = ids["family_id"]
     coco_id = ids["coco_id"]
     mimi_id = ids["mimi_id"]
 
-    # daily events for Coco
+    # daily events for 豆豆
     await create_life_event(
         db, pet_id=coco_id, event_type="daily.meal",
         payload={"food_type": "dog kibble", "amount": "120", "unit": "g"},

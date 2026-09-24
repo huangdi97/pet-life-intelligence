@@ -22,7 +22,7 @@ Push-Location services\api
 Pop-Location
 
 Write-Host "Starting API (8800), Web (3100) and worker in separate windows..."
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root\services\api'; ..\..\.venv\Scripts\python.exe -m uvicorn app.main:app --port 8800"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root\services\api'; ..\..\.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8800"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root\apps\web'; pnpm dev -p 3100"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root'; .\.venv\Scripts\python.exe services\worker\main.py --loop 60"
 

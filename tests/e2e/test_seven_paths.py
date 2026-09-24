@@ -199,7 +199,7 @@ def test_e2e_05_health_event_full_path(client, seeded):
 def test_e2e_06_medication_and_outcome(client, seeded):
     """用药计划 → 给药 → 遗漏提醒 → Outcome 关联健康事件."""
     owner, mimi = seeded["owner_id"], seeded["mimi_id"]
-    he = seeded["health_event_non_emergency_id"]  # Mimi's ear issue episode
+    he = seeded["health_event_non_emergency_id"]  # 咪咪's ear issue episode
     plan = client.post(f"/api/v1/pets/{mimi}/medication-plans",
                        json={"medicine_name": "Amoxicillin", "dose_text": "25mg",
                              "route": "oral", "frequency_per_day": 2,

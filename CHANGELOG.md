@@ -1,6 +1,73 @@
 # Changelog
 
+## v0.1.1 (Stage R.1) — 真实访问链路 + Android 真机就绪 + v3.3 对齐 + 品牌/视觉收口
+
+> 内部发布线内部版本（Internal / Pre-Pilot），2026-09-24。定位：从
+> `SOURCE RELEASE READY` 推进到 `REAL ACCESS READY + REAL DEVICE TESTABLE
+> + CANONICAL v3.3 ALIGNED + FINAL VISUAL ACCEPTANCE READY`。
+>
+> 未改 v0.1.0 tag；v0.1.0 为公开产品发布线首个版本，本轮是其内部收口续版。
+
+### Added / Changed
+- **v3.3-R1 canonical 正式入库**：`docs/canonical/PLI_v3.3-R1.md`（CURRENT）+ `docs/canonical/README.md`
+  索引（v3.1/v3.2 = HISTORICAL，v3.3 = CURRENT）；`reports/V3_3_CANONICAL_DELTA_AUDIT.md`
+  `V3_3_MISSING_CRITICAL=0`（Living Canvas / PLM / 3D Life View / 3D Capture / 3D Versioning /
+  Provenance / Fallback / Companion / Today state carrier / Timeline×3D / Contextual Explain 全部有代码+测试证据）。
+- **Android API 环境化（真实缺陷修复）**：`app.json extra.apiUrl` 不再写死 `http://localhost:8800`；
+  新增 `app.config.js`（`EXPO_PUBLIC_PLI_API_URL` 注入）+ `src/apiConfig.ts`（无 localhost 回退，
+  MISSING/INVALID fail-safe）+ `ApiConfigErrorScreen.tsx`（配置错误屏，不再无限 loading）+
+  `manifest-cleartext.js`（仅 http:// DEV/INTERNAL 放行明文）；`dev.ps1` API 绑定 `0.0.0.0:8800`。
+- **Android 品牌基线**：`assets/icon.png`(1024) / `adaptive-icon.png`(1024) / `splash.png`(1284×2778)
+  替换 Expo 默认资源；生成脚本 `scripts/gen-brand-assets.mjs`（确定性、无外部依赖）；
+  `app.json` name=「宠物生活智能」、version=0.1.1、versionCode=2、package=`com.pli.mobile`。
+- **Android v0.1.1 internal-LAN APK 实建**：`artifacts/release/v0.1.1/Pet-Life-Intelligence-v0.1.1-internal-lan.apk`
+  （84.1 MB；env `http://192.168.0.100:8800` 已注入；sha256 见 SHA256SUMS；签名=
+  `DEBUG_SIGNED_INSTALLABLE_APK` / `NOT_PLAY_STORE_SIGNED`；release manifest `usesCleartextTraffic=true`
+  仅 http 构建）。真机 QA=NOT_YET_OBSERVED（J1–J8 checklist 见 `reports/ANDROID_REAL_DEVICE_QA.md`）。
+- **Web env 化 + 部署就绪**：`packages/api-client` 由 `NEXT_PUBLIC_API_URL` 注入、运行时按
+  `window.location` 推导，产物无 `localhost:8800` / `127.0.0.1` 字面量（已验证）；standalone tgz
+  组装通过；`PUBLIC_DEPLOYMENT=EXTERNAL_BLOCKED`（无 VPS/域名/HTTPS，见 `reports/WEB_REAL_ACCESS_REPORT.md`）。
+- **Visual Regression V2（采集型 → 真实 diff）**：冻结 `artifacts/visual-baseline-approved/`（60 张）；
+  `visual-regression-v2.spec.ts` 逐像素 diff（tolerance 5/255、diff ratio ≤0.2%），超阈值 CI FAIL 并产出
+  actual/expected/diff 三件套；刷新必须显式（`PLI_UPDATE_VISUAL_BASELINE=1`）。本轮修复两个架构问题：
+  ① 功能 spec 污染 DB（BW-* 健康事件）→ CI/本地拆分「功能 → seed 重置 → 视觉链」；② dev server 与
+  production 渲染差异 → 基线一律在 production 渲染下冻结（本地 `PLIT_LOCAL_BUILD=1`）。
+  最终 production 模式 60/60 diff = 0.0000%（`reports/VISUAL_REGRESSION_V2_REPORT.md`）。
+- **UI/UX v3.3 复验收**：`reports/STAGE_R1_V3_3_UIUX_REACCEPTANCE.md` → `UI_UX_V3_3_ACCEPTED`
+  （Today/Timeline/Pet/3D Life View/Assistant/Companion 六屏 + 状态全覆盖，production 模式复跑证据）。
+- **Demo 双宠正式化**：seed 由 `Coco/Mimi` → `豆豆(dog)/咪咪(cat)`；全仓测试/文档同步
+  （e2e 查找、state probes、synthetic 名单除外）；demo/synthetic 排除机制回归通过
+  （SYNTHETIC_NEVER_COUNTS_AS_REAL、/pilot/status 0/0/0）。
+- **signing 措辞统一**：全库 README/CHANGELOG/WORK_STATUS/docs 统一
+  `DEBUG_SIGNED_INSTALLABLE_APK` + `NOT_PLAY_STORE_SIGNED` + `PLAY_STORE_SIGNING=EXTERNAL_BLOCKED`；
+  v0.1.0 历史快照只加注记不改写。
+- **截图包**：`artifacts/release/v0.1.1/screenshots/web/`（6 页 × mobile/desktop 12 张）；
+  `android/` 为 NOT_YET_OBSERVED 说明（真机未测，回填指引）。
+
+### 质量门禁（本轮复跑）
+
+```text
+pytest 427 passed / ruff 0 / 五端 typecheck 0 / vitest 22/22
+Playwright 30 tests（27 功能 + 视觉链 3）全 PASS，production 模式
+Admin/Mini/Pro build OK · Web production build OK（PLIT_LOCAL_BUILD 本地 / standalone CI）
+Android APK build PASS（82–84 MB 级）· secret/source-size 等既有 gate 保持
+```
+
+### 状态（诚实）
+
+```text
+STAGE_R1_COMPLETE（本地 gate 全绿）
+ANDROID_REAL_DEVICE_QA = NOT_YET_OBSERVED（真机待用户按 checklist 实测）
+PUBLIC_DEPLOYMENT      = EXTERNAL_BLOCKED（无公网部署资源）
+REAL_PARTICIPANTS = 0 · REAL_PETS = 0 · PRODUCT_VALIDATION = NOT_YET_OBSERVED
+```
+
 ## v0.1.0 (Stage R) — GitHub 正式化 + Web/Android 成品 + UI/UX 实装验收 + 公开发布
+>
+> **Historical wording corrected by Stage R.1 (2026-09-24, v0.1.1):** 本条目为
+> v0.1.0 历史快照，不改写。其中 "未签名"（APK signing）措辞统一为
+> `DEBUG_SIGNED_INSTALLABLE_APK` + `NOT_PLAY_STORE_SIGNED` +
+> `PLAY_STORE_SIGNING=EXTERNAL_BLOCKED`（v0.1.1 条目沿用新措辞）。
 
 首个对外公开版本（2026-09-24）。在 Stage V.2 完成态上完成仓库产品化与发布工程：
 

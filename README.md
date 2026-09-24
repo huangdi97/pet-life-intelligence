@@ -5,16 +5,46 @@
 ## 当前状态
 
 ```text
-PLI_V0_1_0_RELEASED（2026-09-24，Stage R）
+PLI_V0_1_1_INTERNAL_READY（2026-09-24，Stage R.1）
 GitHub：https://github.com/huangdi97/pet-life-intelligence（公开仓库）
-pytest 427 passed / ruff 0 / 五端 typecheck 0 / 五端 build OK / vitest 22/22 / Playwright 29/29
+pytest 427 passed / ruff 0 / 五端 typecheck 0 / vitest 22/22
+Playwright 30（27 功能 + 视觉链 3）production 模式全 PASS
 ```
 
-- **发布形态**：v0.1.0 GitHub Release 含 Web standalone 产物与 Android APK（未签名，CI 构建；Play 上架 = EXTERNAL_BLOCKED）。
+- **v0.1.1（内部 / Pre-Pilot）**：Android 真机链路就绪（LAN internal APK）、
+  API URL 环境注入（不再写死 localhost）、品牌基线（图标/Splash）、
+  v3.3-R1 canonical 对齐、Visual Regression V2（真实 baseline diff）。
+- **发布形态**：v0.1.0 GitHub Release 含 Web standalone 产物与 Android APK
+  （DEBUG_SIGNED_INSTALLABLE_APK / NOT_PLAY_STORE_SIGNED / PLAY_STORE_SIGNING=EXTERNAL_BLOCKED）；
+  v0.1.1 为内部收口续版（`artifacts/release/v0.1.1/`）。
+- **v1.x tags = 历史内部工程里程碑**（v1.0.0/v1.1.0/v1.1.1/v1.2.0 是早期内部命名线）；
+  **v0.1.x = 公开产品发布线**，避免 SemVer 误解（详见 CHANGELOG）。
 - **真实 Auth**：注册/登录/刷新/密码重置/邮箱验证/会话管理（Argon2id + rotating tokens）。
 - **真实 AI**：OpenAI-compatible provider（经 AI Gateway，mock fallback 保可用）。
 - **Pilot**：invite-only 模式 + 反馈 + 指标 + 业务包（医院/门店/训练师/寄养）；PILOT_MODE=false、真实参与者 0（诚实保留）。
-- 详细证据：`reports/STAGE_R_RELEASE_REPORT.md`、`reports/STAGE_R_UIUX_ACCEPTANCE.md`；Stage V 全量审计见 `reports/STAGE_V2_*`。
+- 详细证据：`reports/STAGE_R1_FINAL_REPORT.md`、`reports/STAGE_R1_V3_3_UIUX_REACCEPTANCE.md`、
+  `reports/VISUAL_REGRESSION_V2_REPORT.md`、`reports/ANDROID_REAL_DEVICE_QA.md`、`reports/WEB_REAL_ACCESS_REPORT.md`。
+
+## Screenshots
+
+```text
+artifacts/release/v0.1.1/screenshots/web/      — 核心 6 页 × mobile/desktop（production 模式实拍 12 张）
+artifacts/release/v0.1.1/screenshots/android/  — 真机截图待回填（NOT_YET_OBSERVED）
+```
+
+## Web
+
+- 本地/LAN：`scripts/dev.ps1` 一键起全栈（API :8800 绑定 0.0.0.0，Web :3100）。
+- 部署就绪：`NEXT_PUBLIC_API_URL` 环境注入 + standalone tgz（`infra/docker/` 部署路径）。
+- 公网状态：`PUBLIC_DEPLOYMENT = EXTERNAL_BLOCKED`（无 VPS/域名/HTTPS 资源，详见
+  `reports/WEB_REAL_ACCESS_REPORT.md`）。
+
+## Android
+
+- v0.1.1 internal-LAN APK：`artifacts/release/v0.1.1/Pet-Life-Intelligence-v0.1.1-internal-lan.apk`
+  （package `com.pli.mobile` · versionName 0.1.1 · versionCode 2 · App 名「宠物生活智能」）。
+- 真机 QA：`ANDROID_REAL_DEVICE_QA = NOT_YET_OBSERVED`；安装/登录/核心流程/双宠切换 checklist
+  见 `reports/ANDROID_REAL_DEVICE_QA.md`（预计 ≤15 分钟）。
 
 ## 客户端矩阵
 

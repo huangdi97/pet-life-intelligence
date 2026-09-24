@@ -94,13 +94,13 @@ class TestIDOR:
             )
             if r.status_code == 404 and method == "GET" and "pets" in path:
                 # 404 must not leak the pet's existence via name in body
-                assert "Mimi" not in r.text and "Coco" not in r.text
+                assert "咪咪" not in r.text and "豆豆" not in r.text
 
     def test_fake_uuid_stays_404_without_leak(self, client, seeded):
         outsider = self._outsider(client)
         r = client.get(f"/pets/{FAKE_PET}", headers=auth(outsider))
         assert r.status_code == 404
-        assert "Mimi" not in r.text
+        assert "咪咪" not in r.text
 
     def test_response_of_forbidden_has_no_pet_data(self, client, seeded):
         outsider = self._outsider(client)

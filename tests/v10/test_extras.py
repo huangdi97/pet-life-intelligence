@@ -21,7 +21,7 @@ def test_senior_baseline_gate(client, seeded):
                     json={}, headers=auth(owner))
     assert r.status_code == 201
     body = r.json()
-    # Coco born 2022 → not senior → stays on 14-day window
+    # 豆豆 born 2022 → not senior → stays on 14-day window
     assert body["senior"] is False and body["window_days"] == 14
 
 
@@ -68,7 +68,7 @@ def test_health_constraint_caps_sessions(client, seeded):
                     json={"title": "sit"}, headers=auth(owner)).json()
     ns = client.get(f"/api/v1/training-goals/{g['goal_id']}/next-step",
                     headers=auth(owner)).json()
-    # seeded Coco has an ACTIVE Doxycycline plan
+    # seeded 豆豆 has an ACTIVE Doxycycline plan
     assert ns["health_constraint"] is not None
     assert ns["health_constraint"]["capped_minutes"] == 15
 

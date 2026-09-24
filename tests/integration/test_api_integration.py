@@ -101,7 +101,7 @@ class TestPermissions:
         assert r.status_code == 403
 
     def test_cross_pet_isolation(self, client, seeded):
-        """Sitter has grant on Coco only — must not read Mimi."""
+        """Sitter has grant on 豆豆 only — must not read 咪咪."""
         owner, sitter = seeded["owner_id"], seeded["sitter_id"]
         r = client.post(f"/api/v1/pets/{seeded['coco_id']}/grants",
                         json={"user_id": sitter, "scopes": ["daily:read"],
