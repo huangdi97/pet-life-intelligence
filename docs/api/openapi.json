@@ -771,6 +771,7 @@
     "/api/v1/pets": {
       "get": {
         "tags": [
+          "pets",
           "pets"
         ],
         "summary": "List Pets",
@@ -794,6 +795,7 @@
       },
       "post": {
         "tags": [
+          "pets",
           "pets"
         ],
         "summary": "Create Pet",
@@ -835,6 +837,7 @@
     "/api/v1/pets/{pet_id}": {
       "get": {
         "tags": [
+          "pets",
           "pets"
         ],
         "summary": "Get Pet",
@@ -878,6 +881,7 @@
       },
       "patch": {
         "tags": [
+          "pets",
           "pets"
         ],
         "summary": "Update Pet",
@@ -931,6 +935,7 @@
     "/api/v1/pets/{pet_id}/consents": {
       "get": {
         "tags": [
+          "pets",
           "pets"
         ],
         "summary": "List Consents",
@@ -979,6 +984,7 @@
     "/api/v1/pets/{pet_id}/consents/{purpose}": {
       "put": {
         "tags": [
+          "pets",
           "pets"
         ],
         "summary": "Put Consent",
@@ -1043,6 +1049,7 @@
     "/api/v1/pets/{pet_id}/emergency-profile": {
       "get": {
         "tags": [
+          "pets",
           "pets"
         ],
         "summary": "Get Emergency Profile",
@@ -1086,6 +1093,7 @@
       },
       "put": {
         "tags": [
+          "pets",
           "pets"
         ],
         "summary": "Put Emergency Profile",
@@ -1655,6 +1663,7 @@
     "/api/v1/households/{household_id}/members": {
       "get": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "List Members",
@@ -1703,6 +1712,7 @@
     "/api/v1/households/{household_id}/invitations": {
       "post": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "Invite Member",
@@ -1758,6 +1768,7 @@
     "/api/v1/households/{household_id}/invitations/accept": {
       "post": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "Accept Invitation",
@@ -1813,6 +1824,7 @@
     "/api/v1/pets/{pet_id}/grants": {
       "get": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "List Grants",
@@ -1859,6 +1871,7 @@
       },
       "post": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "Create Grant",
@@ -1914,6 +1927,7 @@
     "/api/v1/grants/{grant_id}": {
       "delete": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "Revoke Grant",
@@ -1959,6 +1973,7 @@
     "/api/v1/pets/{pet_id}/handoffs": {
       "post": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "Create Handoff",
@@ -2012,6 +2027,7 @@
       },
       "get": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "List Handoffs",
@@ -2060,6 +2076,7 @@
     "/api/v1/handoffs/{handoff_id}/end": {
       "post": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "End Handoff",
@@ -2105,6 +2122,7 @@
     "/api/v1/pets/{pet_id}/care-cards": {
       "post": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "Create Care Card",
@@ -2160,6 +2178,7 @@
     "/api/v1/care-card/{token}": {
       "get": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "View Care Card",
@@ -2204,6 +2223,7 @@
     "/api/v1/share-tokens/{token_id}": {
       "delete": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "Revoke Share Token",
@@ -2249,6 +2269,7 @@
     "/api/v1/households/{household_id}/notifications": {
       "get": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "List Notifications",
@@ -2307,6 +2328,7 @@
     "/api/v1/pets/{pet_id}/audit": {
       "get": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "Pet Audit",
@@ -2365,6 +2387,7 @@
     "/api/v1/pets/{pet_id}/deletion-requests": {
       "post": {
         "tags": [
+          "care",
           "care"
         ],
         "summary": "Request Deletion",
@@ -2531,6 +2554,7 @@
     "/api/v1/pets/{pet_id}/health-events": {
       "post": {
         "tags": [
+          "health",
           "health"
         ],
         "summary": "Open Health Event",
@@ -2584,6 +2608,7 @@
       },
       "get": {
         "tags": [
+          "health",
           "health"
         ],
         "summary": "List Health Events",
@@ -2642,6 +2667,7 @@
     "/api/v1/health-events/{health_event_id}": {
       "get": {
         "tags": [
+          "health",
           "health"
         ],
         "summary": "Get Health Event",
@@ -2687,6 +2713,7 @@
     "/api/v1/health-events/{health_event_id}/questions": {
       "post": {
         "tags": [
+          "health",
           "health"
         ],
         "summary": "Generate Questions",
@@ -2733,6 +2760,7 @@
     "/api/v1/health-events/{health_event_id}/answers": {
       "post": {
         "tags": [
+          "health",
           "health"
         ],
         "summary": "Submit Answers",
@@ -2788,6 +2816,7 @@
     "/api/v1/health-events/{health_event_id}/observations": {
       "post": {
         "tags": [
+          "health",
           "health"
         ],
         "summary": "Add Observations",
@@ -2843,6 +2872,7 @@
     "/api/v1/health-events/{health_event_id}/triage": {
       "post": {
         "tags": [
+          "health",
           "health"
         ],
         "summary": "Retriage",
@@ -2899,6 +2929,7 @@
     "/api/v1/health-events/{health_event_id}/vet-brief": {
       "post": {
         "tags": [
+          "health",
           "health"
         ],
         "summary": "Create Vet Brief",
@@ -2944,6 +2975,7 @@
     "/api/v1/vet-briefs/{vet_brief_id}/share": {
       "post": {
         "tags": [
+          "health",
           "health"
         ],
         "summary": "Share Vet Brief",
@@ -2999,6 +3031,7 @@
     "/api/v1/vet-briefs/shared/{token}": {
       "get": {
         "tags": [
+          "health",
           "health"
         ],
         "summary": "View Shared Vet Brief",
@@ -3043,6 +3076,7 @@
     "/api/v1/health-events/{health_event_id}/outcomes": {
       "post": {
         "tags": [
+          "health",
           "health"
         ],
         "summary": "Record Outcome",
@@ -3461,6 +3495,7 @@
     "/api/v1/pets/{pet_id}/identifiers": {
       "post": {
         "tags": [
+          "v02-identity-daily",
           "v02-identity-daily"
         ],
         "summary": "Add Identifier",
@@ -3514,6 +3549,7 @@
       },
       "get": {
         "tags": [
+          "v02-identity-daily",
           "v02-identity-daily"
         ],
         "summary": "List Identifiers",
@@ -3562,6 +3598,7 @@
     "/api/v1/pets/{pet_id}/status": {
       "post": {
         "tags": [
+          "v02-identity-daily",
           "v02-identity-daily"
         ],
         "summary": "Change Lifecycle",
@@ -3617,6 +3654,7 @@
     "/api/v1/pets/{pet_id}/baseline/recompute": {
       "post": {
         "tags": [
+          "v02-identity-daily",
           "v02-identity-daily"
         ],
         "summary": "Recompute Baseline",
@@ -3674,6 +3712,7 @@
     "/api/v1/pets/{pet_id}/baseline": {
       "get": {
         "tags": [
+          "v02-identity-daily",
           "v02-identity-daily"
         ],
         "summary": "Get Baseline",
@@ -3722,6 +3761,7 @@
     "/api/v1/pets/{pet_id}/diary": {
       "post": {
         "tags": [
+          "v02-identity-daily",
           "v02-identity-daily"
         ],
         "summary": "Add Diary Entry",
@@ -3775,6 +3815,7 @@
       },
       "get": {
         "tags": [
+          "v02-identity-daily",
           "v02-identity-daily"
         ],
         "summary": "List Diary",
@@ -3833,6 +3874,7 @@
     "/api/v1/pets/{pet_id}/daily-summary": {
       "post": {
         "tags": [
+          "v02-identity-daily",
           "v02-identity-daily"
         ],
         "summary": "Generate Daily Summary",
@@ -3895,6 +3937,7 @@
     "/api/v1/care-cards/{card_id}/qr.svg": {
       "get": {
         "tags": [
+          "v02-identity-daily",
           "v02-identity-daily"
         ],
         "summary": "Care Card Qr",
@@ -3941,6 +3984,7 @@
     "/api/v1/handoffs/{handoff_id}/checklist": {
       "post": {
         "tags": [
+          "v02-care-health",
           "v02-care-health"
         ],
         "summary": "Init Checklist",
@@ -3994,6 +4038,7 @@
       },
       "get": {
         "tags": [
+          "v02-care-health",
           "v02-care-health"
         ],
         "summary": "Get Checklist",
@@ -4039,6 +4084,7 @@
     "/api/v1/handoffs/{handoff_id}/checklist/update": {
       "post": {
         "tags": [
+          "v02-care-health",
           "v02-care-health"
         ],
         "summary": "Update Checklist",
@@ -4094,6 +4140,7 @@
     "/api/v1/handoffs/{handoff_id}/daily-report": {
       "get": {
         "tags": [
+          "v02-care-health",
           "v02-care-health"
         ],
         "summary": "Handoff Daily Report",
@@ -4156,6 +4203,7 @@
     "/api/v1/handoffs/{handoff_id}/summary": {
       "get": {
         "tags": [
+          "v02-care-health",
           "v02-care-health"
         ],
         "summary": "Handoff End Summary",
@@ -4198,118 +4246,10 @@
         }
       }
     },
-    "/api/v1/pets/{pet_id}/tasks/matrix": {
-      "get": {
-        "tags": [
-          "v02-care-health"
-        ],
-        "summary": "Task Matrix",
-        "operationId": "task_matrix_api_v1_pets__pet_id__tasks_matrix_get",
-        "parameters": [
-          {
-            "name": "pet_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Pet Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Task Matrix Api V1 Pets  Pet Id  Tasks Matrix Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/notifications/for-role/{role}": {
-      "get": {
-        "tags": [
-          "v02-care-health"
-        ],
-        "summary": "Notifications For Role",
-        "operationId": "notifications_for_role_api_v1_notifications_for_role__role__get",
-        "parameters": [
-          {
-            "name": "role",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Role"
-            }
-          },
-          {
-            "name": "household_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Household Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": true
-                  },
-                  "title": "Response Notifications For Role Api V1 Notifications For Role  Role  Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/pets/{pet_id}/health-records": {
       "post": {
         "tags": [
+          "v02-care-health",
           "v02-care-health"
         ],
         "summary": "Import Health Record",
@@ -4363,6 +4303,7 @@
       },
       "get": {
         "tags": [
+          "v02-care-health",
           "v02-care-health"
         ],
         "summary": "List Health Records",
@@ -4411,6 +4352,7 @@
     "/api/v1/health-events/{health_event_id}/recovery-plan": {
       "post": {
         "tags": [
+          "v02-care-health",
           "v02-care-health"
         ],
         "summary": "Create Recovery Plan",
@@ -4466,6 +4408,7 @@
     "/api/v1/recovery-plans/{plan_id}/items/{index}": {
       "patch": {
         "tags": [
+          "v02-care-health",
           "v02-care-health"
         ],
         "summary": "Update Recovery Item",
@@ -4532,6 +4475,7 @@
     "/api/v1/health-events/{health_event_id}/trend": {
       "get": {
         "tags": [
+          "v02-care-health",
           "v02-care-health"
         ],
         "summary": "Symptom Trend",
@@ -4574,9 +4518,121 @@
         }
       }
     },
+    "/api/v1/pets/{pet_id}/tasks/matrix": {
+      "get": {
+        "tags": [
+          "v02-care-health",
+          "v02-care-health"
+        ],
+        "summary": "Task Matrix",
+        "operationId": "task_matrix_api_v1_pets__pet_id__tasks_matrix_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Task Matrix Api V1 Pets  Pet Id  Tasks Matrix Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/for-role/{role}": {
+      "get": {
+        "tags": [
+          "v02-care-health",
+          "v02-care-health"
+        ],
+        "summary": "Notifications For Role",
+        "operationId": "notifications_for_role_api_v1_notifications_for_role__role__get",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Role"
+            }
+          },
+          {
+            "name": "household_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Household Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Notifications For Role Api V1 Notifications For Role  Role  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{pet_id}/reminders": {
       "post": {
         "tags": [
+          "v02-care-health",
           "v02-care-health"
         ],
         "summary": "Create Reminder",
@@ -4630,6 +4686,7 @@
       },
       "get": {
         "tags": [
+          "v02-care-health",
           "v02-care-health"
         ],
         "summary": "List Reminders",
@@ -4678,6 +4735,7 @@
     "/api/v1/reminders/{reminder_id}/done": {
       "post": {
         "tags": [
+          "v02-care-health",
           "v02-care-health"
         ],
         "summary": "Complete Reminder",
@@ -4723,6 +4781,7 @@
     "/api/v1/behavior-templates": {
       "get": {
         "tags": [
+          "v02-behavior-training",
           "v02-behavior-training"
         ],
         "summary": "Behavior Templates",
@@ -4746,6 +4805,7 @@
     "/api/v1/pets/{pet_id}/behavior/triggers": {
       "get": {
         "tags": [
+          "v02-behavior-training",
           "v02-behavior-training"
         ],
         "summary": "Behavior Triggers",
@@ -4791,6 +4851,7 @@
     "/api/v1/pets/{pet_id}/behavior/trends": {
       "get": {
         "tags": [
+          "v02-behavior-training",
           "v02-behavior-training"
         ],
         "summary": "Behavior Trends",
@@ -4849,110 +4910,10 @@
         }
       }
     },
-    "/api/v1/pets/{pet_id}/preferences": {
-      "post": {
-        "tags": [
-          "v02-behavior-training"
-        ],
-        "summary": "Add Preference",
-        "operationId": "add_preference_api_v1_pets__pet_id__preferences_post",
-        "parameters": [
-          {
-            "name": "pet_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Pet Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PreferenceIn"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Add Preference Api V1 Pets  Pet Id  Preferences Post"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "v02-behavior-training"
-        ],
-        "summary": "List Preferences",
-        "operationId": "list_preferences_api_v1_pets__pet_id__preferences_get",
-        "parameters": [
-          {
-            "name": "pet_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Pet Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": true
-                  },
-                  "title": "Response List Preferences Api V1 Pets  Pet Id  Preferences Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/pets/{pet_id}/behavior/advice": {
       "post": {
         "tags": [
+          "v02-behavior-training",
           "v02-behavior-training"
         ],
         "summary": "Behavior Advice",
@@ -5006,9 +4967,113 @@
         }
       }
     },
+    "/api/v1/pets/{pet_id}/preferences": {
+      "post": {
+        "tags": [
+          "v02-behavior-training",
+          "v02-behavior-training"
+        ],
+        "summary": "Add Preference",
+        "operationId": "add_preference_api_v1_pets__pet_id__preferences_post",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferenceIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Add Preference Api V1 Pets  Pet Id  Preferences Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "v02-behavior-training",
+          "v02-behavior-training"
+        ],
+        "summary": "List Preferences",
+        "operationId": "list_preferences_api_v1_pets__pet_id__preferences_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Preferences Api V1 Pets  Pet Id  Preferences Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{pet_id}/training-goals": {
       "post": {
         "tags": [
+          "v02-behavior-training",
           "v02-behavior-training"
         ],
         "summary": "Create Goal",
@@ -5062,6 +5127,7 @@
       },
       "get": {
         "tags": [
+          "v02-behavior-training",
           "v02-behavior-training"
         ],
         "summary": "List Goals",
@@ -5110,6 +5176,7 @@
     "/api/v1/pets/{pet_id}/training-sessions": {
       "post": {
         "tags": [
+          "v02-behavior-training",
           "v02-behavior-training"
         ],
         "summary": "Log Session",
@@ -5165,6 +5232,7 @@
     "/api/v1/training/tools": {
       "get": {
         "tags": [
+          "v02-behavior-training",
           "v02-behavior-training"
         ],
         "summary": "Training Tools",
@@ -5188,6 +5256,7 @@
     "/api/v1/welfare/enrichment-activities": {
       "get": {
         "tags": [
+          "v02-behavior-training",
           "v02-behavior-training"
         ],
         "summary": "Enrichment Activities",
@@ -5211,6 +5280,7 @@
     "/api/v1/pets/{pet_id}/social-profile": {
       "put": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Put Social Profile",
@@ -5264,6 +5334,7 @@
       },
       "get": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Get Social Profile",
@@ -5309,6 +5380,7 @@
     "/api/v1/pets/{pet_id}/friends": {
       "post": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Request Friend",
@@ -5362,6 +5434,7 @@
       },
       "get": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "List Friends",
@@ -5410,6 +5483,7 @@
     "/api/v1/pet-friends/{request_id}/respond": {
       "post": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Respond Friend",
@@ -5465,6 +5539,7 @@
     "/api/v1/pets/{pet_id}/friends/{friend_pet_id}/block": {
       "post": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Block Friend",
@@ -5532,6 +5607,7 @@
     "/api/v1/pets/{pet_id}/social-interactions": {
       "post": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Log Interaction",
@@ -5587,6 +5663,7 @@
     "/api/v1/pets/{pet_id}/diet-profile": {
       "put": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Put Diet Profile",
@@ -5640,6 +5717,7 @@
       },
       "get": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Get Diet Profile",
@@ -5685,6 +5763,7 @@
     "/api/v1/pets/{pet_id}/expenses": {
       "post": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Log Expense",
@@ -5738,6 +5817,7 @@
       },
       "get": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "List Expenses",
@@ -5796,6 +5876,7 @@
     "/api/v1/pets/{pet_id}/expenses/summary": {
       "get": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Expense Summary",
@@ -5841,6 +5922,7 @@
     "/api/v1/pets/{pet_id}/milestones": {
       "post": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Add Milestone",
@@ -5894,6 +5976,7 @@
       },
       "get": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "List Milestones",
@@ -5942,6 +6025,7 @@
     "/api/v1/pets/{pet_id}/memories": {
       "get": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Memories On This Day",
@@ -6002,6 +6086,7 @@
     "/api/v1/pets/{pet_id}/search": {
       "get": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Search Timeline",
@@ -6084,6 +6169,7 @@
     "/api/v1/pets/{pet_id}/ask": {
       "post": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Pet Ask",
@@ -6140,6 +6226,7 @@
     "/api/v1/pets/{pet_id}/why": {
       "get": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Why Happened",
@@ -6196,6 +6283,7 @@
     "/api/v1/pets/{pet_id}/task-plan": {
       "post": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Low Risk Task Plan",
@@ -6242,6 +6330,7 @@
     "/api/v1/pets/{pet_id}/memory": {
       "get": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Structured Memory",
@@ -6287,6 +6376,7 @@
     "/api/v1/analytics/counter": {
       "post": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Bump Counter",
@@ -6330,6 +6420,7 @@
     "/api/v1/ops/status": {
       "get": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Ops Status",
@@ -6353,6 +6444,7 @@
     "/api/v1/ops/incidents": {
       "get": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "List Incidents",
@@ -6377,6 +6469,7 @@
       },
       "post": {
         "tags": [
+          "v02-social-platform",
           "v02-social-platform"
         ],
         "summary": "Create Incident",
@@ -6420,6 +6513,7 @@
     "/api/v1/ops/feature-flags": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "List Flags",
@@ -6444,6 +6538,7 @@
       },
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Set Flag",
@@ -6487,6 +6582,7 @@
     "/api/v1/pets/{pet_id}/devices": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Link Device",
@@ -6540,6 +6636,7 @@
       },
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "List Devices",
@@ -6588,6 +6685,7 @@
     "/api/v1/pets/{pet_id}/devices/{device_id}/sync": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Sync Device",
@@ -6643,6 +6741,7 @@
     "/api/v1/pets/{pet_id}/device-events": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "List Device Events",
@@ -6701,6 +6800,7 @@
     "/api/v1/adapters/device-webhook/{provider}": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Device Webhook",
@@ -6756,6 +6856,7 @@
     "/api/v1/pets/{pet_id}/home-summary": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Home Summary",
@@ -6802,6 +6903,7 @@
     "/api/v1/pets/{pet_id}/automation-rules": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Create Rule",
@@ -6857,6 +6959,7 @@
     "/api/v1/device-events/{event_id}/attribution": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Assign Attribution",
@@ -6915,6 +7018,7 @@
     "/api/v1/device-events/{event_id}/review": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Review Device Event",
@@ -6973,6 +7077,7 @@
     "/api/v1/pets/{pet_id}/device-events/review-queue": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Review Queue",
@@ -7022,6 +7127,7 @@
     "/api/v1/pets/{pet_id}/transfer-requests": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Request Transfer",
@@ -7077,6 +7183,7 @@
     "/api/v1/pets/merge-requests": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Request Merge",
@@ -7120,6 +7227,7 @@
     "/api/v1/pets/{pet_id}/field-privacy": {
       "put": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Put Field Privacy",
@@ -7175,6 +7283,7 @@
     "/api/v1/pets/{pet_id}/export": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Export Pet",
@@ -7221,6 +7330,7 @@
     "/api/v1/pets/{pet_id}/professionals": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Add Professional",
@@ -7274,6 +7384,7 @@
       },
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "List Professionals",
@@ -7322,6 +7433,7 @@
     "/api/v1/pets/{pet_id}/overdue-tasks": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Overdue Tasks",
@@ -7371,6 +7483,7 @@
     "/api/v1/health-records/signature-policy": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Signature Policy",
@@ -7395,6 +7508,7 @@
     "/api/v1/pets/{pet_id}/welfare-observations": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Add Welfare Observation",
@@ -7450,6 +7564,7 @@
     "/api/v1/pets/{pet_id}/welfare-evidence": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Welfare Evidence",
@@ -7496,6 +7611,7 @@
     "/api/v1/pets/{pet_id}/behavior-interventions": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Create Intervention",
@@ -7551,6 +7667,7 @@
     "/api/v1/behavior-interventions/{plan_id}/outcomes": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Add Intervention Outcome",
@@ -7608,6 +7725,7 @@
     "/api/v1/health/term-map": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Term Map",
@@ -7631,6 +7749,7 @@
     "/api/v1/pets/{pet_id}/training/consistency": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Training Consistency",
@@ -7677,6 +7796,7 @@
     "/api/v1/training/course-templates": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Course Templates",
@@ -7701,6 +7821,7 @@
     "/api/v1/pets/{pet_id}/service-requests": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Create Service Request",
@@ -7756,6 +7877,7 @@
     "/api/v1/service-requests/{request_id}/checklist": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Init Service Checklist",
@@ -7814,6 +7936,7 @@
     "/api/v1/service-requests/{request_id}/checklist/update": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Update Service Checklist",
@@ -7871,6 +7994,7 @@
     "/api/v1/service-requests/{request_id}/summary": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Generate Service Summary",
@@ -7917,6 +8041,7 @@
     "/api/v1/service-requests/{request_id}/updates": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Add Service Update",
@@ -7974,6 +8099,7 @@
     "/api/v1/pets/{pet_id}/products/filtered": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Filtered Products",
@@ -8020,6 +8146,7 @@
     "/api/v1/pets/{pet_id}/food-usage": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Log Food Usage",
@@ -8076,6 +8203,7 @@
     "/api/v1/expenses/{expense_id}/splits": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Split Expense",
@@ -8131,6 +8259,7 @@
     "/api/v1/pets/{pet_id}/finance/summary": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Finance Summary",
@@ -8193,6 +8322,7 @@
     "/api/v1/pets/{pet_id}/insurance-policies": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Add Policy",
@@ -8248,6 +8378,7 @@
     "/api/v1/pets/{pet_id}/finance/export.csv": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Finance Export",
@@ -8294,6 +8425,7 @@
     "/api/v1/pets/{pet_id}/year-review": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Year Review",
@@ -8355,6 +8487,7 @@
     "/api/v1/pets/{pet_id}/compare": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Cross Period Compare",
@@ -8441,6 +8574,7 @@
     "/api/v1/agent/actions": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "List Agent Actions",
@@ -8465,6 +8599,7 @@
       },
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Propose Agent Action",
@@ -8509,6 +8644,7 @@
     "/api/v1/diary/filtered": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Diary Filtered Check",
@@ -8555,6 +8691,7 @@
     "/api/v1/pets/{pet_id}/identity-links": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Identity Links",
@@ -8604,6 +8741,7 @@
     "/api/v1/experiments/{key}/assign": {
       "post": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Assign Experiment",
@@ -8649,6 +8787,7 @@
     "/api/v1/pets/{pet_id}/data-quality": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "Data Quality",
@@ -8695,6 +8834,7 @@
     "/api/v1/capabilities": {
       "get": {
         "tags": [
+          "v10-platform",
           "v10-platform"
         ],
         "summary": "List Capabilities",
@@ -8721,6 +8861,7 @@
     "/api/v1/pets/{pet_id}/health-events/chronic": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Chronic Events",
@@ -8766,6 +8907,7 @@
     "/api/v1/pets/{pet_id}/baseline/recompute-senior": {
       "post": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Recompute Senior Baseline",
@@ -8811,6 +8953,7 @@
     "/api/v1/pets/{pet_id}/behavior/categories": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Behavior Categories",
@@ -8856,6 +8999,7 @@
     "/api/v1/pets/{pet_id}/behavior/alone-profile": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Alone Profile",
@@ -8902,6 +9046,7 @@
     "/api/v1/pets/{pet_id}/training/generalization": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Generalization Matrix",
@@ -8947,6 +9092,7 @@
     "/api/v1/training-goals/{goal_id}/next-step": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Next Step",
@@ -8993,6 +9139,7 @@
     "/api/v1/training-goals/{goal_id}/achievement": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Achievement",
@@ -9039,6 +9186,7 @@
     "/api/v1/pets/{pet_id}/enrichment-plan": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Enrichment Plan",
@@ -9084,6 +9232,7 @@
     "/api/v1/pets/{pet_id}/low-stimulus-hint": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Low Stimulus Hint",
@@ -9129,6 +9278,7 @@
     "/api/v1/pets/{pet_id}/social/feedback-pairs": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Social Feedback Pairs",
@@ -9178,6 +9328,7 @@
     "/api/v1/pets/{pet_id}/social/co-occurrence": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Social Co Occurrence",
@@ -9224,6 +9375,7 @@
     "/api/v1/pets/{pet_id}/social/baseline": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Social Baseline",
@@ -9270,6 +9422,7 @@
     "/api/v1/pets/{pet_id}/familiar-people": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Familiar People",
@@ -9316,6 +9469,7 @@
     "/api/v1/pets/{pet_id}/social-visibility": {
       "put": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Set Social Visibility",
@@ -9371,6 +9525,7 @@
     "/api/v1/users/me/communication-style": {
       "put": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Set Comm Style",
@@ -9414,6 +9569,7 @@
     "/api/v1/pets/{pet_id}/emergency-grants": {
       "post": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Emergency Grant",
@@ -9469,6 +9625,7 @@
     "/api/v1/pets/{pet_id}/abnormal-day-hint": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Abnormal Day Hint",
@@ -9514,6 +9671,7 @@
     "/api/v1/pets/{pet_id}/care-feedback": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Care Feedback",
@@ -9559,6 +9717,7 @@
     "/api/v1/pets/{pet_id}/behavior-consultation-package": {
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Consultation Package",
@@ -9604,6 +9763,7 @@
     "/api/v1/pets/{pet_id}/welfare-profile": {
       "put": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Put Welfare Profile",
@@ -9657,6 +9817,7 @@
       },
       "get": {
         "tags": [
+          "v10-extras",
           "v10-extras"
         ],
         "summary": "Get Welfare Profile",
@@ -9977,6 +10138,7 @@
     "/api/v1/pets/{pet_id}/visual-captures": {
       "post": {
         "tags": [
+          "pet-living-model",
           "pet-living-model"
         ],
         "summary": "Create Capture",
@@ -10030,6 +10192,7 @@
     "/api/v1/pets/{pet_id}/visual-captures/{capture_id}": {
       "get": {
         "tags": [
+          "pet-living-model",
           "pet-living-model"
         ],
         "summary": "Get Capture",
@@ -10083,6 +10246,7 @@
     "/api/v1/pets/{pet_id}/visual-captures/{capture_id}/qc": {
       "post": {
         "tags": [
+          "pet-living-model",
           "pet-living-model"
         ],
         "summary": "Run Capture Qc",
@@ -10137,6 +10301,7 @@
     "/api/v1/pets/{pet_id}/visual-models": {
       "post": {
         "tags": [
+          "pet-living-model",
           "pet-living-model"
         ],
         "summary": "Create Model",
@@ -10191,6 +10356,7 @@
       },
       "get": {
         "tags": [
+          "pet-living-model",
           "pet-living-model"
         ],
         "summary": "List Models",
@@ -10236,6 +10402,7 @@
     "/api/v1/pets/{pet_id}/visual-models/{version}": {
       "get": {
         "tags": [
+          "pet-living-model",
           "pet-living-model"
         ],
         "summary": "Get Model",
@@ -10290,6 +10457,7 @@
     "/api/v1/pets/{pet_id}/visual-models/{version}/verify": {
       "post": {
         "tags": [
+          "pet-living-model",
           "pet-living-model"
         ],
         "summary": "Verify Model",
@@ -10355,6 +10523,7 @@
     "/api/v1/pets/{pet_id}/visual-models/{version}/activate": {
       "post": {
         "tags": [
+          "pet-living-model",
           "pet-living-model"
         ],
         "summary": "Activate Model",
@@ -10410,6 +10579,7 @@
     "/api/v1/pets/{pet_id}/visual-models/{version}/retire": {
       "post": {
         "tags": [
+          "pet-living-model",
           "pet-living-model"
         ],
         "summary": "Retire Model",
@@ -10464,6 +10634,7 @@
     "/api/v1/pets/{pet_id}/visual-model/render-manifest": {
       "get": {
         "tags": [
+          "pet-living-model",
           "pet-living-model"
         ],
         "summary": "Render Manifest",
@@ -10507,6 +10678,7 @@
     "/api/v1/pets/{pet_id}/state-overlay": {
       "get": {
         "tags": [
+          "pet-living-model",
           "pet-living-model"
         ],
         "summary": "State Overlay",
@@ -10551,6 +10723,7 @@
     "/api/v1/visual/status": {
       "get": {
         "tags": [
+          "pet-living-model",
           "pet-living-model"
         ],
         "summary": "Visual Status",
