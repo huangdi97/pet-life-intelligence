@@ -64,6 +64,28 @@ test("STAGE-V-VISUAL-01 capture baseline screenshots at 5 widths x 12 pages", as
           el.textContent = "08:00";
         }
       });
+      // VISUAL-STABILITY: seed event payloads embed wall-clock ISO dates
+      // (administered_at / due_at / onset_at ...) rendered as plain text in
+      // timeline rows and Today's recent list. They change every run (seconds)
+      // and across days, so without normalization any two runs diff there.
+      // Normalize every date-like substring in text nodes to one fixed token
+      // (same character width family) — capture & compare then stay
+      // reproducible regardless of the wall clock at seed time.
+      await page.evaluate(() => {
+        const dateRe =
+          /20\d{2}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:[+-]\d{2}:?\d{2}|Z)?)?/g;
+        const cnDateRe = /\d{1,2}月\d{1,2}日/g;
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        let node: Text | null;
+        while ((node = walker.nextNode() as Text | null)) {
+          const v = node.nodeValue;
+          if (!v || (!dateRe.test(v) && !cnDateRe.test(v))) continue;
+          dateRe.lastIndex = 0;
+          cnDateRe.lastIndex = 0;
+          const nv = v.replace(dateRe, "2026-01-01T00:00:00").replace(cnDateRe, "1月1日");
+          if (nv !== v) node.nodeValue = nv;
+        }
+      });
       const shots: string[] = [];
       await page.screenshot({ path: join(OUT, `${width}_${def.key}.png`), fullPage: false });
       shots.push("ok");
