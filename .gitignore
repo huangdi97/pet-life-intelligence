@@ -31,4 +31,13 @@ tests/e2e-browser/artifacts/results.json
 tests/e2e-browser/artifacts/test-results/
 apps/web/.next/
 apps/admin/.next/
-.next/
+PUT >$:
+
+# generated native projects (prebuild in CI; never commit)
+apps/mobile/android/
+apps/mobile/ios/
+.expo/
+
+# signing material must never be committed
+*.jks
+*.keystore
