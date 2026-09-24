@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "doctor": "expo-doctor"
   },
@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
+    "@react-native/gradle-plugin": "0.74.87",
     "@types/react": "19.0.6",
     "@types/react-dom": "19.0.3",
     "typescript": "5.7.3"
