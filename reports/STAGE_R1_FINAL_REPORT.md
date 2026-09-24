@@ -279,3 +279,10 @@ REAL_PARTICIPANTS = 0 · REAL_PETS = 0 · PRODUCT_VALIDATION = NOT_YET_OBSERVED
 未伪造真机 PASS / 未声称 LIVE / 未把 3D 包装成医学数字孪生；v0.1.0 tag 与既有 Release 历史不可变；
 未删测试 / 未弱化断言 / 未加 ignore 过关（所有失败均按根因修复：MinIO 镜像、掩码确定性、tsbuildinfo、frozen-lockfile）。
 ```
+
+## 8. 最终文档提交复核
+
+```text
+e51e823  docs(stage-r1): final closure（报告 + 目标契约归档）
+36038491018  push e51e823  SUCCESS — Backend + Frontend + Browser E2E 全绿（docs-only，无回归）
+```
