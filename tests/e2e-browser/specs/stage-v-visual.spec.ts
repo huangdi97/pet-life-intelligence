@@ -53,11 +53,15 @@ test("STAGE-V-VISUAL-01 capture baseline screenshots at 5 widths x 12 pages", as
       await page.waitForLoadState("networkidle");
       // VISUAL-STABILITY: timestamps (e.g. .tl-time) show wall-clock values
       // derived from seed's `now`, which drifts between runs/days. Mask them to
-      // a fixed token so capture & compare stay reproducible; all other pixels
-      // remain strictly compared. (Visual regression standard practice.)
+      // a fixed ASCII token so capture & compare stay reproducible; all other
+      // pixels remain strictly compared. (Visual regression standard practice.)
+      // The token MUST stay ASCII: an emoji glyph here rendered via font
+      // fallback on headless Linux (no emoji font) with run-varying advance
+      // width, which re-flowed the narrow 360/768 timeline rows and made two
+      // otherwise identical CI runs diff ~1.5%. Digits are deterministic.
       await page.evaluate(() => {
         for (const el of document.querySelectorAll<HTMLElement>(".tl-time")) {
-          el.textContent = "🕘 08:00";
+          el.textContent = "08:00";
         }
       });
       const shots: string[] = [];
