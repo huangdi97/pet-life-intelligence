@@ -48,3 +48,6 @@ tests/e2e-browser/artifacts/visual-regression-failures/
 # release binaries are attached to GitHub Releases, not stored in git
 artifacts/release/**/*.apk
 artifacts/release/**/*.tgz
+
+# tsc incremental build caches must never be committed (stale cache vs fresh CI layout produces bogus type errors)
+*.tsbuildinfo
