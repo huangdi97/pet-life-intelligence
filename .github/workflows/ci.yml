@@ -81,7 +81,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Install
-        run: pnpm install --frozen-lockfile=false
+        run: pnpm install --frozen-lockfile
       - name: ui-tokens build
         run: pnpm --dir packages/ui-tokens build
       - name: Web typecheck
@@ -144,7 +144,7 @@ jobs:
           cd services/api && alembic upgrade head && python -m app.seed
       - name: Frontend install + build
         run: |
-          pnpm install --frozen-lockfile=false
+          pnpm install --frozen-lockfile
           pnpm --dir packages/ui-tokens build
           pnpm --dir apps/web build
       - name: Install CJK fonts (visual regression parity)

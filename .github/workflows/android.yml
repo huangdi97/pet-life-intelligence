@@ -44,7 +44,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile=false
+        run: pnpm install --frozen-lockfile
       - name: Mobile typecheck
         run: pnpm --dir apps/mobile typecheck
       - name: Expo prebuild (android)
@@ -78,7 +78,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile=false
+        run: pnpm install --frozen-lockfile
       - name: Build ui-tokens
         run: pnpm --dir packages/ui-tokens build
       - name: Build web (next standalone)
