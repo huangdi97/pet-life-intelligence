@@ -4,16 +4,17 @@
 
 ## 当前状态
 
-```
-PLI_V1_0_WEB_READY_PILOT_READY
-RELEASE_READY_EXTERNAL_BLOCKED   # 公网部署/域名/平台账号为外部条件
+```text
+PLI_V0_1_0_RELEASED（2026-09-24，Stage R）
+GitHub：https://github.com/huangdi97/pet-life-intelligence（公开仓库）
+pytest 427 passed / ruff 0 / 五端 typecheck 0 / 五端 build OK / vitest 22/22 / Playwright 29/29
 ```
 
-- 后端测试：**267 passed**；ruff 全绿；Web/Admin/Mini/Mobile 构建全绿；Playwright **12/12**。
+- **发布形态**：v0.1.0 GitHub Release 含 Web standalone 产物与 Android APK（未签名，CI 构建；Play 上架 = EXTERNAL_BLOCKED）。
 - **真实 Auth**：注册/登录/刷新/密码重置/邮箱验证/会话管理（Argon2id + rotating tokens）。
 - **真实 AI**：OpenAI-compatible provider（经 AI Gateway，mock fallback 保可用）。
-- **Pilot**：invite-only 模式 + 反馈 + 指标 + 业务包（医院/门店/训练师/寄养）。
-- 详细证据：`PLI_STAGE_E_REAL_LAUNCH_REPORT.md`、`reports/STAGE_E_FINAL_GATE.md`。
+- **Pilot**：invite-only 模式 + 反馈 + 指标 + 业务包（医院/门店/训练师/寄养）；PILOT_MODE=false、真实参与者 0（诚实保留）。
+- 详细证据：`reports/STAGE_R_RELEASE_REPORT.md`、`reports/STAGE_R_UIUX_ACCEPTANCE.md`；Stage V 全量审计见 `reports/STAGE_V2_*`。
 
 ## 客户端矩阵
 
@@ -56,7 +57,7 @@ pnpm --dir apps\web dev -p 3000                                                 
 ## 测试
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -q        # 239 项全量
+.\\.venv\\Scripts\\python.exe -m pytest -q        # 427 项全量（约 5-6 分钟）
 .\.venv\Scripts\python.exe -m ruff check services packages tests
 pnpm --dir apps\web typecheck && pnpm --dir apps\web build
 pnpm --dir apps\admin typecheck && pnpm --dir apps\admin build

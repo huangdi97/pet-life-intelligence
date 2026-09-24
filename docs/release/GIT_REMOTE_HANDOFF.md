@@ -1,44 +1,37 @@
 # GIT_REMOTE_HANDOFF
 
-## 状态
-
-```
-REMOTE_PUSH_READY  （仓库已就绪，等待 remote URL）
-EXTERNAL_BLOCKED_REMOTE_URL
-```
-
-本仓库无远端（`git remote -v` 为空）。代码已完整提交并打 tag，但缺少远端用于 push/协作/CI 触发。
-
-## 需要的外部信息
-
-一个 GitHub / GitLab / Gitee 仓库 URL（HTTPS 或 SSH 均可），例如：
+## 状态（Stage R 完成，2026-09-24）
 
 ```text
-https://github.com/<org>/pet-life-intelligence.git
-git@github.com:<org>/pet-life-intelligence.git
+REMOTE_CONNECTED: https://github.com/huangdi97/pet-life-intelligence (public)
+main + tags（v0.1.0 / v1.0.0 / v1.1.0 / v1.1.1 / v1.2.0）已推送
+CI: .github/workflows/ci.yml + android.yml 已启用；Release v0.1.0 已发布
 ```
 
-## 精确命令（拿到 URL 后执行）
+## 精确命令（已完成记录）
 
 ```bash
-git remote add origin <REMOTE_URL>
+git remote add origin https://github.com/huangdi97/pet-life-intelligence.git
 git push -u origin main
 git push --tags
 ```
 
-确认：
+验证结果：
 
-```bash
-git remote -v
-git fetch origin
-git log --oneline origin/main -5   # 确认无意外 divergence
+```text
+git remote -v            -> origin https://github.com/huangdi97/pet-life-intelligence.git
+git ls-remote origin      -> refs/heads/main + 全部 tags 可见
+origin/main 与本地 main HEAD 一致（无 divergence）
 ```
+
+## 后续约定
+
+- 新代码直接 push 到 `main`（或按 CONTRIBUTING.md 开 PR 分支），CI 自动跑后端/前端/E2E 全部门禁。
+- 打版本：`git tag vX.Y.Z` → `git push origin vX.Y.Z` → `android.yml` 自动构建 Android APK 与 Web standalone 产物。
+- 发布：`gh release create <tag> <assets>`（见 `reports/STAGE_R_RELEASE_REPORT.md` E 节）。
+- 仓库内不含真实 secret：`.env*`（非 example）与 keystore 均保持 untracked（.gitignore 已覆盖）。
 
 ## 注意
 
-- 仓库内含 `.env.*.example` 模板，但**不含任何真实 secret**；push 前可复查：
-  ```bash
-  git ls-files | findstr /i "secret key password .env"
-  ```
-- 已有 tag `v1.0.0`、`v1.1.0`；`git push --tags` 会一并同步。
-- CI 定义 `.github/workflows/ci.yml` 将在 push 后自动运行全部门禁。
+- push 前复查：`git ls-files | findstr /i "secret key password .env"`（取值文件仅 `*.example`）。
+- 公开仓库元数据已就绪：`LICENSE`（MIT）、`SECURITY.md`、`CONTRIBUTING.md`、`AGENTS.md`。

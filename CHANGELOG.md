@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.1.0 (Stage R) — GitHub 正式化 + Web/Android 成品 + UI/UX 实装验收 + 公开发布
+
+首个对外公开版本（2026-09-24）。在 Stage V.2 完成态上完成仓库产品化与发布工程：
+
+### Added / Changed
+- **GitHub 正式化**：新建公开仓库 `huangdi97/pet-life-intelligence`，`origin` 就位，main + 全部 tags
+  （v0.1.0/v1.0.0/v1.1.0/v1.1.1/v1.2.0）推送成功；新增 `LICENSE`(MIT)、`CONTRIBUTING.md`；
+  `docs/release/GIT_REMOTE_HANDOFF.md` 由 EXTERNAL_BLOCKED 收口为 REMOTE_CONNECTED。
+- **CI 首次线上化修复**：
+  - minio 镜像 `minio/minio:latest` → `quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z`
+    （docker.io `minio/minio` 仓库已被下线，CI 与 docker-compose 双处钉版本修复）。
+  - `jsonschema>=4.20` 声明进 `services/api` dev-extra（fresh venv 下 contract 测试可安装运行）。
+- **Android 成品（CI 构建、未签名）**：新增 `.github/workflows/android.yml`
+  （push tag `v*` / workflow_dispatch / PR 触发；expo prebuild → gradle assembleRelease），
+  产出可安装 APK；同 workflow 内 `web-standalone` job 产出 Next standalone 发布产物（tgz）。
+  修复 pnpm 严格 node_modules 下 expo autolinking 缺包：`@react-native/gradle-plugin@0.74.87`
+  + expo SDK 51 原生模块直接依赖（expo-asset/file-system/font/image-loader/keep-awake/
+  modules-core/system-ui，版本与 `bundledNativeModules.json` 对齐）。
+- **版本对齐**：根 `package.json`、`apps/mobile/package.json`、`app.json` → `0.1.0`；
+  android `versionCode=1`（包名 `com.pli.mobile`）。
+- **Web 成品验证**：生产构建 exit 0；生产模式 HTTP 冒烟 `GET /`、`/manifest.webmanifest`、`/sw.js`
+  全部 200；29 项 Playwright 在生产模式通过。
+- **质量小修**：`test_rate_limit.py` 导入排序（ruff I001）修复 → ruff 0；视觉基线刷新为
+  v0.1.0 当日采集（60 张 PNG，5 宽度 × 12 页）。
+
+### Verification（2026-09-24 真实命令）
+- 本地：pytest **427 passed**（321.9s）· ruff **0** · 五端 typecheck **0** · 五端 build OK
+  · vitest **22/22** · Playwright **29/29**
+- 远端：`.github/workflows/ci.yml` 最新 push 运行全绿（backend/frontend/e2e）；
+  `android.yml` 最新运行成功并产出 APK 与 Web standalone；v0.1.0 GitHub Release 含两类产物资产
+- 诚实声明：APK 未签名（`PLAY_STORE_SIGNING=EXTERNAL_BLOCKED`）；`REAL_PARTICIPANTS=0`；
+  REAL 3D provider / SMTP / AI provider / 真机 QA / 公网部署 状态不变（EXTERNAL_BLOCKED /
+  NOT_YET_OBSERVED，不伪造）
+
+### Reports
+- `reports/STAGE_R_RELEASE_REPORT.md` · `reports/STAGE_R_UIUX_ACCEPTANCE.md`
+
+### 停止点
+`PLI_V0_1_0_RELEASED` / `PRE_PILOT_TECHNICAL_AUDIT_PASS` 保持；
+下一步 **Stage G-W0A First Real Participants**；不自行进入 Stage I / v1.3 / Future 42。
+
 ## v1.4.0 (Stage V) — PRE_PILOT_TECHNICAL_AUDIT_PASS（Pre-Pilot 全量验证与仓库终极审计）
 
 在 REAL_PARTICIPANTS=0 / REAL_PETS=0 条件下完成 24 份 Stage V 报告 + Issue Ledger（12 份新建 + 12 份复核修正），

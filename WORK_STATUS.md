@@ -2,14 +2,26 @@
 
 ## Current terminal
 
-`STAGE_V_COMPLETE` + `PRE_PILOT_TECHNICAL_AUDIT_PASS` + `WAVE_0_REENTRY_READY`
-（Stage V Pre-Pilot 全量验证与仓库终极审计完成：24 份报告 + Issue Ledger；pytest 420 / ruff 0 /
-五端 typecheck 0 / 五端 build OK / vitest 22/22 / Playwright 29/29；REAL_PARTICIPANTS=0 诚实保留）
-（Stage H 全产品设计 / UI·UX / 多端前端完成；设计基线 v3.1-R1 + 228 Feature Inventory；
-pytest 273 / ruff 0 / 五端 typecheck 0 / 五端 build OK / vitest 22/22 / Playwright 17/17；
-（Stage V.2 全仓质量收口完成：逐文件审核 + 21 个超限生产文件拆分 + SV-006/SV-007 CLOSED；
-pytest 427 / ruff 0 / 五端 typecheck 0 / 五端 build OK / vitest 22/22 / Playwright 29/29；
-生产源码 >300 / React >200 / TS >300 = 0；裸 TODO = 0；reports/STAGE_V2_* 已交付）
+`PLI_V0_1_0_RELEASED`（Stage R 完成，2026-09-24）· `PRE_PILOT_TECHNICAL_AUDIT_PASS` 保持
+（pytest 427 / ruff 0 / 五端 typecheck 0 / 五端 build OK / vitest 22/22 / Playwright 29/29；
+GitHub 公开仓库 + CI 全绿 + Release v0.1.0；REAL_PARTICIPANTS=0 诚实保留）
+
+## Stage R 完成情况（2026-09-24，全部真实命令/CI 验证）
+
+| 交付项 | 状态 | 证据 |
+|---|---|---|
+| GitHub 正式化 | DONE | github.com/huangdi97/pet-life-intelligence（public）；main + tags 全量推送；CI 全绿；LICENSE/CONTRIBUTING/README 对齐 |
+| Web 成品 | DONE | 生产构建 exit 0；GET /、/manifest.webmanifest、/sw.js 200；Playwright 29/29；standalone 产物入 Release |
+| Android 成品（CI 构建、未签名） | DONE | android.yml：expo prebuild + gradle assembleRelease；app-release.apk（84MB，debug 签名）产出为 workflow artifact + Release 资产 |
+| UI/UX 实装验收 | ACCEPTED | reports/STAGE_R_UIUX_ACCEPTANCE.md（P0=0/P1=0/P2=5 登记；基准 v3.1-R1 + DESIGN_SYSTEM_V3 + IA 冻结） |
+| v0.1.0 发布 | DONE | git tag v0.1.0；CHANGELOG v0.1.0；README 对齐；GitHub Release 含 APK + Web 产物；reports/STAGE_R_RELEASE_REPORT.md |
+| CI 修复（线上化首跑暴露） | DONE | minio→quay.io、jsonschema dev-extra、OpenAPI 再生成、pnpm autolinking 依赖补全、Playwright --config 显式化 |
+
+```text
+PLI_V0_1_0_RELEASED · REAL_PARTICIPANTS=0 · PILOT_MODE=false
+PLAY_STORE_SIGNING=EXTERNAL_BLOCKED · 真机 QA=EXTERNAL_BLOCKED
+下一步 Stage G-W0A First Real Participants；不进入 Stage I / v1.3 / Future 42
+```
 
 ## Stage H 完成情况（2026-09-20，全部真实命令验证）
 
