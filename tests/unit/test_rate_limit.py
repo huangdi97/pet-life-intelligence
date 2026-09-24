@@ -9,7 +9,6 @@ produces a logged in-process limiter instead of a failure.
 from __future__ import annotations
 
 import pytest
-
 from app.core.config import Settings
 from app.core.rate_limit import (
     InProcessRateLimiter,
