@@ -1,0 +1,97 @@
+name: Android + Release Artifacts
+
+# Stage R (Contract C1): builds an installable (unsigned/debug-signed) Android
+# APK via expo prebuild + Gradle, and the lean Web standalone artifact, on
+# GitHub-hosted Linux runners (no local Android SDK required).
+#
+# PLAY_STORE_SIGNING=EXTERNAL_BLOCKED by design: no Google Play account.
+# The APK is intentionally NOT release-signed; signing stays a manual,
+# account-bound step.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/android.yml"
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  PLAY_STORE_SIGNING: EXTERNAL_BLOCKED
+
+jobs:
+  android-apk:
+    name: Android APK (unsigned/debug)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile=false
+      - name: Mobile typecheck
+        run: pnpm --dir apps/mobile typecheck
+      - name: Expo prebuild (android)
+        run: pnpm --dir apps/mobile exec expo prebuild --platform android --non-interactive
+      - name: Gradle assembleRelease (unsigned)
+        working-directory: apps/mobile/android
+        run: ./gradlew assembleRelease --no-daemon
+      - name: Collect APK
+        run: |
+          echo "--- release outputs ---"
+          ls -la apps/mobile/android/app/build/outputs/apk/release/ || true
+          echo "--- any apk ---"
+          find apps/mobile/android/app/build/outputs/apk -name "*.apk" -exec ls -la {} \;
+          find apps/mobile/android/app/build/outputs/apk -name "*.apk" | wc -l
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pli-mobile-apk
+          path: apps/mobile/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+
+  web-standalone:
+    name: Web standalone artifact
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile=false
+      - name: Build ui-tokens
+        run: pnpm --dir packages/ui-tokens build
+      - name: Build web (next standalone)
+        run: pnpm --dir apps/web build
+      - name: Assemble standalone distribution
+        run: |
+          set -euo pipefail
+          mkdir -p dist-web/apps/web
+          cp -r apps/web/.next/standalone/. dist-web/
+          cp -r apps/web/.next/static dist-web/apps/web/.next/static
+          cp -r apps/web/public dist-web/apps/web/public
+          cp apps/web/package.json dist-web/apps/web/package.json
+          tar -czf pli-web-standalone.tgz -C dist-web .
+          ls -la pli-web-standalone.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pli-web-standalone
+          path: pli-web-standalone.tgz
+          if-no-files-found: error

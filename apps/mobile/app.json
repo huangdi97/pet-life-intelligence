@@ -2,7 +2,7 @@
   "expo": {
     "name": "宠物生活智能",
     "slug": "pli-mobile",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -20,6 +20,7 @@
     },
     "android": {
       "package": "com.pli.mobile",
+      "versionCode": 1,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
