@@ -246,7 +246,7 @@ BACKUP: PASS / MONITORING: PASS / NEXT: 真实用户确认后 Wave 0-A
 
 | 项 | 状态 |
 |---|---|
-| 规模收口 | 生产源码 >300 行 = 0、React 页面/组件 >200 行 = 0、非组件 TS >300 行 = 0（scripts/scan_codebase_scale.py 400 文件可复现扫描；3 个手写测试文件例外已落表 §2.3） |
+| 规模收口 | 生产源码 >300 行 = 0、React 页面/组件 >200 行 = 0、非组件 TS >300 行 = 0（scripts/scan_codebase_scale.py 503 文件可复现扫描；3 个原超限测试文件已拆分，全仓含测试 0 超限） |
 | 历史违规清单 | 14 Python + 12 React + 1 TS 全部有处置记录（10 个 Python 为既有工作树拆分映射；本轮拆分 4 Python + 16 React + 1 TS） |
 | 逐文件审核报告 | reports/STAGE_V2_FULL_CODEBASE_REVIEW.md（方法 + 证据 + 映射表 + 例外表） |
 | Issue Ledger | reports/STAGE_V2_ISSUE_LEDGER.md：SV-006 = CLOSED、SV-007 = CLOSED、P0/P1 剩余 = 0 |

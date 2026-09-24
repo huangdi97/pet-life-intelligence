@@ -12,6 +12,18 @@ import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
 
+from app.core.db import get_session_factory
+from app.models import (
+    CareCard,
+    Household,
+    HouseholdMember,
+    Pet,
+    ProfessionalLink,
+    Relationship,
+    ShareToken,
+    User,
+)
+
 from tests.conftest import auth
 
 NOW = datetime.now(UTC)
@@ -20,9 +32,6 @@ FAKE_ID = "00000000-0000-0000-0000-00000000dead"
 
 def _mk_user(email=None) -> str:
     """A regular (non-internal) user with no relationship to the seed data."""
-    from app.core.db import get_session_factory
-    from app.models import User
-
     async def mk():
         factory = get_session_factory()
         async with factory() as db:
@@ -36,9 +45,6 @@ def _mk_user(email=None) -> str:
 
 
 def _mk_household_owner() -> tuple[str, str]:
-    from app.core.db import get_session_factory
-    from app.models import Household, HouseholdMember, User
-
     async def mk():
         factory = get_session_factory()
         async with factory() as db:
@@ -56,9 +62,6 @@ def _mk_household_owner() -> tuple[str, str]:
 
 
 def _mk_pet(owner_id: str, household_id: str) -> str:
-    from app.core.db import get_session_factory
-    from app.models import Pet, Relationship
-
     async def mk():
         factory = get_session_factory()
         async with factory() as db:
@@ -72,6 +75,28 @@ def _mk_pet(owner_id: str, household_id: str) -> str:
             return str(p.id)
 
     return asyncio.run(mk())
+
+
+def _delete_user(uid: str) -> None:
+    async def rm():
+        factory = get_session_factory()
+        async with factory() as db:
+            u = await db.get(User, uuid.UUID(uid))
+            await db.delete(u)
+            await db.commit()
+
+    asyncio.run(rm())
+
+
+def _archive_pet(pet_id: str) -> None:
+    async def archive():
+        factory = get_session_factory()
+        async with factory() as db:
+            p = await db.get(Pet, uuid.UUID(pet_id))
+            p.archived_at = NOW
+            await db.commit()
+
+    asyncio.run(archive())
 
 
 class TestCrossHouseholdAndGuessing:
@@ -125,36 +150,14 @@ class TestGrantLifecycle:
 
 class TestUserAndPetDeletion:
     def test_deleted_user_has_no_access(self, client, seeded):
-        from app.core.db import get_session_factory
-        from app.models import User
-
         uid = _mk_user()
-
-        async def rm():
-            factory = get_session_factory()
-            async with factory() as db:
-                u = await db.get(User, uuid.UUID(uid))
-                await db.delete(u)
-                await db.commit()
-
-        asyncio.run(rm())
+        _delete_user(uid)
         r = client.get(f"/api/v1/pets/{seeded['coco_id']}", headers=auth(uid))
         assert r.status_code in (401, 403, 404)
 
     def test_archived_pet_404(self, client, seeded):
-        from app.core.db import get_session_factory
-        from app.models import Pet
-
         owner, coco = seeded["owner_id"], seeded["coco_id"]
-
-        async def archive():
-            factory = get_session_factory()
-            async with factory() as db:
-                p = await db.get(Pet, uuid.UUID(coco))
-                p.archived_at = NOW
-                await db.commit()
-
-        asyncio.run(archive())
+        _archive_pet(coco)
         r = client.get(f"/api/v1/pets/{coco}", headers=auth(owner))
         assert r.status_code == 404
 
@@ -182,9 +185,6 @@ class TestProfessionalAndSitterExpiry:
     def test_professional_link_scope_limited(self, client, seeded):
         # professional access is a controlled relationship; pro cannot act
         # as owner (no MANAGE_PET via relationship alone)
-        from app.core.db import get_session_factory
-        from app.models import ProfessionalLink
-
         owner, coco = seeded["owner_id"], seeded["coco_id"]
         vet_id = _mk_user("vet@pli.demo")
 
@@ -212,9 +212,6 @@ class TestShareExpiry:
         card_id = r.json()["card_id"]
         assert client.get(f"/api/v1/care-card/{token}").status_code == 200
         # time travel: expire the card row in the DB
-        from app.core.db import get_session_factory
-        from app.models import CareCard
-
         async def expire():
             factory = get_session_factory()
             async with factory() as db:
@@ -237,9 +234,6 @@ class TestShareExpiry:
         assert share.status_code == 201
         token = share.json()["share_token"]
         assert client.get(f"/api/v1/vet-briefs/shared/{token}").status_code == 200
-        from app.core.db import get_session_factory
-        from app.models import ShareToken
-
         async def expire():
             factory = get_session_factory()
             async with factory() as db:

@@ -11,8 +11,8 @@
 
 | 项目 | 数值 |
 |---|---|
-| 扫描源文件总数（`services|packages|apps|scripts|tests|infra`，排除构建/依赖/数据/迁移/工件目录） | 400 |
-| 人工维护生产源码 >300 行（Python/JS 非组件） | **0**（仅 3 个测试文件 >300，见 §2.3 例外表） |
+| 扫描源文件总数（`services|packages|apps|scripts|tests|infra`，排除构建/依赖/数据/迁移/工件目录） | 503（终态，含本轮拆分新增子模块/组件；首轮基数为 400） |
+| 人工维护生产源码 >300 行（Python/JS 非组件） | **0**（全仓含测试文件均 ≤300） |
 | React 组件/页面 >200 行 | **0** |
 | 非组件 TypeScript >300 行 | **0** |
 | 裸 TODO/FIXME/HACK/XXX/TEMP | **0** |
@@ -81,17 +81,17 @@
 - 排除：node_modules/dist/.next/out/build/__pycache__/.venv/migrations//锁文件/egg-info/artifacts/evidence/data/.pytest_cache/.ruff_cache/.git；
 - 输出：>300 Python/JS、>200 React、>300 非组件 TS、裸 TODO、类型逃逸标记（带行号与原文，供逐条判定）。
 
-真实运行：`.venv\Scripts\python.exe scripts\scan_codebase_scale.py` → §1 表中的数字（400 文件，最终扫描见提交时保存的输出）。
+真实运行：`.venv\Scripts\python.exe scripts\scan_codebase_scale.py` → §1 表中的数字（503 文件，终态）。
 
-### 2.3 例外表（超过行数限制但保留，均有类别与理由）
+### 2.3 原超限测试文件（补充轮拆分——例外表已清空）
 
-| 文件 | 行数 | 类别 | 理由 |
-|---|---|---|---|
-| tests/integration/test_api_integration.py | 402 | 测试（非生产源码） | 类组织集成测试（TestHealthFlow 等），覆盖多场景；行数限制适用对象为人工维护**生产源码**；行为由自身通过 + 全量回归证明 |
-| tests/stage_v/test_adversarial_permissions.py | 304 | 测试（非生产源码） | 对抗性权限场景化测试（§14-16 评审用例）；理由同上 |
-| tests/e2e/test_seven_paths.py | 308 | 测试（非生产源码） | 7 条端到端场景路径单文件组织；理由同上 |
+| 文件（原行数） | 处置 | 当前状态 |
+|---|---|---|
+| tests/integration/test_api_integration.py (402) | 类级拆分 | 194 + 新文件 test_api_integration_flows.py 216（TestCareHandoff/TestHealthFlow/TestPlatformFeatures 移出；收集 32 不变） |
+| tests/stage_v/test_adversarial_permissions.py (304) | 提取助手 + 顶部导入合并 | 288（_delete_user / _archive_pet 提取；6 处内联 import 合并） |
+| tests/e2e/test_seven_paths.py (308) | 提取 DB 建户助手 | 276 + 新文件 tests/e2e/_path_helpers.py 40（create_owner / create_user） |
 
-生产源码限制（>300 / React >200 / TS >300）= **0 例外，全部满足**。
+拆分后扫描 **0 超限**：over_py=0 / over_tsx=0 / over_ts=0（503 文件，含测试）；三个文件收集 55 → 55 不变；全量 pytest **427 passed / 0 failed**（真实重跑复证）。
 
 ---
 

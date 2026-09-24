@@ -1,9 +1,11 @@
 """E2E paths E2E-01..E2E-07 from docs/01_V01_SCOPE_50_P0.md — the seven
 demonstrable end-to-end flows, exercised through the public API."""
 
+import io
 from datetime import datetime, timedelta, timezone
 
 from tests.conftest import auth
+from tests.e2e._path_helpers import create_owner, create_user
 
 NOW = datetime.now(timezone.utc)
 
@@ -11,24 +13,7 @@ NOW = datetime.now(timezone.utc)
 def test_e2e_01_create_pet_today_timeline(client):
     """创建宠物 → Today → Timeline → provenance 可查 → 多宠切换."""
     # create household via owner (seeded empty household first)
-    import asyncio
-
-    from app.core.db import get_session_factory
-    from app.models import Household, HouseholdMember, User
-
-    async def mk():
-        factory = get_session_factory()
-        async with factory() as db:
-            u = User(email="e2e01@pli.demo", display_name="E2E01 Owner")
-            h = Household(name="E2E01 Household")
-            db.add_all([u, h])
-            await db.flush()
-            db.add(HouseholdMember(household_id=h.id, user_id=u.id, role="OWNER",
-                                   status="ACTIVE"))
-            await db.commit()
-            return str(u.id)
-
-    owner = asyncio.run(mk())
+    owner = create_owner("e2e01@pli.demo", "E2E01 Owner", "E2E01 Household")
     # create pet
     r = client.post("/api/v1/pets", json={"name": "E2E-Dog", "species": "dog"},
                     headers=auth(owner))
@@ -73,20 +58,7 @@ def test_e2e_02_household_collaboration(client, seeded):
     assert inv.status_code == 201
     token = inv.json()["accept_token"]
     # a new user accepts
-    import asyncio
-
-    from app.core.db import get_session_factory
-    from app.models import User
-
-    async def mk_user():
-        factory = get_session_factory()
-        async with factory() as db:
-            u = User(email="newmember@pli.demo", display_name="New Member")
-            db.add(u)
-            await db.commit()
-            return str(u.id)
-
-    new_user = asyncio.run(mk_user())
+    new_user = create_user("newmember@pli.demo", "New Member")
     acc = client.post(f"/api/v1/households/{hh}/invitations/accept",
                       json={"token": token}, headers=auth(new_user))
     assert acc.status_code == 200, acc.text
@@ -176,8 +148,6 @@ def test_e2e_04_care_handoff_and_care_card(client, seeded):
 
 def test_e2e_05_health_event_full_path(client, seeded):
     """发现异常 → 动态追问 → 证据 → AI/规则提取 → 红旗 → 分级 → Vet Brief."""
-    import io
-
     owner, mimi = seeded["owner_id"], seeded["mimi_id"]
     opened = client.post(f"/api/v1/pets/{mimi}/health-events",
                          json={"chief_complaint": "精神不太好，晚饭没吃",
@@ -277,8 +247,6 @@ def test_e2e_06_medication_and_outcome(client, seeded):
 
 def test_e2e_07_behavior_event(client, seeded):
     """行为记录 ABC → 媒体绑定 → Timeline → 不自动升级成诊断."""
-    import io
-
     owner, coco = seeded["owner_id"], seeded["coco_id"]
     png = b"\x89PNG\r\n\x1a\n" + b"\x02" * 30
     up = client.post(f"/api/v1/pets/{coco}/artifacts",

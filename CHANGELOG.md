@@ -263,3 +263,5 @@ Stage A v0.1（50 P0）→ Stage B v0.2（48 P1）→ Stage C v1.0（88 P2）→
 - 修复既有工作树损坏：AskPanel 签名重建、TodayScreen 缺类型导入、mini `_components` 重复 import、agent 面板 i18n 相对路径深度、auth.py import 排序（I001）。
 - 类型收口：network.ts `unknown as` 转义消除（`# PROVIDER:` 边界函数）；28 个逃逸标记逐条判定、0 个未解释转义。
 - 回归（真实命令，command/date/duration 见 WORK_STATUS.md 与 STAGE_V2_FULL_CODEBASE_REVIEW.md）：pytest **427** passed / 0 failed；ruff 0；五端 typecheck 0；五端 build OK（web/admin 清理陈旧 `.next/standalone` 后重跑全绿）；vitest 22/22；Playwright **29/29**（完整套件）。
+
+- 补充（测试文件拆分）：3 个手写测试文件拆分后全仓含测试 0 超限——test_api_integration.py 402→194+flows 216（类级）、test_adversarial_permissions.py 304→288（助手提取）、test_seven_paths.py 308→276+_path_helpers.py（DB 建户助手）；55 用例收集/通过不变，全量 pytest **427** passed 复证。
