@@ -31,7 +31,13 @@ jobs:
         image: redis:7-alpine
         ports: ["56379:6379"]
       minio:
-        image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+        # PROVIDER:
+        # quay.io/minio/minio anonymous pull has returned "unauthorized"
+        # consistently since 2026-09-24, and docker.io/minio/minio no longer
+        # serves manifests (both persisted across repeated CI runs, verified
+        # against registry APIs). alpine/minio runs the same MinIO server
+        # binary and remains anonymously pullable; pinned for reproducibility.
+        image: alpine/minio:RELEASE.2025-10-15T17-29-55Z
         command: server /data --console-address ":9001"
         env:
           MINIO_ROOT_USER: pli_minio
