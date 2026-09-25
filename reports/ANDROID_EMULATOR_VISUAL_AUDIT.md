@@ -18,7 +18,7 @@
 | 01 登录（Me 页开发模式登录） | `01_login.png`（371 KB） | 正常 | 登录卡片清晰：演示账号 chips + 邮箱输入 + 登录按钮 | 无 | — | — | 登录后卡片隐藏，会话=开发模式登录 | PASS |
 | 02 Today（Living Canvas） | `02_today.png`（338 KB） | 正常 | Pet 英雄卡（豆豆·狗·Corgi）为视觉主体 → 当前状态 → 快速记录 → 任务 → 值得关注 → 最近；五 Tab 自然 | 无 | — | — | 本轮新增英雄卡 + 助手入口 | PASS |
 | 03 Quick Log | `03_quick-log.png`（152 KB） | 正常 | 九宫格分类 + 完成；喂食表单可输入/保存 | 无 | — | — | 真实提交喂食成功 | PASS |
-| 04 Timeline | `04_timeline.png`（397 KB） | 正常 | Life Stream：类型/时间/演员/来源（溯源可见）；筛选 chips | 事件类型 `pet.asked` 显示原文 | P2 | `ui_labels.tsx` 补中文标签 | 已修（重建后复查） | PASS |
+| 04 Timeline | `04_timeline.png`（397 KB） | 正常 | Life Stream：类型/时间/演员/来源（溯源可见）；筛选 chips | 事件类型 `pet.asked` 等显示原文 | P2 | `ui_labels.tsx` 补中文标签（代码+typecheck 已修；设备复检受环境限制，见 INTERACTION AUDIT §4） | 已修 | PASS |
 | 05 Pet（PetHub） | `05_pet.png`（233 KB） | 正常 | 身份主体（头像圈+品种/性别/出生）+ 当前状态 + 7 能力入口网格 | 无 | — | — | 本轮新增 | PASS |
 | 06 3D Life View | `06_3d-life-view.png`（465 KB） | 正常 | 诚实 fallback：服务暂未开放 + 版本空态 + 当前状态覆盖 + 真实照片说明；无假 LIVE/假医学模型 | 无 | — | — | — | PASS |
 | 07 Health | `07_health.png`（129 KB） | 正常 | 仅信息整理声明 + 发现异常入口 + 记录列表空态 | 无 | — | — | — | PASS |
@@ -66,7 +66,8 @@
 ## 5. 审计结论
 
 ```text
-P0 = 0 · P1 = 0 · P2 = 2（pet.asked 等事件标签原文显示；退出登录后宠物上下文残留）—— 均已在本轮修复并重建
-关键 P2 修复状态：已修（ui_labels.tsx 补标签；context.tsx reset + MeScreen logout 调用）
+P0 = 0 · P1 = 0 · P2 = 2（pet.asked 等事件标签原文显示；退出登录后宠物上下文残留）—— 均已在本轮修复
+关键 P2 修复状态：已修（ui_labels.tsx 补标签；context.tsx reset + MeScreen logout 调用）；
+设备端复检受模拟器环境稳定性限制（见 INTERACTION AUDIT §4），代码经 typecheck 与门禁验证
 MOBILE_VISUAL_ACCEPTANCE 依据：16 屏真实截图 + 0 越界 + 0 P0/P1
 ```

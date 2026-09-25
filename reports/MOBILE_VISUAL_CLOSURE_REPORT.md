@@ -17,10 +17,11 @@
 ## 2. Before / After
 
 `artifacts/emulator/v0.1.2/before/`（16 屏，修复后首次全流程截图 = 本轮基线）
-`artifacts/emulator/v0.1.2/after/`（核心页重构后复拍：04_timeline 标签、14_me 登录态、01_login 登录卡片）
 
-说明：v0.1.1 的 APK 从未能在 Android 上启动（P0 双 React），因此不存在"旧版 Android 运行截图"可作为真 Before；before/ 即本轮修复前构建（已含新增能力、不含第 2 批 P2 修复）的真实模拟器截图。
-
+说明：v0.1.1 的 APK 从未能在 Android 上启动（P0 双 React），不存在"旧版 Android 运行截图"可作真 Before；
+before/ 即本轮修复前构建（已含新增能力、不含第 2 批 P2 修复）的真实模拟器截图。
+after/ 目录：因本机模拟器长会话稳定性限制（guest 偶发无响应、adb 生命周期波动），修复批次的设备端复拍未完成；
+最终产物相对设备验证版仅含同行为重构（typecheck/门禁全绿），SHA 映射见 FINAL ACCEPTANCE §7。
 ## 3. 页面级收口结论
 
 - Today：Pet → Now → Change → Attention → Action 结构成立，不再像后台 Dashboard。
