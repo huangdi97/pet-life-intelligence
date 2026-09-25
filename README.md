@@ -5,18 +5,25 @@
 ## 当前状态
 
 ```text
-PLI_V0_1_1_INTERNAL_READY（2026-09-24，Stage R.1）
+PLI_V0_1_2_INTERNAL_READY（2026-09-25，Stage R.1-E：Android Emulator 验收 + 移动端视觉收口）
 GitHub：https://github.com/huangdi97/pet-life-intelligence（公开仓库）
-pytest 427 passed / ruff 0 / 五端 typecheck 0 / vitest 22/22
-Playwright 30（27 功能 + 视觉链 3）production 模式全 PASS
+ANDROID_EMULATOR_ACCEPTANCE_PASS / MOBILE_CORE_FLOW_PASS / MOBILE_VISUAL_ACCEPTANCE_PASS
+MOBILE_INTERACTION_ACCEPTANCE_PASS / MOBILE_V3_3_EXPERIENCE_ACCEPTED（模拟器验收通过）
+pytest 427 passed / ruff 0 / 五端 typecheck 0 / vitest 22/22 / Playwright 功能 27/27
+Visual Regression V2（CI/Linux）60/60 ≈ 0 diff；v0.1.2 GitHub Release（Internal / Pre-Pilot）
 ```
 
+- **v0.1.2（内部 / Pre-Pilot）**：修复 Android APK 启动崩溃（P0 双 React）、
+  Me 开发模式登录入口、PetHub 宠物中枢、Behavior/Training/Welfare/Social/Assistant 五屏移植、
+  Today 宠物英雄卡；Android Emulator（Pixel 5 / API 36）16 屏真实截图 + 全流程真实点击验收。
 - **v0.1.1（内部 / Pre-Pilot）**：Android 真机链路就绪（LAN internal APK）、
   API URL 环境注入（不再写死 localhost）、品牌基线（图标/Splash）、
   v3.3-R1 canonical 对齐、Visual Regression V2（真实 baseline diff）。
+
 - **发布形态**：v0.1.0 GitHub Release 含 Web standalone 产物与 Android APK
   （DEBUG_SIGNED_INSTALLABLE_APK / NOT_PLAY_STORE_SIGNED / PLAY_STORE_SIGNING=EXTERNAL_BLOCKED）；
-  v0.1.1 为内部收口续版（`artifacts/release/v0.1.1/`）。
+  v0.1.1 为内部收口续版（`artifacts/release/v0.1.1/`）；v0.1.2 为本轮验收版（`artifacts/emulator/v0.1.2/`，
+  GitHub Release v0.1.2，Internal / Pre-Pilot）。
 - **v1.x tags = 历史内部工程里程碑**（v1.0.0/v1.1.0/v1.1.1/v1.2.0 是早期内部命名线）；
   **v0.1.x = 公开产品发布线**，避免 SemVer 误解（详见 CHANGELOG）。
 - **真实 Auth**：注册/登录/刷新/密码重置/邮箱验证/会话管理（Argon2id + rotating tokens）。
@@ -28,6 +35,7 @@ Playwright 30（27 功能 + 视觉链 3）production 模式全 PASS
 ## Screenshots
 
 ```text
+artifacts/emulator/v0.1.2/          — Android Emulator 真实截图 16 屏（01_login…16_error-offline）+ before/after
 artifacts/release/v0.1.1/screenshots/web/      — 核心 6 页 × mobile/desktop（production 模式实拍 12 张）
 artifacts/release/v0.1.1/screenshots/android/  — 真机截图待回填（NOT_YET_OBSERVED）
 ```
@@ -41,10 +49,15 @@ artifacts/release/v0.1.1/screenshots/android/  — 真机截图待回填（NOT_Y
 
 ## Android
 
+- v0.1.2 emulator APK：`artifacts/emulator/v0.1.2/Pet-Life-Intelligence-v0.1.2-emulator.apk`
+  （package `com.pli.mobile` · versionName 0.1.2 · versionCode 3 · API `http://10.0.2.2:8800`
+  · emulator 验收版；v0.1.2 GitHub Release 资产含 APK + SHA256SUMS + 截图 zip）。
+  模拟器验收：AVD pdig36（Pixel 5 / API 36 / 1080×2340 @440dpi）16 屏真实截图 + 全流程真实点击
+  （含修复 P0 双 React 启动崩溃），详见 `reports/ANDROID_EMULATOR_FINAL_ACCEPTANCE.md`。
 - v0.1.1 internal-LAN APK：`artifacts/release/v0.1.1/Pet-Life-Intelligence-v0.1.1-internal-lan.apk`
   （package `com.pli.mobile` · versionName 0.1.1 · versionCode 2 · App 名「宠物生活智能」）。
-- 真机 QA：`ANDROID_REAL_DEVICE_QA = NOT_YET_OBSERVED`；安装/登录/核心流程/双宠切换 checklist
-  见 `reports/ANDROID_REAL_DEVICE_QA.md`（预计 ≤15 分钟）。
+- 真机 QA：`ANDROID_REAL_DEVICE_QA = NOT_YET_OBSERVED`；模拟器验收 ≠ 真机验证；安装/登录/核心流程/
+  双宠切换 checklist 见 `reports/ANDROID_REAL_DEVICE_QA.md`。
 
 ## 客户端矩阵
 

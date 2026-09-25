@@ -1,5 +1,47 @@
 # Changelog
 
+## v0.1.2 (Stage R.1-E) — Android Emulator 验收 + 移动端视觉收口（Internal / Pre-Pilot）
+
+> 2026-09-25。本版修复 Android APK 的启动崩溃并完成模拟器逐屏验收：
+> `ANDROID_EMULATOR_ACCEPTANCE_PASS / MOBILE_CORE_FLOW_PASS / MOBILE_VISUAL_ACCEPTANCE_PASS
+> / MOBILE_INTERACTION_ACCEPTANCE_PASS / MOBILE_V3_3_EXPERIENCE_ACCEPTED`。
+
+### Fixed
+- **P0 启动崩溃（双 React）**：`expo-keep-awake` 经 pnpm workspace store 解析到 react@19
+  （web 专用），与 App 的 react@18.2.0 混入同一 bundle，导致历轮 APK 实际无法在 Android 启动
+  （release：`Objects are not valid as a React child`；dev：`Invalid hook call / useId of null`）。
+  修复：`apps/mobile/metro.config.js` `resolver.resolveRequest` 将 mobile 工程所有 `react*`
+  导入钉到 `apps/mobile/node_modules/react`（18.2.0，与 react-native 0.74.5 配对）。
+- **事件中文标签缺失（P2）**：`pet.asked` / `social.interaction_logged` 等显示原文 →
+  `ui_labels.tsx` 补 zh-CN 标签（时间线设备端验证通过："提问"）。
+- **登出后宠物上下文残留（P2）**：`context.tsx` 新增 `reset()`，`MeScreen` 退出登录时清空
+  宠物上下文（设备端验证：登出后 Today 回到"宠物/查看宠物档案"，无串数据）。
+
+### Added（本轮授权范围内）
+- **Me 页开发模式登录入口**：demo 账号 chips + 输入 + 登录/退出（复用 `devLogin`；
+  此前 App 无任何登录入口，全新安装后无法建立会话）。
+- **PetHub 宠物中枢**：身份主体 + 当前状态 + 7 能力入口（Health/Behavior/Training/Welfare/
+  Social/3D/Assistant）。
+- **五屏移动端移植**：Behavior（ABC 记录，PLI-069）、Training（目标/会话/工具库，
+  PLI-085..088）、Welfare（OWN-011 证据/趋势，无开心指数）、Social（OWN-012 关系/互动）、
+  Assistant（OWN-015 Ask/Brief/Find/Plan/Explain，诚实 AI 回答）——均为 Web 既有功能经既有
+  后端路由移植，未新增业务域。
+- **Today Living Canvas 精化**：宠物英雄卡（Pet 视觉主体，点击进 PetHub）+ 助手入口。
+
+### Docs / Artifacts
+- `reports/ANDROID_EMULATOR_ACCEPTANCE_PREFLIGHT.md` / `ANDROID_EMULATOR_BUILD_REPORT.md`
+  / `ANDROID_EMULATOR_VISUAL_AUDIT.md` / `ANDROID_EMULATOR_INTERACTION_AUDIT.md`
+  / `ANDROID_EMULATOR_FINAL_ACCEPTANCE.md` / `MOBILE_VISUAL_CLOSURE_REPORT.md`。
+- `artifacts/emulator/v0.1.2/`：emulator APK（`http://10.0.2.2:8800`）、16 屏真实截图、
+  before/after 对比、SHA256SUMS；v0.1.2 GitHub Release（Internal / Pre-Pilot）。
+- Visual Regression V2 基线经 CI（Linux）显式刷新为 2026-09-25 seed（日期回滚 + 渲染环境
+  一致性）；像素门禁以 CI 为权威。
+
+### 诚实状态（保持）
+`ANDROID_REAL_DEVICE_QA = NOT_YET_OBSERVED` · `REAL_DEVICE_PERFORMANCE = NOT_YET_OBSERVED`
+· `PLAY_STORE_SIGNING = EXTERNAL_BLOCKED` · `REAL_PARTICIPANTS = 0` · `REAL_PETS = 0`
+· `PRODUCT_VALIDATION = NOT_YET_OBSERVED`。模拟器 Demo ≠ 真人产品验证。
+
 ## v0.1.1 (Stage R.1) — 真实访问链路 + Android 真机就绪 + v3.3 对齐 + 品牌/视觉收口
 
 > 内部发布线内部版本（Internal / Pre-Pilot），2026-09-24。定位：从
