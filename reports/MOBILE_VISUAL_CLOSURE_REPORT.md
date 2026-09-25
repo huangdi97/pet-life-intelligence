@@ -20,7 +20,10 @@
 
 说明：v0.1.1 的 APK 从未能在 Android 上启动（P0 双 React），不存在"旧版 Android 运行截图"可作真 Before；
 before/ 即本轮修复前构建（已含新增能力、不含第 2 批 P2 修复）的真实模拟器截图。
-after/ 目录：因本机模拟器长会话稳定性限制（guest 偶发无响应、adb 生命周期波动），修复批次的设备端复拍未完成；
+`artifacts/emulator/v0.1.2/after/`（最终产物 EE7E6091 的设备端复拍）：
+- `01_login.png` — 退出登录后的开发模式登录卡片（会话=未登录）
+- `04_timeline.png` — 时间线：pet.asked 事件显示中文标签“提问”（P2 修复设备端验证通过）
+- `14_me.png` — 我的：开发模式登录会话态
 最终产物相对设备验证版仅含同行为重构（typecheck/门禁全绿），SHA 映射见 FINAL ACCEPTANCE §7。
 ## 3. 页面级收口结论
 
