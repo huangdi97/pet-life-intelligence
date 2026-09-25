@@ -60,8 +60,14 @@ PRODUCT_VALIDATION            = NOT_YET_OBSERVED
 
 ## 5. 视觉基线说明（诚实记录）
 
-- 视觉回归 V2 在本轮按显式刷新协议（`PLI_UPDATE_VISUAL_BASELINE=1`）更新过一次基线：原因是日历日期回滚（冻结基线为 09-24 seed，本轮 09-25 seed 使全部含日期页面产生内容性 diff，非本轮代码改动）。刷新后 60/60 ≈ 0 diff（max 0.03% < 0.2%）。
-- 模拟器环境限制：长会话后 guest 偶发无响应、adb server 随会话生命周期波动；通过重启恢复，非产品缺陷。行为页在设备端"键入并保存"受 adb input 驱动层限制未能完成一次提交（QuickLog 键入+保存已在设备成功），其写路径经后端端点与表单渲染/校验验证，详见 INTERACTION AUDIT §4。
+- 视觉回归 V2：baseline 须与渲染环境一致（canonical = Linux + fonts-noto-cjk）。本轮先按显式刷新协议
+  在本地更新基线（09-25 seed 日期回滚），随后确认本地 Windows 与 Linux 的 CJK 字体渲染存在像素差异，
+  遂按既定协议在 CI（Linux）上重新显式刷新（workflow_dispatch run 36117349804，三 job 全绿）并采用其
+  产物为 approved baseline；像素门禁以 CI（Linux）为权威，推送后 CI 视觉链 60/60 ≈ 0 diff。
+  本地 Windows 视觉链受字体渲染差异限制（环境限制，非代码缺陷），已如实记录。
+- 模拟器环境限制：长会话后 guest 偶发无响应、adb server 随会话生命周期波动；通过重启恢复，非产品缺陷。
+  行为页在设备端“键入并保存”受 adb input 驱动层限制未能完成一次提交（QuickLog 键入+保存已在设备成功），
+  其写路径经后端端点与表单渲染/校验验证，详见 INTERACTION AUDIT §4。
 
 ## 6. 最终状态
 

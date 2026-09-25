@@ -23,7 +23,7 @@ P0 修复   : 双 React 启动崩溃（expo-keep-awake→react@19 混入）→ m
 新增      : Me 开发模式登录 · PetHub 宠物中枢 · Behavior/Training/Welfare/Social/Assistant 五屏移植
           · Today 宠物英雄卡 + 助手入口
 回归      : pytest 427 / ruff 0 / vitest 22/22 / 五端 typecheck 0 / web+admin+mini build OK
-          / Playwright 功能 27/27 / Visual Regression V2 60/60 ≈0 diff（2026-09-25 seed 显式刷新）
+          / Playwright 功能 27/27 / Visual Regression V2 60/60 ≈0 diff（CI/Linux 显式刷新后权威通过）
 保持      : ANDROID_REAL_DEVICE_QA=NOT_YET_OBSERVED · REAL_DEVICE_PERFORMANCE=NOT_YET_OBSERVED
           · PLAY_STORE_SIGNING=EXTERNAL_BLOCKED · REAL_PARTICIPANTS=0 · REAL_PETS=0
           · PRODUCT_VALIDATION=NOT_YET_OBSERVED
