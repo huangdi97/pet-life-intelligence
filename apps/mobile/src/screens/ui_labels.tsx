@@ -42,6 +42,10 @@ export function eventTypeLabel(eventType: string): string {
     "care.task_completed": "任务完成",
     "care.task_conflict": "任务冲突",
     "today.viewed": "今日查看",
+    "pet.asked": "提问",
+    "social.interaction_logged": "互动记录",
+    "social.friend_requested": "好友申请",
+    "social.blocked": "已屏蔽",
   };
   return map[eventType] ?? eventType;
 }

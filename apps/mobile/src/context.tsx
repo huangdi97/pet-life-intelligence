@@ -9,6 +9,8 @@ interface PetsContextValue {
   petId: string | null;
   choose: (id: string) => Promise<void>;
   reload: () => void;
+  /** Clear in-memory pets after logout so screens cannot show stale data. */
+  reset: () => void;
 }
 
 const PetsContext = createContext<PetsContextValue | null>(null);
@@ -49,7 +51,12 @@ export function PetsProvider({ children }: { children: React.ReactNode }) {
 
   const reload = useCallback(() => setTick((t) => t + 1), []);
 
-  return <PetsContext.Provider value={{ pets, petId, choose, reload }}>{children}</PetsContext.Provider>;
+  const reset = useCallback(() => {
+    setPets(null);
+    setPetId(null);
+  }, []);
+
+  return <PetsContext.Provider value={{ pets, petId, choose, reload, reset }}>{children}</PetsContext.Provider>;
 }
 
 export function usePets(): PetsContextValue {
