@@ -7,6 +7,29 @@
 production 模式全 PASS；GitHub 公开仓库 + Release v0.1.0；v0.1.1 为内部收口续版未发布 tag；
 REAL_PARTICIPANTS=0 诚实保留）
 
+## Stage R.1-E 完成情况（2026-09-25，Android Emulator 验收 + 移动端视觉收口）
+
+`ANDROID_EMULATOR_ACCEPTANCE_PASS` / `MOBILE_CORE_FLOW_PASS` / `MOBILE_VISUAL_ACCEPTANCE_PASS` /
+`MOBILE_INTERACTION_ACCEPTANCE_PASS` / `MOBILE_V3_3_EXPERIENCE_ACCEPTED`
+
+```text
+Emulator : AVD pdig36（Pixel 5 / API 36 / 1080×2340 @440dpi ≈ 393×851dp，WHPX）
+APK      : v0.1.2 emulator build（com.pli.mobile · versionCode 3 · DEBUG_SIGNED_INSTALLABLE_APK）
+          artifacts/emulator/v0.1.2/Pet-Life-Intelligence-v0.1.2-emulator.apk（88,166,218 B）
+          SHA256 EE7E609183833C2FF7CF2C43A4E0735F51032DB42EFA58B36B8E3D7B39262FC4
+截图      : artifacts/emulator/v0.1.2/（01_login…16_error-offline 16 屏真实截图 + before/）
+P0 修复   : 双 React 启动崩溃（expo-keep-awake→react@19 混入）→ metro.config.js react 钉定；
+          v0.1.0/v0.1.1 APK 此前实际从未能在 Android 启动（CI 仅验证构建）
+新增      : Me 开发模式登录 · PetHub 宠物中枢 · Behavior/Training/Welfare/Social/Assistant 五屏移植
+          · Today 宠物英雄卡 + 助手入口
+回归      : pytest 427 / ruff 0 / vitest 22/22 / 五端 typecheck 0 / web+admin+mini build OK
+          / Playwright 功能 27/27 / Visual Regression V2 60/60 ≈0 diff（2026-09-25 seed 显式刷新）
+保持      : ANDROID_REAL_DEVICE_QA=NOT_YET_OBSERVED · REAL_DEVICE_PERFORMANCE=NOT_YET_OBSERVED
+          · PLAY_STORE_SIGNING=EXTERNAL_BLOCKED · REAL_PARTICIPANTS=0 · REAL_PETS=0
+          · PRODUCT_VALIDATION=NOT_YET_OBSERVED
+Release   : v0.1.2（Internal / Pre-Pilot，本仓库 Release + tag）
+```
+
 ## Stage R.1 完成情况（2026-09-24，全部真实命令/CI 验证）
 
 | 交付项 | 状态 | 证据 |
