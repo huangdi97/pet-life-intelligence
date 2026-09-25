@@ -3,14 +3,14 @@
  *  值得关注 hints, recent events. NOT a dashboard. 值得关注 copy comes from
  *  the backend abnormal-day-hint (deterministic rule, 非健康判断). */
 import React, { useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { api, humanizeError, type LifeEvent, type Task } from "../api";
 import { usePets } from "../context";
-import { fmtTime } from "../format";
+import { fmtTime, speciesLabel } from "../format";
 import type { StackParamList, TabParamList } from "../navigation";
 import {
   Card,
@@ -117,6 +117,19 @@ export function TodayScreen() {
 
         {error && <ErrorText>{error}</ErrorText>}
 
+        <Pressable style={styles.hero} onPress={() => stackNav.navigate("PetHub")} accessibilityRole="button">
+          <View style={styles.heroAvatar}>
+            <Text style={styles.heroAvatarText}>{current?.name.slice(0, 1) ?? "宠"}</Text>
+          </View>
+          <View style={styles.heroText}>
+            <Text style={styles.heroName}>{current ? current.name : "宠物"}</Text>
+            <Text style={styles.heroMeta}>
+              {current ? `${speciesLabel(current.species)} · ${current.breed}` : "查看宠物档案"}
+            </Text>
+          </View>
+          <Text style={styles.heroChevron}>›</Text>
+        </Pressable>
+
         <Card>
           <CardTitle>当前状态</CardTitle>
           <View style={styles.stateRow}>
@@ -177,6 +190,7 @@ export function TodayScreen() {
           <GhostButton label="看看它" onPress={() => tabNav.navigate("Monitoring")} />
           <GhostButton label="陪伴" onPress={() => tabNav.navigate("Companion")} />
           <GhostButton label="时间线" onPress={() => tabNav.navigate("Timeline")} />
+          <GhostButton label="问问它" onPress={() => stackNav.navigate("Assistant")} />
         </View>
       </ScrollView>
     </SafeAreaView>

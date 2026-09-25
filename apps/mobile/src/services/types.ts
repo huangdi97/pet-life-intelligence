@@ -76,3 +76,84 @@ export interface DeviceRow {
   display_name: string;
   status: string;
 }
+export interface BehaviorEventRow {
+  behavior_event_id: string;
+  occurred_at: string;
+  antecedent: string;
+  behavior: string;
+  consequence: string;
+  duration_seconds: number | null;
+  intensity: string;
+  intensity_source: string;
+  environment: string;
+  owner_notes: string;
+  artifact_ids: string[];
+}
+
+export interface TrainingGoalRow {
+  goal_id: string;
+  title: string;
+  status: string;
+  mastery_level: number;
+  steps: Array<{ description: string; status: string }>;
+  target_behavior: string;
+}
+
+export interface TrainingTools {
+  tools: Array<{ name: string; use: string }>;
+  banned_note: string;
+}
+
+export interface WelfareProfile {
+  pet_id: string;
+  profile?: {
+    domains?: Record<string, unknown>;
+    notes?: string | null;
+    updated_at?: string | null;
+  } | null;
+}
+
+export interface WelfareEvidence {
+  observation_counts: Record<string, number>;
+  sources: string[];
+  notice?: string;
+}
+
+export interface SocialProfile {
+  pet_id: string;
+  profile?: {
+    good_with_dogs?: string;
+    good_with_cats?: string;
+    good_with_kids?: string;
+    good_with_strangers?: string;
+    notes?: string;
+  } | null;
+}
+
+export interface PetFriend {
+  request_id: string;
+  friend_pet_id: string;
+  status: string;
+}
+
+export interface AskAnswer {
+  question?: string;
+  answer?: string;
+  facts?: string[];
+  inference?: string | null;
+  citations?: Array<{ label?: string; event_id?: string } | string>;
+  sources?: Array<{ label?: string; event_id?: string } | string>;
+  uncertainty?: string | null;
+  action?: string | null;
+  sufficient?: boolean;
+  detail?: string;
+  note?: string;
+  limited?: boolean;
+  external_blocked?: boolean;
+}
+
+export interface AiStatus {
+  provider?: string;
+  real_provider?: boolean;
+  status?: string;
+}

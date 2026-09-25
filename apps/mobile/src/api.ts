@@ -101,4 +101,20 @@ export async function devLogin(devEmail: string): Promise<string> {
   return r.user_id;
 }
 
-export type { Pet, LifeEvent, Task, NotificationItem, HealthEventRow, DeviceRow } from "./services/types";
+export type {
+  AiStatus,
+  AskAnswer,
+  BehaviorEventRow,
+  DeviceRow,
+  HealthEventRow,
+  LifeEvent,
+  NotificationItem,
+  Pet,
+  PetFriend,
+  SocialProfile,
+  Task,
+  TrainingGoalRow,
+  TrainingTools,
+  WelfareEvidence,
+  WelfareProfile,
+} from "./services/types";
