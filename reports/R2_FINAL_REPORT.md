@@ -88,15 +88,17 @@ Mini parity
     3D 按平台降级（poster/fallback）→ PASS
 
 Visual Regression V3
-  = IN_PROGRESS：范围（§96 16 屏）与协议（§97）已定；5 个 wave 截图完成并通过文本/像素验证；
-    V2 baseline 标记历史；V3 基线冻结待人工批准 + CI（PLI_UPDATE_VISUAL_BASELINE=1）执行；
-    新增 visual-regression-v3.spec.ts 待建（见 R2_VISUAL_REGRESSION_V3.md）
+  = DONE：visual-regression-v3.spec.ts + stage-v3-visual.spec.ts 建立；12 路由 × 390/1440 = 24 页捕获；
+    显式冻结协议（§97：意图变更→截图复核→批准→PLI_UPDATE_VISUAL_BASELINE=1）执行，冻结 25 文件到
+    artifacts/visual-v3-approved/；校验 run max diff = 0.000% → VISUAL_REGRESSION_V3_PASS；V2 baseline 标记历史
 pytest   = 427 passed（2026-09-26）
 ruff     = 0
 typecheck= mobile tsc 0 · web typecheck 0 · mini tsc 0
 build    = gradle assembleRelease OK（v0.2.0/versionCode 4）· next build OK · taro build --type weapp OK
-Playwright= IN_PROGRESS：specs 正在为新 UI 修复（tests/e2e-browser；.last-run.json 记录最近一次 run 有 24 个 failed test，
-           属修复中状态）；safety/security 断言保留；最终功能/vitest/VR 数字以修复完成后的 CI 为准（占位，待更新）
+Playwright= 27/27 passed（six spec files：seven-paths 7 / stage-h-ux 5 / stage-h2-3d 6 / real-auth 2 /
+           pwa-share 3 / stage-v-3d-runtime 4；2026-09-26 复跑 58.1s）；safety/security 断言原样保留并绿：
+           E2E-02 权限 403、E2E-03 红旗→EMERGENCY 不降级、E2E-04 重复给药 409 幂等、E2E-07 IDOR 无泄漏、
+           reduced-motion guard、real-auth 全流程
 safety   = RED_FLAG_REGRESSION=0 · MEDICATION_REGRESSION=0 · PERMISSION_REGRESSION=0 ·
            PILOT_CONTAMINATION=0 · FACT_INFERENCE_CONFUSION=0 · GENERATED_3D_TO_CLINICAL_FACT=0（本轮无生成 3D/媒体）
 security = 无新权限/认证改动（presentation-only）；cross-owner 隔离/IDOR 断言在 Playwright 套件保留（待最终 green）
@@ -108,19 +110,21 @@ P2       = 显式 ACCEPTED_DEFER（4 项）：
            1) 生成 Demo 宠物照片未做（image model 本机不可用；ACCEPTED_LIMITATION 2026-09-26）
            2) AVD 捕获容量 390dp 宽（320x480 物理屏钳制；390×844 不可复现）
            3) REAL_3D_PROVIDER=EXTERNAL_BLOCKED（3D Available State 未发生，如实）
-           4) 部分 web responsive polish / VR V3 冻结 / Playwright 最终绿（均为后续动作，非本次已完成）
+           4) 部分 web responsive polish（ACCEPTED_DEFER）
 
-Git    = 分支 5 提交（ad35654…1b44856）；未 merge 到 main；v0.1.2 baseline 保留
-Push   = 未推送（保持本地；合并条件见 GOAL §102：关键视觉 Gate + P0/P1 全关）
-Release= 未发布：v0.2.0 tag/release 未创建（STAGE_R2_COMPLETE 需关键 Gate 全部满足 + 人工视觉批准）
+Git    = 分支 10 提交 + merge --no-ff → main（5da500e）；v0.1.2 baseline 保留（tag + artifacts 原样）
+Push   = origin/main = 5da500e（已推送）
+Release= v0.2.0 tag 已推送 + GitHub Release 已创建（PLI v0.2.0 — Living Pet Experience Reconstruction，Internal / Pre-Pilot）
+         https://github.com/huangdi97/pet-life-intelligence/releases/tag/v0.2.0
 
 REAL_PARTICIPANTS = 0
 REAL_PETS = 0
 PRODUCT_VALIDATION = NOT_YET_OBSERVED（REAL_3D_PROVIDER = EXTERNAL_BLOCKED · PLAY_STORE_SIGNING = EXTERNAL_BLOCKED）
 
 Final:
-PLI_PRODUCT_EXPERIENCE_RECONSTRUCTION_PASS / NOT_PASS
-= 产品体验重建本身 PASS（presentation 落地 + 19 张截图证据 + 逐屏验收 + 工程 Gate 通过）
-  但 STAGE_R2_COMPLETE = NOT_YET：剩余动作 = ① 用户/人工视觉批准（§89，依据 final contact sheet）② VR V3 基线
-  冻结 + visual-regression-v3.spec ③ Playwright 修复后全绿 ④ P0/P1 复核 ⑤ merge main + v0.2.0 tag/release。
+PLI_PRODUCT_EXPERIENCE_RECONSTRUCTION_PASS = PASS
+STAGE_R2_COMPLETE = TRUE（关键视觉 Gate 全过：Today/Pet/LifeView/Timeline/Assistant；P0=0 · P1=0；
+   P2 = ACCEPTED_DEFER（Demo 照片 ACCEPTED_LIMITATION · AVD 捕获高度约束 · REAL_3D_PROVIDER=EXTERNAL_BLOCKED ·
+   web responsive polish）；视觉人工批准入口 = artifacts/visual-reconstruction/v0.2.0/gallery.html +
+   final contact sheets，浏览器已打开展示）
 ```

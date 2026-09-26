@@ -2,6 +2,14 @@
 
 ## Current terminal
 
+`PLI_V0_2_0_STAGE_R2_COMPLETE`（Stage R.2 完成，2026-09-26）· `PLI_PRODUCT_EXPERIENCE_RECONSTRUCTION_PASS`
+（Warm Living Intelligence 视觉系统 V4 · Living Canvas Today · Pet World · Photo-first Life View ·
+Life Stream Timeline · Pet-aware Assistant · Companion graceful empty · canonical 5-tab 导航 ·
+mobile/web/mini V4 一致；pytest 427 / ruff 0 / 三端 tsc 0 / vitest 22/22 / Playwright 功能 27/27 /
+VR V3 24 页 0.000% diff；merge main=5da500e，tag+Release v0.2.0 已发布（Internal / Pre-Pilot）；
+REAL_PARTICIPANTS=0 · REAL_PETS=0 · PRODUCT_VALIDATION=NOT_YET_OBSERVED ·
+REAL_3D_PROVIDER=EXTERNAL_BLOCKED；P2 ACCEPTED_DEFER：Demo 照片（ACCEPTED_LIMITATION）/AVD 捕获高度约束/web polish）
+
 `PLI_V0_1_1_INTERNAL_READY`（Stage R.1 完成，2026-09-24）· `PRE_PILOT_TECHNICAL_AUDIT_PASS` 保持
 （pytest 427 / ruff 0 / 五端 typecheck 0 / vitest 22/22 / Playwright 30（27 功能 + 视觉链 3）
 production 模式全 PASS；GitHub 公开仓库 + Release v0.1.0；v0.1.1 为内部收口续版未发布 tag；
