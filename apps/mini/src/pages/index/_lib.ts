@@ -46,7 +46,23 @@ export const QUICK_TYPES: QuickType[] = [
   { type: "daily.play", label: "玩耍", fields: [{ key: "duration_minutes", label: "时长（分钟）", initial: "15", numeric: true }], defaults: { activity_type: "fetch" } },
   { type: "daily.weight", label: "体重", fields: [{ key: "weight_kg", label: "体重（kg）", initial: "12.0" }], defaults: {} },
   { type: "daily.sleep", label: "睡眠", fields: [{ key: "duration_minutes", label: "时长（分钟）", initial: "60", numeric: true }], defaults: { quality: "" } },
+  { type: "diary.created", label: "备注", fields: [{ key: "text", label: "备注内容", initial: "" }], defaults: {} },
 ];
+
+/** Quick Log 一级（高频，2 taps 完成）与二级（轻表单或进入对应页面）。 */
+export const QUICK_LEVEL1 = ["daily.meal", "daily.drink", "daily.elimination", "daily.walk"];
+export const QUICK_LEVEL2 = ["daily.play", "daily.sleep", "daily.weight", "diary.created"];
+
+/** 二级中需要进入完整页面的入口（不发明新事件类型）。 */
+export const QUICK_NAV: Array<{ label: string; url: string }> = [
+  { label: "用药", url: "/pages/medication/index" },
+  { label: "行为", url: "/pages/behavior/index" },
+  { label: "健康", url: "/pages/health/index" },
+];
+
+export function quickTypeOf(type: string): QuickType | undefined {
+  return QUICK_TYPES.find((t) => t.type === type);
+}
 
 /** 值得关注：后端 triage 分级非 NORMAL 的进行中健康事件（只显示后端分级值）。 */
 export const ATTENTION_LEVELS = ["NOTICE", "MONITOR", "VET_SOON", "URGENT", "EMERGENCY"];
@@ -59,6 +75,7 @@ export const DAILY_COUNT_LABELS: Record<string, string> = {
   "daily.play": "玩耍",
   "daily.weight": "体重",
   "daily.sleep": "睡眠",
+  "diary.created": "备注",
 };
 
 export function deviceStatusLabel(status: string): string {

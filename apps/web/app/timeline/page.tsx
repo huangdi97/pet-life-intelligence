@@ -1,22 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { api, type LifeEvent } from "@pli/api-client";
-import { Skeleton } from "@pli/ui-kit";
+import { useEffect, useMemo, useState } from "react";
+import { api, type LifeEvent, type Pet } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
-import { mapErrorMessage, t } from "../../lib/i18n";
+import { mapErrorMessage } from "../../lib/i18n";
 import { State } from "../../components/ui";
+import { PetHero } from "../../components/pet-hero";
+import { Icon } from "../../components/icons";
 import { DOMAIN_CHIPS, type VisualModelRow } from "../_components/timeline/constants";
 import { DayBackCard } from "../_components/timeline/DayBackCard";
 import { EventList } from "../_components/timeline/EventList";
 import { FilterBar } from "../_components/timeline/FilterBar";
 
-/** OWN-003 Timeline（Stage H §17-18）：PLI 核心资产。
- *  What/When/Who/Source/Evidence/Outcome + Filter/Search；
- *  AI 生成内容与真实记录视觉区分（tl-ai 类 + AI 徽章，非仅颜色）。
- *  E2E 契约保留：.tl / .tl-type / .tl-body / OWNER_REPORTED / 事件类型过滤 select。 */
+/** OWN-003 Timeline — Life Stream（Stage R.2）：Day Group + time spine + 双栏桌面布局。 */
 export default function TimelinePage() {
   const { petId } = useCurrentPet();
+  const [pets, setPets] = useState<Pet[] | null>(null);
   const [filter, setFilter] = useState("");
   const [domain, setDomain] = useState("");
   const [source, setSource] = useState("");
@@ -36,6 +35,15 @@ export default function TimelinePage() {
         : Promise.reject(new Error("NO_PET_SELECTED")),
     [petId, filter],
   );
+
+  useEffect(() => {
+    api
+      .get<Pet[]>("/pets")
+      .then(setPets)
+      .catch(() => setPets([]));
+  }, [petId]);
+
+  const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
 
   const events = useMemo(() => {
     let rows = timeline.data?.events ?? [];
@@ -59,46 +67,75 @@ export default function TimelinePage() {
       );
     }
     return rows;
-  }, [timeline.data, domain, source, mediaOnly, search]);
+  }, [timeline.data, domain, source, mediaOnly, search, day]);
 
   return (
-    <main>
-      <h1>{t("timeline.title")}</h1>
-      <p className="sub">
-        同一宠物 ID 下带来源的连续事件。点开任何记录都能看到谁记录的、来源是什么；AI 生成与真实记录有视觉区分。
-      </p>
-      {day && <DayBackCard day={day} models={visual.data?.models ?? []} />}
+    <main className="v4-main">
+      <div className="v4-topline">
+        <h1>时间线</h1>
+        <p className="v4-topline-sub">记录每一天真实发生的事情，每条都带有时间与来源。</p>
+      </div>
 
-      <FilterBar
-        filter={filter}
-        setFilter={setFilter}
-        domain={domain}
-        setDomain={setDomain}
-        source={source}
-        setSource={setSource}
-        mediaOnly={mediaOnly}
-        setMediaOnly={setMediaOnly}
-        search={search}
-        setSearch={setSearch}
-        day={day}
-        setDay={setDay}
-        onReload={timeline.reload}
-      />
+      <div className="v4-grid">
+        <div>
+          <FilterBar
+            filter={filter}
+            setFilter={setFilter}
+            domain={domain}
+            setDomain={setDomain}
+            source={source}
+            setSource={setSource}
+            mediaOnly={mediaOnly}
+            setMediaOnly={setMediaOnly}
+            search={search}
+            setSearch={setSearch}
+            day={day}
+            setDay={setDay}
+            onReload={timeline.reload}
+          />
 
-      {timeline.state === "loading" ? (
-        <div className="card">
-          <Skeleton lines={4} />
+          {timeline.state === "loading" ? (
+            <div className="v4-loading" role="status">
+              <span className="spinner" aria-hidden="true" />
+              加载中……
+            </div>
+          ) : (
+            <State
+              state={timeline.state}
+              error={timeline.error ? mapErrorMessage(timeline.error) : null}
+              onRetry={timeline.reload}
+              empty="暂无事件。去 Today 快速记录一条吧。"
+            >
+              <EventList events={events} />
+            </State>
+          )}
         </div>
-      ) : (
-        <State
-          state={timeline.state}
-          error={timeline.error ? mapErrorMessage(timeline.error) : null}
-          onRetry={timeline.reload}
-          empty="暂无事件。去 Today 快速记录一条吧。"
-        >
-          <EventList events={events} />
-        </State>
-      )}
+
+        <div className="v4-rail">
+          {current ? (
+            <PetHero
+              name={current.name}
+              petId={current.id}
+              compact
+              line={`${current.breed || current.species} · 持续记录中`}
+            />
+          ) : (
+            <div className="v4-calm" style={{ marginTop: 12 }}>
+              <span className="v4-calm-icon">
+                <Icon name="paw" size={18} />
+              </span>
+              <p className="v4-calm-body">请先在顶部选择一只宠物。</p>
+            </div>
+          )}
+          {day && <DayBackCard day={day} models={visual.data?.models ?? []} />}
+          <div className="v4-sec">
+            <h2 className="v4-sec-title">关于时间线</h2>
+            <p className="v4-note" style={{ margin: "6px 0 0" }}>
+              所有记录都围绕同一只宠物，带时间、记录人与来源。AI 生成的内容会单独标注，不会与真实记录混淆。
+            </p>
+          </div>
+        </div>
+      </div>
     </main>
   );
 }

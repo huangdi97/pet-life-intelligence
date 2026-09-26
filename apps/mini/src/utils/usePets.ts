@@ -9,9 +9,13 @@ export function usePets() {
   const [pets, setPets] = useState<Pet[] | null>(null);
   const [petId, setPetId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const choose = useCallback((id: string) => {
+    getPlatform().storage.set(PET_KEY, id);
+    setPetId(id);
+  }, []);
+
+  const refresh = useCallback(() => {
     const p = getPlatform();
-    setPetId(p.storage.get(PET_KEY));
     api
       .get<Pet[]>("/pets")
       .then((rows) => {
@@ -22,13 +26,14 @@ export function usePets() {
         }
       })
       .catch(() => setPets([]));
+  }, [choose]);
+
+  useEffect(() => {
+    const p = getPlatform();
+    setPetId(p.storage.get(PET_KEY));
+    refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const choose = useCallback((id: string) => {
-    getPlatform().storage.set(PET_KEY, id);
-    setPetId(id);
-  }, []);
-
-  return { pets, petId, choose };
+  return { pets, petId, choose, refresh };
 }

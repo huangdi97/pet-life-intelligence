@@ -1,145 +1,112 @@
+/**
+ * 生命视图 — 豆豆的可视生命状态入口 (Stage R.2 §31-36).
+ * Photo-first：宠物视觉为焦点；此刻只显示真实来源的数据；
+ * 3D 未接入时诚实显示“尚未创建 / 等待连接真实服务”，不伪装成功，
+ * 不把 Provider/model 诊断信息放到 Owner 界面（保留在数据层）。
+ */
 import { useEffect, useState } from "react";
-import { View, Text, Button } from "@tarojs/components";
-import Taro from "@tarojs/taro";
-import { api } from "../../../services/api";
+import { Icon, Text, View } from "@tarojs/components";
+import { api, type LifeEvent } from "../../../services/api";
+import { usePets } from "../../../utils/usePets";
+import { eventPayloadText, eventTypeLabel, sourceLabel } from "../../../utils/labels";
+import { PetSpeciesTile } from "../../../components/pet_visual";
+import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../../../components/timeline/LifeStream";
+import { InlineError } from "../../../components/feedback/Feedback";
 
-/** MINI 3D Life View（Stage H.2，Compact 职责）：
- *  3D 形象服务诚实状态 + 版本列表 + 当前状态引用；不伪装成功。 */
-
-interface VisualModel {
-  model_id: string;
-  version: number;
-  provider: string;
-  status: string;
-  failure_reason: string | null;
-  owner_verified: boolean | null;
-  provenance_kind: string;
-  activated_at: string | null;
-}
-
-interface OverlayMetric {
-  key: string;
-  label: string;
-  current: string | number;
-  baseline_range: string | null;
-  delta: number | null;
-  freshness: string;
-  source: string;
-}
-
-interface StateOverlay {
-  pet_id: string;
-  provider_real: boolean;
-  model_status: string | null;
-  metrics: OverlayMetric[];
-  note: string;
+function rowFromEvent(e: LifeEvent): LifeStreamRow {
+  const t = new Date(e.occurred_at);
+  const hh = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
+  return {
+    id: e.event_id,
+    time: hh,
+    typeLabel: eventTypeLabel(e.event_type),
+    detail: eventPayloadText(e.payload),
+    source: sourceLabel(e.source_type),
+  };
 }
 
 export default function LifeView() {
-  const [petId, setPetId] = useState<string | null>(null);
+  const { pets, petId } = usePets();
   const [providerReal, setProviderReal] = useState<boolean | null>(null);
-  const [models, setModels] = useState<VisualModel[]>([]);
-  const [overlay, setOverlay] = useState<StateOverlay | null>(null);
+  const [today, setToday] = useState<{ events: LifeEvent[] } | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
-  const [generating, setGenerating] = useState(false);
+  const [visualState, setVisualState] = useState<"loading" | "ready" | "error">("loading");
+
+  const pet = pets?.find((p) => p.id === petId) ?? pets?.[0];
 
   useEffect(() => {
-    Taro.getStorage({ key: "pli_current_pet" })
-      .then((r) => setPetId(r.data as string))
-      .catch(() => setPetId(null));
-  }, []);
-
-  const load = () => {
+    if (!petId) return;
     setState("loading");
-    Promise.all([
-      api.get<{ real: boolean; provider: string }>("/visual/status"),
-      petId ? api.get<{ models: VisualModel[] }>(`/pets/${petId}/visual-models`) : Promise.resolve({ models: [] }),
-      petId ? api.get<StateOverlay>(`/pets/${petId}/state-overlay`) : Promise.resolve(null),
-    ])
-      .then(([st, ml, ov]) => {
-        setProviderReal(st.real);
-        setModels(ml.models);
-        setOverlay(ov);
+    api
+      .get<{ events: LifeEvent[] }>(`/pets/${petId}/today`)
+      .then((r) => {
+        setToday(r);
         setState("ready");
       })
       .catch(() => setState("error"));
-  };
-
-  useEffect(() => {
-    if (petId !== null) load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [petId]);
 
-  async function startGeneration() {
-    if (!petId) return;
-    setGenerating(true);
-    try {
-      await api.post(`/pets/${petId}/visual-models`, { capture_id: null, opts: {} });
-      Taro.showToast({ title: "已提交请求（服务未开放会诚实显示）", icon: "none" });
-      load();
-    } catch {
-      Taro.showToast({ title: "提交失败", icon: "none" });
-    } finally {
-      setGenerating(false);
-    }
-  }
+  useEffect(() => {
+    setVisualState("loading");
+    api
+      .get<{ real: boolean }>("/visual/status")
+      .then((s) => {
+        setProviderReal(s.real);
+        setVisualState("ready");
+      })
+      .catch(() => setVisualState("error"));
+  }, []);
+
+  const petEvents = (today?.events ?? []).filter((e) => e.event_type !== "today.viewed");
+  const lastEvent = petEvents[0] ?? null;
+  const streamDays: LifeStreamDay[] = petEvents.slice(0, 4).length
+    ? [{ id: "now", label: "此刻", isToday: true, rows: petEvents.slice(0, 4).map(rowFromEvent) }]
+    : [];
 
   return (
     <View className="page">
       <View className="h1">生命视图</View>
-      <View className="sub">3D 形象与当前状态；真实照片与记录始终是基础</View>
+      <View className="sub">{pet ? `${pet.name} · 此刻` : "宠物 · 此刻"}</View>
 
-      <View className="card">
-        <View className="layer-name">3D 形象服务</View>
-        {state === "loading" && <View className="state">加载中……</View>}
-        {state === "error" && (
-          <View className="state state-error">
-            出错了
-            <Button className="btn" onClick={load}>重试</Button>
+      <View className="pet-hero" style={{ height: 460 }}>
+        <PetSpeciesTile species={pet?.species ?? "dog"} size={260} round={64} />
+        <View className="pet-hero-scrim" />
+        <View className="pet-hero-info">
+          <View className="pet-hero-name">{pet?.name ?? "宠物"}</View>
+          <View className="pet-hero-headline">
+            {state === "error" ? "暂时连接不上" : lastEvent ? `最近一次记录：${eventTypeLabel(lastEvent.event_type)}` : "今天还没有记录"}
           </View>
-        )}
-        {state === "ready" && providerReal === false && (
-          <>
-            <View className="state">3D 生成服务暂未开放</View>
-            <View className="muted">未接入真实 3D 生成服务；不伪装生成成功。</View>
-            <Button className="btn btn-primary" onClick={startGeneration} disabled={generating}>
-              {generating ? "提交中…" : "尝试提交生成请求"}
-            </Button>
-          </>
-        )}
-        {state === "ready" && providerReal === true && (
-          <View className="muted">3D 生成服务已就绪。</View>
+        </View>
+      </View>
+
+      {state === "error" && <InlineError message="暂时连接不上" />}
+
+      <View className="open-section">
+        <View className="section-title">生命轨迹</View>
+        {streamDays.length ? (
+          <LifeStream days={streamDays} />
+        ) : (
+          <Text className="life-empty-note">
+            {state === "error" ? "暂时连接不上，稍后自动恢复。" : "从第一次喂食、散步或健康记录开始，轨迹会慢慢成形。"}
+          </Text>
         )}
       </View>
 
-      <View className="card">
-        <View className="layer-name">3D 形象版本</View>
-        {models.length === 0 && <View className="muted">还没有 3D 形象版本。</View>}
-        {models.map((m) => (
-          <View className="tl-item" key={m.model_id}>
-            <View className="tl-head">
-              <Text className="tl-type">v{m.version}</Text>
-              <Text className="badge">{m.status}</Text>
-              <Text className="badge">{m.provenance_kind}</Text>
+      <View className="open-section">
+        <View className="section-title">3D 形象</View>
+        <View className="life-row">
+          <View className="life-dot" />
+          <View className="life-row-body">
+            <View className="life-row-head">
+              <Text className="life-row-type">尚未创建</Text>
             </View>
-            {m.failure_reason && (
-              <View className="tl-body">失败原因：{m.failure_reason}</View>
+            <View className="life-row-detail">等待连接真实 3D 服务后生成。当前以照片与记录呈现。</View>
+            {visualState === "ready" && providerReal === true && (
+              <View className="life-row-source">3D 服务已就绪，等待形象生成。</View>
             )}
+            {visualState === "error" && <View className="life-row-source"><Icon type="info" size={14} color="#8A8074" /> 服务暂未开放，稍后重试。</View>}
           </View>
-        ))}
-      </View>
-
-      <View className="card">
-        <View className="layer-name">当前状态</View>
-        {overlay && overlay.metrics.length === 0 && <View className="muted">今天还没有记录。</View>}
-        {overlay?.metrics.map((m) => (
-          <View className="badge" key={m.key + m.label}>
-            {m.label}：{String(m.current)}
-            {m.baseline_range ? ` · 基线 ${m.baseline_range}` : ""}
-            {m.delta != null ? ` · 变化 ${m.delta > 0 ? "+" : ""}${m.delta}` : ""}
-          </View>
-        ))}
-        {overlay?.note && <View className="muted">{overlay.note}</View>}
+        </View>
       </View>
     </View>
   );

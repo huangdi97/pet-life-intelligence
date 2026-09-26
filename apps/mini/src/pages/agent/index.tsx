@@ -1,9 +1,14 @@
+/**
+ * 助手 — 豆豆的助手 (Stage R.2 §50-53). Pet-aware：顶部显示宠物上下文；
+ * Ask 为主模式，其余能力为情境入口（不再等权 pill tab）。
+ * 数据流不变：/ask、/search、/health-events、/tasks。
+ */
 import { useCallback, useEffect, useState } from "react";
-import { View } from "@tarojs/components";
+import { Text, View } from "@tarojs/components";
 import { api, type Task } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { PetContextHeader } from "../../components/pet_visual";
 import {
-  AgentTabs,
   AskPanel,
   BriefPanel,
   ExplainPanel,
@@ -20,12 +25,10 @@ import {
   type SearchHit,
 } from "./_lib";
 
-/** Assistant（MIN-004）：5 页内 tab 问/摘要/找/计划/解释（IA §2）。
- *  AI 服务外部受阻（无 AI key）时如实显示「服务暂未开放」，不显示原始错误码。 */
-
 export default function Agent() {
-  const { petId } = usePets();
+  const { pets, petId } = usePets();
   const [tab, setTab] = useState<AgentTab>("ask");
+  const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
 
   // 问（Ask）
   const [question, setQuestion] = useState("");
@@ -97,15 +100,37 @@ export default function Agent() {
     }
   }
 
+  const modes: Array<{ key: AgentTab; label: string }> = [
+    { key: "ask", label: "问" },
+    { key: "brief", label: "摘要" },
+    { key: "find", label: "找" },
+    { key: "plan", label: "计划" },
+    { key: "explain", label: "解释" },
+  ];
+
   return (
     <View className="page">
-      <View className="h1">宠物助手</View>
-      <View className="sub">回答必须引用真实事件、显示时间与来源；风险判断以独立规则引擎为准</View>
+      <PetContextHeader
+        pet={current ?? null}
+        title={current ? `${current.name}的助手` : "宠物助手"}
+        sub="回答引用真实记录；风险判断以独立规则引擎为准"
+      />
 
-      <AgentTabs tab={tab} onChange={setTab} />
+      <View className="mode-row">
+        {modes.map((m) => (
+          <View
+            key={m.key}
+            className={`mode-pill${tab === m.key ? " mode-pill-active" : ""}${m.key === "ask" ? " mode-pill-primary" : ""}`}
+            onClick={() => setTab(m.key)}
+          >
+            {m.label}
+          </View>
+        ))}
+      </View>
 
       {tab === "ask" && (
         <AskPanel
+          petName={current?.name}
           question={question}
           askState={askState}
           result={result}
@@ -129,6 +154,12 @@ export default function Agent() {
       {tab === "plan" && <PlanPanel tasks={tasks} onComplete={completeTask} />}
 
       {tab === "explain" && <ExplainPanel />}
+
+      {askState === "blocked" && (
+        <Text className="life-empty-note" style={{ display: "block", marginTop: 12 }}>
+          AI 服务暂未开放，连接后即可提问。
+        </Text>
+      )}
     </View>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import type { WebIconName } from "../../../components/icons";
+import { Icon } from "../../../components/icons";
 import type { QuickLogItem } from "./constants";
 
 interface ActionCardProps {
@@ -8,24 +10,36 @@ interface ActionCardProps {
   onMore: () => void;
 }
 
-/** OWN-001 Action — 下一步能做什么（直接快速记录按钮保留 E2E 契约）。 */
+const QUICK_ICONS: Record<string, WebIconName> = {
+  "daily.meal": "food",
+  "daily.drink": "water",
+  "daily.elimination": "toilet",
+  "daily.walk": "walk",
+  "daily.play": "play",
+  "daily.weight": "weight",
+};
+
+/** OWN-001 Action — 下一步能做什么（快速记录按钮保留 E2E 契约：喂食等）。 */
 export function ActionCard({ quickTypes, onQuickLog, onMore }: ActionCardProps) {
   return (
-    <div className="card">
-      <h2>下一步</h2>
-      <div className="quickgrid">
+    <div className="v4-sec">
+      <div className="v4-sec-head">
+        <h2 className="v4-sec-title">快速记录</h2>
+        <button type="button" className="v4-sec-link" onClick={onMore} aria-haspopup="dialog">
+          更多记录类型
+        </button>
+      </div>
+      <div className="v4-quick">
         {quickTypes.map((q) => (
-          <button key={q.type} className="btn" onClick={() => onQuickLog(q)}>
+          <button key={q.type} type="button" onClick={() => onQuickLog(q)}>
+            <span className="v4-quick-icon">
+              <Icon name={QUICK_ICONS[q.type] ?? "note"} size={22} />
+            </span>
             {q.label}
           </button>
         ))}
       </div>
-      <div className="row" style={{ marginTop: 8 }}>
-        <button className="btn" onClick={onMore} aria-haspopup="dialog">
-          更多记录类型 ▾
-        </button>
-      </div>
-      <p className="muted">所有记录都会带来源（provenance）与记录人（actor）进入事件图。</p>
+      <p className="v4-sec-foot">每条记录都会保存记录人与来源，方便之后追溯。</p>
     </div>
   );
 }
