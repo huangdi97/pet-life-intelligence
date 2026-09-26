@@ -1,14 +1,17 @@
-/** WelfareScreen — 福利 (OWN-011 mobile port of apps/web/app/welfare):
- *  生活质量/舒适/压力/活动/环境/丰富化。输出强调证据与趋势，不做
- *  “开心指数”或 AI 情绪百分比；观察记录标记 OWNER_REPORTED。 */
+/**
+ * WelfareScreen — 生活质量趋势优先 (Stage R.2 §48): 近期观察 → 舒适/环境/
+ * 活动/恢复 → 生活质量记录 → (记录观察 last). 不做开心指数/幸福分数/情绪
+ * 指数；全部来自真实观察与证据计数。
+ */
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { api, humanizeError, type LifeEvent, type WelfareEvidence, type WelfareProfile } from "../api";
 import { usePets } from "../context";
+import { api, humanizeError, type LifeEvent, type WelfareEvidence, type WelfareProfile } from "../api";
 import { fmtTime } from "../format";
-import { COLORS, SPACE, TYPE } from "../tokens";
-import { Badge, Card, Chip, EmptyText, ErrorText, Loading, MutedText, PrimaryButton, ScreenTitle, SectionTitle } from "./ui";
+import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
+import { OpenSection } from "../components/feedback/OpenSection";
+import { EmptyState, InlineError, Skeleton } from "../components/feedback/Feedback";
 import { eventTypeLabel } from "./ui_labels";
 
 const WELFARE_KINDS: Array<{ value: string; label: string }> = [
@@ -29,50 +32,35 @@ const DOMAIN_LABELS: Record<string, string> = {
 };
 
 export function WelfareScreen() {
-  const { petId } = usePets();
+  const { pets, petId } = usePets();
   const [profile, setProfile] = useState<WelfareProfile | null>(null);
   const [evidence, setEvidence] = useState<WelfareEvidence | null>(null);
   const [events, setEvents] = useState<LifeEvent[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [kind, setKind] = useState("STRESS_RECOVERY");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
 
+  const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
+
   useEffect(() => {
     if (!petId) return;
     let alive = true;
     setLoading(true);
-    api
-      .get<WelfareProfile>(`/pets/${petId}/welfare-profile`)
-      .then((r) => {
-        if (alive) setProfile(r);
-      })
-      .catch((e: unknown) => {
-        if (alive) setError(humanizeError(e));
-      });
-    api
-      .get<WelfareEvidence>(`/pets/${petId}/welfare-evidence`)
-      .then((r) => {
-        if (alive) setEvidence(r);
-      })
-      .catch((e: unknown) => {
-        if (alive) setError(humanizeError(e));
-      });
-    api
-      .get<{ events: LifeEvent[] }>(
-        `/pets/${petId}/events?limit=60${WELFARE_EVENT_TYPES.map((w) => `&event_type=${w}`).join("")}`,
-      )
-      .then((r) => {
-        if (alive) setEvents(r.events);
-      })
-      .catch(() => {
-        if (alive) setEvents([]);
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
+    Promise.allSettled([
+      api.get<WelfareProfile>(`/pets/${petId}/welfare-profile`),
+      api.get<WelfareEvidence>(`/pets/${petId}/welfare-evidence`),
+      api.get<{ events: LifeEvent[] }>(`/pets/${petId}/events?limit=40${WELFARE_EVENT_TYPES.map((w) => `&event_type=${w}`).join("")}`),
+    ]).then(([p, ev, evs]) => {
+      if (!alive) return;
+      if (p.status === "fulfilled") setProfile(p.value);
+      if (ev.status === "fulfilled") setEvidence(ev.value);
+      if (evs.status === "fulfilled") setEvents(evs.value.events);
+      setLoading(false);
+      setError(p.status === "rejected" && ev.status === "rejected" && evs.status === "rejected");
+    });
     return () => {
       alive = false;
     };
@@ -98,71 +86,92 @@ export function WelfareScreen() {
   }
 
   const domains = profile?.profile?.domains ?? null;
+  const counts = evidence?.observation_counts ?? {};
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-        <ScreenTitle title="福利" sub="生活质量 / 舒适 / 压力 / 活动 / 环境 / 丰富化。用证据与趋势，不做开心指数。" />
+      <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.head}>
+          <Text style={styles.title}>{pet ? `${pet.name}的福利` : "福利"}</Text>
+          <Text style={styles.sub}>用观察与证据说话，不做开心指数。</Text>
+        </View>
 
-        {error && <ErrorText>{error}</ErrorText>}
-        {loading && <Loading />}
-
-        <Card>
-          <SectionTitle>福利档案</SectionTitle>
-          {domains && Object.keys(domains).length > 0 ? (
-            Object.entries(domains).map(([k, v]) => (
-              <View key={k} style={styles.domainRow}>
-                <Text style={styles.domainLabel}>{DOMAIN_LABELS[k] ?? k}</Text>
-                <Text style={styles.domainValue}>{String(v)}</Text>
-              </View>
-            ))
-          ) : (
-            <MutedText>档案尚未形成，等待更多观察记录。</MutedText>
-          )}
-          {profile?.profile?.notes ? <MutedText>{profile.profile.notes}</MutedText> : null}
-        </Card>
-
-        <Card>
-          <SectionTitle>记录福利观察</SectionTitle>
-          <View style={styles.chipRow}>
-            {WELFARE_KINDS.map((k) => (
-              <Chip key={k.value} label={k.label} active={kind === k.value} onPress={() => setKind(k.value)} />
-            ))}
+        {error ? <InlineError message="暂时连接不上，已展示已有内容" /> : null}
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <Skeleton rows={3} />
           </View>
-          <PrimaryButton label={busy ? "提交中…" : "记录观察"} onPress={() => void recordObservation()} disabled={busy} />
-          {msg && <Text style={styles.msg}>{msg}</Text>}
-        </Card>
-
-        <Card>
-          <SectionTitle>证据概览</SectionTitle>
-          {evidence && Object.keys(evidence.observation_counts).length > 0 ? (
-            Object.entries(evidence.observation_counts).map(([k, v]) => (
-              <View key={k} style={styles.domainRow}>
-                <Text style={styles.domainLabel}>{k}</Text>
-                <Badge text={`${v} 条`} color={COLORS.inkSecondary} bg={COLORS.bgSurfaceMuted} />
-              </View>
-            ))
-          ) : (
-            <MutedText>还没有证据记录。</MutedText>
-          )}
-          {evidence?.sources && evidence.sources.length > 0 ? (
-            <Text style={styles.sourceText}>来源：{evidence.sources.join("、")}</Text>
-          ) : null}
-          {evidence?.notice ? <MutedText>{evidence.notice}</MutedText> : null}
-        </Card>
-
-        <SectionTitle>近期日常记录</SectionTitle>
-        {events.length === 0 ? (
-          <EmptyText>还没有相关记录。</EmptyText>
         ) : (
-          events.map((e) => (
-            <Card key={e.event_id}>
-              <View style={styles.eventHead}>
-                <Text style={styles.eventType}>{eventTypeLabel(e.event_type)}</Text>
-                <Text style={styles.eventTime}>{fmtTime(e.occurred_at)}</Text>
+          <>
+            <OpenSection title="近期观察">
+              {Object.keys(counts).length === 0 ? (
+                <EmptyState
+                  title="还没有福利观察"
+                  body="记录舒适、压力恢复、环境等观察后，趋势会出现在这里。"
+                />
+              ) : (
+                Object.entries(counts).map(([k, v], i) => (
+                  <View key={k} style={[styles.countRow, i > 0 && styles.countDivider]}>
+                    <Text style={styles.countLabel}>{DOMAIN_LABELS[k] ?? k}</Text>
+                    <View style={styles.countPill}>
+                      <Text style={styles.countText}>{v} 条</Text>
+                    </View>
+                  </View>
+                ))
+              )}
+              {evidence?.sources && evidence.sources.length > 0 ? (
+                <Text style={styles.sourceText}>来源：{evidence.sources.join("、")}</Text>
+              ) : null}
+              {evidence?.notice ? <Text style={styles.sourceText}>{evidence.notice}</Text> : null}
+            </OpenSection>
+
+            <OpenSection title="生活质量记录">
+              {events.length === 0 ? (
+                <Text style={styles.emptyText}>还没有相关日常记录。</Text>
+              ) : (
+                events.slice(0, 6).map((e, i) => (
+                  <View key={e.event_id} style={[styles.eventRow, i > 0 && styles.eventDivider]}>
+                    <Text style={styles.eventType}>{eventTypeLabel(e.event_type)}</Text>
+                    <Text style={styles.eventTime}>{fmtTime(e.occurred_at)}</Text>
+                  </View>
+                ))
+              )}
+            </OpenSection>
+
+            {domains && Object.keys(domains).length > 0 ? (
+              <OpenSection title="各维度概况">
+                {Object.entries(domains).map(([k, v]) => (
+                  <View key={k} style={styles.countRow}>
+                    <Text style={styles.countLabel}>{DOMAIN_LABELS[k] ?? k}</Text>
+                    <Text style={styles.domainValue}>{String(v)}</Text>
+                  </View>
+                ))}
+              </OpenSection>
+            ) : null}
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>记录福利观察</Text>
+              <View style={styles.chipRow}>
+                {WELFARE_KINDS.map((k) => (
+                  <Pressable key={k.value} onPress={() => setKind(k.value)} style={[styles.chip, kind === k.value && styles.chipActive]}>
+                    <Text style={[styles.chipText, kind === k.value && styles.chipActiveText]}>{k.label}</Text>
+                  </Pressable>
+                ))}
               </View>
-            </Card>
-          ))
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="记录观察"
+                disabled={busy}
+                onPress={() => void recordObservation()}
+                style={({ pressed }) => [styles.submitBtn, busy && styles.pressed, pressed && styles.pressed]}
+              >
+                <Text style={styles.submitText}>{busy ? "提交中…" : "记录观察"}</Text>
+              </Pressable>
+              {msg ? (
+                <Text style={[styles.msg, msg.includes("失败") || msg.includes("异常") ? styles.msgError : styles.msgOk]}>{msg}</Text>
+              ) : null}
+            </View>
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -170,16 +179,36 @@ export function WelfareScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: COLORS.bgCanvas },
+  page: { flex: 1, backgroundColor: COLORS.canvas },
   flex: { flex: 1 },
-  content: { padding: SPACE.s4, paddingBottom: SPACE.s8 },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, marginVertical: SPACE.s2 },
-  msg: { fontSize: TYPE.sm, color: COLORS.ok, marginTop: SPACE.s2 },
-  domainRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginVertical: SPACE.s1 },
-  domainLabel: { fontSize: TYPE.sm, color: COLORS.inkSecondary },
-  domainValue: { fontSize: TYPE.sm, color: COLORS.inkPrimary },
-  sourceText: { fontSize: TYPE.xs, color: COLORS.inkMuted, marginTop: SPACE.s2 },
-  eventHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  eventType: { fontSize: TYPE.base, fontWeight: TYPE.weightSemibold, color: COLORS.inkPrimary },
-  eventTime: { fontSize: TYPE.xs, color: COLORS.inkMuted },
+  content: { paddingBottom: SPACE.s8 },
+  head: { paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3 },
+  title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
+  sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
+  loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  countRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 10 },
+  countDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
+  countLabel: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "500" },
+  countPill: { backgroundColor: COLORS.brandSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  countText: { fontSize: TYPE.caption, color: COLORS.textSecondary, fontWeight: "600" },
+  domainValue: { fontSize: TYPE.sm, color: COLORS.textSecondary },
+  sourceText: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: SPACE.s2 },
+  eventRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 },
+  eventDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
+  eventType: { fontSize: TYPE.body, color: COLORS.textPrimary },
+  eventTime: { fontSize: TYPE.caption, color: COLORS.textTertiary },
+  emptyText: { fontSize: TYPE.body, color: COLORS.textTertiary },
+  formSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  formLabel: { fontSize: TYPE.section, fontWeight: "600", color: COLORS.textPrimary, marginBottom: SPACE.s2 },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
+  chip: { paddingHorizontal: SPACE.s3, paddingVertical: 6, borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
+  chipActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
+  chipText: { fontSize: TYPE.sm, color: COLORS.textTertiary },
+  chipActiveText: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  submitBtn: { marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 12, alignItems: "center" },
+  submitText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
+  msg: { fontSize: TYPE.sm, marginTop: SPACE.s2 },
+  msgOk: { color: COLORS.success },
+  msgError: { color: COLORS.danger },
+  pressed: { opacity: 0.85 },
 });

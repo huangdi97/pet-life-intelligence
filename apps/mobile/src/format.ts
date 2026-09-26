@@ -49,3 +49,19 @@ export function deviceStatusLabel(status: string): string {
   if (status === "EXPIRED" || status === "REVOKED") return "已断开";
   return "状态未知";
 }
+
+/** Pet age in years+months from birth_date (deterministic, no guessing). */
+export function petAgeText(birthDate: string | null): string | null {
+  if (!birthDate) return null;
+  const birth = new Date(birthDate);
+  if (Number.isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+  if (now.getDate() < birth.getDate()) months -= 1;
+  if (months < 0) months = 0;
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  if (years > 0 && rest > 0) return `${years}岁${rest}个月`;
+  if (years > 0) return `${years}岁`;
+  return `${rest}个月`;
+}

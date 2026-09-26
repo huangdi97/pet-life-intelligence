@@ -1,158 +1,166 @@
-/** LifeViewScreen — Mobile 3D Life View（Stage H.2，Compact 职责）。
- *  3D 形象服务诚实状态 + 版本列表 + 当前状态（真实事实引用）。
- *  无真实 provider 时如实显示「3D 生成服务暂未开放」，不伪装成功；
- *  用户侧文案不用「数字孪生」。 */
+/**
+ * LifeViewScreen — "豆豆的可视生命状态入口" (Stage R.2 §31-36).
+ * Photo-first: the pet visual is the focal point; 此刻 shows only real,
+ * 真实服务" status — never as a diagnostics page. Provider/model/raw keys
+ * 真实服务" status — never as a diagnostics page. Provider/model/raw keys
+ * stay out of the owner surface (Developer settings hosts diagnostics).
+ */
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { api, humanizeError } from "../api";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
+import { api, type LifeEvent } from "../api";
 import { usePets } from "../context";
-import { COLORS, SPACE, TYPE } from "../tokens";
-import { Card, CardTitle, GhostButton, MutedText, ScreenTitle } from "./ui";
+import { COLORS, DEMO_ENV, RADIUS, SPACE, TYPE } from "../tokens";
+import type { StackParamList } from "../navigation";
+import { PetMedia } from "../components/media/PetMedia";
+import { OpenSection } from "../components/feedback/OpenSection";
+import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../components/timeline/LifeStream";
+import { resolvePetMediaUri } from "../components/media/demoPetVisual";
+import { eventTypeLabel, sourceLabel } from "./ui_labels";
 
-interface VisualModel {
-  model_id: string;
-  version: number;
-  status: string;
-  failure_reason: string | null;
-  owner_verified: boolean | null;
-  provenance_kind: string;
-}
-
-interface OverlayMetric {
-  key: string;
-  label: string;
-  current: string | number;
-  baseline_range: string | null;
-  delta: number | null;
-}
-
-interface StateOverlay {
-  provider_real: boolean;
-  model_status: string | null;
-  metrics: OverlayMetric[];
-  note: string;
-}
-
-function StateBox({ text }: { text: string }) {
-  return (
-    <View style={{ borderWidth: 1, borderColor: COLORS.bgSurfaceStrong, borderRadius: 8, padding: SPACE.s4, marginVertical: SPACE.s1 }}>
-      <Text style={{ fontSize: TYPE.sm, color: COLORS.inkSecondary }}>{text}</Text>
-    </View>
-  );
-}
+type StackNav = NativeStackNavigationProp<StackParamList>;
 
 export function LifeViewScreen() {
   const { pets, petId } = usePets();
-  const [providerReal, setProviderReal] = useState<boolean | null>(null);
-  const [models, setModels] = useState<VisualModel[]>([]);
-  const [overlay, setOverlay] = useState<StateOverlay | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const navigation = useNavigation<StackNav>();
+  const [today, setToday] = useState<{ events: LifeEvent[] } | null>(null);
+  const [error, setError] = useState(false);
 
-  const pet = pets?.find((p) => p.id === petId) ?? pets?.[0];
+  const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
   useEffect(() => {
+    if (!pet?.id) return;
     let alive = true;
-    (async () => {
-      try {
-        const st = await api.get<{ real: boolean }>("/visual/status");
-        if (!alive) return;
-        setProviderReal(st.real);
-        if (pet?.id) {
-          const [ml, ov] = await Promise.all([
-            api.get<{ models: VisualModel[] }>(`/pets/${pet.id}/visual-models`),
-            api.get<StateOverlay>(`/pets/${pet.id}/state-overlay`).catch(() => null),
-          ]);
-          if (!alive) return;
-          setModels(ml.models);
-          setOverlay(ov);
-        }
-      } catch (e) {
-        if (alive) setError(humanizeError(e));
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
+    api
+      .get<{ events: LifeEvent[] }>(`/pets/${pet.id}/today`)
+      .then((r) => {
+        if (alive) setToday(r);
+      })
+      .catch(() => {
+        if (alive) setError(true);
+      });
     return () => {
       alive = false;
     };
   }, [pet?.id]);
 
+  const petEvents = (today?.events ?? []).filter((e) => e.event_type !== "today.viewed");
+  const lastEvent = petEvents[0] ?? null;
+
+  const streamRows: LifeStreamRow[] = petEvents.slice(0, 4).map((e) => ({
+    id: e.event_id,
+    time: new Date(e.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }),
+    typeLabel: eventTypeLabel(e.event_type),
+    sourceLabel: sourceLabel(e.source_type),
+    icon: "ellipse-outline" as const,
+    mediaUri: null,
+  }));
+  const streamDays: LifeStreamDay[] = streamRows.length
+    ? [{ id: "now", label: "此刻", isToday: true, rows: streamRows }]
+    : [];
+
   return (
     <SafeAreaView style={styles.page} edges={["top"]}>
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-        <ScreenTitle title="生命视图" sub={pet ? `${pet.name} · 3D 形象与当前状态` : "3D 形象与当前状态"} />
+      <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={styles.pageTitle}>生命视图</Text>
+        <Text style={styles.pageSub}>{pet ? `${pet.name} · 此刻` : "宠物 · 此刻"}</Text>
 
-        <Card>
-          <CardTitle>3D 形象服务</CardTitle>
-          {loading ? (
-            <StateBox text="加载中……" />
-          ) : error ? (
-            <StateBox text={error} />
-          ) : providerReal === false ? (
-            <>
-              <StateBox text="3D 生成服务暂未开放" />
-              <MutedText>
-                未接入真实 3D 生成服务；不会伪装生成成功。3D 形象只描述外观，不包含任何健康信息。
-              </MutedText>
-            </>
+        <View style={styles.stage}>
+          <PetMedia pet={pet} uri={resolvePetMediaUri(pet)} variant="full-bleed" accessibilityLabel={`${pet?.name ?? "宠物"}当前的形象`} />
+          <View style={styles.stageOverlay}>
+            <Text style={styles.stageName}>{pet?.name ?? "宠物"}</Text>
+            <Text style={styles.stageNow}>
+              {error ? "暂时连接不上" : lastEvent ? `最近一次记录：${eventTypeLabel(lastEvent.event_type)}` : "今天还没有记录"}
+            </Text>
+          </View>
+          {DEMO_ENV ? (
+            <View style={styles.demoChip}>
+              <Text style={styles.demoChipText}>示例数据</Text>
+            </View>
+          ) : null}
+        </View>
+
+        <OpenSection title="生命轨迹">
+          {streamDays.length ? (
+            <LifeStream days={streamDays} />
           ) : (
-            <MutedText>3D 生成服务已就绪。</MutedText>
+            <Text style={styles.emptyText}>
+              {error ? "暂时连接不上，稍后自动恢复。" : "从第一次喂食、散步或健康记录开始，轨迹会慢慢成形。"}
+            </Text>
           )}
-        </Card>
+        </OpenSection>
 
-        <Card>
-          <CardTitle>3D 形象版本</CardTitle>
-          {models.length === 0 ? (
-            <MutedText>还没有 3D 形象版本。</MutedText>
-          ) : (
-            models.map((m) => (
-              <View key={m.model_id} style={styles.row}>
-                <Text style={{ fontSize: TYPE.md, fontWeight: "600" }}>v{m.version}</Text>
-                <Text style={{ fontSize: TYPE.sm, color: COLORS.inkSecondary }}>
-                  {m.status} · {m.provenance_kind}
-                  {m.owner_verified === true ? " · 已确认像它" : m.owner_verified === false ? " · 待重新生成" : ""}
-                </Text>
-                {m.failure_reason ? <MutedText>失败原因：{m.failure_reason}</MutedText> : null}
-              </View>
-            ))
-          )}
-        </Card>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>3D 形象</Text>
+          <View style={styles.card3d}>
+            <View style={styles.card3dIcon}>
+              <Ionicons name="cube-outline" size={20} color={COLORS.textTertiary} />
+            </View>
+            <View style={styles.card3dText}>
+              <Text style={styles.card3dTitle}>尚未创建</Text>
+              <Text style={styles.card3dSub}>等待连接真实 3D 服务后生成。当前以照片与记录呈现。</Text>
+            </View>
+          </View>
+        </View>
 
-        <Card>
-          <CardTitle>当前状态</CardTitle>
-          {!overlay || overlay.metrics.length === 0 ? (
-            <MutedText>今天还没有记录。</MutedText>
-          ) : (
-            overlay.metrics.map((m) => (
-              <View key={m.key + m.label} style={styles.row}>
-                <Text style={{ fontSize: TYPE.sm }}>
-                  {m.label}：{String(m.current)}
-                  {m.baseline_range ? ` · 基线 ${m.baseline_range}` : ""}
-                  {m.delta != null ? ` · 变化 ${m.delta > 0 ? "+" : ""}${m.delta}` : ""}
-                </Text>
-              </View>
-            ))
-          )}
-          {overlay?.note ? <MutedText>{overlay.note}</MutedText> : null}
-        </Card>
-
-        <Card>
-          <CardTitle>真实照片</CardTitle>
-          <MutedText>
-            3D 不可用或失败时，始终以真实照片与记录为基础（照片上传见健康证据与 Quick Log）。
-          </MutedText>
-          <GhostButton label="回到今日" onPress={() => {}} />
-        </Card>
+        <View style={styles.actionRow}>
+          <PressableGhost label="回到今日" onPress={() => navigation.navigate("Tabs")} />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+
+
+
+function PressableGhost({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={styles.ghost}>
+      <Text style={styles.ghostText}>{label}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: COLORS.bgCanvas },
+  page: { flex: 1, backgroundColor: COLORS.canvas },
   flex: { flex: 1 },
-  content: { padding: SPACE.s4, paddingBottom: SPACE.s8 },
-  row: { marginVertical: SPACE.s1 },
+  content: { paddingBottom: SPACE.s8 },
+  pageTitle: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3 },
+  pageSub: { fontSize: TYPE.sm, color: COLORS.textTertiary, paddingHorizontal: SPACE.s4, marginTop: 2 },
+  stage: {
+    marginHorizontal: SPACE.s4,
+    marginTop: SPACE.s4,
+    borderRadius: RADIUS.hero,
+    overflow: "hidden",
+    backgroundColor: COLORS.surfaceDark,
+  },
+  stageOverlay: { position: "absolute", left: SPACE.s4, bottom: SPACE.s4, right: SPACE.s4 },
+  stageName: { fontSize: TYPE.heroName, fontWeight: "700", color: COLORS.textInverse },
+  stageNow: { fontSize: TYPE.sm, color: COLORS.textOnDark, opacity: 0.92, marginTop: 2 },
+  demoChip: { position: "absolute", top: 14, right: 14, backgroundColor: COLORS.surfaceOverlay, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  demoChipText: { fontSize: TYPE.caption, color: COLORS.textSecondary, fontWeight: "600" },
+  emptyText: { fontSize: TYPE.body, color: COLORS.textTertiary, lineHeight: 22 },
+  section: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  sectionTitle: { fontSize: TYPE.section, fontWeight: "600", color: COLORS.textPrimary, marginBottom: SPACE.s2 },
+  card3d: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACE.s3,
+    backgroundColor: COLORS.surfaceRaised,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: COLORS.dividerSubtle,
+    padding: SPACE.s4,
+  },
+  card3dIcon: { width: 36, height: 36, borderRadius: RADIUS.pill, backgroundColor: COLORS.brandSoft, alignItems: "center", justifyContent: "center" },
+  card3dText: { flex: 1 },
+  card3dTitle: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary },
+  card3dSub: { fontSize: TYPE.meta, color: COLORS.textTertiary, marginTop: 2 },
+  actionRow: { flexDirection: "row", justifyContent: "center", padding: SPACE.s5 },
+  ghost: { paddingHorizontal: SPACE.s5, paddingVertical: 10, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.dividerStrong },
+  ghostText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
 });

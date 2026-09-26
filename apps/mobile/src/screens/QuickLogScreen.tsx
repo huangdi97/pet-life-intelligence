@@ -1,20 +1,21 @@
-/** QuickLogScreen — 快速记录 (modal): 11 types → minimal input → save.
- *  10 types POST to the same event endpoint the api layer uses
- *  (POST /pets/{id}/events) with registry payload fields only; 备注 (diary)
- *  posts to the existing /pets/{id}/diary endpoint (the backend then creates
- *  the diary.created event with a real diary_id). 健康 has no safe direct
- *  event type — its tile opens the Health screen instead. Success shows
- *  feedback text; errors map to human language, never raw codes. */
+/**
+ * QuickLogScreen — 为豆豆记录 (modal, Stage R.2 §41-43). One-hand 2-tap flow:
+ * pet context header → icon tiles (常用 first) → light form → save. All
+ * writes go to the same canonical endpoints as before; success/error copy is
+ * user language only.
+ */
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { api, humanizeError } from "../api";
 import { usePets } from "../context";
 import { COLORS, SPACE, TYPE } from "../tokens";
 import type { StackParamList } from "../navigation";
-import { Card, EmptyText, ErrorText, GhostButton, ScreenTitle } from "./ui";
+import { PetContextHeader } from "../components/pet/PetContextHeader";
+import { resolvePetMediaUri } from "../components/media/demoPetVisual";
 import { clampMinutes, LOG_TYPES, type LogType } from "./quicklog_types";
 import { QuickLogForm, QuickLogGrid, type QuickLogFields } from "./quicklog_sections";
 
@@ -35,7 +36,7 @@ export function QuickLogScreen() {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
+  const current = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
   function pick(key: string) {
     setSelected(key);
@@ -79,11 +80,7 @@ export function QuickLogScreen() {
         if (unit.trim()) payload.unit = unit.trim();
       } else if (t.event_type === "daily.elimination") {
         if (kind) payload.kind = kind;
-      } else if (
-        t.event_type === "daily.walk" ||
-        t.event_type === "daily.play" ||
-        t.event_type === "daily.sleep"
-      ) {
+      } else if (t.event_type === "daily.walk" || t.event_type === "daily.play" || t.event_type === "daily.sleep") {
         payload = { duration_minutes: clampMinutes(minutes) };
       } else if (t.event_type === "daily.weight") {
         const w = parseFloat(weight);
@@ -93,8 +90,6 @@ export function QuickLogScreen() {
         }
         payload = { weight_kg: String(w) };
       } else if (t.event_type === "medication.administered") {
-        // Registry payload fields only; the quick log does not attach to a
-        // medication plan (plan-bound recording lives in the medication API).
         payload = { plan_id: "", administered_at: new Date().toISOString(), by_actor: "主人", status: "GIVEN" };
       } else if (t.event_type === "behavior.observed") {
         const b = behavior.trim();
@@ -104,8 +99,6 @@ export function QuickLogScreen() {
         }
         payload = { behavior: b, behavior_event_id: "", intensity_source: "OWNER_REPORTED" };
       } else {
-        // diary.created → existing /pets/{id}/diary endpoint; the backend
-        // creates the diary.created life event with a real diary_id.
         const d = diaryText.trim();
         if (!d) {
           setError("请写一点备注内容。");
@@ -130,23 +123,19 @@ export function QuickLogScreen() {
     }
   }
 
-  const selectedType: LogType | undefined = selected
-    ? LOG_TYPES.find((x) => x.key === selected)
-    : undefined;
+  const selectedType: LogType | undefined = selected ? LOG_TYPES.find((x) => x.key === selected) : undefined;
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-        <ScreenTitle title="快速记录" sub={current ? `为 ${current.name} 记一条` : ""} />
-
-        {!current && <EmptyText>请先选择宠物。</EmptyText>}
-
-        {success && (
-          <Card>
+      <PetContextHeader pet={current} title={current ? `为${current.name}记录` : "快速记录"} mediaUri={resolvePetMediaUri(current)} onPress={() => navigation.goBack()} />
+      <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {success ? (
+          <View style={styles.feedback} accessibilityLiveRegion="polite">
+            <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
             <Text style={styles.successText}>{success}</Text>
-          </Card>
-        )}
-        {error && <ErrorText>{error}</ErrorText>}
+          </View>
+        ) : null}
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         {selectedType ? (
           <QuickLogForm t={selectedType} fields={fields} saving={saving} onSave={() => void save()} />
@@ -154,15 +143,24 @@ export function QuickLogScreen() {
           <QuickLogGrid onPick={pick} onOpenHealth={() => navigation.navigate("Health")} />
         )}
 
-        <GhostButton label="完成" onPress={() => navigation.goBack()} />
+        <View style={styles.closeWrap}>
+          <Pressable accessibilityRole="button" accessibilityLabel="完成并关闭" onPress={() => navigation.goBack()} style={styles.closeBtn}>
+            <Text style={styles.closeText}>完成</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: COLORS.bgCanvas },
+  page: { flex: 1, backgroundColor: COLORS.canvas },
   flex: { flex: 1 },
-  content: { padding: SPACE.s4, paddingBottom: SPACE.s8 },
-  successText: { fontSize: TYPE.base, color: COLORS.ok, fontWeight: TYPE.weightMedium },
+  content: { paddingBottom: SPACE.s8, paddingTop: SPACE.s4 },
+  feedback: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: SPACE.s4, marginBottom: SPACE.s2 },
+  successText: { fontSize: TYPE.body, color: COLORS.success, fontWeight: "600" },
+  errorText: { fontSize: TYPE.sm, color: COLORS.danger, paddingHorizontal: SPACE.s4, marginBottom: SPACE.s2 },
+  closeWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  closeBtn: { paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: COLORS.dividerStrong, alignItems: "center" },
+  closeText: { fontSize: TYPE.button, color: COLORS.textSecondary, fontWeight: "600" },
 });

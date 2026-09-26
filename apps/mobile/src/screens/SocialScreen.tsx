@@ -1,14 +1,16 @@
-/** SocialScreen — 社交 (OWN-012 mobile port of apps/web/app/social):
- *  关系倾向 + 宠物好友 + 互动事件记录（安全筛选 + 真实互动学习，不做
- *  伪精确兼容度）。好友/互动均来自既有后端路由。 */
+/**
+ * SocialScreen — 关系优先 (Stage R.2 §49): 关系 → 最近互动 → 互动历史 →
+ * (记录互动 last). 真实互动学习，不做伪精确兼容度。
+ */
 import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { api, humanizeError, type LifeEvent, type Pet, type PetFriend, type SocialProfile } from "../api";
 import { usePets } from "../context";
+import { api, humanizeError, type LifeEvent, type Pet, type PetFriend, type SocialProfile } from "../api";
 import { fmtTime } from "../format";
 import { COLORS, SPACE, TYPE } from "../tokens";
-import { Badge, Card, EmptyText, ErrorText, Loading, MutedText, ScreenTitle, SectionTitle } from "./ui";
+import { OpenSection } from "../components/feedback/OpenSection";
+import { EmptyState, InlineError, Skeleton } from "../components/feedback/Feedback";
 import { eventTypeLabel } from "./ui_labels";
 import { SocialRecordForm } from "./social_form";
 
@@ -22,13 +24,13 @@ const PROFILE_LABELS: Array<{ key: string; label: string }> = [
 ];
 
 export function SocialScreen() {
-  const { petId } = usePets();
+  const { pets, petId } = usePets();
   const [profile, setProfile] = useState<SocialProfile | null>(null);
   const [friends, setFriends] = useState<PetFriend[]>([]);
   const [allPets, setAllPets] = useState<Pet[]>([]);
   const [events, setEvents] = useState<LifeEvent[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [friendPetId, setFriendPetId] = useState("");
   const [quality, setQuality] = useState("NEUTRAL");
   const [duration, setDuration] = useState("30");
@@ -37,47 +39,26 @@ export function SocialScreen() {
   const [msg, setMsg] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
 
+  const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
+
   useEffect(() => {
     if (!petId) return;
     let alive = true;
     setLoading(true);
-    api
-      .get<SocialProfile>(`/pets/${petId}/social-profile`)
-      .then((r) => {
-        if (alive) setProfile(r);
-      })
-      .catch((e: unknown) => {
-        if (alive) setError(humanizeError(e));
-      });
-    api
-      .get<PetFriend[]>(`/pets/${petId}/friends`)
-      .then((r) => {
-        if (alive) setFriends(r);
-      })
-      .catch(() => {
-        if (alive) setFriends([]);
-      });
-    api
-      .get<Pet[]>("/pets")
-      .then((r) => {
-        if (alive) setAllPets(r);
-      })
-      .catch(() => {
-        if (alive) setAllPets([]);
-      });
-    api
-      .get<{ events: LifeEvent[] }>(
-        `/pets/${petId}/events?limit=40${INTERACTION_EVENT_TYPES.map((w) => `&event_type=${w}`).join("")}`,
-      )
-      .then((r) => {
-        if (alive) setEvents(r.events);
-      })
-      .catch(() => {
-        if (alive) setEvents([]);
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
+    Promise.allSettled([
+      api.get<SocialProfile>(`/pets/${petId}/social-profile`),
+      api.get<PetFriend[]>(`/pets/${petId}/friends`),
+      api.get<Pet[]>("/pets"),
+      api.get<{ events: LifeEvent[] }>(`/pets/${petId}/events?limit=40${INTERACTION_EVENT_TYPES.map((w) => `&event_type=${w}`).join("")}`),
+    ]).then(([p, f, ap, ev]) => {
+      if (!alive) return;
+      if (p.status === "fulfilled") setProfile(p.value);
+      if (f.status === "fulfilled") setFriends(f.value);
+      if (ap.status === "fulfilled") setAllPets(ap.value);
+      if (ev.status === "fulfilled") setEvents(ev.value.events);
+      setLoading(false);
+      setError(p.status === "rejected" && f.status === "rejected" && ev.status === "rejected");
+    });
     return () => {
       alive = false;
     };
@@ -107,73 +88,88 @@ export function SocialScreen() {
       setBusy(false);
     }
   }
+
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-        <ScreenTitle title="社交" sub="关系图谱 + 互动历史 + 安全。真实互动学习，不做伪精确兼容度。" />
+      <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.head}>
+          <Text style={styles.title}>{pet ? `${pet.name}的社交` : "社交"}</Text>
+          <Text style={styles.sub}>关系与真实互动记录，不做伪精确兼容度。</Text>
+        </View>
 
-        {error && <ErrorText>{error}</ErrorText>}
-        {loading && <Loading />}
-
-        <Card>
-          <SectionTitle>社交倾向</SectionTitle>
-          {p ? (
-            PROFILE_LABELS.map((row) => (
-              <View key={row.key} style={styles.domainRow}>
-                <Text style={styles.domainLabel}>{row.label}</Text>
-                <Text style={styles.domainValue}>{(p as Record<string, string | undefined>)[row.key] ?? "未知"}</Text>
-              </View>
-            ))
-          ) : (
-            <MutedText>档案尚未形成。</MutedText>
-          )}
-          {p?.notes ? <MutedText>{p.notes}</MutedText> : null}
-        </Card>
-
-        <Card>
-          <SectionTitle>宠物好友</SectionTitle>
-          {friends.length === 0 ? (
-            <MutedText>还没有好友关系。</MutedText>
-          ) : (
-            friends.map((f) => (
-              <View key={f.request_id} style={styles.domainRow}>
-                <Text style={styles.domainLabel}>{friendName(f.friend_pet_id)}</Text>
-                <Badge text={friendStatusLabel(f.status)} color={COLORS.inkSecondary} bg={COLORS.bgSurfaceMuted} />
-              </View>
-            ))
-          )}
-        </Card>
-
-        <Card>
-          <SectionTitle>记录互动</SectionTitle>
-          <SocialRecordForm
-            candidates={friendCandidates}
-            friendPetId={friendPetId}
-            onFriendChange={setFriendPetId}
-            quality={quality}
-            onQualityChange={setQuality}
-            duration={duration}
-            onDurationChange={setDuration}
-            notes={notes}
-            onNotesChange={setNotes}
-            busy={busy}
-            msg={msg}
-            onRecord={() => void recordInteraction()}
-          />
-        </Card>
-
-        <SectionTitle>互动历史</SectionTitle>
-        {events.length === 0 ? (
-          <EmptyText>还没有互动记录。</EmptyText>
+        {error ? <InlineError message="暂时连接不上，已展示已有内容" /> : null}
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <Skeleton rows={3} />
+          </View>
         ) : (
-          events.map((e) => (
-            <Card key={e.event_id}>
-              <View style={styles.eventHead}>
-                <Text style={styles.eventType}>{eventTypeLabel(e.event_type)}</Text>
-                <Text style={styles.eventTime}>{fmtTime(e.occurred_at)}</Text>
-              </View>
-            </Card>
-          ))
+          <>
+            <OpenSection title="关系">
+              {p ? (
+                PROFILE_LABELS.map((row) => (
+                  <View key={row.key} style={styles.profileRow}>
+                    <Text style={styles.profileLabel}>{row.label}</Text>
+                    <Text style={styles.profileValue}>{(p as Record<string, string | undefined>)[row.key] ?? "未知"}</Text>
+                  </View>
+                ))
+              ) : (
+                <EmptyState
+                  title="关系档案尚未形成"
+                  body="记录与其它宠物的真实互动后，这里会慢慢充实。"
+                />
+              )}
+              {p?.notes ? <Text style={styles.notes}>{p.notes}</Text> : null}
+            </OpenSection>
+
+            <OpenSection title="宠物好友">
+              {friends.length === 0 ? (
+                <Text style={styles.emptyText}>还没有好友关系。</Text>
+              ) : (
+                friends.map((f) => (
+                  <View key={f.request_id} style={styles.friendRow}>
+                    <Text style={styles.friendName}>{friendName(f.friend_pet_id)}</Text>
+                    <View style={styles.friendPill}>
+                      <Text style={styles.friendPillText}>{friendStatusLabel(f.status)}</Text>
+                    </View>
+                  </View>
+                ))
+              )}
+            </OpenSection>
+
+            <OpenSection title="最近互动">
+              {events.length === 0 ? (
+                <EmptyState
+                  title="还没有互动记录"
+                  body="记录一起玩耍或散步，历史会从这里开始。"
+                />
+              ) : (
+                events.slice(0, 6).map((e, i) => (
+                  <View key={e.event_id} style={[styles.eventRow, i > 0 && styles.eventDivider]}>
+                    <Text style={styles.eventType}>{eventTypeLabel(e.event_type)}</Text>
+                    <Text style={styles.eventTime}>{fmtTime(e.occurred_at)}</Text>
+                  </View>
+                ))
+              )}
+            </OpenSection>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>记录互动</Text>
+              <SocialRecordForm
+                candidates={friendCandidates}
+                friendPetId={friendPetId}
+                onFriendChange={setFriendPetId}
+                quality={quality}
+                onQualityChange={setQuality}
+                duration={duration}
+                onDurationChange={setDuration}
+                notes={notes}
+                onNotesChange={setNotes}
+                busy={busy}
+                msg={msg}
+                onRecord={() => void recordInteraction()}
+              />
+            </View>
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -188,13 +184,26 @@ function friendStatusLabel(status: string): string {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: COLORS.bgCanvas },
+  page: { flex: 1, backgroundColor: COLORS.canvas },
   flex: { flex: 1 },
-  content: { padding: SPACE.s4, paddingBottom: SPACE.s8 },
-  domainRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginVertical: SPACE.s1 },
-  domainLabel: { fontSize: TYPE.sm, color: COLORS.inkSecondary },
-  domainValue: { fontSize: TYPE.sm, color: COLORS.inkPrimary },
-  eventHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  eventType: { fontSize: TYPE.base, fontWeight: TYPE.weightSemibold, color: COLORS.inkPrimary },
-  eventTime: { fontSize: TYPE.xs, color: COLORS.inkMuted },
+  content: { paddingBottom: SPACE.s8 },
+  head: { paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3 },
+  title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
+  sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
+  loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  profileRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 },
+  profileLabel: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "500" },
+  profileValue: { fontSize: TYPE.sm, color: COLORS.textSecondary },
+  notes: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: SPACE.s2 },
+  friendRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 },
+  friendName: { fontSize: TYPE.body, color: COLORS.textPrimary },
+  friendPill: { backgroundColor: COLORS.brandSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  friendPillText: { fontSize: TYPE.caption, color: COLORS.textSecondary, fontWeight: "600" },
+  eventRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 },
+  eventDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
+  eventType: { fontSize: TYPE.body, color: COLORS.textPrimary },
+  eventTime: { fontSize: TYPE.caption, color: COLORS.textTertiary },
+  emptyText: { fontSize: TYPE.body, color: COLORS.textTertiary },
+  formSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  formLabel: { fontSize: TYPE.section, fontWeight: "600", color: COLORS.textPrimary, marginBottom: SPACE.s2 },
 });
