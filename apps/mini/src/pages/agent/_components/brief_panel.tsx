@@ -1,34 +1,32 @@
 import { Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
-import { fmtTime } from "../../../utils/format";
+import { fmtTime, riskLabel } from "../../../utils/format";
 import type { HealthEventRow } from "../_lib";
-
 export function BriefPanel({ healthRows }: { healthRows: HealthEventRow[] | null }) {
   const latestOpen = healthRows?.find((h) => h.status !== "CLOSED") ?? null;
   return (
     <View>
-      <View className="card">
-        <Text>最新健康摘要</Text>
-        {healthRows === null && <View className="muted" style={{ marginTop: 12 }}>加载中……</View>}
+      <View className="open-section">
+        <View className="section-title">最新健康摘要</View>
+        {healthRows === null && <Text className="life-empty-note" style={{ marginTop: 12 }}>加载中……</Text>}
         {healthRows !== null && !latestOpen && (
-          <View className="muted" style={{ marginTop: 12 }}>当前没有进行中的健康事件。</View>
+          <Text className="life-empty-note" style={{ marginTop: 12 }}>当前没有进行中的健康事件。</Text>
         )}
         {latestOpen && (
-          <View style={{ marginTop: 12 }}>
-            <View className="tl-item">
-              <View className="tl-head">
-                <Text className="tl-type">{latestOpen.chief_complaint}</Text>
-                <Text className={`badge ${latestOpen.latest_triage_level ?? ""}`}>
-                  {latestOpen.latest_triage_level ?? "未分级"}
-                </Text>
-                <Text className="tl-time">{fmtTime(latestOpen.opened_at)}</Text>
+          <View className="life-row" style={{ marginTop: 8 }}>
+            <View className="life-dot" />
+            <View className="life-row-body">
+              <View className="life-row-head">
+                <Text className="life-row-type">{latestOpen.chief_complaint}</Text>
+                <Text className="life-row-time">{riskLabel(latestOpen.latest_triage_level)}</Text>
               </View>
+              <View className="life-row-detail">开始于 {fmtTime(latestOpen.opened_at)}</View>
             </View>
           </View>
         )}
-        <View className="muted" style={{ marginTop: 12 }}>
-          完整流程（追问 → 红旗 → 分级 → 就诊摘要 → 结局）在健康页查看；摘要为信息整理，不是兽医诊断。
-        </View>
+        <Text className="life-empty-note" style={{ marginTop: 12 }}>
+          摘要为信息整理，不是兽医诊断；风险分级以独立规则引擎为准。
+        </Text>
         <View className="btn" style={{ marginTop: 8 }} onClick={() => Taro.navigateTo({ url: "/pages/health/index" })}>
           打开健康 ›
         </View>

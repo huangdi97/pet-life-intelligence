@@ -23,12 +23,12 @@ test("E2E-01 创建宠物 → Quick Log → Timeline（刷新后仍存在，后�
 
   // 4. Timeline shows the event with provenance + actor
   await page.goto("/timeline");
-  await expect(page.locator(".tl .tl-type", { hasText: "daily.meal" }).first()).toBeVisible();
-  await expect(page.locator(".tl").getByText("OWNER_REPORTED").first()).toBeVisible();
+  await expect(page.locator(".v4-ls .ls-title", { hasText: "喂食" }).first()).toBeVisible();
+  await expect(page.locator(".v4-ls .ls-meta", { hasText: "主人记录" }).first()).toBeVisible();
 
   // 5. reload → still there, page healthy
   await page.reload();
-  await expect(page.locator(".tl .tl-type", { hasText: "daily.meal" }).first()).toBeVisible();
+  await expect(page.locator(".v4-ls .ls-title", { hasText: "喂食" }).first()).toBeVisible();
   await expectNoFatalState(page);
 
   // 6. backend truth: the event really exists with provenance
@@ -240,7 +240,7 @@ test("E2E-06 Behavior ABC（中文+emoji 输入，Timeline 可见，页面不崩
 
   await page.goto("/timeline");
   await page.locator("main select").selectOption("behavior.observed");
-  await expect(page.locator(".tl .tl-body", { hasText: `BW-${stamp}` }).first()).toBeVisible();
+  await expect(page.locator(".v4-ls .ls-summary", { hasText: `BW-${stamp}` }).first()).toBeVisible();
   await expectNoFatalState(page);
 });
 

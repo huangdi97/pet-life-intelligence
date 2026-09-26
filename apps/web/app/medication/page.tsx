@@ -80,7 +80,7 @@ export default function MedicationPage() {
     <main>
       <h1>用药管理</h1>
       <p className="sub">
-        用药计划与给药记录（PLI-059/060）。系统不推荐剂量、不自动建议停药；药物信息必须注明来源。
+        用药计划与给药记录。系统不推荐剂量、不自动建议停药；药物信息必须注明来源。
       </p>
       {flash && <div className="alert info">{flash}</div>}
       {conflict && <div className="alert emergency">{conflict}</div>}

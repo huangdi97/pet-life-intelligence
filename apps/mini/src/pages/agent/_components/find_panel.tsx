@@ -1,5 +1,6 @@
-import { Button, Input, Text, View } from "@tarojs/components";
+import { Button, Icon, Input, Text, View } from "@tarojs/components";
 import { fmtTime } from "../../../utils/format";
+import { eventPayloadText, eventTypeLabel } from "../../../utils/labels";
 import type { FindState, SearchHit } from "../_lib";
 
 export function FindPanel(props: {
@@ -12,7 +13,7 @@ export function FindPanel(props: {
   const { query, findState, hits, onQueryChange, onSearch } = props;
   return (
     <View>
-      <View className="card">
+      <View className="ask-box">
         <View className="field">
           <Text>在时间线里找</Text>
           <Input
@@ -23,7 +24,7 @@ export function FindPanel(props: {
           />
         </View>
         <Button className="btn btn-primary" onClick={onSearch} disabled={findState === "loading" || !query.trim()}>
-          {findState === "loading" ? "搜索中…" : "搜索"}
+          <Icon type="search" size={16} color="#FFFFFF" /> {findState === "loading" ? "搜索中…" : "搜索"}
         </Button>
       </View>
       {findState === "error" && <View className="state state-error">搜索失败，请稍后重试。</View>}
@@ -31,15 +32,14 @@ export function FindPanel(props: {
         <View className="state">无结果（只返回真实事件引用；无记录即无结果）。</View>
       )}
       {hits.map((h) => (
-        <View className="tl-item" key={h.event_id}>
-          <View className="tl-head">
-            <Text className="tl-type">{h.event_type}</Text>
-            <Text className="tl-time">{fmtTime(h.occurred_at)}</Text>
-          </View>
-          <View className="tl-body">
-            {Object.entries(h.payload)
-              .map(([k, v]) => `${k}: ${String(v)}`)
-              .join(" · ")}
+        <View className="life-row" key={h.event_id}>
+          <View className="life-dot" />
+          <View className="life-row-body">
+            <View className="life-row-head">
+              <Text className="life-row-type">{eventTypeLabel(h.event_type)}</Text>
+              <Text className="life-row-time">{fmtTime(h.occurred_at)}</Text>
+            </View>
+            {eventPayloadText(h.payload) ? <View className="life-row-detail">{eventPayloadText(h.payload)}</View> : null}
           </View>
         </View>
       ))}

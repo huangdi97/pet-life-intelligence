@@ -1,36 +1,189 @@
-// app.scss — global styles for all mini pages.
-// Colors/sizes come from styles/tokens.scss (mirror of packages/ui-tokens).
+// app.scss �?global styles for all mini pages.
+// Colors/sizes come from styles/tokens.scss (PLI Visual System V4, Stage R.2).
 // Information density is LOWER than desktop: cards + chips + bottom sheet,
 // no wide tables, no sidebars, no multi-layer modals (IA §5 / 母版 §68).
+// V4: warm canvas, reduced border density �?hierarchy via spacing/background
+// instead of borders around everything.
 @use "./styles/tokens.scss" as *;
 
 page {
-  background: $color-bg-canvas;
-  color: $color-ink-primary;
+  background: $color-canvas;
+  color: $color-text-primary;
   font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   font-size: $font-size-base;
 }
 .page { padding: $space-1 $space-3 $space-6; }
 
+// ---------------------------------------------------------------- V4 ---- //
+// Surfaces: hierarchy by background tone, not borders.
 .card {
-  background: $color-bg-surface;
-  border: 1px solid $color-line-default;
+  background: $color-surface;
   border-radius: $radius-md;
   padding: $space-3;
   margin: $space-2 0;
-  box-shadow: $elevation-sm;
 }
-.card h2 { font-size: $font-size-3xl * 0.5; margin: 0 0 $space-2; color: $color-ink-primary; }
-.card h3 { font-size: $font-size-sm; margin: $space-2 0 $space-1; color: $color-ink-muted; }
-.muted { color: $color-ink-muted; font-size: $font-size-xs; }
+.card h2 { font-size: $font-size-2xl; margin: 0 0 $space-2; color: $color-text-primary; }
+.card h3 { font-size: $font-size-sm; margin: $space-2 0 $space-1; color: $color-text-tertiary; }
+
+// Open section: title + flowing content, no card wrapper.
+.open-section { margin: $space-4 0 0; }
+.section-title {
+  font-size: $font-section; font-weight: $font-weight-semibold; color: $color-text-primary;
+  display: flex; align-items: baseline; gap: $space-2;
+}
+.section-caption { font-size: $font-meta; color: $color-text-tertiary; margin-left: auto; }
+
+.muted { color: $color-text-tertiary; font-size: $font-size-xs; }
 .row { display: flex; gap: $space-2; align-items: center; flex-wrap: wrap; }
 .h1 { font-size: $font-size-xl; font-weight: $font-weight-bold; margin: $space-3 0 $space-1; }
-.sub { color: $color-ink-muted; font-size: $font-size-sm; margin: 0 0 $space-3; }
+.sub { color: $color-text-tertiary; font-size: $font-size-sm; margin: 0 0 $space-3; }
 
+// ---- PetHero (photo-first; graceful species visual when no photo) ---- //
+.pet-hero {
+  position: relative;
+  height: 560px;
+  border-radius: $radius-hero;
+  overflow: hidden;
+  background: $color-brand-soft;
+  margin: $space-2 $space-1 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.pet-hero-glyph { opacity: 0.92; }
+.pet-hero-scrim {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 260px;
+  background: linear-gradient(180deg, rgba(43, 38, 32, 0) 0%, rgba(43, 38, 32, 0.55) 100%);
+}
+.pet-hero-info { position: absolute; left: $space-4; right: $space-4; bottom: $space-4; }
+.pet-hero-name { font-size: $font-hero-name; font-weight: $font-weight-bold; color: $color-text-inverse; line-height: 1.15; }
+.pet-hero-headline { font-size: $font-page-title; font-weight: $font-weight-semibold; color: $color-text-inverse; margin-top: 4px; }
+.pet-hero-meta { display: flex; align-items: center; gap: $space-2; flex-wrap: wrap; margin-top: $space-2; }
+.pet-hero-identity { font-size: $font-meta; color: $color-text-on-dark; opacity: 0.94; }
+.pet-hero-timechip {
+  display: flex; align-items: center; gap: 6px; background: $color-surface-glass;
+  border-radius: $radius-pill; padding: 4px $space-2; font-size: $font-caption; color: $color-text-secondary;
+}
+.pet-hero-demo {
+  position: absolute; top: $space-3; right: $space-3; background: $color-surface-overlay;
+  border-radius: $radius-pill; padding: 4px $space-2; font-size: $font-caption; font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
+}
+
+// ---- Species visual tile (graceful fallback; never a letter circle) ---- //
+.species-tile {
+  display: flex; align-items: center; justify-content: center;
+  font-weight: $font-weight-semibold; font-family: "Songti SC", "STSong", serif;
+}
+.tile-dog { background: #e3e7d6; color: #6e8b5e; }
+.tile-cat { background: #f3e4d0; color: #b9762a; }
+.tile-paw { background: #e7e3d8; color: #8a8074; }
+
+// ---- Now layer: LifeSignal ------------------------------------------- //
+.life-signal { display: flex; margin-top: $space-2; }
+.life-metric { flex: 1; padding: 0 $space-3; }
+.life-metric + .life-metric { border-left: 1px solid $color-divider-subtle; }
+.life-metric-value { font-size: $font-metric; font-weight: $font-weight-bold; color: $color-text-primary; }
+.life-metric-label { font-size: $font-meta; color: $color-text-tertiary; margin-top: 2px; }
+.life-empty-note { font-size: $font-body; color: $color-text-tertiary; margin-top: $space-2; }
+
+// ---- One Attention ------------------------------------------------------ //
+.attention-panel {
+  display: flex; align-items: flex-start; gap: $space-3;
+  border-radius: $radius-xl; padding: $space-4; margin-top: $space-3;
+}
+.attention-calm { background: $color-success-bg; }
+.attention-focus { background: $color-attention-bg; }
+.attention-danger { background: $color-danger-bg; }
+.attention-icon { padding-top: 2px; }
+.attention-title { font-size: $font-body-strong; font-weight: $font-weight-bold; }
+.attention-title-calm { color: $color-success; }
+.attention-title-focus { color: $color-attention; }
+.attention-title-danger { color: $color-danger; }
+.attention-body { font-size: $font-body; color: $color-text-primary; margin-top: 2px; }
+.attention-footer { font-size: $font-caption; color: $color-text-tertiary; margin-top: $space-2; }
+
+// ---- Actions ------------------------------------------------------------ //
+.primary-action {
+  display: block; text-align: center; margin: $space-4 0 $space-2;
+  background: $color-brand-primary; color: $color-surface; border-radius: $radius-pill;
+  padding: 18px $space-3; font-size: $font-button; font-weight: $font-weight-semibold;
+}
+.primary-action:active { opacity: 0.92; }
+.action-row { display: flex; gap: $space-2; }
+.secondary-action {
+  flex: 1; text-align: center; padding: $space-3 0; border-radius: $radius-xl;
+  background: $color-surface-raised; color: $color-text-primary; font-size: $font-size-sm;
+}
+.secondary-action:active { opacity: 0.9; }
+.secondary-action-icon { font-size: $font-meta; color: $color-brand-primary; display: block; margin-bottom: 4px; }
+
+// ---- Pet context strip ("为豆豆记�?) ---------------------------------- //
+.pet-context {
+  display: flex; align-items: center; gap: $space-3;
+  padding: $space-2 $space-1 $space-3;
+  border-bottom: 1px solid $color-divider-subtle;
+}
+.pet-context-avatar { width: 96px; height: 96px; border-radius: $radius-pill; overflow: hidden; flex-shrink: 0; }
+.pet-context-title { font-size: $font-section; font-weight: $font-weight-semibold; color: $color-text-primary; }
+.pet-context-sub { font-size: $font-meta; color: $color-text-tertiary; margin-top: 2px; }
+
+// ---- Life stream spine (Timeline / Today memory) ------------------------ //
+.life-stream { margin-top: $space-2; }
+.life-day { margin-top: $space-3; }
+.life-day-label { font-size: $font-meta; font-weight: $font-weight-semibold; color: $color-text-secondary; margin-bottom: $space-1; }
+.life-row { display: flex; gap: $space-2; align-items: flex-start; padding: $space-1 0; }
+.life-dot {
+  width: 20px; height: 20px; border-radius: $radius-pill; margin-top: 6px; flex-shrink: 0;
+  background: $color-brand-primary;
+}
+.life-row-body { flex: 1; }
+.life-row-head { display: flex; align-items: baseline; gap: $space-2; flex-wrap: wrap; }
+.life-row-type { font-size: $font-body-strong; font-weight: $font-weight-semibold; color: $color-text-primary; }
+.life-row-time { font-size: $font-caption; color: $color-text-tertiary; margin-left: auto; }
+.life-row-detail { font-size: $font-size-xs; color: $color-text-secondary; margin-top: 2px; line-height: 1.5; }
+.life-row-source { font-size: $font-caption; color: $color-text-tertiary; margin-top: 2px; }
+
+// ---- Feedback states ----------------------------------------------------- //
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: $space-8 $space-4;
+}
+.empty-state-icon {
+  width: 120px; height: 120px; border-radius: $radius-2xl; background: $color-brand-soft;
+  display: flex; align-items: center; justify-content: center; margin-bottom: $space-3;
+}
+.empty-state-title { font-size: $font-body-strong; font-weight: $font-weight-semibold; color: $color-text-primary; }
+.empty-state-body { font-size: $font-size-sm; color: $color-text-tertiary; margin-top: $space-1; line-height: 1.6; }
+.inline-error {
+  display: flex; align-items: center; justify-content: space-between; gap: $space-2;
+  background: $color-warning-bg; border-radius: $radius-md; padding: $space-2 $space-3; margin-top: $space-3;
+  font-size: $font-size-sm; color: $color-text-primary;
+}
+.inline-error-action { color: $color-warning; font-weight: $font-weight-semibold; flex-shrink: 0; }
+
+// ---- Assistant ------------------------------------------------------------ //
+.mode-row { display: flex; gap: $space-2; margin-top: $space-3; }
+.mode-pill {
+  flex: 1; text-align: center; padding: $space-2 0; border-radius: $radius-xl;
+  background: $color-bg-surface-muted; color: $color-text-secondary; font-size: $font-size-sm;
+}
+.mode-pill-active { background: $color-primary-100; color: $color-primary-800; font-weight: $font-weight-medium; }
+.mode-pill-primary {
+  background: $color-brand-primary; color: $color-surface; font-weight: $font-weight-semibold;
+}
+.ask-box {
+  margin-top: $space-3; background: $color-surface-raised; border-radius: $radius-xl; padding: $space-3;
+}
+.answer-block { margin-top: $space-3; }
+.answer-label { font-size: $font-meta; font-weight: $font-weight-semibold; color: $color-text-secondary; margin-bottom: $space-1; }
+.answer-body { font-size: $font-body; color: $color-text-primary; line-height: 1.7; }
+.citation-row { font-size: $font-size-xs; color: $color-text-secondary; padding: $space-1 0; border-bottom: 1px solid $color-divider-subtle; }
+.citation-row:last-child { border-bottom: none; }
+
+// -------------------------------------------------------- legacy utils --- //
 .btn {
   background: $color-bg-surface;
   border: 1px solid $color-line-default;
-  color: $color-ink-primary;
+  color: $color-text-primary;
   border-radius: $radius-xl;
   padding: 14px $space-3;
   font-size: $font-size-base;
@@ -58,7 +211,7 @@ page {
 .state-error { border-color: #e9a79f; color: $color-semantic-danger; background: $color-semantic-danger-bg; }
 
 .tl-item {
-  background: $color-bg-surface; border: 1px solid $color-line-default; border-radius: $radius-md;
+  background: $color-bg-surface; border-radius: $radius-md;
   padding: $space-1 $space-3; margin: $space-3 * 0.5 0;
 }
 .tl-head { display: flex; gap: $space-3; align-items: center; flex-wrap: wrap; }
@@ -76,7 +229,7 @@ page {
   padding: 14px 18px; font-size: $font-size-base; width: 100%; color: $color-ink-primary;
 }
 
-// --- Stage H: 页内 chips（二级导航，不做侧栏） ---
+// --- 页内 chips（二级导航，不做侧栏�?---
 .chips { display: flex; flex-wrap: wrap; gap: $space-1; margin: $space-2 0; }
 .chip {
   padding: 10px $space-3; border-radius: $radius-pill; font-size: $font-size-sm;
@@ -84,7 +237,7 @@ page {
 }
 .chip-active { border-color: $color-line-focus; background: $color-primary-100; color: $color-primary-800; font-weight: $font-weight-medium; }
 
-// --- Stage H: 今日页 当前状态卡（低密度统计） ---
+// --- 今日�?当前状态卡（低密度统计，legacy�?---
 .statgrid { display: flex; flex-wrap: wrap; gap: $space-2; }
 .stat {
   flex: 1 1 30%; min-width: 180px; background: $color-bg-surface-muted;
@@ -93,17 +246,17 @@ page {
 .stat-n { font-size: $font-size-lg; font-weight: $font-weight-semibold; color: $color-ink-primary; }
 .stat-label { font-size: $font-size-xs; color: $color-ink-muted; margin-top: 2px; }
 
-// --- Stage H: 入口卡（监测 / 陪伴） ---
+// --- 入口卡（监测 / 陪伴，legacy�?---
 .entry-card {
   display: flex; align-items: center; justify-content: space-between;
-  background: $color-bg-surface; border: 1px solid $color-line-default; border-radius: $radius-md;
+  background: $color-bg-surface; border-radius: $radius-md;
   padding: $space-3; margin: $space-2 0;
 }
 .entry-title { font-weight: $font-weight-semibold; font-size: $font-size-base; color: $color-ink-primary; }
 .entry-desc { font-size: $font-size-xs; color: $color-ink-muted; margin-top: 4px; }
 .entry-arrow { color: $color-ink-disabled; font-size: $font-size-md; }
 
-// --- Stage H: Bottom Sheet（快速记录，单层，非多层 Modal） ---
+// --- Bottom Sheet（快速记录，单层，非多层 Modal�?---
 .sheet-mask {
   position: fixed; left: 0; right: 0; top: 0; bottom: 0;
   background: rgba(43, 39, 35, 0.4); z-index: 1000;
@@ -122,20 +275,31 @@ page {
 .sheet-types { display: flex; flex-wrap: wrap; gap: $space-2; margin: $space-2 0; }
 .sheet-types .btn { flex: 1 1 30%; min-width: 150px; text-align: center; }
 
-// --- Stage H: Companion 原型四层 ---
+// Quick log two-level matrix
+.quick-grid { display: flex; flex-wrap: wrap; gap: $space-2; }
+.quick-item {
+  flex: 1 1 44%; text-align: center; padding: $space-3 $space-2; border-radius: $radius-xl;
+  background: $color-bg-surface-muted; color: $color-text-primary; font-size: $font-size-base;
+}
+.quick-item-primary { background: $color-primary-100; color: $color-primary-800; font-weight: $font-weight-semibold; }
+.quick-item:active { opacity: 0.9; }
+.quick-section-label { font-size: $font-size-xs; color: $color-ink-muted; margin: $space-3 0 $space-1; }
+.quick-item-nav { color: $color-text-secondary; }
+
+// --- Companion 四层（legacy；R.2 已改为用户语言空态） ---
 .proto-tag {
   display: inline-block; font-size: $font-size-xs * 0.9; padding: 2px $space-2; border-radius: $radius-pill;
   border: 1px solid $color-accent-200; background: $color-accent-50; color: $color-accent-600; font-weight: $font-weight-medium;
 }
 .layer-card {
-  background: $color-bg-surface; border: 1px solid $color-line-default; border-radius: $radius-md;
+  background: $color-bg-surface; border-radius: $radius-md;
   padding: $space-3; margin: $space-2 0;
 }
 .layer-name { font-weight: $font-weight-semibold; font-size: $font-size-base; color: $color-ink-primary; }
 .layer-en { font-size: $font-size-xs; color: $color-ink-disabled; margin-left: $space-1; }
 .layer-desc { font-size: $font-size-xs; color: $color-ink-muted; margin: $space-1 0; }
 
-// --- Stage H: Agent 5 页内 tab（问/摘要/找/计划/解释） ---
+// --- Agent 5 页内 tab（legacy；R.2 已改为主模式 + 情境入口�?---
 .agent-tabs { display: flex; gap: $space-1; margin: $space-2 0; }
 .agent-tab {
   flex: 1; text-align: center; padding: $space-2 0; border-radius: $radius-sm;
@@ -152,8 +316,8 @@ page {
 .menu-label { font-size: $font-size-base; color: $color-ink-primary; }
 .menu-arrow { color: $color-ink-disabled; }
 
-// --- H.1 必修 §B5: prefers-reduced-motion 全局降级 ---
+// --- prefers-reduced-motion 全局降级 ---
 @media (prefers-reduced-motion: reduce) {
   page { transition: none !important; }
-  .card, .btn, .chip, .sheet, .layer-card { transition: none !important; }
+  .card, .btn, .chip, .sheet, .layer-card, .primary-action, .secondary-action { transition: none !important; }
 }

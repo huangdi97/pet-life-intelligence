@@ -24,7 +24,7 @@ export function OutcomeCard({
   return (
     <div className="card">
       <h2>Outcome / 随访结局</h2>
-      <p className="muted">关闭本次健康事件并记录结局（PLI-063）。</p>
+      <p className="muted">关闭本次健康事件并记录结局。</p>
       <div className="grid2">
         <label className="field">
           结局

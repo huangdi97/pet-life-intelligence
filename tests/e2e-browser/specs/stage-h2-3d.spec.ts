@@ -36,8 +36,8 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     await page.goto(`/pets/${petId}/life-view`);
     await expect(page).toHaveURL(urlRe(`/pets/${petId}/life-view`));
     await expectNoFatalState(page);
-    await expect(page.getByText(/3D 生成服务暂未开放/).first()).toBeVisible();
-    await expect(page.getByText(/不会伪装生成成功/).first()).toBeVisible();
+    await expect(page.getByText(/3D 形象尚未创建/).first()).toBeVisible();
+    await expect(page.getByText(/经过你确认后才显示/).first()).toBeVisible();
     // user-facing copy must NOT contain 数字孪生
     expect(await page.textContent("main")).not.toContain("数字孪生");
   });
@@ -73,7 +73,7 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     await expect(page.getByLabel("回到那一天")).toBeVisible();
     await page.getByLabel("回到那一天").fill("2026-01-01");
     await expect(page.getByText("回到那一天 · 2026-01-01").first()).toBeVisible();
-    await expect(page.getByText(/不会用当前 3D 形象伪装过去/).first()).toBeVisible();
+    await expect(page.getByText(/不会用现在的样子冒充过去的它/).first()).toBeVisible();
     await page.getByLabel("清除日期").click();
     await expect(page.getByText("回到那一天 · 2026-01-01")).toHaveCount(0);
   });
@@ -85,16 +85,15 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     await loginAsEmail(page, request, "owner@pli.demo");
     await page.goto("/companion");
     await expect(page).toHaveURL(urlRe("/companion"));
-    await expect(page.getByText(/硬件集成未激活/).first()).toBeVisible();
-    await expect(page.getByText(/GENERATED_3D \/ 原型/).first()).toBeVisible();
-    await expect(page.getByText(/不是实时画面（LIVE）/).first()).toBeVisible();
+    await expect(page.getByText(/当前为演示体验，不是实时画面/).first()).toBeVisible();
+    await expect(page.getByText("尚未连接设备").first()).toBeVisible();
   });
   test("today living canvas shows pet life-view entry (no fatal)", async ({ page, request }) => {
     await loginAsEmail(page, request, "owner@pli.demo");
     await page.goto("/");
     await expect(page).toHaveURL(urlRe("/"));
-    await expect(page.getByRole("button", { name: "打开生命视图" }).first()).toBeVisible();
-    await expect(page.getByText("现在").first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /打开 .* 的生命视图/ }).first()).toBeVisible();
+    await expect(page.getByText("此刻").first()).toBeVisible();
     await expect(page.getByText("变化").first()).toBeVisible();
   });
 });

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { State } from "../../../../../components/ui";
 import { mapErrorMessage } from "../../../../../lib/i18n";
 import { type Async } from "../../../../../lib/hooks";
+import { Icon } from "../../../../../components/icons";
 import type { VisualStatus } from "./types";
 
 interface ProviderStatusCardProps {
@@ -14,7 +15,7 @@ interface ProviderStatusCardProps {
   onStartGeneration: () => void;
 }
 
-/** 3D 形象服务状态：无真实 provider 时诚实显示不可用，不伪装成功。 */
+/** 3D 形象服务状态（用户语言）：无真实生成服务时诚实显示，不暴露内部 provider 信息。 */
 export function ProviderStatusCard({
   status,
   providerBlocked,
@@ -23,31 +24,41 @@ export function ProviderStatusCard({
   onStartGeneration,
 }: ProviderStatusCardProps) {
   return (
-    /* Provider status — 诚实 */
-    <div className="card">
-      <h2>3D 形象服务</h2>
+    <div className="v4-sec">
+      <div className="v4-sec-head">
+        <h2 className="v4-sec-title">3D 形象</h2>
+      </div>
       <State state={status.state} error={status.error ? mapErrorMessage(status.error) : null} onRetry={status.reload} empty="—">
         {providerBlocked ? (
           <>
-            <div className="state">
-              3D 生成服务暂未开放
-              <div className="muted" style={{ marginTop: 6 }}>
-                当前未接入真实 3D 生成服务（provider: {status.data?.provider}）。此页面不会伪装生成成功。
+            <div className="v4-calm" style={{ marginTop: 4 }}>
+              <span className="v4-calm-icon">
+                <Icon name="clock" size={18} />
+              </span>
+              <div>
+                <p className="v4-calm-title">3D 形象尚未创建</p>
+                <p className="v4-calm-body">连接真实生成服务后，可以用它自己的照片生成一个更接近它的 3D 形象，并经过你确认后才显示。</p>
               </div>
             </div>
-            <div className="row" style={{ marginTop: 10 }}>
-              <button className="btn" disabled={generating} onClick={onStartGeneration}>
-                {generating ? "提交中…" : "尝试提交生成请求"}
-              </button>
-              <Link href={`/pets/${petId}/capture`} className="btn primary">
+            <div className="v4-linkrow">
+              <Link href={`/pets/${petId}/capture`} className="v4-action v4-action--primary">
+                <span className="v4-action-icon">
+                  <Icon name="camera" size={16} />
+                </span>
                 拍摄宠物照片
               </Link>
+              <button
+                type="button"
+                className="v4-action v4-action--soft"
+                disabled={generating}
+                onClick={onStartGeneration}
+              >
+                {generating ? "提交中…" : "尝试提交生成请求"}
+              </button>
             </div>
           </>
         ) : (
-          <p className="muted" style={{ margin: 0 }}>
-            3D 生成服务已就绪（provider: {status.data?.provider}）。
-          </p>
+          <p className="v4-sec-sub">3D 形象生成服务已就绪。</p>
         )}
       </State>
     </div>

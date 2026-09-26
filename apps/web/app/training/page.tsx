@@ -57,7 +57,7 @@ export default function TrainingPage() {
   return (
     <main>
       <h1>训练</h1>
-      <p className="sub">奖励式训练目标与会话记录（PLI-085..088）。仅使用正向强化方法。</p>
+      <p className="sub">奖励式训练目标与会话记录。仅使用正向强化方法。</p>
       <div className="card">
         <h2>新建训练目标</h2>
         <div className="row">

@@ -1,21 +1,66 @@
-/** tokens.ts — mirror of packages/ui-tokens/tokens.json (Stage H).
- *  Plain TS constants for the warm/professional look across mobile screens.
- *  Do not hardcode colors outside this file. */
+/**
+ * tokens.ts — PLI Visual System V4 (Stage R.2).
+ *
+ * Warm Living Intelligence color/type/spacing/radius system.
+ * Legacy Stage H keys (bgCanvas, inkPrimary, ...) are kept as aliases so
+ * screens not yet rebuilt keep compiling; rebuilt screens use the V4 names.
+ * Never hardcode colors outside this file.
+ */
 
-// --- color.bg ---
+// --- color V4: canvas / surface / text / brand / semantic ---
 export const COLORS = {
-  bgCanvas: "#FAF8F5",
-  bgSurface: "#FFFFFF",
-  bgSurfaceMuted: "#F3F0EB",
-  bgSurfaceStrong: "#ECE8E0",
-  inkPrimary: "#2B2723",
-  inkSecondary: "#57504A",
-  inkMuted: "#7C7369",
-  inkDisabled: "#B5ACA0",
-  lineDefault: "#E8E2D9",
+  // canvas & surfaces
+  canvas: "#F6F1E9",
+  surface: "#FFFFFF",
+  surfaceRaised: "#FFFDF8",
+  surfaceGlass: "#FFFFFFCC",
+  surfaceOverlay: "#FFFFFFF2",
+  surfaceDark: "#2B2620",
+  surfaceDarkRaised: "#3A332B",
+  // text
+  textPrimary: "#2B2723",
+  textSecondary: "#5C554C",
+  textTertiary: "#8A8074",
+  textInverse: "#FBF7F0",
+  textOnDark: "#EFE8DD",
+  // brand (warm plant + amber, preserved direction)
+  brandPrimary: "#6E8B5E",
+  brandPrimaryDeep: "#4E6349",
+  brandPrimaryDark: "#3D4F3A",
+  brandSecondary: "#B9762A",
+  brandSoft: "#E7E3D8",
+  brandSoftGreen: "#E4EAE0",
+  brandSoftAmber: "#F6ECDC",
+  // semantic
+  attention: "#A97B2C",
+  attentionBg: "#FBF3E0",
+  warning: "#C07A2D",
+  warningBg: "#FDF2E3",
+  danger: "#B42318",
+  dangerBg: "#FBEAE6",
+  success: "#4E7A5A",
+  successBg: "#EDF3EE",
+  info: "#3E7C83",
+  infoBg: "#E8F1F2",
+  // media / overlay
+  mediaOverlay: "#0000001A",
+  scrimLight: "#00000033",
+  scrimDark: "#00000066",
+  dividerSubtle: "#E9E2D6",
+  dividerStrong: "#D8D0C4",
+  lineDefault: "#E9E2D6",
   lineStrong: "#D8D0C4",
-  lineFocus: "#61795C",
-  primary500: "#61795C",
+  lineFocus: "#6E8B5E",
+  // legacy aliases (Stage H) — keep until screens migrate
+  bgCanvas: "#F6F1E9",
+  bgSurface: "#FFFFFF",
+  bgSurfaceMuted: "#F0EBE2",
+  bgSurfaceStrong: "#E8E0D2",
+  inkPrimary: "#2B2723",
+  inkSecondary: "#5C554C",
+  inkMuted: "#8A8074",
+  inkDisabled: "#B5ACA0",
+  primary500: "#6E8B5E",
   primary600: "#4E6349",
   primary700: "#3D4F3A",
   primary800: "#2F3D2D",
@@ -24,12 +69,11 @@ export const COLORS = {
   accent200: "#EAD3A8",
   accent500: "#B9762A",
   accent600: "#9C5F22",
-  // semantic (incl. risk colors; display backend triage values only)
   ok: "#4E7A5A",
   okBg: "#EDF3EE",
-  notice: "#B08A2E",
-  noticeBg: "#FBF4E2",
-  monitor: "#61795C",
+  notice: "#A97B2C",
+  noticeBg: "#FBF3E0",
+  monitor: "#6E8B5E",
   monitorBg: "#F3F6F2",
   vetSoon: "#C07A2D",
   vetSoonBg: "#FDF2E3",
@@ -37,14 +81,25 @@ export const COLORS = {
   urgentBg: "#FBECE7",
   emergency: "#B42318",
   emergencyBg: "#FBEAE6",
-  info: "#3E7C83",
-  infoBg: "#E8F1F2",
-  danger: "#B42318",
-  dangerBg: "#FBEAE6",
+  infoLegacy: "#3E7C83",
+  infoBgLegacy: "#E8F1F2",
+  dangerLegacy: "#B42318",
+  dangerBgLegacy: "#FBEAE6",
 } as const;
 
-// --- typography scale (logical px) ---
+// --- typography V4 (logical px) ---
 export const TYPE = {
+  display: 34,
+  heroName: 30,
+  pageTitle: 22,
+  section: 16,
+  body: 14,
+  bodyStrong: 14,
+  meta: 12,
+  caption: 11,
+  metric: 20,
+  button: 14,
+  // legacy scale (Stage H) — keep until screens migrate
   xs: 12,
   sm: 13,
   base: 14,
@@ -80,14 +135,15 @@ export const RADIUS = {
   lg: 12,
   xl: 16,
   xxl: 20,
+  hero: 24,
   pill: 999,
 } as const;
 
-// --- elevation (iOS shadow style, mirrored from tokens.json) ---
+// --- elevation (iOS shadow style) ---
 export const ELEVATION = {
   sm: {
     shadowColor: "#2B2723",
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.05,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
@@ -99,4 +155,17 @@ export const ELEVATION = {
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
+  lg: {
+    shadowColor: "#2B2723",
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
 } as const;
+
+// --- demo environment flag (build-time): EXPO_PUBLIC_PLI_DEMO_ENV=1 marks a
+// demo build with the global "示例数据" marker and demo auto-login. Production
+// builds never set it. ---
+export const DEMO_ENV =
+  (process.env.EXPO_PUBLIC_PLI_DEMO_ENV ?? "").trim() === "1";

@@ -78,7 +78,7 @@ export default function CarePage() {
   return (
     <main>
       <h1>照护网络</h1>
-      <p className="sub">家庭成员、临时交接与 Care Card（PLI-035/036/037/038）。</p>
+      <p className="sub">家庭成员、临时交接与 Care Card。</p>
       <ErrorNote message={error} />
 
       <div className="card">

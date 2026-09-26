@@ -56,7 +56,7 @@ export default function HealthPage() {
     <main>
       <h1>健康事件</h1>
       <p className="sub">
-        发现异常 → 动态追问 → 可观察事实 → 红旗分级（规则引擎） → Vet Brief → Outcome（PLI-049..063）。
+        发现异常 → 动态追问 → 可观察事实 → 红旗分级（规则引擎） → Vet Brief → Outcome。
         分级由独立规则引擎给出，AI 只整理事实，不能降低紧急度。
       </p>
       <div className="card">

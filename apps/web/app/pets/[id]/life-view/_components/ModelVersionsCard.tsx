@@ -9,46 +9,60 @@ interface ModelVersionsCardProps {
   models: Async<{ models: VisualModel[] }>;
 }
 
-/** 3D 形象版本列表：ACTIVE/VERIFYING/FAILED 状态、来源与确认标记。 */
+const STATUS_LABELS: Record<string, string> = {
+  ACTIVE: "已激活",
+  VERIFYING: "待你确认",
+  FAILED: "生成失败",
+  PENDING: "生成中",
+  PROCESSING: "生成中",
+  RETIRED: "已停用",
+};
+
+/** 3D 形象版本列表（用户语言）：状态 / 确认标记 / 时间，不暴露内部枚举。 */
 export function ModelVersionsCard({ models }: ModelVersionsCardProps) {
+  const rows = models.data?.models ?? [];
   return (
-    <div className="card">
-      <h2>3D 形象版本</h2>
+    <div className="v4-sec">
+      <div className="v4-sec-head">
+        <h2 className="v4-sec-title">3D 形象版本</h2>
+      </div>
       <State
         state={models.state}
         error={models.error ? mapErrorMessage(models.error) : null}
         onRetry={models.reload}
         empty="还没有 3D 形象版本。"
       >
-        {models.data?.models.length === 0 && (
-          <p className="muted" style={{ margin: 0 }}>
-            还没有 3D 形象。你可以尝试提交生成请求；真实生成服务接入后，这里会显示待确认与已激活的版本。
-          </p>
+        {rows.length === 0 && (
+          <p className="v4-sec-sub">还没有 3D 形象。接入真实生成服务后，这里会显示待确认与已激活的版本。</p>
         )}
-        <ul className="tl">
-          {models.data?.models.map((m) => (
-            <li key={m.model_id}>
-              <div className="tl-head">
-                <span className="tl-type">v{m.version}</span>
-                <span className={`badge ${m.status === "ACTIVE" ? "MONITOR" : m.status === "FAILED" ? "EMERGENCY" : ""}`}>
-                  {m.status}
-                </span>
-                <span className="badge">{m.provenance_kind}</span>
-                {m.owner_verified === true && <span className="badge">已确认像它</span>}
-                {m.owner_verified === false && <span className="badge">待重新生成</span>}
-                {m.activated_at && <span className="tl-time">激活于 {fmtTime(m.activated_at)}</span>}
+        {rows.map((m) => (
+          <div key={m.model_id} className="ls-item" style={{ gridTemplateColumns: "auto 1fr" }}>
+            <span className="ls-time">{m.activated_at ? fmtTime(m.activated_at).slice(0, 10) : ""}</span>
+            <div className="ls-body">
+              <div className="ls-title">
+                <span className="ls-title-icon">3D</span>
+                v{m.version}
               </div>
-              {m.failure_reason && (
-                <div className="tl-body muted">
-                  失败原因：{m.failure_reason}（真实生成服务未接入，不会伪装成功）
-                </div>
+              <div className="ls-meta">
+                <span
+                  className={`v4-chip${m.status === "ACTIVE" ? " v4-chip--success" : m.status === "FAILED" ? " v4-chip--danger" : m.status === "VERIFYING" ? " v4-chip--warning" : ""}`}
+                >
+                  {STATUS_LABELS[m.status] ?? "处理中"}
+                </span>
+                {m.owner_verified === true && <span className="v4-chip v4-chip--success">已确认像它</span>}
+                {m.owner_verified === false && <span className="v4-chip v4-chip--warning">待重新生成</span>}
+              </div>
+              {m.status === "FAILED" && (
+                <p className="v4-note" style={{ marginTop: 6 }}>
+                  生成失败。真实生成服务接入后可以重试。
+                </p>
               )}
               {m.identity_qc?.issues && m.identity_qc.issues.length > 0 && (
-                <div className="tl-body muted">待修正：{m.identity_qc.issues.join("、")}</div>
+                <p className="v4-note" style={{ marginTop: 6 }}>待修正：{m.identity_qc.issues.join("、")}</p>
               )}
-            </li>
-          ))}
-        </ul>
+            </div>
+          </div>
+        ))}
       </State>
     </div>
   );

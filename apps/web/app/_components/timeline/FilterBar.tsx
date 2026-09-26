@@ -19,7 +19,16 @@ interface FilterBarProps {
   onReload: () => void;
 }
 
-/** OWN-003 Timeline 筛选条：域 chips / 事件类型 select / 来源 / 媒体 / 搜索 / 回到那一天。 */
+/** 来源筛选：内部枚举只用于过滤逻辑，按钮文案始终是用户语言。 */
+const SOURCE_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "", label: "全部来源" },
+  { value: "OWNER_REPORTED", label: "主人记录" },
+  { value: "DEVICE", label: "设备记录" },
+  { value: "PROFESSIONAL_REVIEWED", label: "专业人员" },
+  { value: "AI_STRUCTURED", label: "AI 整理" },
+];
+
+/** OWN-003 Timeline 筛选条：域 chips / 事件类型 / 来源 / 媒体 / 搜索 / 回到那一天。 */
 export function FilterBar({
   filter,
   setFilter,
@@ -36,14 +45,13 @@ export function FilterBar({
   onReload,
 }: FilterBarProps) {
   return (
-    <>
-      {/* Filter chips（域） */}
+    <div className="v4-sec" style={{ paddingTop: 6, paddingBottom: 10 }}>
       <div className="row" style={{ marginBottom: 8, flexWrap: "wrap", gap: 6 }} role="group" aria-label="按域筛选">
         {DOMAIN_CHIPS.map((c) => (
           <button
             key={c.id}
-            className={`btn ${domain === c.id ? "primary" : ""}`}
-            style={{ fontSize: 13, minHeight: 32 }}
+            className={`v4-chip${domain === c.id ? " v4-chip--brand" : ""}`}
+            style={{ cursor: "pointer", minHeight: 30 }}
             onClick={() => setDomain(c.id)}
             aria-pressed={domain === c.id}
           >
@@ -54,7 +62,7 @@ export function FilterBar({
 
       <div className="row" style={{ marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
         <select
-          style={{ maxWidth: 260 }}
+          style={{ maxWidth: 260, borderRadius: 14, border: "1px solid var(--v4-divider)" }}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           aria-label="按事件类型过滤"
@@ -66,24 +74,24 @@ export function FilterBar({
           ))}
         </select>
         <div className="row" style={{ flexWrap: "wrap", gap: 6 }} role="group" aria-label="按来源筛选">
-          {["", "OWNER_REPORTED", "SYSTEM_CALCULATED", "PROFESSIONAL_REVIEWED", "DEVICE"].map((s) => (
+          {SOURCE_OPTIONS.map((o) => (
             <button
-              key={s || "all"}
-              className={`btn ${source === s ? "primary" : ""}`}
-              style={{ fontSize: 12, minHeight: 30 }}
-              onClick={() => setSource(s)}
-              aria-pressed={source === s}
+              key={o.value || "all"}
+              className={`v4-chip${source === o.value ? " v4-chip--brand" : ""}`}
+              style={{ cursor: "pointer", minHeight: 30 }}
+              onClick={() => setSource(o.value)}
+              aria-pressed={source === o.value}
             >
-              {s === "" ? "全部来源" : s}
+              {o.label}
             </button>
           ))}
         </div>
-        <label className="pet-label" style={{ cursor: "pointer" }}>
+        <label className="pet-label" style={{ cursor: "pointer", fontSize: 13, color: "var(--v4-text-tertiary)" }}>
           <input type="checkbox" checked={mediaOnly} onChange={(e) => setMediaOnly(e.target.checked)} />
-          仅含媒体证据
+          仅含照片
         </label>
         <input
-          style={{ flex: 1, minWidth: 160, maxWidth: 280 }}
+          style={{ flex: 1, minWidth: 160, maxWidth: 280, borderRadius: 14, border: "1px solid var(--v4-divider)" }}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t("timeline.search")}
@@ -94,17 +102,26 @@ export function FilterBar({
           value={day}
           onChange={(e) => setDay(e.target.value)}
           aria-label="回到那一天"
-          style={{ maxWidth: 170 }}
+          style={{ maxWidth: 170, borderRadius: 14, border: "1px solid var(--v4-divider)" }}
         />
         {day && (
-          <button className="btn" onClick={() => setDay("")} aria-label="清除日期">
+          <button
+            className="v4-action v4-action--soft"
+            style={{ minHeight: 34, padding: "6px 12px", fontSize: 13 }}
+            onClick={() => setDay("")}
+            aria-label="清除日期"
+          >
             清除日期
           </button>
         )}
-        <button className="btn" onClick={onReload}>
+        <button
+          className="v4-action v4-action--soft"
+          style={{ minHeight: 34, padding: "6px 12px", fontSize: 13 }}
+          onClick={onReload}
+        >
           刷新
         </button>
       </div>
-    </>
+    </div>
   );
 }

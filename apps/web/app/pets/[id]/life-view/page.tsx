@@ -6,18 +6,16 @@ import Link from "next/link";
 import { api } from "@pli/api-client";
 import { useAsync } from "../../../../lib/hooks";
 import { mapErrorMessage, t } from "../../../../lib/i18n";
+import { Icon } from "../../../../components/icons";
 import { ModelVersionsCard } from "./_components/ModelVersionsCard";
 import { ProviderStatusCard } from "./_components/ProviderStatusCard";
 import { RealPhotoCard } from "./_components/RealPhotoCard";
 import { StateOverlayCard } from "./_components/StateOverlayCard";
 import type { Manifest, PetRow, StateOverlay, VisualModel, VisualStatus } from "./_components/types";
 
-/** PET 3D LIFE VIEW — Stage H.2（GOAL PHASE H / I / K）。
- *  真实宠物照片 + Current State + Baseline + Actions 永远可用；
- *  3D 模型仅在有已激活版本时展示，且明确标注 GENERATED_3D（不是 Live/录像）。
- *  无真实 provider 时诚实显示「3D 服务暂未开放」，不伪装成功。
- *  用户侧文案：3D 形象 / 生命视图 / 看看它 —— 不使用「数字孪生」。
- */
+/** PET 3D LIFE VIEW — Photo-first Life View（Stage R.2 §31-§36）。
+ *  真实宠物视觉 + 当前状态 + 行动永远可用；3D 形象仅在有已激活版本时展示，
+ *  且明确标注生成来源（不是 Live/录像）。无真实服务时诚实显示，不伪装成功。 */
 export default function PetLifeViewPage({ params }: { params: Promise<{ id: string }> }) {
   const petId = use(params).id;
   const [generating, setGenerating] = useState(false);
@@ -73,13 +71,13 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
   // (never a crash). Covers sitter-without-grant etc.
   if (pet.state === "denied") {
     return (
-      <main>
+      <main className="v4-main">
         <h1>{t("pets.detail")} · 生命视图</h1>
-        <div className="state denied" role="alert">
+        <div className="v4-error" role="alert">
           没有查看此内容的权限（403）。如需访问，请联系宠物主人授权。
         </div>
-        <div style={{ marginTop: 12 }}>
-          <Link href="/" className="btn primary" role="button">
+        <div className="v4-linkrow">
+          <Link href="/" className="v4-action v4-action--primary" role="button">
             {t("notFound.home")}
           </Link>
         </div>
@@ -87,28 +85,66 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
     );
   }
 
+  const name = pet.data?.name ?? "它";
+
   return (
-    <main>
-      <h1>{pet.data?.name ?? t("pets.detail")} · 生命视图</h1>
-      <p className="sub">
-        这是 {pet.data?.name ?? "它"}的 3D 形象与当前状态。3D 形象由主人的真实照片生成并经过你确认后才显示；
-        它只是外观，不包含任何健康信息推断。真实照片与记录永远是基础。
-      </p>
+    <main className="v4-main">
+      <div className="v4-topline">
+        <h1>生命视图</h1>
+        <p className="v4-topline-sub">{name} · 此刻</p>
+      </div>
       {flash && <div className="alert info">{flash}</div>}
 
-      <ProviderStatusCard
-        status={status}
-        providerBlocked={providerBlocked}
-        generating={generating}
-        petId={petId}
-        onStartGeneration={startGeneration}
-      />
+      <div className="v4-stage">
+        <div className="v4-art" aria-hidden="true">
+          <Icon name="paw" size={120} strokeWidth={1.2} className="v4-art-paw" />
+        </div>
+        <div>
+          <p className="v4-stage-title">{name}</p>
+          <p className="v4-stage-line">这是它的可视生命状态入口：真实照片与记录始终是基础。</p>
+          <p className="v4-stage-note">
+            {active
+              ? "3D 形象已激活，只描述外观，不包含任何健康信息推断。"
+              : "3D 形象尚未创建；当前展示真实记录与状态。"}
+          </p>
+        </div>
+      </div>
 
-      <ModelVersionsCard models={models} />
+      <div className="v4-grid">
+        <div>
+          <StateOverlayCard overlay={overlay} />
+          <RealPhotoCard petId={petId} />
+          <div className="v4-sec">
+            <div className="v4-sec-head">
+              <h2 className="v4-sec-title">生命轨迹</h2>
+              <Link href="/timeline" className="v4-sec-link">
+                查看完整时间线
+              </Link>
+            </div>
+            <p className="v4-sec-sub">每一天真实发生的事情，带时间与来源，一直累积成它的生命轨迹。</p>
+          </div>
+        </div>
 
-      <StateOverlayCard overlay={overlay} />
-
-      <RealPhotoCard petId={petId} />
+        <div className="v4-rail">
+          <ProviderStatusCard
+            status={status}
+            providerBlocked={providerBlocked}
+            generating={generating}
+            petId={petId}
+            onStartGeneration={startGeneration}
+          />
+          <ModelVersionsCard models={models} />
+          <p className="v4-note" style={{ margin: "10px 0 0" }}>
+            生成的 3D 形象只来自真实照片，经过你确认后才显示；任何健康相关结论都来自独立规则引擎，不来自形象本身。
+          </p>
+          {/* manifest 加载保留：3D 渲染就绪后在此展示（当前为外部阻塞，不展示内部信息） */}
+          {active && manifest.data && (
+            <div className="v4-chip v4-chip--success" style={{ marginTop: 10 }}>
+              <span className="v4-chip-icon">3D 形象已就绪</span>
+            </div>
+          )}
+        </div>
+      </div>
     </main>
   );
 }

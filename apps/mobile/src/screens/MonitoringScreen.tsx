@@ -1,153 +1,98 @@
-/** MonitoringScreen — 在家 (PLI-132 mobile port): today's device-event counts
- *  (home-summary) + device status as reported by the backend (never fake
- *  online; empty → 设备接入暂未开放 + PROTOTYPE tag) + recent events.
- *  NOT an IoT dashboard — only real event/device sources, no position
- *  inference. */
+/**
+ * MonitoringScreen — 在家 (Stage R.2 §57): contextual capability entry.
+ * Honest device state: no devices → "尚未连接设备"; devices → status list.
+ * Never a red timeout loop.
+ */
 import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { api, humanizeError, type DeviceRow, type LifeEvent } from "../api";
+import { Ionicons } from "@expo/vector-icons";
+import { api, type DeviceRow } from "../api";
 import { usePets } from "../context";
-import { COLORS, SPACE, TYPE } from "../tokens";
-import {
-  Badge,
-  Card,
-  deviceStateColors,
-  deviceStateLabel,
-  EmptyText,
-  ErrorText,
-  EventItem,
-  Loading,
-  MutedText,
-  ProtoTag,
-  ScreenTitle,
-  SectionTitle,
-} from "./ui";
-
-interface HomeSummaryResp {
-  pet_id: string;
-  today_counts: Record<string, number>;
-  note: string;
-}
+import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
 
 export function MonitoringScreen() {
-  const { petId } = usePets();
-  const [summary, setSummary] = useState<HomeSummaryResp | null>(null);
-  const [devices, setDevices] = useState<DeviceRow[] | null>(null);
-  const [devicesError, setDevicesError] = useState<string | null>(null);
-  const [recent, setRecent] = useState<LifeEvent[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const { pets, petId } = usePets();
+  const [devices, setDevices] = useState<DeviceRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
   useEffect(() => {
     if (!petId) return;
     let alive = true;
     api
-      .get<HomeSummaryResp>(`/pets/${petId}/home-summary`)
-      .then((r) => {
-        if (alive) setSummary(r);
-      })
-      .catch((e: unknown) => {
-        if (alive) setError(humanizeError(e));
-      });
-    api
       .get<DeviceRow[]>(`/pets/${petId}/devices`)
       .then((rows) => {
-        if (!alive) return;
-        setDevices(rows);
-        setDevicesError(null);
-      })
-      .catch((e: unknown) => {
-        if (alive) {
-          setDevices(null);
-          setDevicesError(humanizeError(e));
-        }
-      });
-    api
-      .get<{ events: LifeEvent[]; count: number }>(`/pets/${petId}/events?limit=8`)
-      .then((r) => {
-        if (!alive) return;
-        setRecent(r.events.filter((e) => e.event_type !== "today.viewed").slice(0, 5));
+        if (alive) setDevices(rows);
       })
       .catch(() => {
-        if (alive) setRecent([]);
+        if (alive) setDevices([]);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
       });
     return () => {
       alive = false;
     };
   }, [petId]);
 
-  const counts = summary?.today_counts ?? null;
-
   return (
     <SafeAreaView style={styles.page} edges={["top"]}>
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-        <ScreenTitle title="在家" sub="宠物在哪 / 今天状态 / 设备是否正常。" />
+      <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.head}>
+          <Text style={styles.title}>{pet ? `${pet.name} · 在家` : "在家"}</Text>
+          <Text style={styles.sub}>设备与当前环境</Text>
+        </View>
 
-        {error && <ErrorText>{error}</ErrorText>}
-
-        <SectionTitle>今天</SectionTitle>
-        <Card>
-          {counts === null ? (
-            <Loading />
-          ) : Object.keys(counts).length === 0 ? (
-            <EmptyText>今天还没有设备事件。</EmptyText>
-          ) : (
-            Object.entries(counts).map(([k, v]) => (
-              <View key={k} style={styles.row}>
-                <Text style={styles.rowLabel}>{k}</Text>
-                <Text style={styles.rowValue}>{`${v} 次`}</Text>
-              </View>
-            ))
-          )}
-          {summary?.note ? <MutedText>{summary.note}</MutedText> : null}
-        </Card>
-
-        <SectionTitle>设备</SectionTitle>
-        {devicesError ? (
-          <ErrorText>{devicesError}</ErrorText>
-        ) : devices === null ? (
-          <Loading />
+        {loading ? (
+          <Text style={styles.emptyText}>正在连接…</Text>
         ) : devices.length === 0 ? (
-          <Card>
-            <View style={styles.protoRow}>
-              <ProtoTag />
-              <Text style={styles.protoNote}>设备接入暂未开放</Text>
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="hardware-chip-outline" size={26} color={COLORS.textTertiary} />
             </View>
-          </Card>
+            <Text style={styles.emptyTitle}>尚未连接设备</Text>
+            <Text style={styles.emptyBody}>连接支持的摄像头或互动设备后，可以在这里看到它的状态。</Text>
+          </View>
         ) : (
-          devices.map((d) => {
-            const colors = deviceStateColors(d.status);
-            return (
-              <Card key={d.device_id}>
-                <View style={styles.row}>
-                  <Text style={styles.rowLabel}>{d.display_name || d.provider}</Text>
-                  <Badge text={deviceStateLabel(d.status)} color={colors.color} bg={colors.bg} />
+          <View>
+            {devices.map((d) => (
+              <View key={d.device_id} style={styles.deviceRow}>
+                <Text style={styles.deviceName}>{d.display_name || "设备"}</Text>
+                <View style={styles.devicePill}>
+                  <Text style={styles.devicePillText}>{deviceStateLabel(d.status)}</Text>
                 </View>
-              </Card>
-            );
-          })
+              </View>
+            ))}
+          </View>
         )}
-
-        <SectionTitle>最近事件</SectionTitle>
-        {recent.length === 0 ? (
-          <EmptyText>还没有记录。</EmptyText>
-        ) : (
-          recent.map((e) => <EventItem key={e.event_id} event={e} />)
-        )}
-
-        <MutedText>只展示真实设备状态与事件来源，不推断宠物位置。</MutedText>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+function deviceStateLabel(status: string): string {
+  if (status === "connected") return "在线";
+  if (status === "offline") return "离线";
+  if (status === "degraded") return "降级";
+  return "状态未知";
+}
+
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: COLORS.bgCanvas },
+  page: { flex: 1, backgroundColor: COLORS.canvas },
   flex: { flex: 1 },
-  content: { padding: SPACE.s4, paddingBottom: SPACE.s8 },
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: SPACE.s2 },
-  rowLabel: { fontSize: TYPE.base, color: COLORS.inkPrimary, flexShrink: 1 },
-  rowValue: { fontSize: TYPE.sm, color: COLORS.inkSecondary },
-  protoRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2 },
-  protoNote: { fontSize: TYPE.sm, color: COLORS.inkSecondary },
+  content: { paddingBottom: SPACE.s8 },
+  head: { paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3 },
+  title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
+  sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
+  empty: { alignItems: "center", paddingHorizontal: SPACE.s8, paddingVertical: SPACE.s10 },
+  emptyIcon: { width: 56, height: 56, borderRadius: RADIUS.pill, backgroundColor: COLORS.brandSoft, alignItems: "center", justifyContent: "center" },
+  emptyTitle: { fontSize: TYPE.bodyStrong, fontWeight: "700", color: COLORS.textPrimary, marginTop: SPACE.s4 },
+  emptyBody: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: SPACE.s2, textAlign: "center", lineHeight: 20 },
+  emptyText: { fontSize: TYPE.body, color: COLORS.textTertiary, padding: SPACE.s4 },
+  deviceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: SPACE.s4, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.dividerSubtle },
+  deviceName: { fontSize: TYPE.body, color: COLORS.textPrimary },
+  devicePill: { backgroundColor: COLORS.brandSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  devicePillText: { fontSize: TYPE.caption, color: COLORS.textSecondary, fontWeight: "600" },
 });

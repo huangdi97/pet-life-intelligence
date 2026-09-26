@@ -6,13 +6,14 @@ import { useEffect, useState } from "react";
 import { api, clearSession, getDevUserId, setDevUserId, type Pet } from "@pli/api-client";
 import { useCurrentPet } from "../lib/hooks";
 import { t } from "../lib/i18n";
+import { Icon, type WebIconName } from "./icons";
 
-const NAV = [
-  { href: "/", label: () => t("nav.today"), icon: "◉" },
-  { href: "/timeline", label: () => t("nav.timeline"), icon: "≡" },
-  { href: "/pets", label: () => t("nav.pet"), icon: "◯" },
-  { href: "/agent", label: () => t("nav.agent"), icon: "✳" },
-  { href: "/settings", label: () => t("nav.more"), icon: "☰" },
+const NAV: Array<{ href: string; label: () => string; icon: WebIconName }> = [
+  { href: "/", label: () => t("nav.today"), icon: "sun" },
+  { href: "/timeline", label: () => t("nav.timeline"), icon: "timeline" },
+  { href: "/pets", label: () => t("nav.pet"), icon: "paw" },
+  { href: "/agent", label: () => t("nav.agent"), icon: "sparkles" },
+  { href: "/settings", label: () => t("nav.more"), icon: "user" },
 ];
 
 /** 次级入口（桌面端显示在 More 下拉/移动端"我的"页内） */
@@ -89,7 +90,7 @@ export default function TopNav() {
           return (
             <Link key={n.href} href={n.href} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
               <span className="nav-icon" aria-hidden="true">
-                {n.icon}
+                <Icon name={n.icon} size={15} />
               </span>
               <span className="nav-label">{label}</span>
             </Link>
@@ -102,7 +103,8 @@ export default function TopNav() {
             aria-haspopup="true"
             aria-expanded={moreOpen}
           >
-            更多 ▾
+            更多
+            <Icon name="chevron" size={13} style={{ marginLeft: 3 }} />
           </button>
           {moreOpen && (
             <div className="more-menu" role="menu">

@@ -1,4 +1,3 @@
-export { AgentTabs } from "./tabs";
 export { AskPanel } from "./ask_panel";
 export { BriefPanel } from "./brief_panel";
 export { ExplainPanel } from "./explain_panel";

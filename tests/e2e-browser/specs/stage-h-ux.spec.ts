@@ -44,11 +44,13 @@ test.describe("Stage H UX — new domain routes", () => {
     }
   });
 
-  test("companion shows PROTOTYPE gate when feature flag off", async ({ page, request }) => {
+  test("companion renders graceful empty state (honest preview, no fake hardware)", async ({ page, request }) => {
     await loginAsEmail(page, request, "owner@pli.demo");
     await page.goto("/companion");
     await expect(page).toHaveURL(urlRe("/companion"));
-    await expect(page.getByText("PROTOTYPE").first()).toBeVisible();
-    await expect(page.getByText(/硬件集成未激活/).first()).toBeVisible();
+    await expect(page.getByText("陪伴模式").first()).toBeVisible();
+    await expect(page.getByText("四种能力").first()).toBeVisible();
+    await expect(page.getByText("尚未连接设备").first()).toBeVisible();
+    await expect(page.getByText(/陪伴不用于医疗判断/).first()).toBeVisible();
   });
 });

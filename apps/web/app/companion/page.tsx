@@ -1,39 +1,23 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
 import { api, type LifeEvent } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
-import { t } from "../../lib/i18n";
-import { ControlPanel } from "./_components/ControlPanel";
-import { GatePanel } from "./_components/GatePanel";
-import { ObservePanel } from "./_components/ObservePanel";
-import { SessionSummaryPanel } from "./_components/SessionSummaryPanel";
-import { WelfareGuardPanel } from "./_components/WelfareGuardPanel";
-import type { DeviceInfo, RemoteInteractionSession } from "./_components/types";
-/** DESIGN CANDIDATE（Stage H §44）——后端 canonical schema 尚未批准：
- *  仅前端类型定义，不产生真实后端写入；原型数据一律标 PROTOTYPE。 */
+import type { DeviceInfo } from "./_components/types";
 
-const COMPANION_FLAG = process.env.NEXT_PUBLIC_PLI_FLAG_COMPANION === "true";
+/**
+ * Companion — 陪伴模式 (Stage R.2 §54-56). Graceful preview experience:
+ * plain-language capability layers + honest device state. No feature flags,
+ * no PROTOTYPE tags, no fake device execution.
+ */
+const LAYERS = [
+  { key: "observe", zh: "观察", desc: "在不打扰它的前提下，留意它的活动、休息与互动。" },
+  { key: "presence", zh: "在场", desc: "连接设备后，可以知道它是否来到附近、停留多久。" },
+  { key: "enrichment", zh: "丰富化", desc: "在合适的时候提供游戏与探索机会，由你控制节奏。" },
+  { key: "learned", zh: "习得互动", desc: "根据长期观察，逐渐了解它的偏好，但不猜测情绪。" },
+];
 
-interface GuardState {
-  rest: boolean;
-  cooldown: boolean;
-  treat_limit: boolean;
-  session_duration: boolean;
-  noise: boolean;
-  night_quiet: boolean;
-}
-
-/** OWN-014 Companion（Stage H §34-44，Prototype C）：Remote Presence & Interaction。
- *  原则：Zero-cognition / Observation / Welfare / Privacy / Human-in-Control。
- *  无真实 provider 时显示 PROTOTYPE，绝不伪装硬件执行成功。 */
 export default function CompanionPage() {
   const { petId } = useCurrentPet();
-  const [session, setSession] = useState<RemoteInteractionSession | null>(null);
-  const [timer, setTimer] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const recent = useAsync<{ events: LifeEvent[] }>(
     () => (petId ? api.get(`/pets/${petId}/events?limit=5`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [petId],
@@ -43,94 +27,84 @@ export default function CompanionPage() {
     [petId],
   );
 
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
-
-  if (!COMPANION_FLAG) {
-    return <GatePanel />;
-  }
-
-  function startSession() {
-    if (!petId || session) return;
-    const s: RemoteInteractionSession = {
-      session_id: `prototype-${Date.now()}`,
-      pet_id: petId,
-      actor_id: "owner",
-      device_id: null,
-      started_at: new Date().toISOString(),
-      ended_at: null,
-      interaction_types: [],
-      pet_observations: [],
-      owner_feedback: [],
-      safety_events: [],
-      outcome: null,
-    };
-    setSession(s);
-    setTimer(0);
-    timerRef.current = setInterval(() => setTimer((x) => x + 1), 1000);
-  }
-
-  function endSession() {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setSession((s) => (s ? { ...s, ended_at: new Date().toISOString() } : s));
-  }
-
-  function control(kind: string) {
-    if (!session) return;
-    setSession((s) => (s ? { ...s, interaction_types: [...s.interaction_types, kind] } : s));
-  }
-
-  const guard: GuardState = {
-    rest: true,
-    cooldown: true,
-    treat_limit: true,
-    session_duration: timer < 15 * 60,
-    noise: true,
-    night_quiet: new Date().getHours() >= 22 || new Date().getHours() < 7,
-  };
-
-  const controls: Array<{ kind: string; label: string }> = [
-    { kind: "voice", label: t("companion.speak") },
-    { kind: "audio", label: t("companion.audio") },
-    { kind: "treat", label: t("companion.treat") },
-    { kind: "play", label: t("companion.play") },
-    { kind: "cue", label: t("companion.cue") },
-    { kind: "button", label: t("companion.button") },
-  ];
-
   return (
-    <main>
-      <h1>
-        {t("companion.title")} · <span className="badge pli-tag--prototype">{t("companion.gateTitle")}</span>
-      </h1>
-      <p className="sub">Remote Presence & Interaction（原型）。真实硬件调用走 Feature Flag / Sandbox；未连接真实设备时不伪装执行。</p>
+    <main className="v4-page">
+      <section className="v4-hero v4-hero--compact">
+        <div className="v4-art" aria-hidden="true" />
+        <div className="v4-hero-copy">
+          <h1 className="v4-hero-title">陪伴模式</h1>
+          <p className="v4-hero-sub">连接支持的设备后，可以在不打扰它的前提下观察和互动。</p>
+        </div>
+      </section>
 
-      <ObservePanel recent={recent} devices={devices} />
+      <section className="v4-sec">
+        <h2 className="v4-sec-title">四种能力</h2>
+        {LAYERS.map((l) => (
+          <div className="v4-domain" key={l.key}>
+            <span className="v4-domain-label">{l.zh}</span>
+            <span className="v4-domain-value">{l.desc}</span>
+          </div>
+        ))}
+      </section>
 
-      <ControlPanel
-        session={session}
-        controls={controls}
-        timer={timer}
-        onStart={startSession}
-        onEnd={endSession}
-        onControl={control}
-      />
+      <section className="v4-sec">
+        <h2 className="v4-sec-title">设备</h2>
+        {devices.data && devices.data.length === 0 ? (
+          <p className="v4-calm">尚未连接设备</p>
+        ) : (
+          (devices.data ?? []).map((d) => (
+            <div className="v4-domain" key={d.device_id}>
+              <span className="v4-domain-label">{d.display_name || "设备"}</span>
+              <span className="v4-domain-value">{deviceStateZh(d.status)}</span>
+            </div>
+          ))
+        )}
+      </section>
 
-      <WelfareGuardPanel nightQuiet={guard.night_quiet} />
+      {recent.data && recent.data.events.length > 0 ? (
+        <section className="v4-sec">
+          <h2 className="v4-sec-title">最近</h2>
+          <div className="v4-ls">
+            {recent.data.events
+              .filter((e) => e.event_type !== "today.viewed")
+              .slice(0, 4)
+              .map((e) => (
+                <div className="v4-ls-row" key={e.event_id}>
+                  <span className="v4-ls-type">{eventTypeZh(e.event_type)}</span>
+                  <span className="v4-ls-time">{new Date(e.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}</span>
+                </div>
+              ))}
+          </div>
+        </section>
+      ) : null}
 
-      {session?.ended_at && <SessionSummaryPanel session={session} timer={timer} />}
-
-      <div className="row" style={{ marginTop: 8 }}>
-        <Link href="/" className="btn">
-          {t("companion.gateBack")}
-        </Link>
-        <Link href="/monitoring" className="btn">
-          在家
-        </Link>
-      </div>
+      <p className="v4-note">陪伴不用于医疗判断；互动节奏始终由你控制。</p>
+      {/* SAFETY:
+          Demo/preview must never be mistaken for a live stream — the owner
+          UI keeps stating, in user language, that this is not a live feed. */}
+      <p className="v4-note">当前为演示体验，不是实时画面。</p>
     </main>
   );
+}
+
+function deviceStateZh(status: string): string {
+  if (status === "connected") return "在线";
+  if (status === "offline") return "离线";
+  if (status === "degraded") return "降级";
+  return "状态未知";
+}
+
+function eventTypeZh(eventType: string): string {
+  const map: Record<string, string> = {
+    "daily.meal": "喂食",
+    "daily.drink": "饮水",
+    "daily.walk": "散步",
+    "daily.play": "玩耍",
+    "daily.weight": "体重",
+    "daily.sleep": "睡觉",
+    "behavior.observed": "行为",
+    "diary.created": "备注",
+    "health.event_opened": "健康",
+  };
+  return map[eventType] ?? eventType;
 }

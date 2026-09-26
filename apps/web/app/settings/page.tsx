@@ -102,7 +102,7 @@ export default function SettingsPage() {
     <main>
       <h1>设置与隐私</h1>
       <p className="sub">
-        紧急联系卡（PLI-014）、细粒度同意（PLI-016/215）、删除请求（PLI-216）与访问审计（PLI-046）。
+        紧急联系卡、细粒度同意、删除请求与访问审计。
       </p>
       {flash && <div className="alert info">{flash}</div>}
       <ErrorNote message={error} />
