@@ -79,6 +79,10 @@ export default function CompanionPage() {
       ) : null}
 
       <p className="v4-note">陪伴不用于医疗判断；互动节奏始终由你控制。</p>
+      {/* SAFETY:
+          Demo/preview must never be mistaken for a live stream — the owner
+          UI keeps stating, in user language, that this is not a live feed. */}
+      <p className="v4-note">当前为演示体验，不是实时画面。</p>
     </main>
   );
 }
