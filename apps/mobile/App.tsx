@@ -1,8 +1,9 @@
 /** App entry — providers + navigation.
  *
  * DEMO ENV (EXPO_PUBLIC_PLI_DEMO_ENV=1): demo builds auto-login into the
- * demo household and accept `pli-demo://login?email=...` deep links to switch
- * demo scenario accounts (full / empty / attention) for presentation runs.
+ * demo household and accept deep links:
+ *   pli-demo://login?email=...  switch demo scenario account
+ *   pli-demo://nav?screen=...   navigate to a screen (presentation runs)
  * Production builds never compile this path (flag off).
  */
 import React, { useCallback, useEffect, useState } from "react";
@@ -15,6 +16,7 @@ import { getApiConfigIssue, type ApiConfigIssue } from "./src/apiConfig";
 import { devLogin } from "./src/api";
 import { DEMO_ENV } from "./src/tokens";
 import { getDevUserId } from "./src/storage/session";
+import { navigateToDemoScreen } from "./src/demoNav";
 
 const DEMO_DEFAULT_EMAIL = "owner@pli.demo";
 
@@ -28,6 +30,25 @@ function demoEmailFromUrl(url: string | null): string | null {
   }
 }
 
+function demoNavFromUrl(url: string | null): string | null {
+  if (!url || !url.startsWith("pli-demo://")) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname !== "nav") return null;
+    return parsed.searchParams.get("screen");
+  } catch {
+    return null;
+  }
+}
+
+function applyDemoNav(screen: string | null): void {
+  if (!screen) return;
+  // navigation may not be ready right after mount; retry briefly
+  for (let i = 0; i < 10; i++) {
+    setTimeout(() => navigateToDemoScreen(screen), i * 500);
+  }
+}
+
 /** Demo-only bootstrap: ensure a dev session (deep link or default account). */
 function DemoSession() {
   const { reload } = usePets();
@@ -36,20 +57,23 @@ function DemoSession() {
     let alive = true;
     async function boot() {
       const url = await Linking.getInitialURL();
-      const email = demoEmailFromUrl(url) ?? DEMO_DEFAULT_EMAIL;
       if (!alive) return;
+      const email = demoEmailFromUrl(url) ?? DEMO_DEFAULT_EMAIL;
       if ((await getDevUserId()) && email === DEMO_DEFAULT_EMAIL) {
         reload();
-        return;
+      } else {
+        await devLogin(email);
+        reload();
       }
-      await devLogin(email);
-      reload();
+      applyDemoNav(demoNavFromUrl(url));
     }
     void boot();
     const sub = Linking.addEventListener("url", ({ url }) => {
       const email = demoEmailFromUrl(url);
-      if (!email) return;
-      void devLogin(email).then(reload);
+      if (email) {
+        void devLogin(email).then(reload);
+      }
+      applyDemoNav(demoNavFromUrl(url));
     });
     return () => {
       alive = false;
