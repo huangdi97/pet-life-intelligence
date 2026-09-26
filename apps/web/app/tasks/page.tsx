@@ -59,7 +59,7 @@ export default function TasksPage() {
   return (
     <main>
       <h1>照护任务</h1>
-      <p className="sub">创建、完成、重复任务与冲突提醒（PLI-026/027/028）。</p>
+      <p className="sub">创建、完成、重复任务与冲突提醒。</p>
       <div className="card">
         <h2>新建任务</h2>
         <div className="grid2">

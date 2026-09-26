@@ -63,7 +63,7 @@ export default function SearchPage() {
     <main>
       <h1>记录搜索与个人问答</h1>
       <p className="sub">
-        只搜索真实事件并给出引用（PLI-190/198）；问答必须引用证据，无证据就直说找不到（PLI-197）。
+        只搜索真实事件并给出引用；问答必须引用证据，无证据就直说找不到。
       </p>
       <div className="card">
         <div className="row">

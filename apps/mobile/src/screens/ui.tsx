@@ -13,7 +13,6 @@ export {
   Loading,
   MutedText,
   PrimaryButton,
-  ProtoTag,
   ScreenTitle,
   SectionTitle,
 } from "./ui_shared";

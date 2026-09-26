@@ -58,7 +58,7 @@ export default function CreatePetPage() {
   return (
     <main>
       <h1>创建宠物档案</h1>
-      <p className="sub">建立宠物唯一身份（PLI-001）。之后可在家庭中管理多宠（PLI-002）。</p>
+      <p className="sub">建立宠物唯一身份。之后可在家庭中管理多宠。</p>
       <div className="card">
         <label className="field">
           名字 *

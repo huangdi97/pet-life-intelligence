@@ -65,7 +65,7 @@ export default function BehaviorPage() {
       <h1>行为记录</h1>
       <p className="sub">
         ABC 记录法：前因（Antecedent）→ 可观察行为（Behavior）→ 后果（Consequence）。
-        系统只保存可观察事实，不会自动推断疾病或行为诊断（PLI-069）。
+        系统只保存可观察事实，不会自动推断疾病或行为诊断。
       </p>
       <div className="card">
         <h2>记录一次行为事件</h2>
@@ -91,7 +91,7 @@ export default function BehaviorPage() {
             <input type="number" min={0} value={form.duration_seconds} onChange={(e) => set("duration_seconds", e.target.value)} />
           </label>
           <label className="field">
-            强度（主人主观，将标记为 OWNER_REPORTED）
+            强度（主人主观，将标记为主人记录）
             <select value={form.intensity} onChange={(e) => set("intensity", e.target.value)}>
               <option value="">未标注</option>
               <option value="MILD">轻度</option>

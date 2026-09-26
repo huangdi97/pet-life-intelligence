@@ -50,10 +50,6 @@ export function Badge({ text, color, bg }: { text: string; color: string; bg: st
   );
 }
 
-/** PROTOTYPE tag — rendered on every prototype / feature-flagged control. */
-export function ProtoTag() {
-  return <Badge text="PROTOTYPE" color={COLORS.accent600} bg={COLORS.accent50} />;
-}
 
 export function PrimaryButton({
   label,

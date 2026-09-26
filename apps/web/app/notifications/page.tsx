@@ -32,7 +32,7 @@ export default function NotificationsPage() {
   return (
     <main>
       <h1>通知中心</h1>
-      <p className="sub">任务冲突、红旗警告、权限到期、用药遗漏等统一通知（PLI-219）。</p>
+      <p className="sub">任务冲突、红旗警告、权限到期、用药遗漏等统一通知。</p>
       <State
         state={notifications.state}
         error={notifications.error}
