@@ -83,3 +83,32 @@ export function deviceStatusLabel(status: string): string {
   if (status === "EXPIRED" || status === "REVOKED") return "已断开";
   return "状态未知";
 }
+
+import { speciesLabel } from "../../utils/format";
+import { petAgeText, sexLabelZh, eventTypeLabel, eventPayloadText, sourceLabel } from "../../utils/labels";
+import type { LifeStreamRow } from "../../components/timeline/LifeStream";
+
+export const DAY_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+
+export function timeContextText(): string {
+  const d = new Date();
+  return `${d.getMonth() + 1}月${d.getDate()}日 · ${DAY_NAMES[d.getDay()]}`;
+}
+
+export function heroIdentity(pet: { species: string; breed: string; birth_date: string | null; sex: string } | undefined): string {
+  if (!pet) return "宠物生活智能";
+  const parts = [speciesLabel(pet.species), pet.breed, petAgeText(pet.birth_date), sexLabelZh(pet.sex)].filter(Boolean);
+  return parts.join(" · ");
+}
+
+export function eventRowFromEvent(e: { event_id: string; event_type: string; occurred_at: string; payload: Record<string, unknown>; source_type: string }): LifeStreamRow {
+  const t = new Date(e.occurred_at);
+  const hh = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
+  return {
+    id: e.event_id,
+    time: hh,
+    typeLabel: eventTypeLabel(e.event_type),
+    detail: eventPayloadText(e.payload),
+    source: sourceLabel(e.source_type),
+  };
+}

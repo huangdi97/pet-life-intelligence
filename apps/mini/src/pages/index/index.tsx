@@ -8,12 +8,10 @@ import { Icon, Text, View } from "@tarojs/components";
 import Taro, { useDidShow } from "@tarojs/taro";
 import { api, ApiError, type Task } from "../../services/api";
 import { usePets } from "../../utils/usePets";
-import { speciesLabel } from "../../utils/format";
-import { eventPayloadText, eventTypeLabel, petAgeText, sexLabelZh, sourceLabel } from "../../utils/labels";
+import { LifeStream, type LifeStreamDay } from "../../components/timeline/LifeStream";
 import { PetHero } from "../../components/pet_visual";
 import { LifeSignal, type LifeSignalRow } from "../../components/life/LifeSignal";
 import { AttentionPanel } from "../../components/life/AttentionPanel";
-import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../../components/timeline/LifeStream";
 import { InlineError } from "../../components/feedback/Feedback";
 import {
   ATTENTION_LEVELS,
@@ -23,32 +21,8 @@ import {
   type HealthEventRow,
   type TodayData,
 } from "./_lib";
-import { CompanionEntryCard, MonitorCard, QuickLogSheet } from "./_components";
-
-const DAY_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-
-function timeContextText(): string {
-  const d = new Date();
-  return `${d.getMonth() + 1}月${d.getDate()}日 · ${DAY_NAMES[d.getDay()]}`;
-}
-
-function heroIdentity(pet: { species: string; breed: string; birth_date: string | null; sex: string } | undefined): string {
-  if (!pet) return "宠物生活智能";
-  const parts = [speciesLabel(pet.species), pet.breed, petAgeText(pet.birth_date), sexLabelZh(pet.sex)].filter(Boolean);
-  return parts.join(" · ");
-}
-
-function eventRowFromEvent(e: { event_id: string; event_type: string; occurred_at: string; payload: Record<string, unknown>; source_type: string }): LifeStreamRow {
-  const t = new Date(e.occurred_at);
-  const hh = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
-  return {
-    id: e.event_id,
-    time: hh,
-    typeLabel: eventTypeLabel(e.event_type),
-    detail: eventPayloadText(e.payload),
-    source: sourceLabel(e.source_type),
-  };
-}
+import { CompanionEntryCard, MonitorCard, QuickLogSheet, TodayTasks, TodayMemory } from "./_components";
+import { timeContextText, heroIdentity, eventRowFromEvent } from "./_lib";
 
 export default function Index() {
   const { pets, petId, choose } = usePets();
@@ -261,27 +235,7 @@ export default function Index() {
             <AttentionPanel kind="calm" body="目前没有需要特别关注的变化。" />
           )}
 
-          {tasks && tasks.length > 0 && (
-            <View className="open-section">
-              <View className="section-title">
-                今天任务
-                <Text className="section-caption">{tasks.filter((t) => t.status === "OPEN").length} 项待办</Text>
-              </View>
-              {tasks.slice(0, 3).map((t) => (
-                <View className="life-row" key={t.id}>
-                  <View className="life-dot" />
-                  <View className="life-row-body">
-                    <View className="life-row-head">
-                      <Text className="life-row-type">{t.title}</Text>
-                      <Text className="life-row-time" onClick={() => completeTask(t.id)}>
-                        <Icon type="success" size={16} color="#4E7A5A" /> 完成
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
+          {tasks && tasks.length > 0 && <TodayTasks tasks={tasks} onComplete={completeTask} />}
 
           <View className="primary-action" onClick={() => setSheetOpen(true)}>
             快速记录
@@ -314,19 +268,7 @@ export default function Index() {
             />
           )}
 
-          <View className="open-section">
-            <View className="section-title">
-              最近
-              {todayEvents.length ? <Text className="section-caption">今天 · {todayEvents.length} 条</Text> : null}
-            </View>
-            {memoryDays.length ? (
-              <LifeStream days={memoryDays} />
-            ) : (
-              <Text className="life-empty-note">
-                "豆豆的时间线还很安静，第一次喂食、散步或健康记录会从这里开始。"
-              </Text>
-            )}
-          </View>
+          <TodayMemory days={memoryDays} count={todayEvents.length} />
 
           <CompanionEntryCard />
         </>
