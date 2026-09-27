@@ -114,8 +114,9 @@ P2       = 显式 ACCEPTED_DEFER（3 项）：
            （注：原「AVD 捕获高度约束」已于 2026-09-26 收尾解除——Pixel5 规格 AVD pdig5 复现全高 390×844dp 捕获，
            19 张截图已全高重拍，见 artifacts/visual-reconstruction/v0.2.0/）
 
-Git    = 分支 10 提交 + merge --no-ff → main（5da500e）；v0.1.2 baseline 保留（tag + artifacts 原样）
-Push   = origin/main = 5da500e（已推送）
+Git    = 分支 10 提交 + merge --no-ff → main（5da500e）；v0.1.2 baseline 保留（tag + artifacts 原样）；
+          收尾提交：a52b170（README/CHANGELOG v0.2.0 终端）+ 01bc0af（全高截图重拍 + P2 高度约束解除）
+Push   = origin/main 已推送（5da500e → a52b170 → 01bc0af）
 Release= v0.2.0 tag 已推送 + GitHub Release 已创建（PLI v0.2.0 — Living Pet Experience Reconstruction，Internal / Pre-Pilot）
          https://github.com/huangdi97/pet-life-intelligence/releases/tag/v0.2.0
 
