@@ -45,6 +45,8 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build pet-3d
+        run: pnpm --dir packages/pet-3d build
       - name: Mobile typecheck
         run: pnpm --dir apps/mobile typecheck
       - name: Expo prebuild (android)
