@@ -45,6 +45,10 @@ test("STAGE-V-VISUAL-01 capture baseline screenshots at 5 widths x 12 pages", as
   expect(coco).toBeTruthy();
 
   await loginAsEmail(page, request, "owner@pli.demo");
+  // VISUAL-DETERMINISM: freeze the 3D living stage (idle drift + breathing are
+  // disabled under prefers-reduced-motion), so WebGL frames are stable across
+  // runs and baselines stay reproducible (master goal §72 date/seed stability).
+  await page.emulateMedia({ reducedMotion: "reduce" });
   for (const width of WIDTHS) {
     await page.setViewportSize({ width, height: 900 });
     for (const def of PAGES) {

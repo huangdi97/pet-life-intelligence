@@ -44,6 +44,9 @@ const WIDTHS = [390, 1440];
 test("VISUAL-V3-CAPTURE — owner pages", async ({ page, request }) => {
   test.setTimeout(600_000);
   await login(page, request);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  // VISUAL-DETERMINISM: freeze the 3D living stage animations so WebGL frames
+  // don't drift between runs (master goal §72 date/seed stability).
   const petId = await demoPetId(request);
   mkdirSync(OUT, { recursive: true });
 
