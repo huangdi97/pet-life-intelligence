@@ -32,7 +32,7 @@ REAL_PARTICIPANTS=0 · REAL_PETS=0 · PRODUCT_VALIDATION=NOT_YET_OBSERVED
   （DEBUG_SIGNED_INSTALLABLE_APK / NOT_PLAY_STORE_SIGNED / PLAY_STORE_SIGNING=EXTERNAL_BLOCKED）；
   v0.1.1 为内部收口续版（`artifacts/release/v0.1.1/`）；v0.1.2 为本轮验收版（`artifacts/emulator/v0.1.2/`，
   GitHub Release v0.1.2，Internal / Pre-Pilot）；**v0.2.0 = 当前版本**（Stage R.2 重建，mobile APK
-  `apps/mobile/dist/Pet-Life-Intelligence-v0.2.0*.apk`，GitHub Release v0.2.0，Internal / Pre-Pilot；
+  `apps/mobile/android/app/build/outputs/apk/release/app-release.apk`，GitHub Release v0.2.0，Internal / Pre-Pilot；
   截图证据 `artifacts/visual-reconstruction/v0.2.0/`）。
 - **v1.x tags = 历史内部工程里程碑**（v1.0.0/v1.1.0/v1.1.1/v1.2.0 是早期内部命名线）；
   **v0.1.x = 公开产品发布线**，避免 SemVer 误解（详见 CHANGELOG）。
@@ -62,9 +62,10 @@ artifacts/release/v0.1.1/screenshots/android/  — 真机截图待回填（NOT_Y
 
 ## Android
 
-- v0.2.0 emulator APK：`apps/mobile/dist/Pet-Life-Intelligence-v0.2.0-*.apk`
+- v0.2.0 emulator APK：`apps/mobile/android/app/build/outputs/apk/release/app-release.apk`
   （package `com.pli.mobile` · versionName 0.2.0 · versionCode 4 · scheme `pli-demo://` 深链驱动；
-  Stage R.2 重建版，截图 19 张见 `artifacts/visual-reconstruction/v0.2.0/`，Release v0.2.0 资产）。
+  Stage R.2 重建版，截图 19 张见 `artifacts/visual-reconstruction/v0.2.0/`；Release v0.2.0 资产 =
+  `Pet-Life-Intelligence-v0.2.0-emulator.apk` + `pli-v0.2.0-screenshots.zip` + `SHA256SUMS`）。
 - v0.1.2 emulator APK：`artifacts/emulator/v0.1.2/Pet-Life-Intelligence-v0.1.2-emulator.apk`
   （package `com.pli.mobile` · versionName 0.1.2 · versionCode 3 · API `http://10.0.2.2:8800`
   · emulator 验收版；v0.1.2 GitHub Release 资产含 APK + SHA256SUMS + 截图 zip）。

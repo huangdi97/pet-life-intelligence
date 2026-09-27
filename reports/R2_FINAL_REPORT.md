@@ -117,8 +117,10 @@ P2       = 显式 ACCEPTED_DEFER（3 项）：
 Git    = 分支 10 提交 + merge --no-ff → main（5da500e）；v0.1.2 baseline 保留（tag + artifacts 原样）；
           收尾提交：a52b170（README/CHANGELOG v0.2.0 终端）+ 01bc0af（全高截图重拍 + P2 高度约束解除）
           + 19d9f29 / 8795f79（报告钉哈希 + README 像素口径修正）
-Push   = origin/main 已推送（5da500e → a52b170 → 01bc0af → 19d9f29 → 8795f79）
+Push   = origin/main 已推送（5da500e → a52b170 → 01bc0af → 19d9f29 → 8795f79 → ff719d1）
 Release= v0.2.0 tag 已推送 + GitHub Release 已创建（PLI v0.2.0 — Living Pet Experience Reconstruction，Internal / Pre-Pilot）
+         资产：Pet-Life-Intelligence-v0.2.0-emulator.apk（88,189,065 B）+ pli-v0.2.0-screenshots.zip（19 张全高截图
+         1024x2216/945x2100 + final gallery）+ SHA256SUMS（2026-09-26 补传）
          https://github.com/huangdi97/pet-life-intelligence/releases/tag/v0.2.0
 
 REAL_PARTICIPANTS = 0
