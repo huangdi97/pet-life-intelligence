@@ -78,7 +78,8 @@ Android Emulator
                 final 16 张系列 + PLI_v0.2.0_Android_Final_Contact_Sheet.png + before-v0.1.2-vs-after-v0.2.0.png + gallery.html
   Core Flow  = 登录（demo 自动登录 owner@pli.demo）→ Today → Quick Log → Timeline → Pet → Life View → Health/Behavior/
                Training/Welfare/Social → Assistant → Companion → Me → Pet Switch → Offline → 退出；pli-demo://nav 驱动确定性运行
-  （备注：唯一稳定 AVD 物理屏 320x480，wm size 钳制 1024x1440px≈390×549dp，截图 390dp 宽 = P2/ACCEPTED_DEFER 捕获容量约束，非 UI 问题）
+  （收尾升级 2026-09-26：Pixel5 规格 AVD `pdig5`（1080x2340 @440dpi）复现**全高 390×844dp** 捕获，
+  `wm size 1024x2216px @420` 验证生效；此前 320x480 物理屏钳制 1024x1440px≈390×549dp 的 P2 捕获容量约束已解除）
 
 Web parity
   = Today/Timeline/Pet/LifeView/Assistant V4 迁移完成（apps/web/PLI_R2_WEB_MIGRATION.md）；桌面双栏；
@@ -106,11 +107,12 @@ P0       = 0（确认：底部导航 canonical；无字母头像主视觉；Toda
            Life View 非诊断页/无 raw key；Timeline 非大白卡；域页首屏非大表单；Assistant 有 Pet Context；
            Companion 非 prototype 说明；无 feature flag/raw enum/internal key 暴露；Offline 非 raw 红字）
 P1       = 0
-P2       = 显式 ACCEPTED_DEFER（4 项）：
+P2       = 显式 ACCEPTED_DEFER（3 项）：
            1) 生成 Demo 宠物照片未做（image model 本机不可用；ACCEPTED_LIMITATION 2026-09-26）
-           2) AVD 捕获容量 390dp 宽（320x480 物理屏钳制；390×844 不可复现）
-           3) REAL_3D_PROVIDER=EXTERNAL_BLOCKED（3D Available State 未发生，如实）
-           4) 部分 web responsive polish（ACCEPTED_DEFER）
+           2) REAL_3D_PROVIDER=EXTERNAL_BLOCKED（3D Available State 未发生，如实）
+           3) 部分 web responsive polish（ACCEPTED_DEFER）
+           （注：原「AVD 捕获高度约束」已于 2026-09-26 收尾解除——Pixel5 规格 AVD pdig5 复现全高 390×844dp 捕获，
+           19 张截图已全高重拍，见 artifacts/visual-reconstruction/v0.2.0/）
 
 Git    = 分支 10 提交 + merge --no-ff → main（5da500e）；v0.1.2 baseline 保留（tag + artifacts 原样）
 Push   = origin/main = 5da500e（已推送）
@@ -124,7 +126,8 @@ PRODUCT_VALIDATION = NOT_YET_OBSERVED（REAL_3D_PROVIDER = EXTERNAL_BLOCKED · P
 Final:
 PLI_PRODUCT_EXPERIENCE_RECONSTRUCTION_PASS = PASS
 STAGE_R2_COMPLETE = TRUE（关键视觉 Gate 全过：Today/Pet/LifeView/Timeline/Assistant；P0=0 · P1=0；
-   P2 = ACCEPTED_DEFER（Demo 照片 ACCEPTED_LIMITATION · AVD 捕获高度约束 · REAL_3D_PROVIDER=EXTERNAL_BLOCKED ·
-   web responsive polish）；视觉人工批准入口 = artifacts/visual-reconstruction/v0.2.0/gallery.html +
+   P2 = ACCEPTED_DEFER（Demo 照片 ACCEPTED_LIMITATION · REAL_3D_PROVIDER=EXTERNAL_BLOCKED ·
+   web responsive polish；AVD 捕获高度约束已于收尾解除——全高 390×844dp 复现）；视觉人工批准入口 =
+   artifacts/visual-reconstruction/v0.2.0/gallery.html +
    final contact sheets，浏览器已打开展示）
 ```

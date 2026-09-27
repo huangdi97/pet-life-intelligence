@@ -53,6 +53,10 @@ Demo    : EXPO_PUBLIC_PLI_DEMO_ENV=1 自动登录 owner@pli.demo + pli-demo://lo
 ## 5. Infra 备注
 
 - 本机唯一稳定 AVD 物理屏 320x480，`wm size` 钳制到 1024x1440 px ≈ 390×549dp；截图按 390dp 宽输出。这是**捕获容量约束**（P2/ACCEPTED_DEFER），不是 UI 问题（用户批准 2026-09-26）。
+
+  **收尾 Postscript（2026-09-26）**：已创建 Pixel5 规格 AVD `pdig5`（system-images;android-36;google_apis;x86_64，
+  手工 config：hw.lcd 1080x2340 @440dpi + `_no_skin`），`wm size 1024x2216px @420` 验证生效 → **全高 390×844dp 捕获已复现**，
+  P2 捕获高度约束解除；19 张截图已全高重拍（见 artifacts/visual-reconstruction/v0.2.0/，尺寸 1024x2216 / 945x2100）。
 - 本机无可用 image model：本轮不生成 Demo 宠物照片（ACCEPTED_LIMITATION，用户批准 2026-09-26）；PetHero 使用 warm species-visual。
 
 ## 6. Real-world 状态（保持不变）

@@ -8,7 +8,9 @@ Life Stream Timeline · Pet-aware Assistant · Companion graceful empty · canon
 mobile/web/mini V4 一致；pytest 427 / ruff 0 / 三端 tsc 0 / vitest 22/22 / Playwright 功能 27/27 /
 VR V3 24 页 0.000% diff；merge main=5da500e，tag+Release v0.2.0 已发布（Internal / Pre-Pilot）；
 REAL_PARTICIPANTS=0 · REAL_PETS=0 · PRODUCT_VALIDATION=NOT_YET_OBSERVED ·
-REAL_3D_PROVIDER=EXTERNAL_BLOCKED；P2 ACCEPTED_DEFER：Demo 照片（ACCEPTED_LIMITATION）/AVD 捕获高度约束/web polish）
+REAL_3D_PROVIDER=EXTERNAL_BLOCKED；P2 ACCEPTED_DEFER：Demo 照片（ACCEPTED_LIMITATION）/web polish
+（AVD 捕获高度约束已解除：Pixel5 规格 AVD pdig5（1080x2340@440）全高 390×844dp 捕获复现，
+19 张截图全高重拍 1024x2216px，见 artifacts/visual-reconstruction/v0.2.0/）
 
 `PLI_V0_1_1_INTERNAL_READY`（Stage R.1 完成，2026-09-24）· `PRE_PILOT_TECHNICAL_AUDIT_PASS` 保持
 （pytest 427 / ruff 0 / 五端 typecheck 0 / vitest 22/22 / Playwright 30（27 功能 + 视觉链 3）

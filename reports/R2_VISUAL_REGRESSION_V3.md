@@ -14,7 +14,7 @@
 
 宽度：360 / 390 / 768 / 1440，按 client 能力分配（mobile 390/360；web 768/1440）。
 
-本轮 Android Emulator 实际捕获：390dp（AVD 钳制 1024x1440px ≈ 390×549dp）；360dp 捕获 today-with-data-360.png 单张。768/1440 由 web 侧承担。
+本轮 Android Emulator 实际捕获：**全高 390×844dp 已复现**（Pixel5 规格 AVD `pdig5`：1080x2340 @440dpi 物理屏，`wm size 1024x2216px @420` 验证生效，不再被钳制到 549dp；2026-09-26 收尾升级，P2 捕获高度约束解除）；360dp 捕获 today-with-data-360.png（945x2100px）。768/1440 由 web 侧承担。
 
 ## 3. Baseline Update Protocol（§97）
 

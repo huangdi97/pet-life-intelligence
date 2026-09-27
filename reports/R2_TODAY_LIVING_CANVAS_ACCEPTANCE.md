@@ -51,7 +51,8 @@ After（`artifacts/visual-reconstruction/v0.2.0/`）：
 
 ## 5. Remaining Issues
 
-- P2/ACCEPTED_DEFER：首屏捕获仅 390dp（AVD 物理屏 320x480 钳制 1024x1440px），360dp 仅 with-data 一张；390×844 完整首屏不可复现（捕获容量约束，非 UI 问题）。
+- ~~P2/ACCEPTED_DEFER：首屏捕获仅 390dp~~ → **收尾解除（2026-09-26）**：Pixel5 规格 AVD pdig5（1080x2340 @440dpi）复现
+  **全高 390×844dp** 捕获（wm size 1024x2216px @420 验证生效），19 张截图全高重拍；360dp with-data 945x2100px 保留。
 - P2/ACCEPTED_DEFER：Demo 宠物无照片（ACCEPTED_LIMITATION，2026-09-26）。
 - P2：任务区块（今天任务）为条件渲染 OpenSection，空时不显示（符合设计）。
 

@@ -22,7 +22,8 @@
 ### Verification
 - pytest 427 / ruff 0 / mobile·web·mini tsc 0 / vitest 22/22 / Playwright 功能 27/27（安全断言保留并绿）/ gradle·next·taro build OK。
 - REAL_PARTICIPANTS=0 · REAL_PETS=0 · PRODUCT_VALIDATION=NOT_YET_OBSERVED · REAL_3D_PROVIDER=EXTERNAL_BLOCKED。
-- P2 ACCEPTED_DEFER：Demo 照片（ACCEPTED_LIMITATION，image 模型本机不可用）、AVD 捕获高度约束（390dp 宽）、web responsive polish。
+- P2 ACCEPTED_DEFER：Demo 照片（ACCEPTED_LIMITATION，image 模型本机不可用）、web responsive polish。
+  （AVD 捕获高度约束已于收尾解除：Pixel5 规格 AVD pdig5 全高 390×844dp 捕获复现，19 张截图全高重拍。）
 
 ## v0.1.2 (Stage R.1-E) — Android Emulator 验收 + 移动端视觉收口（Internal / Pre-Pilot）
 
