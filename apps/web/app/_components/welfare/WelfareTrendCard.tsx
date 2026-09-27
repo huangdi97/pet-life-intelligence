@@ -6,6 +6,7 @@ import { fmtTime, type Async } from "../../../lib/hooks";
 import { mapErrorMessage, t } from "../../../lib/i18n";
 import { ProvenanceBadge, State } from "../../../components/ui";
 import { KIND_LABELS } from "./constants";
+import { eventTypeLabel } from "../../../lib/ownerLabels";
 
 interface WelfareTrendCardProps {
   events: Async<{ events: LifeEvent[] }>;
@@ -32,14 +33,14 @@ export function WelfareTrendCard({ events, welfareEvents }: WelfareTrendCardProp
               summary={`近 ${Math.min(welfareEvents.length, 10)} 条福祉相关记录 · 与自己近期范围对比`}
               evidence={welfareEvents
                 .slice(0, 4)
-                .map((e) => `${KIND_LABELS[e.event_type] ?? e.event_type} · ${fmtTime(e.occurred_at)}`)
+                .map((e) => `${eventTypeLabel(e.event_type)} · ${fmtTime(e.occurred_at)}`)
                 .join("；")}
             />
             <ul className="tl">
               {welfareEvents.slice(0, 10).map((e) => (
                 <li key={e.event_id}>
                   <div className="tl-head">
-                    <span className="tl-type">{KIND_LABELS[e.event_type] ?? e.event_type}</span>
+                    <span className="tl-type">{eventTypeLabel(e.event_type)}</span>
                     <ProvenanceBadge level={e.provenance_level} />
                     <span className="tl-time">{fmtTime(e.occurred_at)}</span>
                   </div>

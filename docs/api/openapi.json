@@ -10250,7 +10250,7 @@
           "pet-living-model"
         ],
         "summary": "Run Capture Qc",
-        "description": "Deterministic basic QC (blur/exposure/coverage/privacy scan).\n\nWithout a real AI provider this performs heuristic checks on artifact\ncounts and flags privacy/duplicate concerns; results are stored as facts,\nnever as diagnosis. A real provider can upgrade these later via adapter.",
+        "description": "Deterministic QC: coverage gate + honest heuristic quality flags.\n\nHard gate (fact, not AI): a candidate is only usable when the wizard\ncollected front + full-body + head coverage and at least 2 photos. Blur /\nexposure / occlusion / identity-consistency / privacy are honestly reported\nas heuristic_only when no real AI vision provider is configured — the\nresult is stored as a QC fact, never as a diagnosis. Failure returns clear\nper-attribute retake guidance so the wizard can prompt a re-shoot.",
         "operationId": "run_capture_qc_api_v1_pets__pet_id__visual_captures__capture_id__qc_post",
         "parameters": [
           {
@@ -10305,7 +10305,7 @@
           "pet-living-model"
         ],
         "summary": "Create Model",
-        "description": "Enqueue 3D generation for this pet. Provider status is honest:\nsandbox jobs always end FAILED with REAL_3D_PROVIDER_EXTERNAL_BLOCKED.",
+        "description": "Enqueue candidate 3D generation for this pet.\n\nUses the in-repo template-local pipeline; a real external generative\nprovider remains honestly reported as EXTERNAL_BLOCKED. Idempotent via\n`idempotency_key`: a repeated create with the same key returns the same\nmodel instead of enqueuing a second generation.",
         "operationId": "create_model_api_v1_pets__pet_id__visual_models_post",
         "parameters": [
           {
@@ -10675,6 +10675,118 @@
         }
       }
     },
+    "/api/v1/pets/{pet_id}/visual-models/{version}/retry": {
+      "post": {
+        "tags": [
+          "pet-living-model",
+          "pet-living-model"
+        ],
+        "summary": "Retry Model",
+        "description": "Re-queue a FAILED/CANCELLED candidate for a fresh generation attempt.",
+        "operationId": "retry_model_api_v1_pets__pet_id__visual_models__version__retry_post",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Retry Model Api V1 Pets  Pet Id  Visual Models  Version  Retry Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pets/{pet_id}/visual-models/{version}/job": {
+      "get": {
+        "tags": [
+          "pet-living-model",
+          "pet-living-model"
+        ],
+        "summary": "Get Model Job",
+        "description": "Return the latest generation job status/progress for a candidate.",
+        "operationId": "get_model_job_api_v1_pets__pet_id__visual_models__version__job_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Model Job Api V1 Pets  Pet Id  Visual Models  Version  Job Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{pet_id}/state-overlay": {
       "get": {
         "tags": [
@@ -10982,6 +11094,18 @@
             "type": "boolean",
             "title": "Consent Visual Model Training",
             "default": false
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
           }
         },
         "type": "object",
@@ -11023,6 +11147,12 @@
               }
             ],
             "title": "Qc Passed"
+          },
+          "coverage": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Coverage",
+            "default": {}
           },
           "privacy_scan": {
             "additionalProperties": true,
@@ -12358,6 +12488,17 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Opts"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",

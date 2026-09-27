@@ -66,7 +66,9 @@ describe("TodayPage (state rendering)", () => {
       return Promise.reject(new Error("unknown path " + path));
     });
     render(<TodayPage />);
-    await waitFor(() => expect(screen.getByText("豆豆 今天怎么样？")).toBeTruthy());
+    // R2-P: the pet stage is the first visual — name + real-data headline.
+    await waitFor(() => expect(screen.getByText("豆豆")).toBeTruthy());
+    expect(screen.getByText("今天整体稳定")).toBeTruthy();
     expect(screen.getByRole("button", { name: "喂食" })).toBeTruthy();
     expect(screen.getByText("最近")).toBeTruthy();
   });

@@ -1,33 +1,42 @@
 /**
- * LifeViewScreen — "豆豆的可视生命状态入口" (Stage R.2 §31-36).
- * Photo-first: the pet visual is the focal point; 此刻 shows only real,
- * 真实服务" status — never as a diagnostics page. Provider/model/raw keys
- * 真实服务" status — never as a diagnostics page. Provider/model/raw keys
- * stay out of the owner surface (Developer settings hosts diagnostics).
+ * LifeViewScreen — Pet Living Stage (R2-P3D §22–24 / v3.4 §46.8).
+ *
+ * Full 3D Living Stage: the shared demo pet asset is interactive here
+ * (drag rotate, pinch zoom, reset). State anchors are clickable and open a
+ * detail sheet with facts / self-comparison / source / updated-at / evidence —
+ * all real API data, never invented scores. Modes: 此刻 (complete) /
+ * 趋势 / 时间线 / 外观 (minimal but real). Provider/model/raw keys never
+ * appear on the owner surface.
  */
-import React, { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { api, type LifeEvent } from "../api";
 import { usePets } from "../context";
-import { COLORS, DEMO_ENV, RADIUS, SPACE, TYPE } from "../tokens";
-import type { StackParamList } from "../navigation";
-import { PetMedia } from "../components/media/PetMedia";
-import { OpenSection } from "../components/feedback/OpenSection";
+import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
+import { PetLivingStage } from "../components/life/PetLivingStage";
+import { LivingModeSwitcher, type LivingMode } from "../components/life/LivingModeSwitcher";
 import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../components/timeline/LifeStream";
-import { resolvePetMediaUri } from "../components/media/demoPetVisual";
+import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { eventTypeLabel, sourceLabel } from "./ui_labels";
 
-type StackNav = NativeStackNavigationProp<StackParamList>;
+interface AnchorDetail {
+  id: string;
+  label: string;
+  value: string;
+  source: string;
+  updatedAt: string;
+  evidence: string;
+  compare: string;
+}
 
 export function LifeViewScreen() {
   const { pets, petId } = usePets();
-  const navigation = useNavigation<StackNav>();
   const [today, setToday] = useState<{ events: LifeEvent[] } | null>(null);
+  const [mode, setMode] = useState<LivingMode>("now");
   const [error, setError] = useState(false);
+  const [detail, setDetail] = useState<AnchorDetail | null>(null);
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
@@ -46,9 +55,46 @@ export function LifeViewScreen() {
       alive = false;
     };
   }, [pet?.id]);
-
-  const petEvents = (today?.events ?? []).filter((e) => e.event_type !== "today.viewed");
+  const petEvents = useMemo(() => (today?.events ?? []).filter((e) => e.event_type !== "today.viewed"), [today]);
   const lastEvent = petEvents[0] ?? null;
+
+  const anchors = useMemo(() => {
+    const rows = petEvents.map((e) => e.event_type);
+    const c = (t: string) => rows.filter((x) => x === t).length;
+    const duration = (t: string) =>
+      petEvents
+        .filter((e) => e.event_type === t)
+        .reduce((a, e) => a + (Number((e.payload as Record<string, unknown>)?.duration_minutes) || 0), 0);
+    const matching = (t: string) => petEvents.filter((e) => e.event_type === t);
+    const mk = (id: string, label: string, value: string, icon: keyof typeof Ionicons.glyphMap, type: string) => ({
+      id,
+      label,
+      value,
+      icon,
+      onPress: () => {
+        const evs = matching(type);
+        const src = evs.length ? Array.from(new Set(evs.map((e) => sourceLabel(e.source_type)))).join(" + ") : "—";
+        const at = evs[0]
+          ? new Date(evs[0].occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })
+          : "—";
+        const evi = evs[0] ? `${eventTypeLabel(evs[0].event_type)} · ${at}` : "暂无记录";
+        setDetail({ id, label, value, source: src, updatedAt: at, evidence: evi, compare: "暂无（数据积累后显示）" });
+      },
+    });
+    const list = [
+      mk("drink", "饮水", c("daily.drink") ? `${c("daily.drink")} 次` : "", "water-outline", "daily.drink"),
+      mk("meal", "进食", c("daily.meal") ? `${c("daily.meal")} 次` : "", "restaurant-outline", "daily.meal"),
+      mk(
+        "activity",
+        "活动",
+        duration("daily.walk") + duration("daily.play") ? `${duration("daily.walk") + duration("daily.play")} 分钟` : "",
+        "walk-outline",
+        "daily.walk",
+      ),
+      mk("sleep", "睡眠", c("daily.sleep") ? `${c("daily.sleep")} 次` : "", "moon-outline", "daily.sleep"),
+    ];
+    return list.filter((a) => a.value !== "");
+  }, [petEvents]);
 
   const streamRows: LifeStreamRow[] = petEvents.slice(0, 4).map((e) => ({
     id: e.event_id,
@@ -62,66 +108,113 @@ export function LifeViewScreen() {
     ? [{ id: "now", label: "此刻", isToday: true, rows: streamRows }]
     : [];
 
+  const nowLine = error
+    ? "暂时连接不上，稍后自动恢复。"
+    : !pet
+      ? ""
+      : petEvents.length === 0
+        ? "今天还没有记录，豆豆安安静静的。"
+        : lastEvent
+          ? `最近一次记录：${eventTypeLabel(lastEvent.event_type)} · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+          : "";
+
   return (
     <SafeAreaView style={styles.page} edges={["top"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.pageTitle}>生命视图</Text>
-        <Text style={styles.pageSub}>{pet ? `${pet.name} · 此刻` : "宠物 · 此刻"}</Text>
+        <PetLivingStage
+          pet={pet}
+          spec={resolvePetStage(pet)}
+          variant="life"
+          anchors={anchors}
+          headline={mode === "now" ? "豆豆 · 此刻" : undefined}
+          caption={mode === "now" ? nowLine : undefined}
+          note="演示 3D 形象（开发环境）· 未来连接真实服务后，将用豆豆的照片生成"
+          demo={DEMO_ENV}
+          interactive
+        />
 
-        <View style={styles.stage}>
-          <PetMedia pet={pet} uri={resolvePetMediaUri(pet)} variant="full-bleed" accessibilityLabel={`${pet?.name ?? "宠物"}当前的形象`} />
-          <View style={styles.stageOverlay}>
-            <Text style={styles.stageName}>{pet?.name ?? "宠物"}</Text>
-            <Text style={styles.stageNow}>
-              {error ? "暂时连接不上" : lastEvent ? `最近一次记录：${eventTypeLabel(lastEvent.event_type)}` : "今天还没有记录"}
+        <LivingModeSwitcher value={mode} onChange={setMode} />
+
+        <View style={styles.panel} accessibilityLiveRegion="polite">
+          {mode === "now" ? (
+            <Text style={styles.panelText}>
+              {anchors.length
+                ? "上面的数值来自今天真实的记录。点一下数值，可以看到事实、来源与更新时间。拖动宠物可以旋转，双指缩放。"
+                : "今天还没有足够记录，记下第一件事后，这里会围绕豆豆展开。"}
             </Text>
-          </View>
-          {DEMO_ENV ? (
-            <View style={styles.demoChip}>
-              <Text style={styles.demoChipText}>示例数据</Text>
+          ) : null}
+
+          {mode === "trend" ? (
+            anchors.length ? (
+              <View style={styles.trendRow}>
+                {anchors.map((a) => (
+                  <View key={a.id} style={styles.trendCell}>
+                    <Ionicons name={a.icon} size={16} color={COLORS.brandPrimaryDeep} />
+                    <Text style={styles.trendLabel}>{a.label}</Text>
+                    <Text style={styles.trendValue}>{a.value}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.panelText}>数据积累后，这里会展示它自己的趋势。</Text>
+            )
+          ) : null}
+
+          {mode === "timeline" ? (
+            streamDays.length ? (
+              <LifeStream days={streamDays} />
+            ) : (
+              <Text style={styles.panelText}>
+                {error ? "暂时连接不上。" : "从第一次喂食、散步或健康记录开始，生命轨迹会慢慢成形。"}
+              </Text>
+            )
+          ) : null}
+
+          {mode === "look" ? (
+            <View style={styles.lookRow}>
+              <Ionicons name="cube-outline" size={18} color={COLORS.textTertiary} />
+              <Text style={styles.panelText}>
+                现在显示的是演示 3D 形象（开发环境），只来自演示数据。未来连接真实服务后，会用豆豆的真实照片生成，并经过你确认后才会显示。外观不会替代真实照片与记录。
+              </Text>
             </View>
           ) : null}
         </View>
-
-        <OpenSection title="生命轨迹">
-          {streamDays.length ? (
-            <LifeStream days={streamDays} />
-          ) : (
-            <Text style={styles.emptyText}>
-              {error ? "暂时连接不上，稍后自动恢复。" : "从第一次喂食、散步或健康记录开始，轨迹会慢慢成形。"}
-            </Text>
-          )}
-        </OpenSection>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3D 形象</Text>
-          <View style={styles.card3d}>
-            <View style={styles.card3dIcon}>
-              <Ionicons name="cube-outline" size={20} color={COLORS.textTertiary} />
-            </View>
-            <View style={styles.card3dText}>
-              <Text style={styles.card3dTitle}>尚未创建</Text>
-              <Text style={styles.card3dSub}>等待连接真实 3D 服务后生成。当前以照片与记录呈现。</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.actionRow}>
-          <PressableGhost label="回到今日" onPress={() => navigation.navigate("Tabs")} />
-        </View>
       </ScrollView>
+
+      <Modal visible={detail !== null} transparent animationType="fade" onRequestClose={() => setDetail(null)}>
+        <Pressable style={styles.scrim} onPress={() => setDetail(null)}>
+          <Pressable style={styles.sheet} accessibilityRole="none" onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheetHead}>
+              <Text style={styles.sheetTitle}>{detail?.label ?? ""}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="关闭" onPress={() => setDetail(null)} style={styles.sheetClose}>
+                <Ionicons name="close" size={20} color={COLORS.textSecondary} />
+              </Pressable>
+            </View>
+            <Text style={styles.sheetValue}>{detail?.value}</Text>
+            <View style={styles.row}>
+              <Text style={styles.rowKey}>事实</Text>
+              <Text style={styles.rowVal}>{detail?.value}</Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.rowKey}>与自己相比</Text>
+              <Text style={styles.rowVal}>{detail?.compare}</Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.rowKey}>来源</Text>
+              <Text style={styles.rowVal}>{detail?.source}</Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.rowKey}>更新时间</Text>
+              <Text style={styles.rowVal}>{detail?.updatedAt}</Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.rowKey}>证据</Text>
+              <Text style={styles.rowVal}>{detail?.evidence}</Text>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
-  );
-}
-
-
-
-
-function PressableGhost({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={styles.ghost}>
-      <Text style={styles.ghostText}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -129,38 +222,34 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.canvas },
   flex: { flex: 1 },
   content: { paddingBottom: SPACE.s8 },
-  pageTitle: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3 },
-  pageSub: { fontSize: TYPE.sm, color: COLORS.textTertiary, paddingHorizontal: SPACE.s4, marginTop: 2 },
-  stage: {
-    marginHorizontal: SPACE.s4,
-    marginTop: SPACE.s4,
-    borderRadius: RADIUS.hero,
-    overflow: "hidden",
-    backgroundColor: COLORS.surfaceDark,
-  },
-  stageOverlay: { position: "absolute", left: SPACE.s4, bottom: SPACE.s4, right: SPACE.s4 },
-  stageName: { fontSize: TYPE.heroName, fontWeight: "700", color: COLORS.textInverse },
-  stageNow: { fontSize: TYPE.sm, color: COLORS.textOnDark, opacity: 0.92, marginTop: 2 },
-  demoChip: { position: "absolute", top: 14, right: 14, backgroundColor: COLORS.surfaceOverlay, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
-  demoChipText: { fontSize: TYPE.caption, color: COLORS.textSecondary, fontWeight: "600" },
-  emptyText: { fontSize: TYPE.body, color: COLORS.textTertiary, lineHeight: 22 },
-  section: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
-  sectionTitle: { fontSize: TYPE.section, fontWeight: "600", color: COLORS.textPrimary, marginBottom: SPACE.s2 },
-  card3d: {
+  panel: { marginHorizontal: SPACE.s4, marginTop: SPACE.s4 },
+  panelText: { fontSize: TYPE.body, color: COLORS.textSecondary, lineHeight: 22 },
+  trendRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s3 },
+  trendCell: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACE.s3,
+    gap: 6,
     backgroundColor: COLORS.surfaceRaised,
-    borderRadius: RADIUS.xl,
-    borderWidth: 1,
-    borderColor: COLORS.dividerSubtle,
-    padding: SPACE.s4,
+    borderRadius: 14,
+    paddingHorizontal: SPACE.s3,
+    paddingVertical: SPACE.s2,
   },
-  card3dIcon: { width: 36, height: 36, borderRadius: RADIUS.pill, backgroundColor: COLORS.brandSoft, alignItems: "center", justifyContent: "center" },
-  card3dText: { flex: 1 },
-  card3dTitle: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary },
-  card3dSub: { fontSize: TYPE.meta, color: COLORS.textTertiary, marginTop: 2 },
-  actionRow: { flexDirection: "row", justifyContent: "center", padding: SPACE.s5 },
-  ghost: { paddingHorizontal: SPACE.s5, paddingVertical: 10, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.dividerStrong },
-  ghostText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
+  trendLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary },
+  trendValue: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary },
+  lookRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2 },
+  scrim: { flex: 1, backgroundColor: "rgba(16,13,11,0.45)", justifyContent: "flex-end" },
+  sheet: {
+    backgroundColor: COLORS.surfaceRaised,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: SPACE.s5,
+    paddingBottom: SPACE.s8,
+  },
+  sheetHead: { flexDirection: "row", alignItems: "center", marginBottom: SPACE.s2 },
+  sheetTitle: { flex: 1, fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
+  sheetClose: { padding: 4 },
+  sheetValue: { fontSize: TYPE.metric, fontWeight: "700", color: COLORS.brandPrimaryDeep, marginBottom: SPACE.s3 },
+  row: { flexDirection: "row", paddingVertical: 9, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.dividerSubtle },
+  rowKey: { width: 92, fontSize: TYPE.body, color: COLORS.textTertiary },
+  rowVal: { flex: 1, fontSize: TYPE.body, color: COLORS.textPrimary, lineHeight: 20 },
 });

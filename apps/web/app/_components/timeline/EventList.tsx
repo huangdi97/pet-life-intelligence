@@ -3,7 +3,8 @@
 import Link from "next/link";
 import type { LifeEvent } from "@pli/api-client";
 import { Icon, type WebIconName } from "../../../components/icons";
-import { provenanceLabel } from "../../../lib/provenance-zh";
+import { provenanceLabelForSource } from "../../../lib/provenance-zh";
+import { eventTypeLabel } from "../../../lib/ownerLabels";
 import { TYPE_LABELS } from "./constants";
 
 interface EventListProps {
@@ -113,7 +114,7 @@ export function EventList({ events }: EventListProps) {
               {relative && <span className="ls-day-relative">{relative}</span>}
             </div>
             {rows.map((e) => {
-              const label = TYPE_LABELS[e.event_type] ?? e.event_type;
+              const label = eventTypeLabel(e.event_type);
               const time = (e.occurred_at ?? "").slice(11, 16);
               const summary = payloadSummary(e.payload);
               return (
@@ -139,7 +140,7 @@ export function EventList({ events }: EventListProps) {
                     {summary && <p className="ls-summary">{summary}</p>}
                     <div className="ls-meta">
                       <span className="v4-chip v4-chip--brand">
-                        {provenanceLabel(e.source_type, e.provenance_level)}
+{provenanceLabelForSource(e.source_type, e.provenance_level)}
                       </span>
                       {e.actor_name && <span>{e.actor_name}</span>}
                       {(e.artifact_ids ?? []).length > 0 && (

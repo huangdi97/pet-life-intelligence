@@ -1,8 +1,10 @@
 /**
- * PetScreen — Pet World / Pet Identity page (Stage R.2 §28-30).
- * One large pet visual + identity + life summary + Life View entry +
- * per-domain meaning (what each domain means for THIS pet right now),
- * sourced from real API data. No feature grid, no letter-avatar primary.
+ * PetScreen — Pet World (R2-P §7.2 / v3.4 §46.7).
+ *
+ * Identity stage first (2.5D 豆豆 + name + age/breed/sex), then Life Pulse
+ * (现在 / 最近变化 / 记忆), then per-domain meaning — what each domain means
+ * for THIS pet right now (narrative first, navigation second). Never a profile
+ * card list, never a feature grid.
  */
 import React, { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -12,13 +14,14 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { api, type BehaviorEventRow, type HealthEventRow, type LifeEvent, type TrainingGoalRow, type WelfareEvidence } from "../api";
 import { usePets } from "../context";
-import { petAgeText, sexLabel, speciesLabel } from "../format";
-import { COLORS, DEMO_ENV, RADIUS, SPACE, TYPE } from "../tokens";
+import { petAgeText, sexLabel } from "../format";
+import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
 import type { StackParamList } from "../navigation";
-import { PetHero } from "../components/pet/PetHero";
+import { PetLivingStage } from "../components/life/PetLivingStage";
+import { ChangeNarrative } from "../components/life/ChangeNarrative";
 import { OpenSection } from "../components/feedback/OpenSection";
 import { Skeleton } from "../components/feedback/Feedback";
-import { resolvePetMediaUri } from "../components/media/demoPetVisual";
+import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { eventTypeLabel } from "./ui_labels";
 
 type StackNav = NativeStackNavigationProp<StackParamList>;
@@ -26,7 +29,6 @@ type StackNav = NativeStackNavigationProp<StackParamList>;
 interface DomainRow {
   key: string;
   icon: keyof typeof Ionicons.glyphMap;
-  label: string;
   meaning: string;
   route: keyof StackParamList;
 }
@@ -35,7 +37,8 @@ export function PetScreen() {
   const { pets, petId } = usePets();
   const navigation = useNavigation<StackNav>();
   const [today, setToday] = useState<{ events: LifeEvent[]; event_counts: Record<string, number> } | null>(null);
-  const [healthCount, setHealthCount] = useState<number | null>(null);
+  const [hint, setHint] = useState<{ hints: string[]; rule: string } | null>(null);
+  const [health, setHealth] = useState<HealthEventRow[] | null>(null);
   const [lastBehavior, setLastBehavior] = useState<BehaviorEventRow | null>(null);
   const [goal, setGoal] = useState<TrainingGoalRow | null>(null);
   const [welfare, setWelfare] = useState<WelfareEvidence | null>(null);
@@ -49,14 +52,16 @@ export function PetScreen() {
     setLoading(true);
     Promise.allSettled([
       api.get<{ events: LifeEvent[]; event_counts: Record<string, number> }>(`/pets/${pet.id}/today`),
+      api.get<{ hints: string[]; rule: string }>(`/pets/${pet.id}/abnormal-day-hint`),
       api.get<HealthEventRow[]>(`/pets/${pet.id}/health-events`),
       api.get<BehaviorEventRow[]>(`/pets/${pet.id}/behavior-events`),
       api.get<TrainingGoalRow[]>(`/pets/${pet.id}/training-goals`),
       api.get<WelfareEvidence>(`/pets/${pet.id}/welfare-evidence`),
-    ]).then(([t, he, be, tg, wv]) => {
+    ]).then(([t, h, he, be, tg, wv]) => {
       if (!alive) return;
       if (t.status === "fulfilled") setToday(t.value);
-      if (he.status === "fulfilled") setHealthCount(he.value.length);
+      if (h.status === "fulfilled") setHint(h.value);
+      if (he.status === "fulfilled") setHealth(he.value);
       if (be.status === "fulfilled") setLastBehavior(be.value[0] ?? null);
       if (tg.status === "fulfilled") setGoal(tg.value[0] ?? null);
       if (wv.status === "fulfilled") setWelfare(wv.value);
@@ -67,39 +72,57 @@ export function PetScreen() {
     };
   }, [pet?.id]);
 
-  const todayCount = today ? Object.values(today.event_counts).reduce((a, b) => a + b, 0) : null;
-  const lastActivity = today?.events.find((e) => e.event_type !== "today.viewed") ?? null;
+  const todayEvents = (today?.events ?? []).filter((e) => e.event_type !== "today.viewed");
+  const lastActivity = todayEvents[0] ?? null;
+  const abnormal = hint?.hints.find((x) => !x.includes("无明显异常"));
+  const stable = hint !== null && !abnormal;
 
+  const healthCount = health?.length ?? null;
   const rows = useMemo<DomainRow[]>(() => {
-    const healthMeaning = healthCount === null ? "暂无记录" : `最近 7 天 · ${healthCount} 条记录`;
-    const behaviorMeaning = lastBehavior ? `最近一次：${lastBehavior.behavior.slice(0, 22)}${lastBehavior.behavior.length > 22 ? "…" : ""}` : "还没有行为观察";
-    const trainingMeaning = goal ? `当前目标：${goal.title}` : "还没有训练目标";
-    const welfareMeaning = welfare && Object.keys(welfare.observation_counts ?? {}).length
-      ? `近期 ${Object.values(welfare.observation_counts).reduce((a, b) => a + b, 0)} 条观察`
-      : "最近没有新增观察";
+    const healthMeaning =
+      healthCount === null || healthCount === 0
+        ? "最近还没有健康记录"
+        : `最近 ${healthCount} 条健康记录（${new Date().getMonth() + 1} 月内）`;
+    const behaviorMeaning = lastBehavior
+      ? `最近一次：${lastBehavior.behavior.slice(0, 22)}${lastBehavior.behavior.length > 22 ? "…" : ""}`
+      : "还没有行为观察";
+    const trainingMeaning = goal ? `正在学习：${goal.title}` : "还没有训练目标";
+    const welfareMeaning =
+      welfare && Object.keys(welfare.observation_counts ?? {}).length
+        ? `近期观察 ${Object.values(welfare.observation_counts).reduce((a, b) => a + b, 0)} 条`
+        : "最近没有新增观察";
     return [
-      { key: "health", icon: "medkit-outline", label: "健康", meaning: healthMeaning, route: "Health" },
-      { key: "behavior", icon: "paw-outline", label: "行为", meaning: behaviorMeaning, route: "Behavior" },
-      { key: "training", icon: "ribbon-outline", label: "训练", meaning: trainingMeaning, route: "Training" },
-      { key: "welfare", icon: "home-outline", label: "福利", meaning: welfareMeaning, route: "Welfare" },
-      { key: "social", icon: "people-outline", label: "社交", meaning: "关系与最近互动", route: "Social" },
+      { key: "health", icon: "medkit-outline", meaning: healthMeaning, route: "Health" },
+      { key: "behavior", icon: "paw-outline", meaning: behaviorMeaning, route: "Behavior" },
+      { key: "training", icon: "ribbon-outline", meaning: trainingMeaning, route: "Training" },
+      { key: "welfare", icon: "home-outline", meaning: welfareMeaning, route: "Welfare" },
+      { key: "social", icon: "people-outline", meaning: "最近互动：请查看社交页", route: "Social" },
     ];
   }, [healthCount, lastBehavior, goal, welfare]);
 
+  /** Memory preview — the most recent meaningful event (real event data). */
+  const memoryText = lastActivity
+    ? `${eventTypeLabel(lastActivity.event_type)} · ${new Date(lastActivity.occurred_at).toLocaleDateString("zh-CN", {
+        month: "numeric",
+        day: "numeric",
+      })} ${new Date(lastActivity.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+    : "豆豆的生活轨迹会在这里留下重要的回忆";
+
   const identityLine = pet
-    ? [`${petAgeText(pet.birth_date) ?? "年龄未知"}`, pet.breed, sexLabel(pet.sex)].filter(Boolean).join(" · ")
+    ? [`${petAgeText(pet.birth_date) ?? ""}`, pet.breed, sexLabel(pet.sex)].filter(Boolean).join(" · ")
     : "";
 
   return (
     <SafeAreaView style={styles.page} edges={["top"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <PetHero
+        <PetLivingStage
           pet={pet}
-          mediaUri={resolvePetMediaUri(pet)}
-          headline={identityLine || "宠物档案"}
-          identity={pet ? `${speciesLabel(pet.species)} · ${pet.name}` : undefined}
+          spec={resolvePetStage(pet)}
+          variant="pet"
+          headline={lastActivity ? `最近记录了${eventTypeLabel(lastActivity.event_type)}` : "今天还没有记录"}
+          caption={identityLine || undefined}
           demo={DEMO_ENV}
-          height={300}
+          onPressPet={pet ? () => navigation.navigate("LifeView") : undefined}
         />
 
         {loading ? (
@@ -108,48 +131,37 @@ export function PetScreen() {
           </View>
         ) : (
           <>
-            <OpenSection title="生活摘要">
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>最近一次记录</Text>
-                <Text style={styles.summaryValue}>
-                  {lastActivity ? `${eventTypeLabel(lastActivity.event_type)} · ${new Date(lastActivity.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}` : "今天还没有活动记录"}
+            <OpenSection title="豆豆最近">
+              <View style={styles.pulseRow}>
+                <Ionicons name="time-outline" size={16} color={COLORS.brandPrimaryDeep} />
+                <Text style={styles.pulseText}>
+                  {lastActivity ? `最近一次记录：${eventTypeLabel(lastActivity.event_type)}` : "还没有活动记录"}
                 </Text>
               </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>今天事件</Text>
-                <Text style={styles.summaryValue}>{todayCount === null ? "—" : `${todayCount} 条`}</Text>
+              {abnormal ? (
+                <ChangeNarrative summary={abnormal} evidenceHint={hint?.rule} />
+              ) : stable ? (
+                <View style={styles.pulseRow}>
+                  <Ionicons name="leaf-outline" size={16} color={COLORS.success} />
+                  <Text style={styles.pulseText}>与它自己相比，最近没有明显变化。</Text>
+                </View>
+              ) : null}
+              <View style={[styles.pulseRow, styles.pulseDivider]}>
+                <Ionicons name="bookmark-outline" size={16} color={COLORS.brandSecondary} />
+                <Text style={styles.pulseText}>{memoryText}</Text>
               </View>
             </OpenSection>
 
-            <Pressable
-              accessibilityRole="button"
-              style={styles.lifeViewEntry}
-              onPress={() => navigation.navigate("LifeView")}
-            >
-              <View style={styles.lifeViewGlyph}>
-                <Ionicons name="planet-outline" size={22} color={COLORS.textOnDark} />
-              </View>
-              <View style={styles.lifeViewText}>
-                <Text style={styles.lifeViewTitle}>生命视图</Text>
-                <Text style={styles.lifeViewSub}>豆豆 · 此刻与长期生活轨迹</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={COLORS.textTertiary} />
-            </Pressable>
-
-            <OpenSection title="它最近怎么样">
+            <OpenSection title="它的生活" caption="点进去看这一部分">
               {rows.map((r, i) => (
                 <Pressable
                   key={r.key}
                   accessibilityRole="button"
-                  accessibilityLabel={`${r.label}，${r.meaning}`}
+                  accessibilityLabel={`${r.meaning}，点击查看`}
                   onPress={() => navigation.navigate(r.route)}
                   style={[styles.domainRow, i > 0 && styles.domainDivider]}
                 >
-                  <View style={styles.domainIcon}>
-                    <Ionicons name={r.icon} size={18} color={COLORS.brandPrimaryDeep} />
-                  </View>
                   <View style={styles.domainText}>
-                    <Text style={styles.domainLabel}>{r.label}</Text>
                     <Text style={styles.domainMeaning}>{r.meaning}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
@@ -157,17 +169,21 @@ export function PetScreen() {
               ))}
             </OpenSection>
 
-            <OpenSection title="陪伴与在家">
-              <Pressable accessibilityRole="button" style={styles.entryRow} onPress={() => navigation.navigate("Companion")}>
-                <Ionicons name="heart-outline" size={18} color={COLORS.brandSecondary} />
-                <Text style={styles.entryText}>陪伴模式 · 连接设备后可在不打扰的前提下观察互动</Text>
-                <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-              </Pressable>
-              <Pressable accessibilityRole="button" style={[styles.entryRow, styles.entryDivider]} onPress={() => navigation.navigate("Monitoring")}>
-                <Ionicons name="videocam-outline" size={18} color={COLORS.brandSecondary} />
-                <Text style={styles.entryText}>在家 · 设备与当前环境</Text>
-                <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-              </Pressable>
+            <OpenSection title="生命与陪伴">
+              <View style={styles.entryRow}>
+                <Ionicons name="planet-outline" size={18} color={COLORS.brandPrimaryDeep} />
+                <Text style={styles.entryText}>生命视图 · 豆豆的此刻与生活轨迹</Text>
+                <Pressable accessibilityRole="button" accessibilityLabel="打开生命视图" onPress={() => navigation.navigate("LifeView")}>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+                </Pressable>
+              </View>
+              <View style={styles.entryRow}>
+                <Ionicons name="sparkles-outline" size={18} color={COLORS.brandPrimaryDeep} />
+                <Text style={styles.entryText}>3D 形象 · 为豆豆创建/查看干净形象</Text>
+                <Pressable accessibilityRole="button" accessibilityLabel="创建 3D 形象" onPress={() => navigation.navigate("TwinVersion")}>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+                </Pressable>
+              </View>
             </OpenSection>
           </>
         )}
@@ -181,30 +197,13 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingBottom: SPACE.s8 },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
-  summaryRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6 },
-  summaryLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary },
-  summaryValue: { fontSize: TYPE.meta, color: COLORS.textPrimary, flex: 1, textAlign: "right" },
-  lifeViewEntry: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACE.s3,
-    backgroundColor: COLORS.surfaceDark,
-    borderRadius: RADIUS.xl,
-    padding: SPACE.s4,
-    marginHorizontal: SPACE.s4,
-    marginTop: SPACE.s5,
-  },
-  lifeViewGlyph: { width: 40, height: 40, borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceDarkRaised, alignItems: "center", justifyContent: "center" },
-  lifeViewText: { flex: 1 },
-  lifeViewTitle: { fontSize: TYPE.bodyStrong, fontWeight: "700", color: COLORS.textOnDark },
-  lifeViewSub: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: 2 },
-  domainRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: 12 },
+  pulseRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingVertical: 8 },
+  pulseDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle, marginTop: 4 },
+  pulseText: { fontSize: TYPE.body, color: COLORS.textPrimary, flex: 1, lineHeight: 20 },
+  domainRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACE.s3, paddingVertical: 12 },
   domainDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
-  domainIcon: { width: 32, height: 32, borderRadius: RADIUS.pill, backgroundColor: COLORS.brandSoftGreen, alignItems: "center", justifyContent: "center" },
   domainText: { flex: 1 },
-  domainLabel: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary },
-  domainMeaning: { fontSize: TYPE.meta, color: COLORS.textTertiary, marginTop: 1 },
+  domainMeaning: { fontSize: TYPE.body, color: COLORS.textSecondary, lineHeight: 21 },
   entryRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingVertical: 10 },
-  entryDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
   entryText: { fontSize: TYPE.sm, color: COLORS.textSecondary, flex: 1 },
 });

@@ -1,6 +1,6 @@
 /** Event item component + canonical value labels (colocated with ui.tsx).
  *  zh-CN copy everywhere; labels map canonical backend values, never invented
- *  ones. */
+ *  ones. Unknown enums fall back to safe zh labels — never raw values (C4). */
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { type LifeEvent } from "../api";
@@ -23,8 +23,8 @@ export function EventItem({ event }: { event: LifeEvent }) {
   );
 }
 
-/** zh-CN labels for canonical life-event types. Unknown types fall back to
- *  the raw value — never invented labels. */
+/** zh-CN labels for canonical life-event types. Unknown types get a safe
+ *  localized fallback instead of the raw key (OWNER_INTERNAL_TERMS=0). */
 export function eventTypeLabel(eventType: string): string {
   const map: Record<string, string> = {
     "daily.meal": "喂食",
@@ -47,7 +47,7 @@ export function eventTypeLabel(eventType: string): string {
     "social.friend_requested": "好友申请",
     "social.blocked": "已屏蔽",
   };
-  return map[eventType] ?? eventType;
+  return map[eventType] ?? "其他记录";
 }
 
 /** zh-CN labels for canonical source types (domain enums.SourceType). */
@@ -61,7 +61,7 @@ export function sourceLabel(sourceType: string): string {
     LAB_CONFIRMED: "化验确认",
     SYSTEM_CALCULATED: "系统计算",
   };
-  return map[sourceType] ?? sourceType;
+  return map[sourceType] ?? "未知来源";
 }
 
 /** Timeline filter chips — 全部 + the daily.* types, as repeated event_type=

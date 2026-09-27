@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { fmtTime, type Async } from "../../../lib/hooks";
 import { mapErrorMessage } from "../../../lib/i18n";
-import { provenanceLabel } from "../../../lib/provenance-zh";
+import { provenanceLabelForSource } from "../../../lib/provenance-zh";
 import { State } from "../../../components/ui";
 import { Icon } from "../../../components/icons";
 import { TYPE_LABELS } from "../timeline/constants";
+import { eventTypeLabel } from "../../../lib/ownerLabels";
 import type { TodayData } from "./constants";
 
 interface RecentCardProps {
@@ -32,7 +33,7 @@ export function RecentCard({ hasPet, today }: RecentCardProps) {
           onRetry={today.reload}
           empty="今天还没有记录。"
         >
-          {today.data?.events.slice(0, 4).map((e) => (
+          {(today.data?.events ?? []).filter((e) => e.event_type !== "today.viewed").slice(0, 4).map((e) => (
             <div key={e.event_id} className="ls-item" style={{ gridTemplateColumns: "auto 1fr" }}>
               <span className="ls-time">{fmtTime(e.occurred_at).slice(11, 16)}</span>
               <div className="ls-body">
@@ -40,10 +41,10 @@ export function RecentCard({ hasPet, today }: RecentCardProps) {
                   <span className="ls-title-icon">
                     <Icon name="clock" size={14} />
                   </span>
-                  {TYPE_LABELS[e.event_type] ?? e.event_type}
+                  {eventTypeLabel(e.event_type)}
                 </div>
                 <div className="ls-meta">
-                  <span className="v4-chip v4-chip--brand">{provenanceLabel(e.source_type, e.provenance_level)}</span>
+                  <span className="v4-chip v4-chip--brand">{provenanceLabelForSource(e.source_type, e.provenance_level)}</span>
                   {(e.artifact_ids ?? []).length > 0 && (
                     <span className="ls-media">
                       <Icon name="camera" size={13} />

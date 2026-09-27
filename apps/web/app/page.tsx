@@ -7,8 +7,8 @@ import { QuickLogSheet } from "@pli/ui-kit";
 import { useAsync, useCurrentPet } from "../lib/hooks";
 import { saveDraft } from "../lib/drafts";
 import { mapErrorMessage } from "../lib/i18n";
-import { PetHero } from "../components/pet-hero";
 import { Icon } from "../components/icons";
+import { PetLivingStage, type StageAnchor } from "../components/pet-living-stage";
 import { ActionCard } from "./_components/today/ActionCard";
 import { AttentionCard } from "./_components/today/AttentionCard";
 import { NowCard } from "./_components/today/NowCard";
@@ -16,9 +16,8 @@ import { RecentCard } from "./_components/today/RecentCard";
 import { TasksCard } from "./_components/today/TasksCard";
 import { QUICK_TYPES, SHEET_TYPES, type TodayData } from "./_components/today/constants";
 
-/** OWN-001 Today — Living Canvas（Stage R.2）：
- *  Pet → Now → Attention/Calm → Action → Recent Memory。
- *  E2E 契约保留：还没有宠物 / 快速记录按钮（喂食等）→ .alert.info 已记录。 */
+/** OWN-001 Today — Pet Living Stage（R2-P §7.1）：宠物是首屏视觉中心，
+ *  此刻/变化/注意/动作/记忆依次展开。E2E 契约保留：快速记录 → .alert.info。 */
 export default function TodayPage() {
   const { petId } = useCurrentPet();
   const [pets, setPets] = useState<Pet[] | null>(null);
@@ -73,8 +72,26 @@ export default function TodayPage() {
   const current = pets.find((p) => p.id === petId) ?? pets[0];
   const hasPet = !!petId && pets.some((p) => p.id === petId);
   const counts = today.data?.event_counts ?? {};
-  const lastEvent = today.data?.events?.[0];
+  const lastEvent = today.data?.events?.find((e) => e.event_type !== "today.viewed") ?? today.data?.events?.[0];
+  const activityMinutes = (today.data?.events ?? []).reduce((sum, e) => {
+    const mins = Number((e.payload as Record<string, unknown> | undefined)?.duration_minutes) || 0;
+    return sum + mins;
+  }, 0);
   const hints = (hint.data?.hints ?? []).filter((h) => Object.keys(h).length > 0);
+  const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
+  const hasAttention = hints.length > 0;
+  const anchorsAll: StageAnchor[] = [
+    { id: "meal", label: "进食", value: `${counts["daily.meal"] ?? 0} 次`, icon: "food" },
+    { id: "drink", label: "饮水", value: `${counts["daily.drink"] ?? 0} 次`, icon: "water" },
+    { id: "activity", label: "活动", value: `${activityMinutes} 分钟`, icon: "walk" },
+    { id: "sleep", label: "睡眠", value: `${counts["daily.sleep"] ?? 0} 次`, icon: "sleep" },
+  ];
+  const anchors = anchorsAll.filter((a) => (a.id === "drink" ? (counts["daily.drink"] ?? 0) > 0 : true));
+  const headline =
+    totalCount === 0 ? "今天还没有新的记录" : hasAttention ? "今天有值得留意的变化" : "今天整体稳定";
+  const recent = lastEvent
+    ? `最近记录 · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+    : `今天 · ${new Date().toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" })}`;
 
   async function quickLog(q: (typeof QUICK_TYPES)[number]) {
     const target = current.id;
@@ -97,22 +114,24 @@ export default function TodayPage() {
     setSheetOpen(false);
   }
 
-  const identity = [current.breed || current.species, today.data?.date ?? ""].filter(Boolean).join(" · ");
+  const identity = [current.breed || current.species].filter(Boolean).join(" · ");
 
   return (
     <main className="v4-main">
       {flash && <div className="alert info">{flash}</div>}
 
-      <PetHero
+      <PetLivingStage
         name={current.name}
         petId={current.id}
-        title={
-          <h1 className="v4-hero-title">
-            {current.name} 今天怎么样？
-          </h1>
-        }
-        line={identity || `${current.species} · ${today.data?.date ?? ""}`}
+        species={current.species}
+        breed={current.breed}
+        variant="today"
+        anchors={anchors}
+        headline={headline}
+        caption={`${identity} · ${recent}`}
+        demo={true}
       />
+
       <div className="v4-grid">
         <div>
           <NowCard lastEvent={lastEvent} counts={counts} />

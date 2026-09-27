@@ -1,10 +1,11 @@
 """Pet Living Model (PLM) — model generation lifecycle, verification,
 activation, retirement and render-manifest routes."""
 
+import asyncio
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 from sqlalchemy import desc, select
 
 from app.adapters.visual_provider import get_provider
@@ -17,24 +18,81 @@ from app.api.routes.visual_helpers import (
     _require_read,
 )
 from app.api.routes.visual_schemas import ManifestOut, ModelCreate, VerifyIn
+from app.core.db import get_session_factory
 from app.core.errors import NotFound, ValidationFailed
 from app.domain import enums
-from app.models import Pet, PetVisualCapture, PetVisualModel, PetVisualRenderManifest
+from app.models import Pet, PetVisualCapture, PetVisualJob, PetVisualModel, PetVisualRenderManifest
 from app.services.eventlog import create_life_event, write_audit
+from app.services.visual_pipeline import run_local_generation
 
 router = APIRouter(tags=["pet-living-model"])
 
 
+def _generate_background(model_id: str) -> None:
+    """Run template-local generation in a fresh session (background task).
+
+    The request session is closed after the response, so the worker opens its
+    own session and loads the model/job/pet/capture by id. This keeps the
+    QUEUED -> GENERATING -> READY lifecycle observable via the job route.
+    """
+
+    async def _worker() -> None:
+        factory = get_session_factory()
+        async with factory() as db:
+            model = await db.get(PetVisualModel, uuid.UUID(model_id))
+            if model is None:
+                return
+            job = (
+                await db.execute(
+                    select(PetVisualJob)
+                    .where(PetVisualJob.model_id == model.id)
+                    .order_by(desc(PetVisualJob.created_at))
+                    .limit(1)
+                )
+            ).scalar_one_or_none()
+            if job is None:
+                return
+            pet = await db.get(Pet, model.pet_id)
+            capture = (
+                await db.get(PetVisualCapture, model.source_capture_id)
+                if model.source_capture_id
+                else None
+            )
+            await run_local_generation(db, get_provider(), model, pet, capture, job)
+
+    asyncio.run(_worker())
+
+
 @router.post("/pets/{pet_id}/visual-models")
 async def create_model(
-    pet_id: uuid.UUID, body: ModelCreate, db: DBSession, user: CurrentUser
+    pet_id: uuid.UUID, body: ModelCreate, db: DBSession, user: CurrentUser,
+    background_tasks: BackgroundTasks,
 ) -> dict:
-    """Enqueue 3D generation for this pet. Provider status is honest:
-    sandbox jobs always end FAILED with REAL_3D_PROVIDER_EXTERNAL_BLOCKED."""
+    """Enqueue candidate 3D generation for this pet.
+
+    Uses the in-repo template-local pipeline; a real external generative
+    provider remains honestly reported as EXTERNAL_BLOCKED. Idempotent via
+    `idempotency_key`: a repeated create with the same key returns the same
+    model instead of enqueuing a second generation.
+    """
     await _require_owner(db, pet_id, user.id)
     pet = await db.get(Pet, pet_id)
     if pet is None:
         raise NotFound("pet not found")
+    if body.idempotency_key:
+        existing = (
+            await db.execute(
+                select(PetVisualModel, PetVisualJob)
+                .join(PetVisualJob, PetVisualJob.model_id == PetVisualModel.id)
+                .where(
+                    PetVisualModel.pet_id == pet_id,
+                    PetVisualJob.idempotency_key == body.idempotency_key,
+                )
+                .limit(1)
+            )
+        ).first()
+        if existing is not None:
+            return _model_out(existing[0])
     provider = get_provider()
     capture = None
     if body.capture_id:
@@ -75,12 +133,23 @@ async def create_model(
     db.add(model)
     await db.commit()
     await db.refresh(model)
+    job = PetVisualJob(
+        pet_id=pet_id,
+        model_id=model.id,
+        provider=provider.name,
+        status="QUEUED",
+        progress=0,
+        idempotency_key=body.idempotency_key,
+    )
+    db.add(job)
     await create_life_event(
         db, pet_id=pet_id, event_type="visual.model_generated",
         payload={"version": version, "provider": provider.name, "status": "GENERATING"},
         actor_id=user.id, source_type=enums.SourceType.OWNER_REPORTED,
     )
     await write_audit(db, action="visual_model.created", actor_user_id=user.id, pet_id=pet_id, resource_type="pet_visual_models", resource_id=str(model.id))
+    await db.commit()
+    background_tasks.add_task(_generate_background, str(model.id))
     return _model_out(model)
 
 
@@ -217,3 +286,62 @@ async def render_manifest(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -
         fallback_policy=manifest.fallback_policy,
         freshness_checked_at=manifest.freshness_checked_at,
     )
+
+@router.post("/pets/{pet_id}/visual-models/{version}/retry")
+async def retry_model(
+    pet_id: uuid.UUID, version: int, db: DBSession, user: CurrentUser,
+    background_tasks: BackgroundTasks,
+) -> dict:
+    """Re-queue a FAILED/CANCELLED candidate for a fresh generation attempt."""
+    await _require_owner(db, pet_id, user.id)
+    m = await _get_model_or_404(db, pet_id, version)
+    job = (
+        await db.execute(
+            select(PetVisualJob)
+            .where(PetVisualJob.model_id == m.id)
+            .order_by(desc(PetVisualJob.created_at))
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if job is None:
+        raise NotFound("generation job not found")
+    if job.status not in ("FAILED", "CANCELLED"):
+        raise ValidationFailed("only failed or cancelled candidates can be retried")
+    if m.status not in ("FAILED",):
+        m.status = "GENERATING"
+    m.failure_reason = None
+    job.status = "QUEUED"
+    job.progress = 0
+    job.error_reason = None
+    job.attempts += 1
+    job.updated_at = datetime.now(UTC)
+    await db.commit()
+    background_tasks.add_task(_generate_background, str(m.id))
+    return _model_out(m)
+
+
+@router.get("/pets/{pet_id}/visual-models/{version}/job")
+async def get_model_job(pet_id: uuid.UUID, version: int, db: DBSession, user: CurrentUser) -> dict:
+    """Return the latest generation job status/progress for a candidate."""
+    await _require_read(db, pet_id, user.id)
+    m = await _get_model_or_404(db, pet_id, version)
+    job = (
+        await db.execute(
+            select(PetVisualJob)
+            .where(PetVisualJob.model_id == m.id)
+            .order_by(desc(PetVisualJob.created_at))
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if job is None:
+        raise NotFound("generation job not found")
+    return {
+        "model_id": str(m.id),
+        "pet_id": str(m.pet_id),
+        "version": m.version,
+        "provider": job.provider,
+        "status": job.status,
+        "progress": job.progress,
+        "attempts": job.attempts,
+        "error_reason": job.error_reason,
+    }

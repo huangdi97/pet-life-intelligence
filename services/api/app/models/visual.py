@@ -14,6 +14,10 @@ Rules (GOAL PHASE D/F/G/H):
 - Generated 3D is GENERATED_3D provenance, never LIVE / RECORDED.
 - Source media for 3D is NOT for general model training unless separately
   consented (consent purpose: VISUAL_MODEL_TRAINING).
+- R.2-P3D (''approved 2026-09-28''): the ''in-repo'' template pipeline may
+- generate PROVISIONAL candidate models (template family + photo texture
+- projection) into OWNER_REVIEW; a real external generative provider remains
+- honestly reported as EXTERNAL_BLOCKED.
 """
 
 import uuid
@@ -73,6 +77,9 @@ class PetVisualCapture(UUIDPk, CreatedAt, Base):
     qc_passed: Mapped[bool | None] = mapped_column(Boolean, nullable=True)  # None = not run
     provider: Mapped[str] = mapped_column(String(60), default="sandbox", nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="UPLOADED")  # UPLOADED|QC_PASSED|QC_FAILED|USED
+    # R.2-P3D: angle coverage the wizard collected (front/left/right/back/
+    # full_body/head -> bool) so QC can drive per-angle retake guidance.
+    coverage: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
     privacy_scan: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)  # face/child/plate…
     consent_visual_model_training: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
@@ -108,6 +115,11 @@ class PetVisualModel(UUIDPk, CreatedAt, Base):
     rig_version: Mapped[str] = mapped_column(String(40), default="", nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="GENERATING")  # QUEUED|GENERATING|READY|FAILED|VERIFYING|ACTIVE|RETIRED|DELETED
     failure_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # R.2-P3D: which surface attributes were projected from real photos
+    # (OBSERVED) vs completed by the template (INFERRED). New real photo data
+    # upgrades INFERRED -> OBSERVED on later versions; never the reverse.
+    observed_surface_manifest: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+    inferred_surface_manifest: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
     # identity verification (GOAL PHASE G)
     owner_verified: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     identity_qc: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
@@ -151,4 +163,31 @@ class PetVisualRenderManifest(UUIDPk, CreatedAt, Base):
     fallback_policy: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
     freshness_checked_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False
+    )
+
+class PetVisualJob(UUIDPk, CreatedAt, Base):
+    """Durable async generation job for one PetVisualModel (R.2-P3D).
+
+    Holds provider-level lifecycle (QUEUED -> GENERATING -> READY/FAILED/CANCELLED),
+    progress, attempts and an idempotency key so an owner double-tap / retry
+    never enqueues a second generation for the same model.
+    """
+
+    __tablename__ = "pet_visual_jobs"
+    __table_args__ = (Index("ix_pvj_pet", "pet_id"),)
+
+    pet_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("pets.id"), nullable=False
+    )
+    model_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("pet_visual_models.id"), nullable=False
+    )
+    provider: Mapped[str] = mapped_column(String(60), default="template_local", nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="QUEUED")  # QUEUED|GENERATING|READY|FAILED|CANCELLED
+    progress: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    error_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
     )

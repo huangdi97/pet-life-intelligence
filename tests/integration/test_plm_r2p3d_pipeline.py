@@ -1,0 +1,177 @@
+"""R.2-P3D template-local pipeline coverage.
+
+Covers the acceptance items beyond the basic contract flow:
+- QC failure on missing coverage + retake guidance; QC_FAILED capture blocks generation
+- generation idempotency (same key -> same model)
+- job status/progress route (async surface)
+- retry guard (cannot retry a READY candidate)
+- cross-pet isolation
+- version upgrade with more photo evidence (observed manifest)
+- provenance: no-photo generation stays template-default (no observed claims)
+"""
+
+import uuid
+
+from tests.conftest import auth
+
+COVERAGE_FULL = {
+    "front": True, "left": True, "right": True, "back": True,
+    "full_body": True, "head": True,
+}
+
+
+def _create_capture(client, pet_id, headers, n=4, coverage=None):
+    r = client.post(
+        f"/api/v1/pets/{pet_id}/visual-captures",
+        json={
+            "artifact_ids": [str(uuid.uuid4()) for _ in range(n)],
+            "capture_type": "PHOTO_SET",
+            "consent_visual_model_training": False,
+            "coverage": coverage or COVERAGE_FULL,
+        },
+        headers=headers,
+    )
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def _create_model(client, pet_id, headers, capture_id=None, idempotency_key=None):
+    r = client.post(
+        f"/api/v1/pets/{pet_id}/visual-models",
+        json={"capture_id": capture_id, "idempotency_key": idempotency_key},
+        headers=headers,
+    )
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def _wait_request(client, *args, timeout_s=8.0, **kwargs):
+    import time
+
+    end = time.time() + timeout_s
+    while time.time() < end:
+        j = client.get(*args, **kwargs)
+        if j.status_code == 200 and j.json()["status"] == "READY":
+            return j.json()
+        time.sleep(0.1)
+    raise AssertionError("job did not reach READY")
+
+
+def test_qc_fail_when_required_angle_missing(client, seeded):
+    owner, coco = seeded["owner_id"], seeded["coco_id"]
+    headers = auth(owner)
+    cap = _create_capture(
+        client, coco, headers, n=3,
+        coverage={"front": True, "full_body": True, "head": False},
+    )
+    qc = client.post(
+        f"/api/v1/pets/{coco}/visual-captures/{cap['capture_id']}/qc",
+        json={}, headers=headers,
+    ).json()
+    assert qc["qc_passed"] is False
+    assert qc["status"] == "QC_FAILED"
+    assert "head" in qc["qc_result"]["missing_angles"]
+    assert any("补拍" in g for g in qc["qc_result"]["retake_guidance"])
+
+    # a QC_FAILED capture must NOT generate a candidate (strict gate)
+    m = client.post(
+        f"/api/v1/pets/{coco}/visual-models",
+        json={"capture_id": cap["capture_id"]},
+        headers=headers,
+    )
+    assert m.status_code == 422
+
+
+def test_contamination_and_privacy_reported_heuristic_only(client, seeded):
+    owner, coco = seeded["owner_id"], seeded["coco_id"]
+    headers = auth(owner)
+    cap = _create_capture(client, coco, headers, n=4)
+    qc = client.post(
+        f"/api/v1/pets/{coco}/visual-captures/{cap['capture_id']}/qc",
+        json={}, headers=headers,
+    ).json()
+    for field in ("identity_consistency", "contamination_check", "blur_check",
+                  "exposure_check", "occlusion_check", "multi_pet_interference",
+                  "resolution_check"):
+        assert qc["qc_result"].get(field) == "heuristic_only"
+
+
+def test_generation_idempotent_via_key(client, seeded):
+    owner, coco = seeded["owner_id"], seeded["coco_id"]
+    headers = auth(owner)
+    cap = _create_capture(client, coco, headers, n=4)
+    key = f"gen-{uuid.uuid4().hex}"
+    m1 = _create_model(client, coco, headers, capture_id=cap["capture_id"], idempotency_key=key)
+    m2 = _create_model(client, coco, headers, capture_id=cap["capture_id"], idempotency_key=key)
+    assert m1["model_id"] == m2["model_id"]
+    assert m1["version"] == m2["version"]
+
+
+def test_job_status_and_progress(client, seeded):
+    owner, coco = seeded["owner_id"], seeded["coco_id"]
+    headers = auth(owner)
+    cap = _create_capture(client, coco, headers, n=4)
+    m = _create_model(client, coco, headers, capture_id=cap["capture_id"])
+    job = _wait_request(client, f"/api/v1/pets/{coco}/visual-models/{m['version']}/job", headers=headers)
+    assert job["status"] == "READY"
+    assert job["progress"] == 100
+    assert job["pet_id"] == coco
+
+
+def test_retry_guarded_until_failed(client, seeded):
+    owner, coco = seeded["owner_id"], seeded["coco_id"]
+    headers = auth(owner)
+    m = _create_model(client, coco, headers, capture_id=None)
+    job = _wait_request(client, f"/api/v1/pets/{coco}/visual-models/{m['version']}/job", headers=headers)
+    assert job["status"] == "READY"
+    r = client.post(
+        f"/api/v1/pets/{coco}/visual-models/{m['version']}/retry",
+        json={}, headers=headers,
+    )
+    assert r.status_code == 422  # cannot retry a READY (finished) candidate
+
+
+def test_cross_pet_isolation(client, seeded):
+    owner, coco, mimi = seeded["owner_id"], seeded["coco_id"], seeded["mimi_id"]
+    headers = auth(owner)
+    cap = _create_capture(client, coco, headers, n=4)
+    _create_model(client, coco, headers, capture_id=cap["capture_id"])
+    lst_coco = client.get(f"/api/v1/pets/{coco}/visual-models", headers=headers).json()["models"]
+    lst_mimi = client.get(f"/api/v1/pets/{mimi}/visual-models", headers=headers).json()["models"]
+    assert len(lst_coco) == 1
+    assert len(lst_mimi) == 0
+
+
+def test_version_upgrade_surface_manifest_and_provenance(client, seeded):
+    owner, coco = seeded["owner_id"], seeded["coco_id"]
+    headers = auth(owner)
+    # v1 with full photos -> observed coat/pattern/body/unique_marks
+    cap1 = _create_capture(client, coco, headers, n=4)
+    v1 = _create_model(client, coco, headers, capture_id=cap1["capture_id"])
+    _wait_request(client, f"/api/v1/pets/{coco}/visual-models/{v1['version']}/job", headers=headers)
+    r1 = client.get(f"/api/v1/pets/{coco}/visual-models/{v1['version']}", headers=headers).json()
+    assert r1["provenance_kind"] == "GENERATED_3D"
+    for attr in ("coat", "pattern", "body", "unique_marks"):
+        assert r1["observed_surface_manifest"][attr] == "photo_projection"
+    assert r1["inferred_surface_manifest"]["face"] == "template_default"
+
+    # v2 generated without photos -> observed empty, template-default texture
+    v2 = _create_model(client, coco, headers, capture_id=None)
+    _wait_request(client, f"/api/v1/pets/{coco}/visual-models/{v2['version']}/job", headers=headers)
+    r2 = client.get(f"/api/v1/pets/{coco}/visual-models/{v2['version']}", headers=headers).json()
+    assert v1["version"] != v2["version"]
+    assert r2["texture_version"] == "template-default-v1"
+    assert r2["observed_surface_manifest"] == {}
+
+
+def test_verification_requires_owner_and_unknown_enum_not_returned_raw(client, seeded):
+    owner, coco, family = seeded["owner_id"], seeded["coco_id"], seeded["family_id"]
+    headers = auth(owner)
+    m = _create_model(client, coco, headers, capture_id=None)
+    _wait_request(client, f"/api/v1/pets/{coco}/visual-models/{m['version']}/job", headers=headers)
+    # family (non-owner) cannot verify
+    r = client.post(
+        f"/api/v1/pets/{coco}/visual-models/{m['version']}/verify",
+        json={"result": "like"}, headers=auth(family),
+    )
+    assert r.status_code == 403

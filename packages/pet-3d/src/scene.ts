@@ -1,0 +1,123 @@
+/**
+ * scene — shared demo 3D stage scene for PLI (Today / Pet / Life View).
+ *
+ * Builds { pet group + contact shadow } and owns the orbit camera state used
+ * by both platform viewers. The scene is framework-free three.js so the web
+ * (WebGLRenderer) and mobile (expo-gl) adapters render the SAME 豆豆/咪咪.
+ */
+import * as THREE from "three";
+import { buildCorgi, applyIdlePose } from "./buildCorgi";
+import { buildCat, applyCatIdlePose } from "./buildCat";
+import { GROUND_SHADOW, LIGHTS, STAGE } from "./palette";
+import type { Pet3DIdentity } from "./registry";
+
+export interface PetStageScene {
+  /** Root pet group (orbit / pose target). */
+  pet: THREE.Group;
+  /** Soft contact shadow on the ground plane (does not rotate with the pet). */
+  shadow: THREE.Mesh;
+  identity: Pet3DIdentity;
+  /** Frame-driven neutral pose (cosmetic only). */
+  setPose(timeSeconds: number, enabled: boolean): void;
+  /** World-space bounds for camera framing. */
+  bounds: { height: number; width: number };
+}
+
+export interface StageOptions {
+  shadow?: boolean;
+}
+
+/** Camera target the pet should be centered on. */
+export const STAGE_TARGET = new THREE.Vector3(0, 0.85, 0);
+
+export function createPetStageScene(identity: Pet3DIdentity, opts: StageOptions = {}): PetStageScene {
+  const pet = identity === "doudou" ? buildCorgi() : buildCat();
+  const setPose = identity === "doudou" ? applyIdlePose : applyCatIdlePose;
+
+  const shadow = new THREE.Mesh(
+    new THREE.CircleGeometry(0.95, 48),
+    new THREE.MeshBasicMaterial({
+      color: GROUND_SHADOW.color,
+      transparent: true,
+      opacity: GROUND_SHADOW.opacity,
+      depthWrite: false,
+    }),
+  );
+  shadow.name = "petContactShadow";
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = 0.02;
+  shadow.scale.set(1, 1, identity === "doudou" ? 1.25 : 1.1);
+
+  const box = new THREE.Box3().setFromObject(pet);
+  const size = box.getSize(new THREE.Vector3());
+
+  return {
+    pet,
+    shadow,
+    identity,
+    setPose: (t, enabled) => setPose(pet, t, enabled),
+    bounds: { height: size.y, width: size.x },
+  };
+}
+
+/** Warm lighting rig shared by both adapters (ambient + key + fill + rim). */
+export function addStageLights(scene: THREE.Scene): void {
+  const ambient = new THREE.AmbientLight(LIGHTS.ambient, LIGHTS.ambientIntensity);
+  scene.add(ambient);
+
+  const key = new THREE.DirectionalLight(LIGHTS.key, LIGHTS.keyIntensity);
+  key.position.set(2.2, 3.4, 3.2);
+  scene.add(key);
+
+  const fill = new THREE.DirectionalLight(LIGHTS.fill, LIGHTS.fillIntensity);
+  fill.position.set(-2.4, 1.4, -1.6);
+  scene.add(fill);
+
+  const rim = new THREE.SpotLight(LIGHTS.rim, LIGHTS.rimIntensity, 12, Math.PI / 6, 0.4, 1.6);
+  rim.position.set(-0.6, 2.8, -3.4);
+  scene.add(rim);
+}
+
+/** Stage fog color for warm depth (matches R2P3D palette). */
+export const STAGE_FOG = new THREE.Color(STAGE.fog);
+
+/**
+ * Orbit state — pure math so rotation/zoom/reset are unit-testable without
+ * WebGL. yaw around Y, pitch clamped to [-0.5, 0.9] rad, radius in [2.6, 7].
+ */
+export interface OrbitState {
+  yaw: number;
+  pitch: number;
+  radius: number;
+}
+
+export const DEFAULT_ORBIT: OrbitState = { yaw: 0.35, pitch: 0.28, radius: 4.6 };
+
+export function orbitFromDrag(prev: OrbitState, dx: number, dy: number, sensitivity = 0.008): OrbitState {
+  const yaw = prev.yaw + dx * sensitivity;
+  const pitch = Math.min(0.9, Math.max(-0.5, prev.pitch + dy * sensitivity));
+  return { yaw, pitch, radius: prev.radius };
+}
+
+export function orbitZoom(prev: OrbitState, factor: number): OrbitState {
+  // factor > 1 zooms in (closer), clamped to keep the pet framed.
+  const radius = Math.min(7, Math.max(2.6, prev.radius / factor));
+  return { yaw: prev.yaw, pitch: prev.pitch, radius };
+}
+
+export function applyOrbit(camera: THREE.PerspectiveCamera, target: THREE.Vector3, orbit: OrbitState): void {
+  const cp = Math.cos(orbit.pitch);
+  camera.position.set(
+    target.x + orbit.radius * cp * Math.sin(orbit.yaw),
+    target.y + orbit.radius * Math.sin(orbit.pitch),
+    target.z + orbit.radius * Math.cos(orbit.yaw),
+  );
+  camera.lookAt(target);
+}
+
+/** Fit the default camera to the pet so every identity frames well. */
+export function frameCamera(camera: THREE.PerspectiveCamera, scene: PetStageScene, aspect: number): void {
+  camera.aspect = aspect;
+  camera.updateProjectionMatrix();
+  applyOrbit(camera, STAGE_TARGET, DEFAULT_ORBIT);
+}

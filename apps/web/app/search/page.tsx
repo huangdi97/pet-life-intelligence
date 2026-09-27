@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api } from "@pli/api-client";
 import { fmtTime, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State } from "../../components/ui";
+import { eventTypeLabel, eventPayloadSummary } from "../../lib/ownerLabels";
 
 interface SearchHit {
   event_id: string;
@@ -101,10 +102,10 @@ export default function SearchPage() {
             {hits.map((h) => (
               <li key={h.event_id}>
                 <div className="tl-head">
-                  <span className="tl-type">{h.event_type}</span>
+                  <span className="tl-type">{eventTypeLabel(h.event_type)}</span>
                   <span className="tl-time">{fmtTime(h.occurred_at)}</span>
                 </div>
-                <div className="tl-body">{JSON.stringify(h.payload).slice(0, 160)}</div>
+                <div className="tl-body">{eventPayloadSummary(h.payload) || "已记录事件"}</div>
               </li>
             ))}
           </ul>

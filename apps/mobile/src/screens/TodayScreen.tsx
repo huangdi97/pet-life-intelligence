@@ -1,10 +1,11 @@
 /**
- * TodayScreen — Living Canvas (Stage R.2 §18-26).
+ * TodayScreen — Living Stage (R2-P §7.1 / v3.4 §46.6).
  *
- * One pet first, then Now → Change → Attention → Action → Memory.
- * All copy derives from real API facts (counts / deterministic hints /
- * backend triage). Never invents mood or health data. Renders as a composed
- * set of presentation components — no Card dashboard.
+ * The pet is the visual center of the first fold: warm environment background,
+ * midground 2.5D identity visual, and state anchors (饮水/进食/活动) anchored
+ * around it. Below the fold: change narrative → one attention/calm → one primary
+ * action + light entries → life stream preview. All copy derives from real API
+ * facts; nothing invents mood or health state.
  */
 import React, { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -14,18 +15,15 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { api, type HealthEventRow, type LifeEvent, type Task } from "../api";
 import { usePets } from "../context";
-import { petAgeText, speciesLabel, sexLabel } from "../format";
 import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
 import type { StackParamList, TabParamList } from "../navigation";
-import { PetHero } from "../components/pet/PetHero";
-import { LifeSignal, type LifeSignalRow } from "../components/life/LifeSignal";
-import { BaselineChange } from "../components/life/BaselineChange";
+import { PetLivingStage } from "../components/life/PetLivingStage";
 import { AttentionPanel } from "../components/life/AttentionPanel";
 import { PrimaryAction, SecondaryAction, ActionRow } from "../components/actions/QuickAction";
 import { InlineError, Skeleton } from "../components/feedback/Feedback";
 import { OpenSection } from "../components/feedback/OpenSection";
 import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../components/timeline/LifeStream";
-import { resolvePetMediaUri, petIdentityLine } from "../components/media/demoPetVisual";
+import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { eventTypeLabel, sourceLabel } from "./ui_labels";
 import { todayTasks, type TodayResp } from "./today";
 
@@ -59,6 +57,17 @@ function dayPeriod(now: Date): string {
 function timeContextText(): string {
   const now = new Date();
   return `${now.getMonth() + 1}月${now.getDate()}日 · ${dayPeriod(now)}`;
+}
+
+/** "最近记录 X 分钟前" — real relative freshness from the latest event. */
+function recentContext(events: LifeEvent[]): string | null {
+  const last = events[0];
+  if (!last) return null;
+  const mins = Math.max(0, Math.round((Date.now() - new Date(last.occurred_at).getTime()) / 60000));
+  if (mins < 1) return `最近记录了${eventTypeLabel(last.event_type)}`;
+  if (mins < 60) return `最近记录 · ${mins} 分钟前`;
+  const h = Math.floor(mins / 60);
+  return `最近记录 · ${h} 小时前`;
 }
 
 function eventRowFromEvent(e: LifeEvent): LifeStreamRow {
@@ -143,20 +152,31 @@ export function TodayScreen() {
   }, [health, hint]);
 
   const counts = today?.event_counts ?? {};
-  const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
   const todayEvents = (today?.events ?? []).filter((e) => e.event_type !== "today.viewed");
 
-  const signalRows: LifeSignalRow[] = [
-    { id: "meal", label: "进食", value: `${counts["daily.meal"] ?? 0} 次` },
-    { id: "drink", label: "饮水", value: `${counts["daily.drink"] ?? 0} 次` },
-    {
-      id: "activity",
-      label: "活动",
-      value: `${todayEvents.reduce((a, e) => a + (Number((e.payload as Record<string, unknown>)?.duration_minutes) || 0), 0)} 分钟`,
-    },
-  ];
+  const anchors = useMemo(() => {
+    const drinkCount = counts["daily.drink"] ?? 0;
+    const rows = [
+      { id: "meal", label: "进食", value: `${counts["daily.meal"] ?? 0} 次`, icon: "restaurant-outline" as const },
+      { id: "drink", label: "饮水", value: `${drinkCount} 次`, icon: "water-outline" as const },
+      {
+        id: "activity",
+        label: "活动",
+        value: `${todayEvents.reduce((a, e) => a + (Number((e.payload as Record<string, unknown>)?.duration_minutes) || 0), 0)} 分钟`,
+        icon: "walk-outline" as const,
+      },
+      { id: "sleep", label: "睡眠", value: `${counts["daily.sleep"] ?? 0} 次`, icon: "moon-outline" as const },
+    ];
+    return rows.filter((r) => r.id !== "drink" || drinkCount > 0);
+  }, [counts, todayEvents]);
 
-  const baselineAbnormal = attention.kind !== "calm" && attention.kind !== "danger";
+  const calm = attention.kind === "calm";
+  const headline = !pet ? undefined : attention.kind === "danger"
+    ? "今天需要注意一下"
+    : todayEvents.length === 0
+      ? "今天还没有新的记录"
+      : !calm ? "今天有值得留意的变化" : "今天整体稳定";
+
   const memoryRows = useMemo(() => todayEvents.slice(0, 5).map(eventRowFromEvent), [todayEvents]);
   const memoryDays: LifeStreamDay[] = memoryRows.length
     ? [{ id: "today", label: `${new Date().getMonth() + 1}月${new Date().getDate()}日`, isToday: true, rows: memoryRows }]
@@ -178,43 +198,39 @@ export function TodayScreen() {
           </View>
         ) : null}
 
-        <PetHero
+        <PetLivingStage
           pet={pet}
-          mediaUri={resolvePetMediaUri(pet)}
-          headline={totalCount === 0 ? "今天还没有新的记录" : `今天记录了 ${totalCount} 件事`}
-          identity={pet ? `${speciesLabel(pet.species)} · ${pet.breed}${petAgeText(pet.birth_date) ? ` · ${petAgeText(pet.birth_date)}` : ""}` : undefined}
-          timeContext={timeContextText()}
+          spec={resolvePetStage(pet)}
+          variant="today"
+          anchors={
+            loading || !pet
+              ? []
+              : anchors.map((a) => ({
+                  ...a,
+                  onPress: a.id === "activity" ? () => tabNav.navigate("Timeline") : undefined,
+                }))
+          }
+          headline={loading ? undefined : headline}
+          caption={loading ? undefined : recentContext(todayEvents) ?? timeContextText()}
           demo={DEMO_ENV}
-          onPress={() => tabNav.navigate("Pet")}
-          height={290}
+          onPressPet={pet ? () => stackNav.navigate("LifeView") : undefined}
         />
 
         {error && !loading ? <InlineError message="暂时连接不上，已展示已有内容" onRetry={() => setLoading((v) => !v)} /> : null}
 
         {loading ? (
           <View style={styles.loadingWrap}>
-            <Skeleton rows={3} />
+            <Skeleton rows={2} />
           </View>
         ) : (
           <>
-            <LifeSignal rows={signalRows} empty={totalCount === 0} emptyNote={error ? "暂时连接不上" : "今天还没有足够记录"} />
-
-            {!baselineAbnormal ? (
-              <BaselineChange
-                summary={
-                  hint === null
-                    ? "数据还不足以比较"
-                    : hint.hints.find((x) => x.includes("无明显异常"))
-                      ? "今天与近期基线相比没有明显变化。"
-                      : "与它自己相比有值得留意的变化。"
-                }
-                direction={hint === null ? "insufficient" : "flat"}
-                evidenceHint={hint?.rule ?? "来源：今日计数与近期基线"}
-                onViewEvidence={() => tabNav.navigate("Timeline")}
-              />
-            ) : null}
-
-            <AttentionPanel kind={attention.kind} body={attention.body} footer={attention.footer} onPress={() => tabNav.navigate("Timeline")} />
+            {calm ? (
+              <View style={styles.calmRow}>
+                <Text style={styles.calmText}>{attention.body}</Text>
+              </View>
+            ) : (
+              <AttentionPanel kind={attention.kind} body={attention.body} footer={attention.footer} onPress={() => tabNav.navigate("Timeline")} />
+            )}
 
             {tasks.length > 0 ? (
               <OpenSection title="今天任务" caption={`${tasks.filter((t) => t.status === "OPEN").length} 项待办`}>
@@ -229,12 +245,11 @@ export function TodayScreen() {
 
             <PrimaryAction label="快速记录" onPress={() => stackNav.navigate("QuickLog")} />
             <ActionRow>
-              <SecondaryAction label="问助手" icon="chatbubble-ellipses-outline" onPress={() => tabNav.navigate("Assistant")} />
               <SecondaryAction label="看看它" icon="eye-outline" onPress={() => stackNav.navigate("LifeView")} />
-              <SecondaryAction label="在家" icon="videocam-outline" onPress={() => stackNav.navigate("Monitoring")} />
+              <SecondaryAction label="问助手" icon="chatbubble-ellipses-outline" onPress={() => tabNav.navigate("Assistant")} />
             </ActionRow>
 
-            <OpenSection title="最近" caption={todayEvents.length ? `今天 · ${todayEvents.length} 条` : undefined}>
+            <OpenSection title="最近发生" caption={todayEvents.length ? `今天 · ${todayEvents.length} 条` : undefined}>
               {memoryDays.length ? (
                 <LifeStream days={memoryDays} />
               ) : (
@@ -267,6 +282,8 @@ const styles = StyleSheet.create({
   chipText: { fontSize: TYPE.sm, color: COLORS.textTertiary },
   chipActiveText: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  calmRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
+  calmText: { fontSize: TYPE.sm, color: COLORS.textTertiary, lineHeight: 20 },
   taskRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingVertical: 6 },
   taskMark: { fontSize: TYPE.body, color: COLORS.brandPrimaryDeep, width: 16 },
   taskTitle: { fontSize: TYPE.body, color: COLORS.textPrimary, flex: 1 },

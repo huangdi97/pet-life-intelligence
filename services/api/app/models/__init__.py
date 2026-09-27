@@ -82,6 +82,7 @@ from app.models.v10 import (  # noqa: F401 — v1.0 models
 )
 from app.models.visual import (  # noqa: F401 — Stage H.2 Pet Living Model (PLM)
     PetVisualCapture,
+    PetVisualJob,
     PetVisualModel,
     PetVisualRenderManifest,
 )

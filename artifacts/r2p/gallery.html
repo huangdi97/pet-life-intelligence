@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PLI Stage R.2-P — P0 视觉取证画廊（等待人工视觉验收）</title>
+<style>
+  :root { --ink:#2B2723; --muted:#8A8174; --canvas:#FAF7F2; --card:#FFFFFF; }
+  body { margin:0; background:var(--canvas); color:var(--ink); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; }
+  header { padding:28px 24px 12px; }
+  h1 { font-size:22px; margin:0 0 6px; }
+  p.sub { color:var(--muted); margin:0; font-size:13px; }
+  section { padding:8px 24px 28px; }
+  h2 { font-size:16px; border-bottom:1px solid #EDE7DD; padding-bottom:8px; margin:26px 0 12px; }
+  .row { display:flex; flex-wrap:wrap; gap:16px; }
+  .card { background:var(--card); border:1px solid #EDE7DD; border-radius:14px; padding:12px; max-width:430px; }
+  .card figcaption { font-size:12px; color:var(--muted); margin-top:8px; text-align:center; }
+  .card img { width:100%; border-radius:8px; border:1px solid #F0EBE2; display:block; }
+  .wide img { width:100%; }
+  .pair { display:flex; gap:2px; background:#2B2723; border-radius:8px; overflow:hidden; }
+  .pair img { width:50%; border:none; border-radius:0; }
+  .badge { display:inline-block; background:#EDF3EE; color:#4E7A5A; border-radius:999px; padding:2px 10px; font-size:12px; margin-left:8px; }
+  .note { background:#FBF4E2; border:1px solid #F0DFB4; border-radius:12px; padding:12px 16px; font-size:13px; max-width:860px; margin:10px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PLI Stage R.2-P — Living Pet Experience Fidelity Reconstruction（P0）<span class="badge">WAITING_FOR_HUMAN_VISUAL_ACCEPTANCE</span></h1>
+  <p class="sub">真实 Android Emulator（pdig5，390×844dp 全高）截图 + Playwright Web 取证。请按 Q1–Q9 逐项人工验收。</p>
+</header>
+
+<section>
+  <h2>1. Android Emulator 核心三屏（真实运行截图，1024×2216 px = 390×844dp）</h2>
+  <div class="row">
+    <figure class="card"><img src="core/01_today.png" alt="Today — Living Stage" /><figcaption>Today — 宠物舞台（中心豆豆 + 环绕锚点）</figcaption></figure>
+    <figure class="card"><img src="core/02_pet.png" alt="Pet — Pet World" /><figcaption>Pet — Pet World（身份/此刻/记忆/它的生活）</figcaption></figure>
+    <figure class="card"><img src="core/03_life_view.png" alt="Life View — Pet Living Stage" /><figcaption>Life View — Pet Living Stage（此刻 + 模式条）</figcaption></figure>
+  </div>
+</section>
+
+<section>
+  <h2>2. Contact Sheet &amp; Before / After</h2>
+  <figure class="card wide"><img src="core/R2P_CORE_CONTACT_SHEET.png" alt="R2-P core contact sheet" /><figcaption>R2P_CORE_CONTACT_SHEET.png</figcaption></figure>
+  <figure class="card wide" style="max-width:900px;"><img src="core/R2P_CORE_BEFORE_AFTER_CONTACT_SHEET.png" alt="before/after contact sheet" /><figcaption>R2P_CORE_BEFORE_AFTER_CONTACT_SHEET.png（v0.2.0 | R2-P 三屏逐对）</figcaption></figure>
+  <div class="row">
+    <figure class="card wide" style="max-width:860px;"><img src="core/CURRENT_v0.2.0_vs_R2P_Today.png" alt="Today before/after" /><figcaption>Today：v0.2.0（左） vs R2-P（右）</figcaption></figure>
+    <figure class="card wide" style="max-width:860px;"><img src="core/CURRENT_v0.2.0_vs_R2P_Pet.png" alt="Pet before/after" /><figcaption>Pet：v0.2.0（左） vs R2-P（右）</figcaption></figure>
+    <figure class="card wide" style="max-width:860px;"><img src="core/CURRENT_v0.2.0_vs_R2P_LifeView.png" alt="Life View before/after" /><figcaption>Life View：v0.2.0（左） vs R2-P（右）</figcaption></figure>
+  </div>
+</section>
+
+<section>
+  <h2>3. Playwright Web 取证（390 / 1440 viewport + fold）</h2>
+  <div class="row">
+    <figure class="card"><img src="playwright/today-390-fold.png" alt="web today 390" /><figcaption>Web Today · 390×844 fold</figcaption></figure>
+    <figure class="card"><img src="playwright/pet-390-fold.png" alt="web pet 390" /><figcaption>Web Pet · 390×844 fold</figcaption></figure>
+    <figure class="card"><img src="playwright/life-view-390-fold.png" alt="web life-view 390" /><figcaption>Web Life View · 390×844 fold</figcaption></figure>
+    <figure class="card"><img src="playwright/today-1440.png" alt="web today 1440" /><figcaption>Web Today · 1440 fullPage</figcaption></figure>
+    <figure class="card"><img src="playwright/pet-1440.png" alt="web pet 1440" /><figcaption>Web Pet · 1440 fullPage</figcaption></figure>
+    <figure class="card"><img src="playwright/life-view-1440.png" alt="web life-view 1440" /><figcaption>Web Life View · 1440 fullPage</figcaption></figure>
+  </div>
+</section>
+</body>
+</html>

@@ -67,7 +67,9 @@ def test_provider_status_honest_blocked():
     status = provider_status()
     assert status["real"] is False
     assert status["status"] == "REAL_3D_PROVIDER_EXTERNAL_BLOCKED"
-    assert status["provider"] == "sandbox"
+    assert status["provider"] == "template_local"
+    assert status["generative_status"] == "REAL_3D_PROVIDER_EXTERNAL_BLOCKED"
+    assert status["local_pipeline"] == "READY"
 
 
 def test_get_provider_singleton():
@@ -75,3 +77,41 @@ def test_get_provider_singleton():
     a = get_provider()
     b = get_provider()
     assert a is b
+
+
+def test_template_local_provider_contract_completes():
+    from app.adapters.visual_provider import TemplateLocalProvider
+
+    provider = TemplateLocalProvider()
+    assert provider.name == "template_local"
+    assert provider.real is False
+    job_id = provider.generate("cap-1", ["art-1"], {"family": "corgi"})
+    assert job_id.startswith("tmpl-")
+    assert provider.status(job_id)["status"] == "QUEUED"
+    # local candidate generation completes (unlike a blocked generative provider)
+    provider.complete(
+        job_id,
+        render_descriptor="spitz/corgi",
+        versions={
+            "provider_model_version": "template-v1",
+            "geometry_version": "template-spitz-corgi-v1",
+            "texture_version": "photo-projection-v1",
+            "rig_version": "rig-anim-v1",
+        },
+    )
+    st = provider.status(job_id)
+    assert st["status"] == "READY"
+    assert st["progress"] == 100
+    assert provider.artifacts(job_id)["artifacts"]["render_descriptor"] == "spitz/corgi"
+
+
+def test_template_local_provider_honest_fail():
+    from app.adapters.visual_provider import TemplateLocalProvider
+
+    provider = TemplateLocalProvider()
+    job_id = provider.generate("cap-1", [], {})
+    provider.fail(job_id, "test failure")
+    st = provider.status(job_id)
+    assert st["status"] == "FAILED"
+    assert st["failure_reason"] == "test failure"
+    assert st["real"] is False

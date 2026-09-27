@@ -13,6 +13,10 @@ class CaptureCreate(BaseModel):
     artifact_ids: list[uuid.UUID] = Field(default_factory=list)
     capture_type: str = "PHOTO_SET"  # PHOTO_SET | VIDEO
     consent_visual_model_training: bool = False
+    # R.2-P3D: angle coverage the wizard collected
+    # {"front": true, "left": false, "right": true, "back": false,
+    #  "full_body": true, "head": true}
+    coverage: dict | None = None
 
 
 class CaptureOut(BaseModel):
@@ -22,15 +26,15 @@ class CaptureOut(BaseModel):
     capture_type: str
     qc_result: dict
     qc_passed: bool | None
+    coverage: dict = {}
     privacy_scan: dict
     status: str
     created_at: datetime
 
-
 class ModelCreate(BaseModel):
     capture_id: uuid.UUID | None = None
     opts: dict = Field(default_factory=dict)
-
+    idempotency_key: str | None = None
 
 class VerifyIn(BaseModel):
     result: str  # like | basic_like | not_like

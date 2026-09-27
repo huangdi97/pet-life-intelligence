@@ -1,4 +1,4 @@
-name: CI
+﻿name: CI
 
 on:
   push:
@@ -166,7 +166,7 @@ jobs:
           # they must run BEFORE the visual chain so the visual baseline diff
           # compares a clean seed state against itself (see next step).
           pnpm exec playwright install --with-deps chromium
-          pnpm exec playwright test --config=tests/e2e-browser/playwright.config.ts --grep-invert "STAGE-V-VISUAL|VISUAL-V2"
+          pnpm exec playwright test --config=tests/e2e-browser/playwright.config.ts --grep-invert "STAGE-V-VISUAL|VISUAL-V2|VISUAL-V3"
       - name: Reset demo data (visual baseline source of truth)
         run: |
           # Idempotent seed wipes all rows then recreates the demo household,
@@ -183,7 +183,7 @@ jobs:
           # stage-v-visual regenerates visual-current from clean seed, then
           # visual-regression-v2 diffs approved baseline vs current (explicit
           # refresh only via PLI_UPDATE_VISUAL_BASELINE=1).
-          pnpm exec playwright test --config=tests/e2e-browser/playwright.config.ts --grep "STAGE-V-VISUAL|VISUAL-V2"
+          pnpm exec playwright test --config=tests/e2e-browser/playwright.config.ts --grep "STAGE-V-VISUAL|VISUAL-V2|VISUAL-V3"
       - name: Upload Playwright test-results (visual diff debugging)
         if: failure()
         uses: actions/upload-artifact@v4

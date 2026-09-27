@@ -27,6 +27,9 @@ import { WelfareScreen } from "./screens/WelfareScreen";
 import { SocialScreen } from "./screens/SocialScreen";
 import { MonitoringScreen } from "./screens/MonitoringScreen";
 import { CompanionScreen } from "./screens/CompanionScreen";
+import { PetTwinCaptureScreen } from "./screens/PetTwinCaptureScreen";
+import { PetTwinReviewScreen } from "./screens/PetTwinReviewScreen";
+import { PetTwinVersionScreen } from "./screens/PetTwinVersionScreen";
 
 export type TabParamList = {
   Today: undefined;
@@ -48,6 +51,9 @@ export type StackParamList = {
   Social: undefined;
   Monitoring: undefined;
   Companion: undefined;
+  TwinCapture: undefined;
+  TwinReview: { version: number } | undefined;
+  TwinVersion: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -100,6 +106,9 @@ export function AppNavigation() {
         <Stack.Screen name="Social" component={SocialScreen} />
         <Stack.Screen name="Monitoring" component={MonitoringScreen} />
         <Stack.Screen name="Companion" component={CompanionScreen} />
+        <Stack.Screen name="TwinCapture" component={PetTwinCaptureScreen} />
+        <Stack.Screen name="TwinReview" component={PetTwinReviewScreen} />
+        <Stack.Screen name="TwinVersion" component={PetTwinVersionScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

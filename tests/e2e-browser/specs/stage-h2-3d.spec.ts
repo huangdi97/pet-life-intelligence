@@ -36,8 +36,12 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     await page.goto(`/pets/${petId}/life-view`);
     await expect(page).toHaveURL(urlRe(`/pets/${petId}/life-view`));
     await expectNoFatalState(page);
-    await expect(page.getByText(/3D 形象尚未创建/).first()).toBeVisible();
-    await expect(page.getByText(/经过你确认后才显示/).first()).toBeVisible();
+    // R2-P3D: demo 3D asset exists now — the honest state is "demo, dev-only,
+    // real photos still rule later", never a fake LIVE or a fake success.
+    await expect(page.getByText(/演示 3D 形象/).first()).toBeVisible();
+    await expect(page.getByText(/未来连接真实服务后/).first()).toBeVisible();
+    await page.getByRole("tab", { name: "外观" }).click();
+    await expect(page.getByText(/经过你确认后/).first()).toBeVisible();
     // user-facing copy must NOT contain 数字孪生
     expect(await page.textContent("main")).not.toContain("数字孪生");
   });

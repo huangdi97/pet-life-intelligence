@@ -52,7 +52,9 @@ def test_capture_qc_flow(client, seeded):
     cap = client.post(
         f"/api/v1/pets/{coco}/visual-captures",
         json={"artifact_ids": [str(uuid.uuid4()) for _ in range(5)],
-              "capture_type": "PHOTO_SET", "consent_visual_model_training": False},
+              "capture_type": "PHOTO_SET", "consent_visual_model_training": False,
+              "coverage": {"front": True, "left": True, "right": True, "back": True,
+                           "full_body": True, "head": True}},
         headers=headers,
     )
     assert cap.status_code == 200, cap.text
@@ -67,7 +69,24 @@ def test_capture_qc_flow(client, seeded):
     assert q["qc_result"]["artifact_count"] == 5
 
 
-def test_generate_sandbox_fails_honestly(client, seeded):
+def _wait_ready(client, pet_id: str, version: int, headers: dict, timeout_s: float = 8.0) -> dict:
+    """Poll the generation job until READY (or timeout) — deterministic async."""
+    import time
+
+    end = time.time() + timeout_s
+    while time.time() < end:
+        job = client.get(
+            f"/api/v1/pets/{pet_id}/visual-models/{version}/job", headers=headers
+        )
+        if job.status_code == 200 and job.json()["status"] == "READY":
+            return client.get(
+                f"/api/v1/pets/{pet_id}/visual-models/{version}", headers=headers
+            ).json()
+        time.sleep(0.1)
+    raise AssertionError(f"generation job did not reach READY in {timeout_s}s")
+
+
+def test_generate_template_local_enters_owner_review(client, seeded):
     owner = seeded["owner_id"]
     coco = seeded["coco_id"]
     headers = auth(owner)
@@ -85,14 +104,21 @@ def test_generate_sandbox_fails_honestly(client, seeded):
     )
     assert m.status_code == 200, m.text
     body = m.json()
-    assert body["status"] == "GENERATING"
     assert body["provenance_kind"] == "GENERATED_3D"
-    assert body["provider"] == "sandbox"
+    assert body["provider"] == "template_local"
 
-    # sandbox job status never pretends success: provider is blocked
-    # (job is in-memory per worker; the API surface honestly reports blocked)
+    ready = _wait_ready(client, coco, body["version"], headers)
+    # OWNER_REVIEW (READY) — candidate generated, not yet owner-verified.
+    assert ready["status"] == "READY"
+    assert ready["geometry_version"].startswith("template-")
+    assert ready["observed_surface_manifest"]  # photos -> photo_projection observed
+    assert ready["inferred_surface_manifest"]["face"] == "template_default"
+
+    # Honest: a real external generative provider is still reported blocked.
     status = client.get("/api/v1/visual/status", headers=headers).json()
+    assert status["real"] is False
     assert status["status"] == "REAL_3D_PROVIDER_EXTERNAL_BLOCKED"
+    assert status["local_pipeline"] == "READY"
 
 
 def test_verify_not_like_cannot_activate(client, seeded):

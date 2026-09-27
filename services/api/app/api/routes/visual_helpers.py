@@ -66,6 +66,8 @@ def _model_out(m: PetVisualModel) -> dict:
         "rig_version": m.rig_version,
         "status": m.status,
         "failure_reason": m.failure_reason,
+        "observed_surface_manifest": m.observed_surface_manifest,
+        "inferred_surface_manifest": m.inferred_surface_manifest,
         "owner_verified": m.owner_verified,
         "identity_qc": m.identity_qc,
         "provenance_kind": m.provenance_kind,

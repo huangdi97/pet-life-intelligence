@@ -482,3 +482,146 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
 @media (prefers-reduced-motion: reduce) {
   .v4-art-blob, .v4-hero, .v4-stage { animation: none; }
 }
+/* ==========================================================================
+   R2-P — Pet Living Stage（三屏共享构图：背景/中景宠物/前景锚点）
+   ========================================================================== */
+.r2p-stage {
+  position: relative;
+  border-radius: 28px;
+  overflow: hidden;
+  min-height: 350px;
+  background: linear-gradient(180deg, #F9F2E4 0%, #F3E8D4 55%, #EDE0C8 100%);
+  margin-bottom: 10px;
+}
+.r2p-stage--life { min-height: 470px; }
+.r2p-stage--pet { min-height: 380px; }
+.r2p-stage-wash {
+  position: absolute; width: 300px; height: 190px; border-radius: 50%;
+  background: rgba(255, 251, 242, 0.65); top: -70px; right: -70px; pointer-events: none;
+}
+.r2p-stage-pet {
+  position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%);
+  display: flex; justify-content: center; pointer-events: none;
+}
+.r2p-stage-name {
+  position: absolute; top: 18px; left: 22px; right: 22px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 24px; font-weight: 800; color: var(--v4-text-primary); margin: 0;
+}
+.r2p-stage-demo {
+  background: rgba(255, 255, 255, 0.82); border-radius: 999px; padding: 3px 9px;
+  font-size: 11px; font-weight: 600; color: var(--v4-text-secondary);
+}
+.r2p-stage-now {
+  position: absolute; left: 22px; right: 22px; bottom: 16px; z-index: 1;
+}
+.r2p-stage-headline { font-size: 17px; font-weight: 800; color: var(--v4-text-primary); margin: 0; }
+.r2p-stage-caption { font-size: 13px; color: var(--v4-text-secondary); margin: 3px 0 0; }
+.r2p-stage-note { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--v4-text-tertiary); margin-top: 4px; }
+.r2p-anchor {
+  position: absolute; display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255, 255, 255, 0.88); border: 1px solid #EDE3D2; border-radius: 999px;
+  padding: 7px 13px; min-height: 44px; box-shadow: 0 2px 10px rgba(43, 39, 35, 0.06);
+  text-decoration: none; color: inherit;
+}
+.r2p-anchor--0 { top: 74px; left: 16px; }
+.r2p-anchor--1 { top: 74px; right: 16px; }
+.r2p-anchor--2 { bottom: 92px; left: 16px; }
+.r2p-anchor--3 { bottom: 92px; right: 16px; }
+.r2p-anchor--4 { top: 168px; left: 16px; }
+.r2p-anchor--5 { top: 168px; right: 16px; }
+.r2p-anchor-icon {
+  flex: none; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--v4-brand-soft); display: inline-flex; align-items: center; justify-content: center;
+  color: var(--v4-brand-primary);
+}
+.r2p-anchor-label { font-size: 11px; color: var(--v4-text-tertiary); line-height: 1.2; }
+.r2p-anchor-value { font-size: 14px; font-weight: 700; color: var(--v4-text-primary); line-height: 1.25; }
+
+/* 2.5D corgi（identity-specific demo visual，DEMO/SYNTHETIC） */
+.r2p-corgi { position: relative; width: 220px; height: 250px; }
+.r2p-corgi .part { position: absolute; border-radius: 999px; }
+.r2p-corgi .shadow { width: 150px; height: 20px; left: 35px; top: 222px; background: rgba(43, 38, 32, 0.16); }
+.r2p-corgi .ear-l { width: 30px; height: 46px; left: 66px; top: 44px; background: #D9A968; transform: rotate(-10deg); }
+.r2p-corgi .ear-r { width: 30px; height: 46px; left: 140px; top: 44px; background: #D9A968; transform: rotate(10deg); }
+.r2p-corgi .ear-in-l { width: 18px; height: 28px; left: 71px; top: 52px; background: #C08A4E; transform: rotate(-10deg); }
+.r2p-corgi .ear-in-r { width: 18px; height: 28px; left: 145px; top: 52px; background: #C08A4E; transform: rotate(10deg); }
+.r2p-corgi .leg-l { width: 24px; height: 50px; left: 88px; top: 182px; background: #E0BC8C; }
+.r2p-corgi .leg-r { width: 24px; height: 50px; left: 122px; top: 182px; background: #E8C79A; }
+.r2p-corgi .body { width: 136px; height: 80px; left: 46px; top: 138px; background: #F1D5A6; border-radius: 40px; }
+.r2p-corgi .belly { width: 80px; height: 42px; left: 74px; top: 172px; background: #FBF6EB; border-radius: 21px; }
+.r2p-corgi .head { width: 100px; height: 84px; left: 62px; top: 74px; background: #F2D9AD; border-radius: 34px; }
+.r2p-corgi .blaze { width: 16px; height: 28px; left: 102px; top: 82px; background: #FBF6EB; border-radius: 8px; }
+.r2p-corgi .muzzle { width: 58px; height: 42px; left: 82px; top: 110px; background: #FBF6EB; border-radius: 21px; }
+.r2p-corgi .nose { width: 14px; height: 10px; left: 103px; top: 118px; background: #6E4A3A; border-radius: 5px; }
+.r2p-corgi .eye-l { width: 7px; height: 8px; left: 86px; top: 98px; background: #4A3A2C; border-radius: 4px; }
+.r2p-corgi .eye-r { width: 7px; height: 8px; left: 128px; top: 98px; background: #4A3A2C; border-radius: 4px; }
+.r2p-corgi .rim { width: 38px; height: 16px; left: 70px; top: 80px; background: rgba(255, 253, 246, 0.55); transform: rotate(-18deg); }
+
+/* mode bar（Life View） */
+.r2p-modes {
+  display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px;
+  background: var(--v4-surface); border: 1px solid var(--v4-divider); margin: 0 0 14px;
+}
+.r2p-mode {
+  border: none; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--v4-text-secondary);
+  border-radius: 999px; padding: 10px 18px; min-height: 44px; background: transparent;
+}
+.r2p-mode:hover { color: var(--v4-brand-primary); }
+.r2p-mode[aria-selected="true"] { background: var(--v4-brand-primary); color: #FFFDF9; }
+
+@media (min-width: 1024px) {
+  .r2p-stage { min-height: 400px; }
+  .r2p-stage--life { min-height: 520px; }
+  .r2p-corgi { transform: scale(1.25); transform-origin: bottom center; }
+  .r2p-stage-headline { font-size: 20px; }
+  .r2p-stage-name { font-size: 28px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .r2p-stage, .r2p-sticky, .r2p-anchor { transition: none; animation: none; }
+}
+/* ==========================================================================
+   R2-P3D — warm-charcoal 3D living stage (shared demo pet asset)
+   ========================================================================== */
+.r2p-stage--3d {
+  background: radial-gradient(120% 95% at 50% 26%, #3a2e24 0%, #241c16 46%, #171310 100%);
+}
+.r2p-stage--3d .r2p-stage-wash { display: none; }
+.r2p-stage-glow { display: none; }
+.r2p-stage--3d .r2p-stage-pet--3d {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  width: 250px;
+  height: 296px;
+  pointer-events: auto;
+}
+.r2p-stage--life .r2p-stage-pet--3d { width: 262px; height: 330px; }
+.r2p-stage--pet .r2p-stage-pet--3d { width: 256px; height: 306px; }
+@media (min-width: 1024px) {
+  .r2p-stage--3d .r2p-stage-pet--3d { width: 330px; height: 360px; }
+}
+.pet3d-wrap { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pet3d-wrap canvas { width: 100% !important; height: 100% !important; display: block; }
+.pet3d-controls { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; z-index: 2; }
+.pet3d-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid rgba(250, 246, 239, 0.3);
+  background: rgba(23, 19, 16, 0.55); color: #faf6ef; font-size: 16px;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+}
+.pet3d-btn:hover { background: rgba(58, 46, 36, 0.8); }
+.r2p-stage--3d .r2p-stage-name, .r2p-stage--3d .r2p-stage-headline { color: #faf6ef; }
+.r2p-stage--3d .r2p-stage-caption { color: #c9bfb0; }
+.r2p-stage--3d .r2p-stage-note { color: #b8ac9c; }
+.r2p-stage--3d .r2p-stage-demo { background: rgba(250, 246, 239, 0.14); color: #c9bfb0; }
+.r2p-stage--3d .r2p-anchor {
+  background: rgba(23, 19, 16, 0.62);
+  border-color: rgba(250, 246, 239, 0.3);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+.r2p-stage--3d .r2p-anchor-icon { background: rgba(250, 246, 239, 0.14); color: #faf6ef; }
+.r2p-stage--3d .r2p-anchor-label { color: #b8ac9c; }
+.r2p-stage--3d .r2p-anchor-value { color: #faf6ef; }
+.pet3d-wrap canvas { pointer-events: none; }

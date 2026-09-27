@@ -100,7 +100,7 @@ WIPE_TABLES = [
     "clinical_intake_steps", "health_events", "behavior_events",
     "care_tasks", "consents", "emergency_profiles", "grants",
     "relationships", "invitations", "artifacts", "life_events",
-    "pet_visual_render_manifests", "pet_visual_models", "pet_visual_captures",
+    "pet_visual_render_manifests", "pet_visual_jobs", "pet_visual_models", "pet_visual_captures",
     "pets",
     "household_members", "households", "ai_inference_logs", "audit_entries",
     "security_events", "login_attempts", "password_reset_tokens",

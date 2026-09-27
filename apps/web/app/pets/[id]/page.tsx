@@ -6,7 +6,7 @@ import { api, ApiError, type Pet } from "@pli/api-client";
 import { fmtDate, useAsync } from "../../../lib/hooks";
 import { mapErrorMessage, t } from "../../../lib/i18n";
 import { State } from "../../../components/ui";
-import { PetHero } from "../../../components/pet-hero";
+import { PetLivingStage } from "../../../components/pet-living-stage";
 import { Icon, type WebIconName } from "../../../components/icons";
 import { EVENT_LABELS } from "../../_components/today/constants";
 
@@ -36,15 +36,15 @@ function ageText(birthDate: string | null): string {
   return `${months}个月`;
 }
 
-const DOMAIN_ROWS: Array<{ id: string; href: string; name: string; icon: WebIconName }> = [
-  { id: "health", href: "/health", name: "健康", icon: "heart" },
-  { id: "behavior", href: "/behavior", name: "行为", icon: "eye" },
-  { id: "training", href: "/training", name: "训练", icon: "target" },
-  { id: "welfare", href: "/welfare", name: "福利", icon: "shield" },
-  { id: "social", href: "/social", name: "社交", icon: "users" },
+const DOMAIN_ROWS: Array<{ id: string; href: string; desc: string; icon: WebIconName }> = [
+  { id: "health", href: "/health", desc: "最近记录与近期变化", icon: "heart" },
+  { id: "behavior", href: "/behavior", desc: "最近一次观察与行为模式", icon: "eye" },
+  { id: "training", href: "/training", desc: "当前目标与最近练习", icon: "target" },
+  { id: "welfare", href: "/welfare", desc: "近期观察：舒适、活动与恢复", icon: "shield" },
+  { id: "social", href: "/social", desc: "最近互动与它的朋友", icon: "users" },
 ];
 
-/** OWN-004 Pet World — Identity / Life Summary / Life View / 有意义的 Domain 分区（Stage R.2）。 */
+/** OWN-004 Pet World — 宠物舞台 + 生命侧面叙事（R2-P §7.2）。 */
 export default function PetProfilePage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
@@ -71,8 +71,6 @@ export default function PetProfilePage() {
     );
   }
 
-  // OWN-004 not-found state: unknown pet id renders a 404 state (Stage V
-  // state-space, not a generic error).
   const notFound =
     pet.state === "error" &&
     pet.error instanceof ApiError &&
@@ -94,6 +92,24 @@ export default function PetProfilePage() {
   const p = pet.data;
   const counts = today.data?.event_counts ?? {};
   const countEntries = Object.entries(counts);
+  const ANCHOR_ICONS: Record<string, WebIconName> = {
+    "daily.meal": "food",
+    "daily.drink": "water",
+    "daily.walk": "walk",
+    "daily.play": "play",
+    "daily.sleep": "sleep",
+    "daily.weight": "weight",
+  };
+  const anchors = countEntries
+    .filter(([et]) => et !== "today.viewed")
+    .slice(0, 4)
+    .map(([et, n]) => ({
+      id: et,
+      label: EVENT_LABELS[et] ?? "状态",
+      value: `${n} 次`,
+      icon: ANCHOR_ICONS[et] ?? "paw",
+      href: "/timeline",
+    }));
   const identityLine = [
     p?.birth_date ? ageText(p.birth_date) : "",
     p?.breed || p?.species,
@@ -105,7 +121,16 @@ export default function PetProfilePage() {
   return (
     <main className="v4-main">
       {p ? (
-        <PetHero name={p.name} petId={p.id} title={<h1 className="v4-hero-title">{p.name}</h1>} line={identityLine} />
+        <PetLivingStage
+          name={p.name}
+          petId={p.id}
+          species={p.species}
+          breed={p.breed}
+          variant="pet"
+          anchors={anchors.length ? anchors : undefined}
+          headline={p.name}
+          caption={identityLine || undefined}
+        />
       ) : (
         <div className="v4-loading" role="status">
           <span className="spinner" aria-hidden="true" />
@@ -117,12 +142,12 @@ export default function PetProfilePage() {
         <div>
           <div className="v4-sec">
             <div className="v4-sec-head">
-              <h2 className="v4-sec-title v4-sec-title--accent">看看它</h2>
+              <h2 className="v4-sec-title v4-sec-title--accent">生命视图</h2>
               <Link href={`/pets/${id}/life-view`} className="v4-sec-link">
                 打开生命视图
               </Link>
             </div>
-            <p className="v4-sec-sub">它的 3D 形象与当前状态入口。真实照片与记录始终是基础，不依赖 3D。</p>
+            <p className="v4-sec-sub">它的此刻与长期生活轨迹。真实照片与记录始终是基础，不依赖 3D。</p>
           </div>
 
           <div className="v4-sec">
@@ -134,8 +159,8 @@ export default function PetProfilePage() {
                     <Icon name={row.icon} size={20} />
                   </span>
                   <div>
-                    <div className="v4-domain-name">{row.name}</div>
-                    <div className="v4-domain-desc">查看记录、趋势与它的近期变化</div>
+                    <div className="v4-domain-name">{row.desc.split("：")[0]}</div>
+                    <div className="v4-domain-desc">{row.desc}</div>
                   </div>
                 </Link>
                 <Icon name="chevron" size={16} style={{ color: "var(--v4-text-tertiary)" }} />
@@ -149,12 +174,15 @@ export default function PetProfilePage() {
             <h2 className="v4-sec-title">此刻</h2>
             {countEntries.length > 0 ? (
               <div className="v4-metrics">
-                {countEntries.map(([et, n]) => (
-                  <div key={et} className="v4-metric">
-                    <span className="v4-metric-value">{n}</span>
-                    <span className="v4-metric-label">{EVENT_LABELS[et] ?? et}</span>
-                  </div>
-                ))}
+                {countEntries
+                  .filter(([et]) => et !== "today.viewed")
+                  .slice(0, 6)
+                  .map(([et, n]) => (
+                    <div key={et} className="v4-metric">
+                      <span className="v4-metric-value">{n}</span>
+                      <span className="v4-metric-label">{EVENT_LABELS[et] ?? "状态"}</span>
+                    </div>
+                  ))}
               </div>
             ) : (
               <p className="v4-sec-sub">今天还没有记录。</p>
@@ -164,9 +192,9 @@ export default function PetProfilePage() {
           <div className="v4-sec">
             <h2 className="v4-sec-title">基本信息</h2>
             <div className="v4-statsline" style={{ marginTop: 6 }}>
-              <span className="v4-chip">种类：{p?.species}</span>
+              <span className="v4-chip">种类：{p?.species === "dog" ? "犬" : p?.species === "cat" ? "猫" : p?.species || "—"}</span>
               <span className="v4-chip">品种：{p?.breed || "—"}</span>
-              <span className="v4-chip">性别：{p?.sex || "—"}</span>
+              <span className="v4-chip">性别：{p?.sex === "FEMALE" ? "雌性" : p?.sex === "MALE" ? "雄性" : p?.sex === "UNKNOWN" ? "未知" : "—"}</span>
               <span className="v4-chip">绝育：{p?.neutered == null ? "—" : p.neutered ? "是" : "否"}</span>
             </div>
             {p?.birth_date && <p className="v4-note" style={{ marginTop: 8 }}>出生日期：{fmtDate(p.birth_date)}</p>}

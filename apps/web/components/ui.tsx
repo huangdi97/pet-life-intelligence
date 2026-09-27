@@ -1,8 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { LoadState } from "../lib/hooks";
+import { provenanceLabel, triageLabel } from "../lib/ownerLabels";
 import { mapErrorMessage } from "../lib/i18n";
+import type { LoadState } from "../lib/hooks";
 
 /** Render a user-facing message from a string or an Error/ApiError. */
 function humanize(error: string | Error | null | undefined): string | null {
@@ -62,12 +63,14 @@ export function State({
 }
 
 export function ProvenanceBadge({ level }: { level: string }) {
-  return <span className={`badge ${level}`}>{level}</span>;
+  // INVARIANT: the raw provenance enum is only used as a style class, never as copy.
+  return <span className={`badge ${level}`}>{provenanceLabel(level)}</span>;
 }
 
 export function TriageBadge({ level }: { level: string | null }) {
   if (!level) return <span className="badge">未分级</span>;
-  return <span className={`badge ${level}`}>{level}</span>;
+  // INVARIANT: the raw triage level is only used as a style class, never as copy.
+  return <span className={`badge ${level}`}>{triageLabel(level)}</span>;
 }
 
 export function ErrorNote({ message }: { message: string | Error | null }) {
