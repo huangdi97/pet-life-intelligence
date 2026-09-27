@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.2.1 (Stage R.2-P3D) — Individual 3D Pet Twin Full Closure（Internal / Pre-Pilot）
+
+> 2026-09-28。在 v0.2.0 Warm Living 视觉之上完成「个体 3D Pet Twin」体验与 Release Closure：
+> `R2P3D_ENGINEERING_COMPLETE / CURRENT_MAIN_FULL_CI_GREEN`。Release：
+> 完成后链接见 WORK_STATUS。
+
+### Added
+- **Pet Twin 生成管线（后端）**：`PetVisualJob` 异步生成任务（QUEUED→GENERATING→READY/FAILED，progress/attempts/error_reason/idempotency_key）、template-local Provider（参数化模板族 + 照片纹理 OBSERVED + 模板补全 INFERRED + 版本化 + 渲染描述符）、capture QC 覆盖门（front/full_body/head + retake_guidance）；真实生成式 Provider 保持 `REAL_3D_PROVIDER=EXTERNAL_BLOCKED`。
+- **Mobile Pet Twin 三屏**：Capture Wizard（6 角度覆盖 ✓/✗ + QC 补拍指引）、Twin Review（很像/基本像/不像 + 问题标注；不像不可激活）、Twin Version/Appearance（版本列表 + 当前形象 + 照片来源 manifest）。Web Capture Wizard 接线 QC/生成。
+- **Owner 纯净度**：web 事件/来源/分诊统一中文映射 + 通用 fallback（`lib/ownerLabels.ts`），raw payload JSON 下线，内部术语 = 0。
+- **CI 修复与确定性**：VISUAL-V3 移入 visual chain；`@pli/pet-3d` 进入各 job 构建；visual capture 在 reduced-motion 下冻结 3D 动画实现可复现 baseline；V2+V3 baselines 显式迁移到 R2-P3D UI。
+
+### Test / Gate
+- pytest 437 / ruff 0 / vitest 33 / 五端 typecheck 0 / Playwright 功能全绿 / Visual Regression V2+V3 PASS / main CI 全绿（3ef6c18+）。
+- 诚实状态：`HUMAN_VISUAL_ACCEPTANCE=PENDING` · `REAL_3D_PROVIDER=EXTERNAL_BLOCKED` · `REAL_PARTICIPANTS=0` · `REAL_PETS=0`。
+
 ## v0.2.0 (Stage R.2) — Living Pet Experience Reconstruction（Internal / Pre-Pilot）
 
 > 2026-09-26。从“工程原型 + Card CRUD + 功能宫格”重建为“一只具体宠物持续存在的生命界面”：

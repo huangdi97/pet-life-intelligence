@@ -5,9 +5,12 @@
 ## 当前状态
 
 ```text
-PLI_V0_2_0_STAGE_R2_COMPLETE（2026-09-26，Stage R.2：Product Experience Reconstruction）
+PLI_R2P3D_ENGINEERING_COMPLETE（2026-09-28，Stage R.2-P3D：Individual 3D Pet Twin Full Closure）
+CURRENT_MAIN_FULL_CI_GREEN（Frontend / Backend / Browser E2E(功能+视觉链)）· v0.2.1（Internal / Pre-Pilot）
+Warm Living Holographic — Today/Pet/Life View 真实 interactive 3D Pet Twin + Capture/Review/Version
 GitHub：https://github.com/huangdi97/pet-life-intelligence（公开仓库）
-PLI_PRODUCT_EXPERIENCE_RECONSTRUCTION_PASS — Warm Living Intelligence 视觉系统 V4
+REAL_3D_PROVIDER=EXTERNAL_BLOCKED · REAL_PARTICIPANTS=0 · REAL_PETS=0 · HUMAN_VISUAL_ACCEPTANCE=PENDING
+```
 Living Canvas Today · Pet World · Photo-first Life View · Life Stream Timeline · Pet-aware Assistant
 Companion graceful empty · canonical 5-tab 导航（Today / Timeline / Pet / Assistant / Me）
 mobile / web / mini 三端 V4 一致；pytest 427 / ruff 0 / 三端 tsc 0 / vitest 22/22

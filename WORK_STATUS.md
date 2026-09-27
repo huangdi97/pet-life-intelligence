@@ -2,6 +2,17 @@
 
 ## Current terminal
 
+`PLI_R2P3D_ENGINEERING_COMPLETE`（2026-09-28，Stage R.2-P3D：Individual 3D Pet Twin Full Closure）
+
+- 个体 3D Pet Twin 管线：template-local 候选生成（异步 job/progress/retry/idempotency）、Owner 核验（很像/基本像/不像，不像不可激活）、版本化、OBSERVED/INFERRED surface manifest、render manifest；真实生成式 Provider 诚实 EXTERNAL_BLOCKED。
+- Warm Living Holographic 全量统一（Today / Pet World / Life View 真实 3D）+ Mobile Capture/Review/Version 三屏 + Web Capture Wizard 接线。
+- Owner 内部术语 = 0（事件/来源/分诊中文映射 + 通用 fallback，raw payload 下线）。
+- 测试：pytest 437(+10) / ruff 0 / vitest 33(+11) / mobile+web+admin+mini typecheck 0 / Playwright 功能全绿 / Visual Regression V2+V3 PASS（确定性 baseline 迁移已记录）。
+- main CI 全绿（3ef6c18+：Frontend/Backend/Browser E2E）· v0.2.1 Release（DEBUG_SIGNED_INSTALLABLE_APK；PLAY_STORE_SIGNING=EXTERNAL_BLOCKED）。
+- 诚实边界：REAL_3D_PROVIDER=EXTERNAL_BLOCKED · REAL_PARTICIPANTS=0 · REAL_PETS=0 · PRODUCT_VALIDATION=NOT_YET_OBSERVED · **HUMAN_VISUAL_ACCEPTANCE=PENDING**。
+
+## Current terminal
+
 `PLI_V0_2_0_STAGE_R2_COMPLETE`（Stage R.2 完成，2026-09-26）· `PLI_PRODUCT_EXPERIENCE_RECONSTRUCTION_PASS`
 （Warm Living Intelligence 视觉系统 V4 · Living Canvas Today · Pet World · Photo-first Life View ·
 Life Stream Timeline · Pet-aware Assistant · Companion graceful empty · canonical 5-tab 导航 ·
