@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.2.0 (Stage R.2) — Living Pet Experience Reconstruction（Internal / Pre-Pilot）
+
+> 2026-09-26。从“工程原型 + Card CRUD + 功能宫格”重建为“一只具体宠物持续存在的生命界面”：
+> `PLI_PRODUCT_EXPERIENCE_RECONSTRUCTION_PASS / STAGE_R2_COMPLETE`。Release：
+> https://github.com/huangdi97/pet-life-intelligence/releases/tag/v0.2.0
+
+### Added
+- **Visual System V4（Warm Living Intelligence）**：canvas/surface*/text*/brand*/attention/warning/danger/success/info/media-overlay/scrim*/divider* tokens、Typography V4、12 类 Surface Taxonomy、矢量 icon、motion + reduced-motion。
+- **Living Canvas Today**：PetHero 第一焦点 → 此刻 → 基线变化 → One Attention/Calm → 快速记录 → 最近 life stream；with-data/empty/attention/offline/multipet 全态截图（390dp 宽）。
+- **Pet World**：物种视觉 Hero + 生活摘要 + Life View 入口 + 逐域意义行；移除字母头像/功能宫格主体。
+- **Photo-first Life View**：宠物大图焦点 + 此刻 + 生命轨迹 + 诚实「3D 形象尚未创建」；provider/model/raw key 下沉，不上 Owner 页。
+- **Life Stream Timeline**：Day Group + time spine + 用户语言来源；无 per-event 大白卡。
+- **Pet-aware Assistant**：豆豆的助手，Ask 主模式 + 结论→依据→不确定性→下一步。
+- **Companion graceful empty**：四层能力 + 诚实设备态 + 用户语言「当前为演示体验，不是实时画面」。
+- **canonical 5-tab 导航**：今天/时间线/宠物/助手/我的；Monitoring/Companion 移为 contextual entry。
+- **Web/Mini 对齐**：Next.js + Taro V4 迁移（桌面双栏 / 轻量降级）。
+- **Demo 运行机制**：EXPO_PUBLIC_PLI_DEMO_ENV demo 构建自动登录 + `pli-demo://login|nav` 深链；`scripts/r2_demo_seed.py` 丰富豆豆/咪咪 + attention/empty 场景。
+- **Visual Regression V3**：24 页（12 路由 × 390/1440）显式冻结，校验 diff 0.000%；V2 baseline 保留为历史。
+
+### Verification
+- pytest 427 / ruff 0 / mobile·web·mini tsc 0 / vitest 22/22 / Playwright 功能 27/27（安全断言保留并绿）/ gradle·next·taro build OK。
+- REAL_PARTICIPANTS=0 · REAL_PETS=0 · PRODUCT_VALIDATION=NOT_YET_OBSERVED · REAL_3D_PROVIDER=EXTERNAL_BLOCKED。
+- P2 ACCEPTED_DEFER：Demo 照片（ACCEPTED_LIMITATION，image 模型本机不可用）、AVD 捕获高度约束（390dp 宽）、web responsive polish。
+
 ## v0.1.2 (Stage R.1-E) — Android Emulator 验收 + 移动端视觉收口（Internal / Pre-Pilot）
 
 > 2026-09-25。本版修复 Android APK 的启动崩溃并完成模拟器逐屏验收：

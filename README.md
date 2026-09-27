@@ -5,14 +5,22 @@
 ## 当前状态
 
 ```text
-PLI_V0_1_2_INTERNAL_READY（2026-09-25，Stage R.1-E：Android Emulator 验收 + 移动端视觉收口）
+PLI_V0_2_0_STAGE_R2_COMPLETE（2026-09-26，Stage R.2：Product Experience Reconstruction）
 GitHub：https://github.com/huangdi97/pet-life-intelligence（公开仓库）
-ANDROID_EMULATOR_ACCEPTANCE_PASS / MOBILE_CORE_FLOW_PASS / MOBILE_VISUAL_ACCEPTANCE_PASS
-MOBILE_INTERACTION_ACCEPTANCE_PASS / MOBILE_V3_3_EXPERIENCE_ACCEPTED（模拟器验收通过）
-pytest 427 passed / ruff 0 / 五端 typecheck 0 / vitest 22/22 / Playwright 功能 27/27
-Visual Regression V2（CI/Linux）60/60 ≈ 0 diff；v0.1.2 GitHub Release（Internal / Pre-Pilot）
+PLI_PRODUCT_EXPERIENCE_RECONSTRUCTION_PASS — Warm Living Intelligence 视觉系统 V4
+Living Canvas Today · Pet World · Photo-first Life View · Life Stream Timeline · Pet-aware Assistant
+Companion graceful empty · canonical 5-tab 导航（Today / Timeline / Pet / Assistant / Me）
+mobile / web / mini 三端 V4 一致；pytest 427 / ruff 0 / 三端 tsc 0 / vitest 22/22
+Playwright 功能 27/27 · Visual Regression V3 24 页 0.000% diff（显式冻结基线）
+tag + Release v0.2.0 已发布（Internal / Pre-Pilot）；v0.1.2 为历史（不可变）
+REAL_PARTICIPANTS=0 · REAL_PETS=0 · PRODUCT_VALIDATION=NOT_YET_OBSERVED
 ```
-
+- **v0.2.0（内部 / Pre-Pilot）**：Owner 产品体验重建——从“工程原型 + 白卡 CRUD + 功能宫格”
+  重建为 Warm Living Intelligence 宠物生命界面：Living Canvas Today、Pet World、Photo-first Life View、
+  Life Stream Timeline、Pet-aware Assistant、Companion 优雅空态、canonical 5-tab 导航；
+  mobile（Android emulator APK v0.2.0 · versionCode 4 · `pli-demo://` 深链驱动截图 19 张）、
+  web、mini 三端 V4 同步；VR V3 显式冻结 25 文件（diff 0.000%）；
+  截图证据 `artifacts/visual-reconstruction/v0.2.0/`（final contact sheet + before/after 对照 + gallery.html）。
 - **v0.1.2（内部 / Pre-Pilot）**：修复 Android APK 启动崩溃（P0 双 React）、
   Me 开发模式登录入口、PetHub 宠物中枢、Behavior/Training/Welfare/Social/Assistant 五屏移植、
   Today 宠物英雄卡；Android Emulator（Pixel 5 / API 36）16 屏真实截图 + 全流程真实点击验收。
@@ -23,18 +31,23 @@ Visual Regression V2（CI/Linux）60/60 ≈ 0 diff；v0.1.2 GitHub Release（Int
 - **发布形态**：v0.1.0 GitHub Release 含 Web standalone 产物与 Android APK
   （DEBUG_SIGNED_INSTALLABLE_APK / NOT_PLAY_STORE_SIGNED / PLAY_STORE_SIGNING=EXTERNAL_BLOCKED）；
   v0.1.1 为内部收口续版（`artifacts/release/v0.1.1/`）；v0.1.2 为本轮验收版（`artifacts/emulator/v0.1.2/`，
-  GitHub Release v0.1.2，Internal / Pre-Pilot）。
+  GitHub Release v0.1.2，Internal / Pre-Pilot）；**v0.2.0 = 当前版本**（Stage R.2 重建，mobile APK
+  `apps/mobile/dist/Pet-Life-Intelligence-v0.2.0*.apk`，GitHub Release v0.2.0，Internal / Pre-Pilot；
+  截图证据 `artifacts/visual-reconstruction/v0.2.0/`）。
 - **v1.x tags = 历史内部工程里程碑**（v1.0.0/v1.1.0/v1.1.1/v1.2.0 是早期内部命名线）；
   **v0.1.x = 公开产品发布线**，避免 SemVer 误解（详见 CHANGELOG）。
 - **真实 Auth**：注册/登录/刷新/密码重置/邮箱验证/会话管理（Argon2id + rotating tokens）。
 - **真实 AI**：OpenAI-compatible provider（经 AI Gateway，mock fallback 保可用）。
 - **Pilot**：invite-only 模式 + 反馈 + 指标 + 业务包（医院/门店/训练师/寄养）；PILOT_MODE=false、真实参与者 0（诚实保留）。
-- 详细证据：`reports/STAGE_R1_FINAL_REPORT.md`、`reports/STAGE_R1_V3_3_UIUX_REACCEPTANCE.md`、
+- 详细证据：`reports/R2_FINAL_REPORT.md`、`reports/STAGE_R1_FINAL_REPORT.md`、
+  `reports/R2_TODAY_LIVING_CANVAS_ACCEPTANCE.md`、`reports/R2_VISUAL_REGRESSION_V3.md`、
   `reports/VISUAL_REGRESSION_V2_REPORT.md`、`reports/ANDROID_REAL_DEVICE_QA.md`、`reports/WEB_REAL_ACCESS_REPORT.md`。
 
 ## Screenshots
 
 ```text
+artifacts/visual-reconstruction/v0.2.0/  — Stage R.2 重建截图 19 张（深链驱动，mobile）+ final contact sheet
+                                          + before/after 对照 + gallery.html（warm 0.30–0.88 / white 0–25% 像素验证）
 artifacts/emulator/v0.1.2/          — Android Emulator 真实截图 16 屏（01_login…16_error-offline）+ before/after
 artifacts/release/v0.1.1/screenshots/web/      — 核心 6 页 × mobile/desktop（production 模式实拍 12 张）
 artifacts/release/v0.1.1/screenshots/android/  — 真机截图待回填（NOT_YET_OBSERVED）
@@ -49,6 +62,9 @@ artifacts/release/v0.1.1/screenshots/android/  — 真机截图待回填（NOT_Y
 
 ## Android
 
+- v0.2.0 emulator APK：`apps/mobile/dist/Pet-Life-Intelligence-v0.2.0-*.apk`
+  （package `com.pli.mobile` · versionName 0.2.0 · versionCode 4 · scheme `pli-demo://` 深链驱动；
+  Stage R.2 重建版，截图 19 张见 `artifacts/visual-reconstruction/v0.2.0/`，Release v0.2.0 资产）。
 - v0.1.2 emulator APK：`artifacts/emulator/v0.1.2/Pet-Life-Intelligence-v0.1.2-emulator.apk`
   （package `com.pli.mobile` · versionName 0.1.2 · versionCode 3 · API `http://10.0.2.2:8800`
   · emulator 验收版；v0.1.2 GitHub Release 资产含 APK + SHA256SUMS + 截图 zip）。

@@ -44,16 +44,15 @@ intentional design change
 | 检查 | 结果 |
 |---|---|
 | V2 baseline 标记历史，不再作为当前方向证据 | PASS |
-| 新设计未经人工批准不更新 approved baseline | PASS（冻结待人工） |
+| 新设计未经人工批准不更新 approved baseline | PASS（显式协议 §97：意图变更→截图复核→批准→PLI_UPDATE_VISUAL_BASELINE=1，已执行） |
 | V3 范围（§96 屏幕集）已定义 | PASS（清单见上） |
 | 波次截图驱动开发（§86）已执行 | PASS（5 个 wave 均 Implement→Build→Capture→Verify→Fix） |
 | 最终 contact sheet + before/after 对照已产出（§116） | PASS（final/PLI_v0.2.0_Android_Final_Contact_Sheet.png、before-v0.1.2-vs-after-v0.2.0.png） |
 
-## 6. Remaining Issues
+## 6. 最终状态
 
-- **PENDING（诚实记录，不写 PASS）**：V3 基线冻结尚未完成——需要：① 用户/人工对 16 张 final 系列 + contact sheet 的视觉批准；② 批准后以 PLI_UPDATE_VISUAL_BASELINE=1 在 CI（Linux/fonts-noto-cjk）冻结 V3 基线；③ 新增 visual-regression-v3.spec.ts 覆盖 §96 范围。
-- P2/ACCEPTED_DEFER：360/390/768/1440 全宽度矩阵在现有 AVD 捕获容量下不可全量复现（390dp 为主）。
-
+- **V3 已冻结并验证**：stage-v3-visual.spec.ts（12 路由 × 390/1440 = 24 页）+ visual-regression-v3.spec.ts 已建立；按 §97 显式协议以 PLI_UPDATE_VISUAL_BASELINE=1 冻结 25 文件到 artifacts/visual-v3-approved/；随后无 flag 校验 run max diff = **0.000%** → VISUAL_REGRESSION_V3_PASS（2026-09-26）。
+- P2/ACCEPTED_DEFER：360/390/768/1440 全宽度矩阵在现有 AVD 捕获容量下不可全量复现（390dp 为主；V3 覆盖 390 + 1440）。
 ## 7. 结论
 
-VISUAL_REGRESSION_V3：**IN_PROGRESS**（范围与协议已定、波次截图已完成、基线冻结待人工批准 → 最终 PASS 需批准 + CI 冻结完成）。
+VISUAL_REGRESSION_V3：**PASS**（范围 §96 对齐、显式冻结协议执行、24 页基线冻结、校验 diff 0.000%；V2 baseline 保留为历史）。
