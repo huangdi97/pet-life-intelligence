@@ -84,6 +84,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: ui-tokens build
         run: pnpm --dir packages/ui-tokens build
+      - name: pet-3d build
+        run: pnpm --dir packages/pet-3d build
       - name: Web typecheck
         run: pnpm --dir apps/web typecheck
       - name: Web build
@@ -146,6 +148,7 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm --dir packages/ui-tokens build
+          pnpm --dir packages/pet-3d build
           pnpm --dir apps/web build
       - name: Install CJK fonts (visual regression parity)
         run: |

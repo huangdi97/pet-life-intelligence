@@ -81,6 +81,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build ui-tokens
         run: pnpm --dir packages/ui-tokens build
+      - name: Build pet-3d
+        run: pnpm --dir packages/pet-3d build
       - name: Build web (next standalone)
         run: pnpm --dir apps/web build
       - name: Assemble standalone distribution
