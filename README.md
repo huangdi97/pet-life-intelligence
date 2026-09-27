@@ -46,8 +46,8 @@ REAL_PARTICIPANTS=0 · REAL_PETS=0 · PRODUCT_VALIDATION=NOT_YET_OBSERVED
 ## Screenshots
 
 ```text
-artifacts/visual-reconstruction/v0.2.0/  — Stage R.2 重建截图 19 张（深链驱动，mobile）+ final contact sheet
-                                          + before/after 对照 + gallery.html（warm 0.30–0.88 / white 0–25% 像素验证）
+artifacts/visual-reconstruction/v0.2.0/  — Stage R.2 重建截图 19 张（深链驱动，mobile，全高 390×844dp）+ final contact sheet
+                                          + before/after 对照 + gallery.html（warm 0.81–0.97 / white 0–20% 像素验证，r>b 判据）
 artifacts/emulator/v0.1.2/          — Android Emulator 真实截图 16 屏（01_login…16_error-offline）+ before/after
 artifacts/release/v0.1.1/screenshots/web/      — 核心 6 页 × mobile/desktop（production 模式实拍 12 张）
 artifacts/release/v0.1.1/screenshots/android/  — 真机截图待回填（NOT_YET_OBSERVED）
