@@ -1,0 +1,40 @@
+{
+  "benchmark": "pet3d_runtime",
+  "provider": "packages/pet-3d (in-repo procedural)",
+  "real": false,
+  "model_download": "none",
+  "license_state": "in-repo MIT",
+  "environments": [
+    "web WebGL",
+    "mobile WebView"
+  ],
+  "identity_metrics": {
+    "doudou": {
+      "buildMs": 28,
+      "meshes": 17,
+      "triangles": 7000,
+      "vertices": 4596,
+      "bounds": {
+        "x": 1.24,
+        "y": 1.871,
+        "z": 2.476
+      },
+      "animProvider": "scene.setPose (idle breathing)"
+    },
+    "mimi": {
+      "buildMs": 15,
+      "meshes": 16,
+      "triangles": 6400,
+      "vertices": 4064,
+      "bounds": {
+        "x": 0.762,
+        "y": 1.539,
+        "z": 3.023
+      },
+      "animProvider": "scene.setPose (idle breathing)"
+    }
+  },
+  "lightRigBuildMs": 1.38,
+  "output_format": "three.js scene graph (GLB export via twin GLB QA gateway)",
+  "verdict": "RECOMMENDED_STANDARD_PIPELINE (runtime base)"
+}

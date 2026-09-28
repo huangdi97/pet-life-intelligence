@@ -1,0 +1,52 @@
+{
+  "benchmark": "template_local",
+  "provider": "template_local",
+  "real": false,
+  "generation_mode": "deterministic in-process",
+  "model_download": "none (policy)",
+  "cases": [
+    {
+      "case": "dog corgi",
+      "family": "spitz",
+      "variant": "dog",
+      "ms": 0.01,
+      "observed_keys": 0,
+      "inferred_keys": 5,
+      "geometry_version": "template-v1",
+      "rig_version": "rig-anim-v1"
+    },
+    {
+      "case": "dog retriever",
+      "family": "retriever",
+      "variant": "retriever",
+      "ms": 0.0,
+      "observed_keys": 0,
+      "inferred_keys": 5,
+      "geometry_version": "template-v1",
+      "rig_version": "rig-anim-v1"
+    },
+    {
+      "case": "cat standard",
+      "family": "cat",
+      "variant": "standard",
+      "ms": 0.0,
+      "observed_keys": 0,
+      "inferred_keys": 5,
+      "geometry_version": "template-v1",
+      "rig_version": "rig-anim-v1"
+    }
+  ],
+  "import_cold_sec": 0.532,
+  "resource": {
+    "gpu_vram_mib": 0,
+    "gpu_used": false,
+    "ram_note": "pure python/numpy-free; RAM trivial"
+  },
+  "license_state": "in-repo MIT (self-authored)",
+  "output_format": "render_descriptor (family/variant) + morph/texture JSON",
+  "quality_flags": {
+    "identity_usefulness": "high for coat/pattern via photo projection; shape limited by template family count",
+    "backside": "template-informed (INFERRED), not photo-verified"
+  },
+  "verdict": "RECOMMENDED_STANDARD_PIPELINE"
+}

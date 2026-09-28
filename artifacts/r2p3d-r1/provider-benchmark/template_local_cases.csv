@@ -1,0 +1,4 @@
+case,family,variant,ms,observed_keys,inferred_keys,geometry_version,rig_version
+dog corgi,spitz,dog,0.01,0,5,template-v1,rig-anim-v1
+dog retriever,retriever,retriever,0.0,0,5,template-v1,rig-anim-v1
+cat standard,cat,standard,0.0,0,5,template-v1,rig-anim-v1
