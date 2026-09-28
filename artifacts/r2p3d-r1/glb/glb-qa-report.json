@@ -1,0 +1,22 @@
+{
+  "files": [
+    "doudou-individual-dog.glb",
+    "mimi-individual-cat.glb"
+  ],
+  "errors": [],
+  "clips_expected": [
+    "Idle",
+    "Stand",
+    "Sit",
+    "Lie",
+    "Sleep",
+    "Walk",
+    "Run",
+    "Eat",
+    "Drink",
+    "Play",
+    "Sniff",
+    "Stretch"
+  ],
+  "pass": true
+}

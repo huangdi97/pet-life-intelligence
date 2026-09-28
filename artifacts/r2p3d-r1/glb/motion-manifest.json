@@ -1,0 +1,214 @@
+{
+  "clips": [
+    {
+      "name": "Idle",
+      "truth": "AMBIENT",
+      "durationSeconds": 8,
+      "loop": true,
+      "channels": [
+        "neck",
+        "head",
+        "tail0",
+        "tail1"
+      ]
+    },
+    {
+      "name": "Stand",
+      "truth": "AMBIENT",
+      "durationSeconds": 4,
+      "loop": true,
+      "channels": []
+    },
+    {
+      "name": "Sit",
+      "truth": "REPRESENTATIVE",
+      "durationSeconds": 6,
+      "loop": true,
+      "channels": [
+        "shoulderFL",
+        "shoulderFR",
+        "kneeFL",
+        "kneeFR",
+        "hipBL",
+        "hipBR",
+        "kneeBL",
+        "kneeBR",
+        "torso",
+        "neck",
+        "head"
+      ]
+    },
+    {
+      "name": "Lie",
+      "truth": "REPRESENTATIVE",
+      "durationSeconds": 8,
+      "loop": true,
+      "channels": [
+        "torso",
+        "shoulderFL",
+        "shoulderFR",
+        "kneeFL",
+        "kneeFR",
+        "hipBL",
+        "hipBR",
+        "kneeBL",
+        "kneeBR",
+        "neck"
+      ]
+    },
+    {
+      "name": "Sleep",
+      "truth": "REPRESENTATIVE",
+      "durationSeconds": 12,
+      "loop": true,
+      "channels": [
+        "torso",
+        "shoulderFL",
+        "shoulderFR",
+        "kneeFL",
+        "kneeFR",
+        "hipBL",
+        "hipBR",
+        "kneeBL",
+        "kneeBR",
+        "neck",
+        "head",
+        "tail0"
+      ]
+    },
+    {
+      "name": "Walk",
+      "truth": "REPRESENTATIVE",
+      "durationSeconds": 3,
+      "loop": true,
+      "channels": [
+        "root",
+        "torso",
+        "shoulderFL",
+        "kneeFL",
+        "shoulderFR",
+        "kneeFR",
+        "hipBL",
+        "kneeBL",
+        "hipBR",
+        "kneeBR",
+        "neck",
+        "tail1"
+      ]
+    },
+    {
+      "name": "Run",
+      "truth": "REPRESENTATIVE",
+      "durationSeconds": 2,
+      "loop": true,
+      "channels": [
+        "root",
+        "torso",
+        "shoulderFL",
+        "kneeFL",
+        "shoulderFR",
+        "kneeFR",
+        "hipBL",
+        "kneeBL",
+        "hipBR",
+        "kneeBR",
+        "neck",
+        "tail1"
+      ]
+    },
+    {
+      "name": "Eat",
+      "truth": "REPRESENTATIVE",
+      "durationSeconds": 6,
+      "loop": true,
+      "channels": [
+        "neck",
+        "head",
+        "torso",
+        "tail1"
+      ]
+    },
+    {
+      "name": "Drink",
+      "truth": "REPRESENTATIVE",
+      "durationSeconds": 5,
+      "loop": true,
+      "channels": [
+        "neck",
+        "head",
+        "torso"
+      ]
+    },
+    {
+      "name": "Play",
+      "truth": "REPRESENTATIVE",
+      "durationSeconds": 4,
+      "loop": true,
+      "channels": [
+        "root",
+        "torso",
+        "shoulderFL",
+        "shoulderFR",
+        "hipBL",
+        "hipBR",
+        "neck",
+        "tail1"
+      ]
+    },
+    {
+      "name": "Sniff",
+      "truth": "OBSERVED",
+      "durationSeconds": 7,
+      "loop": true,
+      "channels": [
+        "neck",
+        "head",
+        "torso"
+      ]
+    },
+    {
+      "name": "Stretch",
+      "truth": "OBSERVED",
+      "durationSeconds": 5,
+      "loop": false,
+      "channels": [
+        "torso",
+        "shoulderFL",
+        "shoulderFR",
+        "kneeFL",
+        "kneeFR",
+        "hipBL",
+        "hipBR",
+        "neck"
+      ]
+    }
+  ],
+  "names": [
+    "Idle",
+    "Stand",
+    "Sit",
+    "Lie",
+    "Sleep",
+    "Walk",
+    "Run",
+    "Eat",
+    "Drink",
+    "Play",
+    "Sniff",
+    "Stretch"
+  ],
+  "truth": {
+    "Idle": "AMBIENT",
+    "Stand": "AMBIENT",
+    "Sit": "REPRESENTATIVE",
+    "Lie": "REPRESENTATIVE",
+    "Sleep": "REPRESENTATIVE",
+    "Walk": "REPRESENTATIVE",
+    "Run": "REPRESENTATIVE",
+    "Eat": "REPRESENTATIVE",
+    "Drink": "REPRESENTATIVE",
+    "Play": "REPRESENTATIVE",
+    "Sniff": "OBSERVED",
+    "Stretch": "OBSERVED"
+  }
+}
