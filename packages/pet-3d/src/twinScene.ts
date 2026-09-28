@@ -31,6 +31,8 @@ export interface TwinDescriptor {
 
 export interface TwinScene {
   pet: THREE.Group;
+  /** Soft contact shadow (does not rotate with the pet). */
+  shadow: THREE.Mesh;
   rig: TwinRig;
   setPose(pose: PoseName, timeSeconds: number): void;
   /** Ground-normalized world bounds. */
@@ -178,8 +180,24 @@ export function createTwinScene(descriptor: TwinDescriptor): TwinScene {
   const pet = rig.joints.root;
   const bounds = { height: size.y, width: size.x, depth: size.z };
 
+  // Soft contact shadow on the ground plane (matches demo stage behavior).
+  const shadow = new THREE.Mesh(
+    new THREE.CircleGeometry(0.9, 48),
+    new THREE.MeshBasicMaterial({
+      color: 0x2a2018,
+      transparent: true,
+      opacity: 0.32,
+      depthWrite: false,
+    }),
+  );
+  shadow.name = "petContactShadow";
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = 0.02;
+  shadow.scale.set(1, 1, 1.1 + (morph.body_length - 1) * 0.5);
+
   const scene: TwinScene = {
     pet,
+    shadow,
     rig,
     setPose(pose: PoseName, t: number) {
       resetRigPose(rig);

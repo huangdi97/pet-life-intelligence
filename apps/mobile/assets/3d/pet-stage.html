@@ -21404,8 +21404,19 @@ void main() {
     rig.joints.root.position.z -= center.z;
     const pet = rig.joints.root;
     const bounds = { height: size.y, width: size.x, depth: size.z };
+    const shadow = new Mesh(new CircleGeometry(0.9, 48), new MeshBasicMaterial({
+      color: 2760728,
+      transparent: true,
+      opacity: 0.32,
+      depthWrite: false
+    }));
+    shadow.name = "petContactShadow";
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = 0.02;
+    shadow.scale.set(1, 1, 1.1 + (morph.body_length - 1) * 0.5);
     const scene2 = {
       pet,
+      shadow,
       rig,
       setPose(pose, t) {
         resetRigPose(rig);

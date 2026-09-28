@@ -16,6 +16,7 @@ import {
   addStageLights,
   applyOrbit,
   createPetStageScene,
+  createTwinScene,
   DEFAULT_ORBIT,
   frameCamera,
   orbitFromDrag,
@@ -24,7 +25,7 @@ import {
   STAGE_FOG,
   STAGE_TARGET,
 } from "@pli/pet-3d";
-import type { OrbitState, Pet3DIdentity } from "@pli/pet-3d";
+import type { OrbitState, Pet3DIdentity, PoseName, TwinDescriptor } from "@pli/pet-3d";
 
 export type Pet3DStatus = "boot" | "ready" | "failed";
 
@@ -32,13 +33,18 @@ interface Props {
   identity: Pet3DIdentity;
   variant?: "stage" | "life";
   interactive?: boolean;
+  /** Individual twin descriptor from the backend pipeline (R2P3D-R1). */
+  twin?: TwinDescriptor | null;
+  /** Active motion clip for the 3D stage. */
+  pose?: PoseName | null;
   onStatus?: (status: Pet3DStatus) => void;
 }
 
-export function Pet3DViewer({ identity, variant = "stage", interactive = false, onStatus }: Props) {
+export function Pet3DViewer({ identity, twin = null, pose = null, variant = "stage", interactive = false, onStatus }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const orbitRef = useRef<OrbitState>({ ...DEFAULT_ORBIT });
   const draggingRef = useRef(false);
+  const poseRef = useRef<PoseName | null>(pose);
   const [status, setStatus] = useState<Pet3DStatus>("boot");
 
   useEffect(() => {
@@ -74,7 +80,16 @@ export function Pet3DViewer({ identity, variant = "stage", interactive = false, 
 
     scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(STAGE_FOG, 0.045);
-    const stage = createPetStageScene(identity);
+    // Individual twin (R2P3D-R1) beats demo identity when a descriptor exists.
+    const stage = twin
+      ? createTwinScene({
+          family: twin.family ?? "standard-dog",
+          morph: twin.morph ?? {},
+          texture: twin.texture ?? {},
+          version: twin.version,
+          provenance: twin.provenance,
+        })
+      : createPetStageScene(identity);
     scene.add(stage.pet);
     scene.add(stage.shadow);
     addStageLights(scene);
@@ -85,7 +100,11 @@ export function Pet3DViewer({ identity, variant = "stage", interactive = false, 
       const w = Math.max(1, wrap.clientWidth);
       const h = Math.max(1, wrap.clientHeight);
       renderer?.setSize(w, h, false);
-      if (camera) frameCamera(camera, stage, w / h);
+      if (camera) {
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        applyOrbit(camera, STAGE_TARGET, orbitRef.current);
+      }
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -129,7 +148,13 @@ export function Pet3DViewer({ identity, variant = "stage", interactive = false, 
       }
       if (camera && scene) {
         applyOrbit(camera, STAGE_TARGET, orbitRef.current);
-        stage.setPose(t / 1000, !reducedMotion);
+        if (twin) {
+          // Twin scene: setPose(poseName, timeSeconds) — real joint animation.
+          (stage as any).setPose(poseRef.current ?? "Idle", t / 1000);
+        } else {
+          // Demo stage: setPose(timeSeconds, enabled) — breathing only.
+          (stage as any).setPose(t / 1000, !reducedMotion);
+        }
         renderer?.render(scene, camera);
       }
       raf = requestAnimationFrame(frame);
@@ -158,7 +183,6 @@ export function Pet3DViewer({ identity, variant = "stage", interactive = false, 
       scene?.traverse((obj) => {
         const mesh = obj as THREE.Mesh;
         if (mesh.isMesh) {
-          mesh.geometry.dispose();
           const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
           mats.forEach((m) => m.dispose());
         }
@@ -166,7 +190,12 @@ export function Pet3DViewer({ identity, variant = "stage", interactive = false, 
       renderer?.dispose();
       if (renderer?.domElement?.parentElement === wrap) wrap.removeChild(renderer.domElement);
     };
-  }, [identity, interactive, variant, onStatus]);
+  }, [identity, interactive, variant, onStatus, twin]);
+
+  // Keep poseRef in sync so the frame loop picks up pose switches.
+  useEffect(() => {
+    poseRef.current = pose;
+  }, [pose]);
 
   const zoom = (factor: number) => {
     orbitRef.current = orbitZoom(orbitRef.current, factor);
