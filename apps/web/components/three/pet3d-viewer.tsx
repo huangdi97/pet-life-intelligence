@@ -109,7 +109,7 @@ export function Pet3DViewer({ identity, twin = null, pose = null, variant = "sta
         } else {
           // Demo stage: keep the original frameCamera behavior so approved
           // visual baselines stay pixel-identical (no refactor churn).
-          frameCamera(camera, stage, w / h);
+          frameCamera(camera, stage as import("@pli/pet-3d").PetStageScene, w / h);
         }
       }
     };
