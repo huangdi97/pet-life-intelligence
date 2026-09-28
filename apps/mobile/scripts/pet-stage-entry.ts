@@ -3,11 +3,18 @@
 // asset. Communicates with React Native via window.ReactNativeWebView.postMessage:
 //   { type: "status", status: "ready" | "failed" }
 //   { type: "orientation", yaw, pitch, radius }
+//
+// R2P3D-R1 individual twin: when window.__PLI_TWIN is injected (family/morph/
+// texture from the backend pipeline), the page builds that individual twin via
+// createTwinScene; otherwise it falls back to the demo identity stage. Pose
+// switching is exposed as window.__PLI_SET_POSE(name) so RN can push motion
+// clips (Idle/Sit/Walk/...) — real joint animations, never health-driven.
 import * as THREE from "three";
 import {
   addStageLights,
   applyOrbit,
   createPetStageScene,
+  createTwinScene,
   DEFAULT_ORBIT,
   orbitFromDrag,
   orbitZoom,
@@ -20,6 +27,7 @@ declare const window: any;
 const rootEl = document.getElementById("stage") as HTMLElement;
 const identity = (window.__PLI_IDENTITY as string) === "mimi" ? "mimi" : "doudou";
 const interactive = !!window.__PLI_INTERACTIVE;
+const twinDescriptor = window.__PLI_TWIN ?? null;
 
 function post(msg: Record<string, unknown>): void {
   try {
@@ -49,13 +57,26 @@ rootEl.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(STAGE_FOG, 0.05);
-const stage = createPetStageScene(identity, {});
+
+// Individual twin (R2P3D-R1) beats demo identity when a descriptor is present.
+const stage = twinDescriptor
+  ? createTwinScene({
+      family: twinDescriptor.family ?? "standard-dog",
+      morph: twinDescriptor.morph ?? {},
+      texture: twinDescriptor.texture ?? {},
+      version: twinDescriptor.version,
+      provenance: twinDescriptor.provenance,
+    })
+  : createPetStageScene(identity, {});
 scene.add(stage.pet);
 scene.add(stage.shadow);
 addStageLights(scene);
 
 const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 40);
 const orbit = { ...DEFAULT_ORBIT };
+// Twin scenes are built ground-anchored and centered; keep default framing
+// but widen a touch so morph-extended pets still fit.
+if (twinDescriptor) orbit.radius = Math.max(orbit.radius, 5.2);
 
 function resize(): void {
   const w = Math.max(1, rootEl.clientWidth || window.innerWidth);
@@ -69,6 +90,15 @@ window.addEventListener("resize", resize);
 resize();
 applyOrbit(camera, STAGE_TARGET, orbit);
 
+// --- pose control ---
+let activePose: string | null = null;
+const poseTimeOffset = { value: 0 }; // deterministic start per pose switch
+(window as any).__PLI_SET_POSE = (name: string | null) => {
+  activePose = name && name !== "Idle" ? name : null;
+  poseTimeOffset.value = 0;
+  post({ type: "pose", pose: activePose ?? "Idle" });
+};
+
 let lastYaw = orbit.yaw;
 function reportOrientation(): void {
   if (Math.abs(orbit.yaw - lastYaw) > 0.02) {
@@ -78,7 +108,14 @@ function reportOrientation(): void {
 }
 
 function frame(t: number): void {
-  stage.setPose(t / 1000, true);
+  const time = (t / 1000) + poseTimeOffset.value;
+  if (twinDescriptor) {
+    // Twin scene: setPose(poseName, timeSeconds) — real joint animation.
+    (stage as any).setPose(activePose ?? "Idle", time);
+  } else {
+    // Demo stage: setPose(timeSeconds, enabled) — breathing only.
+    (stage as any).setPose(time, true);
+  }
   applyOrbit(camera, STAGE_TARGET, orbit);
   renderer.render(scene, camera);
   reportOrientation();

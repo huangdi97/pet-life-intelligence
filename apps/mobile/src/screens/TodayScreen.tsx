@@ -26,6 +26,8 @@ import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../component
 import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { eventTypeLabel, sourceLabel } from "./ui_labels";
 import { todayTasks, type TodayResp } from "./today";
+import { usePetTwin } from "../hooks/usePetTwin";
+import { poseForEvent } from "@pli/pet-3d";
 
 type TabNav = BottomTabNavigationProp<TabParamList>;
 type StackNav = NativeStackNavigationProp<StackParamList>;
@@ -93,6 +95,7 @@ function eventRowFromEvent(e: LifeEvent): LifeStreamRow {
 
 export function TodayScreen() {
   const { pets, petId, choose } = usePets();
+  const { twin } = usePetTwin(petId);
   const tabNav = useNavigation<TabNav>();
   const stackNav = useNavigation<StackNav>();
   const [today, setToday] = useState<TodayResp | null>(null);
@@ -103,6 +106,7 @@ export function TodayScreen() {
   const [loading, setLoading] = useState(true);
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
+
 
   useEffect(() => {
     if (!petId) return;
@@ -153,6 +157,9 @@ export function TodayScreen() {
 
   const counts = today?.event_counts ?? {};
   const todayEvents = (today?.events ?? []).filter((e) => e.event_type !== "today.viewed");
+  // Representative pose from the most recent real event (REPRESENTATIVE
+  // truth model). Health events never drive the pose.
+  const representativePose = poseForEvent(todayEvents[0]?.event_type ?? null);
 
   const anchors = useMemo(() => {
     const drinkCount = counts["daily.drink"] ?? 0;
@@ -214,6 +221,8 @@ export function TodayScreen() {
           caption={loading ? undefined : recentContext(todayEvents) ?? timeContextText()}
           demo={DEMO_ENV}
           onPressPet={pet ? () => stackNav.navigate("LifeView") : undefined}
+          twin={twin?.descriptor ?? null}
+          pose={twin ? representativePose ?? "Idle" : null}
         />
 
         {error && !loading ? <InlineError message="暂时连接不上，已展示已有内容" onRetry={() => setLoading((v) => !v)} /> : null}

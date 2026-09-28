@@ -1,0 +1,68 @@
+/**
+ * usePetTwin — fetch the active individual twin descriptor for a pet.
+ *
+ * R2P3D-R1: the backend stores a twin_descriptor (family/morph/texture/surface)
+ * in the active visual model's artifact_map. When present, the 3D stage builds
+ * THAT pet's candidate; when absent (no verified twin yet), screens keep the
+ * demo/photo fallback. Graceful by design — the twin is never a hard dependency.
+ */
+import { useCallback, useEffect, useState } from "react";
+import type { TwinDescriptor } from "@pli/pet-3d";
+import { api } from "../api";
+
+export interface ActiveTwin {
+  version: number;
+  descriptor: TwinDescriptor;
+  coverageRatio: number;
+  observedRegions: string[];
+  /** "DEMO_SYNTHETIC" | "OWNER_REPORTED" | "NOT_YET_OBSERVED" */
+  mediaProvenance: string;
+  activatedAt: string | null;
+}
+
+export function usePetTwin(petId: string | null): {
+  twin: ActiveTwin | null;
+  loading: boolean;
+  error: boolean;
+  reload: () => void;
+} {
+  const [twin, setTwin] = useState<ActiveTwin | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  const load = useCallback(() => {
+    if (!petId) return;
+    setLoading(true);
+    setError(false);
+    api
+      .get<{ models: Array<Record<string, unknown>> }>(`/pets/${petId}/visual-models`)
+      .then((r) => {
+        const active = (r.models ?? []).find((m) => m.status === "ACTIVE");
+        if (!active) {
+          setTwin(null);
+          return;
+        }
+        const artifactMap = (active.artifact_map ?? {}) as {
+          twin_descriptor?: TwinDescriptor;
+        };
+        const opts = (active.metadata_json ?? {}) as { opts?: { media_provenance?: string } };
+        const surface = (artifactMap.twin_descriptor as { surface?: { coverage_ratio?: number; observed_regions?: string[] } } | undefined)?.surface;
+        setTwin({
+          version: Number(active.version ?? 0),
+          descriptor: artifactMap.twin_descriptor ?? { family: "standard-dog" },
+          coverageRatio: surface?.coverage_ratio ?? 0,
+          observedRegions: surface?.observed_regions ?? [],
+          mediaProvenance: opts.opts?.media_provenance ?? "NOT_YET_OBSERVED",
+          activatedAt: (active.activated_at as string | null) ?? null,
+        });
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [petId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return { twin, loading, error, reload: load };
+}

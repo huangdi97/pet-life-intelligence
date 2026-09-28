@@ -2780,9 +2780,9 @@
     intersectsBox(box) {
       return box.max.x >= this.min.x && box.min.x <= this.max.x && box.max.y >= this.min.y && box.min.y <= this.max.y && box.max.z >= this.min.z && box.min.z <= this.max.z;
     }
-    intersectsSphere(sphere3) {
-      this.clampPoint(sphere3.center, _vector$b);
-      return _vector$b.distanceToSquared(sphere3.center) <= sphere3.radius * sphere3.radius;
+    intersectsSphere(sphere4) {
+      this.clampPoint(sphere4.center, _vector$b);
+      return _vector$b.distanceToSquared(sphere4.center) <= sphere4.radius * sphere4.radius;
     }
     intersectsPlane(plane) {
       let min, max;
@@ -2972,9 +2972,9 @@
       this.radius = Math.sqrt(maxRadiusSq);
       return this;
     }
-    copy(sphere3) {
-      this.center.copy(sphere3.center);
-      this.radius = sphere3.radius;
+    copy(sphere4) {
+      this.center.copy(sphere4.center);
+      this.radius = sphere4.radius;
       return this;
     }
     isEmpty() {
@@ -2991,9 +2991,9 @@
     distanceToPoint(point) {
       return point.distanceTo(this.center) - this.radius;
     }
-    intersectsSphere(sphere3) {
-      const radiusSum = this.radius + sphere3.radius;
-      return sphere3.center.distanceToSquared(this.center) <= radiusSum * radiusSum;
+    intersectsSphere(sphere4) {
+      const radiusSum = this.radius + sphere4.radius;
+      return sphere4.center.distanceToSquared(this.center) <= radiusSum * radiusSum;
     }
     intersectsBox(box) {
       return box.intersectsSphere(this);
@@ -3044,25 +3044,25 @@
       }
       return this;
     }
-    union(sphere3) {
-      if (sphere3.isEmpty()) {
+    union(sphere4) {
+      if (sphere4.isEmpty()) {
         return this;
       }
       if (this.isEmpty()) {
-        this.copy(sphere3);
+        this.copy(sphere4);
         return this;
       }
-      if (this.center.equals(sphere3.center) === true) {
-        this.radius = Math.max(this.radius, sphere3.radius);
+      if (this.center.equals(sphere4.center) === true) {
+        this.radius = Math.max(this.radius, sphere4.radius);
       } else {
-        _v2$3.subVectors(sphere3.center, this.center).setLength(sphere3.radius);
-        this.expandByPoint(_v1$6.copy(sphere3.center).add(_v2$3));
-        this.expandByPoint(_v1$6.copy(sphere3.center).sub(_v2$3));
+        _v2$3.subVectors(sphere4.center, this.center).setLength(sphere4.radius);
+        this.expandByPoint(_v1$6.copy(sphere4.center).add(_v2$3));
+        this.expandByPoint(_v1$6.copy(sphere4.center).sub(_v2$3));
       }
       return this;
     }
-    equals(sphere3) {
-      return sphere3.center.equals(this.center) && sphere3.radius === this.radius;
+    equals(sphere4) {
+      return sphere4.center.equals(this.center) && sphere4.radius === this.radius;
     }
     clone() {
       return new this.constructor().copy(this);
@@ -3180,11 +3180,11 @@
       }
       return sqrDist;
     }
-    intersectSphere(sphere3, target) {
-      _vector$a.subVectors(sphere3.center, this.origin);
+    intersectSphere(sphere4, target) {
+      _vector$a.subVectors(sphere4.center, this.origin);
       const tca = _vector$a.dot(this.direction);
       const d2 = _vector$a.dot(_vector$a) - tca * tca;
-      const radius2 = sphere3.radius * sphere3.radius;
+      const radius2 = sphere4.radius * sphere4.radius;
       if (d2 > radius2) return null;
       const thc = Math.sqrt(radius2 - d2);
       const t0 = tca - thc;
@@ -3193,8 +3193,8 @@
       if (t0 < 0) return this.at(t1, target);
       return this.at(t0, target);
     }
-    intersectsSphere(sphere3) {
-      return this.distanceSqToPoint(sphere3.center) <= sphere3.radius * sphere3.radius;
+    intersectsSphere(sphere4) {
+      return this.distanceSqToPoint(sphere4.center) <= sphere4.radius * sphere4.radius;
     }
     distanceToPlane(plane) {
       const denominator = plane.normal.dot(this.direction);
@@ -7637,8 +7637,8 @@
     distanceToPoint(point) {
       return this.normal.dot(point) + this.constant;
     }
-    distanceToSphere(sphere3) {
-      return this.distanceToPoint(sphere3.center) - sphere3.radius;
+    distanceToSphere(sphere4) {
+      return this.distanceToPoint(sphere4.center) - sphere4.radius;
     }
     projectPoint(point, target) {
       return target.copy(point).addScaledVector(this.normal, -this.distanceToPoint(point));
@@ -7666,8 +7666,8 @@
     intersectsBox(box) {
       return box.intersectsPlane(this);
     }
-    intersectsSphere(sphere3) {
-      return sphere3.intersectsPlane(this);
+    intersectsSphere(sphere4) {
+      return sphere4.intersectsPlane(this);
     }
     coplanarPoint(target) {
       return target.copy(this.normal).multiplyScalar(-this.constant);
@@ -7751,10 +7751,10 @@
       _sphere$5.applyMatrix4(sprite.matrixWorld);
       return this.intersectsSphere(_sphere$5);
     }
-    intersectsSphere(sphere3) {
+    intersectsSphere(sphere4) {
       const planes = this.planes;
-      const center = sphere3.center;
-      const negRadius = -sphere3.radius;
+      const center = sphere4.center;
+      const negRadius = -sphere4.radius;
       for (let i = 0; i < 6; i++) {
         const distance = planes[i].distanceToPoint(center);
         if (distance < negRadius) {
@@ -18326,7 +18326,7 @@ void main() {
       const normals = [];
       const binormals = [];
       const vec = new Vector3();
-      const mat3 = new Matrix4();
+      const mat4 = new Matrix4();
       for (let i = 0; i <= segments; i++) {
         const u = i / segments;
         tangents[i] = this.getTangentAt(u, new Vector3());
@@ -18358,7 +18358,7 @@ void main() {
         if (vec.length() > Number.EPSILON) {
           vec.normalize();
           const theta = Math.acos(clamp(tangents[i - 1].dot(tangents[i]), -1, 1));
-          normals[i].applyMatrix4(mat3.makeRotationAxis(vec, theta));
+          normals[i].applyMatrix4(mat4.makeRotationAxis(vec, theta));
         }
         binormals[i].crossVectors(tangents[i], normals[i]);
       }
@@ -18369,7 +18369,7 @@ void main() {
           theta = -theta;
         }
         for (let i = 1; i <= segments; i++) {
-          normals[i].applyMatrix4(mat3.makeRotationAxis(tangents[i], theta * i));
+          normals[i].applyMatrix4(mat4.makeRotationAxis(tangents[i], theta * i));
           binormals[i].crossVectors(tangents[i], normals[i]);
         }
       }
@@ -20854,10 +20854,574 @@ void main() {
     camera2.lookAt(target);
   }
 
+  // ../../packages/pet-3d/dist/morph.js
+  var M = (over) => ({
+    body_length: 1,
+    body_height: 1,
+    chest_width: 1,
+    waist_width: 1,
+    neck_length: 1,
+    head_scale: 1,
+    head_width: 1,
+    muzzle_length: 1,
+    ear_length: 1,
+    ear_width: 1,
+    ear_angle: 0,
+    leg_length_front: 1,
+    leg_length_back: 1,
+    paw_scale: 1,
+    tail_length: 1,
+    tail_thickness: 1,
+    tail_curve: 0,
+    overall_scale: 1,
+    ...over
+  });
+  var TWIN_TEMPLATES = {
+    "corgi-like": {
+      family: "corgi-like",
+      species: "dog",
+      defaultMorph: M({
+        body_length: 1.5,
+        body_height: 0.82,
+        chest_width: 1.15,
+        waist_width: 0.95,
+        neck_length: 0.8,
+        head_scale: 1.05,
+        head_width: 1.18,
+        muzzle_length: 0.7,
+        ear_length: 0.85,
+        ear_width: 0.9,
+        ear_angle: 0.05,
+        leg_length_front: 0.52,
+        leg_length_back: 0.55,
+        paw_scale: 1,
+        tail_length: 0.45,
+        tail_thickness: 1,
+        tail_curve: 0.35
+      })
+    },
+    "standard-dog": {
+      family: "standard-dog",
+      species: "dog",
+      defaultMorph: M({
+        body_length: 1.1,
+        body_height: 1,
+        chest_width: 1,
+        waist_width: 0.9,
+        neck_length: 1.15,
+        head_scale: 0.95,
+        head_width: 1,
+        muzzle_length: 1.1,
+        ear_length: 0.9,
+        ear_width: 0.9,
+        ear_angle: 0.12,
+        leg_length_front: 1.05,
+        leg_length_back: 1.05,
+        paw_scale: 1,
+        tail_length: 1.1,
+        tail_thickness: 0.9,
+        tail_curve: 0.2
+      })
+    },
+    "spitz-dog": {
+      family: "spitz-dog",
+      species: "dog",
+      defaultMorph: M({
+        body_length: 1,
+        body_height: 1,
+        chest_width: 1.05,
+        waist_width: 0.85,
+        neck_length: 1,
+        head_scale: 1,
+        head_width: 1,
+        muzzle_length: 0.9,
+        ear_length: 0.9,
+        ear_width: 0.8,
+        ear_angle: 0.1,
+        leg_length_front: 1,
+        leg_length_back: 1,
+        paw_scale: 1,
+        tail_length: 1.3,
+        tail_thickness: 1.1,
+        tail_curve: 0.45
+      })
+    },
+    "retriever-dog": {
+      family: "retriever-dog",
+      species: "dog",
+      defaultMorph: M({
+        body_length: 1.12,
+        body_height: 1.05,
+        chest_width: 1.18,
+        waist_width: 0.92,
+        neck_length: 1.05,
+        head_scale: 1.05,
+        head_width: 1.08,
+        muzzle_length: 1.15,
+        ear_length: 0.75,
+        ear_width: 0.85,
+        ear_angle: 0.28,
+        leg_length_front: 1.02,
+        leg_length_back: 1.02,
+        paw_scale: 1.05,
+        tail_length: 1.05,
+        tail_thickness: 0.95,
+        tail_curve: 0.18
+      })
+    },
+    "standard-cat": {
+      family: "standard-cat",
+      species: "cat",
+      defaultMorph: M({
+        body_length: 1.15,
+        body_height: 0.92,
+        chest_width: 0.92,
+        waist_width: 0.8,
+        neck_length: 0.95,
+        head_scale: 0.95,
+        head_width: 0.95,
+        muzzle_length: 0.7,
+        ear_length: 1,
+        ear_width: 0.85,
+        ear_angle: 0.05,
+        leg_length_front: 0.95,
+        leg_length_back: 0.98,
+        paw_scale: 0.85,
+        tail_length: 1.4,
+        tail_thickness: 0.55,
+        tail_curve: 0.3
+      })
+    }
+  };
+  var TWIN_TEMPLATE_FAMILIES = Object.keys(TWIN_TEMPLATES);
+  var MORPH_KEYS = Object.keys(TWIN_TEMPLATES["corgi-like"].defaultMorph);
+  function resolveTemplate(family) {
+    if (family && family in TWIN_TEMPLATES)
+      return TWIN_TEMPLATES[family];
+    return TWIN_TEMPLATES["standard-dog"];
+  }
+
+  // ../../packages/pet-3d/dist/rig.js
+  var DOG_JOINTS = [
+    { name: "root", parent: null, pos: [0, 0, 0] },
+    { name: "torso", parent: "root", pos: [0, 0.42, 0] },
+    { name: "neck", parent: "torso", pos: [0, 0.34, 0.42] },
+    { name: "head", parent: "neck", pos: [0, 0.12, 0.3] },
+    { name: "earL", parent: "head", pos: [-0.22, 0.22, -0.02] },
+    { name: "earR", parent: "head", pos: [0.22, 0.22, -0.02] },
+    { name: "tail0", parent: "torso", pos: [0, 0.18, -0.52] },
+    { name: "tail1", parent: "tail0", pos: [0, 0.08, -0.22] },
+    // front legs attach at the chest.
+    { name: "shoulderFL", parent: "torso", pos: [-0.34, 0.02, 0.34] },
+    { name: "kneeFL", parent: "shoulderFL", pos: [0, -0.22, 0] },
+    { name: "shoulderFR", parent: "torso", pos: [0.34, 0.02, 0.34] },
+    { name: "kneeFR", parent: "shoulderFR", pos: [0, -0.22, 0] },
+    // hind legs attach at the pelvis.
+    { name: "hipBL", parent: "torso", pos: [-0.36, -0.02, -0.36] },
+    { name: "kneeBL", parent: "hipBL", pos: [0, -0.2, 0] },
+    { name: "hipBR", parent: "torso", pos: [0.36, -0.02, -0.36] },
+    { name: "kneeBR", parent: "hipBR", pos: [0, -0.2, 0] }
+  ];
+  var CAT_JOINTS = DOG_JOINTS.map((j) => ({ ...j }));
+  function buildJointGraph(specs) {
+    const joints = {};
+    const nodes = /* @__PURE__ */ new Map();
+    for (const s of specs) {
+      const g = new Group();
+      g.name = `joint_${s.name}`;
+      g.position.set(s.pos[0], s.pos[1], s.pos[2]);
+      if (s.rot)
+        g.rotation.set(s.rot[0], s.rot[1], s.rot[2]);
+      nodes.set(s.name, g);
+      joints[s.name] = g;
+    }
+    for (const s of specs) {
+      if (s.parent && nodes.has(s.parent)) {
+        nodes.get(s.parent).add(nodes.get(s.name));
+      }
+    }
+    return joints;
+  }
+  function buildTwinRig(family, morph) {
+    const specs = family === "standard-cat" ? CAT_JOINTS : DOG_JOINTS;
+    const joints = buildJointGraph(specs);
+    const torso = joints.torso;
+    torso.scale.set(1 + (morph.chest_width - 1) * 0.5, 1 + (morph.body_height - 1) * 0.5, 1 + (morph.body_length - 1) * 0.55);
+    const neck = joints.neck;
+    neck.position.z = 0.42 * morph.neck_length;
+    const head = joints.head;
+    head.scale.set(morph.head_width, morph.head_scale, 1 + (morph.muzzle_length - 1) * 0.4);
+    for (const e of ["earL", "earR"]) {
+      joints[e].scale.set(morph.ear_width, morph.ear_length, 1);
+      joints[e].rotation.z += morph.ear_angle;
+    }
+    for (const k of ["kneeFL", "kneeFR", "kneeBL", "kneeBR"]) {
+      const front = k.endsWith("FL") || k.endsWith("FR");
+      const len = front ? morph.leg_length_front : morph.leg_length_back;
+      joints[k].position.y = -0.22 * len;
+      joints[k].scale.set(1 + (morph.paw_scale - 1) * 0.4, 1, 1);
+    }
+    const tail0 = joints.tail0;
+    tail0.scale.set(morph.tail_thickness, morph.tail_thickness, 1);
+    tail0.position.z = -0.52 * Math.max(0.6, morph.tail_length * 0.8);
+    joints.tail1.scale.set(morph.tail_thickness, morph.tail_thickness, 1);
+    joints.tail1.position.z = -0.22 * morph.tail_length;
+    joints.tail0.rotation.x = -morph.tail_curve * 0.5;
+    joints.tail1.rotation.x = -morph.tail_curve * 0.5;
+    const rig = {
+      joints,
+      addPart(joint, mesh) {
+        joints[joint].add(mesh);
+      },
+      setGround() {
+        const box = new Box3().setFromObject(joints.root);
+        const minY = box.min.y;
+        joints.root.position.y -= minY;
+      },
+      family,
+      morph: { ...morph }
+    };
+    return rig;
+  }
+  function resetRigPose(rig) {
+    for (const name of Object.keys(rig.joints)) {
+      const j = rig.joints[name];
+      j.position.set(0, 0, 0);
+      j.rotation.set(0, 0, 0);
+      j.scale.set(1, 1, 1);
+    }
+    const m = rig.morph;
+    rig.joints.torso.scale.set(1 + (m.chest_width - 1) * 0.5, 1 + (m.body_height - 1) * 0.5, 1 + (m.body_length - 1) * 0.55);
+    rig.joints.neck.position.z = 0.42 * m.neck_length;
+    rig.joints.head.scale.set(m.head_width, m.head_scale, 1 + (m.muzzle_length - 1) * 0.4);
+    for (const e of ["earL", "earR"]) {
+      rig.joints[e].scale.set(m.ear_width, m.ear_length, 1);
+      rig.joints[e].rotation.z += m.ear_angle;
+    }
+    for (const k of ["kneeFL", "kneeFR", "kneeBL", "kneeBR"]) {
+      const front = k.endsWith("FL") || k.endsWith("FR");
+      const len = front ? m.leg_length_front : m.leg_length_back;
+      rig.joints[k].position.y = -0.22 * len;
+    }
+    rig.joints.tail0.scale.set(m.tail_thickness, m.tail_thickness, 1);
+    rig.joints.tail0.position.z = -0.52 * Math.max(0.6, m.tail_length * 0.8);
+    rig.joints.tail1.scale.set(m.tail_thickness, m.tail_thickness, 1);
+    rig.joints.tail1.position.z = -0.22 * m.tail_length;
+    rig.joints.tail0.rotation.x = -m.tail_curve * 0.5;
+    rig.joints.tail1.rotation.x = -m.tail_curve * 0.5;
+  }
+
+  // ../../packages/pet-3d/dist/motion.js
+  function legSwing(t, speed, phase, amp, kneeBend) {
+    return {
+      swing: Math.sin(t * speed * Math.PI * 2 + phase) * amp,
+      knee: Math.max(0, Math.cos(t * speed * Math.PI * 2 + phase)) * kneeBend
+    };
+  }
+  var POSE_FN = {
+    // AMBIENT: presence only.
+    Idle: (_t) => ({
+      neck: { rot: [0.02, 0, 0] },
+      head: { rot: [0.04, 0, 0] },
+      tail0: { rot: [0.06 * Math.sin(_t * 1.6), 0, 0] },
+      tail1: { rot: [-0.15 - 0.05 * Math.sin(_t * 1.6), 0, 0] }
+    }),
+    Stand: () => ({
+      neck: { rot: [0, 0, 0] }
+    }),
+    Sit: () => ({
+      shoulderFL: { rot: [-0.25, 0, 0] },
+      shoulderFR: { rot: [-0.25, 0, 0] },
+      kneeFL: { rot: [0.45, 0, 0] },
+      kneeFR: { rot: [0.45, 0, 0] },
+      hipBL: { rot: [-1.35, 0, 0] },
+      hipBR: { rot: [-1.35, 0, 0] },
+      kneeBL: { rot: [-1.25, 0, 0] },
+      kneeBR: { rot: [-1.25, 0, 0] },
+      torso: { pos: [0, -0.28, 0] },
+      neck: { rot: [0.18, 0, 0] },
+      head: { rot: [-0.08, 0, 0] }
+    }),
+    Lie: () => ({
+      torso: { pos: [0, -0.3, 0] },
+      shoulderFL: { rot: [-1.2, 0, 0] },
+      shoulderFR: { rot: [-1.2, 0, 0] },
+      kneeFL: { rot: [0.5, 0, 0] },
+      kneeFR: { rot: [0.5, 0, 0] },
+      hipBL: { rot: [-1.2, 0, 0] },
+      hipBR: { rot: [-1.2, 0, 0] },
+      kneeBL: { rot: [0.4, 0, 0] },
+      kneeBR: { rot: [0.4, 0, 0] },
+      neck: { rot: [0.1, 0, 0] }
+    }),
+    Sleep: (t) => ({
+      torso: { pos: [0, -0.32, 0], scale: [1.02, 0.98 + Math.sin(t * 1.2) * 0.012, 1.02] },
+      shoulderFL: { rot: [-1.25, 0, 0] },
+      shoulderFR: { rot: [-1.25, 0, 0] },
+      kneeFL: { rot: [0.55, 0, 0] },
+      kneeFR: { rot: [0.55, 0, 0] },
+      hipBL: { rot: [-1.25, 0, 0] },
+      hipBR: { rot: [-1.25, 0, 0] },
+      kneeBL: { rot: [0.45, 0, 0] },
+      kneeBR: { rot: [0.45, 0, 0] },
+      neck: { rot: [0.25, 0, 0] },
+      head: { rot: [0.15, 0, 0] },
+      tail0: { rot: [0.1, 0, 0] }
+    }),
+    // REPRESENTATIVE: gait cycles with diagonal phasing.
+    Walk: (t) => {
+      const f = legSwing(t, 1.1, 0, 0.55, 0.35);
+      const r = legSwing(t, 1.1, Math.PI, 0.55, 0.35);
+      const b = legSwing(t, 1.1, Math.PI * 0.5, 0.55, 0.35);
+      const l = legSwing(t, 1.1, Math.PI * 1.5, 0.55, 0.35);
+      return {
+        root: { pos: [0, Math.abs(Math.sin(t * 1.1 * Math.PI * 2)) * 0.03, 0] },
+        torso: { rot: [Math.sin(t * 1.1 * Math.PI * 2) * 0.04, 0, 0] },
+        shoulderFL: { rot: [f.swing, 0.05, 0] },
+        kneeFL: { rot: [f.knee, 0, 0] },
+        shoulderFR: { rot: [r.swing, -0.05, 0] },
+        kneeFR: { rot: [r.knee, 0, 0] },
+        hipBL: { rot: [b.swing, 0.05, 0] },
+        kneeBL: { rot: [b.knee, 0, 0] },
+        hipBR: { rot: [l.swing, -0.05, 0] },
+        kneeBR: { rot: [l.knee, 0, 0] },
+        neck: { rot: [Math.sin(t * 2.2 * Math.PI) * 0.06, 0, 0] },
+        tail1: { rot: [-0.2 + Math.sin(t * 6) * 0.1, 0, 0] }
+      };
+    },
+    Run: (t) => {
+      const f = legSwing(t, 1.9, 0, 0.95, 0.8);
+      const r = legSwing(t, 1.9, Math.PI, 0.95, 0.8);
+      const b = legSwing(t, 1.9, Math.PI * 0.5, 0.95, 0.8);
+      const l = legSwing(t, 1.9, Math.PI * 1.5, 0.95, 0.8);
+      return {
+        root: { pos: [0, Math.abs(Math.sin(t * 1.9 * Math.PI * 2)) * 0.07, 0] },
+        torso: { rot: [Math.sin(t * 1.9 * Math.PI * 2) * 0.09, 0, 0] },
+        shoulderFL: { rot: [f.swing, 0.08, 0] },
+        kneeFL: { rot: [f.knee, 0, 0] },
+        shoulderFR: { rot: [r.swing, -0.08, 0] },
+        kneeFR: { rot: [r.knee, 0, 0] },
+        hipBL: { rot: [b.swing, 0.08, 0] },
+        kneeBL: { rot: [b.knee, 0, 0] },
+        hipBR: { rot: [l.swing, -0.08, 0] },
+        kneeBR: { rot: [l.knee, 0, 0] },
+        neck: { rot: [Math.sin(t * 3.8 * Math.PI) * 0.1, 0, 0] },
+        tail1: { rot: [-0.3 + Math.sin(t * 10) * 0.15, 0, 0] }
+      };
+    },
+    Eat: (t) => ({
+      neck: { rot: [0.55 + Math.sin(t * 1.4) * 0.12, 0, 0] },
+      head: { rot: [-0.15 + Math.sin(t * 2.8) * 0.08, 0, 0] },
+      torso: { pos: [0, -0.12, 0] },
+      tail1: { rot: [-0.1, 0, 0.1 + Math.sin(t * 3) * 0.05] }
+    }),
+    Drink: (t) => ({
+      neck: { rot: [0.7 - Math.sin(t * 1.2) * 0.05, 0, 0] },
+      head: { rot: [-0.35 - Math.sin(t * 2.4) * 0.06, 0, 0] },
+      torso: { pos: [0, -0.14, 0] }
+    }),
+    Play: (t) => ({
+      root: { pos: [0, Math.abs(Math.sin(t * 2.2)) * 0.06, Math.sin(t * 3) * 0.08] },
+      torso: { rot: [0.1, 0, Math.sin(t * 3) * 0.18] },
+      shoulderFL: { rot: [-0.4 + Math.sin(t * 2.2) * 0.2, 0, 0] },
+      shoulderFR: { rot: [-0.4 - Math.sin(t * 2.2) * 0.2, 0, 0] },
+      hipBL: { rot: [-0.5, 0, 0] },
+      hipBR: { rot: [-0.5, 0, 0] },
+      neck: { rot: [0.2, Math.sin(t * 2) * 0.25, 0] },
+      tail1: { rot: [-0.3, 0, Math.sin(t * 8) * 0.3] }
+    }),
+    Sniff: (t) => ({
+      neck: { rot: [0.35, Math.sin(t * 0.8) * 0.3, 0] },
+      head: { rot: [-0.1, 0, 0] },
+      torso: { pos: [0, -0.1, 0] }
+    }),
+    Stretch: (t) => {
+      const s = Math.max(0, Math.sin(t * 1.1));
+      return {
+        torso: { pos: [0, -0.1 * s, 0], scale: [1 + 0.08 * s, 1 + 0.05 * s, 1.2 + 0.3 * s] },
+        shoulderFL: { rot: [-0.9 * s, 0, 0] },
+        shoulderFR: { rot: [-0.9 * s, 0, 0] },
+        kneeFL: { rot: [0.35 * s, 0, 0] },
+        kneeFR: { rot: [0.35 * s, 0, 0] },
+        hipBL: { rot: [0.7 * s, 0, 0] },
+        hipBR: { rot: [0.7 * s, 0, 0] },
+        neck: { rot: [-0.35 * s, 0, 0] }
+      };
+    }
+  };
+  function collectChannels(fn, samples = 12) {
+    const names = /* @__PURE__ */ new Set();
+    for (let i = 0; i < samples; i++) {
+      const f = fn(i / samples);
+      for (const k of Object.keys(f))
+        names.add(k);
+    }
+    return Array.from(names);
+  }
+  var POSE_CLIPS = {
+    Idle: { name: "Idle", truth: "AMBIENT", durationSeconds: 8, loop: true, channels: collectChannels(POSE_FN.Idle) },
+    Stand: { name: "Stand", truth: "AMBIENT", durationSeconds: 4, loop: true, channels: [] },
+    Sit: { name: "Sit", truth: "REPRESENTATIVE", durationSeconds: 6, loop: true, channels: collectChannels(POSE_FN.Sit) },
+    Lie: { name: "Lie", truth: "REPRESENTATIVE", durationSeconds: 8, loop: true, channels: collectChannels(POSE_FN.Lie) },
+    Sleep: { name: "Sleep", truth: "REPRESENTATIVE", durationSeconds: 12, loop: true, channels: collectChannels(POSE_FN.Sleep) },
+    Walk: { name: "Walk", truth: "REPRESENTATIVE", durationSeconds: 3, loop: true, channels: collectChannels(POSE_FN.Walk) },
+    Run: { name: "Run", truth: "REPRESENTATIVE", durationSeconds: 2, loop: true, channels: collectChannels(POSE_FN.Run) },
+    Eat: { name: "Eat", truth: "REPRESENTATIVE", durationSeconds: 6, loop: true, channels: collectChannels(POSE_FN.Eat) },
+    Drink: { name: "Drink", truth: "REPRESENTATIVE", durationSeconds: 5, loop: true, channels: collectChannels(POSE_FN.Drink) },
+    Play: { name: "Play", truth: "REPRESENTATIVE", durationSeconds: 4, loop: true, channels: collectChannels(POSE_FN.Play) },
+    Sniff: { name: "Sniff", truth: "OBSERVED", durationSeconds: 7, loop: true, channels: collectChannels(POSE_FN.Sniff) },
+    Stretch: { name: "Stretch", truth: "OBSERVED", durationSeconds: 5, loop: false, channels: collectChannels(POSE_FN.Stretch) }
+  };
+  function applyPose(rig, pose, t) {
+    const fn = POSE_FN[pose] ?? POSE_FN.Idle;
+    const frame2 = fn(t);
+    for (const name of Object.keys(frame2)) {
+      const joint = rig.joints[name];
+      if (!joint)
+        continue;
+      const x = frame2[name];
+      if (x.rot)
+        joint.rotation.set(x.rot[0], x.rot[1], x.rot[2]);
+      if (x.pos) {
+        joint.position.x = x.pos[0];
+        joint.position.y = x.pos[1];
+        joint.position.z = x.pos[2];
+      }
+      if (x.scale)
+        joint.scale.set(x.scale[0], x.scale[1], x.scale[2]);
+    }
+  }
+
+  // ../../packages/pet-3d/dist/twinScene.js
+  var REGION_DEFAULT = {
+    coat: "#E8C79A",
+    cream: "#FBF6EB",
+    ear: "#C08A4E",
+    nose: "#4A3A2C",
+    eye: "#33241C",
+    paw: "#F2D9AD",
+    tail: "#D9A968"
+  };
+  function mat3(color, rough = 0.92) {
+    return new MeshStandardMaterial({ color, roughness: rough, metalness: 0 });
+  }
+  var sphere3 = (r) => new SphereGeometry(r, 20, 16);
+  var cyl3 = (rt, rb, h) => new CylinderGeometry(rt, rb, h, 12);
+  var cone3 = (r, h) => new ConeGeometry(r, h, 10);
+  function part3(geo, color, dx, dy, dz, scale, rot) {
+    const m = new Mesh(geo, mat3(color));
+    m.position.set(dx, dy, dz);
+    if (scale)
+      m.scale.set(scale[0], scale[1], scale[2]);
+    if (rot)
+      m.rotation.set(rot[0], rot[1], rot[2]);
+    return m;
+  }
+  function colorFor(regions, name, fallback) {
+    if ((regions == null ? void 0 : regions.observed) && regions.observed[name])
+      return regions.observed[name];
+    if ((regions == null ? void 0 : regions.inferred) && regions.inferred[name])
+      return regions.inferred[name];
+    return REGION_DEFAULT[name] ?? fallback;
+  }
+  function createTwinScene(descriptor) {
+    const template = resolveTemplate(descriptor.family);
+    const morph = { ...template.defaultMorph, ...descriptor.morph ?? {} };
+    const tex = descriptor.texture ?? {};
+    const isCat = template.species === "cat";
+    const rig = buildTwinRig(template.family, morph);
+    const bodyColor = colorFor(tex, "coat", isCat ? "#C9BFB2" : "#E8C79A");
+    const body = part3(sphere3(0.6), bodyColor, 0, 0, 0, [1, 0.85, 1.3]).clone();
+    body.name = "body";
+    rig.addPart("torso", body);
+    const creamColor = colorFor(tex, "cream", isCat ? "#EFE6DA" : "#FBF6EB");
+    const chest = part3(sphere3(0.38), creamColor, 0, -0.05, 0.28, [0.9, 0.6, 1.1]);
+    chest.name = "chest";
+    rig.addPart("torso", chest);
+    const headColor = colorFor(tex, "coat", bodyColor);
+    const head = part3(sphere3(0.4), headColor, 0, 0.12, 0.28);
+    head.name = "head";
+    rig.addPart("head", head);
+    const noseColor = colorFor(tex, "nose", "#4A3A2C");
+    const muzzle = part3(sphere3(0.17), colorFor(tex, "cream", creamColor), 0, 0, 0.5, [1, 0.7, 0.9]);
+    muzzle.name = "muzzle";
+    rig.addPart("head", muzzle);
+    const nose = part3(sphere3(0.075), noseColor, 0, 0.04, 0.62, [1, 0.85, 0.8]);
+    nose.name = "nose";
+    rig.addPart("head", nose);
+    const eyeColor = colorFor(tex, "eye", "#33241C");
+    const eyeL = part3(sphere3(0.045), eyeColor, -0.15, 0.16, 0.46);
+    eyeL.name = "eyeL";
+    rig.addPart("head", eyeL);
+    const eyeR = part3(sphere3(0.045), eyeColor, 0.15, 0.16, 0.46);
+    eyeR.name = "eyeR";
+    rig.addPart("head", eyeR);
+    const earColor = colorFor(tex, "ear", isCat ? "#D9B8B0" : "#C08A4E");
+    const earL = part3(cone3(0.17, isCat ? 0.55 : 0.45), earColor, 0, 0.25, 0, [1, 1.15, 0.8]);
+    earL.name = "earL";
+    rig.addPart("earL", earL);
+    const earR = part3(cone3(0.17, isCat ? 0.55 : 0.45), earColor, 0, 0.25, 0, [1, 1.15, 0.8]);
+    earR.name = "earR";
+    rig.addPart("earR", earR);
+    const innerColor = colorFor(tex, "ear", earColor);
+    const innerL = part3(cone3(0.09, 0.26), innerColor, 0, 0.16, 0, [1, 0.9, 0.7]);
+    innerL.name = "earInnerL";
+    rig.addPart("earL", innerL);
+    const innerR = part3(cone3(0.09, 0.26), innerColor, 0, 0.16, 0, [1, 0.9, 0.7]);
+    innerR.name = "earInnerR";
+    rig.addPart("earR", innerR);
+    const legColor = colorFor(tex, "coat", bodyColor);
+    const pawColor = colorFor(tex, "paw", "#F2D9AD");
+    const legs = [
+      { knee: "kneeFL", shoulder: "shoulderFL" },
+      { knee: "kneeFR", shoulder: "shoulderFR" },
+      { knee: "kneeBL", shoulder: "hipBL" },
+      { knee: "kneeBR", shoulder: "hipBR" }
+    ];
+    for (const leg of legs) {
+      const upper = part3(cyl3(0.09, 0.08, 0.24), legColor, 0, -0.11, 0);
+      upper.name = `leg_${leg.knee}`;
+      rig.addPart(leg.shoulder, upper);
+      const lower = part3(cyl3(0.08, 0.07, 0.2), legColor, 0, -0.2, 0);
+      lower.name = `lower_${leg.knee}`;
+      rig.addPart(leg.knee, lower);
+      const paw = part3(sphere3(0.08), pawColor, 0, -0.26, 0.02, [1.3, 0.7, 1.5]);
+      paw.name = `paw_${leg.knee}`;
+      rig.addPart(leg.knee, paw);
+    }
+    const tailColor = colorFor(tex, "tail", bodyColor);
+    const tail0 = part3(cyl3(0.07, 0.06, 0.24), tailColor, 0, 0.06, -0.08);
+    tail0.name = "tail0";
+    rig.addPart("tail0", tail0);
+    const tail1 = part3(cyl3(0.06, 0.03, 0.22), tailColor, 0, 0.06, -0.12, void 0, [0.35, 0, 0]);
+    tail1.name = "tail1";
+    rig.addPart("tail1", tail1);
+    rig.setGround();
+    const box = new Box3().setFromObject(rig.joints.root);
+    const size = box.getSize(new Vector3());
+    const center = box.getCenter(new Vector3());
+    rig.joints.root.position.x -= center.x;
+    rig.joints.root.position.z -= center.z;
+    const pet = rig.joints.root;
+    const bounds = { height: size.y, width: size.x, depth: size.z };
+    const scene2 = {
+      pet,
+      rig,
+      setPose(pose, t) {
+        resetRigPose(rig);
+        if (pose !== "Stand")
+          applyPose(rig, pose, t);
+      },
+      bounds
+    };
+    return scene2;
+  }
+
   // scripts/pet-stage-entry.ts
   var rootEl = document.getElementById("stage");
   var identity = window.__PLI_IDENTITY === "mimi" ? "mimi" : "doudou";
   var interactive = !!window.__PLI_INTERACTIVE;
+  var twinDescriptor = window.__PLI_TWIN ?? null;
   function post(msg) {
     try {
       if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
@@ -20883,12 +21447,19 @@ void main() {
   rootEl.appendChild(renderer.domElement);
   var scene = new Scene();
   scene.fog = new FogExp2(STAGE_FOG, 0.05);
-  var stage = createPetStageScene(identity, {});
+  var stage = twinDescriptor ? createTwinScene({
+    family: twinDescriptor.family ?? "standard-dog",
+    morph: twinDescriptor.morph ?? {},
+    texture: twinDescriptor.texture ?? {},
+    version: twinDescriptor.version,
+    provenance: twinDescriptor.provenance
+  }) : createPetStageScene(identity, {});
   scene.add(stage.pet);
   scene.add(stage.shadow);
   addStageLights(scene);
   var camera = new PerspectiveCamera(38, 1, 0.1, 40);
   var orbit = { ...DEFAULT_ORBIT };
+  if (twinDescriptor) orbit.radius = Math.max(orbit.radius, 5.2);
   function resize() {
     const w = Math.max(1, rootEl.clientWidth || window.innerWidth);
     const h = Math.max(1, rootEl.clientHeight || window.innerHeight);
@@ -20900,6 +21471,13 @@ void main() {
   window.addEventListener("resize", resize);
   resize();
   applyOrbit(camera, STAGE_TARGET, orbit);
+  var activePose = null;
+  var poseTimeOffset = { value: 0 };
+  window.__PLI_SET_POSE = (name) => {
+    activePose = name && name !== "Idle" ? name : null;
+    poseTimeOffset.value = 0;
+    post({ type: "pose", pose: activePose ?? "Idle" });
+  };
   var lastYaw = orbit.yaw;
   function reportOrientation() {
     if (Math.abs(orbit.yaw - lastYaw) > 0.02) {
@@ -20908,7 +21486,12 @@ void main() {
     }
   }
   function frame(t) {
-    stage.setPose(t / 1e3, true);
+    const time = t / 1e3 + poseTimeOffset.value;
+    if (twinDescriptor) {
+      stage.setPose(activePose ?? "Idle", time);
+    } else {
+      stage.setPose(time, true);
+    }
     applyOrbit(camera, STAGE_TARGET, orbit);
     renderer.render(scene, camera);
     reportOrientation();

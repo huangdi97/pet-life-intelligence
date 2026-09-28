@@ -20,6 +20,8 @@ import { LivingModeSwitcher, type LivingMode } from "../components/life/LivingMo
 import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../components/timeline/LifeStream";
 import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { eventTypeLabel, sourceLabel } from "./ui_labels";
+import { usePetTwin } from "../hooks/usePetTwin";
+import { POSE_META, type PoseName } from "@pli/pet-3d";
 
 interface AnchorDetail {
   id: string;
@@ -30,11 +32,12 @@ interface AnchorDetail {
   evidence: string;
   compare: string;
 }
-
 export function LifeViewScreen() {
   const { pets, petId } = usePets();
+  const { twin } = usePetTwin(petId);
   const [today, setToday] = useState<{ events: LifeEvent[] } | null>(null);
   const [mode, setMode] = useState<LivingMode>("now");
+  const [pose, setPose] = useState<PoseName>("Idle");
   const [error, setError] = useState(false);
   const [detail, setDetail] = useState<AnchorDetail | null>(null);
 
@@ -128,10 +131,32 @@ export function LifeViewScreen() {
           anchors={anchors}
           headline={mode === "now" ? "豆豆 · 此刻" : undefined}
           caption={mode === "now" ? nowLine : undefined}
-          note="演示 3D 形象（开发环境）· 未来连接真实服务后，将用豆豆的照片生成"
+          note={
+            twin
+              ? `第 ${twin.version} 版 3D 形象 · 已通过你的确认 · 外观来自${twin.mediaProvenance === "OWNER_REPORTED" ? "你的照片" : "演示素材"}`
+              : "演示 3D 形象（开发环境）· 未来连接真实服务后，将用豆豆的照片生成"
+          }
           demo={DEMO_ENV}
           interactive
+          twin={twin?.descriptor ?? null}
+          pose={pose}
         />
+
+        {twin ? (
+          <View style={styles.poseRow} accessibilityLabel="3D 形象动作选择">
+            {(["Idle", "Sit", "Walk", "Run", "Eat", "Drink", "Sleep"] as PoseName[]).map((p) => (
+              <Pressable
+                key={p}
+                accessibilityRole="button"
+                accessibilityState={{ selected: pose === p }}
+                onPress={() => setPose(p)}
+                style={[styles.poseChip, pose === p && styles.poseChipSel]}
+              >
+                <Text style={[styles.poseChipText, pose === p && styles.poseChipTextSel]}>{POSE_META[p].label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
         <LivingModeSwitcher value={mode} onChange={setMode} />
 
@@ -237,6 +262,18 @@ const styles = StyleSheet.create({
   trendLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary },
   trendValue: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary },
   lookRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2 },
+  poseRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
+  poseChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.dividerSubtle,
+  },
+  poseChipSel: { backgroundColor: COLORS.brandPrimary, borderColor: COLORS.brandPrimary },
+  poseChipText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
+  poseChipTextSel: { color: COLORS.textInverse, fontWeight: "600" },
   scrim: { flex: 1, backgroundColor: "rgba(16,13,11,0.45)", justifyContent: "flex-end" },
   sheet: {
     backgroundColor: COLORS.surfaceRaised,

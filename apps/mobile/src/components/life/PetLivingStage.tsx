@@ -12,7 +12,7 @@ import { Pressable, StyleSheet, Text, View, type DimensionValue } from "react-na
 import { Ionicons } from "@expo/vector-icons";
 import type { Pet } from "../../services/types";
 import { COLORS, RADIUS, SPACE, TYPE } from "../../tokens";
-import { resolvePet3DIdentity } from "@pli/pet-3d";
+import { resolvePet3DIdentity, type PoseName, type TwinDescriptor } from "@pli/pet-3d";
 import { PetStageRenderer, type PetStageSpec } from "../pet/PetStageRenderer";
 import { Pet3DViewer, type Pet3DStatus } from "../three/Pet3DViewer";
 import { PetStateAnchor, type PetAnchor } from "./PetStateAnchor";
@@ -46,6 +46,10 @@ interface Props {
   /** Enables drag rotate + pinch zoom (Life View). */
   interactive?: boolean;
   onPressPet?: () => void;
+  /** Individual twin descriptor from the backend (R2P3D-R1). */
+  twin?: TwinDescriptor | null;
+  /** Active motion clip for the 3D stage. */
+  pose?: PoseName | null;
 }
 
 export function PetLivingStage({
@@ -59,9 +63,13 @@ export function PetLivingStage({
   demo = false,
   interactive = false,
   onPressPet,
+  twin = null,
+  pose = null,
 }: Props) {
   const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
   const identity = pet ? resolvePet3DIdentity({ name: pet.name, species: pet.species, breed: pet.breed }) : null;
+  // An individual twin descriptor from the backend makes 3D meaningful for
+  // this specific pet; otherwise we fall back to the demo identity stage.
   const use3d = identity !== null && pet3d !== "failed";
   const height = HEIGHTS[variant];
   const petWidth = PET_WIDTHS[variant];
@@ -69,7 +77,7 @@ export function PetLivingStage({
 
   const petLayer = use3d ? (
     <View style={{ width: petWidth, height: Math.round(petWidth * 1.12) }}>
-      <Pet3DViewer identity={identity} interactive={interactive} onStatus={setPet3d} />
+      <Pet3DViewer identity={identity} twin={twin} pose={pose} interactive={interactive} onStatus={setPet3d} />
     </View>
   ) : (
     <View pointerEvents={onPressPet ? "none" : undefined}>

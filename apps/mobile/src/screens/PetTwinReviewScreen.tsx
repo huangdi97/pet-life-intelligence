@@ -17,10 +17,10 @@ import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
 import type { StackParamList } from "../navigation";
 import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { PetLivingStage } from "../components/life/PetLivingStage";
+import type { TwinDescriptor } from "@pli/pet-3d";
 
 type StackNav = NativeStackNavigationProp<StackParamList>;
 type Route = RouteProp<StackParamList, "TwinReview">;
-
 export interface TwinModel {
   version: number;
   provider: string;
@@ -32,6 +32,7 @@ export interface TwinModel {
   observed_surface_manifest: Record<string, string>;
   inferred_surface_manifest: Record<string, string>;
   provenance_kind: string;
+  artifact_map?: { twin_descriptor?: TwinDescriptor };
 }
 
 const ISSUES = ["脸", "耳朵", "毛色", "花纹", "体型", "尾巴", "四肢", "其他"];
@@ -53,13 +54,19 @@ export function PetTwinReviewScreen() {
   const [pickedIssues, setPickedIssues] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [candidate, setCandidate] = useState<TwinDescriptor | null>(null);
 
   const load = useCallback(() => {
     if (!petId) return;
     setLoading(true);
     api
       .get<TwinModel>(`/pets/${petId}/visual-models/${version}`)
-      .then(() => undefined)
+      .then((m) => {
+        // The candidate twin descriptor lives in artifact_map.twin_descriptor
+        // (family/morph/texture/surface) produced by the backend pipeline.
+        const map = (m as { artifact_map?: { twin_descriptor?: TwinDescriptor } }).artifact_map;
+        setCandidate(map?.twin_descriptor ?? null);
+      })
       .catch(() => undefined)
       .finally(() => setLoading(false));
   }, [petId, version]);
@@ -106,7 +113,7 @@ export function PetTwinReviewScreen() {
         <View style={styles.center}><ActivityIndicator color={COLORS.brandPrimary} /></View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="life" demo={DEMO_ENV} />
+          <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="life" demo={DEMO_ENV} twin={candidate} pose="Idle" />
           <Text style={styles.caption}>
             这是根据豆豆的照片与模板生成的第 {version} 版干净形象。旋转查看后回答：像它吗？
           </Text>

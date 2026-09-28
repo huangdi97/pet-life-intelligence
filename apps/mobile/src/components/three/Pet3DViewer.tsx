@@ -1,32 +1,46 @@
 /**
- * Pet3DViewer — mobile adapter for the shared demo pet 3D scene.
+ * Pet3DViewer — mobile adapter for the pet 3D scene (individual twin capable).
  *
  * Android mechanism (R2-P3D, documented in R2P3D_3D_STAGE_ARCHITECTURE.md):
  * a self-contained page (three + the shared @pli/pet-3d asset, embedded as an
  * inline string via scripts/build-3d-page.mjs) runs inside react-native-webview.
  * The page handles drag-rotate / pinch-zoom / reset and reports status +
  * orientation via postMessage, so Life View rotation is real rendered 3D.
+ *
+ * R2P3D-R1: when a twin descriptor (family/morph/texture from the backend
+ * individual-twin pipeline) is provided, the page builds THAT individual twin
+ * instead of the demo identity. The `pose` prop switches the active motion
+ * clip (Idle/Sit/Walk/...) by injecting a page call — poses are real joint
+ * animations driven by the shared motion library.
+ *
  * On WebGL failure the page reports "failed" and screens fall back to
  * photo / 2.5D — 3D is never a single point of failure.
  */
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
-import { PET_3D_ASSETS } from "@pli/pet-3d";
+import { PET_3D_ASSETS, type PoseName } from "@pli/pet-3d";
 import type { Pet3DIdentity } from "@pli/pet-3d";
 import { PET_STAGE_HTML } from "../../three/petStageHtml";
+import type { TwinDescriptor } from "@pli/pet-3d";
 
 export type Pet3DStatus = "boot" | "ready" | "failed";
 
 interface Props {
   identity: Pet3DIdentity;
+  /** Individual twin descriptor from the backend pipeline (family/morph/texture). */
+  twin?: TwinDescriptor | null;
+  /** Active motion clip name (persisted across remounts). */
+  pose?: PoseName | null;
   interactive?: boolean;
   onStatus?: (status: Pet3DStatus) => void;
   onOrientation?: (yaw: number) => void;
 }
 
-export function Pet3DViewer({ identity, interactive = false, onStatus, onOrientation }: Props) {
+export function Pet3DViewer({ identity, twin = null, pose = null, interactive = false, onStatus, onOrientation }: Props) {
   const [status, setStatus] = useState<Pet3DStatus>("boot");
+  const webRef = useRef<WebView>(null);
+  const lastPose = useRef<string | undefined>(undefined);
 
   const onMessage = (e: WebViewMessageEvent) => {
     try {
@@ -47,18 +61,32 @@ export function Pet3DViewer({ identity, interactive = false, onStatus, onOrienta
     }
   };
 
-  const injected = `window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; true;`;
+  // Push pose changes into the page after it is ready.
+  useEffect(() => {
+    if (!pose || status !== "ready" || pose === lastPose.current) return;
+    lastPose.current = pose;
+    webRef.current?.injectJavaScript(`window.__PLI_SET_POSE && window.__PLI_SET_POSE(${JSON.stringify(pose)}); true;`);
+  }, [pose, status]);
+
+  const twinJson = twin ? JSON.stringify(twin).replace(/\\/g, "\\\\").replace(/'/g, "\\'") : "";
+  const injected = `window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; ${
+    twin ? `window.__PLI_TWIN = JSON.parse('${twinJson}');` : ""
+  } true;`;
 
   const meta = PET_3D_ASSETS[identity];
+  const label = twin
+    ? `${meta.name}的 3D 形象（由照片/模板生成，待你确认后才显示）。`
+    : `${meta.name}的 3D 形象（演示，开发环境）。${meta.description}`;
 
   return (
     <View
       style={styles.container}
-      accessibilityLabel={`${meta.name}的 3D 形象（演示，开发环境）。${meta.description}`}
+      accessibilityLabel={label}
       accessibilityRole="image"
       testID="pet3d-stage-mobile"
     >
       <WebView
+        ref={webRef}
         source={{ html: PET_STAGE_HTML, baseUrl: "file:///android_asset/" }}
         style={styles.web}
         originWhitelist={["*"]}
