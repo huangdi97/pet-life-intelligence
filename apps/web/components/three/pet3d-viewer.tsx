@@ -103,7 +103,14 @@ export function Pet3DViewer({ identity, twin = null, pose = null, variant = "sta
       if (camera) {
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
-        applyOrbit(camera, STAGE_TARGET, orbitRef.current);
+        if (twin) {
+          // Twin scenes are ground-anchored; use the shared orbit framing.
+          applyOrbit(camera, STAGE_TARGET, orbitRef.current);
+        } else {
+          // Demo stage: keep the original frameCamera behavior so approved
+          // visual baselines stay pixel-identical (no refactor churn).
+          frameCamera(camera, stage, w / h);
+        }
       }
     };
     resize();
