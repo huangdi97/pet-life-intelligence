@@ -7,8 +7,8 @@
 
 ```text
 REPO_ROOT   E:/AI/Pet Life Intelligence
-branch      feat/r2p3d-r1-individual-twin-local-closure
-HEAD        e85c8bd（push 至 origin；fast-forward 到 main 前保持分支）
+branch      main（fast-forward 自 feat/r2p3d-r1-individual-twin-local-closure）
+HEAD        fb98ef0（main == origin/main == tag v0.2.2）
 origin/main e62bb0d（本轮开始时；未前进则 fast-forward 收口）
 worktree    未使用
 ```
@@ -120,10 +120,10 @@ OpenAPI freshness         clean
 
 ```text
 branch pushed        feat/r2p3d-r1-individual-twin-local-closure → origin
-PR                   #1（R2P3D-R1: individual Pet Twin — local-first closure）
-main status          origin/main 未前进（e62bb0d）→ 可 fast-forward
-release status       v0.2.2 Release Candidate（待 main 合并 + CI green 后发）
-assets               APK + 证据图 + gallery（release 附件计划）
+PR                   #1 已自动合并（fast-forward 至 main）
+main status          main == origin/main == fb98ef0（已收口）
+release status       v0.2.2 已发布（draft=false，APK sha256 20b8745…）
+assets               APK app-release.apk（88.8 MB）+ 证据图 + gallery.html
 ```
 
 ## Honest Remaining Limits
@@ -146,7 +146,7 @@ LOCAL_PREVIEW_PROVIDER = PASS（template_local 确定性预览）
 STANDARD_INDIVIDUAL_TWIN_PIPELINE = PASS
 CORE_ANIMATION_LIBRARY = PASS（12 clips, GLB QA pass）
 ANDROID_TWIN_EVIDENCE = PASS（18 页真实截图；3D 阶段 Emulator 限制如实记录）
-CURRENT_MAIN_FULL_CI_GREEN = TRUE/以 PR checks 实际为准（Pillow 修复已 push）
+CURRENT_MAIN_FULL_CI_GREEN = TRUE（main CI 10m45s success + tag Android 10m10s success）
 REAL_PET_IDENTITY_VALIDATION = NOT_YET_OBSERVED
 HUMAN_VISUAL_ACCEPTANCE = PENDING
 ```
