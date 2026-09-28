@@ -51,3 +51,6 @@ artifacts/release/**/*.tgz
 
 # tsc incremental build caches must never be committed (stale cache vs fresh CI layout produces bogus type errors)
 *.tsbuildinfo
+
+# R2P3D-R1 repo-local runtime (weights, envs, caches, temp, logs, avd)
+.local/
