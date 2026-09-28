@@ -27,7 +27,10 @@ export type DemoScreen =
   | "welfare"
   | "social"
   | "monitoring"
-  | "companion";
+  | "companion"
+  | "twincapture"
+  | "twinreview"
+  | "twinversion";
 
 const TAB_SCREENS: Record<string, keyof TabParamList> = {
   today: "Today",
@@ -48,6 +51,9 @@ const STACK_SCREENS: Record<string, keyof StackParamList> = {
   social: "Social",
   monitoring: "Monitoring",
   companion: "Companion",
+  twincapture: "TwinCapture",
+  twinreview: "TwinReview",
+  twinversion: "TwinVersion",
 };
 
 export function navigateToDemoScreen(screen: string): void {
