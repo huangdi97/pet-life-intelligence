@@ -185,3 +185,42 @@ test("R2P3D-06 Android page (pet-stage.html) renders 豆豆 and rotates via drag
   const s2 = await shot();
   expect(s2.equals(s1), "drag must rotate the rendered 豆豆").toBe(false);
 });
+
+test("R2P3D-R1-01 individual twin renders and pose switching changes pixels", async ({ page }) => {
+  const htmlPath = resolve(__dirname, "../../../apps/mobile/assets/3d/pet-stage.html");
+  await page.addInitScript(() => {
+    const w = window as unknown as Record<string, unknown>;
+    w.__PLI_IDENTITY = "doudou";
+    w.__PLI_INTERACTIVE = false;
+    w.__PLI_TWIN = {
+      family: "corgi-like",
+      morph: { body_length: 1.5, leg_length_front: 0.52, tail_curve: 0.35, overall_scale: 1.0 },
+      texture: {
+        observed: { coat: "#E8C79A", cream: "#FBF6EB", ear: "#C08A4E" },
+        inferred: { tail: "#D9A968", paw: "#F2D9AD" },
+      },
+      version: 1,
+      provenance: "DEMO_SYNTHETIC",
+    };
+  });
+  await page.goto(`file://${htmlPath}`);
+  const canvas = page.locator("canvas").first();
+  await expect(canvas).toBeAttached();
+  await page.waitForTimeout(1800);
+
+  const shot = async () => await canvas.screenshot();
+  const idle = await shot();
+  expect(idle.length, "the individual twin must be painted").toBeGreaterThan(15000);
+
+  // Sit is a substantially different joint pose from Idle — pixels must change.
+  await page.evaluate(() => (window as unknown as Record<string, unknown>).__PLI_SET_POSE?.("Sit"));
+  await page.waitForTimeout(700);
+  const sit = await shot();
+  expect(sit.equals(idle), "Sit pose must change rendered pixels (real joint animation)").toBe(false);
+
+  // Walk is a gait cycle — differs from Sit.
+  await page.evaluate(() => (window as unknown as Record<string, unknown>).__PLI_SET_POSE?.("Walk"));
+  await page.waitForTimeout(700);
+  const walk = await shot();
+  expect(walk.equals(sit), "Walk pose must differ from Sit").toBe(false);
+});
