@@ -4,12 +4,14 @@
 
 ## 当前状态
 
-```text
-PLI_R2P3D_ENGINEERING_COMPLETE（2026-09-28，Stage R.2-P3D：Individual 3D Pet Twin Full Closure）
-CURRENT_MAIN_FULL_CI_GREEN（Frontend / Backend / Browser E2E(功能+视觉链)）· v0.2.1（Internal / Pre-Pilot）
-Warm Living Holographic — Today/Pet/Life View 真实 interactive 3D Pet Twin + Capture/Review/Version
-GitHub：https://github.com/huangdi97/pet-life-intelligence（公开仓库）
-REAL_3D_PROVIDER=EXTERNAL_BLOCKED · REAL_PARTICIPANTS=0 · REAL_PETS=0 · HUMAN_VISUAL_ACCEPTANCE=PENDING
+PLI_R2P3D_R1_ENGINEERING_COMPLETE（2026-09-28，Stage R.2-P3D-R1：个体 Pet Twin 真实化 · 本地优先 · 最终产品闭环）
+CURRENT_MAIN_FULL_CI_GREEN（以 PR #1 checks 实际为准；Pillow 依赖修复已 push）· v0.2.2-RC（Internal / Pre-Pilot）
+个体 Twin 标准管线（Capture→QC→分割→帧候选→Morph→多视图纹理投影→OBSERVED/INFERRED→Owner 三档核验→版本化/增量完善）· 动作层 12 clips（AMBIENT/REPRESENTATIVE/OBSERVED）· GLB QA PASS
+运行时：Today / Pet World / Life View（rotate/zoom/pose） / Timeline / Assistant 接入个体 Twin
+Android 证据：18 页真实 Emulator 截图（含 Twin Capture/Review/Version 三屏）+ 接触图 + gallery.html（artifacts/r2p3d-r1/）
+Web 3D 个体 Twin：真实 Chromium WebGL 12 pose 证据（artifacts/r2p3d-r1/web/）
+测试：pytest 443 / ruff 0 / vitest 33/33 / 四端 typecheck 0 / Gradle BUILD SUCCESSFUL / Playwright R2P3D-R1-01 PASS
+诚实边界：REAL_PETS=0 · REAL_PET_IDENTITY_VALIDATION=NOT_YET_OBSERVED · PRODUCTION_3D_PROVIDER=NOT_YET_QUALIFIED · **HUMAN_VISUAL_ACCEPTANCE=PENDING**
 ```
 Living Canvas Today · Pet World · Photo-first Life View · Life Stream Timeline · Pet-aware Assistant
 Companion graceful empty · canonical 5-tab 导航（Today / Timeline / Pet / Assistant / Me）

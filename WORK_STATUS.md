@@ -1,3 +1,13 @@
+﻿## Current terminal
+
+PLI_R2P3D_R1_ENGINEERING_COMPLETE（2026-09-28，Stage R.2-P3D-R1：个体 Pet Twin 真实化 · 本地优先 · 最终产品闭环）
+
+- **个体 Twin 标准生产链路（零外部模型权重下载）**：Capture 6 角度/短视频 → 确定性 QC/分割 → 帧候选 → Morph 形状拟合（§29 18 字段）→ 多视图区域纹理投影 → OBSERVED/INFERRED surface manifest + coverage_ratio → Owner 三档核验（不像不可激活）→ 版本化 + 增量完善（v1.x 局部更新）。
+- **动作层 Living Model**：16 关节四足骨骼 rig + 12 clips（Idle/Stand/Sit/Lie/Sleep/Walk/Run/Eat/Drink/Play/Sniff/Stretch），AMBIENT/REPRESENTATIVE/OBSERVED True Model；GLB 导出 + GLB QA 全过；Health 永不驱动姿态。
+- **运行时集成**：Today/Pet/Life View/Review 接入 active twin 描述符；Life View pose switcher；WebView 页面与 Web 同源渲染个体 Twin（真实 WebGL 证据 12 pose）。
+- **Android 证据补全**：18 页真实 Emulator 截图（含 Twin Capture/Review/Version 三屏）+ 接触图 + gallery；Android 端 WebGL 受本机 Emulator 图形栈限制，如实降级 2.5D（3D 永非单点故障）。
+- 测试：pytest 443 / ruff 0 / vitest 33/33 / 四端 typecheck 0 / Gradle BUILD SUCCESSFUL / Twin QA（GLB + motion manifest）PASS。
+- 诚实边界：REAL_PETS=0 · REAL_PET_IDENTITY_VALIDATION=NOT_YET_OBSERVED · REAL_3D_PROVIDER 细粒度（LOCAL_PREVIEW=PASS, STANDARD_PIPELINE=PASS, PRODUCTION=NOT_YET_QUALIFIED）· **HUMAN_VISUAL_ACCEPTANCE=PENDING**。
 # WORK_STATUS
 
 ## Current terminal
@@ -336,3 +346,4 @@ BACKUP: PASS / MONITORING: PASS / NEXT: 真实用户确认后 Wave 0-A
 | Issue Ledger | reports/STAGE_V2_ISSUE_LEDGER.md：SV-006 = CLOSED、SV-007 = CLOSED、P0/P1 剩余 = 0 |
 | 注释/类型收口 | 裸 TODO = 0；28 个类型逃逸标记逐条判定；代码级转义 0 新增（network.ts `unknown as` 已消除） |
 | 回归 | pytest **427** passed / 0 failed · ruff 0 · 五端 typecheck 0 · 五端 build OK · vitest 22/22 · Playwright **29/29**（真实完整套件，Postgres 55679 + API 8800 + Web 3100） |
+

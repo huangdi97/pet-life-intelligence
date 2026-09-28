@@ -1,3 +1,21 @@
+﻿# Changelog
+
+## v0.2.2-RC (Stage R.2-P3D-R1) — Individual Pet Twin 真实化 · 本地优先（Release Candidate）
+
+> 2026-09-28。在 v0.2.1 之上完成「个体 Pet Twin 系统」：照片/短视频 → 本机确定性管线 → 可动画、可版本化、可增量完善的个体 Twin；动作层 12 clips；Android + Web 证据闭环。
+> R2P3D_R1_ENGINEERING_COMPLETE。Release 候选（main 合并 + CI green 后正式发版）。
+
+### Added
+- **Standard Individual Twin pipeline（零外部模型权重）**：services/api 新增 twin_media / twin_individual / visual_pipeline_meta；Capture 真消费媒体（确定性分割、帧候选、QC），Morph 形状拟合（§29 18 字段），多视图区域纹理投影，OBSERVED/INFERRED surface manifest + coverage_ratio，身份相似性 heuristic（低置信 → NEEDS_OWNER_CONFIRMATION）。
+- **packages/pet-3d 个体 Twin 引擎**：Morph 参数契约 + 5 模板族、16 关节四足 rig、12 动作 clip 库（AMBIENT/REPRESENTATIVE/OBSERVED）、twinScene 构建器；GLB 导出（12 clips）与 GLB QA。
+- **运行时集成**：Today / Pet / Life View / Twin Review 接入 active twin 描述符；Life View pose switcher；mobile WebView 与 Web 同源渲染个体 Twin（真实 WebGL 12 pose 证据）。
+- **Android 证据**：18 页真实 Emulator 截图（含 Twin Capture/Review/Version 三屏）、接触图、gallery.html；Android WebGL 受本机 Emulator 图形栈限制时如实降级 2.5D。
+- **CI**：Twin QA 门禁（GLB + animation manifest，零模型权重）、ruff 覆盖 scripts、R2P3D-R1-01 Playwright pose 切换 gate。
+- **依赖**：services/api 声明 pillow>=10.0（twin media 管线）。
+
+### Test / Gate
+- pytest 443 / ruff 0 / vitest 33/33 / mobile+web+admin+mini typecheck 0 / Gradle assembleRelease BUILD SUCCESSFUL / Playwright R2P3D-R1-01 PASS / GLB QA PASS。
+- 诚实状态：REAL_PETS=0 · REAL_PET_IDENTITY_VALIDATION=NOT_YET_OBSERVED · HUMAN_VISUAL_ACCEPTANCE=PENDING。
 # Changelog
 
 ## v0.2.1 (Stage R.2-P3D) — Individual 3D Pet Twin Full Closure（Internal / Pre-Pilot）
