@@ -145,15 +145,20 @@ def test_cross_pet_isolation(client, seeded):
 def test_version_upgrade_surface_manifest_and_provenance(client, seeded):
     owner, coco = seeded["owner_id"], seeded["coco_id"]
     headers = auth(owner)
-    # v1 with full photos -> observed coat/pattern/body/unique_marks
+    # v1 with full photos (豆豆 demo fixture resolves via capture->fixture
+    # fallback) -> region-based observed manifest from actual media.
     cap1 = _create_capture(client, coco, headers, n=4)
     v1 = _create_model(client, coco, headers, capture_id=cap1["capture_id"])
     _wait_request(client, f"/api/v1/pets/{coco}/visual-models/{v1['version']}/job", headers=headers)
     r1 = client.get(f"/api/v1/pets/{coco}/visual-models/{v1['version']}", headers=headers).json()
     assert r1["provenance_kind"] == "GENERATED_3D"
-    for attr in ("coat", "pattern", "body", "unique_marks"):
-        assert r1["observed_surface_manifest"][attr] == "photo_projection"
-    assert r1["inferred_surface_manifest"]["face"] == "template_default"
+    # Media-driven individual twin: at least coat observed, template-inferred
+    # regions present (never the reverse).
+    assert r1["observed_surface_manifest"].get("coat") == "photo_projection"
+    assert r1["inferred_surface_manifest"].get("face") == "template_default"
+    assert r1["artifact_map"]["twin_descriptor"]["surface"]["coverage_ratio"] > 0
+    assert r1["artifact_map"]["twin_descriptor"]["morph"]["overall_scale"] >= 0.35
+    assert r1["rig_version"].startswith("rig-anim")
 
     # v2 generated without photos -> observed empty, template-default texture
     v2 = _create_model(client, coco, headers, capture_id=None)

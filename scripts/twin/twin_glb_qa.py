@@ -18,7 +18,6 @@ from __future__ import annotations
 import hashlib
 import json
 import struct
-import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
