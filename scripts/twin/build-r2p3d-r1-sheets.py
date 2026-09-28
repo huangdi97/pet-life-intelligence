@@ -8,7 +8,6 @@ Run: python scripts/twin/build-r2p3d-r1-sheets.py
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from PIL import Image, ImageDraw
