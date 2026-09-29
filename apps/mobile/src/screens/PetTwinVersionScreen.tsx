@@ -35,12 +35,17 @@ export function PetTwinVersionScreen() {
   const { petId } = usePets();
   const [versions, setVersions] = useState<VersionEntry[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(() => {
     if (!petId) return;
     setLoading(true);
+    setLoadError(false);
     api.get<{ models: VersionEntry[] }>(`/pets/${petId}/visual-models`)
       .then((r) => setVersions(r.models))
+      // error state must stay distinct from the empty state (V4 §12): a load
+      // failure is never "还没有 3D 形象".
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, [petId]);
 
@@ -70,7 +75,16 @@ export function PetTwinVersionScreen() {
         <View style={styles.center}><ActivityIndicator color={COLORS.brandPrimary} /></View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {(!versions || versions.length === 0) ? (
+          {loadError ? (
+            <OpenSection title="暂时连接不上">
+              <View style={styles.loadErrorRow}>
+                <Text style={styles.emptyText}>暂时无法获取 3D 形象列表，请稍后重试。</Text>
+                <Pressable accessibilityRole="button" onPress={load} style={styles.cta}>
+                  <Text style={styles.ctaText}>重试</Text>
+                </Pressable>
+              </View>
+            </OpenSection>
+          ) : (!versions || versions.length === 0) ? (
             <OpenSection title="还没有 3D 形象">
               <Text style={styles.emptyText}>给豆豆创建第一版 3D 形象吧 — 拍几张照片，系统用模板与真实照片生成，再由你来确认。</Text>
               <Pressable accessibilityRole="button" onPress={() => navigation.navigate("TwinCapture")} style={styles.cta}>
@@ -116,6 +130,8 @@ export function PetTwinVersionScreen() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.canvas },
+  emptyText: { fontSize: TYPE.body, color: COLORS.textSecondary, lineHeight: 22 },
+  loadErrorRow: { alignItems: "flex-start", gap: SPACE.s3 },
   header: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2 },
   back: { padding: 4 },
   headerText: { flex: 1 },
@@ -124,7 +140,6 @@ const styles = StyleSheet.create({
   add: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.brandPrimary, alignItems: "center", justifyContent: "center" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: SPACE.s3, paddingBottom: SPACE.s8 },
-  emptyText: { fontSize: TYPE.body, color: COLORS.textSecondary, lineHeight: 22 },
   cta: { marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
   ctaText: { color: COLORS.textInverse, fontSize: TYPE.body, fontWeight: "700" },
   activeRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingVertical: 4 },

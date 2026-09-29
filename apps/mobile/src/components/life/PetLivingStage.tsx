@@ -68,9 +68,13 @@ export function PetLivingStage({
 }: Props) {
   const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
   const identity = pet ? resolvePet3DIdentity({ name: pet.name, species: pet.species, breed: pet.breed }) : null;
-  // An individual twin descriptor from the backend makes 3D meaningful for
-  // this specific pet; otherwise we fall back to the demo identity stage.
-  const use3d = identity !== null && pet3d !== "failed";
+  // V4 §5 (PLI_VISUAL_SYSTEM_V4.md): the warm immersive stage is allowed ONLY
+  // for Life View, and only when the 3D renderer actually reports ready.
+  // Today/Pet must stay on the warm light canvas (PetHero / 2.5D direction);
+  // "boot" (WebView loading / WebGL unavailable on the emulator) must never
+  // force a dark empty stage — that failure class is what v3.4-R1 §45 flags.
+  // A twin descriptor alone is not grounds to go dark.
+  const use3d = variant === "life" && identity !== null && pet3d === "ready";
   const height = HEIGHTS[variant];
   const petWidth = PET_WIDTHS[variant];
   const dark = use3d;

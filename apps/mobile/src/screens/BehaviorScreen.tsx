@@ -237,7 +237,8 @@ const styles = StyleSheet.create({
   obsMeta: { fontSize: TYPE.caption, color: COLORS.textTertiary },
   intensityPill: { backgroundColor: COLORS.brandSoftAmber, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   intensityText: { fontSize: TYPE.caption, color: COLORS.brandSecondary },
-  abcCard: { backgroundColor: COLORS.surfaceRaised, borderRadius: RADIUS.xl, borderWidth: 1, borderColor: COLORS.dividerSubtle, padding: SPACE.s4, gap: 8 },
+  // V4 §5 SoftPanel: warm soft surface, no white bordered box.
+  abcCard: { backgroundColor: COLORS.brandSoftGreen, borderRadius: RADIUS.xl, padding: SPACE.s4, gap: 8 },
   abcRow: { flexDirection: "row", gap: SPACE.s3 },
   abcLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary, width: 40 },
   abcValue: { fontSize: TYPE.sm, color: COLORS.textPrimary, flex: 1 },

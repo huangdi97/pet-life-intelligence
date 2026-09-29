@@ -232,10 +232,10 @@ const styles = StyleSheet.create({
   statusLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary },
   statusValue: { fontSize: TYPE.meta, color: COLORS.textPrimary, fontWeight: "600" },
   changeCard: {
-    backgroundColor: COLORS.surfaceRaised,
+    // V4 §5 SoftPanel (§7 Border Budget): warm soft surface, borders removed —
+    // the white bordered box reads as admin/CRUD, not a living pet surface.
+    backgroundColor: COLORS.brandSoftGreen,
     borderRadius: RADIUS.xl,
-    borderWidth: 1,
-    borderColor: COLORS.dividerSubtle,
     padding: SPACE.s4,
   },
   changeCardDanger: { backgroundColor: COLORS.dangerBg, borderColor: COLORS.danger },

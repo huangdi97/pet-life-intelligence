@@ -240,7 +240,8 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary, textAlign: "center" },
   emptyBody: { fontSize: TYPE.sm, color: COLORS.textTertiary, textAlign: "center", marginTop: SPACE.s2, lineHeight: 20 },
   emptyNote: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: SPACE.s2 },
-  answer: { marginTop: SPACE.s4, backgroundColor: COLORS.surfaceRaised, borderRadius: RADIUS.xl, borderWidth: 1, borderColor: COLORS.dividerSubtle, padding: SPACE.s4 },
+  // V4 §5 SoftPanel: warm soft surface, no white bordered box.
+  answer: { marginTop: SPACE.s4, backgroundColor: COLORS.brandSoftGreen, borderRadius: RADIUS.xl, padding: SPACE.s4 },
   answerBody: { fontSize: TYPE.body, color: COLORS.textPrimary, lineHeight: 22 },
   answerSection: { marginTop: SPACE.s3 },
   sectionLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary, fontWeight: "600", marginTop: SPACE.s2 },

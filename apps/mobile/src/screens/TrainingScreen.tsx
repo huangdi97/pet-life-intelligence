@@ -217,7 +217,8 @@ const styles = StyleSheet.create({
   title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
-  goalCard: { backgroundColor: COLORS.surfaceRaised, borderRadius: RADIUS.xl, borderWidth: 1, borderColor: COLORS.dividerSubtle, padding: SPACE.s4 },
+  // V4 §5 SoftPanel: warm soft surface, no white bordered box.
+  goalCard: { backgroundColor: COLORS.brandSoftAmber, borderRadius: RADIUS.xl, padding: SPACE.s4 },
   goalHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: SPACE.s2 },
   goalTitle: { fontSize: TYPE.bodyStrong, fontWeight: "700", color: COLORS.textPrimary, flex: 1 },
   statusPill: { backgroundColor: COLORS.brandSoftGreen, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },

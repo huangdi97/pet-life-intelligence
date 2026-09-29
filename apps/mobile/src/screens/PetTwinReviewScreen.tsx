@@ -67,7 +67,7 @@ export function PetTwinReviewScreen() {
         const map = (m as { artifact_map?: { twin_descriptor?: TwinDescriptor } }).artifact_map;
         setCandidate(map?.twin_descriptor ?? null);
       })
-      .catch(() => undefined)
+      .catch(() => setMessage("暂时连接不上，请重试。"))
       .finally(() => setLoading(false));
   }, [petId, version]);
 
