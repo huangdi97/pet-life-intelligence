@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import jsonschema
 from jsonschema import Draft7Validator
 
 SCHEMA = (

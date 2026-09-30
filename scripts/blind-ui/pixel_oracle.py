@@ -104,7 +104,7 @@ def _phash(img: Image.Image, size: int = 16) -> str:
 
 
 def hamming(a: str, b: str) -> int:
-    return sum(x != y for x, y in zip(a, b))
+    return sum(x != y for x, y in zip(a, b, strict=True))
 
 
 def ssim(a: np.ndarray, b: np.ndarray) -> float:

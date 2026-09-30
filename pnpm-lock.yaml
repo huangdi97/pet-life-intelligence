@@ -397,6 +397,12 @@ importers:
         specifier: 5.7.3
         version: 5.7.3
 
+  packages/visual-contract:
+    devDependencies:
+      typescript:
+        specifier: 5.7.3
+        version: 5.7.3
+
 packages:
 
   '@adobe/css-tools@4.3.3':

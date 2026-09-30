@@ -7,7 +7,6 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
-
 from pixel_oracle import compute_pixel_stats, negative_distance, ssim
 
 
