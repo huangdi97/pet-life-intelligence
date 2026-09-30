@@ -1,0 +1,241 @@
+{
+  "screen": "welfare",
+  "total": 95,
+  "max": 100,
+  "perDimension": {
+    "petIdentity": {
+      "earned": 20,
+      "max": 20
+    },
+    "composition": {
+      "earned": 20,
+      "max": 20
+    },
+    "hierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surface": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interaction": {
+      "earned": 5,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "runtimeTruth": {
+      "earned": 10,
+      "max": 10
+    }
+  },
+  "passed": [
+    {
+      "id": "welfare.identity",
+      "dimension": "petIdentity",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.welfare.identity]=1"
+    },
+    {
+      "id": "welfare.enrichment",
+      "dimension": "petIdentity",
+      "points": 12,
+      "description": "丰富化内容存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.enrichment"
+      },
+      "passed": true,
+      "detail": "elements[pli.welfare.enrichment]=1"
+    },
+    {
+      "id": "welfare.comfort",
+      "dimension": "composition",
+      "points": 8,
+      "description": "休息/舒适存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.comfort"
+      },
+      "passed": true,
+      "detail": "elements[pli.welfare.comfort]=1"
+    },
+    {
+      "id": "welfare.liked",
+      "dimension": "composition",
+      "points": 6,
+      "description": "最近喜欢的活动存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.liked"
+      },
+      "passed": true,
+      "detail": "elements[pli.welfare.liked]=1"
+    },
+    {
+      "id": "welfare.observable",
+      "dimension": "composition",
+      "points": 6,
+      "description": "可观察事实存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.observable"
+      },
+      "passed": true,
+      "detail": "elements[pli.welfare.observable]=1"
+    },
+    {
+      "id": "welfare.nofake",
+      "dimension": "hierarchy",
+      "points": 7,
+      "description": "不虚构评分",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "评分",
+          "分数",
+          "得分"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "welfare.meaning",
+      "dimension": "hierarchy",
+      "points": 4,
+      "description": "条目有含义",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.enrichment"
+      },
+      "passed": true,
+      "detail": "elements[pli.welfare.enrichment]=1"
+    },
+    {
+      "id": "welfare.source",
+      "dimension": "hierarchy",
+      "points": 4,
+      "description": "观察有来源",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.observable"
+      },
+      "passed": true,
+      "detail": "elements[pli.welfare.observable]=1"
+    },
+    {
+      "id": "welfare.surface",
+      "dimension": "surface",
+      "points": 10,
+      "description": "大 Card ≤5",
+      "check": {
+        "kind": "surface",
+        "max": 5,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 5"
+    },
+    {
+      "id": "welfare.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "无 STRESS_RECOVERY / OWNER_REPORTED 等",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "welfare.action",
+      "dimension": "interaction",
+      "points": 5,
+      "description": "记录入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.action"
+      },
+      "passed": true,
+      "detail": "elements[pli.welfare.action]=1"
+    },
+    {
+      "id": "welfare.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "关键区可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.enrichment"
+      },
+      "passed": true,
+      "detail": "elements[pli.welfare.enrichment]=1"
+    },
+    {
+      "id": "welfare.truth",
+      "dimension": "runtimeTruth",
+      "points": 10,
+      "description": "数据来自真实 runtime（无占位）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [
+    {
+      "id": "welfare.view",
+      "dimension": "interaction",
+      "points": 5,
+      "description": "内容可查看",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.welfare.enrichment"
+        },
+        "range": [
+          1,
+          8
+        ]
+      },
+      "passed": false,
+      "detail": "count=0 outside [1,8]"
+    }
+  ],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

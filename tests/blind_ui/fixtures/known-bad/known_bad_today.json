@@ -1,0 +1,17 @@
+{
+  "screen": "today",
+  "viewport": { "width": 390, "height": 844 },
+  "contentBounds": { "top": 0, "bottom": 764, "width": 390, "height": 764, "left": 0 },
+  "platform": "web",
+  "elements": [
+    { "id": "pli.today.identity", "role": "text", "x": 16, "y": 24, "width": 300, "height": 24, "visible": true, "text": "豆豆 · 柯基" },
+    { "id": "pli.today.living-stage", "type": "stage", "x": 16, "y": 60, "width": 358, "height": 344, "visible": true },
+    { "id": "pli.today.pet-twin", "type": "img", "x": 84, "y": 132, "width": 222, "height": 294, "visible": true },
+    { "id": "pli.today.anchor.meal", "x": 20, "y": 90, "width": 80, "height": 40, "visible": true, "text": "进食 2 次" },
+    { "id": "pli.today.anchor.drink", "x": 300, "y": 90, "width": 80, "height": 40, "visible": true, "text": "饮水 0 次" },
+    { "id": "card-tasks", "type": "card", "x": 16, "y": 420, "width": 358, "height": 140, "visible": true },
+    { "id": "card-recent", "type": "card", "x": 16, "y": 570, "width": 358, "height": 180, "visible": true }
+  ],
+  "text": ["豆豆 · 柯基", "进食 2 次", "饮水 0 次", "今天任务 1 项待办", "最近发生 今天 3 条", "OPEN 状态卡"],
+  "manifest": { "ready": true, "wireframe": false, "fallbackUsed": false }
+}

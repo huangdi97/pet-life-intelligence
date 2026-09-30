@@ -1,0 +1,14 @@
+{
+  "screen": "life-view",
+  "viewport": { "width": 390, "height": 844 },
+  "contentBounds": { "top": 0, "bottom": 764, "width": 390, "height": 764, "left": 0 },
+  "platform": "web",
+  "elements": [
+    { "id": "pli.lifeview.stage", "x": 16, "y": 60, "width": 358, "height": 300, "visible": true },
+    { "id": "pli.lifeview.twin", "type": "img", "x": 60, "y": 80, "width": 270, "height": 260, "visible": true },
+    { "id": "pli.lifeview.anchor.water", "x": 20, "y": 100, "width": 80, "height": 40, "visible": true },
+    { "id": "pli.lifeview.anchor.meal", "x": 300, "y": 100, "width": 80, "height": 40, "visible": true },
+    { "id": "mode-row", "x": 16, "y": 380, "width": 358, "height": 40, "visible": true }
+  ],
+  "text": ["豆豆 · 此刻", "OWNER_REPORTED", "demo 3D"]
+}

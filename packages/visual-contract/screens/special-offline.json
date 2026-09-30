@@ -1,0 +1,19 @@
+{
+  "screen": "special-offline",
+  "version": 1,
+  "dimensions": { "petIdentity": 20, "composition": 20, "hierarchy": 15, "surface": 10, "contentPurity": 10, "interaction": 10, "accessibility": 5, "runtimeTruth": 10 },
+  "thresholds": { "pass": 85 },
+  "critical": ["offline.state", "offline.content.purity", "offline.retry"],
+  "checks": [
+    { "id": "offline.state", "dimension": "petIdentity", "points": 12, "description": "Offline 态：offline state 呈现", "check": { "kind": "element", "idPrefix": "pli.offline.state" } },
+    { "id": "offline.identity", "dimension": "petIdentity", "points": 8, "description": "当前宠物身份存在", "check": { "kind": "element", "idPrefix": "pli.today.identity" } },
+    { "id": "offline.composition", "dimension": "composition", "points": 20, "description": "offline 主视觉（state+cached）", "check": { "kind": "element", "idPrefix": "pli.offline.*", "count": [1, 8] } },
+    { "id": "offline.cached", "dimension": "hierarchy", "points": 7, "description": "Offline 态：cached 内容", "check": { "kind": "element", "idPrefix": "pli.offline.cached" } },
+    { "id": "offline.sync", "dimension": "hierarchy", "points": 8, "description": "Offline 态：last sync", "check": { "kind": "element", "idPrefix": "pli.offline.last-sync" } },
+    { "id": "offline.surface", "dimension": "surface", "points": 10, "description": "大 Card ≤3", "check": { "kind": "surface", "max": 3, "minArea": 16000 } },
+    { "id": "offline.content.purity", "dimension": "contentPurity", "points": 10, "description": "Owner 文本无 raw internal terms", "check": { "kind": "text-free", "tokens": ["BW-", "OWNER_REPORTED", "STRESS_RECOVERY", "OPEN", "provider_", "model_id", "event_key", "PLI-"] } },
+    { "id": "offline.retry", "dimension": "interaction", "points": 10, "description": "Offline 态：retry", "check": { "kind": "element", "idPrefix": "pli.offline.retry" } },
+    { "id": "offline.a11y", "dimension": "accessibility", "points": 5, "description": "offline 状态可读", "check": { "kind": "element", "idPrefix": "pli.offline.state" } },
+    { "id": "offline.truth", "dimension": "runtimeTruth", "points": 10, "description": "offline 状态来自真实网络状态", "check": { "kind": "text-free", "tokens": ["占位", "TODO", "placeholder"] } }
+  ]
+}

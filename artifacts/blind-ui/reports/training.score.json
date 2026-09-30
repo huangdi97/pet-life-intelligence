@@ -1,0 +1,235 @@
+{
+  "screen": "training",
+  "total": 100,
+  "max": 100,
+  "perDimension": {
+    "petIdentity": {
+      "earned": 20,
+      "max": 20
+    },
+    "composition": {
+      "earned": 20,
+      "max": 20
+    },
+    "hierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surface": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interaction": {
+      "earned": 10,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "runtimeTruth": {
+      "earned": 10,
+      "max": 10
+    }
+  },
+  "passed": [
+    {
+      "id": "training.identity",
+      "dimension": "petIdentity",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.training.identity]=1"
+    },
+    {
+      "id": "training.goal",
+      "dimension": "petIdentity",
+      "points": 12,
+      "description": "当前目标存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.goal"
+      },
+      "passed": true,
+      "detail": "elements[pli.training.goal]=1"
+    },
+    {
+      "id": "training.progress",
+      "dimension": "composition",
+      "points": 8,
+      "description": "进度存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.progress"
+      },
+      "passed": true,
+      "detail": "elements[pli.training.progress]=1"
+    },
+    {
+      "id": "training.recent",
+      "dimension": "composition",
+      "points": 6,
+      "description": "最近训练存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.recent"
+      },
+      "passed": true,
+      "detail": "elements[pli.training.recent]=1"
+    },
+    {
+      "id": "training.reward",
+      "dimension": "composition",
+      "points": 6,
+      "description": "奖励偏好存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.reward"
+      },
+      "passed": true,
+      "detail": "elements[pli.training.reward]=1"
+    },
+    {
+      "id": "training.next",
+      "dimension": "hierarchy",
+      "points": 7,
+      "description": "下一步存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.next"
+      },
+      "passed": true,
+      "detail": "elements[pli.training.next]=1"
+    },
+    {
+      "id": "training.localized",
+      "dimension": "hierarchy",
+      "points": 4,
+      "description": "目标状态已本地化",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.goal"
+      },
+      "passed": true,
+      "detail": "elements[pli.training.goal]=1"
+    },
+    {
+      "id": "training.meaning",
+      "dimension": "hierarchy",
+      "points": 4,
+      "description": "训练条目有含义",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.recent"
+      },
+      "passed": true,
+      "detail": "elements[pli.training.recent]=1"
+    },
+    {
+      "id": "training.surface",
+      "dimension": "surface",
+      "points": 10,
+      "description": "大 Card ≤5",
+      "check": {
+        "kind": "surface",
+        "max": 5,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 5"
+    },
+    {
+      "id": "training.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "无 raw OPEN/PAUSED/ACTIVE 等",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "PAUSED",
+          "ACTIVE",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "training.action",
+      "dimension": "interaction",
+      "points": 5,
+      "description": "记录训练入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.action"
+      },
+      "passed": true,
+      "detail": "elements[pli.training.action]=1"
+    },
+    {
+      "id": "training.view",
+      "dimension": "interaction",
+      "points": 5,
+      "description": "目标可查看",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.goal",
+        "count": [
+          1,
+          6
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.training.goal]=1"
+    },
+    {
+      "id": "training.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "关键区可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.goal"
+      },
+      "passed": true,
+      "detail": "elements[pli.training.goal]=1"
+    },
+    {
+      "id": "training.truth",
+      "dimension": "runtimeTruth",
+      "points": 10,
+      "description": "目标/进度来自真实 runtime",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

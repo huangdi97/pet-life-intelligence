@@ -1,0 +1,23 @@
+{
+  "screen": "behavior",
+  "version": 1,
+  "dimensions": { "petIdentity": 20, "composition": 20, "hierarchy": 15, "surface": 10, "contentPurity": 10, "interaction": 10, "accessibility": 5, "runtimeTruth": 10 },
+  "thresholds": { "pass": 92 },
+  "critical": ["behavior.content.purity", "behavior.observations"],
+  "checks": [
+    { "id": "behavior.identity", "dimension": "petIdentity", "points": 8, "description": "当前宠物身份存在", "check": { "kind": "element", "idPrefix": "pli.behavior.identity" } },
+    { "id": "behavior.observations", "dimension": "petIdentity", "points": 12, "description": "近期观察存在", "check": { "kind": "element", "idPrefix": "pli.behavior.observations" } },
+    { "id": "behavior.patterns", "dimension": "composition", "points": 8, "description": "模式与倾向存在", "check": { "kind": "element", "idPrefix": "pli.behavior.patterns" } },
+    { "id": "behavior.context", "dimension": "composition", "points": 6, "description": "上下文/trigger 存在", "check": { "kind": "element", "idPrefix": "pli.behavior.context" } },
+    { "id": "behavior.recent", "dimension": "composition", "points": 6, "description": "最近记录存在", "check": { "kind": "element", "idPrefix": "pli.behavior.recent" } },
+    { "id": "behavior.noemotion", "dimension": "hierarchy", "points": 7, "description": "不凭空判断情绪（基于观察事实）", "check": { "kind": "element", "idPrefix": "pli.behavior.observations" } },
+    { "id": "behavior.meaning", "dimension": "hierarchy", "points": 4, "description": "观察有含义描述", "check": { "kind": "element", "idPrefix": "pli.behavior.patterns" } },
+    { "id": "behavior.source", "dimension": "hierarchy", "points": 4, "description": "记录有来源/时间", "check": { "kind": "element", "idPrefix": "pli.behavior.source" } },
+    { "id": "behavior.surface", "dimension": "surface", "points": 10, "description": "大 Card ≤5", "check": { "kind": "surface", "max": 5, "minArea": 16000 } },
+    { "id": "behavior.content.purity", "dimension": "contentPurity", "points": 10, "description": "无 raw enum / 无 raw internal terms", "check": { "kind": "text-free", "tokens": ["BW-", "OWNER_REPORTED", "STRESS_RECOVERY", "OPEN", "provider_", "model_id", "event_key", "PLI-"] } },
+    { "id": "behavior.action", "dimension": "interaction", "points": 5, "description": "记录行为入口存在", "check": { "kind": "element", "idPrefix": "pli.behavior.action" } },
+    { "id": "behavior.view", "dimension": "interaction", "points": 5, "description": "记录可查看", "check": { "kind": "count", "filter": { "role": "button", "idPrefix": "pli.behavior.recent" }, "range": [1, 12] } },
+    { "id": "behavior.a11y", "dimension": "accessibility", "points": 5, "description": "关键区可读", "check": { "kind": "element", "idPrefix": "pli.behavior.observations" } },
+    { "id": "behavior.truth", "dimension": "runtimeTruth", "points": 10, "description": "数据来自真实 runtime（无占位）", "check": { "kind": "text-free", "tokens": ["占位", "TODO", "placeholder", "coming soon"] } }
+  ]
+}

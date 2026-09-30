@@ -1,0 +1,309 @@
+{
+  "screen": "twin-review",
+  "total": 100,
+  "max": 100,
+  "perDimension": {
+    "petIdentity": {
+      "earned": 20,
+      "max": 20
+    },
+    "composition": {
+      "earned": 20,
+      "max": 20
+    },
+    "hierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surface": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interaction": {
+      "earned": 10,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "runtimeTruth": {
+      "earned": 10,
+      "max": 10
+    }
+  },
+  "passed": [
+    {
+      "id": "review.identity",
+      "dimension": "petIdentity",
+      "points": 6,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinreview.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.twinreview.identity]=1"
+    },
+    {
+      "id": "review.twin.present",
+      "dimension": "petIdentity",
+      "points": 8,
+      "description": "个体 3D Twin 存在（非静态图）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinreview.twin",
+        "minHeight": 200
+      },
+      "passed": true,
+      "detail": "elements[pli.twinreview.twin]=1"
+    },
+    {
+      "id": "review.stage",
+      "dimension": "petIdentity",
+      "points": 6,
+      "description": "3D Stage 存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinreview.stage",
+        "minHeight": 200
+      },
+      "passed": true,
+      "detail": "elements[pli.twinreview.stage]=1"
+    },
+    {
+      "id": "review.stage.ratio",
+      "dimension": "composition",
+      "points": 7,
+      "description": "Stage ≥45% 内容高",
+      "check": {
+        "kind": "ratio",
+        "target": "pli.twinreview.stage",
+        "region": "content",
+        "property": "height",
+        "range": [
+          0.45,
+          0.75
+        ]
+      },
+      "passed": true,
+      "detail": "pli.twinreview.stage height ratio=0.499 in [0.45,0.75]"
+    },
+    {
+      "id": "review.twin.center",
+      "dimension": "composition",
+      "points": 7,
+      "description": "Twin 水平居中偏差 ≤10%",
+      "check": {
+        "kind": "center",
+        "target": "pli.twinreview.twin",
+        "region": "viewport",
+        "axis": "x",
+        "tolerance": 0.1
+      },
+      "passed": true,
+      "detail": "pli.twinreview.twin x deviation=0.0% <= 10%"
+    },
+    {
+      "id": "review.views",
+      "dimension": "composition",
+      "points": 6,
+      "description": "正面/侧面/背面视角控制存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinreview.view.*",
+        "count": [
+          2,
+          4
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.twinreview.view.*]=3"
+    },
+    {
+      "id": "review.options",
+      "dimension": "hierarchy",
+      "points": 8,
+      "description": "很像/基本像/不像 三个选项",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinreview.verify.*",
+        "count": [
+          3,
+          3
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.twinreview.verify.*]=3"
+    },
+    {
+      "id": "review.issues",
+      "dimension": "hierarchy",
+      "points": 4,
+      "description": "不像时「哪里不像」可选",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinreview.issue.*",
+        "count": [
+          4,
+          12
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.twinreview.issue.*]=8"
+    },
+    {
+      "id": "review.status",
+      "dimension": "hierarchy",
+      "points": 3,
+      "description": "状态说明存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinreview.status"
+      },
+      "passed": true,
+      "detail": "elements[pli.twinreview.status]=1"
+    },
+    {
+      "id": "review.surface",
+      "dimension": "surface",
+      "points": 10,
+      "description": "大 Card ≤3",
+      "check": {
+        "kind": "surface",
+        "max": 3,
+        "minArea": 20000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 3"
+    },
+    {
+      "id": "review.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "review.notlike.activate",
+      "dimension": "interaction",
+      "points": 5,
+      "description": "选「不像」后启用按钮 disabled",
+      "check": {
+        "kind": "interaction",
+        "id": "pli.twinreview.action.activate",
+        "disabledWhen": {
+          "selected": "not_like"
+        }
+      },
+      "passed": true,
+      "detail": "interaction[pli.twinreview.action.activate] disabled=true when not_like selected"
+    },
+    {
+      "id": "review.view.action",
+      "dimension": "interaction",
+      "points": 5,
+      "description": "视角按钮可点击",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.twinreview.view."
+        },
+        "range": [
+          2,
+          4
+        ]
+      },
+      "passed": true,
+      "detail": "count=3 in [2,4]"
+    },
+    {
+      "id": "review.options.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "选项按钮可访问",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.twinreview.verify."
+        },
+        "range": [
+          3,
+          3
+        ]
+      },
+      "passed": true,
+      "detail": "count=3 in [3,3]"
+    },
+    {
+      "id": "review.3d.manifest",
+      "dimension": "runtimeTruth",
+      "points": 4,
+      "description": "3D Scene Manifest 存在",
+      "check": {
+        "kind": "manifest",
+        "field": "ready",
+        "truthy": true,
+        "unlessPlatform": [
+          "android"
+        ]
+      },
+      "passed": true,
+      "detail": "manifest.ready truthy=true"
+    },
+    {
+      "id": "review.3d.wireframe",
+      "dimension": "runtimeTruth",
+      "points": 3,
+      "description": "wireframe = false",
+      "check": {
+        "kind": "manifest",
+        "field": "wireframe",
+        "eq": false
+      },
+      "passed": true,
+      "detail": "manifest.wireframe=false"
+    },
+    {
+      "id": "review.3d.truth",
+      "dimension": "runtimeTruth",
+      "points": 3,
+      "description": "fallbackUsed = false（真实 3D 而非卡通图）",
+      "check": {
+        "kind": "manifest",
+        "field": "fallbackUsed",
+        "eq": false,
+        "unlessPlatform": [
+          "android"
+        ]
+      },
+      "passed": true,
+      "detail": "manifest.fallbackUsed=false"
+    }
+  ],
+  "failed": [],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

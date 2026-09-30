@@ -1,0 +1,98 @@
+{
+  "label": "KNOWN_BAD_2026_09_29",
+  "source": "artifacts/r2p3d-r1/android/screens/ (R2P3D-R1 capture, reused not duplicated)",
+  "note": "Evidence only. Not an approved baseline. The blind harness MUST fail these screens.",
+  "count": 18,
+  "files": [
+    {
+      "file": "01_today.png",
+      "sha256": "a15c0fc83d296a4fb097b74d499c506092d7f34f46dfddb03a72033548543938",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "02_timeline.png",
+      "sha256": "fcb71d136f029adc005ff5f8d1e8ef83b5f4315730e108ac1e67d8260cce6349",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "03_pet.png",
+      "sha256": "71d8945000193b6b74adad93de3a91594304bf03df3bf21affcdd176a11ac98c",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "04_lifeview_a.png",
+      "sha256": "e6499cd471d3aee1653399c09b22b3289bb9fe81b0cfe3bd8bff08b143e10fd3",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "05_assistant.png",
+      "sha256": "b9bc2516a56db4e625090940beae6504efc8de0dfd9ed6c5da9d9f429919c5a3",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "06_me.png",
+      "sha256": "e214d95b373038f1cffe99332e6264558628d91f93db22398b8b027246e36411",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "07_quicklog.png",
+      "sha256": "706d29b9cd72966ade723e7a9fdd58d4bf1bc174c05626b914fb9ce1e86f22ab",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "08_health.png",
+      "sha256": "811df5e051a6dbf0324b74c6cbf7a13768ae5c5bdc6feeb680b1640e7f7e804e",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "09_behavior.png",
+      "sha256": "dfea53be0d552c0f60ecd1e1ccf0e4ad1f468d291614c254b80fe56a635994c8",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "10_training.png",
+      "sha256": "7aeb95a6a8fee12c4107c3b65ef21dcd3fb38ac47246068969f4063d8f13d5f4",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "11_welfare.png",
+      "sha256": "cc272d34feb5308b9502854244fa9b73feb45844c597c63298eaf7cfc57663c6",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "12_social.png",
+      "sha256": "a77ae6d7ae2a22ec8657a562ec8ccd6249f8f0ccc55bdf9b474c061b07e7bc54",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "13_companion.png",
+      "sha256": "f87bab431ee57e7406c48465608079c5cd0f9d553945b2f2ec041ce559dc017e",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "14_monitoring.png",
+      "sha256": "3cec31d45a405482ed6883f2181653e3e02fde537b9e94741af4ffaf03496600",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "15_lifeview_b.png",
+      "sha256": "88d546d69b74f60faf8a3d998936c0ac012807428a7c02e5430014e7f27f743f",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "16_twinversion.png",
+      "sha256": "70634b3a4e80228968db0fb4cce1a611d008e0aec472aef79f4ba94796d9142c",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "17_twincapture.png",
+      "sha256": "254433e251ded1c93e940f4139488bd9daae50e61f231c1f6ea3b67f4bc0b9ad",
+      "status": "KNOWN_BAD"
+    },
+    {
+      "file": "18_twinreview.png",
+      "sha256": "3935593931a7295650d0b6a31575453d8dca034f2eacf903b1f427b1c6b81c70",
+      "status": "KNOWN_BAD"
+    }
+  ]
+}

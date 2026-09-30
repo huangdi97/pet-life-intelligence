@@ -1,0 +1,28 @@
+{
+  "screen": "today",
+  "viewport": { "width": 390, "height": 844 },
+  "contentBounds": { "top": 0, "bottom": 764, "width": 390, "height": 764, "left": 0 },
+  "platform": "web",
+  "elements": [
+    { "id": "pli.today.identity", "role": "text", "x": 16, "y": 24, "width": 300, "height": 24, "visible": true, "text": "豆豆 · 柯基" },
+    { "id": "pli.today.living-stage", "type": "stage", "x": 16, "y": 60, "width": 358, "height": 344, "visible": true },
+    { "id": "pli.today.pet-twin", "type": "twin", "x": 84, "y": 132, "width": 222, "height": 294, "visible": true },
+    { "id": "pli.today.anchor.water", "x": 20, "y": 90, "width": 80, "height": 40, "visible": true, "text": "饮水 2 次" },
+    { "id": "pli.today.anchor.food", "x": 300, "y": 90, "width": 80, "height": 40, "visible": true, "text": "进食 3 次" },
+    { "id": "pli.today.anchor.activity", "x": 20, "y": 300, "width": 80, "height": 40, "visible": true, "text": "活动 25 分钟" },
+    { "id": "pli.today.anchor.sleep", "x": 300, "y": 300, "width": 80, "height": 40, "visible": true, "text": "睡眠 1 次" },
+    { "id": "pli.today.health-summary", "x": 16, "y": 424, "width": 358, "height": 36, "visible": true, "text": "健康状态：总体稳定" },
+    { "id": "pli.today.attention", "x": 16, "y": 470, "width": 358, "height": 40, "visible": true, "text": "目前没有需要特别关注的变化" },
+    { "id": "pli.today.change", "x": 16, "y": 520, "width": 358, "height": 44, "visible": true, "text": "与它自己相比，最近没有明显变化" },
+    { "id": "pli.today.primary-action", "role": "button", "x": 16, "y": 574, "width": 358, "height": 48, "visible": true, "text": "快速记录" },
+    { "id": "pli.today.memory-preview", "x": 16, "y": 636, "width": 358, "height": 90, "visible": true, "text": "最近发生" },
+    { "id": "pli.today.card", "type": "card", "x": 16, "y": 636, "width": 358, "height": 90, "visible": true },
+    { "id": "pli.nav.today", "role": "button", "x": 0, "y": 764, "width": 78, "height": 80, "visible": true, "text": "今天" },
+    { "id": "pli.nav.timeline", "role": "button", "x": 78, "y": 764, "width": 78, "height": 80, "visible": true, "text": "时间线" },
+    { "id": "pli.nav.pet", "role": "button", "x": 156, "y": 764, "width": 78, "height": 80, "visible": true, "text": "豆豆" },
+    { "id": "pli.nav.assistant", "role": "button", "x": 234, "y": 764, "width": 78, "height": 80, "visible": true, "text": "助手" },
+    { "id": "pli.nav.me", "role": "button", "x": 312, "y": 764, "width": 78, "height": 80, "visible": true, "text": "我的" }
+  ],
+  "text": ["豆豆 · 柯基", "饮水 2 次", "进食 3 次", "活动 25 分钟", "睡眠 1 次", "健康状态：总体稳定", "目前没有需要特别关注的变化", "快速记录", "最近发生"],
+  "manifest": { "ready": true, "wireframe": false, "fallbackUsed": false, "representation": "procedural-twin", "meshCount": 9, "screenBounds": { "x": 84, "y": 132, "width": 222, "height": 294 } }
+}

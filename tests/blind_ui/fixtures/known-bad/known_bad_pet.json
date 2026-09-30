@@ -1,0 +1,17 @@
+{
+  "screen": "pet-world",
+  "viewport": { "width": 390, "height": 844 },
+  "contentBounds": { "top": 0, "bottom": 764, "width": 390, "height": 764, "left": 0 },
+  "platform": "web",
+  "elements": [
+    { "id": "pli.pet.identity", "x": 16, "y": 20, "width": 300, "height": 24, "visible": true, "text": "豆豆" },
+    { "id": "pli.pet.hero-stage", "x": 16, "y": 60, "width": 358, "height": 200, "visible": true },
+    { "id": "pli.pet.pet-twin", "type": "species-glyph", "x": 84, "y": 90, "width": 222, "height": 150, "visible": true },
+    { "id": "card-health", "type": "card", "x": 16, "y": 280, "width": 358, "height": 90, "visible": true },
+    { "id": "card-behavior", "type": "card", "x": 16, "y": 380, "width": 358, "height": 90, "visible": true },
+    { "id": "card-training", "type": "card", "x": 16, "y": 480, "width": 358, "height": 90, "visible": true },
+    { "id": "card-welfare", "type": "card", "x": 16, "y": 580, "width": 358, "height": 90, "visible": true },
+    { "id": "card-social", "type": "card", "x": 16, "y": 680, "width": 358, "height": 90, "visible": true }
+  ],
+  "text": ["豆豆", "健康 >", "行为 >", "训练 >", "福利 >", "社交 >"]
+}

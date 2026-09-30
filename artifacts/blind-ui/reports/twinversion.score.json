@@ -1,0 +1,225 @@
+{
+  "screen": "twin-version",
+  "total": 95,
+  "max": 100,
+  "perDimension": {
+    "petIdentity": {
+      "earned": 20,
+      "max": 20
+    },
+    "composition": {
+      "earned": 20,
+      "max": 20
+    },
+    "hierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surface": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interaction": {
+      "earned": 5,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "runtimeTruth": {
+      "earned": 10,
+      "max": 10
+    }
+  },
+  "passed": [
+    {
+      "id": "version.identity",
+      "dimension": "petIdentity",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.twinversion.identity]=1"
+    },
+    {
+      "id": "version.current",
+      "dimension": "petIdentity",
+      "points": 12,
+      "description": "当前版本卡片存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.current"
+      },
+      "passed": true,
+      "detail": "elements[pli.twinversion.current]=1"
+    },
+    {
+      "id": "version.info",
+      "dimension": "composition",
+      "points": 10,
+      "description": "版本信息分组存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.info"
+      },
+      "passed": true,
+      "detail": "elements[pli.twinversion.info]=1"
+    },
+    {
+      "id": "version.history",
+      "dimension": "composition",
+      "points": 10,
+      "description": "历史版本区存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.history"
+      },
+      "passed": true,
+      "detail": "elements[pli.twinversion.history]=1"
+    },
+    {
+      "id": "version.time",
+      "dimension": "hierarchy",
+      "points": 5,
+      "description": "版本时间存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.time"
+      },
+      "passed": true,
+      "detail": "elements[pli.twinversion.time]=1"
+    },
+    {
+      "id": "version.source",
+      "dimension": "hierarchy",
+      "points": 5,
+      "description": "来源素材数存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.source"
+      },
+      "passed": true,
+      "detail": "elements[pli.twinversion.source]=1"
+    },
+    {
+      "id": "version.verify",
+      "dimension": "hierarchy",
+      "points": 5,
+      "description": "Owner verification 存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.verify"
+      },
+      "passed": true,
+      "detail": "elements[pli.twinversion.verify]=1"
+    },
+    {
+      "id": "version.surface",
+      "dimension": "surface",
+      "points": 10,
+      "description": "非普通设置列表：大 Card ≤4",
+      "check": {
+        "kind": "surface",
+        "max": 4,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 4"
+    },
+    {
+      "id": "version.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "version.entry",
+      "dimension": "interaction",
+      "points": 5,
+      "description": "「完善 3D 形象」入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.entry"
+      },
+      "passed": true,
+      "detail": "elements[pli.twinversion.entry]=1"
+    },
+    {
+      "id": "version.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "版本信息可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.current"
+      },
+      "passed": true,
+      "detail": "elements[pli.twinversion.current]=1"
+    },
+    {
+      "id": "version.truth",
+      "dimension": "runtimeTruth",
+      "points": 10,
+      "description": "版本数据来自真实 runtime（非占位）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [
+    {
+      "id": "version.history.action",
+      "dimension": "interaction",
+      "points": 5,
+      "description": "历史版本可查看",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.twinversion.history"
+        },
+        "range": [
+          1,
+          6
+        ]
+      },
+      "passed": false,
+      "detail": "count=0 outside [1,6]"
+    }
+  ],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

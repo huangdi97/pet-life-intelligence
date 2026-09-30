@@ -1,0 +1,188 @@
+{
+  "screen": "special-attention",
+  "total": 100,
+  "max": 100,
+  "perDimension": {
+    "petIdentity": {
+      "earned": 20,
+      "max": 20
+    },
+    "composition": {
+      "earned": 20,
+      "max": 20
+    },
+    "hierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surface": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interaction": {
+      "earned": 10,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "runtimeTruth": {
+      "earned": 10,
+      "max": 10
+    }
+  },
+  "passed": [
+    {
+      "id": "attention.one",
+      "dimension": "petIdentity",
+      "points": 12,
+      "description": "Attention 态：单 attention",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.panel",
+        "count": [
+          1,
+          1
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.attention.panel]=1"
+    },
+    {
+      "id": "attention.identity",
+      "dimension": "petIdentity",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.identity]=1"
+    },
+    {
+      "id": "attention.composition",
+      "dimension": "composition",
+      "points": 20,
+      "description": "attention 面板为清晰主视觉",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.panel",
+        "count": [
+          1,
+          1
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.attention.panel]=1"
+    },
+    {
+      "id": "attention.evidence",
+      "dimension": "hierarchy",
+      "points": 8,
+      "description": "Attention 态：evidence",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.evidence"
+      },
+      "passed": true,
+      "detail": "elements[pli.attention.evidence]=1"
+    },
+    {
+      "id": "attention.body",
+      "dimension": "hierarchy",
+      "points": 7,
+      "description": "attention 说明文本存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.panel"
+      },
+      "passed": true,
+      "detail": "elements[pli.attention.panel]=1"
+    },
+    {
+      "id": "attention.surface",
+      "dimension": "surface",
+      "points": 10,
+      "description": "大 Card ≤3",
+      "check": {
+        "kind": "surface",
+        "max": 3,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=2 <= 3"
+    },
+    {
+      "id": "attention.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "attention.action",
+      "dimension": "interaction",
+      "points": 10,
+      "description": "Attention 态：action 可点",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.action"
+      },
+      "passed": true,
+      "detail": "elements[pli.attention.action]=1"
+    },
+    {
+      "id": "attention.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "attention 面板可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.panel"
+      },
+      "passed": true,
+      "detail": "elements[pli.attention.panel]=1"
+    },
+    {
+      "id": "attention.truth",
+      "dimension": "runtimeTruth",
+      "points": 10,
+      "description": "attention 来自真实 risk/hint runtime",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

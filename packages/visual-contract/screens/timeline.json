@@ -1,0 +1,22 @@
+{
+  "screen": "timeline",
+  "version": 1,
+  "dimensions": { "petIdentity": 20, "composition": 20, "hierarchy": 15, "surface": 10, "contentPurity": 10, "interaction": 10, "accessibility": 5, "runtimeTruth": 10 },
+  "thresholds": { "pass": 92 },
+  "critical": ["timeline.identity", "timeline.stream", "timeline.content.purity"],
+  "checks": [
+    { "id": "timeline.identity", "dimension": "petIdentity", "points": 10, "description": "当前宠物身份存在", "check": { "kind": "element", "idPrefix": "pli.timeline.identity" } },
+    { "id": "timeline.stream", "dimension": "petIdentity", "points": 10, "description": "生活流（story rows）存在", "check": { "kind": "element", "idPrefix": "pli.timeline.stream" } },
+    { "id": "timeline.filters", "dimension": "composition", "points": 10, "description": "可见主过滤器 ≤5", "check": { "kind": "element", "idPrefix": "pli.timeline.filter.*", "count": [1, 5] } },
+    { "id": "timeline.grouping", "dimension": "composition", "points": 10, "description": "时间分组存在", "check": { "kind": "element", "idPrefix": "pli.timeline.group" } },
+    { "id": "timeline.row", "dimension": "hierarchy", "points": 5, "description": "story row / timeline node 存在", "check": { "kind": "element", "idPrefix": "pli.timeline.row.*", "count": [1, 40] } },
+    { "id": "timeline.meaning", "dimension": "hierarchy", "points": 5, "description": "事件含义文本存在", "check": { "kind": "element", "idPrefix": "pli.timeline.meaning" } },
+    { "id": "timeline.source", "dimension": "hierarchy", "points": 5, "description": "来源/时间存在", "check": { "kind": "element", "idPrefix": "pli.timeline.source" } },
+    { "id": "timeline.surface", "dimension": "surface", "points": 10, "description": "首屏大 Card ≤2（非每条大卡）", "check": { "kind": "surface", "max": 2, "minArea": 20000, "aboveFold": true } },
+    { "id": "timeline.content.purity", "dimension": "contentPurity", "points": 10, "description": "Owner 文本无 raw internal terms", "check": { "kind": "text-free", "tokens": ["BW-", "OWNER_REPORTED", "STRESS_RECOVERY", "OPEN", "provider_", "model_id", "event_key", "PLI-"] } },
+    { "id": "timeline.filter.action", "dimension": "interaction", "points": 5, "description": "过滤器可点", "check": { "kind": "count", "filter": { "role": "button", "idPrefix": "pli.timeline.filter." }, "range": [1, 5] } },
+    { "id": "timeline.pet.entry", "dimension": "interaction", "points": 5, "description": "宠物身份可返回/查看", "check": { "kind": "element", "idPrefix": "pli.timeline.identity" } },
+    { "id": "timeline.a11y", "dimension": "accessibility", "points": 5, "description": "过滤器可访问", "check": { "kind": "count", "filter": { "role": "button", "idPrefix": "pli.timeline.filter." }, "range": [1, 5] } },
+    { "id": "timeline.truth", "dimension": "runtimeTruth", "points": 10, "description": "无系统噪音/占位文案", "check": { "kind": "text-free", "tokens": ["今日查看", "占位", "TODO", "placeholder"] } }
+  ]
+}

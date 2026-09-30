@@ -1,0 +1,240 @@
+﻿[
+    {
+        "platform":  "android",
+        "screen":  "today",
+        "ssim":  0.730,
+        "phash":  20,
+        "luma":  0.88
+    },
+    {
+        "platform":  "android",
+        "screen":  "twinreview",
+        "ssim":  0.816,
+        "phash":  14,
+        "luma":  0.89
+    },
+    {
+        "platform":  "android",
+        "screen":  "monitoring",
+        "ssim":  0.918,
+        "phash":  12,
+        "luma":  0.91
+    },
+    {
+        "platform":  "android",
+        "screen":  "pet",
+        "ssim":  0.880,
+        "phash":  15,
+        "luma":  0.90
+    },
+    {
+        "platform":  "android",
+        "screen":  "quicklog",
+        "ssim":  0.850,
+        "phash":  10,
+        "luma":  0.92
+    },
+    {
+        "platform":  "android",
+        "screen":  "timeline",
+        "ssim":  0.979,
+        "phash":  6,
+        "luma":  0.91
+    },
+    {
+        "platform":  "android",
+        "screen":  "behavior",
+        "ssim":  0.995,
+        "phash":  2,
+        "luma":  0.90
+    },
+    {
+        "platform":  "android",
+        "screen":  "assistant",
+        "ssim":  0.852,
+        "phash":  10,
+        "luma":  0.91
+    },
+    {
+        "platform":  "android",
+        "screen":  "twinversion",
+        "ssim":  0.778,
+        "phash":  16,
+        "luma":  0.89
+    },
+    {
+        "platform":  "android",
+        "screen":  "twincapture",
+        "ssim":  0.743,
+        "phash":  18,
+        "luma":  0.93
+    },
+    {
+        "platform":  "android",
+        "screen":  "social",
+        "ssim":  0.995,
+        "phash":  2,
+        "luma":  0.91
+    },
+    {
+        "platform":  "android",
+        "screen":  "health",
+        "ssim":  0.881,
+        "phash":  14,
+        "luma":  0.91
+    },
+    {
+        "platform":  "android",
+        "screen":  "welfare",
+        "ssim":  0.723,
+        "phash":  22,
+        "luma":  0.89
+    },
+    {
+        "platform":  "android",
+        "screen":  "companion",
+        "ssim":  0.959,
+        "phash":  10,
+        "luma":  0.90
+    },
+    {
+        "platform":  "android",
+        "screen":  "lifeview",
+        "ssim":  0.724,
+        "phash":  28,
+        "luma":  0.90
+    },
+    {
+        "platform":  "android",
+        "screen":  "me",
+        "ssim":  0.988,
+        "phash":  4,
+        "luma":  0.91
+    },
+    {
+        "platform":  "android",
+        "screen":  "training",
+        "ssim":  0.807,
+        "phash":  6,
+        "luma":  0.90
+    },
+    {
+        "platform":  "web",
+        "screen":  "today",
+        "ssim":  -0.070,
+        "phash":  32,
+        "luma":  0.66
+    },
+    {
+        "platform":  "web",
+        "screen":  "twinreview",
+        "ssim":  0.012,
+        "phash":  32,
+        "luma":  0.90
+    },
+    {
+        "platform":  "web",
+        "screen":  "monitoring",
+        "ssim":  0.000,
+        "phash":  40,
+        "luma":  0.97
+    },
+    {
+        "platform":  "web",
+        "screen":  "pet",
+        "ssim":  -0.001,
+        "phash":  27,
+        "luma":  0.61
+    },
+    {
+        "platform":  "web",
+        "screen":  "quicklog",
+        "ssim":  -0.119,
+        "phash":  38,
+        "luma":  0.66
+    },
+    {
+        "platform":  "web",
+        "screen":  "timeline",
+        "ssim":  0.050,
+        "phash":  28,
+        "luma":  0.95
+    },
+    {
+        "platform":  "web",
+        "screen":  "behavior",
+        "ssim":  0.004,
+        "phash":  34,
+        "luma":  0.96
+    },
+    {
+        "platform":  "web",
+        "screen":  "assistant",
+        "ssim":  0.008,
+        "phash":  26,
+        "luma":  0.94
+    },
+    {
+        "platform":  "web",
+        "screen":  "twinversion",
+        "ssim":  0.004,
+        "phash":  28,
+        "luma":  0.95
+    },
+    {
+        "platform":  "web",
+        "screen":  "twincapture",
+        "ssim":  -0.038,
+        "phash":  34,
+        "luma":  0.96
+    },
+    {
+        "platform":  "web",
+        "screen":  "social",
+        "ssim":  0.023,
+        "phash":  26,
+        "luma":  0.96
+    },
+    {
+        "platform":  "web",
+        "screen":  "health",
+        "ssim":  0.023,
+        "phash":  32,
+        "luma":  0.96
+    },
+    {
+        "platform":  "web",
+        "screen":  "welfare",
+        "ssim":  -0.004,
+        "phash":  30,
+        "luma":  0.95
+    },
+    {
+        "platform":  "web",
+        "screen":  "companion",
+        "ssim":  -0.009,
+        "phash":  34,
+        "luma":  0.93
+    },
+    {
+        "platform":  "web",
+        "screen":  "lifeview",
+        "ssim":  0.003,
+        "phash":  28,
+        "luma":  0.64
+    },
+    {
+        "platform":  "web",
+        "screen":  "me",
+        "ssim":  0.086,
+        "phash":  30,
+        "luma":  0.96
+    },
+    {
+        "platform":  "web",
+        "screen":  "training",
+        "ssim":  0.085,
+        "phash":  32,
+        "luma":  0.96
+    }
+]

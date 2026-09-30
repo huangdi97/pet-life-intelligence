@@ -1,0 +1,19 @@
+{
+  "screen": "special-attention",
+  "version": 1,
+  "dimensions": { "petIdentity": 20, "composition": 20, "hierarchy": 15, "surface": 10, "contentPurity": 10, "interaction": 10, "accessibility": 5, "runtimeTruth": 10 },
+  "thresholds": { "pass": 85 },
+  "critical": ["attention.one", "attention.content.purity"],
+  "checks": [
+    { "id": "attention.one", "dimension": "petIdentity", "points": 12, "description": "Attention 态：单 attention", "check": { "kind": "element", "idPrefix": "pli.attention.panel", "count": [1, 1] } },
+    { "id": "attention.identity", "dimension": "petIdentity", "points": 8, "description": "当前宠物身份存在", "check": { "kind": "element", "idPrefix": "pli.today.identity" } },
+    { "id": "attention.composition", "dimension": "composition", "points": 20, "description": "attention 面板为清晰主视觉", "check": { "kind": "element", "idPrefix": "pli.attention.panel", "count": [1, 1] } },
+    { "id": "attention.evidence", "dimension": "hierarchy", "points": 8, "description": "Attention 态：evidence", "check": { "kind": "element", "idPrefix": "pli.attention.evidence" } },
+    { "id": "attention.body", "dimension": "hierarchy", "points": 7, "description": "attention 说明文本存在", "check": { "kind": "element", "idPrefix": "pli.attention.panel" } },
+    { "id": "attention.surface", "dimension": "surface", "points": 10, "description": "大 Card ≤3", "check": { "kind": "surface", "max": 3, "minArea": 16000 } },
+    { "id": "attention.content.purity", "dimension": "contentPurity", "points": 10, "description": "Owner 文本无 raw internal terms", "check": { "kind": "text-free", "tokens": ["BW-", "OWNER_REPORTED", "STRESS_RECOVERY", "OPEN", "provider_", "model_id", "event_key", "PLI-"] } },
+    { "id": "attention.action", "dimension": "interaction", "points": 10, "description": "Attention 态：action 可点", "check": { "kind": "element", "idPrefix": "pli.attention.action" } },
+    { "id": "attention.a11y", "dimension": "accessibility", "points": 5, "description": "attention 面板可读", "check": { "kind": "element", "idPrefix": "pli.attention.panel" } },
+    { "id": "attention.truth", "dimension": "runtimeTruth", "points": 10, "description": "attention 来自真实 risk/hint runtime", "check": { "kind": "text-free", "tokens": ["占位", "TODO", "placeholder"] } }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "screen": "companion",
+  "version": 1,
+  "dimensions": { "petIdentity": 20, "composition": 20, "hierarchy": 15, "surface": 10, "contentPurity": 10, "interaction": 10, "accessibility": 5, "runtimeTruth": 10 },
+  "thresholds": { "pass": 92 },
+  "critical": ["companion.device-empty", "companion.content.purity"],
+  "checks": [
+    { "id": "companion.identity", "dimension": "petIdentity", "points": 8, "description": "当前宠物身份存在", "check": { "kind": "element", "idPrefix": "pli.companion.identity" } },
+    { "id": "companion.overview", "dimension": "petIdentity", "points": 12, "description": "能力说明存在", "check": { "kind": "element", "idPrefix": "pli.companion.overview" } },
+    { "id": "companion.device-empty", "dimension": "composition", "points": 10, "description": "无设备完整空态存在", "check": { "kind": "element", "idPrefix": "pli.companion.device-empty" } },
+    { "id": "companion.recent", "dimension": "composition", "points": 10, "description": "最近可用信息存在", "check": { "kind": "element", "idPrefix": "pli.companion.recent" } },
+    { "id": "companion.next", "dimension": "hierarchy", "points": 8, "description": "下一步存在", "check": { "kind": "element", "idPrefix": "pli.companion.next" } },
+    { "id": "companion.observable", "dimension": "hierarchy", "points": 7, "description": "可观察语言（非拟人化情感）", "check": { "kind": "element", "idPrefix": "pli.companion.recent" } },
+    { "id": "companion.surface", "dimension": "surface", "points": 10, "description": "大 Card ≤4", "check": { "kind": "surface", "max": 4, "minArea": 16000 } },
+    { "id": "companion.content.purity", "dimension": "contentPurity", "points": 10, "description": "无 prototype/TODO/coming soon 等", "check": { "kind": "text-free", "tokens": ["BW-", "OWNER_REPORTED", "STRESS_RECOVERY", "OPEN", "provider_", "model_id", "event_key", "PLI-", "prototype", "TODO", "coming soon"] } },
+    { "id": "companion.action", "dimension": "interaction", "points": 5, "description": "配对/下一步动作存在", "check": { "kind": "element", "idPrefix": "pli.companion.action" } },
+    { "id": "companion.view", "dimension": "interaction", "points": 5, "description": "能力项可查看", "check": { "kind": "count", "filter": { "role": "button", "idPrefix": "pli.companion.overview" }, "range": [1, 6] } },
+    { "id": "companion.a11y", "dimension": "accessibility", "points": 5, "description": "关键区可读", "check": { "kind": "element", "idPrefix": "pli.companion.overview" } },
+    { "id": "companion.truth", "dimension": "runtimeTruth", "points": 10, "description": "设备状态来自真实 runtime", "check": { "kind": "element", "idPrefix": "pli.companion.device-status" } }
+  ]
+}

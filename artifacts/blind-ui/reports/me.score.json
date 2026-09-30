@@ -1,0 +1,240 @@
+{
+  "screen": "me",
+  "total": 95,
+  "max": 100,
+  "perDimension": {
+    "petIdentity": {
+      "earned": 20,
+      "max": 20
+    },
+    "composition": {
+      "earned": 20,
+      "max": 20
+    },
+    "hierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surface": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interaction": {
+      "earned": 5,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "runtimeTruth": {
+      "earned": 10,
+      "max": 10
+    }
+  },
+  "passed": [
+    {
+      "id": "me.owner",
+      "dimension": "petIdentity",
+      "points": 10,
+      "description": "Owner 身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.me.owner"
+      },
+      "passed": true,
+      "detail": "elements[pli.me.owner]=1"
+    },
+    {
+      "id": "me.pets",
+      "dimension": "petIdentity",
+      "points": 10,
+      "description": "我的宠物存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.me.pets"
+      },
+      "passed": true,
+      "detail": "elements[pli.me.pets]=1"
+    },
+    {
+      "id": "me.care-network",
+      "dimension": "composition",
+      "points": 7,
+      "description": "家庭 / Care Network 存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.me.care-network"
+      },
+      "passed": true,
+      "detail": "elements[pli.me.care-network]=1"
+    },
+    {
+      "id": "me.notifications",
+      "dimension": "composition",
+      "points": 5,
+      "description": "通知存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.me.notifications"
+      },
+      "passed": true,
+      "detail": "elements[pli.me.notifications]=1"
+    },
+    {
+      "id": "me.privacy",
+      "dimension": "composition",
+      "points": 5,
+      "description": "隐私存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.me.privacy"
+      },
+      "passed": true,
+      "detail": "elements[pli.me.privacy]=1"
+    },
+    {
+      "id": "me.data",
+      "dimension": "composition",
+      "points": 3,
+      "description": "数据存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.me.data"
+      },
+      "passed": true,
+      "detail": "elements[pli.me.data]=1"
+    },
+    {
+      "id": "me.help",
+      "dimension": "hierarchy",
+      "points": 7,
+      "description": "帮助存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.me.help"
+      },
+      "passed": true,
+      "detail": "elements[pli.me.help]=1"
+    },
+    {
+      "id": "me.hierarchy",
+      "dimension": "hierarchy",
+      "points": 8,
+      "description": "Owner 区为主（我的宠物在前）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.me.pets"
+      },
+      "passed": true,
+      "detail": "elements[pli.me.pets]=1"
+    },
+    {
+      "id": "me.surface",
+      "dimension": "surface",
+      "points": 10,
+      "description": "大 Card ≤6",
+      "check": {
+        "kind": "surface",
+        "max": 6,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 6"
+    },
+    {
+      "id": "me.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "无开发模式/raw env/test pet list",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-",
+          "开发模式",
+          "测试宠物",
+          "DEBUG",
+          "Internal / Pre-Pilot"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "me.settings.action",
+      "dimension": "interaction",
+      "points": 5,
+      "description": "设置项可进入",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.me.settings"
+      },
+      "passed": true,
+      "detail": "elements[pli.me.settings]=1"
+    },
+    {
+      "id": "me.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "关键项可访问",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.me.owner"
+      },
+      "passed": true,
+      "detail": "elements[pli.me.owner]=1"
+    },
+    {
+      "id": "me.truth",
+      "dimension": "runtimeTruth",
+      "points": 10,
+      "description": "Owner/宠物来自真实 runtime",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [
+    {
+      "id": "me.pets.action",
+      "dimension": "interaction",
+      "points": 5,
+      "description": "宠物列表可进入",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.me.pets"
+        },
+        "range": [
+          1,
+          4
+        ]
+      },
+      "passed": false,
+      "detail": "count=0 outside [1,4]"
+    }
+  ],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

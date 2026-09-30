@@ -1,0 +1,173 @@
+{
+  "screen": "special-empty",
+  "total": 92,
+  "max": 100,
+  "perDimension": {
+    "petIdentity": {
+      "earned": 12,
+      "max": 20
+    },
+    "composition": {
+      "earned": 20,
+      "max": 20
+    },
+    "hierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surface": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interaction": {
+      "earned": 10,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "runtimeTruth": {
+      "earned": 10,
+      "max": 10
+    }
+  },
+  "passed": [
+    {
+      "id": "empty.presence",
+      "dimension": "petIdentity",
+      "points": 12,
+      "description": "Empty 态：Pet Presence 存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.empty.pet"
+      },
+      "passed": true,
+      "detail": "elements[pli.empty.pet]=1"
+    },
+    {
+      "id": "empty.composition",
+      "dimension": "composition",
+      "points": 20,
+      "description": "Empty 主视觉结构（pet+why）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.empty.*",
+        "count": [
+          1,
+          6
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.empty.*]=3"
+    },
+    {
+      "id": "empty.why",
+      "dimension": "hierarchy",
+      "points": 15,
+      "description": "Empty 态：为什么为空",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.empty.why"
+      },
+      "passed": true,
+      "detail": "elements[pli.empty.why]=1"
+    },
+    {
+      "id": "empty.surface",
+      "dimension": "surface",
+      "points": 10,
+      "description": "大 Card ≤3",
+      "check": {
+        "kind": "surface",
+        "max": 3,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 3"
+    },
+    {
+      "id": "empty.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "empty.action",
+      "dimension": "interaction",
+      "points": 10,
+      "description": "Empty 态：一个主动作",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.empty.action"
+      },
+      "passed": true,
+      "detail": "elements[pli.empty.action]=1"
+    },
+    {
+      "id": "empty.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "主动作可访问",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.empty.action"
+      },
+      "passed": true,
+      "detail": "elements[pli.empty.action]=1"
+    },
+    {
+      "id": "empty.truth",
+      "dimension": "runtimeTruth",
+      "points": 10,
+      "description": "空态来自真实 runtime（无占位）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [
+    {
+      "id": "empty.identity",
+      "dimension": "petIdentity",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.identity"
+      },
+      "passed": false,
+      "detail": "elements[pli.today.identity]=0 count=undefined minH=undefined"
+    }
+  ],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

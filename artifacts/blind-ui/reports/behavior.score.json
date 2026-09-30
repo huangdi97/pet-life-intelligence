@@ -1,0 +1,237 @@
+{
+  "screen": "behavior",
+  "total": 95,
+  "max": 100,
+  "perDimension": {
+    "petIdentity": {
+      "earned": 20,
+      "max": 20
+    },
+    "composition": {
+      "earned": 20,
+      "max": 20
+    },
+    "hierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surface": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interaction": {
+      "earned": 5,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "runtimeTruth": {
+      "earned": 10,
+      "max": 10
+    }
+  },
+  "passed": [
+    {
+      "id": "behavior.identity",
+      "dimension": "petIdentity",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.behavior.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.behavior.identity]=1"
+    },
+    {
+      "id": "behavior.observations",
+      "dimension": "petIdentity",
+      "points": 12,
+      "description": "近期观察存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.behavior.observations"
+      },
+      "passed": true,
+      "detail": "elements[pli.behavior.observations]=1"
+    },
+    {
+      "id": "behavior.patterns",
+      "dimension": "composition",
+      "points": 8,
+      "description": "模式与倾向存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.behavior.patterns"
+      },
+      "passed": true,
+      "detail": "elements[pli.behavior.patterns]=1"
+    },
+    {
+      "id": "behavior.context",
+      "dimension": "composition",
+      "points": 6,
+      "description": "上下文/trigger 存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.behavior.context"
+      },
+      "passed": true,
+      "detail": "elements[pli.behavior.context]=1"
+    },
+    {
+      "id": "behavior.recent",
+      "dimension": "composition",
+      "points": 6,
+      "description": "最近记录存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.behavior.recent"
+      },
+      "passed": true,
+      "detail": "elements[pli.behavior.recent]=1"
+    },
+    {
+      "id": "behavior.noemotion",
+      "dimension": "hierarchy",
+      "points": 7,
+      "description": "不凭空判断情绪（基于观察事实）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.behavior.observations"
+      },
+      "passed": true,
+      "detail": "elements[pli.behavior.observations]=1"
+    },
+    {
+      "id": "behavior.meaning",
+      "dimension": "hierarchy",
+      "points": 4,
+      "description": "观察有含义描述",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.behavior.patterns"
+      },
+      "passed": true,
+      "detail": "elements[pli.behavior.patterns]=1"
+    },
+    {
+      "id": "behavior.source",
+      "dimension": "hierarchy",
+      "points": 4,
+      "description": "记录有来源/时间",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.behavior.source"
+      },
+      "passed": true,
+      "detail": "elements[pli.behavior.source]=1"
+    },
+    {
+      "id": "behavior.surface",
+      "dimension": "surface",
+      "points": 10,
+      "description": "大 Card ≤5",
+      "check": {
+        "kind": "surface",
+        "max": 5,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 5"
+    },
+    {
+      "id": "behavior.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "无 raw enum / 无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "behavior.action",
+      "dimension": "interaction",
+      "points": 5,
+      "description": "记录行为入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.behavior.action"
+      },
+      "passed": true,
+      "detail": "elements[pli.behavior.action]=1"
+    },
+    {
+      "id": "behavior.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "关键区可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.behavior.observations"
+      },
+      "passed": true,
+      "detail": "elements[pli.behavior.observations]=1"
+    },
+    {
+      "id": "behavior.truth",
+      "dimension": "runtimeTruth",
+      "points": 10,
+      "description": "数据来自真实 runtime（无占位）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [
+    {
+      "id": "behavior.view",
+      "dimension": "interaction",
+      "points": 5,
+      "description": "记录可查看",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.behavior.recent"
+        },
+        "range": [
+          1,
+          12
+        ]
+      },
+      "passed": false,
+      "detail": "count=0 outside [1,12]"
+    }
+  ],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

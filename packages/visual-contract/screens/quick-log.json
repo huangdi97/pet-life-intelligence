@@ -1,0 +1,23 @@
+{
+  "screen": "quick-log",
+  "version": 1,
+  "dimensions": { "petIdentity": 20, "composition": 20, "hierarchy": 15, "surface": 10, "contentPurity": 10, "interaction": 10, "accessibility": 5, "runtimeTruth": 10 },
+  "thresholds": { "pass": 92 },
+  "critical": ["quicklog.primary", "quicklog.content.purity"],
+  "checks": [
+    { "id": "quicklog.identity", "dimension": "petIdentity", "points": 10, "description": "为当前宠物记录（PetContextHeader）", "check": { "kind": "element", "idPrefix": "pli.quicklog.identity" } },
+    { "id": "quicklog.primary", "dimension": "petIdentity", "points": 10, "description": "高频四动作首屏可达（喂食/饮水/排泄/散步）", "check": { "kind": "element", "idPrefix": "pli.quicklog.tile.feed", "count": [1, 1] } },
+    { "id": "quicklog.tiles.water", "dimension": "composition", "points": 5, "description": "饮水入口存在", "check": { "kind": "element", "idPrefix": "pli.quicklog.tile.water" } },
+    { "id": "quicklog.tiles.elim", "dimension": "composition", "points": 5, "description": "排泄入口存在", "check": { "kind": "element", "idPrefix": "pli.quicklog.tile.elimination" } },
+    { "id": "quicklog.tiles.walk", "dimension": "composition", "points": 5, "description": "散步入口存在", "check": { "kind": "element", "idPrefix": "pli.quicklog.tile.walk" } },
+    { "id": "quicklog.more", "dimension": "composition", "points": 5, "description": "更多入口存在", "check": { "kind": "element", "idPrefix": "pli.quicklog.more", "count": [1, 12] } },
+    { "id": "quicklog.form", "dimension": "hierarchy", "points": 7, "description": "轻量表单（非重表单）存在", "check": { "kind": "element", "idPrefix": "pli.quicklog.form" } },
+    { "id": "quicklog.feedback", "dimension": "hierarchy", "points": 8, "description": "记录反馈存在", "check": { "kind": "element", "idPrefix": "pli.quicklog.feedback" } },
+    { "id": "quicklog.surface", "dimension": "surface", "points": 10, "description": "大 Card ≤3", "check": { "kind": "surface", "max": 3, "minArea": 16000 } },
+    { "id": "quicklog.content.purity", "dimension": "contentPurity", "points": 10, "description": "Owner 文本无 raw internal terms", "check": { "kind": "text-free", "tokens": ["BW-", "OWNER_REPORTED", "STRESS_RECOVERY", "OPEN", "provider_", "model_id", "event_key", "PLI-"] } },
+    { "id": "quicklog.tile.action", "dimension": "interaction", "points": 6, "description": "高频瓷砖可点", "check": { "kind": "count", "filter": { "role": "button", "idPrefix": "pli.quicklog.tile." }, "range": [4, 16] } },
+    { "id": "quicklog.save", "dimension": "interaction", "points": 4, "description": "保存/完成动作存在", "check": { "kind": "element", "idPrefix": "pli.quicklog.save" } },
+    { "id": "quicklog.a11y", "dimension": "accessibility", "points": 5, "description": "瓷砖可访问", "check": { "kind": "count", "filter": { "role": "button", "idPrefix": "pli.quicklog.tile." }, "range": [4, 16] } },
+    { "id": "quicklog.truth", "dimension": "runtimeTruth", "points": 10, "description": "记录类型来自真实配置（非占位）", "check": { "kind": "text-free", "tokens": ["占位", "TODO", "placeholder"] } }
+  ]
+}

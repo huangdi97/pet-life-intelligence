@@ -1,0 +1,154 @@
+{
+  "platform": "android",
+  "date": "2026-09-30",
+  "screens": {
+    "assistant": {
+      "total": 100,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "attention": {
+      "total": 92,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "behavior": {
+      "total": 95,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "companion": {
+      "total": 100,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "empty": {
+      "total": 100,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "health": {
+      "total": 95,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "lifeview": {
+      "total": 100,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "me": {
+      "total": 100,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "monitoring": {
+      "total": 95,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "multipet": {
+      "total": 100,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "offline": {
+      "total": 93,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "pet": {
+      "total": 96,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "quicklog": {
+      "total": 95,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "social": {
+      "total": 95,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "timeline": {
+      "total": 100,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "today": {
+      "total": 100,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "training": {
+      "total": 100,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "twincapture": {
+      "total": 95,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "twinreview": {
+      "total": 100,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "twinversion": {
+      "total": 95,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    },
+    "welfare": {
+      "total": 95,
+      "max": 100,
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
+    }
+  },
+  "missing_captures": []
+}

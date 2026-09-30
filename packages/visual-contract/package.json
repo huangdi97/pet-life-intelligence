@@ -1,0 +1,23 @@
+{
+  "name": "@pli/visual-contract",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./screens/*.json": "./screens/*.json",
+    "./tokens/tokens.json": "./tokens/tokens.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "5.7.3"
+  }
+}

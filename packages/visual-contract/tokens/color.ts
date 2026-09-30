@@ -1,0 +1,22 @@
+/** color.ts — approved blind design tokens (mirror of tokens.json). */
+export const COLOR = {
+  canvas: "#F6F1E9",
+  surface: "#FFFFFF",
+  surfaceRaised: "#FFFDF8",
+  textPrimary: "#2B2723",
+  textSecondary: "#5C554C",
+  textTertiary: "#8A8074",
+  brandPrimary: "#6E8B5E",
+  brandPrimaryDeep: "#4E6349",
+  brandSecondary: "#B9762A",
+  attention: "#A97B2C",
+  danger: "#B42318",
+  success: "#4E7A5A",
+  stageWarmBase: "#171310",
+  stageWarmGlow: "#3A2E24",
+  textOnStage: "#FAF6EF",
+  twinAccent: "#BFE6EC",
+  twinAccentDeep: "#5E9FB0",
+  warmNeutral: "#EDE1CC",
+  warmCream: "#F9F2E4",
+} as const;

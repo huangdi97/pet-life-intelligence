@@ -1,0 +1,486 @@
+{
+  "screen": "timeline",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "contentBounds": {
+    "top": 82,
+    "bottom": 844,
+    "width": 390,
+    "height": 762,
+    "left": 0
+  },
+  "elements": [
+    {
+      "id": "header",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "nav",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 100,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "pli.nav.today",
+      "role": "button",
+      "x": 174,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "今日"
+    },
+    {
+      "id": "pli.nav.timeline",
+      "role": "button",
+      "x": 214,
+      "y": 15,
+      "width": 46,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "时间线"
+    },
+    {
+      "id": "pli.nav.pet",
+      "role": "button",
+      "x": 264,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆"
+    },
+    {
+      "id": "pli.nav.assistant",
+      "role": "button",
+      "x": 304,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "助手"
+    },
+    {
+      "id": "pli.nav.me",
+      "role": "button",
+      "x": 344,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "我的"
+    },
+    {
+      "id": "pli.multipet.switch",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）咪咪（cat）"
+    },
+    {
+      "id": "pli.multipet.current",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）"
+    },
+    {
+      "id": "pli.timeline.filter.all",
+      "role": "button",
+      "x": 14,
+      "y": 192,
+      "width": 46,
+      "height": 30,
+      "visible": true,
+      "z": 0,
+      "text": "全部"
+    },
+    {
+      "id": "pli.timeline.filter.health",
+      "role": "button",
+      "x": 66,
+      "y": 192,
+      "width": 46,
+      "height": 30,
+      "visible": true,
+      "z": 0,
+      "text": "健康"
+    },
+    {
+      "id": "pli.timeline.filter.behavior",
+      "role": "button",
+      "x": 118,
+      "y": 192,
+      "width": 46,
+      "height": 30,
+      "visible": true,
+      "z": 0,
+      "text": "行为"
+    },
+    {
+      "id": "pli.timeline.filter.training",
+      "role": "button",
+      "x": 170,
+      "y": 192,
+      "width": 46,
+      "height": 30,
+      "visible": true,
+      "z": 0,
+      "text": "训练"
+    },
+    {
+      "id": "pli.timeline.filter.care",
+      "role": "button",
+      "x": 222,
+      "y": 192,
+      "width": 46,
+      "height": 30,
+      "visible": true,
+      "z": 0,
+      "text": "照护"
+    },
+    {
+      "id": "pli.timeline.stream",
+      "x": 12,
+      "y": 465,
+      "width": 366,
+      "height": 2552,
+      "visible": true,
+      "z": 0,
+      "text": "9月29日\n昨天\n23:30\n体重\n为什么\n\n11.5 kg\n\n主人记录\nDemo Owner\n22:30\n喂食\n为什么\n\n120g · 狗粮\n\n主人记录\nDemo Owner\n21:30\n睡眠\n为什么\n\n90 分钟\n\n主人记录\nDemo Owner\n20:30\n排泄\n为什么\n主人记录\nDemo Owner\n19:30\n玩耍\n为什么\n\n15 分钟 · fetch\n\n主人记录\nDemo Owner\n"
+    },
+    {
+      "id": "pli.timeline.group",
+      "x": 12,
+      "y": 465,
+      "width": 366,
+      "height": 1046,
+      "visible": true,
+      "z": 0,
+      "text": "9月29日\n昨天\n23:30\n体重\n为什么\n\n11.5 kg\n\n主人记录\nDemo Owner\n22:30\n喂食\n为什么\n\n120g · 狗粮\n\n主人记录\nDemo Owner\n21:30\n睡眠\n为什么\n\n90 分钟\n\n主人记录\nDemo Owner\n20:30\n排泄\n为什么\n主人记录\nDemo Owner\n19:30\n玩耍\n为什么\n\n15 分钟 · fetch\n\n主人记录\nDemo Owner\n"
+    },
+    {
+      "id": "pli.timeline.row.ae8936da-2612-4688-841f-0a5e65d95ff2",
+      "x": 14,
+      "y": 498,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "23:30\n体重\n为什么\n\n11.5 kg\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.meaning",
+      "x": 72,
+      "y": 508,
+      "width": 302,
+      "height": 19,
+      "visible": true,
+      "z": 0,
+      "text": "体重\n为什么"
+    },
+    {
+      "id": "pli.timeline.source",
+      "x": 72,
+      "y": 561,
+      "width": 302,
+      "height": 24,
+      "visible": true,
+      "z": 0,
+      "text": "主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.bb98048b-04c9-4447-ac2b-b12eb6a89c65",
+      "x": 14,
+      "y": 595,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "22:30\n喂食\n为什么\n\n120g · 狗粮\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.de24fb10-063e-4dba-b931-3fac4d709edd",
+      "x": 14,
+      "y": 692,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "21:30\n睡眠\n为什么\n\n90 分钟\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.1f55c113-70d4-4965-9395-38bcdbac1d1b",
+      "x": 14,
+      "y": 789,
+      "width": 362,
+      "height": 67,
+      "visible": true,
+      "z": 0,
+      "text": "20:30\n排泄\n为什么\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.1135bfa6-3192-4b48-9ac6-3fb1a0f4cc51",
+      "x": 14,
+      "y": 856,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "19:30\n玩耍\n为什么\n\n15 分钟 · fetch\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.cfe47baa-b7e9-437f-8adf-1912230dae85",
+      "x": 14,
+      "y": 953,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "18:30\n喂食\n为什么\n\n120g · 狗粮\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.99e4cd97-1d41-4462-8eac-4e3f51ddb1d8",
+      "x": 14,
+      "y": 1050,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "17:30\n饮水\n为什么\n\n180ml\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.c83dfb2b-8d98-4b6d-b415-cc248db1bd66",
+      "x": 14,
+      "y": 1147,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "16:30\n散步\n为什么\n\n25 分钟\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.23020582-819d-4bb9-b4c8-f9e628922641",
+      "x": 14,
+      "y": 1244,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "15:30\n喂食\n为什么\n\n120g · 狗粮\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.b64cc1cc-0036-4081-91a5-eb9dd92c2993",
+      "x": 14,
+      "y": 1341,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "01:06\n训练记录\n为什么\n\n5 分钟\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.07bd5e8d-f9b0-4ed9-ad10-2523142f164c",
+      "x": 14,
+      "y": 1438,
+      "width": 362,
+      "height": 67,
+      "visible": true,
+      "z": 0,
+      "text": "01:06\n训练目标\n为什么\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.281c054f-1ed3-47fd-893a-e48e9f93bada",
+      "x": 14,
+      "y": 1549,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "23:30\n体重\n为什么\n\n11.5 kg\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.fae0c92b-2d4b-4e5e-9727-0fea8b6a1afd",
+      "x": 14,
+      "y": 1646,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "22:30\n喂食\n为什么\n\n120g · 狗粮\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.4c33f3f2-4034-4d2c-a5fa-217081e0607c",
+      "x": 14,
+      "y": 1743,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "21:30\n睡眠\n为什么\n\n90 分钟\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.7649bf89-8c7c-4709-99ca-1a8ac27a743a",
+      "x": 14,
+      "y": 1840,
+      "width": 362,
+      "height": 67,
+      "visible": true,
+      "z": 0,
+      "text": "20:30\n排泄\n为什么\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.f1e3abdf-46fa-4e36-bb73-885a684d6db8",
+      "x": 14,
+      "y": 1907,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "19:30\n玩耍\n为什么\n\n15 分钟 · fetch\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.fa7a2715-5804-41da-9e2e-d50cc605d98f",
+      "x": 14,
+      "y": 2004,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "18:30\n喂食\n为什么\n\n120g · 狗粮\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.e3b83ec7-9bdf-45e2-b6b6-51882e6d1beb",
+      "x": 14,
+      "y": 2101,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "17:30\n饮水\n为什么\n\n180ml\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.a9ad0c1b-750b-4398-a676-c4c535d0d61f",
+      "x": 14,
+      "y": 2198,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "16:30\n散步\n为什么\n\n25 分钟\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.15acc867-4f06-4ee0-a426-faa66bd86410",
+      "x": 14,
+      "y": 2295,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "15:30\n喂食\n为什么\n\n120g · 狗粮\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.fde12b26-e836-49ce-aadb-c406723037e3",
+      "x": 14,
+      "y": 2392,
+      "width": 362,
+      "height": 67,
+      "visible": true,
+      "z": 0,
+      "text": "12:28\n给药\n为什么\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.28a074a9-4835-4c50-af08-ff4869c94479",
+      "x": 14,
+      "y": 2459,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "12:28\n用药计划\n为什么\n\nDoxycycline\n\n专业人员\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.51451eac-ff11-4a1b-9bed-c62eb12ec337",
+      "x": 14,
+      "y": 2556,
+      "width": 362,
+      "height": 67,
+      "visible": true,
+      "z": 0,
+      "text": "12:28\n照护任务\n为什么\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.3d7aefbb-44de-4b72-824a-c353d9279e38",
+      "x": 14,
+      "y": 2623,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "03:00\n行为记录\n为什么\n\n连续吠叫约1分钟，随后躲到沙发下\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.7a0231bb-c1a0-457d-b080-12a68da6f6af",
+      "x": 14,
+      "y": 2720,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "02:00\n散步\n为什么\n\n30 分钟\n\n照护者记录\nDemo Family Member"
+    },
+    {
+      "id": "pli.timeline.row.8fdd0652-e6ae-45ec-9696-c49ddc216b8e",
+      "x": 14,
+      "y": 2817,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "00:30\n体重\n为什么\n\n12.2 kg\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.row.49d7ce56-95c5-4507-8f17-af25f16417df",
+      "x": 14,
+      "y": 2914,
+      "width": 362,
+      "height": 97,
+      "visible": true,
+      "z": 0,
+      "text": "00:00\n喂食\n为什么\n\n120g · dog kibble\n\n主人记录\nDemo Owner"
+    },
+    {
+      "id": "pli.timeline.identity",
+      "x": 12,
+      "y": 3021,
+      "width": 366,
+      "height": 184,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆\n\nCorgi · 持续记录中"
+    }
+  ]
+}

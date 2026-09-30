@@ -1,0 +1,365 @@
+{
+  "screen": "today",
+  "total": 100,
+  "max": 100,
+  "perDimension": {
+    "petIdentity": {
+      "earned": 20,
+      "max": 20
+    },
+    "composition": {
+      "earned": 20,
+      "max": 20
+    },
+    "hierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surface": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interaction": {
+      "earned": 10,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "runtimeTruth": {
+      "earned": 10,
+      "max": 10
+    }
+  },
+  "passed": [
+    {
+      "id": "today.identity",
+      "dimension": "petIdentity",
+      "points": 6,
+      "description": "当前宠物身份（currentPet.name/avatar/species）存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.identity]=1"
+    },
+    {
+      "id": "today.twin.present",
+      "dimension": "petIdentity",
+      "points": 6,
+      "description": "个体 Pet Twin 元素存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.pet-twin",
+        "minHeight": 150
+      },
+      "passed": true,
+      "detail": "elements[pli.today.pet-twin]=1"
+    },
+    {
+      "id": "today.anchor.water",
+      "dimension": "petIdentity",
+      "points": 2,
+      "description": "基础状态「饮水」存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.anchor.water"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.anchor.water]=1"
+    },
+    {
+      "id": "today.anchor.food",
+      "dimension": "petIdentity",
+      "points": 2,
+      "description": "基础状态「进食」存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.anchor.food"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.anchor.food]=1"
+    },
+    {
+      "id": "today.anchor.activity",
+      "dimension": "petIdentity",
+      "points": 2,
+      "description": "基础状态「活动」存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.anchor.activity"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.anchor.activity]=1"
+    },
+    {
+      "id": "today.anchor.sleep",
+      "dimension": "petIdentity",
+      "points": 2,
+      "description": "基础状态「睡眠」存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.anchor.sleep"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.anchor.sleep]=1"
+    },
+    {
+      "id": "today.stage.ratio",
+      "dimension": "composition",
+      "points": 7,
+      "description": "Living Stage 高 = 内容区 43–53%",
+      "check": {
+        "kind": "ratio",
+        "target": "pli.today.living-stage",
+        "region": "content",
+        "property": "height",
+        "range": [
+          0.43,
+          0.53
+        ]
+      },
+      "passed": true,
+      "detail": "pli.today.living-stage height ratio=0.459 in [0.43,0.53]"
+    },
+    {
+      "id": "today.twin.center",
+      "dimension": "composition",
+      "points": 6,
+      "description": "Twin 水平居中偏差 ≤10% 视口宽",
+      "check": {
+        "kind": "center",
+        "target": "pli.today.pet-twin",
+        "region": "viewport",
+        "axis": "x",
+        "tolerance": 0.1
+      },
+      "passed": true,
+      "detail": "pli.today.pet-twin x deviation=0.0% <= 10%"
+    },
+    {
+      "id": "today.stage.viewport",
+      "dimension": "composition",
+      "points": 7,
+      "description": "Stage 盒高 = 视口 28–48%",
+      "check": {
+        "kind": "ratio",
+        "target": "pli.today.living-stage",
+        "region": "viewport",
+        "property": "height",
+        "range": [
+          0.28,
+          0.48
+        ]
+      },
+      "passed": true,
+      "detail": "pli.today.living-stage height ratio=0.415 in [0.28,0.48]"
+    },
+    {
+      "id": "today.health.separate",
+      "dimension": "hierarchy",
+      "points": 5,
+      "description": "健康摘要独立于四基础状态",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.health-summary"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.health-summary]=1"
+    },
+    {
+      "id": "today.attention.one",
+      "dimension": "hierarchy",
+      "points": 4,
+      "description": "注意点 ≤1 个",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.attention",
+        "count": [
+          0,
+          1
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.today.attention]=0"
+    },
+    {
+      "id": "today.change",
+      "dimension": "hierarchy",
+      "points": 3,
+      "description": "变化叙事（Change）存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.change"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.change]=1"
+    },
+    {
+      "id": "today.memory",
+      "dimension": "hierarchy",
+      "points": 3,
+      "description": "最近发生（Memory）预览存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.memory-preview"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.memory-preview]=1"
+    },
+    {
+      "id": "today.surface.limit",
+      "dimension": "surface",
+      "points": 10,
+      "description": "Above-fold 大 Card 表面 ≤2（无 Card Dashboard）",
+      "check": {
+        "kind": "surface",
+        "max": 2,
+        "minArea": 20000,
+        "aboveFold": true
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=true)=0 <= 2"
+    },
+    {
+      "id": "today.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "today.nav.five",
+      "dimension": "interaction",
+      "points": 6,
+      "description": "底导 5 项（今天/时间线/当前宠物/助手/我的）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.nav.*",
+        "count": [
+          5,
+          5
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.nav.*]=5"
+    },
+    {
+      "id": "today.primary-action",
+      "dimension": "interaction",
+      "points": 4,
+      "description": "主动作「快速记录」存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.primary-action"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.primary-action]=1"
+    },
+    {
+      "id": "today.nav.a11y",
+      "dimension": "accessibility",
+      "points": 3,
+      "description": "底导 5 项为可访问按钮",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.nav."
+        },
+        "range": [
+          5,
+          5
+        ]
+      },
+      "passed": true,
+      "detail": "count=5 in [5,5]"
+    },
+    {
+      "id": "today.anchor.a11y",
+      "dimension": "accessibility",
+      "points": 2,
+      "description": "四个锚点均有可读文本",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.anchor.*",
+        "count": [
+          4,
+          4
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.today.anchor.*]=4"
+    },
+    {
+      "id": "today.3d.manifest",
+      "dimension": "runtimeTruth",
+      "points": 4,
+      "description": "3D Scene Manifest 存在",
+      "check": {
+        "kind": "manifest",
+        "field": "ready",
+        "truthy": true,
+        "unlessPlatform": [
+          "android"
+        ]
+      },
+      "passed": true,
+      "detail": "manifest.ready truthy=true"
+    },
+    {
+      "id": "today.3d.wireframe",
+      "dimension": "runtimeTruth",
+      "points": 3,
+      "description": "wireframe = false",
+      "check": {
+        "kind": "manifest",
+        "field": "wireframe",
+        "eq": false
+      },
+      "passed": true,
+      "detail": "manifest.wireframe=false"
+    },
+    {
+      "id": "today.3d.no-fallback",
+      "dimension": "runtimeTruth",
+      "points": 3,
+      "description": "fallbackUsed = false（真实 3D）",
+      "check": {
+        "kind": "manifest",
+        "field": "fallbackUsed",
+        "eq": false,
+        "unlessPlatform": [
+          "android"
+        ]
+      },
+      "passed": true,
+      "detail": "manifest.fallbackUsed=false"
+    }
+  ],
+  "failed": [],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

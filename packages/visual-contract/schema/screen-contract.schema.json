@@ -1,0 +1,167 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://pli.local/visual-contract/screen-contract.schema.json",
+  "title": "ScreenVisualContract",
+  "description": "Machine-readable visual contract for one PLI screen. Evaluated by scripts/blind-ui/scorecard.py against extracted layout/style/semantics/manifest snapshots. No vision model is involved.",
+  "type": "object",
+  "required": ["screen", "version", "dimensions", "thresholds", "critical", "checks"],
+  "properties": {
+    "screen": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "version": { "type": "integer", "minimum": 1 },
+    "dimensions": {
+      "description": "Fixed 8-dimension scorecard, weights sum to 100.",
+      "type": "object",
+      "required": ["petIdentity", "composition", "hierarchy", "surface", "contentPurity", "interaction", "accessibility", "runtimeTruth"],
+      "additionalProperties": { "type": "number" }
+    },
+    "thresholds": {
+      "type": "object",
+      "required": ["pass"],
+      "properties": {
+        "pass": { "type": "number", "minimum": 0, "maximum": 100 },
+        "heroPass": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "critical": {
+      "description": "Check ids that FAIL the whole screen when failed, regardless of total score.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "checks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/contractCheck" }
+    }
+  },
+  "$defs": {
+    "contractCheck": {
+      "type": "object",
+      "required": ["id", "dimension", "points", "description", "check"],
+      "properties": {
+        "id": { "type": "string" },
+        "dimension": {
+          "enum": ["petIdentity", "composition", "hierarchy", "surface", "contentPurity", "interaction", "accessibility", "runtimeTruth"]
+        },
+        "points": { "type": "number", "minimum": 0 },
+        "description": { "type": "string" },
+        "check": {
+          "type": "object",
+          "oneOf": [
+            { "$ref": "#/$defs/elementCheck" },
+            { "$ref": "#/$defs/ratioCheck" },
+            { "$ref": "#/$defs/centerCheck" },
+            { "$ref": "#/$defs/countCheck" },
+            { "$ref": "#/$defs/textFreeCheck" },
+            { "$ref": "#/$defs/textHasCheck" },
+            { "$ref": "#/$defs/manifestCheck" },
+            { "$ref": "#/$defs/surfaceCheck" },
+            { "$ref": "#/$defs/interactionCheck" }
+          ]
+        }
+      }
+    },
+    "elementCheck": {
+      "type": "object",
+      "required": ["kind", "idPrefix"],
+      "properties": {
+        "kind": { "const": "element" },
+        "idPrefix": { "type": "string" },
+        "count": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 },
+        "visible": { "type": "boolean" },
+        "minHeight": { "type": "number" }
+      }
+    },
+    "ratioCheck": {
+      "type": "object",
+      "required": ["kind", "target", "region", "property", "range"],
+      "properties": {
+        "kind": { "const": "ratio" },
+        "target": { "type": "string" },
+        "region": { "enum": ["content", "viewport"] },
+        "property": { "enum": ["height", "width", "area"] },
+        "range": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }
+      }
+    },
+    "centerCheck": {
+      "type": "object",
+      "required": ["kind", "target", "region", "axis", "tolerance"],
+      "properties": {
+        "kind": { "const": "center" },
+        "target": { "type": "string" },
+        "region": { "enum": ["content", "viewport"] },
+        "axis": { "enum": ["x", "y"] },
+        "tolerance": { "type": "number", "minimum": 0, "maximum": 0.5 }
+      }
+    },
+    "countCheck": {
+      "type": "object",
+      "required": ["kind", "range"],
+      "properties": {
+        "kind": { "const": "count" },
+        "filter": {
+          "type": "object",
+          "properties": {
+            "role": { "type": "string" },
+            "type": { "type": "string" },
+            "idPrefix": { "type": "string" }
+          }
+        },
+        "range": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 }
+      }
+    },
+    "textFreeCheck": {
+      "type": "object",
+      "required": ["kind", "tokens"],
+      "properties": {
+        "kind": { "const": "text-free" },
+        "tokens": { "type": "array", "items": { "type": "string" } },
+        "scope": { "enum": ["all", "element"] },
+        "target": { "type": "string" }
+      }
+    },
+    "textHasCheck": {
+      "type": "object",
+      "required": ["kind", "target", "patterns"],
+      "properties": {
+        "kind": { "const": "text-has" },
+        "target": { "type": "string" },
+        "patterns": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "manifestCheck": {
+      "type": "object",
+      "required": ["kind", "field"],
+      "properties": {
+        "kind": { "const": "manifest" },
+        "field": { "type": "string" },
+        "eq": { "type": ["string", "boolean", "number", "null"] },
+        "truthy": { "type": "boolean" },
+        "in": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+        "unlessPlatform": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "surfaceCheck": {
+      "type": "object",
+      "required": ["kind", "max"],
+      "properties": {
+        "kind": { "const": "surface" },
+        "max": { "type": "integer", "minimum": 0 },
+        "minArea": { "type": "number" },
+        "aboveFold": { "type": "boolean" }
+      }
+    },
+    "interactionCheck": {
+      "type": "object",
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "const": "interaction" },
+        "id": { "type": "string" },
+        "disabledWhen": {
+          "type": "object",
+          "properties": {
+            "selected": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
