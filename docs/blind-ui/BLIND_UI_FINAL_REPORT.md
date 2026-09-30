@@ -13,7 +13,7 @@
 | NO_VISION_MODEL_USED | **TRUE** | 全链路只用 Playwright DOM/ARIA、uiautomator、PIL+numpy 经典统计、JSON 契约比对；无 VLM/OCR/审美模型。见 `docs/blind-ui/ARCHITECTURE` |
 | KNOWN_BAD_CALIBRATION | **PASS** | `tests/blind_ui/test_known_bad_calibration.py`：4 个 known-bad fixture 必须 FAIL（today/pet/lifeview/twin-review），known-good 必须 PASS；原始 `OPEN`/`STRESS_RECOVERY` 检测通过 |
       | BLIND_VISUAL_CONTRACT | **DEPLOYED** | `packages/visual-contract`：17 主屏 + 4 特殊态契约、JSON schema、tokens、纯 evaluator（dist 已编译），8 维合计 100 分 |
-      | TODAY/PET_WORLD/LIFE_VIEW/TWIN_REVIEW_BLIND_ACCEPTANCE | **PASS** | Web 契约分：today=100, pet=96, life-view=100, twin-review=100（heroPass=True）|
+      | TODAY/PET_WORLD/LIFE_VIEW/TWIN_REVIEW_BLIND_ACCEPTANCE | **PASS** | Web 契约分：today=100, pet=100, life-view=100, twin-review=100（heroPass=True）|
       | OWNER_RUNTIME_INTERNAL_TERMS | **0** | 契约 content.purity / anti-patterns 扫描在全部候选截图与 a11y 树中未发现 raw internal terms（BW-*/OWNER_REPORTED/STRESS_RECOVERY/OPEN/provider_*/model_id/event_key/PLI-*）|
       | CURRENT_MAIN_FULL_CI_GREEN | **本地验证；远端 CI 仅剩已知历史项** | 远端 CI：Backend(ruff+446 pytest)、Blind Visual Contract(25)、Frontend 全绿；Browser E2E 功能组（含 blind-ui 6/6、r2p3d）42 passed；唯一失败项 VISUAL-V2/V3 pixel-diff 基线漂移在本次推送前已存在于 main（R2P3D-R1 提交即失败），属历史基线 vs 本 Goal 预期 UI 变更，刷新走 HUMAN 门控 `PLI_UPDATE_VISUAL_BASELINE`（本 Agent 不翻转）|
 | HUMAN_VISUAL_ACCEPTANCE | **PENDING** | 本报告仅提交机器证据；联系表 `artifacts/blind-ui/contact-sheets/*.png` 供人工视觉复核，人工验收结果必须由人翻转 |
