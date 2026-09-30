@@ -10,9 +10,9 @@ interface AttentionCardProps {
 /** OWN-001 Attention — 一屏一个 Attention 或 Calm 状态（Stage R.2 §24）。
  *  普通数据不用红色；只有 deterministic safety rule 才使用强 danger 视觉。 */
 export function AttentionCard({ hints }: AttentionCardProps) {
-  const visible = hints.slice(0, 2);
+  const visible = hints.slice(0, 1);
   return (
-    <div className="v4-sec">
+    <div className="v4-sec" data-testid="pli.attention.panel" data-pli-type="card">
       <div className="v4-sec-head">
         <h2 className="v4-sec-title">值得注意</h2>
       </div>
@@ -26,12 +26,13 @@ export function AttentionCard({ hints }: AttentionCardProps) {
               </span>
               <div>
                 <p className="v4-attn-title">今天有值得关注的变化</p>
-                <p className="v4-attn-body">{msg}</p>
+                <p className="v4-attn-body" data-testid="pli.attention.evidence">{msg}</p>
                 <div className="v4-attn-actions">
                   <Link
                     href={`/agent?tab=explain&ctx=${encodeURIComponent("今日值得关注的事项")}`}
                     className="v4-action v4-action--soft"
                     style={{ minHeight: 32, padding: "6px 12px", fontSize: 13 }}
+                    data-testid="pli.attention.action"
                   >
                     查看依据
                   </Link>

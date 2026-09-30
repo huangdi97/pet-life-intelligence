@@ -47,13 +47,14 @@ export function FilterBar({
   return (
     <div className="v4-sec" style={{ paddingTop: 6, paddingBottom: 10 }}>
       <div className="row" style={{ marginBottom: 8, flexWrap: "wrap", gap: 6 }} role="group" aria-label="按域筛选">
-        {DOMAIN_CHIPS.map((c) => (
+        {DOMAIN_CHIPS.map((c, i) => (
           <button
             key={c.id}
             className={`v4-chip${domain === c.id ? " v4-chip--brand" : ""}`}
             style={{ cursor: "pointer", minHeight: 30 }}
             onClick={() => setDomain(c.id)}
             aria-pressed={domain === c.id}
+            data-testid={i < 5 ? `pli.timeline.filter.${c.id || "all"}` : undefined}
           >
             {c.label}
           </button>

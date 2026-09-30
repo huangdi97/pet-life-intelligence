@@ -19,19 +19,32 @@ const QUICK_ICONS: Record<string, WebIconName> = {
   "daily.weight": "weight",
 };
 
+/** Blind-UI tile keys for the primary quick-log actions (meal→feed, drink→water). */
+const TILE_KEY: Record<string, string> = {
+  "daily.meal": "feed",
+  "daily.drink": "water",
+  "daily.elimination": "elimination",
+  "daily.walk": "walk",
+};
+
 /** OWN-001 Action — 下一步能做什么（快速记录按钮保留 E2E 契约：喂食等）。 */
 export function ActionCard({ quickTypes, onQuickLog, onMore }: ActionCardProps) {
   return (
-    <div className="v4-sec">
+    <div className="v4-sec" data-pli-type="card">
       <div className="v4-sec-head">
         <h2 className="v4-sec-title">快速记录</h2>
-        <button type="button" className="v4-sec-link" onClick={onMore} aria-haspopup="dialog">
-          更多记录类型
+        <button type="button" className="v4-sec-link" onClick={onMore} aria-haspopup="dialog" data-testid="pli.today.primary-action">
+          快速记录
         </button>
       </div>
       <div className="v4-quick">
         {quickTypes.map((q) => (
-          <button key={q.type} type="button" onClick={() => onQuickLog(q)}>
+          <button
+            key={q.type}
+            type="button"
+            onClick={() => onQuickLog(q)}
+            data-testid={`pli.quicklog.tile.${TILE_KEY[q.type] ?? q.type}`}
+          >
             <span className="v4-quick-icon">
               <Icon name={QUICK_ICONS[q.type] ?? "note"} size={22} />
             </span>

@@ -36,12 +36,13 @@ function ageText(birthDate: string | null): string {
   return `${months}个月`;
 }
 
-const DOMAIN_ROWS: Array<{ id: string; href: string; desc: string; icon: WebIconName }> = [
-  { id: "health", href: "/health", desc: "最近记录与近期变化", icon: "heart" },
-  { id: "behavior", href: "/behavior", desc: "最近一次观察与行为模式", icon: "eye" },
-  { id: "training", href: "/training", desc: "当前目标与最近练习", icon: "target" },
-  { id: "welfare", href: "/welfare", desc: "近期观察：舒适、活动与恢复", icon: "shield" },
-  { id: "social", href: "/social", desc: "最近互动与它的朋友", icon: "users" },
+const DOMAIN_ROWS: Array<{ id: string; label: string; href: string; desc: string; icon: WebIconName }> = [
+  { id: "life", label: "生活", href: "/timeline", desc: "今天的状态与最近发生的变化", icon: "sun" },
+  { id: "health", label: "健康", href: "/health", desc: "最近记录与近期变化", icon: "heart" },
+  { id: "behavior", label: "行为", href: "/behavior", desc: "最近一次观察与行为模式", icon: "eye" },
+  { id: "training", label: "训练", href: "/training", desc: "当前目标与最近练习", icon: "target" },
+  { id: "welfare", label: "福利", href: "/welfare", desc: "近期观察：舒适、活动与恢复", icon: "shield" },
+  { id: "social", label: "社交", href: "/social", desc: "最近互动与它的朋友", icon: "users" },
 ];
 
 /** OWN-004 Pet World — 宠物舞台 + 生命侧面叙事（R2-P §7.2）。 */
@@ -59,6 +60,11 @@ export default function PetProfilePage() {
   );
   const today = useAsync<TodayMini>(
     () => (id ? api.get(`/pets/${id}/today`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [id],
+  );
+  const petsList = useAsync<Pet[]>(() => api.get<Pet[]>("/pets"), []);
+  const friends = useAsync<Array<{ friend_pet_id: string; status: string }>>(
+    () => (id ? api.get(`/pets/${id}/friends`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [id],
   );
 
@@ -121,16 +127,20 @@ export default function PetProfilePage() {
   return (
     <main className="v4-main">
       {p ? (
-        <PetLivingStage
-          name={p.name}
-          petId={p.id}
-          species={p.species}
-          breed={p.breed}
-          variant="pet"
-          anchors={anchors.length ? anchors : undefined}
-          headline={p.name}
-          caption={identityLine || undefined}
-        />
+        <div data-testid="pli.pet.identity">
+          <PetLivingStage
+            name={p.name}
+            petId={p.id}
+            species={p.species}
+            breed={p.breed}
+            variant="pet"
+            anchors={anchors.length ? anchors : undefined}
+            headline={p.name}
+            caption={identityLine || undefined}
+            stageTestId="pli.pet.hero-stage"
+            twinTestId="pli.pet.pet-twin"
+          />
+        </div>
       ) : (
         <div className="v4-loading" role="status">
           <span className="spinner" aria-hidden="true" />
@@ -143,7 +153,7 @@ export default function PetProfilePage() {
           <div className="v4-sec">
             <div className="v4-sec-head">
               <h2 className="v4-sec-title v4-sec-title--accent">生命视图</h2>
-              <Link href={`/pets/${id}/life-view`} className="v4-sec-link">
+              <Link href={`/pets/${id}/life-view`} className="v4-sec-link" data-testid="pli.pet.entry.lifeview">
                 打开生命视图
               </Link>
             </div>
@@ -154,18 +164,35 @@ export default function PetProfilePage() {
             <h2 className="v4-sec-title">它的生活</h2>
             {DOMAIN_ROWS.map((row) => (
               <div key={row.id} className="v4-domain">
-                <Link href={row.href} className="v4-domain-main">
+                <Link href={row.href} className="v4-domain-main" role="button" data-testid={`pli.pet.domain.${row.id}`}>
                   <span className="v4-domain-icon">
                     <Icon name={row.icon} size={20} />
                   </span>
                   <div>
-                    <div className="v4-domain-name">{row.desc.split("：")[0]}</div>
+                    <div className="v4-domain-name">{row.label}</div>
                     <div className="v4-domain-desc">{row.desc}</div>
                   </div>
                 </Link>
                 <Icon name="chevron" size={16} style={{ color: "var(--v4-text-tertiary)" }} />
               </div>
             ))}
+          </div>
+
+          <div className="v4-sec" data-testid="pli.pet.friends">
+            <div className="v4-sec-head">
+              <h2 className="v4-sec-title">它的朋友</h2>
+              <Link href="/social" className="v4-sec-link">管理</Link>
+            </div>
+            {friends.state === "ready" && (friends.data?.length ?? 0) > 0 ? (
+              friends.data?.map((f) => (
+                <div key={f.friend_pet_id} className="v4-domain">
+                  <span className="v4-domain-label">{petsList.data?.find((x) => x.id === f.friend_pet_id)?.name ?? "朋友"}</span>
+                  <span className="v4-domain-value">{f.status === "ACTIVE" ? "已连接" : f.status === "PENDING" ? "待确认" : "朋友"}</span>
+                </div>
+              ))
+            ) : (
+              <p className="v4-note" style={{ margin: "6px 0 0" }}>还没有添加朋友。在「社交」页添加后会出现在这里。</p>
+            )}
           </div>
         </div>
 
@@ -200,7 +227,7 @@ export default function PetProfilePage() {
             {p?.birth_date && <p className="v4-note" style={{ marginTop: 8 }}>出生日期：{fmtDate(p.birth_date)}</p>}
           </div>
 
-          <div className="v4-sec">
+          <div className="v4-sec" data-testid="pli.pet.caregivers">
             <h2 className="v4-sec-title">照护网络</h2>
             <div className="v4-linkrow" style={{ marginTop: 6 }}>
               <Link href="/care" className="v4-action v4-action--secondary">

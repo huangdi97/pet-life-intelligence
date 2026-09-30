@@ -21,6 +21,7 @@ import {
   frameCamera,
   orbitFromDrag,
   orbitZoom,
+  POSE_NAMES,
   PET_3D_ASSETS,
   STAGE_FOG,
   STAGE_TARGET,
@@ -59,9 +60,9 @@ export function Pet3DViewer({ identity, twin = null, pose = null, variant = "sta
     let reducedMotion = false;
     const reduceQuery =
       typeof window.matchMedia === "function" ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
-
     const syncOrientation = () => {
       wrap.dataset.orientation = orbitRef.current.yaw.toFixed(2);
+      publishManifest();
     };
 
     try {
@@ -116,6 +117,44 @@ export function Pet3DViewer({ identity, twin = null, pose = null, variant = "sta
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(wrap);
+    // Blind harness: publish the 3D runtime manifest to window (test/debug
+    // only; never rendered in the owner UI). capture-web reads it.
+    const publishManifest = () => {
+      let meshCount = 0;
+      stage.pet.traverse((o) => {
+        if ((o as THREE.Mesh).isMesh) meshCount += 1;
+      });
+      const rect = wrap.getBoundingClientRect();
+      const clips = [...POSE_NAMES];
+      (window as any).__PLI_3D_MANIFEST__ = {
+        ready: true,
+        representation: twin ? "procedural-twin" : "procedural-demo-stage",
+        fallbackUsed: false,
+        assetVersion: twin?.version ?? "demo-v1",
+        meshCount,
+        skinnedMeshCount: 0,
+        skeleton: !!twin,
+        animationClips: clips,
+        wireframe: false,
+        materialMode: "pbr",
+        baseColorTexture: true,
+        camera: {
+          fov: camera?.fov,
+          distance: orbitRef.current.radius,
+          yaw: orbitRef.current.yaw,
+          pitch: orbitRef.current.pitch,
+          radius: orbitRef.current.radius,
+        },
+        screenBounds: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+        activeClip: poseRef.current ?? "Idle",
+        availableClips: clips,
+        playbackState: "playing",
+        reducedMotion,
+        pose: poseRef.current ?? "Idle",
+        poseSource: twin ? "REPRESENTATIVE" : "AMBIENT",
+        poseConfidence: twin ? 0.9 : 0.3,
+      };
+    };
 
     const canRotate = () => interactive || variant === "life";
 
@@ -147,8 +186,11 @@ export function Pet3DViewer({ identity, twin = null, pose = null, variant = "sta
     wrap.addEventListener("pointercancel", onUp);
     wrap.addEventListener("wheel", onWheel, { passive: false });
 
+    let frameCounter = 0;
     const frame = (t: number) => {
       if (!alive) return;
+      frameCounter += 1;
+      if (frameCounter % 20 === 0) publishManifest();
       // Gentle idle drift for the life stage (cosmetic only; off for reduced motion).
       if (interactive && !draggingRef.current && !reducedMotion) {
         orbitRef.current = { ...orbitRef.current, yaw: orbitRef.current.yaw + 0.0008 };
@@ -179,6 +221,7 @@ export function Pet3DViewer({ identity, twin = null, pose = null, variant = "sta
 
     return () => {
       alive = false;
+      delete (window as any).__PLI_3D_MANIFEST__;
       cancelAnimationFrame(raf);
       reduceQuery?.removeEventListener("change", onReduce);
       ro.disconnect();
@@ -229,13 +272,13 @@ export function Pet3DViewer({ identity, twin = null, pose = null, variant = "sta
     >
       {variant === "life" ? (
         <div className="pet3d-controls" aria-label="3D 视图控制">
-          <button type="button" className="pet3d-btn" aria-label="缩小" onClick={() => zoom(1 / 1.15)}>
+          <button type="button" className="pet3d-btn" aria-label="缩小" data-testid="pli.lifeview.control.zoom" onClick={() => zoom(1 / 1.15)}>
             −
           </button>
-          <button type="button" className="pet3d-btn" aria-label="放大" onClick={() => zoom(1.15)}>
+          <button type="button" className="pet3d-btn" aria-label="放大" data-testid="pli.lifeview.control.zoom" onClick={() => zoom(1.15)}>
             +
           </button>
-          <button type="button" className="pet3d-btn" aria-label="重置视图" onClick={reset}>
+          <button type="button" className="pet3d-btn" aria-label="重置视图" data-testid="pli.lifeview.control.reset" onClick={reset}>
             ⟲
           </button>
         </div>

@@ -29,7 +29,7 @@ export default function CompanionPage() {
 
   return (
     <main className="v4-page">
-      <section className="v4-hero v4-hero--compact">
+      <section className="v4-hero v4-hero--compact" data-testid="pli.companion.identity">
         <div className="v4-art" aria-hidden="true" />
         <div className="v4-hero-copy">
           <h1 className="v4-hero-title">陪伴模式</h1>
@@ -37,7 +37,7 @@ export default function CompanionPage() {
         </div>
       </section>
 
-      <section className="v4-sec">
+      <section className="v4-sec" data-testid="pli.companion.overview">
         <h2 className="v4-sec-title">四种能力</h2>
         {LAYERS.map((l) => (
           <div className="v4-domain" key={l.key}>
@@ -47,10 +47,12 @@ export default function CompanionPage() {
         ))}
       </section>
 
-      <section className="v4-sec">
+      <section className="v4-sec" data-testid="pli.companion.device-status">
         <h2 className="v4-sec-title">设备</h2>
         {devices.data && devices.data.length === 0 ? (
-          <p className="v4-calm">尚未连接设备</p>
+          <div className="v4-calm" data-testid="pli.companion.device-empty">
+            尚未连接设备
+          </div>
         ) : (
           (devices.data ?? []).map((d) => (
             <div className="v4-domain" key={d.device_id}>
@@ -59,11 +61,16 @@ export default function CompanionPage() {
             </div>
           ))
         )}
+        <div className="v4-linkrow" style={{ marginTop: 10 }} data-testid="pli.companion.action">
+          <button type="button" className="v4-action v4-action--secondary">
+            连接设备
+          </button>
+        </div>
       </section>
 
-      {recent.data && recent.data.events.length > 0 ? (
-        <section className="v4-sec">
-          <h2 className="v4-sec-title">最近</h2>
+      <section className="v4-sec" data-testid="pli.companion.recent">
+        <h2 className="v4-sec-title">最近</h2>
+        {recent.data && recent.data.events.length > 0 ? (
           <div className="v4-ls">
             {recent.data.events
               .filter((e) => e.event_type !== "today.viewed")
@@ -75,8 +82,15 @@ export default function CompanionPage() {
                 </div>
               ))}
           </div>
-        </section>
-      ) : null}
+        ) : (
+          <p className="v4-note" style={{ margin: 0 }}>还没有可展示的最近活动。</p>
+        )}
+      </section>
+
+      <section className="v4-sec" data-testid="pli.companion.next">
+        <h2 className="v4-sec-title">下一步</h2>
+        <p className="v4-note" style={{ margin: 0 }}>连接一台支持的设备后，就可以在不打扰它的前提下观察与互动。</p>
+      </section>
 
       <p className="v4-note">陪伴不用于医疗判断；互动节奏始终由你控制。</p>
       {/* SAFETY:

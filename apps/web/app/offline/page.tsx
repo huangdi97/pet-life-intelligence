@@ -50,13 +50,14 @@ export default function OfflinePage() {
   return (
     <main className="page page-center">
       <img src="/illustrations/error.png" alt="" width={200} height={140} style={{ borderRadius: 12 }} />
-      <h1>当前处于离线状态</h1>
+      <h1 data-testid="pli.offline.state">当前处于离线状态</h1>
       <p className="sub">
         网络似乎不可用。已缓存的基础页面仍可使用；医疗高风险数据在上传前不会只保存在本机。
       </p>
+      <p className="muted" data-testid="pli.offline.last-sync">最近同步：{syncing ? "同步中…" : msg ? msg : "尚未同步，恢复网络后会自动同步"}</p>
       {msg && <div className="alert info">{msg}</div>}
 
-      <div className="card" style={{ width: "min(92vw, 560px)", textAlign: "left" }}>
+      <div className="card" style={{ width: "min(92vw, 560px)", textAlign: "left" }} data-testid="pli.offline.cached">
         <h2>本地草稿</h2>
         <p className="muted">离线时记录会先保存为草稿，恢复后自动同步（未同步 / 同步中 / 已同步 / 同步失败）。</p>
         {drafts.length === 0 ? (
@@ -87,7 +88,7 @@ export default function OfflinePage() {
         <Link href="/" className="btn primary">
           回到今日
         </Link>
-        <button className="btn" onClick={retrySync} disabled={syncing}>
+        <button className="btn" onClick={retrySync} disabled={syncing} data-testid="pli.offline.retry">
           {syncing ? "同步中……" : "重试连接并同步"}
         </button>
       </div>

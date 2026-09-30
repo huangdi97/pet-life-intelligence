@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@pli/api-client";
 import { mapErrorMessage } from "../../../../lib/i18n";
@@ -32,6 +32,13 @@ const QC_CHECKS = [
   "避免出现人脸/车牌/地址等隐私内容",
 ] as const;
 
+const QC_DIMS: Array<{ key: string; label: string }> = [
+  { key: "clarity", label: "清晰度" },
+  { key: "occlusion", label: "遮挡" },
+  { key: "coverage", label: "覆盖" },
+  { key: "identity", label: "身份一致性" },
+];
+
 interface CaptureResult {
   capture_id: string;
   status: string;
@@ -41,11 +48,20 @@ interface CaptureResult {
 
 export default function CaptureWizard({ params }: { params: Promise<{ id: string }> }) {
   const petId = use(params).id;
+  const [petName, setPetName] = useState<string | null>(null);
   const [shots, setShots] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CaptureResult | null>(null);
+
+  useEffect(() => {
+    if (!petId) return;
+    api
+      .get<{ name: string }>(`/pets/${petId}`)
+      .then((p) => setPetName(p.name))
+      .catch(() => setPetName(null));
+  }, [petId]);
 
   async function onFile(angle: string, file: File | undefined) {
     if (!file || !petId) return;
@@ -92,18 +108,23 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
 
   return (
     <main>
-      <h1>拍摄宠物照片 · 3D 形象素材</h1>
-      <p className="sub">
-        拍 6 个角度的照片（或 12–20 张 / 10–20 秒环绕视频），生成 3D 形象会更像它。
-        照片只用于生成它的 3D 形象，默认不用于任何模型训练。
-      </p>
+      <div data-testid="pli.twincapture.identity">
+        <h1 data-testid="pli.twincapture.title">{petName ? `${petName} · 拍摄宠物照片 · 3D 形象素材` : "拍摄宠物照片 · 3D 形象素材"}</h1>
+        <p className="sub">
+          拍 6 个角度的照片（或 12–20 张 / 10–20 秒环绕视频），生成 3D 形象会更像它。
+          照片只用于生成它的 3D 形象，默认不用于任何模型训练。
+        </p>
+      </div>
       {error && <div className="alert emergency" role="alert">{error}</div>}
 
-      <div className="card">
+      <div className="card" data-testid="pli.twincapture.preview">
         <h2>拍摄角度</h2>
+        <p className="muted" style={{ margin: "0 0 10px" }}>
+          已上传 {uploaded}/6 · 也可以只传 1 张先试（推荐凑齐 4 张以上以提高相似度）。
+        </p>
         <div className="grid2">
           {ANGLES.map((a) => (
-            <label key={a.key} className="field" style={{ border: "1px solid var(--pli-line-default, #e8e2d9)", borderRadius: 10, padding: 10, margin: 0 }}>
+            <label key={a.key} className="field" style={{ border: "1px solid var(--pli-line-default, #e8e2d9)", borderRadius: 10, padding: 10, margin: 0 }} data-testid={`pli.twincapture.view.${a.key}`}>
               <span style={{ fontWeight: 600 }}>{a.label}</span>
               <span className="muted" style={{ display: "block", marginBottom: 6 }}>{a.hint}</span>
               <input
@@ -112,14 +133,13 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
                 disabled={uploading}
                 onChange={(e) => onFile(a.key, e.target.files?.[0])}
               />
-              {shots[a.key] && <span className="badge MONITOR" style={{ marginTop: 6 }}>已上传 ✓</span>}
+              <span className="muted" style={{ display: "block", marginTop: 6 }} data-testid={`pli.twincapture.status.${a.key}`}>
+                {shots[a.key] ? "已上传 ✓" : "未上传"}
+              </span>
             </label>
           ))}
         </div>
-        <p className="muted" style={{ marginTop: 10 }}>
-          已上传 {uploaded}/6 · 也可以只传 1 张先试（推荐凑齐 4 张以上以提高相似度）。
-        </p>
-        <button className="btn primary" onClick={submit} disabled={busy || uploaded === 0}>
+        <button className="btn primary" onClick={submit} disabled={busy || uploaded === 0} data-testid="pli.twincapture.action">
           {busy ? "上传并质检…" : "上传并质检"}
         </button>
       </div>
@@ -135,9 +155,16 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
         </ul>
       </div>
 
-      {result && (
-        <div className="card">
-          <h2>质检结果</h2>
+      <div className="card" data-testid="pli.twincapture.qc">
+        <h2>质检结果</h2>
+        <div className="row" style={{ flexWrap: "wrap", gap: 8 }} data-testid="pli.twincapture.qc.dims">
+          {QC_DIMS.map((d) => (
+            <span key={d.key} className="badge" data-testid={`pli.twincapture.qc.${d.key}`}>
+              {d.label}：{result ? (typeof result.qc_result?.[d.key] === "string" || typeof result.qc_result?.[d.key] === "boolean" ? String(result.qc_result[d.key]) : "待评估") : "待上传后评估"}
+            </span>
+          ))}
+        </div>
+        {result && (
           <State state="ready" error={null} onRetry={() => {}} empty="">
             <p className="sub" style={{ margin: 0 }}>
               <span className={`badge ${result.qc_passed ? "MONITOR" : "EMERGENCY"}`}>
@@ -157,8 +184,20 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
               </button>
             </div>
           </State>
+        )}
+      </div>
+
+      <div className="card" data-testid="pli.twincapture.retake">
+        <h2>需要补拍？</h2>
+        <p className="muted" style={{ margin: 0 }}>
+          某个角度缺失或画面不清晰时，重新选择对应角度的照片即可覆盖。
+        </p>
+        <div className="row" style={{ marginTop: 8 }}>
+          <button className="btn" onClick={() => setResult(null)} data-testid="pli.twincapture.retake.button">
+            重新拍摄
+          </button>
         </div>
-      )}
+      </div>
     </main>
   );
 }

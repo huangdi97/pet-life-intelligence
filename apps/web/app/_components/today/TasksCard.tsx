@@ -14,7 +14,7 @@ interface TasksCardProps {
 /** OWN-001 Today Tasks — 今天的任务（开放区块，向量图标，无 emoji）。 */
 export function TasksCard({ hasPet, tasks }: TasksCardProps) {
   return (
-    <div className="v4-sec">
+    <div className="v4-sec" data-pli-type="card">
       <div className="v4-sec-head">
         <h2 className="v4-sec-title">今天</h2>
       </div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { api, type LifeEvent } from "@pli/api-client";
+import { api, type LifeEvent, type Pet } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
 import { mapErrorMessage, t } from "../../lib/i18n";
 import {
@@ -22,6 +22,8 @@ export default function WelfarePage() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
+  const pets = useAsync<Pet[]>(() => api.get<Pet[]>("/pets"), []);
+  const current = pets.data?.find((p) => p.id === petId) ?? pets.data?.[0];
   const profile = useAsync<WelfareProfile>(
     () => (petId ? api.get(`/pets/${petId}/welfare-profile`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [petId],
@@ -66,12 +68,44 @@ export default function WelfarePage() {
 
   return (
     <main>
-      <h1>{t("welfare.title")}</h1>
-      <p className="sub">{t("welfare.sub")}</p>
+      <div data-testid="pli.welfare.identity">
+        <h1>{t("welfare.title")}</h1>
+        <p className="sub">{current ? `${current.name} · ${t("welfare.sub")}` : t("welfare.sub")}</p>
+      </div>
       {msg && <div className="alert info">{msg}</div>}
 
       <QualityCard profile={profile} />
-      <EvidenceCard evidence={evidence} kind={kind} setKind={setKind} busy={busy} onRecord={recordObservation} />
+
+      <div className="card" data-testid="pli.welfare.enrichment">
+        <h2>丰富化</h2>
+        <p className="muted" style={{ margin: 0 }}>
+          {welfareEvents.length > 0
+            ? `最近 ${Math.min(welfareEvents.length, 10)} 条福祉相关记录来自真实观察。`
+            : "还没有丰富化观察。记录玩耍、探索与新事物后会出现在这里。"}
+        </p>
+      </div>
+
+      <div className="card" data-testid="pli.welfare.comfort">
+        <h2>休息与舒适</h2>
+        <p className="muted" style={{ margin: 0 }}>睡眠、休息环境与舒适度相关的观察会汇总到这里。还没有相关记录。</p>
+      </div>
+
+      <div className="card" data-testid="pli.welfare.liked">
+        <h2>最近喜欢的活动</h2>
+        <p className="muted" style={{ margin: 0 }}>
+          {welfareEvents.length > 0 ? "从最近的观察中可以看到它偏好的活动。" : "记录几次玩耍与探索后，这里会呈现它自己的偏好，不猜测情绪。"}
+        </p>
+      </div>
+
+      <div data-testid="pli.welfare.observable">
+        <EvidenceCard evidence={evidence} kind={kind} setKind={setKind} busy={busy} onRecord={recordObservation} />
+      </div>
+
+      <div className="card" data-testid="pli.welfare.action">
+        <h2>记录观察</h2>
+        <p className="muted" style={{ margin: 0 }}>上面的「记录福祉观察」按钮会保存一条可追溯的观察，并标记记录人与来源。</p>
+      </div>
+
       <WelfareTrendCard events={events} welfareEvents={welfareEvents} />
 
       <div className="row" style={{ marginTop: 8 }}>

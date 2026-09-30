@@ -52,15 +52,15 @@ export default function TodayPage() {
       <main className="v4-main">
         <div className="v4-sec">
           <h1>今日</h1>
-          <div className="v4-calm" style={{ marginTop: 12 }}>
+          <div className="v4-calm" style={{ marginTop: 12 }} data-testid="pli.empty.pet">
             <span className="v4-calm-icon"><Icon name="paw" size={20} /></span>
             <div>
-              <p className="v4-calm-title">还没有宠物</p>
+              <p className="v4-calm-title" data-testid="pli.empty.why">还没有宠物</p>
               <p className="v4-calm-body">先创建一只宠物档案，从这里开始记录它的每一天。</p>
             </div>
           </div>
           <div className="v4-linkrow">
-            <Link href="/pets/new" className="v4-action v4-action--primary" role="button">
+            <Link href="/pets/new" className="v4-action v4-action--primary" role="button" data-testid="pli.empty.action">
               创建宠物档案
             </Link>
           </div>
@@ -80,13 +80,16 @@ export default function TodayPage() {
   const hints = (hint.data?.hints ?? []).filter((h) => Object.keys(h).length > 0);
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
   const hasAttention = hints.length > 0;
+  const anchorValue = (n: number, unit: string) => (n > 0 ? `${n} ${unit}` : "—");
   const anchorsAll: StageAnchor[] = [
-    { id: "meal", label: "进食", value: `${counts["daily.meal"] ?? 0} 次`, icon: "food" },
-    { id: "drink", label: "饮水", value: `${counts["daily.drink"] ?? 0} 次`, icon: "water" },
-    { id: "activity", label: "活动", value: `${activityMinutes} 分钟`, icon: "walk" },
-    { id: "sleep", label: "睡眠", value: `${counts["daily.sleep"] ?? 0} 次`, icon: "sleep" },
+    { id: "food", label: "进食", value: anchorValue(counts["daily.meal"] ?? 0, "次"), icon: "food" },
+    { id: "water", label: "饮水", value: anchorValue(counts["daily.drink"] ?? 0, "次"), icon: "water" },
+    { id: "activity", label: "活动", value: anchorValue(activityMinutes, "分钟"), icon: "walk" },
+    { id: "sleep", label: "睡眠", value: anchorValue(counts["daily.sleep"] ?? 0, "次"), icon: "sleep" },
   ];
-  const anchors = anchorsAll.filter((a) => (a.id === "drink" ? (counts["daily.drink"] ?? 0) > 0 : true));
+  // INVARIANT: all four state anchors always render ("—" when 0) so the
+  // blind-UI contract can count pli.today.anchor.{water,food,activity,sleep}.
+  const anchors = anchorsAll;
   const headline =
     totalCount === 0 ? "今天还没有新的记录" : hasAttention ? "今天有值得留意的变化" : "今天整体稳定";
   const recent = lastEvent
@@ -120,6 +123,10 @@ export default function TodayPage() {
     <main className="v4-main">
       {flash && <div className="alert info">{flash}</div>}
 
+      <p className="v4-topline-sub" data-testid="pli.today.identity" style={{ margin: "12px 0 10px" }}>
+        {current.name} · {identity}
+      </p>
+
       <PetLivingStage
         name={current.name}
         petId={current.id}
@@ -128,9 +135,17 @@ export default function TodayPage() {
         variant="today"
         anchors={anchors}
         headline={headline}
-        caption={`${identity} · ${recent}`}
+        caption={recent}
         demo={true}
+        stageTestId="pli.today.living-stage"
+        twinTestId="pli.today.pet-twin"
+        anchorTestIdPrefix="pli.today.anchor"
+        headlineTestId="pli.today.change"
       />
+
+      <p className="v4-note" data-testid="pli.today.health-summary" style={{ margin: "10px 0 0" }}>
+        {hints.length > 0 ? `健康：${hints.length} 项需要留意` : "健康状态：总体稳定"}
+      </p>
 
       <div className="v4-grid">
         <div>
@@ -162,6 +177,7 @@ export default function TodayPage() {
         types={SHEET_TYPES}
         onQuickLog={sheetLog}
         title="快速记录"
+        identity={`${current.name} · ${identity}`}
       />
     </main>
   );

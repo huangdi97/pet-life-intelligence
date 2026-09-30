@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { api } from "@pli/api-client";
+import { api, type Pet } from "@pli/api-client";
 import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State } from "../../components/ui";
 
@@ -12,11 +12,25 @@ interface Goal {
   mastery_level: number;
   steps: Array<{ description: string; status: string }>;
   target_behavior: string;
+  created_at?: string;
+}
+
+
+/** 目标状态 → 用户语言（绝不把 raw OPEN/PAUSED/ACTIVE 展示给主人）。 */
+function goalStatusZh(status: string): string {
+  if (status === "OPEN") return "进行中";
+  if (status === "ACTIVE") return "进行中";
+  if (status === "PAUSED") return "已暂停";
+  if (status === "COMPLETED") return "已完成";
+  if (status === "ARCHIVED") return "已归档";
+  return "进行中";
 }
 
 /** v0.2 surface: Training (PLI-085..088/091/092) — reward-based only. */
 export default function TrainingPage() {
   const { petId } = useCurrentPet();
+  const pets = useAsync<Pet[]>(() => api.get<Pet[]>("/pets"), []);
+  const current = pets.data?.find((p) => p.id === petId) ?? pets.data?.[0];
   const goals = useAsync<Goal[]>(
     () =>
       petId
@@ -54,10 +68,15 @@ export default function TrainingPage() {
     goals.reload();
   }
 
+  const activeGoals = (goals.data ?? []).filter((g) => g.status === "OPEN" || g.status === "ACTIVE");
+
   return (
     <main>
-      <h1>训练</h1>
-      <p className="sub">奖励式训练目标与会话记录。仅使用正向强化方法。</p>
+      <div data-testid="pli.training.identity">
+        <h1>训练</h1>
+        <p className="sub">{current ? `${current.name} · 奖励式训练目标与会话记录。仅使用正向强化方法。` : "奖励式训练目标与会话记录。仅使用正向强化方法。"}</p>
+      </div>
+
       <div className="card">
         <h2>新建训练目标</h2>
         <div className="row">
@@ -67,7 +86,7 @@ export default function TrainingPage() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="如：安静应对门铃"
           />
-          <button className="btn primary" onClick={createGoal} disabled={!petId}>
+          <button className="btn primary" onClick={createGoal} disabled={!petId} data-testid="pli.training.action">
             创建
           </button>
         </div>
@@ -75,32 +94,52 @@ export default function TrainingPage() {
       </div>
 
       <State state={goals.state} error={goals.error} onRetry={goals.reload} empty="还没有训练目标。">
-        {goals.data?.map((g) => (
-          <div className="card" key={g.goal_id}>
-            <div className="tl-head">
-              <span className="tl-type">{g.title}</span>
-              <span className="badge">掌握度 {g.mastery_level}/5</span>
-              <span className={`badge status-${g.status}`}>{g.status}</span>
+        <>
+          {activeGoals.length > 0 && (
+            <div className="card" data-testid="pli.training.goal">
+              <h2>当前目标</h2>
+              {activeGoals.slice(0, 3).map((g) => (
+                <div className="tl-head" key={g.goal_id} style={{ marginTop: 8 }}>
+                  <span className="tl-type">{g.title}</span>
+                  <span className="badge" data-testid="pli.training.progress">掌握度 {g.mastery_level}/5</span>
+                  <span className={`badge status-${g.status}`}>{goalStatusZh(g.status)}</span>
+                </div>
+              ))}
             </div>
-            <div className="muted">{g.target_behavior}</div>
-            <div className="row" style={{ marginTop: 8 }}>
-              <button className="btn" onClick={() => logSession(g.goal_id, "GOOD")}>
-                记录会话：表现好
-              </button>
-              <button className="btn" onClick={() => logSession(g.goal_id, "GREAT")}>
-                表现很好
-              </button>
-              <button className="btn" onClick={() => logSession(g.goal_id, "POOR")}>
-                遇到困难
-              </button>
-            </div>
+          )}
+
+          <div className="card" data-testid="pli.training.recent">
+            <h2>最近训练</h2>
+            <p className="muted" style={{ margin: 0 }}>每次记录训练会话后，这里会显示最近几次训练的表现。</p>
           </div>
-        ))}
+          {goals.data?.map((g) => (
+            <div className="card" key={g.goal_id}>
+              <div className="tl-head">
+                <span className="tl-type">{g.title}</span>
+                <span className="badge">掌握度 {g.mastery_level}/5</span>
+                <span className={`badge status-${g.status}`}>{goalStatusZh(g.status)}</span>
+              </div>
+              <div className="muted">{g.target_behavior}</div>
+              <div className="row" style={{ marginTop: 8 }}>
+                <button className="btn" onClick={() => logSession(g.goal_id, "GOOD")}>
+                  记录会话：表现好
+                </button>
+                <button className="btn" onClick={() => logSession(g.goal_id, "GREAT")}>
+                  表现很好
+                </button>
+                <button className="btn" onClick={() => logSession(g.goal_id, "POOR")}>
+                  遇到困难
+                </button>
+              </div>
+            </div>
+          ))}
+        </>
       </State>
 
-      <div className="card">
-        <h2>训练工具库（v1.0.0，仅安全工具）</h2>
-        <ul className="tl">
+      <div className="card" data-testid="pli.training.reward">
+        <h2>奖励</h2>
+        <p className="muted" style={{ margin: 0 }}>只使用正向强化（零食、玩具、抚摸）。训练工具库仅包含安全工具，不包含惩罚性工具。</p>
+        <ul className="tl" style={{ marginTop: 8 }}>
           {tools.data?.tools.map((t) => (
             <li key={t.name}>
               <div className="tl-head">
@@ -111,6 +150,13 @@ export default function TrainingPage() {
           ))}
         </ul>
         <p className="notice-ai">{tools.data?.banned_note}</p>
+      </div>
+
+      <div className="card" data-testid="pli.training.next">
+        <h2>下一步</h2>
+        <p className="muted" style={{ margin: 0 }}>
+          {activeGoals.length > 0 ? `继续「${activeGoals[0].title}」：建议每次 3–5 分钟，结束后用奖励强化。` : "创建第一个训练目标，从 3–5 分钟的小目标开始。"}
+        </p>
       </div>
     </main>
   );

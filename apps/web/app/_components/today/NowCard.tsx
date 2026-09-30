@@ -13,7 +13,7 @@ interface NowCardProps {
 export function NowCard({ lastEvent, counts }: NowCardProps) {
   const entries = Object.entries(counts);
   return (
-    <div className="v4-sec">
+    <div className="v4-sec" data-pli-type="card">
       <div className="v4-sec-head">
         <h2 className="v4-sec-title v4-sec-title--accent">此刻</h2>
         {lastEvent && (

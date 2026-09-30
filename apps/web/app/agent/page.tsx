@@ -91,9 +91,18 @@ export default function AgentPage() {
 
   return (
     <main className="v4-main">
-      <div className="v4-topline">
-        <h1>{petName ? `${petName}的助手` : t("agent.title")}</h1>
-        <p className="v4-topline-sub">基于 {petName || "它"}已有的真实记录回答，不诊断。</p>
+      <div data-testid="pli.assistant.identity">
+        <div className="v4-topline">
+          <h1>{petName ? `${petName}的助手` : t("agent.title")}</h1>
+          <p className="v4-topline-sub">基于 {petName || "它"}已有的真实记录回答，不诊断。</p>
+        </div>
+      </div>
+
+      <div className="v4-sec" data-testid="pli.assistant.context" style={{ marginBottom: 12 }}>
+        <h2 className="v4-sec-title">正在查看</h2>
+        <p className="v4-note" style={{ margin: "6px 0 0" }}>
+          {petName ? `${petName} 的最近记录与变化` : "还没有选择宠物"}
+        </p>
       </div>
 
       <div className="v4-grid">
@@ -127,8 +136,12 @@ export default function AgentPage() {
               petName={petName}
               onAsk={ask}
               onSuggestion={(s) => {
-                setQuestion(s);
-                ask(s);
+                if (s.href) {
+                  window.location.assign(s.href);
+                  return;
+                }
+                setQuestion(s.query);
+                ask(s.query);
               }}
               basePath={basePath}
             />

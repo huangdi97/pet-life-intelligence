@@ -62,18 +62,20 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
   const name = pet.data?.name ?? "它";
   const events = (today.data?.events ?? []).filter((e) => e.event_type !== "today.viewed");
   const counts = today.data?.event_counts ?? {};
+  const anchorValue = (n: number, unit: string) => (n > 0 ? `${n} ${unit}` : "—");
   const anchorsAll: StageAnchor[] = [
-    { id: "drink", label: "饮水", value: `${counts["daily.drink"] ?? 0} 次`, icon: "water", href: "/timeline" },
-    { id: "meal", label: "进食", value: `${counts["daily.meal"] ?? 0} 次`, icon: "food", href: "/timeline" },
-    { id: "activity", label: "活动", value: `${events.reduce((s, e) => s + (Number(e.payload?.duration_minutes) || 0), 0)} 分钟`, icon: "walk", href: "/timeline" },
-    { id: "sleep", label: "睡眠", value: `${counts["daily.sleep"] ?? 0} 次`, icon: "sleep", href: "/timeline" },
+    { id: "water", label: "饮水", value: anchorValue(counts["daily.drink"] ?? 0, "次"), icon: "water", href: "/timeline" },
+    { id: "meal", label: "进食", value: anchorValue(counts["daily.meal"] ?? 0, "次"), icon: "food", href: "/timeline" },
+    { id: "activity", label: "活动", value: anchorValue(events.reduce((s, e) => s + (Number(e.payload?.duration_minutes) || 0), 0), "分钟"), icon: "walk", href: "/timeline" },
+    { id: "sleep", label: "睡眠", value: anchorValue(counts["daily.sleep"] ?? 0, "次"), icon: "sleep", href: "/timeline" },
   ];
-  const anchors = anchorsAll.filter((a) => (a.id === "drink" ? (counts["daily.drink"] ?? 0) > 0 : true));
+  // INVARIANT: anchors always render ("—" when 0); never filtered out.
+  const anchors = anchorsAll;
 
   const lastEvent = events[0] ?? null;
   const nowLine = lastEvent
     ? `最近一次记录：${EVENT_LABELS[lastEvent.event_type] ?? "活动"} · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
-    : "今天还没有记录，豆豆安安静静的。";
+    : `今天还没有记录，${name}安安静静的。`;
 
   const timelineRows = events.slice(0, 4).map((e) => ({
     key: e.event_type + e.occurred_at,
@@ -88,24 +90,29 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         <p className="v4-topline-sub">{name} · 此刻</p>
       </div>
 
+      <div style={{ maxWidth: 288, margin: "0 auto" }}>
       <PetLivingStage
         name={name}
         petId={petId}
         species={pet.data?.species}
         breed={pet.data?.breed}
-        headline={mode === "now" ? "豆豆 · 此刻" : undefined}
+        headline={mode === "now" ? `${name} · 此刻` : undefined}
         variant="life"
         anchors={anchors}
         caption={mode === "now" ? nowLine : undefined}
         note="演示 3D 形象（开发环境）· 未来连接真实服务后，将用真实照片生成"
+        stageTestId="pli.lifeview.stage"
+        twinTestId="pli.lifeview.twin"
+        anchorTestIdPrefix="pli.lifeview.anchor"
       />
+      </div>
 
       <LivingModeSwitcher value={mode} onChange={setMode} />
 
       <div className="v4-grid">
         <div>
           {mode === "now" ? (
-            <div className="v4-sec">
+            <div className="v4-sec" data-testid="pli.lifeview.panel">
               <h2 className="v4-sec-title">此刻</h2>
               <p className="v4-sec-sub" style={{ marginTop: 6 }}>
                 {anchors.length ? "上面的数值来自今天真实的记录。" : "今天还没有足够记录，记下第一件事后，这里会围绕它展开。"}
@@ -152,11 +159,11 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
             </div>
           ) : null}
 
-          {mode === "look" ? (
+          {mode === "appearance" ? (
             <div className="v4-sec">
               <h2 className="v4-sec-title">外观</h2>
               <p className="v4-sec-sub" style={{ marginTop: 6 }}>
-                现在显示的是演示 3D 形象（开发环境），只来自演示数据。未来连接真实服务后，会用豆豆的真实照片生成，并经过你确认后才会显示。外观不会替代真实照片与记录。
+                现在显示的是演示 3D 形象（开发环境），只来自演示数据。未来连接真实服务后，会用{name}的真实照片生成，并经过你确认后才会显示。外观不会替代真实照片与记录。
               </p>
             </div>
           ) : null}

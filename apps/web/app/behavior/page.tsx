@@ -62,11 +62,28 @@ export default function BehaviorPage() {
 
   return (
     <main>
-      <h1>行为记录</h1>
-      <p className="sub">
-        ABC 记录法：前因（Antecedent）→ 可观察行为（Behavior）→ 后果（Consequence）。
-        系统只保存可观察事实，不会自动推断疾病或行为诊断。
-      </p>
+      <div data-testid="pli.behavior.identity">
+        <h1>行为记录</h1>
+        <p className="sub">
+          ABC 记录法：前因（Antecedent）→ 可观察行为（Behavior）→ 后果（Consequence）。
+          系统只保存可观察事实，不会自动推断疾病或行为诊断。
+        </p>
+      </div>
+
+      <div className="card" data-testid="pli.behavior.patterns">
+        <h2>模式与倾向</h2>
+        <p className="muted" style={{ margin: 0 }}>
+          {(list.data?.length ?? 0) > 0
+            ? "行为记录积累后，这里会汇总出现的情境与模式，不判断情绪。"
+            : "还没有足够记录，模式会在多条行为记录后慢慢成形。"}
+        </p>
+      </div>
+
+      <div className="card" data-testid="pli.behavior.context">
+        <h2>情境与触发</h2>
+        <p className="muted" style={{ margin: 0 }}>前因、环境与触发条件会从每条行为记录中汇总到这里。</p>
+      </div>
+
       <div className="card">
         <h2>记录一次行为事件</h2>
         <label className="field">
@@ -110,27 +127,30 @@ export default function BehaviorPage() {
         </label>
         {validation && <div className="alert warn">{validation}</div>}
         <ErrorNote message={error} />
-        <button className="btn primary" onClick={submit} disabled={!petId}>
+        <button className="btn primary" onClick={submit} disabled={!petId} data-testid="pli.behavior.action">
           保存行为事件
         </button>
       </div>
 
-      <State state={list.state} error={list.error} onRetry={list.reload} empty="还没有行为记录。">
-        <ul className="tl">
-          {list.data?.map((b) => (
-            <li key={b.behavior_event_id}>
-              <div className="tl-head">
-                <span className="tl-type">{b.behavior}</span>
-                {b.intensity && <span className="badge">{b.intensity}（{b.intensity_source}）</span>}
-                <span className="tl-time">{fmtTime(b.occurred_at)}</span>
-              </div>
-              <div className="tl-body">
-                前因：{b.antecedent || "—"} · 后果：{b.consequence || "—"} · 环境：{b.environment || "—"}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </State>
+      <div className="card" data-testid="pli.behavior.recent">
+        <h2>最近记录</h2>
+        <State state={list.state} error={list.error} onRetry={list.reload} empty="还没有行为记录。">
+          <ul className="tl" data-testid="pli.behavior.observations">
+            {list.data?.map((b) => (
+              <li key={b.behavior_event_id}>
+                <div className="tl-head">
+                  <span className="tl-type">{b.behavior}</span>
+                  {b.intensity && <span className="badge">{b.intensity === "MILD" ? "轻度" : b.intensity === "MODERATE" ? "中度" : b.intensity === "SEVERE" ? "重度" : b.intensity}（主人记录）</span>}
+                  <span className="tl-time" data-testid="pli.behavior.source">{fmtTime(b.occurred_at)}</span>
+                </div>
+                <div className="tl-body">
+                  前因：{b.antecedent || "—"} · 后果：{b.consequence || "—"} · 环境：{b.environment || "—"}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </State>
+      </div>
     </main>
   );
 }

@@ -33,6 +33,14 @@ interface Props {
   caption?: string;
   note?: string;
   demo?: boolean;
+  /** Blind-UI contract: id on the outer stage section (e.g. pli.today.living-stage). */
+  stageTestId?: string;
+  /** Blind-UI contract: id on the element containing the 3D/2.5D renderer. */
+  twinTestId?: string;
+  /** Blind-UI contract: id prefix for state anchors (`${prefix}.${anchor.id}`). */
+  anchorTestIdPrefix?: string;
+  /** Blind-UI contract: id on the headline element. */
+  headlineTestId?: string;
 }
 
 export function PetLivingStage({
@@ -46,6 +54,10 @@ export function PetLivingStage({
   caption,
   note,
   demo = false,
+  stageTestId,
+  twinTestId,
+  anchorTestIdPrefix,
+  headlineTestId,
 }: Props) {
   const identity = resolvePet3DIdentity({ name, species, breed });
   const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
@@ -80,22 +92,33 @@ export function PetLivingStage({
   );
 
   return (
-    <section className={stageClass} aria-label={`${name}的此刻舞台`}>
+    <section
+      className={stageClass}
+      aria-label={`${name}的此刻舞台`}
+      data-testid={stageTestId}
+      data-pli-type={stageTestId ? "stage" : undefined}
+    >
       <span className="r2p-stage-wash" aria-hidden="true" />
       <span className="r2p-stage-glow" aria-hidden="true" />
       {petId ? (
-        <Link href={`/pets/${petId}/life-view`} className={`r2p-stage-pet ${show3d ? "r2p-stage-pet--3d" : ""}`} aria-label={`打开 ${name} 的生命视图`}>
+        <Link
+          href={`/pets/${petId}/life-view`}
+          className={`r2p-stage-pet ${show3d ? "r2p-stage-pet--3d" : ""}`}
+          aria-label={`打开 ${name} 的生命视图`}
+          data-testid={twinTestId}
+          data-pli-type={twinTestId ? "twin" : undefined}
+        >
           {show3d ? <Pet3DViewer identity={identity} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} onStatus={setPet3d} /> : corgi}
         </Link>
       ) : (
-        <span className={`r2p-stage-pet ${show3d ? "r2p-stage-pet--3d" : ""}`}>
+        <span className={`r2p-stage-pet ${show3d ? "r2p-stage-pet--3d" : ""}`} data-testid={twinTestId} data-pli-type={twinTestId ? "twin" : undefined}>
           {show3d ? <Pet3DViewer identity={identity} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} onStatus={setPet3d} /> : corgi}
         </span>
       )}
 
       {anchors.slice(0, 6).map((a, i) =>
         a.href ? (
-          <Link key={a.id} href={a.href} className={`r2p-anchor r2p-anchor--${i}`}>
+          <Link key={a.id} href={a.href} className={`r2p-anchor r2p-anchor--${i}`} data-testid={anchorTestIdPrefix ? `${anchorTestIdPrefix}.${a.id}` : undefined}>
             <span className="r2p-anchor-icon"><Icon name={a.icon} size={13} /></span>
             <span>
               <span className="r2p-anchor-label" style={{ display: "block" }}>{a.label}</span>
@@ -103,7 +126,7 @@ export function PetLivingStage({
             </span>
           </Link>
         ) : (
-          <span key={a.id} className={`r2p-anchor r2p-anchor--${i}`}>
+          <span key={a.id} className={`r2p-anchor r2p-anchor--${i}`} data-testid={anchorTestIdPrefix ? `${anchorTestIdPrefix}.${a.id}` : undefined}>
             <span className="r2p-anchor-icon"><Icon name={a.icon} size={13} /></span>
             <span>
               <span className="r2p-anchor-label" style={{ display: "block" }}>{a.label}</span>
@@ -118,7 +141,7 @@ export function PetLivingStage({
         {demo ? <span className="r2p-stage-demo">示例数据</span> : null}
       </p>
       <div className="r2p-stage-now">
-        {headline ? <p className="r2p-stage-headline">{headline}</p> : null}
+        {headline ? <p className="r2p-stage-headline" data-testid={headlineTestId}>{headline}</p> : null}
         {caption ? <p className="r2p-stage-caption">{caption}</p> : null}
         {note ? (
           <p className="r2p-stage-note">

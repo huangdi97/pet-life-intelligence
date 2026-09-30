@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { api } from "@pli/api-client";
+import { api, type Pet } from "@pli/api-client";
 import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State, TriageBadge } from "../../components/ui";
+import { triageLabel } from "../../lib/ownerLabels";
 
 interface HealthEventRow {
   health_event_id: string;
@@ -20,6 +21,8 @@ interface HealthEventRow {
 export default function HealthPage() {
   const { petId } = useCurrentPet();
   const router = useRouter();
+  const pets = useAsync<Pet[]>(() => api.get<Pet[]>("/pets"), []);
+  const current = pets.data?.find((p) => p.id === petId) ?? pets.data?.[0];
   const list = useAsync<HealthEventRow[]>(
     () =>
       petId
@@ -52,13 +55,50 @@ export default function HealthPage() {
     }
   }
 
+  const rows = list.data ?? [];
+  const openCount = rows.filter((h) => h.status !== "CLOSED").length;
+  const latestLevel = rows[0]?.latest_triage_level ?? null;
+
   return (
     <main>
-      <h1>健康事件</h1>
-      <p className="sub">
-        发现异常 → 动态追问 → 可观察事实 → 红旗分级（规则引擎） → Vet Brief → Outcome。
-        分级由独立规则引擎给出，AI 只整理事实，不能降低紧急度。
-      </p>
+      <div data-testid="pli.health.identity" style={{ marginBottom: 8 }}>
+        <h1>健康事件</h1>
+        <p className="sub">
+          {current ? `${current.name} · 发现异常 → 动态追问 → 可观察事实 → 红旗分级 → Vet Brief → Outcome。` : "发现异常 → 动态追问 → 可观察事实 → 红旗分级 → Vet Brief → Outcome。"}
+          分级由独立规则引擎给出，AI 只整理事实，不能降低紧急度。
+        </p>
+      </div>
+
+      <div className="card" data-testid="pli.health.overview">
+        <h2>近期状态概览</h2>
+        <p className="sub" style={{ margin: 0 }}>
+          {list.state === "loading" ? "加载中……" : openCount > 0 ? `有 ${openCount} 个未关闭的健康事件` : "没有未关闭的健康事件。"}
+        </p>
+        <p className="muted" style={{ marginTop: 8 }}>
+          状态：{latestLevel ? triageLabel(latestLevel) : "未分级"}（来自最近一条健康记录）
+        </p>
+      </div>
+
+      <div className="card" data-testid="pli.health.changes">
+        <h2>近期变化</h2>
+        <p className="muted" style={{ margin: 0 }}>
+          {rows.length > 0 ? `最近的健康事件是「${rows[0].chief_complaint}」，打开于 ${fmtTime(rows[0].opened_at)}。` : "还没有健康记录，变化会从第一条记录开始汇总。"}
+        </p>
+      </div>
+
+      <div className="card" data-testid="pli.health.prevent">
+        <h2>预防与计划</h2>
+        <p className="muted" style={{ margin: 0 }}>疫苗、驱虫与定期体检记录会集中在这里。还没有相关记录。</p>
+      </div>
+
+      <div className="card" data-testid="pli.health.medication">
+        <h2>用药</h2>
+        <p className="muted" style={{ margin: 0 }}>
+          用药计划与给药记录见「用药」页。{" "}
+          <Link href="/medication">查看用药</Link>
+        </p>
+      </div>
+
       <div className="card">
         <h2>发现异常</h2>
         <label className="field">
@@ -75,27 +115,42 @@ export default function HealthPage() {
           <input type="datetime-local" value={onset} onChange={(e) => setOnset(e.target.value)} />
         </label>
         <ErrorNote message={error} />
-        <button className="btn primary" onClick={open} disabled={busy || !petId}>
+        <button className="btn primary" onClick={open} disabled={busy || !petId} data-testid="pli.health.action">
           {busy ? "创建中…" : "打开健康事件"}
         </button>
       </div>
 
-      <State state={list.state} error={list.error} onRetry={list.reload} empty="还没有健康事件。">
-        <ul className="tl">
-          {list.data?.map((h) => (
-            <li key={h.health_event_id}>
-              <div className="tl-head">
-                <Link href={`/health/${h.health_event_id}`} className="tl-type">
-                  {h.chief_complaint}
-                </Link>
-                <TriageBadge level={h.latest_triage_level} />
-                <span className={`badge status-${h.status}`}>{h.status}</span>
-                <span className="tl-time">{fmtTime(h.opened_at)}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </State>
+      <div className="card" data-testid="pli.health.records">
+        <h2>健康记录</h2>
+        <p className="muted" style={{ marginTop: 0 }} data-testid="pli.health.status">
+          {rows.length} 条记录 · {openCount} 个进行中
+        </p>
+        <State state={list.state} error={list.error} onRetry={list.reload} empty="还没有健康事件。">
+          <ul className="tl">
+            {rows.map((h) => (
+              <li key={h.health_event_id}>
+                <div className="tl-head">
+                  <Link href={`/health/${h.health_event_id}`} className="tl-type" role="button" data-testid="pli.health.records">
+                    {h.chief_complaint}
+                  </Link>
+                  <TriageBadge level={h.latest_triage_level} />
+                  <span className={`badge status-${h.status}`}>{h.status === "OPEN" ? "进行中" : h.status === "CLOSED" ? "已关闭" : h.status}</span>
+                  <span className="tl-time">{fmtTime(h.opened_at)}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </State>
+      </div>
+
+      <div className="row" style={{ marginTop: 8 }} data-testid="pli.health.vet">
+        <Link href="/medication" className="btn">
+          用药
+        </Link>
+        <Link href="/behavior" className="btn">
+          行为
+        </Link>
+      </div>
     </main>
   );
 }

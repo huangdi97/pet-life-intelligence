@@ -30,7 +30,7 @@ export default function TimelinePage() {
     () =>
       petId
         ? api.get(
-            `/pets/${petId}/events?limit=100${filter ? `&event_type=${filter}` : ""}`,
+            `/pets/${petId}/events?limit=200${filter ? `&event_type=${filter}` : ""}`,
           )
         : Promise.reject(new Error("NO_PET_SELECTED")),
     [petId, filter],
@@ -66,7 +66,8 @@ export default function TimelinePage() {
           (e.actor_name ?? e.actor_id).toLowerCase().includes(q),
       );
     }
-    return rows;
+    // 不把「今日查看」这类系统噪音当作生活记录展示（blind-UI 契约）。
+    return rows.filter((e) => e.event_type !== "today.viewed");
   }, [timeline.data, domain, source, mediaOnly, search, day]);
 
   return (
@@ -106,19 +107,21 @@ export default function TimelinePage() {
               onRetry={timeline.reload}
               empty="暂无事件。去 Today 快速记录一条吧。"
             >
-              <EventList events={events} />
+              <EventList events={events} petName={current?.name} />
             </State>
           )}
         </div>
 
         <div className="v4-rail">
           {current ? (
-            <PetHero
-              name={current.name}
-              petId={current.id}
-              compact
-              line={`${current.breed || current.species} · 持续记录中`}
-            />
+            <div data-testid="pli.timeline.identity">
+              <PetHero
+                name={current.name}
+                petId={current.id}
+                compact
+                line={`${current.breed || current.species} · 持续记录中`}
+              />
+            </div>
           ) : (
             <div className="v4-calm" style={{ marginTop: 12 }}>
               <span className="v4-calm-icon">

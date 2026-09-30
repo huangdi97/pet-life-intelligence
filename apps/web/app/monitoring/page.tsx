@@ -48,32 +48,63 @@ export default function MonitoringPage() {
     }
   }
 
+  // 设备状态机：只呈现一个明确状态，绝不一直“连接中”。
+  const stateKey =
+    devices.state === "loading"
+      ? "LOADING"
+      : devices.state === "error"
+        ? "ERROR"
+        : !devices.data || devices.data.length === 0
+          ? "NO_DEVICE"
+          : devices.data.some((d) => d.status === "offline")
+            ? "OFFLINE"
+            : "CONNECTED";
+  const stateText: Record<string, string> = {
+    LOADING: "正在读取设备状态",
+    ERROR: "设备状态读取失败",
+    NO_DEVICE: "还没有连接设备",
+    OFFLINE: "有设备离线",
+    CONNECTED: "设备在线",
+  };
+
   return (
     <main>
-      <h1>{t("monitoring.title")}</h1>
-      <p className="sub">{t("monitoring.sub")}</p>
-
+      <div data-testid="pli.monitoring.identity">
+        <h1>{t("monitoring.title")}</h1>
+        <p className="sub">{t("monitoring.sub")}</p>
+      </div>
+      <div className="card" data-testid={`pli.monitoring.state.${stateKey}`}>
+        <h2>当前状态</h2>
+        <p className="sub" style={{ margin: 0 }}>{stateText[stateKey]}</p>
+      </div>
       {/* 最近看到 */}
-      <LastSeenPanel recent={recent} />
-
-      {/* 今天（设备事件汇总） */}
-      <TodayPanel summary={summary} />
-
-      {/* 设备 */}
-      <DevicesPanel devices={devices} />
-
-      {/* 近期变化（基于自己的历史，非跨宠物、非诊断） */}
-      <div className="card">
-        <h2>{t("monitoring.changes")}</h2>
-        <p className="sub" style={{ margin: 0 }}>
-          与它自己的 30 日范围对比；暂无自动判定时此处为空。
-        </p>
+      <div data-testid="pli.monitoring.last">
+        <LastSeenPanel recent={recent} />
       </div>
 
-      {/* Camera Candidate Review Queue */}
-      <ReviewQueuePanel queue={queue} reviewBusy={reviewBusy} onReview={review} />
+      <div data-testid="pli.monitoring.content">
+        {/* 今天（设备事件汇总） */}
+        <TodayPanel summary={summary} />
 
-      <div className="row" style={{ marginTop: 8 }}>
+        {/* 设备 */}
+        <DevicesPanel devices={devices} />
+
+        {/* 近期变化（基于自己的历史，非跨宠物、非诊断） */}
+        <div className="card">
+          <h2>{t("monitoring.changes")}</h2>
+          <p className="sub" style={{ margin: 0 }}>
+            与它自己的 30 日范围对比；暂无自动判定时此处为空。
+          </p>
+        </div>
+
+        {/* Camera Candidate Review Queue */}
+        <ReviewQueuePanel queue={queue} reviewBusy={reviewBusy} onReview={review} />
+      </div>
+
+      <div className="row" style={{ marginTop: 8 }} data-testid="pli.monitoring.action">
+        <button type="button" className="btn" onClick={() => devices.reload()}>
+          重试
+        </button>
         <Link href="/" className="btn">
           回到今日
         </Link>

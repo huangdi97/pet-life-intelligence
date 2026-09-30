@@ -19,7 +19,7 @@ interface RecentCardProps {
  *  以及 Monitoring / Companion 的情境入口。 */
 export function RecentCard({ hasPet, today }: RecentCardProps) {
   return (
-    <div className="v4-sec">
+    <div className="v4-sec" data-testid="pli.today.memory-preview" data-pli-type="card">
       <div className="v4-sec-head">
         <h2 className="v4-sec-title">最近</h2>
         <Link href="/timeline" className="v4-sec-link">

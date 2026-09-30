@@ -9,6 +9,8 @@ import { TYPE_LABELS } from "./constants";
 
 interface EventListProps {
   events: LifeEvent[];
+  /** Current pet name for honest empty copy. */
+  petName?: string;
 }
 
 const TYPE_ICONS: Record<string, WebIconName> = {
@@ -72,7 +74,7 @@ function payloadSummary(payload: Record<string, unknown>): string {
 }
 
 /** OWN-003 Timeline — Life Stream：Day Group + time spine，不再逐条独立白卡。 */
-export function EventList({ events }: EventListProps) {
+export function EventList({ events, petName = "它" }: EventListProps) {
   if (events.length === 0) {
     return (
       <div className="v4-sec">
@@ -81,7 +83,7 @@ export function EventList({ events }: EventListProps) {
             <Icon name="timeline" size={18} />
           </span>
           <div>
-            <p className="v4-calm-title">豆豆的时间线还很安静</p>
+            <p className="v4-calm-title">{petName}的时间线还很安静</p>
             <p className="v4-calm-body">第一次喂食、散步或健康记录会从这里开始。</p>
             <div className="v4-attn-actions">
               <Link href="/" className="v4-action v4-action--secondary" style={{ minHeight: 34, padding: "7px 14px", fontSize: 13 }}>
@@ -104,11 +106,11 @@ export function EventList({ events }: EventListProps) {
   }
 
   return (
-    <ul className="v4-ls">
+    <ul className="v4-ls" data-testid="pli.timeline.stream">
       {Array.from(byDay.entries()).map(([day, rows]) => {
         const { main, relative } = dayLabel(day);
         return (
-          <li key={day} className="ls-day">
+          <li key={day} className="ls-day" data-testid="pli.timeline.group">
             <div className="ls-day-title">
               {main}
               {relative && <span className="ls-day-relative">{relative}</span>}
@@ -118,13 +120,13 @@ export function EventList({ events }: EventListProps) {
               const time = (e.occurred_at ?? "").slice(11, 16);
               const summary = payloadSummary(e.payload);
               return (
-                <div key={e.event_id} className={`ls-item${e.retracted_at ? " ls-item--retracted" : ""}`}>
+                <div key={e.event_id} className={`ls-item${e.retracted_at ? " ls-item--retracted" : ""}`} data-testid={`pli.timeline.row.${e.event_id}`}>
                   <div>
                     <div className="ls-dot" aria-hidden="true" />
                     <div className="ls-time">{time}</div>
                   </div>
                   <div className="ls-body">
-                    <div className="ls-title">
+                    <div className="ls-title" data-testid="pli.timeline.meaning">
                       <span className="ls-title-icon">
                         <Icon name={TYPE_ICONS[e.event_type] ?? "note"} size={15} />
                       </span>
@@ -138,7 +140,7 @@ export function EventList({ events }: EventListProps) {
                       </Link>
                     </div>
                     {summary && <p className="ls-summary">{summary}</p>}
-                    <div className="ls-meta">
+                    <div className="ls-meta" data-testid="pli.timeline.source">
                       <span className="v4-chip v4-chip--brand">
 {provenanceLabelForSource(e.source_type, e.provenance_level)}
                       </span>

@@ -36,7 +36,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="zh-CN">
       <body>
-        <TopNav />
+        <header data-pli-role="header">
+          <TopNav />
+        </header>
         <div className="page">{children}</div>
         <PwaShell basePath={process.env.NEXT_BASE_PATH || ""} />
       </body>

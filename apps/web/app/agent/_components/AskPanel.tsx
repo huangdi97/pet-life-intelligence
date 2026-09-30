@@ -1,7 +1,7 @@
 "use client";
 
 import { t } from "../../../lib/i18n";
-import { SUGGESTIONS, type AskAnswer } from "../constants";
+import { SUGGESTIONS, type AskAnswer, type Suggestion } from "../constants";
 import { AnswerPanel } from "./AnswerPanel";
 
 interface AskPanelProps {
@@ -14,11 +14,11 @@ interface AskPanelProps {
   aiOff: boolean;
   petName: string;
   onAsk: (q: string) => void;
-  onSuggestion: (s: string) => void;
+  onSuggestion: (s: Suggestion) => void;
   basePath: () => string;
 }
 
-/** OWN-015 Ask 面板：建议提问 + 输入 + 回答展示（结论→依据→不确定性→下一步）。 */
+/** OWN-015 Ask 面板：建议动作 + 输入 + 回答展示（结论→依据→不确定性→下一步）。 */
 export function AskPanel({
   question,
   onQuestionChange,
@@ -33,11 +33,11 @@ export function AskPanel({
   basePath,
 }: AskPanelProps) {
   return (
-    <div className="v4-sec" style={{ paddingTop: 6 }}>
+    <div className="v4-sec" style={{ paddingTop: 6 }} data-testid="pli.assistant.chat">
       <div className="v4-suggest">
         {SUGGESTIONS.map((s) => (
-          <button key={s} type="button" onClick={() => onSuggestion(s)}>
-            {s}
+          <button key={s.id} type="button" onClick={() => onSuggestion(s)} data-testid={`pli.assistant.suggestion.${s.id}`}>
+            {s.label}
           </button>
         ))}
       </div>
@@ -46,6 +46,7 @@ export function AskPanel({
           value={question}
           placeholder={t("agent.askPlaceholder")}
           aria-label="问题"
+          data-testid="pli.assistant.ask"
           onChange={(e) => onQuestionChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") onAsk(question);
@@ -56,6 +57,7 @@ export function AskPanel({
           className="v4-action v4-action--primary"
           disabled={asking || !question.trim()}
           onClick={() => onAsk(question)}
+          data-testid="pli.assistant.send"
         >
           {asking ? "思考中……" : t("agent.ask")}
         </button>

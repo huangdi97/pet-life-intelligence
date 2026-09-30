@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { api, pilotApi, type Consent, type Pet } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
@@ -100,35 +101,84 @@ export default function SettingsPage() {
 
   return (
     <main>
-      <h1>设置与隐私</h1>
-      <p className="sub">
-        紧急联系卡、细粒度同意、删除请求与访问审计。
-      </p>
+      <div data-testid="pli.me.owner">
+        <h1>设置与隐私</h1>
+        <p className="sub">宠物主人账号、家庭与授权、数据与隐私。</p>
+      </div>
       {flash && <div className="alert info">{flash}</div>}
       <ErrorNote message={error} />
 
-      <AccountSecurityCard />
+      <div className="card" data-testid="pli.me.pets">
+        <h2>我的宠物</h2>
+        {current ? (
+          <p className="muted" style={{ margin: 0 }}>
+            当前宠物：{current.name}（{current.species === "dog" ? "狗" : current.species === "cat" ? "猫" : current.species}）
+          </p>
+        ) : (
+          <p className="muted" style={{ margin: 0 }}>还没有宠物。</p>
+        )}
+        <div className="row" style={{ marginTop: 8 }}>
+          <Link href="/pets" className="btn">
+            管理宠物
+          </Link>
+        </div>
+      </div>
 
-      <ConsentsCard consents={consents} onToggle={toggleConsent} />
+      <div className="card" data-testid="pli.me.care-network">
+        <h2>家庭与照护网络</h2>
+        <p className="muted" style={{ margin: 0 }}>与家人、照护者共享记录与任务，授权逐项管理。</p>
+        <div className="row" style={{ marginTop: 8 }}>
+          <Link href="/care" className="btn">
+            照护协作
+          </Link>
+        </div>
+      </div>
 
-      <EmergencyProfileCard profile={profile} form={form} onFieldChange={set} onSave={saveProfile} />
+      <div className="card" data-testid="pli.me.notifications">
+        <h2>通知</h2>
+        <p className="muted" style={{ margin: 0 }}>任务提醒、用药提醒与异常提醒。</p>
+        <div className="row" style={{ marginTop: 8 }}>
+          <Link href="/notifications" className="btn">
+            管理通知
+          </Link>
+        </div>
+      </div>
 
-      <DeletionRequestCard
-        pid={pid}
-        value={delReason}
-        onValueChange={setDelReason}
-        onRequest={requestDeletion}
-      />
+      <div data-testid="pli.me.privacy">
+        <ConsentsCard consents={consents} onToggle={toggleConsent} />
+      </div>
 
-      <AuditAndFeedbackSection
-        audit={audit}
-        fbCat={fbCat}
-        onFbCatChange={setFbCat}
-        fbMsg={fbMsg}
-        onFbMsgChange={setFbMsg}
-        onSendFeedback={sendFeedback}
-        fbDone={fbDone}
-      />
+      <div data-testid="pli.me.data">
+        <EmergencyProfileCard profile={profile} form={form} onFieldChange={set} onSave={saveProfile} />
+        <DeletionRequestCard
+          pid={pid}
+          value={delReason}
+          onValueChange={setDelReason}
+          onRequest={requestDeletion}
+        />
+      </div>
+
+      <div data-testid="pli.me.help">
+        <AuditAndFeedbackSection
+          audit={audit}
+          fbCat={fbCat}
+          onFbCatChange={setFbCat}
+          fbMsg={fbMsg}
+          onFbMsgChange={setFbMsg}
+          onSendFeedback={sendFeedback}
+          fbDone={fbDone}
+        />
+        <div className="card">
+          <h2>帮助</h2>
+          <p className="muted" style={{ margin: 0 }}>
+            使用问题可查看「助手」页的解释入口，或通过上方反馈告诉我们。
+          </p>
+        </div>
+      </div>
+
+      <div data-testid="pli.me.settings">
+        <AccountSecurityCard />
+      </div>
     </main>
   );
 }

@@ -77,8 +77,10 @@ export default function SocialPage() {
 
   return (
     <main>
-      <h1>{t("social.title")}</h1>
-      <p className="sub">{t("social.sub")}</p>
+      <div data-testid="pli.social.identity">
+        <h1>{t("social.title")}</h1>
+        <p className="sub">{t("social.sub")}</p>
+      </div>
       {msg && <div className="alert info">{msg}</div>}
 
       {/* 关系图谱（列表式 + 倾向标注，非 Feed） */}
@@ -88,23 +90,37 @@ export default function SocialPage() {
       <FriendsPanel friends={friends} friendName={friendName} />
 
       {/* 互动历史 */}
-      <InteractionsPanel events={events} friendName={friendName} />
+      <div data-testid="pli.social.interactions">
+        <InteractionsPanel events={events} friendName={friendName} />
+      </div>
+
+      {/* 社交偏好（来自真实档案，不猜测） */}
+      <div className="card" data-testid="pli.social.preferences">
+        <h2>社交偏好</h2>
+        <p className="muted" style={{ margin: 0 }}>
+          {profile.data?.profile
+            ? "与犬/猫/孩子/陌生人的相处情况记录在档案中，这里会汇总它自己的偏好。"
+            : "还没有偏好记录。在记录互动后，这里会呈现它自己的相处倾向。"}
+        </p>
+      </div>
 
       {/* 记录互动 */}
-      <RecordInteractionPanel
-        pets={pets.data}
-        petId={petId}
-        friendPetId={friendPetId}
-        onFriendChange={setFriendPetId}
-        quality={quality}
-        onQualityChange={setQuality}
-        duration={duration}
-        onDurationChange={setDuration}
-        notes={notes}
-        onNotesChange={setNotes}
-        busy={busy}
-        onRecord={recordInteraction}
-      />
+      <div data-testid="pli.social.action">
+        <RecordInteractionPanel
+          pets={pets.data}
+          petId={petId}
+          friendPetId={friendPetId}
+          onFriendChange={setFriendPetId}
+          quality={quality}
+          onQualityChange={setQuality}
+          duration={duration}
+          onDurationChange={setDuration}
+          notes={notes}
+          onNotesChange={setNotes}
+          busy={busy}
+          onRecord={recordInteraction}
+        />
+      </div>
 
       <div className="row" style={{ marginTop: 8 }}>
         <Link href="/" className="btn">

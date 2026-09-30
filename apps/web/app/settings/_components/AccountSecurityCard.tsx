@@ -85,7 +85,7 @@ export function AccountSecurityCard() {
 
       <h3>登录设备</h3>
       {sessions === null ? (
-        <p className="muted">（开发模式或无法读取会话）</p>
+        <p className="muted">（未登录或暂时无法读取会话）</p>
       ) : (
         <ul className="tl">
           {sessions.map((s) => (
