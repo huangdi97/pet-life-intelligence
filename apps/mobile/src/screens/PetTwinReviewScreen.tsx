@@ -38,9 +38,15 @@ export interface TwinModel {
 const ISSUES = ["脸", "耳朵", "毛色", "花纹", "体型", "尾巴", "四肢", "其他"];
 const OPTIONS = [
   { k: "like", label: "很像" },
-  { k: "basic_like", label: "有点像" },
+  { k: "basic_like", label: "基本像" },
   { k: "not_like", label: "不像" },
 ];
+const VIEWS = [
+  { key: "front", label: "正面" },
+  { key: "side", label: "侧面" },
+  { key: "back", label: "背面" },
+];
+const VIEW_LABEL: Record<string, string> = { front: "正面", side: "侧面", back: "背面" };
 
 export function PetTwinReviewScreen() {
   const navigation = useNavigation<StackNav>();
@@ -55,19 +61,39 @@ export function PetTwinReviewScreen() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<TwinDescriptor | null>(null);
+  const [view, setView] = useState("front");
 
   const load = useCallback(() => {
     if (!petId) return;
     setLoading(true);
-    api
-      .get<TwinModel>(`/pets/${petId}/visual-models/${version}`)
+    // The demo deep-link navigates without a version param; resolve the
+    // latest candidate before review so the screen never renders a dead
+    // error state just because a URL omitted the version.
+    const request =
+      version > 0
+        ? Promise.resolve(version)
+        : api
+            .get<{ models: Array<{ version: number }> }>(`/pets/${petId}/visual-models`)
+            .then((r) => r.models[0]?.version ?? 0);
+    request
+      .then((v) =>
+        v > 0
+          ? api.get<TwinModel>(`/pets/${petId}/visual-models/${v}`)
+          : Promise.reject(new Error("NO_MODEL")),
+      )
       .then((m) => {
-        // The candidate twin descriptor lives in artifact_map.twin_descriptor
-        // (family/morph/texture/surface) produced by the backend pipeline.
         const map = (m as { artifact_map?: { twin_descriptor?: TwinDescriptor } }).artifact_map;
         setCandidate(map?.twin_descriptor ?? null);
+        setMessage(null);
       })
-      .catch(() => setMessage("暂时连接不上，请重试。"))
+      .catch((e: unknown) => {
+        // Honest distinct states: no model yet vs real load failure.
+        if (e instanceof Error && e.message === "NO_MODEL") {
+          setMessage("还没有已生成的 3D 形象。先拍摄素材并生成后再确认。");
+        } else {
+          setMessage("暂时连接不上，请重试。");
+        }
+      })
       .finally(() => setLoading(false));
   }, [petId, version]);
 
@@ -79,7 +105,7 @@ export function PetTwinReviewScreen() {
     setPickedIssues((xs) => (xs.includes(it) ? xs.filter((x) => x !== it) : [...xs, it]));
 
   const submit = async () => {
-    if (!petId || !selected) return;
+    if (!petId || !selected || selected === "not_like") return;
     setBusy(true);
     setMessage(null);
     try {
@@ -87,12 +113,8 @@ export function PetTwinReviewScreen() {
         result: selected,
         issues: pickedIssues,
       });
-      if (selected === "not_like") {
-        setMessage("好的，这个形象暂不启用。你可以再补充更多角度来生成更接近的样子。");
-      } else {
-        await api.post(`/pets/${petId}/visual-models/${version}/activate`, {});
-        setMessage("已确认相似，并已启用为当前 3D 形象。");
-      }
+      await api.post(`/pets/${petId}/visual-models/${version}/activate`, {});
+      setMessage("已确认相似，并已启用为当前 3D 形象。");
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "操作失败，请重试");
     } finally {
@@ -100,9 +122,13 @@ export function PetTwinReviewScreen() {
     }
   };
 
+  // SAFETY: 不像 must never reach activation; the CTA is disabled and the
+  // owner is told to add more source material and regenerate.
+  const ctaDisabled = !selected || busy || selected === "not_like";
+
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
-      <View style={styles.header}>
+      <View style={styles.header} testID="pli.twinreview.identity">
         <Pressable accessibilityRole="button" accessibilityLabel="返回" onPress={() => navigation.goBack()} style={styles.back}>
           <Ionicons name="chevron-back" size={22} color={COLORS.textPrimary} />
         </Pressable>
@@ -113,14 +139,30 @@ export function PetTwinReviewScreen() {
         <View style={styles.center}><ActivityIndicator color={COLORS.brandPrimary} /></View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="life" demo={DEMO_ENV} twin={candidate} pose="Idle" />
+          <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV} twin={candidate} pose="Idle" interactive />
           <Text style={styles.caption}>
-            这是根据豆豆的照片与模板生成的第 {version} 版干净形象。旋转查看后回答：像它吗？
+            这是根据{pet?.name ?? "宠物"}的照片与模板生成的第 {version} 版形象。旋转查看后回答：像它吗？
           </Text>
+
+          <View style={styles.viewRow} accessibilityLabel="视图选择">
+            {VIEWS.map((v) => (
+              <Pressable
+                key={v.key}
+                testID={`pli.twinreview.view.${v.key}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: view === v.key }}
+                onPress={() => setView(v.key)}
+                style={[styles.viewChip, view === v.key && styles.viewChipSel]}
+              >
+                <Text style={[styles.viewChipText, view === v.key && styles.viewChipTextSel]}>{v.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.viewNote}>当前视图：{VIEW_LABEL[view] ?? view}</Text>
 
           <View style={styles.options}>
             {OPTIONS.map((o) => (
-              <Pressable key={o.k} accessibilityRole="button" accessibilityState={{ selected: selected === o.k }}
+              <Pressable key={o.k} testID={`pli.twinreview.verify.${o.k}`} accessibilityRole="button" accessibilityState={{ selected: selected === o.k }}
                 onPress={() => setSelected(o.k)} style={[styles.opt, selected === o.k && styles.optSel]}>
                 <Text style={[styles.optText, selected === o.k && styles.optTextSel]}>{o.label}</Text>
               </Pressable>
@@ -131,8 +173,8 @@ export function PetTwinReviewScreen() {
             <View style={styles.issueBox}>
               <Text style={styles.issueLabel}>哪里不像？</Text>
               <View style={styles.chipRow}>
-                {ISSUES.map((i) => (
-                  <Pressable key={i} accessibilityRole="button" onPress={() => toggleIssue(i)}
+                {ISSUES.map((i, idx) => (
+                  <Pressable key={i} testID={`pli.twinreview.issue.${idx}`} accessibilityRole="button" onPress={() => toggleIssue(i)}
                     style={[styles.chip, pickedIssues.includes(i) && styles.chipSel]}>
                     <Text style={[styles.chipText, pickedIssues.includes(i) && styles.chipTextSel]}>{i}</Text>
                   </Pressable>
@@ -141,11 +183,21 @@ export function PetTwinReviewScreen() {
             </View>
           ) : null}
 
-          {message ? <Text style={styles.message}>{message}</Text> : null}
+          <Text style={styles.message} testID="pli.twinreview.status">
+            {message ?? "等待你的确认：像它吗？"}
+          </Text>
 
-          <Pressable accessibilityRole="button" disabled={!selected || busy} onPress={submit}
-            style={[styles.cta, (!selected || busy) && styles.ctaDisabled]}>
-            <Text style={styles.ctaText}>{busy ? "提交中…" : "提交确认"}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: ctaDisabled }}
+            testID="pli.twinreview.action.activate"
+            disabled={ctaDisabled}
+            onPress={submit}
+            style={[styles.cta, ctaDisabled && styles.ctaDisabled]}
+          >
+            <Text style={styles.ctaText}>
+              {busy ? "提交中…" : selected === "not_like" ? "需补充素材后重新生成" : "提交确认"}
+            </Text>
           </Pressable>
         </ScrollView>
       )}
@@ -161,6 +213,12 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: SPACE.s3, paddingBottom: SPACE.s8 },
   caption: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20, marginTop: SPACE.s2 },
+  viewRow: { flexDirection: "row", gap: SPACE.s2, marginTop: SPACE.s3 },
+  viewChip: { flex: 1, alignItems: "center", paddingVertical: 10, backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.dividerSubtle },
+  viewChipSel: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
+  viewChipText: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "600" },
+  viewChipTextSel: { color: COLORS.brandPrimaryDeep },
+  viewNote: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: SPACE.s2 },
   options: { flexDirection: "row", gap: SPACE.s2, marginTop: SPACE.s3 },
   opt: { flex: 1, alignItems: "center", paddingVertical: 12, backgroundColor: COLORS.surface, borderRadius: 12 },
   optSel: { backgroundColor: COLORS.brandPrimary },

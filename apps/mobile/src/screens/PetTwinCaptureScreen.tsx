@@ -31,6 +31,9 @@ const ANGLES: { key: AngleKey; label: string; hint: string }[] = [
   { key: "head", label: "头部", hint: "清晰头部特写" },
 ];
 
+/** Blind-UI id key: full_body → full (contract names six slots front/left/right/back/full/head). */
+const viewId = (key: AngleKey) => (key === "full_body" ? "full" : key);
+
 interface QcResult {
   qc_passed: boolean;
   status: string;
@@ -40,7 +43,7 @@ interface QcResult {
 
 export function PetTwinCaptureScreen() {
   const navigation = useNavigation<StackNav>();
-  const { petId } = usePets();
+  const { pets, petId } = usePets();
   const [shots, setShots] = useState<Record<AngleKey, boolean>>({
     front: false, left: false, right: false, back: false, full_body: false, head: false,
   });
@@ -48,9 +51,14 @@ export function PetTwinCaptureScreen() {
   const [error, setError] = useState<string | null>(null);
   const [qc, setQc] = useState<QcResult | null>(null);
 
+  const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   const covered = Object.values(shots).filter(Boolean).length;
+  const missing = ANGLES.filter((a) => !shots[a.key]).map((a) => a.label);
+  const readyToSubmit = covered >= 3;
 
   const toggle = (k: AngleKey) => setShots((s) => ({ ...s, [k]: !s[k] }));
+
+  const resetShots = () => setShots({ front: false, left: false, right: false, back: false, full_body: false, head: false });
 
   const run = async () => {
     if (!petId) return;
@@ -78,44 +86,74 @@ export function PetTwinCaptureScreen() {
     }
   };
 
+  const qcRows = [
+    { key: "clarity", label: "清晰度", value: "拍摄后由智能检查确认" },
+    { key: "occlusion", label: "遮挡", value: "拍摄后由智能检查确认" },
+    { key: "coverage", label: "角度覆盖", value: `${covered}/${ANGLES.length} 个角度已覆盖` },
+    { key: "identity", label: "身份素材", value: readyToSubmit ? "素材足够，可生成" : "素材不足，建议补拍" },
+  ];
+
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
-      <View style={styles.header}>
+      <View style={styles.header} testID="pli.twincapture.identity">
         <Pressable accessibilityRole="button" accessibilityLabel="返回" onPress={() => navigation.goBack()} style={styles.back}>
           <Ionicons name="chevron-back" size={22} color={COLORS.textPrimary} />
         </Pressable>
         <View style={styles.headerText}>
-          <Text style={styles.title}>创建 3D 形象</Text>
-          <Text style={styles.subtitle}>为豆豆拍六个角度，越全越像</Text>
+          <Text style={styles.title} testID="pli.twincapture.title">创建 3D 形象</Text>
+          <Text style={styles.subtitle}>为{pet?.name ?? "宠物"}拍六个角度，越全越像</Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.coverageWrap}>
+        <View style={styles.coverageWrap} testID="pli.twincapture.preview">
           {ANGLES.map((a) => (
             <Pressable
               key={a.key}
+              testID={`pli.twincapture.view.${viewId(a.key)}`}
               accessibilityRole="button"
               accessibilityState={{ checked: shots[a.key] }}
-              accessibilityLabel={`${a.label}${shots[a.key] ? "已拍摄" : "未拍摄"}`}
+              accessibilityLabel={`${a.label}${shots[a.key] ? "已拍摄" : "尚未拍摄"}`}
               onPress={() => toggle(a.key)}
               style={[styles.angle, shots[a.key] && styles.angleDone]}
             >
               <Ionicons name={shots[a.key] ? "checkmark-circle" : "ellipse-outline"} size={18}
                 color={shots[a.key] ? COLORS.success : COLORS.textTertiary} />
               <View style={styles.angleText}>
-                <Text style={styles.angleLabel}>{a.label}{shots[a.key] ? " ✓" : ""}</Text>
+                <Text style={styles.angleLabel}>{a.label}</Text>
+                <Text testID={`pli.twincapture.status.${viewId(a.key)}`} style={[styles.angleStatus, shots[a.key] && styles.angleStatusDone]}>
+                  {shots[a.key] ? "已拍摄" : "尚未拍摄"}
+                </Text>
                 <Text style={styles.angleHint}>{a.hint}</Text>
               </View>
             </Pressable>
           ))}
         </View>
 
-        <View style={styles.hintBox}>
-          <Text style={styles.hintText}>
-            已选 {covered}/{ANGLES.length} 个角度。建议至少完成“正面 + 全身 + 头部”。这一步只记录覆盖情况；照片上传与智能分隔由未来真实服务完成。
-          </Text>
+        <View style={styles.hintBox} testID="pli.twincapture.qc">
+          <Text style={styles.qcTitle}>素材检查</Text>
+          {qcRows.map((r) => (
+            <View key={r.key} style={styles.qcRow}>
+              <Text style={styles.qcLabel}>{r.label}</Text>
+              <Text testID={`pli.twincapture.qc.${r.key}`} style={styles.qcValue}>{r.value}</Text>
+            </View>
+          ))}
         </View>
+
+        {missing.length > 0 ? (
+          <View style={styles.retakeBox} testID="pli.twincapture.retake">
+            <Text style={styles.retakeText}>尚未拍摄：{missing.join("、")}。补拍后重新提交。</Text>
+            <Pressable
+              testID="pli.twincapture.retake.button"
+              accessibilityRole="button"
+              accessibilityLabel="重新拍摄"
+              onPress={resetShots}
+              style={styles.retakeBtn}
+            >
+              <Text style={styles.retakeBtnText}>重新拍摄</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {qc && !qc.qc_passed ? (
@@ -127,8 +165,9 @@ export function PetTwinCaptureScreen() {
           </View>
         ) : null}
 
-        <Pressable accessibilityRole="button" disabled={busy} onPress={run} style={[styles.cta, busy && styles.ctaDisabled]}>
-          <Text style={styles.ctaText}>{busy ? "正在生成…" : "开始生成 3D 形象"}</Text>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: busy || !readyToSubmit }} disabled={busy || !readyToSubmit}
+          onPress={run} style={[styles.cta, (busy || !readyToSubmit) && styles.ctaDisabled]} testID="pli.twincapture.action">
+          <Text style={styles.ctaText}>{busy ? "正在生成…" : readyToSubmit ? "开始生成 3D 形象" : "至少完成 3 个角度"}</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -148,12 +187,20 @@ const styles = StyleSheet.create({
   angleDone: { borderWidth: 1, borderColor: COLORS.success },
   angleText: { flex: 1 },
   angleLabel: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "600" },
-  angleHint: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: 2 },
+  angleStatus: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: 1 },
+  angleStatusDone: { color: COLORS.success },
+  angleHint: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: 1 },
   hintBox: { backgroundColor: COLORS.bgSurfaceMuted, borderRadius: 14, padding: SPACE.s3, marginTop: SPACE.s3 },
-  hintText: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20 },
+  qcTitle: { fontSize: TYPE.bodyStrong, fontWeight: "700", color: COLORS.textPrimary, marginBottom: 4 },
+  qcRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 },
+  qcLabel: { fontSize: TYPE.sm, color: COLORS.textSecondary },
+  qcValue: { fontSize: TYPE.sm, color: COLORS.textTertiary },
+  retakeBox: { backgroundColor: COLORS.attentionBg, borderRadius: 14, padding: SPACE.s3, marginTop: SPACE.s3 },
+  retakeText: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20 },
+  retakeBtn: { marginTop: SPACE.s2, alignSelf: "flex-start", backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingHorizontal: SPACE.s4, paddingVertical: 8 },
+  retakeBtnText: { color: COLORS.textInverse, fontSize: TYPE.sm, fontWeight: "600" },
   error: { color: COLORS.danger, marginTop: SPACE.s3, fontSize: TYPE.sm },
   qcBox: { backgroundColor: COLORS.attentionBg, borderRadius: 14, padding: SPACE.s3, marginTop: SPACE.s3 },
-  qcTitle: { fontSize: TYPE.body, fontWeight: "700", color: COLORS.warning, marginBottom: 4 },
   qcItem: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20 },
   cta: { marginTop: SPACE.s4, backgroundColor: COLORS.brandPrimary, borderRadius: 14, paddingVertical: 14, alignItems: "center" },
   ctaDisabled: { opacity: 0.5 },

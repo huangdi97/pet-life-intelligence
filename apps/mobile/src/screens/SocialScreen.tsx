@@ -92,7 +92,7 @@ export function SocialScreen() {
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.head}>
+        <View style={styles.head} testID="pli.social.identity">
           <Text style={styles.title}>{pet ? `${pet.name}的社交` : "社交"}</Text>
           <Text style={styles.sub}>关系与真实互动记录，不做伪精确兼容度。</Text>
         </View>
@@ -104,7 +104,7 @@ export function SocialScreen() {
           </View>
         ) : (
           <>
-            <OpenSection title="关系">
+            <OpenSection title="关系" testID="pli.social.preferences">
               {p ? (
                 PROFILE_LABELS.map((row) => (
                   <View key={row.key} style={styles.profileRow}>
@@ -121,12 +121,12 @@ export function SocialScreen() {
               {p?.notes ? <Text style={styles.notes}>{p.notes}</Text> : null}
             </OpenSection>
 
-            <OpenSection title="宠物好友">
+            <OpenSection title="宠物好友" testID="pli.social.friends">
               {friends.length === 0 ? (
                 <Text style={styles.emptyText}>还没有好友关系。</Text>
               ) : (
                 friends.map((f) => (
-                  <View key={f.request_id} style={styles.friendRow}>
+                  <View key={f.request_id} testID={`pli.social.friend.${f.friend_pet_id}`} style={styles.friendRow}>
                     <Text style={styles.friendName}>{friendName(f.friend_pet_id)}</Text>
                     <View style={styles.friendPill}>
                       <Text style={styles.friendPillText}>{friendStatusLabel(f.status)}</Text>
@@ -136,7 +136,7 @@ export function SocialScreen() {
               )}
             </OpenSection>
 
-            <OpenSection title="最近互动">
+            <OpenSection title="最近互动" testID="pli.social.interactions">
               {events.length === 0 ? (
                 <EmptyState
                   title="还没有互动记录"
@@ -152,7 +152,7 @@ export function SocialScreen() {
               )}
             </OpenSection>
 
-            <View style={styles.formSection}>
+            <View style={styles.formSection} testID="pli.social.action">
               <Text style={styles.formLabel}>记录互动</Text>
               <SocialRecordForm
                 candidates={friendCandidates}

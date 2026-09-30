@@ -100,7 +100,7 @@ export function BehaviorScreen() {
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.head}>
+        <View style={styles.head} testID="pli.behavior.identity">
           <Text style={styles.title}>{pet ? `${pet.name}的行为` : "行为"}</Text>
           <Text style={styles.sub}>只记录可观察的事实，不构成行为诊断。</Text>
         </View>
@@ -112,31 +112,33 @@ export function BehaviorScreen() {
           </View>
         ) : (
           <>
-            <OpenSection title="最近观察">
+            <OpenSection title="最近观察" testID="pli.behavior.observations">
               {rows.length === 0 ? (
                 <EmptyState
                   title="还没有行为观察"
-                  body="记录豆豆做了什么、之前之后发生了什么，规律会慢慢浮现。"
+                  body={`记录${pet?.name ?? "宠物"}做了什么、之前之后发生了什么，规律会慢慢浮现。`}
                 />
               ) : (
-                rows.map((b, i) => (
-                  <View key={b.behavior_event_id} style={[styles.obsRow, i > 0 && styles.obsDivider]}>
-                    <Text style={styles.obsText}>{b.behavior}</Text>
-                    <View style={styles.obsMetaRow}>
-                      <Text style={styles.obsMeta}>{fmtTime(b.occurred_at)}</Text>
-                      {b.intensity ? (
-                        <View style={styles.intensityPill}>
-                          <Text style={styles.intensityText}>{intensityLabel(b.intensity)} · 主人标注</Text>
-                        </View>
-                      ) : null}
+                <View testID="pli.behavior.recent">
+                  {rows.map((b, i) => (
+                    <View key={b.behavior_event_id} style={[styles.obsRow, i > 0 && styles.obsDivider]}>
+                      <Text style={styles.obsText}>{b.behavior}</Text>
+                      <View style={styles.obsMetaRow}>
+                        <Text style={styles.obsMeta}>{fmtTime(b.occurred_at)}</Text>
+                        {b.intensity ? (
+                          <View testID="pli.behavior.source" style={styles.intensityPill}>
+                            <Text style={styles.intensityText}>{intensityLabel(b.intensity)} · 主人标注</Text>
+                          </View>
+                        ) : null}
+                      </View>
                     </View>
-                  </View>
-                ))
+                  ))}
+                </View>
               )}
             </OpenSection>
 
             {latest ? (
-              <OpenSection title="当前情境">
+              <OpenSection title="当前情境" testID="pli.behavior.context">
                 <View style={styles.abcCard}>
                   <AbcLine label="前因" value={latest.antecedent} />
                   <AbcLine label="行为" value={latest.behavior} />
@@ -146,12 +148,13 @@ export function BehaviorScreen() {
               </OpenSection>
             ) : null}
 
-            <OpenSection title="规律">
+            <OpenSection title="规律" testID="pli.behavior.patterns">
               <Text style={styles.hintText}>积累更多观察后，这里会呈现与它自己相比的变化。</Text>
             </OpenSection>
 
             <View style={styles.formSection}>
               <Pressable
+                testID="pli.behavior.action"
                 accessibilityRole="button"
                 onPress={() => setFormOpen((v) => !v)}
                 style={({ pressed }) => [styles.formToggle, pressed && styles.pressed]}

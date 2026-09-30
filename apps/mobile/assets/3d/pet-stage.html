@@ -21112,6 +21112,20 @@ void main() {
   }
 
   // ../../packages/pet-3d/dist/motion.js
+  var POSE_NAMES = [
+    "Idle",
+    "Stand",
+    "Sit",
+    "Lie",
+    "Sleep",
+    "Walk",
+    "Run",
+    "Eat",
+    "Drink",
+    "Play",
+    "Sniff",
+    "Stretch"
+  ];
   function legSwing(t, speed, phase, amp, kneeBend) {
     return {
       swing: Math.sin(t * speed * Math.PI * 2 + phase) * amp,
@@ -21471,6 +21485,40 @@ void main() {
   var camera = new PerspectiveCamera(38, 1, 0.1, 40);
   var orbit = { ...DEFAULT_ORBIT };
   if (twinDescriptor) orbit.radius = Math.max(orbit.radius, 5.2);
+  function buildManifest() {
+    const rect = renderer.domElement.getBoundingClientRect();
+    let meshCount = 0;
+    stage.pet.traverse((o) => {
+      if (o.isMesh) meshCount += 1;
+    });
+    const clips = [...POSE_NAMES];
+    return {
+      ready: true,
+      representation: twinDescriptor ? "procedural-twin" : "procedural-demo-stage",
+      fallbackUsed: false,
+      assetVersion: (twinDescriptor == null ? void 0 : twinDescriptor.version) ?? "demo-v1",
+      meshCount,
+      skinnedMeshCount: 0,
+      skeleton: !!twinDescriptor,
+      animationClips: clips,
+      wireframe: false,
+      materialMode: "pbr",
+      baseColorTexture: true,
+      camera: { fov: camera.fov, distance: orbit.radius, yaw: orbit.yaw, pitch: orbit.pitch, radius: orbit.radius },
+      screenBounds: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+      activeClip: activePose ?? "Idle",
+      availableClips: clips,
+      playbackState: "playing",
+      reducedMotion: typeof window.matchMedia === "function" ? window.matchMedia("(prefers-reduced-motion: reduce)").matches : false,
+      pose: activePose ?? "Idle",
+      poseSource: twinDescriptor ? "REPRESENTATIVE" : "AMBIENT",
+      poseConfidence: twinDescriptor ? 0.9 : 0.3
+    };
+  }
+  window.__PLI_GET_MANIFEST = () => buildManifest();
+  window.__PLI_REQUEST_MANIFEST = () => {
+    post({ type: "manifest", manifest: buildManifest() });
+  };
   function resize() {
     const w = Math.max(1, rootEl.clientWidth || window.innerWidth);
     const h = Math.max(1, rootEl.clientHeight || window.innerHeight);
@@ -21510,6 +21558,10 @@ void main() {
   }
   requestAnimationFrame(frame);
   post({ type: "status", status: "ready" });
+  post({ type: "manifest", manifest: buildManifest() });
+  setInterval(() => {
+    post({ type: "manifest", manifest: buildManifest() });
+  }, 2e3);
   var pointers = /* @__PURE__ */ new Map();
   var lastPinch = 0;
   rootEl.addEventListener(

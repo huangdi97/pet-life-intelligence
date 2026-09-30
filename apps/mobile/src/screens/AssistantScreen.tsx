@@ -1,5 +1,5 @@
 /**
- * AssistantScreen — 豆豆的助手 (Stage R.2 §50-53). Pet-aware: the assistant
+ * AssistantScreen — 宠物的助手 (Stage R.2 §50-53). Pet-aware: the assistant
  * always speaks about THIS pet. Ask is the primary mode; 摘要/找/计划/解释
  * are contextual capabilities (not equal-weight pills). Answers follow the
  * contract: 结论 → 依据 → 不确定性 → 下一步. Medical risk stays with the
@@ -9,17 +9,20 @@ import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api, humanizeError, type AiStatus, type AskAnswer } from "../api";
+import { useNavigation } from "@react-navigation/native";
+import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { usePets } from "../context";
 import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
+import type { TabParamList } from "../navigation";
 import { PetAvatar } from "../components/media/PetAvatar";
 import { resolvePetMediaUri } from "../components/media/demoPetVisual";
 import { BriefPanel, ExplainPanel, FindPanel, PlanPanel } from "./assistant_panels";
 
-const SUGGESTIONS = [
-  "最近体重有什么变化？",
-  "上次耳朵异常是什么时候？",
-  "今天还有什么没完成？",
-  "最近训练进度怎么样？",
+const SUGGESTION_ACTIONS: Array<{ key: string; label: string; fill?: string; route?: "Timeline" }> = [
+  { key: "explain", label: "解释变化", fill: "解释最近的变化" },
+  { key: "summary", label: "生成总结", fill: "生成今天的总结" },
+  { key: "records", label: "查看记录", route: "Timeline" },
+  { key: "plan", label: "计划下一步", fill: "帮我计划下一步" },
 ];
 
 type Tab = "ask" | "brief" | "find" | "plan" | "explain";
@@ -34,6 +37,7 @@ const MODES: Array<{ id: Tab; label: string }> = [
 
 export function AssistantScreen() {
   const { pets, petId } = usePets();
+  const tabNav = useNavigation<BottomTabNavigationProp<TabParamList>>();
   const [tab, setTab] = useState<Tab>("ask");
   const [question, setQuestion] = useState("");
   const [asking, setAsking] = useState(false);
@@ -82,7 +86,7 @@ export function AssistantScreen() {
   return (
     <SafeAreaView style={styles.page} edges={["top"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <View style={styles.head}>
+        <View style={styles.head} testID="pli.assistant.identity">
           {pet ? (
             <View style={styles.petChip}>
               <PetAvatar pet={pet} uri={resolvePetMediaUri(pet)} size={40} />
@@ -118,16 +122,23 @@ export function AssistantScreen() {
         </View>
 
         {tab === "ask" && (
-          <View style={styles.askWrap}>
+          <View style={styles.askWrap} testID="pli.assistant.chat">
             <View style={styles.suggestionRow}>
-              {SUGGESTIONS.map((s) => (
-                <Pressable key={s} onPress={() => void ask(s)} style={styles.suggestion}>
-                  <Text style={styles.suggestionText}>{s}</Text>
+              {SUGGESTION_ACTIONS.map((a) => (
+                <Pressable
+                  key={a.key}
+                  testID={`pli.assistant.suggestion.${a.key}`}
+                  accessibilityRole="button"
+                  onPress={() => (a.route === "Timeline" ? tabNav.navigate("Timeline") : setQuestion(a.fill ?? ""))}
+                  style={styles.suggestion}
+                >
+                  <Text style={styles.suggestionText}>{a.label}</Text>
                 </Pressable>
               ))}
             </View>
             <View style={styles.askRow}>
               <TextInput
+                testID="pli.assistant.ask"
                 style={styles.input}
                 value={question}
                 onChangeText={setQuestion}
@@ -136,14 +147,14 @@ export function AssistantScreen() {
                 onSubmitEditing={() => void ask(question)}
                 returnKeyType="send"
               />
-              <Pressable accessibilityRole="button" accessibilityLabel="提问" onPress={() => void ask(question)} style={styles.askBtn}>
+              <Pressable testID="pli.assistant.send" accessibilityRole="button" accessibilityLabel="提问" onPress={() => void ask(question)} style={styles.askBtn}>
                 <Text style={styles.askBtnText}>{asking ? "思考中…" : "提问"}</Text>
               </Pressable>
             </View>
             {askErr ? <Text style={styles.errorText}>{askErr}</Text> : null}
             {answer && !askErr ? <AnswerBlock answer={answer} citations={citations} /> : null}
             {!answer && !askErr && !asking ? (
-              <View style={styles.emptyState}>
+              <View style={styles.emptyState} testID="pli.assistant.context">
                 <Text style={styles.emptyTitle}>我会基于{pet?.name ?? "宠物"}已有的真实记录回答。</Text>
                 <Text style={styles.emptyBody}>你可以问最近变化、任务、训练、健康记录。</Text>
                 {aiOff ? <Text style={styles.emptyNote}>当前为模拟服务，回答仅为演示。</Text> : null}

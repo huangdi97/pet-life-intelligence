@@ -23,8 +23,11 @@ interface Props {
 }
 
 export function LivingModeSwitcher({ value, onChange }: Props) {
+  // "look" is the internal appearance-mode id; the machine-readable id uses
+  // the canonical "appearance" key from the blind-UI contract.
+  const idOf = (id: LivingMode) => (id === "look" ? "appearance" : id);
   return (
-    <View accessibilityRole="tablist" style={styles.bar}>
+    <View accessibilityRole="tablist" testID={`pli.lifeview.mode.${idOf(value)}`} style={styles.bar}>
       {MODES.map((m) => {
         const active = m.id === value;
         return (
@@ -33,6 +36,7 @@ export function LivingModeSwitcher({ value, onChange }: Props) {
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
             accessibilityLabel={m.label}
+            testID={`pli.lifeview.mode.${idOf(m.id)}`}
             onPress={() => onChange(m.id)}
             style={[styles.item, active && styles.itemActive]}
           >

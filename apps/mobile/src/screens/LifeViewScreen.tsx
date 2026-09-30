@@ -74,6 +74,7 @@ export function LifeViewScreen() {
       label,
       value,
       icon,
+      testID: `pli.lifeview.anchor.${id}`,
       onPress: () => {
         const evs = matching(type);
         const src = evs.length ? Array.from(new Set(evs.map((e) => sourceLabel(e.source_type)))).join(" + ") : "—";
@@ -85,18 +86,18 @@ export function LifeViewScreen() {
       },
     });
     const list = [
-      mk("drink", "饮水", c("daily.drink") ? `${c("daily.drink")} 次` : "", "water-outline", "daily.drink"),
-      mk("meal", "进食", c("daily.meal") ? `${c("daily.meal")} 次` : "", "restaurant-outline", "daily.meal"),
+      mk("drink", "饮水", c("daily.drink") ? `${c("daily.drink")} 次` : "—", "water-outline", "daily.drink"),
+      mk("meal", "进食", c("daily.meal") ? `${c("daily.meal")} 次` : "—", "restaurant-outline", "daily.meal"),
       mk(
         "activity",
         "活动",
-        duration("daily.walk") + duration("daily.play") ? `${duration("daily.walk") + duration("daily.play")} 分钟` : "",
+        duration("daily.walk") + duration("daily.play") ? `${duration("daily.walk") + duration("daily.play")} 分钟` : "—",
         "walk-outline",
         "daily.walk",
       ),
-      mk("sleep", "睡眠", c("daily.sleep") ? `${c("daily.sleep")} 次` : "", "moon-outline", "daily.sleep"),
+      mk("sleep", "睡眠", c("daily.sleep") ? `${c("daily.sleep")} 次` : "—", "moon-outline", "daily.sleep"),
     ];
-    return list.filter((a) => a.value !== "");
+    return list;
   }, [petEvents]);
 
   const streamRows: LifeStreamRow[] = petEvents.slice(0, 4).map((e) => ({
@@ -116,7 +117,7 @@ export function LifeViewScreen() {
     : !pet
       ? ""
       : petEvents.length === 0
-        ? "今天还没有记录，豆豆安安静静的。"
+        ? `${pet?.name ?? "宠物"}今天安安静静的。`
         : lastEvent
           ? `最近一次记录：${eventTypeLabel(lastEvent.event_type)} · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
           : "";
@@ -124,48 +125,51 @@ export function LifeViewScreen() {
   return (
     <SafeAreaView style={styles.page} edges={["top"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <PetLivingStage
-          pet={pet}
-          spec={resolvePetStage(pet)}
-          variant="life"
-          anchors={anchors}
-          headline={mode === "now" ? "豆豆 · 此刻" : undefined}
-          caption={mode === "now" ? nowLine : undefined}
-          note={
-            twin
-              ? `第 ${twin.version} 版 3D 形象 · 已通过你的确认 · 外观来自${twin.mediaProvenance === "OWNER_REPORTED" ? "你的照片" : "演示素材"}`
-              : "演示 3D 形象（开发环境）· 未来连接真实服务后，将用豆豆的照片生成"
-          }
-          demo={DEMO_ENV}
-          interactive
-          twin={twin?.descriptor ?? null}
-          pose={pose}
-        />
+        <View style={styles.stageWrap}>
+          <PetLivingStage
+            pet={pet}
+            spec={resolvePetStage(pet)}
+            variant="life"
+            anchors={anchors}
+            headline={mode === "now" ? `${pet?.name ?? "宠物"} · 此刻` : undefined}
+            caption={mode === "now" ? nowLine : undefined}
+            note={
+              twin
+                ? `第 ${twin.version} 版 3D 形象 · 已通过你的确认 · 外观来自${twin.mediaProvenance === "OWNER_REPORTED" ? "你的照片" : "演示素材"}`
+                : `演示 3D 形象（开发环境）· 未来连接真实服务后，将用${pet?.name ?? "宠物"}的照片生成`
+            }
+            demo={DEMO_ENV}
+            interactive
+            twin={twin?.descriptor ?? null}
+            pose={pose}
+          />
+        </View>
 
-        {twin ? (
-          <View style={styles.poseRow} accessibilityLabel="3D 形象动作选择">
-            {(["Idle", "Sit", "Walk", "Run", "Eat", "Drink", "Sleep"] as PoseName[]).map((p) => (
-              <Pressable
-                key={p}
-                accessibilityRole="button"
-                accessibilityState={{ selected: pose === p }}
-                onPress={() => setPose(p)}
-                style={[styles.poseChip, pose === p && styles.poseChipSel]}
-              >
-                <Text style={[styles.poseChipText, pose === p && styles.poseChipTextSel]}>{POSE_META[p].label}</Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
+        <View testID="pli.lifeview.control.pose" style={styles.poseRow} accessibilityLabel="3D 形象动作选择">
+          {(["Idle", "Sit", "Walk", "Run", "Eat", "Drink", "Sleep"] as PoseName[]).map((p) => (
+            <Pressable
+              key={p}
+              accessibilityRole="button"
+              accessibilityState={{ selected: pose === p }}
+              onPress={() => setPose(p)}
+              style={[styles.poseChip, pose === p && styles.poseChipSel]}
+            >
+              <Text style={[styles.poseChipText, pose === p && styles.poseChipTextSel]}>{POSE_META[p].label}</Text>
+            </Pressable>
+          ))}
+        </View>
 
-        <LivingModeSwitcher value={mode} onChange={setMode} />
 
-        <View style={styles.panel} accessibilityLiveRegion="polite">
+        <View testID="pli.lifeview.control.modes">
+          <LivingModeSwitcher value={mode} onChange={setMode} />
+        </View>
+
+        <View testID="pli.lifeview.panel" style={styles.panel} accessibilityLiveRegion="polite">
           {mode === "now" ? (
             <Text style={styles.panelText}>
               {anchors.length
                 ? "上面的数值来自今天真实的记录。点一下数值，可以看到事实、来源与更新时间。拖动宠物可以旋转，双指缩放。"
-                : "今天还没有足够记录，记下第一件事后，这里会围绕豆豆展开。"}
+                : `今天还没有足够记录，记下第一件事后，这里会围绕${pet?.name ?? "宠物"}展开。`}
             </Text>
           ) : null}
 
@@ -199,7 +203,7 @@ export function LifeViewScreen() {
             <View style={styles.lookRow}>
               <Ionicons name="cube-outline" size={18} color={COLORS.textTertiary} />
               <Text style={styles.panelText}>
-                现在显示的是演示 3D 形象（开发环境），只来自演示数据。未来连接真实服务后，会用豆豆的真实照片生成，并经过你确认后才会显示。外观不会替代真实照片与记录。
+                现在显示的是演示 3D 形象（开发环境），只来自演示数据。未来连接真实服务后，会用{pet?.name ?? "宠物"}的真实照片生成，并经过你确认后才会显示。外观不会替代真实照片与记录。
               </Text>
             </View>
           ) : null}
@@ -247,6 +251,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.canvas },
   flex: { flex: 1 },
   content: { paddingBottom: SPACE.s8 },
+  stageWrap: { alignSelf: "center", width: "100%", maxWidth: 340 },
   panel: { marginHorizontal: SPACE.s4, marginTop: SPACE.s4 },
   panelText: { fontSize: TYPE.body, color: COLORS.textSecondary, lineHeight: 22 },
   trendRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s3 },

@@ -93,7 +93,7 @@ export function TrainingScreen() {
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.head}>
+        <View style={styles.head} testID="pli.training.identity">
           <Text style={styles.title}>{pet ? `${pet.name}的训练` : "训练"}</Text>
           <Text style={styles.sub}>奖励式正向强化 · 只记录事实反应与奖励。</Text>
         </View>
@@ -105,7 +105,7 @@ export function TrainingScreen() {
           </View>
         ) : (
           <>
-            <OpenSection title="当前目标">
+            <OpenSection title="当前目标" testID="pli.training.goal">
               {current ? (
                 <View style={styles.goalCard}>
                   <View style={styles.goalHead}>
@@ -116,7 +116,7 @@ export function TrainingScreen() {
                   </View>
                   <View style={styles.progressRow}>
                     <Text style={styles.progressText}>掌握度 {current.mastery_level}/5</Text>
-                    <Text style={styles.progressMeta}>{current.target_behavior || "目标行为待细化"}</Text>
+                  <Text testID="pli.training.next" style={styles.progressMeta}>{current.target_behavior || "目标行为待细化"}</Text>
                   </View>
                   {current.steps?.length ? (
                     <View style={styles.steps}>
@@ -128,7 +128,8 @@ export function TrainingScreen() {
                       ))}
                     </View>
                   ) : null}
-                  <View style={styles.sessionRow}>
+                  <Text testID="pli.training.reward" style={styles.rewardText}>奖励：零食 · 正向强化</Text>
+                  <View testID="pli.training.recent" style={styles.sessionRow}>
                     <SessionChip label="表现好" onPress={() => void logSession(current.goal_id, "GOOD")} disabled={busyGoal !== null} />
                     <SessionChip label="表现很好" onPress={() => void logSession(current.goal_id, "GREAT")} disabled={busyGoal !== null} />
                     <SessionChip label="遇到困难" onPress={() => void logSession(current.goal_id, "POOR")} disabled={busyGoal !== null} />
@@ -138,7 +139,7 @@ export function TrainingScreen() {
               ) : (
                 <EmptyState
                   title="还没有训练目标"
-                  body="记录豆豆正在学习的第一件事。"
+                  body={`记录${pet?.name ?? "宠物"}正在学习的第一件事。`}
                   actionLabel="创建目标"
                   onAction={() => setFormOpen(true)}
                 />
@@ -146,7 +147,7 @@ export function TrainingScreen() {
             </OpenSection>
 
             {current ? (
-              <OpenSection title="进展">
+              <OpenSection title="进展" testID="pli.training.progress">
                 <Text style={styles.progressNote}>每次会话都会累积到掌握度。与它自己相比，慢慢进步就好。</Text>
               </OpenSection>
             ) : null}
@@ -164,6 +165,7 @@ export function TrainingScreen() {
 
             <View style={styles.formSection}>
               <Pressable
+                testID="pli.training.action"
                 accessibilityRole="button"
                 onPress={() => setFormOpen((v) => !v)}
                 style={({ pressed }) => [styles.formToggle, pressed && styles.pressed]}
@@ -195,7 +197,7 @@ export function TrainingScreen() {
 }
 
 function statusLabel(status: string): string {
-  if (status === "ACTIVE") return "进行中";
+  if (status === "ACTIVE" || status === "OPEN") return "进行中";
   if (status === "ACHIEVED") return "已达成";
   if (status === "PAUSED") return "已暂停";
   return status;
@@ -222,10 +224,11 @@ const styles = StyleSheet.create({
   goalHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: SPACE.s2 },
   goalTitle: { fontSize: TYPE.bodyStrong, fontWeight: "700", color: COLORS.textPrimary, flex: 1 },
   statusPill: { backgroundColor: COLORS.brandSoftGreen, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  progressMeta: { fontSize: TYPE.meta, color: COLORS.textTertiary, flex: 1 },
+  rewardText: { fontSize: TYPE.meta, color: COLORS.textSecondary, marginTop: SPACE.s2 },
   statusText: { fontSize: TYPE.caption, color: COLORS.brandPrimaryDeep, fontWeight: "700" },
   progressRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, marginTop: SPACE.s2 },
   progressText: { fontSize: TYPE.sm, color: COLORS.brandSecondary, fontWeight: "600" },
-  progressMeta: { fontSize: TYPE.meta, color: COLORS.textTertiary, flex: 1 },
   steps: { marginTop: SPACE.s2, gap: 6 },
   stepRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2 },
   stepMark: { fontSize: TYPE.body, color: COLORS.brandPrimaryDeep, width: 16 },

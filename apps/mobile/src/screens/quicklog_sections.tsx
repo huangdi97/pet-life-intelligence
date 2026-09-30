@@ -80,7 +80,7 @@ function tileZh(key: string): string {
 export function QuickLogForm({ t, fields, saving, onSave }: { t: LogType; fields: QuickLogFields; saving: boolean; onSave: () => void }) {
   const { amount, setAmount, unit, setUnit, minutes, setMinutes, weight, setWeight, behavior, setBehavior, diaryText, setDiaryText, kind, setKind } = fields;
   return (
-    <View style={styles.formWrap}>
+    <View style={styles.formWrap} testID="pli.quicklog.form">
       <Text style={styles.formTitle}>{t.zh}</Text>
       {(t.event_type === "daily.meal" || t.event_type === "daily.drink") && (
         <>
@@ -128,6 +128,7 @@ export function QuickLogForm({ t, fields, saving, onSave }: { t: LogType; fields
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="保存"
+        testID="pli.quicklog.save"
         disabled={saving}
         onPress={onSave}
         style={({ pressed }) => [styles.saveBtn, saving && styles.saveDisabled, pressed && !saving && styles.pressed]}
@@ -141,19 +142,28 @@ export function QuickLogForm({ t, fields, saving, onSave }: { t: LogType; fields
 export function QuickLogGrid({ onPick, onOpenHealth }: { onPick: (key: string) => void; onOpenHealth: () => void }) {
   return (
     <View>
-      <TileGroup title="常用" tiles={PRIMARY_TILES} onPick={onPick} />
-      <TileGroup title="更多" tiles={SECONDARY_TILES} onPick={(k) => (k === "health" ? onOpenHealth() : onPick(k))} />
+      <TileGroup title="常用" prefix="pli.quicklog.tile" tiles={PRIMARY_TILES} onPick={onPick} />
+      <TileGroup title="更多" prefix="pli.quicklog.more" tiles={SECONDARY_TILES} onPick={(k) => (k === "health" ? onOpenHealth() : onPick(k))} />
     </View>
   );
 }
 
-function TileGroup({ title, tiles, onPick }: { title: string; tiles: QuickLogTile[]; onPick: (key: string) => void }) {
+function TileGroup({ title, prefix, tiles, onPick }: { title: string; prefix: string; tiles: QuickLogTile[]; onPick: (key: string) => void }) {
+  // Blind-UI id keys: 喂食 tile (meal) → feed, 饮水 tile (drink) → water.
+  const tileId = (key: string) => (key === "meal" ? "feed" : key === "drink" ? "water" : key);
   return (
     <View style={styles.group}>
       <Text style={styles.groupTitle}>{title}</Text>
       <View style={styles.grid}>
         {tiles.map((t) => (
-          <Pressable key={t.key} accessibilityRole="button" accessibilityLabel={t.zh} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} onPress={() => onPick(t.key)}>
+          <Pressable
+            key={t.key}
+            testID={`${prefix}.${tileId(t.key)}`}
+            accessibilityRole="button"
+            accessibilityLabel={t.zh}
+            style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
+            onPress={() => onPick(t.key)}
+          >
             <Ionicons name={t.icon} size={22} color={COLORS.brandPrimaryDeep} />
             <Text style={styles.tileText}>{t.zh}</Text>
           </Pressable>

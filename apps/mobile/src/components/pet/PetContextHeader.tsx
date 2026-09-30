@@ -1,6 +1,6 @@
 /**
  * PetContextHeader — compact pet identity strip used on write/secondary
- * screens ("为豆豆记录") with a small pet photo/species avatar. Keeps the
+ * screens ("为当前宠物记录") with a small pet photo/species avatar. Keeps the
  * pet-first context without competing with the page content.
  */
 import React from "react";

@@ -1,5 +1,5 @@
 /**
- * QuickLogScreen — 为豆豆记录 (modal, Stage R.2 §41-43). One-hand 2-tap flow:
+ * QuickLogScreen — 为当前宠物记录 (modal, Stage R.2 §41-43). One-hand 2-tap flow:
  * pet context header → icon tiles (常用 first) → light form → save. All
  * writes go to the same canonical endpoints as before; success/error copy is
  * user language only.
@@ -127,15 +127,20 @@ export function QuickLogScreen() {
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
-      <PetContextHeader pet={current} title={current ? `为${current.name}记录` : "快速记录"} mediaUri={resolvePetMediaUri(current)} onPress={() => navigation.goBack()} />
+      <View testID="pli.quicklog.identity">
+        <PetContextHeader pet={current} title={current ? `为${current.name}记录` : "快速记录"} mediaUri={resolvePetMediaUri(current)} onPress={() => navigation.goBack()} />
+      </View>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {success ? (
-          <View style={styles.feedback} accessibilityLiveRegion="polite">
+          <View style={styles.feedback} accessibilityLiveRegion="polite" testID="pli.quicklog.feedback">
             <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
             <Text style={styles.successText}>{success}</Text>
           </View>
-        ) : null}
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        ) : (
+          <View style={styles.feedback} accessibilityLiveRegion="polite" testID="pli.quicklog.feedback">
+            <Text style={styles.noteText}>记录会保存来源与时间，可在时间线查看。</Text>
+          </View>
+        )}
 
         {selectedType ? (
           <QuickLogForm t={selectedType} fields={fields} saving={saving} onSave={() => void save()} />
@@ -159,6 +164,7 @@ const styles = StyleSheet.create({
   content: { paddingBottom: SPACE.s8, paddingTop: SPACE.s4 },
   feedback: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: SPACE.s4, marginBottom: SPACE.s2 },
   successText: { fontSize: TYPE.body, color: COLORS.success, fontWeight: "600" },
+  noteText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
   errorText: { fontSize: TYPE.sm, color: COLORS.danger, paddingHorizontal: SPACE.s4, marginBottom: SPACE.s2 },
   closeWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
   closeBtn: { paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: COLORS.dividerStrong, alignItems: "center" },

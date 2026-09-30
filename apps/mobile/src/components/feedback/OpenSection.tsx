@@ -10,12 +10,14 @@ import { COLORS, SPACE, TYPE } from "../../tokens";
 interface OpenSectionProps {
   title?: string;
   caption?: string;
+  /** Machine-readable testID (blind-UI acceptance). */
+  testID?: string;
   children: React.ReactNode;
 }
 
-export function OpenSection({ title, caption, children }: OpenSectionProps) {
+export function OpenSection({ title, caption, testID, children }: OpenSectionProps) {
   return (
-    <View style={styles.wrap}>
+    <View style={styles.wrap} testID={testID} accessible={testID ? true : undefined} accessibilityLabel={title || (testID ?? undefined)}>
       {title ? (
         <View style={styles.head}>
           <Text style={styles.title}>{title}</Text>
@@ -26,6 +28,7 @@ export function OpenSection({ title, caption, children }: OpenSectionProps) {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },

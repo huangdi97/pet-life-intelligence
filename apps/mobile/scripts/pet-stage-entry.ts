@@ -18,6 +18,7 @@ import {
   DEFAULT_ORBIT,
   orbitFromDrag,
   orbitZoom,
+  POSE_NAMES,
   STAGE_FOG,
   STAGE_TARGET,
 } from "@pli/pet-3d";
@@ -77,6 +78,42 @@ const orbit = { ...DEFAULT_ORBIT };
 // Twin scenes are built ground-anchored and centered; keep default framing
 // but widen a touch so morph-extended pets still fit.
 if (twinDescriptor) orbit.radius = Math.max(orbit.radius, 5.2);
+// --- blind scene manifest (test/debug only, never owner UI) ---
+function buildManifest(): Record<string, unknown> {
+  const rect = renderer.domElement.getBoundingClientRect();
+  let meshCount = 0;
+  stage.pet.traverse((o: { isMesh?: boolean }) => {
+    if (o.isMesh) meshCount += 1;
+  });
+  const clips = [...POSE_NAMES];
+  return {
+    ready: true,
+    representation: twinDescriptor ? "procedural-twin" : "procedural-demo-stage",
+    fallbackUsed: false,
+    assetVersion: twinDescriptor?.version ?? "demo-v1",
+    meshCount,
+    skinnedMeshCount: 0,
+    skeleton: !!twinDescriptor,
+    animationClips: clips,
+    wireframe: false,
+    materialMode: "pbr",
+    baseColorTexture: true,
+    camera: { fov: camera.fov, distance: orbit.radius, yaw: orbit.yaw, pitch: orbit.pitch, radius: orbit.radius },
+    screenBounds: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+    activeClip: activePose ?? "Idle",
+    availableClips: clips,
+    playbackState: "playing",
+    reducedMotion:
+      typeof window.matchMedia === "function" ? window.matchMedia("(prefers-reduced-motion: reduce)").matches : false,
+    pose: activePose ?? "Idle",
+    poseSource: twinDescriptor ? ("REPRESENTATIVE" as const) : ("AMBIENT" as const),
+    poseConfidence: twinDescriptor ? 0.9 : 0.3,
+  };
+}
+(window as any).__PLI_GET_MANIFEST = () => buildManifest();
+(window as any).__PLI_REQUEST_MANIFEST = () => {
+  post({ type: "manifest", manifest: buildManifest() });
+};
 
 function resize(): void {
   const w = Math.max(1, rootEl.clientWidth || window.innerWidth);
@@ -123,7 +160,11 @@ function frame(t: number): void {
 }
 requestAnimationFrame(frame);
 post({ type: "status", status: "ready" });
-
+post({ type: "manifest", manifest: buildManifest() });
+// Blind harness: keep the manifest fresh on the [plimanifest] logcat channel.
+setInterval(() => {
+  post({ type: "manifest", manifest: buildManifest() });
+}, 2000);
 // --- touch / pointer interaction (interactive only) ---
 let pointers = new Map<number, { x: number; y: number }>();
 let lastPinch = 0;

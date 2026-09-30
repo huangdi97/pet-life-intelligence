@@ -1,5 +1,5 @@
 /**
- * HealthScreen — 读先于写 (Stage R.2 §44-45): 豆豆的健康 → 近期状态 →
+ * HealthScreen — 读先于写 (Stage R.2 §44-45): 宠物的健康 → 近期状态 →
  * 最近变化 → 健康记录 → 记录健康事件 (form last, not the visual core).
  * Risk levels are backend rule-engine values only; strong danger visuals only
  * for real URGENT/EMERGENCY triage. No local diagnosis claims.
@@ -105,7 +105,7 @@ export function HealthScreen() {
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.head}>
+        <View style={styles.head} testID="pli.health.identity">
           <Text style={styles.title}>{pet ? `${pet.name}的健康` : "健康"}</Text>
           <Text style={styles.sub}>仅信息整理，不构成诊断。</Text>
         </View>
@@ -117,21 +117,21 @@ export function HealthScreen() {
           </View>
         ) : (
           <>
-            <OpenSection title="近期状态">
+            <OpenSection title="近期状态" testID="pli.health.overview">
               <View style={styles.statusRow}>
                 <Text style={styles.statusLabel}>最近一次</Text>
                 <Text style={styles.statusValue}>
                   {latest ? riskLabel(latest.latest_triage_level) : "还没有健康记录"}
                 </Text>
               </View>
-              <View style={styles.statusRow}>
+              <View style={styles.statusRow} testID="pli.health.status">
                 <Text style={styles.statusLabel}>最近 7 天</Text>
                 <Text style={styles.statusValue}>{rows.length} 条记录</Text>
               </View>
             </OpenSection>
 
-            {latest ? (
-              <OpenSection title="最近变化">
+            <OpenSection title="最近变化" testID="pli.health.changes">
+              {latest ? (
                 <View style={[styles.changeCard, isHighRisk(latest.latest_triage_level) && styles.changeCardDanger]}>
                   <View style={styles.changeHead}>
                     <Text style={[styles.changeType, isHighRisk(latest.latest_triage_level) && styles.changeTypeDanger]}>
@@ -143,10 +143,12 @@ export function HealthScreen() {
                   </View>
                   <Text style={styles.changeBody}>{latest.chief_complaint}</Text>
                 </View>
-              </OpenSection>
-            ) : null}
+              ) : (
+                <Text style={styles.emptyText}>还没有健康变化记录，记录后会显示在这里。</Text>
+              )}
+            </OpenSection>
 
-            <OpenSection title="健康记录">
+            <OpenSection title="健康记录" testID="pli.health.records">
               {rows.length === 0 ? (
                 <EmptyState
                   title="还没有健康记录"
@@ -156,7 +158,7 @@ export function HealthScreen() {
                 rows.map((r, i) => {
                   const colors = triageColors(r.latest_triage_level);
                   return (
-                    <View key={r.health_event_id} style={[styles.recordRow, i > 0 && styles.recordDivider]}>
+                    <View key={r.health_event_id} testID={`pli.health.record.${r.health_event_id}`} style={[styles.recordRow, i > 0 && styles.recordDivider]}>
                       <View style={[styles.riskPill, { backgroundColor: colors.bg }]}>
                         <Text style={[styles.riskPillText, { color: colors.color }]}>{riskLabel(r.latest_triage_level)}</Text>
                       </View>
@@ -172,6 +174,17 @@ export function HealthScreen() {
               )}
             </OpenSection>
 
+            <OpenSection title="预防与用药">
+              <View testID="pli.health.prevent" style={styles.recordRow}>
+                <Text style={styles.recordMeta}>疫苗与驱虫：暂无记录</Text>
+              </View>
+              <View testID="pli.health.medication" style={styles.recordRow}>
+                <Text style={styles.recordMeta}>用药计划：暂无进行中的计划</Text>
+              </View>
+              <View testID="pli.health.vet" style={styles.recordRow}>
+                <Text style={styles.recordMeta}>就医记录：暂无</Text>
+              </View>
+            </OpenSection>
             {createdLevel ? (
               <View style={styles.feedback} accessibilityLiveRegion="polite">
                 <Text style={styles.feedbackText}>
@@ -182,6 +195,7 @@ export function HealthScreen() {
 
             <View style={styles.formSection}>
               <Pressable
+                testID="pli.health.action"
                 accessibilityRole="button"
                 onPress={() => setFormOpen((v) => !v)}
                 style={({ pressed }) => [styles.formToggle, pressed && styles.pressed]}
@@ -228,6 +242,7 @@ const styles = StyleSheet.create({
   title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  emptyText: { fontSize: TYPE.body, color: COLORS.textTertiary, lineHeight: 22 },
   statusRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6 },
   statusLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary },
   statusValue: { fontSize: TYPE.meta, color: COLORS.textPrimary, fontWeight: "600" },

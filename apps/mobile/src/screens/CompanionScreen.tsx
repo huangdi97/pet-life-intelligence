@@ -4,12 +4,15 @@
  * No feature flags, no prototype tags, no fake device execution.
  */
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { api, type DeviceRow, type LifeEvent } from "../api";
 import { usePets } from "../context";
 import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
+import type { StackParamList } from "../navigation";
 import { PetAvatar } from "../components/media/PetAvatar";
 import { resolvePetMediaUri } from "../components/media/demoPetVisual";
 import { OpenSection } from "../components/feedback/OpenSection";
@@ -22,11 +25,13 @@ const LAYERS: Array<{ key: string; icon: keyof typeof Ionicons.glyphMap; zh: str
   { key: "learned", icon: "git-compare-outline", zh: "习得互动", desc: "根据长期观察，逐渐了解它的偏好，但不猜测情绪。" },
 ];
 
+type StackNav = NativeStackNavigationProp<StackParamList>;
+
 export function CompanionScreen() {
   const { pets, petId } = usePets();
+  const navigation = useNavigation<StackNav>();
   const [devices, setDevices] = useState<DeviceRow[]>([]);
   const [events, setEvents] = useState<LifeEvent[]>([]);
-
 
   useEffect(() => {
     if (!petId) return;
@@ -57,7 +62,7 @@ export function CompanionScreen() {
   return (
     <SafeAreaView style={styles.page} edges={["top"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.head}>
+        <View style={styles.head} testID="pli.companion.identity">
           <PetAvatar pet={pet} uri={resolvePetMediaUri(pet)} size={56} />
           <View style={styles.headText}>
             <Text style={styles.title}>{pet ? `${pet.name} · 陪伴模式` : "陪伴模式"}</Text>
@@ -65,9 +70,9 @@ export function CompanionScreen() {
           </View>
         </View>
 
-        <OpenSection title="四种能力">
+        <OpenSection title="四种能力" testID="pli.companion.overview">
           {LAYERS.map((l) => (
-            <View key={l.key} style={styles.layerRow}>
+            <Pressable key={l.key} accessibilityRole="button" testID={`pli.companion.overview.${l.key}`} onPress={() => navigation.navigate("Monitoring")} style={styles.layerRow}>
               <View style={styles.layerIcon}>
                 <Ionicons name={l.icon} size={18} color={COLORS.brandPrimaryDeep} />
               </View>
@@ -75,40 +80,48 @@ export function CompanionScreen() {
                 <Text style={styles.layerTitle}>{l.zh}</Text>
                 <Text style={styles.layerDesc}>{l.desc}</Text>
               </View>
-            </View>
+            </Pressable>
           ))}
         </OpenSection>
 
         <OpenSection title="设备">
-          {devices.length === 0 ? (
-            <View style={styles.deviceEmpty}>
-              <Ionicons name="hardware-chip-outline" size={20} color={COLORS.textTertiary} />
-              <Text style={styles.deviceEmptyText}>尚未连接设备</Text>
-            </View>
-          ) : (
-            devices.map((d) => (
-              <View key={d.device_id} style={styles.deviceRow}>
-                <Text style={styles.deviceName}>{d.display_name || "设备"}</Text>
-                <View style={styles.devicePill}>
-                  <Text style={styles.devicePillText}>{deviceStateLabel(d.status)}</Text>
-                </View>
+          <View testID="pli.companion.device-status" accessible accessibilityLabel="设备状态">
+            {devices.length === 0 ? (
+              <View style={styles.deviceEmpty} testID="pli.companion.device-empty">
+                <Ionicons name="hardware-chip-outline" size={20} color={COLORS.textTertiary} />
+                <Text style={styles.deviceEmptyText}>尚未连接设备</Text>
               </View>
-            ))
-          )}
+            ) : (
+              devices.map((d) => (
+                <View key={d.device_id} style={styles.deviceRow}>
+                  <Text style={styles.deviceName}>{d.display_name || "设备"}</Text>
+                  <View style={styles.devicePill} testID={`pli.companion.device-status.${d.device_id}`}>
+                    <Text style={styles.devicePillText}>{deviceStateLabel(d.status)}</Text>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
         </OpenSection>
 
-        {events.length > 0 ? (
-          <OpenSection title="最近">
-            {events.map((e) => (
+        <OpenSection title="最近" testID="pli.companion.recent">
+          {events.length > 0 ? (
+            events.map((e) => (
               <View key={e.event_id} style={styles.eventRow}>
                 <Text style={styles.eventType}>{eventTypeLabel(e.event_type)}</Text>
                 <Text style={styles.eventTime}>{new Date(e.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}</Text>
               </View>
-            ))}
-          </OpenSection>
-        ) : null}
+            ))
+          ) : (
+            <Text style={styles.deviceEmptyText}>还没有可观察的活动，观察记录会出现在这里。</Text>
+          )}
+        </OpenSection>
 
-        <Text style={styles.footnote}>陪伴不用于医疗判断；互动节奏始终由你控制。</Text>
+        <Pressable testID="pli.companion.action" accessibilityRole="button" onPress={() => navigation.navigate("Monitoring")} style={styles.actionBtn}>
+          <Text style={styles.actionText}>查看设备状态</Text>
+        </Pressable>
+
+        <Text style={styles.footnote} testID="pli.companion.next">陪伴不用于医疗判断；互动节奏始终由你控制。</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -134,6 +147,9 @@ const styles = StyleSheet.create({
   layerText: { flex: 1 },
   layerTitle: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary },
   layerDesc: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginTop: 2, lineHeight: 20 },
+  footnote: { fontSize: TYPE.caption, color: COLORS.textTertiary, textAlign: "center", marginTop: SPACE.s6 },
+  actionBtn: { marginHorizontal: SPACE.s4, marginTop: SPACE.s4, paddingVertical: 12, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center" },
+  actionText: { fontSize: TYPE.button, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   deviceEmpty: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingVertical: 8 },
   deviceEmptyText: { fontSize: TYPE.body, color: COLORS.textTertiary },
   deviceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 },
@@ -143,5 +159,4 @@ const styles = StyleSheet.create({
   eventRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 },
   eventType: { fontSize: TYPE.body, color: COLORS.textPrimary },
   eventTime: { fontSize: TYPE.caption, color: COLORS.textTertiary },
-  footnote: { fontSize: TYPE.caption, color: COLORS.textTertiary, textAlign: "center", marginTop: SPACE.s6 },
 });

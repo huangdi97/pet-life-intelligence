@@ -12,16 +12,20 @@ export function PrimaryAction({
   icon = "add-circle-outline",
   onPress,
   disabled,
+  testID,
 }: {
   label: string;
   icon?: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
   disabled?: boolean;
+  /** Machine-readable testID (blind-UI acceptance). */
+  testID?: string;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      testID={testID}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [styles.primary, disabled && styles.disabled, pressed && !disabled && styles.pressed]}

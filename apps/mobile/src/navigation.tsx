@@ -5,6 +5,7 @@
  * entries from Today/Pet), never first-level tabs.
  */
 import React from "react";
+import { View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -12,6 +13,9 @@ import { navigationRef } from "./demoNav";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "./tokens";
+import { usePets } from "./context";
+import { PetAvatar } from "./components/media/PetAvatar";
+import { resolvePetMediaUri } from "./components/media/demoPetVisual";
 import { TodayScreen } from "./screens/TodayScreen";
 import { TimelineScreen } from "./screens/TimelineScreen";
 import { PetScreen } from "./screens/PetScreen";
@@ -67,7 +71,18 @@ const TAB_ICONS: Record<keyof TabParamList, [string, string]> = {
   Me: ["person", "person-outline"],
 };
 
+const TAB_TEST_IDS: Record<keyof TabParamList, string> = {
+  Today: "pli.nav.today",
+  Timeline: "pli.nav.timeline",
+  Pet: "pli.nav.pet",
+  Assistant: "pli.nav.assistant",
+  Me: "pli.nav.me",
+};
+
 function Tabs() {
+  const { pets, petId } = usePets();
+  const current = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -75,7 +90,25 @@ function Tabs() {
         tabBarActiveTintColor: COLORS.brandPrimaryDeep,
         tabBarInactiveTintColor: COLORS.textTertiary,
         tabBarStyle: { backgroundColor: COLORS.surface, borderTopColor: COLORS.dividerSubtle },
+        tabBarTestID: TAB_TEST_IDS[route.name as keyof TabParamList],
         tabBarIcon: ({ color, size, focused }) => {
+          // Pet tab shows the current pet's avatar (rounded); fallback paw icon.
+          if (route.name === "Pet" && current) {
+            return (
+              <View
+                style={{
+                  width: size + 4,
+                  height: size + 4,
+                  borderRadius: (size + 4) / 2,
+                  overflow: "hidden",
+                  borderWidth: focused ? 2 : 0,
+                  borderColor: COLORS.brandPrimary,
+                }}
+              >
+                <PetAvatar pet={current} uri={resolvePetMediaUri(current)} size={size + 4} />
+              </View>
+            );
+          }
           const [on, off] = TAB_ICONS[route.name as keyof TabParamList];
           return <Ionicons name={(focused ? on : off) as keyof typeof Ionicons.glyphMap} color={color} size={size} />;
         },
@@ -83,7 +116,7 @@ function Tabs() {
     >
       <Tab.Screen name="Today" component={TodayScreen} options={{ tabBarLabel: "今天" }} />
       <Tab.Screen name="Timeline" component={TimelineScreen} options={{ tabBarLabel: "时间线" }} />
-      <Tab.Screen name="Pet" component={PetScreen} options={{ tabBarLabel: "宠物" }} />
+      <Tab.Screen name="Pet" component={PetScreen} options={{ tabBarLabel: current?.name ?? "宠物" }} />
       <Tab.Screen name="Assistant" component={AssistantScreen} options={{ tabBarLabel: "助手" }} />
       <Tab.Screen name="Me" component={MeScreen} options={{ tabBarLabel: "我的" }} />
     </Tab.Navigator>

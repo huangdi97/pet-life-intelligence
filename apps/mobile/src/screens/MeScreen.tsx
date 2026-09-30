@@ -23,7 +23,7 @@ type StackNav = NativeStackNavigationProp<StackParamList>;
 const SHOW_DEVELOPER_SETTINGS = DEMO_ENV || __DEV__;
 
 export function MeScreen() {
-  const { pets, petId, reload, reset } = usePets();
+  const { pets, petId, choose, reload, reset } = usePets();
   const navigation = useNavigation<StackNav>();
   const [sessionKind, setSessionKind] = useState<"dev" | "token" | "none" | null>(null);
   const [devOpen, setDevOpen] = useState(false);
@@ -73,7 +73,7 @@ export function MeScreen() {
   return (
     <SafeAreaView style={styles.page} edges={["top"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.head}>
+        <View style={styles.head} testID="pli.me.owner">
           <View style={styles.avatarWrap}>
             <PetAvatar pet={current} uri={resolvePetMediaUri(current)} size={64} />
           </View>
@@ -83,24 +83,30 @@ export function MeScreen() {
           </View>
         </View>
 
-        <OpenSection title="家庭">
+        <OpenSection title="家庭" testID="pli.me.care-network">
           <Row label="当前宠物" value={current ? current.name : "未选择"} />
           <Row label="家庭" value={pets && pets.length > 0 ? "已加入" : "未加入"} />
-          <Row label="会话" value={sessionKind === "dev" ? "开发模式" : sessionKind === "token" ? "已登录" : "未登录"} />
+          <Row label="会话" value={sessionKind === "dev" || sessionKind === "token" ? "已登录" : "未登录"} />
         </OpenSection>
 
-        <OpenSection title="我的宠物">
+        <OpenSection title="我的宠物" testID="pli.me.pets">
           {(pets ?? []).map((p, i) => (
-            <View key={p.id} style={[styles.petRow, i > 0 && styles.rowDivider]}>
+            <Pressable
+              key={p.id}
+              testID={`pli.me.pets.row.${p.id}`}
+              accessibilityRole="button"
+              onPress={() => void choose(p.id)}
+              style={[styles.petRow, i > 0 && styles.rowDivider]}
+            >
               <PetAvatar pet={p} uri={resolvePetMediaUri(p)} size={36} />
               <Text style={styles.petName}>{p.name}</Text>
               <Text style={styles.petMeta}>{p.breed || "宠物"}</Text>
-            </View>
+            </Pressable>
           ))}
         </OpenSection>
 
         <OpenSection title="常用">
-          <Pressable accessibilityRole="button" style={styles.linkRow} onPress={() => navigation.navigate("Notifications")}>
+          <Pressable testID="pli.me.notifications" accessibilityRole="button" style={styles.linkRow} onPress={() => navigation.navigate("Notifications")}>
             <Ionicons name="notifications-outline" size={18} color={COLORS.brandPrimaryDeep} />
             <Text style={styles.linkText}>通知</Text>
             <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
@@ -117,25 +123,25 @@ export function MeScreen() {
           </Pressable>
         </OpenSection>
 
-        <OpenSection title="隐私与数据">
+        <OpenSection title="隐私与数据" testID="pli.me.privacy">
           <Row label="隐私" value="仅向你展示必要信息" />
-          <Row label="数据" value="由你记录，可随时导出" />
+          <View testID="pli.me.data"><Row label="数据" value="由你记录，可随时导出" /></View>
         </OpenSection>
 
-        <OpenSection title="应用">
-          <Row label="版本" value="v0.2.0 · Internal / Pre-Pilot" />
+        <OpenSection title="应用" testID="pli.me.help">
+          <Row label="版本" value="v0.2.0 · 预览版" />
           <Row label="关于" value="Pet Life Intelligence" />
         </OpenSection>
 
         {SHOW_DEVELOPER_SETTINGS ? (
-          <OpenSection title="开发者设置">
+          <OpenSection title="开发者设置" testID="pli.me.settings">
             <Pressable
               accessibilityRole="button"
               style={styles.linkRow}
               onPress={() => setDevOpen((v) => !v)}
             >
               <Ionicons name="bug-outline" size={18} color={COLORS.textTertiary} />
-              <Text style={styles.linkText}>开发模式登录</Text>
+              <Text style={styles.linkText}>演示环境登录</Text>
               <Ionicons name={devOpen ? "chevron-up" : "chevron-down"} size={16} color={COLORS.textTertiary} />
             </Pressable>
             {devOpen ? (

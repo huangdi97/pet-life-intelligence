@@ -32,10 +32,10 @@ export interface LifeStreamDay {
 
 export function LifeStream({ days }: { days: LifeStreamDay[] }) {
   return (
-    <View>
+    <View testID="pli.timeline.stream" accessible accessibilityLabel="生活时间线">
       {days.map((day) => (
         <View key={day.id}>
-          <View style={styles.dayHead}>
+          <View testID="pli.timeline.group" style={styles.dayHead}>
             <Text style={styles.dayLabel}>{day.label}</Text>
             {day.isToday ? (
               <View style={styles.todayChip}>
@@ -53,10 +53,9 @@ export function LifeStream({ days }: { days: LifeStreamDay[] }) {
     </View>
   );
 }
-
 function LifeStreamEvent({ row, last }: { row: LifeStreamRow; last: boolean }) {
   return (
-    <View style={styles.row}>
+    <View testID={`pli.timeline.row.${row.id}`} style={styles.row}>
       <View style={styles.timeCol}>
         <Text style={styles.time}>{row.time}</Text>
       </View>
@@ -67,9 +66,9 @@ function LifeStreamEvent({ row, last }: { row: LifeStreamRow; last: boolean }) {
       <View style={styles.content}>
         <View style={styles.contentHead}>
           <Ionicons name={row.icon} size={15} color={COLORS.brandPrimaryDeep} />
-          <Text style={styles.type}>{row.typeLabel}</Text>
+          <Text testID="pli.timeline.meaning" style={styles.type}>{row.typeLabel}</Text>
           {row.sourceLabel ? (
-            <View style={styles.sourceChip}>
+            <View testID="pli.timeline.source" style={styles.sourceChip}>
               <Text style={styles.sourceText}>{row.sourceLabel}</Text>
             </View>
           ) : null}
@@ -85,6 +84,7 @@ function LifeStreamEvent({ row, last }: { row: LifeStreamRow; last: boolean }) {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   dayHead: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s5, paddingBottom: SPACE.s2 },

@@ -32,7 +32,8 @@ const STATUS_LABEL: Record<string, string> = {
 
 export function PetTwinVersionScreen() {
   const navigation = useNavigation<StackNav>();
-  const { petId } = usePets();
+  const { pets, petId } = usePets();
+  const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   const [versions, setVersions] = useState<VersionEntry[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -58,18 +59,25 @@ export function PetTwinVersionScreen() {
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
-      <View style={styles.header}>
+      <View style={styles.header} testID="pli.twinversion.identity">
         <Pressable accessibilityRole="button" accessibilityLabel="返回" onPress={() => navigation.goBack()} style={styles.back}>
           <Ionicons name="chevron-back" size={22} color={COLORS.textPrimary} />
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.title}>3D 形象的版本</Text>
-          <Text style={styles.subtitle}>豆豆的每一版干净形象都保留在这里</Text>
+          <Text style={styles.subtitle}>{pet?.name ?? "宠物"}的每一版 3D 形象都保留在这里</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="创建新的形象" onPress={() => navigation.navigate("TwinCapture")} style={styles.add}>
+        <Pressable
+          testID="pli.twinversion.entry"
+          accessibilityRole="button"
+          accessibilityLabel="创建新的形象"
+          onPress={() => navigation.navigate("TwinCapture")}
+          style={styles.add}
+        >
           <Ionicons name="add" size={22} color={COLORS.textInverse} />
         </Pressable>
       </View>
+
 
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={COLORS.brandPrimary} /></View>
@@ -84,44 +92,68 @@ export function PetTwinVersionScreen() {
                 </Pressable>
               </View>
             </OpenSection>
-          ) : (!versions || versions.length === 0) ? (
-            <OpenSection title="还没有 3D 形象">
-              <Text style={styles.emptyText}>给豆豆创建第一版 3D 形象吧 — 拍几张照片，系统用模板与真实照片生成，再由你来确认。</Text>
-              <Pressable accessibilityRole="button" onPress={() => navigation.navigate("TwinCapture")} style={styles.cta}>
-                <Text style={styles.ctaText}>创建 3D 形象</Text>
-              </Pressable>
-            </OpenSection>
-          ) : active ? (
-            <OpenSection title="当前 3D 形象">
-              <View style={styles.activeRow}>
-                <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
-                <Text style={styles.activeText}>第 {active.version} 版 · 使用中 · {active.texture_version === "photo-projection-v1" ? "由照片生成" : "模板默认"}外观</Text>
-              </View>
-            </OpenSection>
-          ) : null}
-
-          <OpenSection title="全部版本">
-            {versions?.map((v) => {
-              const observed = Object.keys(v.observed_surface_manifest ?? {});
-              return (
-                <View key={v.version} style={styles.versionRow}>
-                  <View style={styles.versionHead}>
-                    <Text style={styles.versionTitle}>第 {v.version} 版</Text>
-                    <Text style={styles.status}>{statusText(v.status)}</Text>
-                  </View>
-                  <Text style={styles.versionMeta}>外形 {v.geometry_version} · 外观 {v.texture_version} · 动作 {v.rig_version}</Text>
-                  <Text style={styles.versionMeta}>
-                    {observed.length ? `来自照片：${observed.join("、")}` : "外观由模板默认生成（无照片）"}
-                  </Text>
-                  <View style={styles.rowActions}>
-                    <Pressable accessibilityRole="button" onPress={() => navigation.navigate("TwinReview", { version: v.version })} style={styles.smallBtn}>
-                      <Text style={styles.smallBtnText}>查看 / 确认</Text>
-                    </Pressable>
-                  </View>
+          ) : (
+            <>
+              {active ? (
+                <View testID="pli.twinversion.current">
+                  <OpenSection title="当前 3D 形象">
+                    <View style={styles.activeRow}>
+                      <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
+                      <Text testID="pli.twinversion.time" style={styles.activeText}>第 {active.version} 版 · 使用中 · {active.texture_version === "photo-projection-v1" ? "由照片生成" : "模板默认"}外观</Text>
+                    </View>
+                    <View style={styles.badgeRow}>
+                      <Text testID="pli.twinversion.source" style={styles.badgeText}>来源素材 · {Object.keys(active.observed_surface_manifest ?? {}).length} 项</Text>
+                      <Text testID="pli.twinversion.verify" style={styles.badgeText}>{active.owner_verified ? "已通过主人确认" : "待主人确认"}</Text>
+                    </View>
+                  </OpenSection>
                 </View>
-              );
-            })}
+              ) : (
+                <View testID="pli.twinversion.current">
+                  <OpenSection title="当前 3D 形象">
+                    <Text style={styles.emptyText}>还没有生成 3D 形象。拍摄素材并生成后，这里会显示版本信息。</Text>
+                    <View style={styles.badgeRow}>
+                      <Text testID="pli.twinversion.time" style={styles.badgeText}>生成时间 · 暂无</Text>
+                      <Text testID="pli.twinversion.source" style={styles.badgeText}>来源素材 · 暂无</Text>
+                      <Text testID="pli.twinversion.verify" style={styles.badgeText}>主人确认 · 待确认</Text>
+                    </View>
+                    <Pressable accessibilityRole="button" onPress={() => navigation.navigate("TwinCapture")} style={styles.cta}>
+                      <Text style={styles.ctaText}>创建 3D 形象</Text>
+                    </Pressable>
+                  </OpenSection>
+                </View>
+              )}
+            </>
+          )}
+
+          <OpenSection title="版本说明" testID="pli.twinversion.info">
+            <Text style={styles.emptyText}>每个版本都记录生成时间、来源素材与确认状态；确认后才会显示，未确认版本不会覆盖已使用版本。</Text>
           </OpenSection>
+
+          <View testID="pli.twinversion.history">
+            <OpenSection title="全部版本">
+              {versions?.map((v) => {
+                const observed = Object.keys(v.observed_surface_manifest ?? {});
+                return (
+                  <View key={v.version} testID={`pli.twinversion.history.row.${v.version}`} style={styles.versionRow}>
+                    <View style={styles.versionHead}>
+                      <Text style={styles.versionTitle}>第 {v.version} 版</Text>
+                      <Text style={styles.status}>{statusText(v.status)}</Text>
+                    </View>
+                    <Text style={styles.versionMeta}>外形 {v.geometry_version} · 外观 {v.texture_version} · 动作 {v.rig_version}</Text>
+                    <Text style={styles.versionMeta}>
+                      {observed.length ? `来自照片：${observed.join("、")}` : "外观由模板默认生成（无照片）"}
+                    </Text>
+                    <View testID={`pli.twinversion.history.action.${v.version}`} style={styles.rowActions}>
+                      <Pressable testID={`pli.twinversion.history.${v.version}`} accessibilityRole="button" onPress={() => navigation.navigate("TwinReview", { version: v.version })} style={styles.smallBtn}>
+                        <Text style={styles.smallBtnText}>查看 / 确认</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })}
+            </OpenSection>
+          </View>
+
         </ScrollView>
       )}
     </SafeAreaView>
@@ -144,6 +176,8 @@ const styles = StyleSheet.create({
   ctaText: { color: COLORS.textInverse, fontSize: TYPE.body, fontWeight: "700" },
   activeRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingVertical: 4 },
   activeText: { fontSize: TYPE.body, color: COLORS.textPrimary, flex: 1 },
+  badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
+  badgeText: { fontSize: TYPE.caption, color: COLORS.textSecondary, backgroundColor: COLORS.bgSurfaceMuted, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   versionRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.dividerSubtle },
   versionHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   versionTitle: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "700" },

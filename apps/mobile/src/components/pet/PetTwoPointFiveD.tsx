@@ -1,11 +1,12 @@
 /**
- * PetTwoPointFiveD — identity-specific 2.5D pet layer for the demo pet 豆豆.
+ * PetTwoPointFiveD — identity-specific 2.5D pet layer for the corgi look.
  *
  * R2-P (§46.5 Pet Media hierarchy): REAL_3D_PROVIDER = EXTERNAL_BLOCKED, so the
  * midground pet visual is a code-native 2.5D illustration (allowed fallback per
  * canonical §10 "2.5D pet layer"). It encodes a specific corgi identity — warm
- * tan/cream coat, white blaze, upright rounded ears — so the owner sees "豆豆",
- * not a generic species glyph. Presentation only: never becomes a fact source.
+ * tan/cream coat, white blaze, upright rounded ears — so the owner sees an
+ * individual corgi, not a generic species glyph. Presentation only: never
+ * becomes a fact source.
  */
 import React from "react";
 import { StyleSheet, View } from "react-native";
@@ -13,7 +14,7 @@ import { StyleSheet, View } from "react-native";
 interface Props {
   /** Target illustration width in dp; height follows a fixed 220:250 aspect. */
   width?: number;
-  /** Coat variation: "corgi" (豆豆) is the only certified identity this round. */
+  /** Coat variation: "corgi" is the only certified identity this round. */
   variant?: "corgi";
 }
 
@@ -66,7 +67,7 @@ export function PetTwoPointFiveD({ width = 200, variant = "corgi" }: Props) {
   return (
     <View
       accessibilityRole="image"
-      accessibilityLabel="豆豆的 2.5D 形象：奶油色柯基，额头白色花纹，竖立圆耳"
+      accessibilityLabel="柯基 2.5D 形象：奶油色，额头白色花纹，竖立圆耳"
       style={{ width, height: sc(CANVAS_H, width) }}
     >
       {/* ground shadow — anchors the pet in the stage */}

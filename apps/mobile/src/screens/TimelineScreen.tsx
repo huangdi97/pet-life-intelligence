@@ -25,8 +25,9 @@ interface EventsResp {
 }
 
 export function TimelineScreen() {
-  const { petId } = usePets();
+  const { pets, petId } = usePets();
   const navigation = useNavigation<StackNav>();
+  const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   const [selected, setSelected] = useState<string[]>([]);
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,10 +40,12 @@ export function TimelineScreen() {
     const types = TIMELINE_FILTERS.filter((f) => selected.includes(f.key)).flatMap((f) => f.types);
     const qs = types.length ? `&${types.map((t) => `event_type=${t}`).join("&")}` : "";
     api
-      .get<EventsResp>(`/pets/${petId}/events?limit=60${qs}`)
+      .get<EventsResp>(`/pets/${petId}/events?limit=200${qs}`)
       .then((r) => {
         if (alive) {
-          setEvents(r.events);
+          // Exclude internal today.viewed telemetry from the life stream;
+          // it is a page-view record, not a real life event (web parity).
+          setEvents(r.events.filter((e) => e.event_type !== "today.viewed"));
           setError(false);
         }
       })
@@ -70,15 +73,16 @@ export function TimelineScreen() {
   return (
     <SafeAreaView style={styles.page} edges={["top"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.head}>
+        <View style={styles.head} testID="pli.timeline.identity">
           <Text style={styles.title}>时间线</Text>
           <Text style={styles.sub}>记录每一天真实发生的事情</Text>
         </View>
 
         <View style={styles.chipRow}>
-          {TIMELINE_FILTERS.map((f) => (
+          {TIMELINE_FILTERS.map((f, i) => (
             <Pressable
               key={f.key}
+              testID={i < 5 ? `pli.timeline.filter.${f.key}` : undefined}
               onPress={() => toggle(f.key)}
               style={[styles.chip, (f.key === "all" ? selected.length === 0 : selected.includes(f.key)) && styles.chipActive]}
             >
@@ -86,7 +90,6 @@ export function TimelineScreen() {
             </Pressable>
           ))}
         </View>
-
         {error ? <InlineError message="暂时连接不上，已展示已有内容" /> : null}
 
         {loading ? (
@@ -97,7 +100,7 @@ export function TimelineScreen() {
           <LifeStream days={days} />
         ) : (
           <EmptyState
-            title="豆豆的时间线还很安静"
+            title={`${pet?.name ?? "宠物"}的时间线还很安静`}
             body="第一次喂食、散步或健康记录会从这里开始。"
             actionLabel="快速记录"
             onAction={() => navigation.navigate("QuickLog")}

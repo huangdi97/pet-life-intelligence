@@ -13,88 +13,28 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { api, type HealthEventRow, type LifeEvent, type Task } from "../api";
+import { api, type HealthEventRow, type Task } from "../api";
 import { usePets } from "../context";
 import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
 import type { StackParamList, TabParamList } from "../navigation";
 import { PetLivingStage } from "../components/life/PetLivingStage";
 import { AttentionPanel } from "../components/life/AttentionPanel";
 import { PrimaryAction, SecondaryAction, ActionRow } from "../components/actions/QuickAction";
-import { InlineError, Skeleton } from "../components/feedback/Feedback";
+import { Skeleton } from "../components/feedback/Feedback";
 import { OpenSection } from "../components/feedback/OpenSection";
-import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../components/timeline/LifeStream";
+import { LifeStream, type LifeStreamDay } from "../components/timeline/LifeStream";
 import { resolvePetStage } from "../components/pet/PetStageRenderer";
-import { eventTypeLabel, sourceLabel } from "./ui_labels";
 import { todayTasks, type TodayResp } from "./today";
 import { usePetTwin } from "../hooks/usePetTwin";
 import { poseForEvent } from "@pli/pet-3d";
+import { TodayEmptyPet, TodayHealthSummary, TodayOffline } from "./today_sections";
+import { eventRowFromEvent, recentContext, timeContextText } from "./today_helpers";
 
 type TabNav = BottomTabNavigationProp<TabParamList>;
 type StackNav = NativeStackNavigationProp<StackParamList>;
 
-const EVENT_ICONS: Record<string, keyof typeof import("@expo/vector-icons").Ionicons.glyphMap> = {
-  "daily.meal": "restaurant-outline",
-  "daily.drink": "water-outline",
-  "daily.elimination": "remove-outline",
-  "daily.walk": "walk-outline",
-  "daily.play": "game-controller-outline",
-  "daily.weight": "scale-outline",
-  "daily.sleep": "moon-outline",
-  "medication.administered": "medkit-outline",
-  "behavior.observed": "paw-outline",
-  "diary.created": "create-outline",
-  "health.event_opened": "heart-outline",
-  "care.task_completed": "checkmark-circle-outline",
-  "social.interaction_logged": "people-outline",
-};
-
-function dayPeriod(now: Date): string {
-  const h = now.getHours();
-  if (h < 6) return "凌晨";
-  if (h < 12) return "上午";
-  if (h < 18) return "下午";
-  return "晚上";
-}
-
-function timeContextText(): string {
-  const now = new Date();
-  return `${now.getMonth() + 1}月${now.getDate()}日 · ${dayPeriod(now)}`;
-}
-
-/** "最近记录 X 分钟前" — real relative freshness from the latest event. */
-function recentContext(events: LifeEvent[]): string | null {
-  const last = events[0];
-  if (!last) return null;
-  const mins = Math.max(0, Math.round((Date.now() - new Date(last.occurred_at).getTime()) / 60000));
-  if (mins < 1) return `最近记录了${eventTypeLabel(last.event_type)}`;
-  if (mins < 60) return `最近记录 · ${mins} 分钟前`;
-  const h = Math.floor(mins / 60);
-  return `最近记录 · ${h} 小时前`;
-}
-
-function eventRowFromEvent(e: LifeEvent): LifeStreamRow {
-  const payload = e.payload ?? {};
-  let meta = "";
-  if (e.event_type === "daily.meal") meta = `${payload.food_type ?? "食物"} ${payload.amount ?? ""}${payload.unit ?? ""}`.trim();
-  else if (e.event_type === "daily.drink") meta = `${payload.amount ?? ""}${payload.unit ?? "ml"}`.trim();
-  else if (e.event_type === "daily.walk") meta = `户外 ${payload.duration_minutes ?? "—"} 分钟`;
-  else if (e.event_type === "daily.play") meta = `${payload.duration_minutes ?? "—"} 分钟`;
-  else if (e.event_type === "daily.weight") meta = `${payload.weight_kg ?? ""} kg`;
-  else if (e.event_type === "daily.elimination") meta = `${payload.kind ?? ""} · ${payload.quality ?? ""}`.replace(/·\s*$/, "");
-  return {
-    id: e.event_id,
-    time: new Date(e.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }),
-    typeLabel: eventTypeLabel(e.event_type),
-    meta,
-    sourceLabel: sourceLabel(e.source_type),
-    outcome: e.retracted_at ? "已撤回" : null,
-    icon: EVENT_ICONS[e.event_type] ?? "ellipse-outline",
-    mediaUri: null,
-  };
-}
-
 export function TodayScreen() {
-  const { pets, petId, choose } = usePets();
+  const { pets, petId, choose, reload } = usePets();
   const { twin } = usePetTwin(petId);
   const tabNav = useNavigation<TabNav>();
   const stackNav = useNavigation<StackNav>();
@@ -104,9 +44,9 @@ export function TodayScreen() {
   const [health, setHealth] = useState<HealthEventRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cachedAt, setCachedAt] = useState<number | null>(null);
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
-
 
   useEffect(() => {
     if (!petId) return;
@@ -121,6 +61,7 @@ export function TodayScreen() {
       if (!alive) return;
       if (t.status === "fulfilled") {
         setToday(t.value);
+        setCachedAt(Date.now());
         setError(null);
       } else {
         setError(t.reason instanceof Error ? t.reason.message : "加载失败");
@@ -162,19 +103,17 @@ export function TodayScreen() {
   const representativePose = poseForEvent(todayEvents[0]?.event_type ?? null);
 
   const anchors = useMemo(() => {
-    const drinkCount = counts["daily.drink"] ?? 0;
+    const activityMins = todayEvents.reduce(
+      (a, e) => a + (Number((e.payload as Record<string, unknown>)?.duration_minutes) || 0),
+      0
+    );
     const rows = [
-      { id: "meal", label: "进食", value: `${counts["daily.meal"] ?? 0} 次`, icon: "restaurant-outline" as const },
-      { id: "drink", label: "饮水", value: `${drinkCount} 次`, icon: "water-outline" as const },
-      {
-        id: "activity",
-        label: "活动",
-        value: `${todayEvents.reduce((a, e) => a + (Number((e.payload as Record<string, unknown>)?.duration_minutes) || 0), 0)} 分钟`,
-        icon: "walk-outline" as const,
-      },
-      { id: "sleep", label: "睡眠", value: `${counts["daily.sleep"] ?? 0} 次`, icon: "moon-outline" as const },
+      { id: "food", label: "进食", value: counts["daily.meal"] ? `${counts["daily.meal"]} 次` : "—", icon: "restaurant-outline" as const },
+      { id: "water", label: "饮水", value: counts["daily.drink"] ? `${counts["daily.drink"]} 次` : "—", icon: "water-outline" as const },
+      { id: "activity", label: "活动", value: activityMins ? `${activityMins} 分钟` : "—", icon: "walk-outline" as const },
+      { id: "sleep", label: "睡眠", value: counts["daily.sleep"] ? `${counts["daily.sleep"]} 次` : "—", icon: "moon-outline" as const },
     ];
-    return rows.filter((r) => r.id !== "drink" || drinkCount > 0);
+    return rows;
   }, [counts, todayEvents]);
 
   const calm = attention.kind === "calm";
@@ -189,21 +128,40 @@ export function TodayScreen() {
     ? [{ id: "today", label: `${new Date().getMonth() + 1}月${new Date().getDate()}日`, isToday: true, rows: memoryRows }]
     : [];
 
+  if (pets && pets.length === 0) {
+    return (
+      <SafeAreaView style={styles.page} edges={["top"]}>
+        <TodayEmptyPet onAction={() => void reload()} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.page} edges={["top"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {pets && pets.length > 1 ? (
-          <View style={styles.chipRow}>
-            {pets.map((p) => {
-              const active = p.id === pet?.id;
-              return (
-                <Pressable key={p.id} onPress={() => void choose(p.id)} style={[styles.chip, active && styles.chipActive]}>
-                  <Text style={[styles.chipText, active && styles.chipActiveText]}>{p.name}</Text>
-                </Pressable>
-              );
-            })}
+        <View testID="pli.today.identity">
+          <View testID="pli.pet.identity" accessible accessibilityLabel={`当前宠物：${pet?.name ?? "未选择"}`}>
+            {pets && pets.length > 1 ? (
+              <View style={styles.chipRow} testID="pli.multipet.switch">
+                {pets.map((p) => {
+                  const active = p.id === pet?.id;
+                  return (
+                    <Pressable
+                      key={p.id}
+                      testID={active ? "pli.multipet.current" : `pli.multipet.switch.${p.id}`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      onPress={() => void choose(p.id)}
+                      style={[styles.chip, active && styles.chipActive]}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipActiveText]}>{p.name}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
           </View>
-        ) : null}
+        </View>
 
         <PetLivingStage
           pet={pet}
@@ -214,6 +172,7 @@ export function TodayScreen() {
               ? []
               : anchors.map((a) => ({
                   ...a,
+                  testID: `pli.today.anchor.${a.id}`,
                   onPress: a.id === "activity" ? () => tabNav.navigate("Timeline") : undefined,
                 }))
           }
@@ -225,21 +184,25 @@ export function TodayScreen() {
           pose={twin ? representativePose ?? "Idle" : null}
         />
 
-        {error && !loading ? <InlineError message="暂时连接不上，已展示已有内容" onRetry={() => setLoading((v) => !v)} /> : null}
+        {loading || !pet ? null : <TodayHealthSummary health={health} hint={hint} />}
+
+        {error && !loading ? <TodayOffline cachedAt={cachedAt} onRetry={() => setLoading((v) => !v)} /> : null}
 
         {loading ? (
           <View style={styles.loadingWrap}>
             <Skeleton rows={2} />
           </View>
         ) : (
-          <>
-            {calm ? (
-              <View style={styles.calmRow}>
-                <Text style={styles.calmText}>{attention.body}</Text>
-              </View>
-            ) : (
-              <AttentionPanel kind={attention.kind} body={attention.body} footer={attention.footer} onPress={() => tabNav.navigate("Timeline")} />
-            )}
+          <View testID="pli.today.change">
+            <View testID="pli.today.attention">
+              {calm ? (
+                <View style={styles.calmRow}>
+                  <Text style={styles.calmText}>{attention.body}</Text>
+                </View>
+              ) : (
+                <AttentionPanel kind={attention.kind} body={attention.body} footer={attention.footer} onPress={() => tabNav.navigate("Timeline")} />
+              )}
+            </View>
 
             {tasks.length > 0 ? (
               <OpenSection title="今天任务" caption={`${tasks.filter((t) => t.status === "OPEN").length} 项待办`}>
@@ -252,22 +215,24 @@ export function TodayScreen() {
               </OpenSection>
             ) : null}
 
-            <PrimaryAction label="快速记录" onPress={() => stackNav.navigate("QuickLog")} />
+            <PrimaryAction testID="pli.today.primary-action" label="快速记录" onPress={() => stackNav.navigate("QuickLog")} />
             <ActionRow>
               <SecondaryAction label="看看它" icon="eye-outline" onPress={() => stackNav.navigate("LifeView")} />
               <SecondaryAction label="问助手" icon="chatbubble-ellipses-outline" onPress={() => tabNav.navigate("Assistant")} />
             </ActionRow>
 
-            <OpenSection title="最近发生" caption={todayEvents.length ? `今天 · ${todayEvents.length} 条` : undefined}>
-              {memoryDays.length ? (
-                <LifeStream days={memoryDays} />
-              ) : (
-                <Text style={styles.memoryEmpty}>
-                  {error ? "暂时连接不上，稍后自动恢复。" : "豆豆的时间线还很安静，第一次喂食、散步或健康记录会从这里开始。"}
-                </Text>
-              )}
-            </OpenSection>
-          </>
+            <View testID="pli.today.memory-preview">
+              <OpenSection title="最近发生" caption={todayEvents.length ? `今天 · ${todayEvents.length} 条` : undefined}>
+                {memoryDays.length ? (
+                  <LifeStream days={memoryDays} />
+                ) : (
+                  <Text style={styles.memoryEmpty}>
+                    {error ? "暂时连接不上，稍后自动恢复。" : `${pet?.name ?? "宠物"}的时间线还很安静，第一次喂食、散步或健康记录会从这里开始。`}
+                  </Text>
+                )}
+              </OpenSection>
+            </View>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>

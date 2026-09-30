@@ -49,12 +49,37 @@ export function Pet3DViewer({ identity, twin = null, pose = null, interactive = 
         const s = msg.status === "ready" ? "ready" : "failed";
         setStatus(s);
         onStatus?.(s);
+        if (s === "failed") {
+          // Honest fallback manifest: WebGL unavailable on this runtime. The
+          // blind harness uses it for the wireframe/truth gates; the owner UI
+          // never sees it. This is a truthful 2.5D fallback, never FAKE_3D.
+          console.log(
+            `[plimanifest] ${JSON.stringify({
+              ready: false,
+              representation: "2.5d-photo-fallback",
+              fallbackUsed: true,
+              assetVersion: "demo-v1",
+              wireframe: false,
+              materialMode: "pbr",
+              animationClips: [],
+              availableClips: [],
+              camera: { fov: 38, distance: 4.6, yaw: 0.35, pitch: 0.28, radius: 4.6 },
+              pose: "Idle",
+              poseSource: "AMBIENT",
+              poseConfidence: 0.3,
+            })}`,
+          );
+        }
         // PROVIDER: telemetry-only bridge state (never shown in the owner UI).
         console.log(`[pet3d] status=${s}`);
       } else if (msg.type === "orientation" && typeof msg.yaw === "number") {
         onOrientation?.(msg.yaw);
         // PROVIDER: telemetry-only; proves real rotation on device (logcat).
         console.log(`[pet3d] orientation yaw=${msg.yaw.toFixed(2)}`);
+      } else if (msg.type === "manifest" && msg.manifest && typeof msg.manifest === "object") {
+        // Blind harness channel: the Android extractor reads [plimanifest]
+        // from logcat to build 3d.json. Never shown in the owner UI.
+        console.log(`[plimanifest] ${JSON.stringify(msg.manifest)}`);
       }
     } catch {
       // ignore malformed bridge messages

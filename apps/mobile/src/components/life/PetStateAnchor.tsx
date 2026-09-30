@@ -18,6 +18,8 @@ export interface PetAnchor {
   /** Optional baseline comparison, e.g. "-18%". */
   delta?: string;
   onPress?: () => void;
+  /** Machine-readable testID (blind-UI acceptance). */
+  testID?: string;
 }
 
 export function PetStateAnchor({ anchor, dark = false }: { anchor: PetAnchor; dark?: boolean }) {
@@ -29,7 +31,7 @@ export function PetStateAnchor({ anchor, dark = false }: { anchor: PetAnchor; da
       <View style={styles.textWrap}>
         <Text style={[styles.label, dark && styles.labelDark]}>{anchor.label}</Text>
         <Text style={[styles.value, dark && styles.valueDark]}>
-          {anchor.value}
+          {anchor.value || "—"}
           {anchor.delta ? <Text style={styles.delta}> {anchor.delta}</Text> : null}
         </Text>
       </View>
@@ -39,7 +41,8 @@ export function PetStateAnchor({ anchor, dark = false }: { anchor: PetAnchor; da
     return (
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${anchor.label} ${anchor.value}`}
+        accessibilityLabel={`${anchor.label} ${anchor.value || "—"}`}
+        testID={anchor.testID}
         style={[styles.chip, dark && styles.chipDark]}
         onPress={anchor.onPress}
       >
@@ -47,8 +50,9 @@ export function PetStateAnchor({ anchor, dark = false }: { anchor: PetAnchor; da
       </Pressable>
     );
   }
-  return <View style={[styles.chip, dark && styles.chipDark]}>{inner}</View>;
+  return <View testID={anchor.testID} style={[styles.chip, dark && styles.chipDark]}>{inner}</View>;
 }
+
 
 const styles = StyleSheet.create({
   chip: {

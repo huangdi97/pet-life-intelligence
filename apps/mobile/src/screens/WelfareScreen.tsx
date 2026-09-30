@@ -29,6 +29,22 @@ const DOMAIN_LABELS: Record<string, string> = {
   activity: "活动",
   environment: "环境",
   enrichment: "丰富化",
+  STRESS_RECOVERY: "压力恢复",
+  CHOICE: "选择/控制感",
+  ENVIRONMENT_LOAD: "环境负荷",
+  QOL_QUESTIONNAIRE: "生活质量问卷",
+};
+
+const SOURCE_LABELS: Record<string, string> = {
+  OWNER_REPORTED: "你记录",
+  DEVICE: "设备",
+  PROFESSIONAL: "专业人士",
+  LAB: "化验室",
+  AI_STRUCTURED: "AI 整理",
+  AI_INFERENCE: "AI 推断",
+  GENERATED_3D: "3D 生成",
+  RECORDED: "系统记录",
+  LIVE: "实时",
 };
 
 export function WelfareScreen() {
@@ -91,7 +107,7 @@ export function WelfareScreen() {
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.head}>
+        <View style={styles.head} testID="pli.welfare.identity">
           <Text style={styles.title}>{pet ? `${pet.name}的福利` : "福利"}</Text>
           <Text style={styles.sub}>用观察与证据说话，不做开心指数。</Text>
         </View>
@@ -103,7 +119,7 @@ export function WelfareScreen() {
           </View>
         ) : (
           <>
-            <OpenSection title="近期观察">
+            <OpenSection title="近期观察" testID="pli.welfare.observable">
               {Object.keys(counts).length === 0 ? (
                 <EmptyState
                   title="还没有福利观察"
@@ -120,12 +136,12 @@ export function WelfareScreen() {
                 ))
               )}
               {evidence?.sources && evidence.sources.length > 0 ? (
-                <Text style={styles.sourceText}>来源：{evidence.sources.join("、")}</Text>
+                <Text style={styles.sourceText}>来源:{evidence.sources.map((s) => SOURCE_LABELS[s] ?? s).join("、")}</Text>
               ) : null}
               {evidence?.notice ? <Text style={styles.sourceText}>{evidence.notice}</Text> : null}
             </OpenSection>
 
-            <OpenSection title="生活质量记录">
+            <OpenSection title="生活质量记录" testID="pli.welfare.comfort">
               {events.length === 0 ? (
                 <Text style={styles.emptyText}>还没有相关日常记录。</Text>
               ) : (
@@ -138,18 +154,20 @@ export function WelfareScreen() {
               )}
             </OpenSection>
 
-            {domains && Object.keys(domains).length > 0 ? (
-              <OpenSection title="各维度概况">
-                {Object.entries(domains).map(([k, v]) => (
+            <OpenSection title="各维度概况" testID="pli.welfare.enrichment">
+              {domains && Object.keys(domains).length > 0 ? (
+                Object.entries(domains).map(([k, v]) => (
                   <View key={k} style={styles.countRow}>
                     <Text style={styles.countLabel}>{DOMAIN_LABELS[k] ?? k}</Text>
                     <Text style={styles.domainValue}>{String(v)}</Text>
                   </View>
-                ))}
-              </OpenSection>
-            ) : null}
+                ))
+              ) : (
+                <Text style={styles.emptyText}>观察积累后，这里会按维度归纳舒适、压力恢复、环境与活动的情况。</Text>
+              )}
+            </OpenSection>
 
-            <View style={styles.formSection}>
+            <View style={styles.formSection} testID="pli.welfare.liked">
               <Text style={styles.formLabel}>记录福利观察</Text>
               <View style={styles.chipRow}>
                 {WELFARE_KINDS.map((k) => (
@@ -159,6 +177,7 @@ export function WelfareScreen() {
                 ))}
               </View>
               <Pressable
+                testID="pli.welfare.action"
                 accessibilityRole="button"
                 accessibilityLabel="记录观察"
                 disabled={busy}

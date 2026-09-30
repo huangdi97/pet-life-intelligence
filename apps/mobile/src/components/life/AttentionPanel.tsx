@@ -17,6 +17,8 @@ interface AttentionPanelProps {
   body: string;
   footer?: string;
   onPress?: () => void;
+  /** Machine-readable testID (blind-UI acceptance). */
+  testID?: string;
 }
 
 const TONE: Record<AttentionKind, { bg: string; fg: string; icon: keyof typeof Ionicons.glyphMap }> = {
@@ -25,7 +27,7 @@ const TONE: Record<AttentionKind, { bg: string; fg: string; icon: keyof typeof I
   danger: { bg: COLORS.dangerBg, fg: COLORS.danger, icon: "warning" },
 };
 
-export function AttentionPanel({ kind, title, body, footer, onPress }: AttentionPanelProps) {
+export function AttentionPanel({ kind, title, body, footer, onPress, testID }: AttentionPanelProps) {
   const tone = TONE[kind];
   const inner = (
     <>
@@ -35,27 +37,31 @@ export function AttentionPanel({ kind, title, body, footer, onPress }: Attention
       <View style={styles.textWrap}>
         <Text style={[styles.title, { color: tone.fg }]}>{title ?? (kind === "danger" ? "需要关注" : kind === "attention" ? "值得关注" : "一切如常")}</Text>
         <Text style={styles.body}>{body}</Text>
-        {footer ? <Text style={styles.footer}>{footer}</Text> : null}
+        {footer ? <Text style={styles.footer} testID="pli.attention.evidence">{footer}</Text> : null}
       </View>
     </>
   );
   if (onPress) {
     return (
-      <Pressable
-        accessibilityRole="button"
-        style={({ pressed }) => [styles.panel, { backgroundColor: tone.bg }, pressed && styles.pressed]}
-        onPress={onPress}
-      >
-        {inner}
-      </Pressable>
+      <View testID={testID ?? "pli.attention.panel"}>
+        <Pressable
+          accessibilityRole="button"
+          testID="pli.attention.action"
+          style={({ pressed }) => [styles.panel, { backgroundColor: tone.bg }, pressed && styles.pressed]}
+          onPress={onPress}
+        >
+          {inner}
+        </Pressable>
+      </View>
     );
   }
   return (
-    <View style={[styles.panel, { backgroundColor: tone.bg }]} accessibilityLabel={body}>
+    <View testID={testID ?? "pli.attention.panel"} style={[styles.panel, { backgroundColor: tone.bg }]} accessibilityLabel={body}>
       {inner}
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   panel: {

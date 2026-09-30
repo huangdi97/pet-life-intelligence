@@ -9,7 +9,7 @@
  *
  * Honest contract: when a higher-fidelity mode has no real asset, we render the
  * best available lower mode and the stage caption carries the honest note —
- * the owner sees 豆豆, never a "3D 还没接" failure surface.
+ * the owner sees their pet, never a "3D 还没接" failure surface.
  */
 import React from "react";
 import { Image, StyleSheet, View } from "react-native";
@@ -46,7 +46,7 @@ export function PetStageRenderer({ pet, spec, width }: Props) {
   }
   // generated / threeD without a certified asset degrade to the certified
   // 2.5D layer; the honest state lives in the stage caption (not on the pet).
-  if (pet?.name === "豆豆" || (pet?.species === "dog" && pet?.breed.includes("柯基"))) {
+  if (pet?.species === "dog" && pet?.breed.includes("柯基")) {
     return <PetTwoPointFiveD width={width} />;
   }
   const glyph: SpeciesGlyphName = pet?.species === "cat" ? "cat" : pet?.species === "dog" ? "dog" : "paw";

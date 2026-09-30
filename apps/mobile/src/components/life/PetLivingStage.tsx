@@ -17,10 +17,10 @@ import { PetStageRenderer, type PetStageSpec } from "../pet/PetStageRenderer";
 import { Pet3DViewer, type Pet3DStatus } from "../three/Pet3DViewer";
 import { PetStateAnchor, type PetAnchor } from "./PetStateAnchor";
 
-export type StageVariant = "today" | "pet" | "life";
+export type StageVariant = "today" | "pet" | "life" | "review";
 
-const HEIGHTS: Record<StageVariant, number> = { today: 344, pet: 372, life: 452 };
-const PET_WIDTHS: Record<StageVariant, number> = { today: 216, pet: 232, life: 252 };
+const HEIGHTS: Record<StageVariant, number> = { today: 344, pet: 372, life: 452, review: 452 };
+const PET_WIDTHS: Record<StageVariant, number> = { today: 216, pet: 232, life: 252, review: 252 };
 
 const SLOTS: Array<{ top?: DimensionValue; bottom?: DimensionValue; left?: number; right?: number }> = [
   { top: "10%", left: 12 },
@@ -68,16 +68,31 @@ export function PetLivingStage({
 }: Props) {
   const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
   const identity = pet ? resolvePet3DIdentity({ name: pet.name, species: pet.species, breed: pet.breed }) : null;
-  // V4 §5 (PLI_VISUAL_SYSTEM_V4.md): the warm immersive stage is allowed ONLY
-  // for Life View, and only when the 3D renderer actually reports ready.
-  // Today/Pet must stay on the warm light canvas (PetHero / 2.5D direction);
-  // "boot" (WebView loading / WebGL unavailable on the emulator) must never
+  // V4 §5 (PLI_VISUAL_SYSTEM_V4.md) / blind-UI 3D contract: the real 3D twin
+  // renders on every owner stage (Today / Pet / Life) once the renderer
+  // reports ready; "boot" (WebView loading / WebGL unavailable) must never
   // force a dark empty stage — that failure class is what v3.4-R1 §45 flags.
   // A twin descriptor alone is not grounds to go dark.
-  const use3d = variant === "life" && identity !== null && pet3d === "ready";
+  const use3d = identity !== null && pet3d === "ready";
   const height = HEIGHTS[variant];
   const petWidth = PET_WIDTHS[variant];
   const dark = use3d;
+  // Namespace mapping for machine-readable ids: today→pli.today, pet→pli.pet,
+  // life→pli.lifeview (Life View ids are the canonical "stage"/"twin" pair).
+  const stageTestId =
+    variant === "pet"
+      ? "pli.pet.hero-stage"
+      : variant === "life"
+        ? "pli.lifeview.stage"
+        : variant === "review"
+          ? "pli.twinreview.stage"
+          : "pli.today.living-stage";
+  const twinTestId =
+    variant === "life"
+      ? "pli.lifeview.twin"
+      : variant === "review"
+        ? "pli.twinreview.twin"
+        : `pli.${variant}.pet-twin`;
 
   const petLayer = use3d ? (
     <View style={{ width: petWidth, height: Math.round(petWidth * 1.12) }}>
@@ -88,9 +103,8 @@ export function PetLivingStage({
       <PetStageRenderer pet={pet} spec={spec} width={petWidth} />
     </View>
   );
-
   return (
-    <View style={[styles.stage, { height }, dark && styles.stageDark]} accessibilityLabel={`${pet?.name ?? "宠物"}的此刻舞台`}>
+    <View testID={stageTestId} accessible accessibilityLabel={`${pet?.name ?? "宠物"}的此刻舞台`} style={[styles.stage, { height }, dark && styles.stageDark]}>
       {/* BACKGROUND: warm environment (charcoal when 3D, cream when fallback) */}
       {!dark ? (
         <>
@@ -105,13 +119,16 @@ export function PetLivingStage({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`打开 ${pet?.name ?? "宠物"} 的生命视图`}
+          testID={twinTestId}
           style={styles.pressPet}
           onPress={onPressPet}
         >
           {petLayer}
         </Pressable>
       ) : (
-        <View style={styles.petSlot}>{petLayer}</View>
+        <View testID={twinTestId} accessible accessibilityLabel={`${pet?.name ?? "宠物"}的 3D 形象`} style={styles.petSlot}>
+          {petLayer}
+        </View>
       )}
 
       {/* FOREGROUND: state anchors around the pet */}
