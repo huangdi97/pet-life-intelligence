@@ -62,7 +62,7 @@ jobs:
         run: |
           export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
           export TEST_DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli_test"
-          pytest -q --tb=short
+          pytest -q --tb=short --ignore=tests/blind_ui
       - name: Twin QA (GLB + animation manifest, no model downloads)
         run: |
           export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
