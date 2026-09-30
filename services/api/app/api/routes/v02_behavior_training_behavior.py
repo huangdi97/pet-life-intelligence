@@ -128,6 +128,6 @@ async def behavior_advice(
     return {
         "advice": result.result["advice"],
         "filtered_reasons": result.result["filtered_reasons"],
-        "policy": "reward-based only；惩罚式/厌恶式建议被过滤（PLI-084）。",
+        "policy": "坚持奖励式训练；惩罚式/厌恶式建议不会被采用。",
         "disclaimer": result.result["disclaimer"],
     }

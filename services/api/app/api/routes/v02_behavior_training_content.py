@@ -20,7 +20,7 @@ TRAINING_TOOLS_V1 = {
         {"name": "牵引绳（普通胸背）", "use": "安全管理", "safe": True},
         {"name": "嗅闻垫", "use": "嗅闻丰富化", "safe": True},
     ],
-    "banned_note": "禁止使用电击项圈/暴力/惩罚式方法（PLI-084 安全过滤）。",
+            "banned_note": "禁止使用电击项圈/暴力/惩罚式方法。",
     "version": "1.0.0",
 }
 

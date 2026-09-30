@@ -268,7 +268,7 @@ export default function Index() {
             />
           )}
 
-          <TodayMemory days={memoryDays} count={todayEvents.length} />
+          <TodayMemory days={memoryDays} count={todayEvents.length} petName={current?.name} />
 
           <CompanionEntryCard />
         </>

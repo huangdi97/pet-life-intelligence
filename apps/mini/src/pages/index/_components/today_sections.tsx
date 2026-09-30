@@ -28,7 +28,7 @@ export function TodayTasks({ tasks, onComplete }: { tasks: Task[]; onComplete: (
 }
 
 /** Today — 最近生命轨迹 preview (compact life stream or honest empty note). */
-export function TodayMemory({ days, count }: { days: LifeStreamDay[]; count: number }) {
+export function TodayMemory({ days, count, petName = "它" }: { days: LifeStreamDay[]; count: number; petName?: string }) {
   return (
     <View className="open-section">
       <View className="section-title">
@@ -38,7 +38,7 @@ export function TodayMemory({ days, count }: { days: LifeStreamDay[]; count: num
       {days.length ? (
         <LifeStream days={days} />
       ) : (
-        <Text className="life-empty-note">豆豆的时间线还很安静，第一次喂食、散步或健康记录会从这里开始。</Text>
+        <Text className="life-empty-note">{petName}的时间线还很安静，第一次喂食、散步或健康记录会从这里开始。</Text>
       )}
     </View>
   );

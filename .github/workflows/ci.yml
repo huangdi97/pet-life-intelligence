@@ -207,3 +207,27 @@ jobs:
             artifacts/visual-baseline-approved/
             artifacts/visual-v3-approved/
           if-no-files-found: error
+
+  blind-ui:
+    name: Blind Visual Contract (no vision models)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install python deps (classical imaging only, no vision models)
+        run: pip install pillow numpy jsonschema pytest pyyaml
+      - name: Install + build visual-contract
+        run: pnpm install --frozen-lockfile && pnpm --dir packages/visual-contract build
+      - name: Contract schema + known-bad calibration + anti-patterns + pixel oracle
+        run: pytest tests/blind_ui -q
+      - name: Owner content purity (source scan)
+        run: python -c "from pathlib import Path; import sys; sys.path.insert(0,'scripts/blind-ui'); from anti_patterns import scan_hardcoded_pet_names, scan_text_terms; hits=scan_hardcoded_pet_names(Path('.')); print('hardcoded pet names (non-tool, non-seed):', hits); assert hits==[], 'hardcoded pet names must be 0 in production sources'"

@@ -136,7 +136,7 @@ export default function Timeline() {
       {state === "error" && <InlineError onRetry={() => petId && load(petId, filter)} />}
 
       {state === "ready" && events && events.length === 0 && (
-        <EmptyState title="豆豆的时间线还很安静" body="第一次喂食、散步或健康记录会从这里开始。" />
+        <EmptyState title={`${current?.name ?? "它"}的时间线还很安静`} body="第一次喂食、散步或健康记录会从这里开始。" />
       )}
 
       <LifeStream days={days} />
