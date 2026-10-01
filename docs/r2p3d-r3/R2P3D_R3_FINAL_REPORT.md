@@ -18,7 +18,7 @@
 | Secondary 页面 | ✅ 达成 | 双端全部 `heroPass=True`（Web 100/95/95/…；Android 100/95/…；quick-log 95、offline 93 等） |
 | 完整回归 | ✅ 达成（本地+CI） | 见 §4 |
 | 7 张 Contact Sheets | ✅ 达成 | `artifacts/r2p3d-r3/contact-sheets/`（WEB/ANDROID × R2 before/R3 after + ALL + SPECIAL） |
-| CI | ✅ 已触发 | PR #2（CI + Android workflows），最终状态见 CI_CLOSURE |
+                | CI | ✅ 已运行 | PR #2：Blind Visual Contract / Backend / Frontend / Android workflow 全绿；Browser E2E 仅 VISUAL-V2/V3 已知基线漂移 RED（PENDING 人工批准，见 CI_CLOSURE） |
 | 最终报告 | ✅ | 本文档 |
 | 人工视觉验收 | ⏳ PENDING | `HUMAN_VISUAL_ACCEPTANCE = PENDING`（Contact Sheets 供人审） |
 
@@ -26,7 +26,7 @@
 
 | 屏 | Web total | Web heroPass | Android total | Android heroPass | 说明 |
 | --- | --- | --- | --- | --- | --- |
-| Today | 100/100 | True | 97/100 | True | Android −3：`stage.interactive` 无法用 uiautomator 观测舞台容器交互（EXTERNAL_BLOCKED，非 critical） |
+                | Today | 100/100 | True | 97/100 | True | Android −3：`stage.interactive` 无法用 uiautomator 观测舞台容器交互（EXTERNAL_BLOCKED，非 critical） |
 | Pet World | 100/100 | True | 97/100 | True | 同上 |
 | Life View | 100/100 | True | 100/100 | True | camera rotate/zoom/reset 全真实证据 |
 | Twin Review | 100/100 | True | 100/100 | True | identity.gate + not_like→activate disabled 交互真值 |
