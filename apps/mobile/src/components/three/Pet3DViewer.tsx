@@ -19,11 +19,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
+import * as FileSystem from "expo-file-system";
 import { PET_3D_ASSETS, type PoseName } from "@pli/pet-3d";
 import type { Pet3DIdentity } from "@pli/pet-3d";
 import { PET_STAGE_HTML } from "../../three/petStageHtml";
 import type { TwinDescriptor } from "@pli/pet-3d";
-
 export type Pet3DStatus = "boot" | "ready" | "failed";
 
 interface Props {
@@ -39,12 +39,33 @@ interface Props {
   onStatus?: (status: Pet3DStatus) => void;
   onOrientation?: (yaw: number) => void;
 }
-
 export function Pet3DViewer({ identity, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, onStatus, onOrientation }: Props) {
-
   const [status, setStatus] = useState<Pet3DStatus>("boot");
   const webRef = useRef<WebView>(null);
   const lastPose = useRef<string | undefined>(undefined);
+  const lastPersist = useRef(0);
+
+  // Persist the latest runtime manifest to app storage (release-proof channel
+  // for the blind harness; Hermes strips console.log in release builds so the
+  // old [plimanifest] logcat path never fires).
+  const persistManifest = (manifest: Record<string, unknown>) => {
+    const now = Date.now();
+    if (now - lastPersist.current < 1500) return;
+    lastPersist.current = now;
+    FileSystem.writeAsStringAsync(
+      FileSystem.documentDirectory + "pli_manifest.json",
+      JSON.stringify(manifest),
+    ).catch(() => {});
+  };
+
+  // Diagnostic markers so the C-phase runtime diagnosis can distinguish
+  // "WebView never loaded" from "render process crashed" on emulators.
+  const persistMarker = (marker: string) => {
+    FileSystem.writeAsStringAsync(
+      FileSystem.documentDirectory + "pli_diag.json",
+      JSON.stringify({ marker, at: new Date().toISOString() }),
+    ).catch(() => {});
+  };
 
   const onMessage = (e: WebViewMessageEvent) => {
     try {
@@ -57,22 +78,21 @@ export function Pet3DViewer({ identity, twin = null, pose = null, interactive = 
           // Honest fallback manifest: WebGL unavailable on this runtime. The
           // blind harness uses it for the wireframe/truth gates; the owner UI
           // never sees it. This is a truthful 2.5D fallback, never FAKE_3D.
-          console.log(
-            `[plimanifest] ${JSON.stringify({
-              ready: false,
-              representation: "2.5d-photo-fallback",
-              fallbackUsed: true,
-              assetVersion: "demo-v1",
-              wireframe: false,
-              materialMode: "pbr",
-              animationClips: [],
-              availableClips: [],
-              camera: { fov: 38, distance: 4.6, yaw: 0.35, pitch: 0.28, radius: 4.6 },
-              pose: "Idle",
-              poseSource: "AMBIENT",
-              poseConfidence: 0.3,
-            })}`,
-          );
+          persistManifest({
+            ready: false,
+            manifestOrigin: "SYNTHETIC_FALLBACK_EVIDENCE",
+            representation: "2.5d-photo-fallback",
+            fallbackUsed: true,
+            assetVersion: "demo-v1",
+            wireframe: false,
+            materialMode: "pbr",
+            animationClips: [],
+            availableClips: [],
+            camera: { fov: 38, distance: 4.6, yaw: 0.35, pitch: 0.28, radius: 4.6 },
+            pose: "Idle",
+            poseSource: "AMBIENT",
+            poseConfidence: 0.3,
+          });
         }
         // PROVIDER: telemetry-only bridge state (never shown in the owner UI).
         console.log(`[pet3d] status=${s}`);
@@ -81,9 +101,10 @@ export function Pet3DViewer({ identity, twin = null, pose = null, interactive = 
         // PROVIDER: telemetry-only; proves real rotation on device (logcat).
         console.log(`[pet3d] orientation yaw=${msg.yaw.toFixed(2)}`);
       } else if (msg.type === "manifest" && msg.manifest && typeof msg.manifest === "object") {
-        // Blind harness channel: the Android extractor reads [plimanifest]
-        // from logcat to build 3d.json. Never shown in the owner UI.
-        console.log(`[plimanifest] ${JSON.stringify(msg.manifest)}`);
+        // Blind harness channel: persist the runtime manifest so the Android
+        // extractor can read it even in release builds (Hermes strips
+        // console.log, so [plimanifest] logcat never fires). Throttled.
+        persistManifest(msg.manifest as Record<string, unknown>);
       }
     } catch {
       // ignore malformed bridge messages
@@ -124,7 +145,11 @@ export function Pet3DViewer({ identity, twin = null, pose = null, interactive = 
         allowsInlineMediaPlayback
         onMessage={onMessage}
         injectedJavaScriptBeforeContentLoaded={injected}
+        onLoadStart={() => persistMarker("load-start")}
+        onLoadEnd={() => persistMarker("load-end")}
+        onError={(e) => persistMarker(`error:${e.nativeEvent.description ?? "unknown"}`)}
         onRenderProcessGone={() => {
+          persistMarker("render-process-gone");
           setStatus("failed");
           onStatus?.("failed");
         }}

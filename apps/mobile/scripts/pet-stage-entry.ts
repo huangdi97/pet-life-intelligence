@@ -95,7 +95,7 @@ function buildManifest(): Record<string, unknown> {
     Math.max(1, Math.round(rect.width || window.innerWidth || 1)),
     Math.max(1, Math.round(rect.height || window.innerHeight || 1)),
   );
-  return buildManifestV2({
+  const m = buildManifestV2({
     ready: true,
     representation: twinDescriptor ? "procedural-twin" : "procedural-demo-stage",
     generic: !twinDescriptor,
@@ -122,6 +122,10 @@ function buildManifest(): Record<string, unknown> {
     poseConfidence: twinDescriptor ? 0.9 : 0.3,
     projected: projected ?? null,
   });
+  // Release builds strip console.log (Hermes), so uiautomator accessibility can
+  // see the manifest via document.title (machine-readable runtime evidence).
+  document.title = "PLI_MANIFEST:" + JSON.stringify(m);
+  return m;
 }
 (window as any).__PLI_GET_MANIFEST = () => buildManifest();
 (window as any).__PLI_REQUEST_MANIFEST = () => {

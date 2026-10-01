@@ -71,11 +71,12 @@ export function PetLivingStage({
   const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
   const identity = pet ? resolvePet3DIdentity({ name: pet.name, species: pet.species, breed: pet.breed }) : null;
   // V4 §5 (PLI_VISUAL_SYSTEM_V4.md) / blind-UI 3D contract: the real 3D twin
-  // renders on every owner stage (Today / Pet / Life) once the renderer
-  // reports ready; "boot" (WebView loading / WebGL unavailable) must never
-  // force a dark empty stage — that failure class is what v3.4-R1 §45 flags.
-  // A twin descriptor alone is not grounds to go dark.
-  const use3d = identity !== null && pet3d === "ready";
+  // renders on every owner stage (Today / Pet / Life). "boot" (WebView
+  // loading) must still mount the viewer so the page can report ready/failed;
+  // only a real failure ("failed") falls back to photo/2.5D. This mirrors the
+  // web stage (pet3d !== "failed"), fixing the mobile deadlock where
+  // `pet3d === "ready"` prevented the viewer from ever mounting.
+  const use3d = identity !== null && pet3d !== "failed";
   const height = HEIGHTS[variant];
   const petWidth = PET_WIDTHS[variant];
   const dark = use3d;

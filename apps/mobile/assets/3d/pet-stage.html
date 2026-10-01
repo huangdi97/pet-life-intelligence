@@ -27,7 +27,7 @@
 <script>
 "use strict";
 (() => {
-  // node_modules/.pnpm/three@0.170.0/node_modules/three/build/three.module.js
+  // ../../node_modules/.pnpm/three@0.170.0/node_modules/three/build/three.module.js
   var REVISION = "170";
   var CullFaceNone = 0;
   var CullFaceBack = 1;
@@ -20757,7 +20757,7 @@ void main() {
     }
   }
 
-  // packages/pet-3d/dist/palette.js
+  // ../../packages/pet-3d/dist/palette.js
   var STAGE = {
     /** Warm charcoal base — the dark, warm room the pet lives in. */
     base: "#171310",
@@ -20806,7 +20806,7 @@ void main() {
     rimIntensity: 0.55
   };
 
-  // packages/pet-3d/dist/buildCorgi.js
+  // ../../packages/pet-3d/dist/buildCorgi.js
   var CORGI_ROOT = "doudouRoot";
   function mat(color) {
     return new MeshStandardMaterial({ color, roughness: 0.92, metalness: 0 });
@@ -20867,7 +20867,7 @@ void main() {
     body.scale.set(base[0] * 1.005, base[1] * s, base[2] * 1.005);
   }
 
-  // packages/pet-3d/dist/buildCat.js
+  // ../../packages/pet-3d/dist/buildCat.js
   var MIMI_ROOT = "mimiRoot";
   function mat2(color) {
     return new MeshStandardMaterial({ color, roughness: 0.9, metalness: 0 });
@@ -20930,7 +20930,7 @@ void main() {
     body.scale.set(base[0] * 1.004, base[1] * s, base[2] * 1.004);
   }
 
-  // packages/pet-3d/dist/scene.js
+  // ../../packages/pet-3d/dist/scene.js
   var STAGE_TARGET = new Vector3(0, 0.85, 0);
   function createPetStageScene(identity2, opts = {}) {
     const pet = identity2 === "doudou" ? buildCorgi() : buildCat();
@@ -20985,7 +20985,7 @@ void main() {
     camera2.lookAt(target);
   }
 
-  // packages/pet-3d/dist/morph.js
+  // ../../packages/pet-3d/dist/morph.js
   var M = (over) => ({
     body_length: 1,
     body_height: 1,
@@ -21132,7 +21132,7 @@ void main() {
     return TWIN_TEMPLATES["standard-dog"];
   }
 
-  // packages/pet-3d/dist/rig.js
+  // ../../packages/pet-3d/dist/rig.js
   var DOG_JOINTS = [
     { name: "root", parent: null, pos: [0, 0, 0] },
     { name: "torso", parent: "root", pos: [0, 0.42, 0] },
@@ -21242,7 +21242,7 @@ void main() {
     rig.joints.tail1.rotation.x = -m.tail_curve * 0.5;
   }
 
-  // packages/pet-3d/dist/motion.js
+  // ../../packages/pet-3d/dist/motion.js
   var POSE_NAMES = [
     "Idle",
     "Stand",
@@ -21437,7 +21437,7 @@ void main() {
     }
   }
 
-  // packages/pet-3d/dist/twinScene.js
+  // ../../packages/pet-3d/dist/twinScene.js
   var REGION_DEFAULT = {
     coat: "#E8C79A",
     cream: "#FBF6EB",
@@ -21573,7 +21573,7 @@ void main() {
     return scene2;
   }
 
-  // packages/pet-3d/dist/manifest.js
+  // ../../packages/pet-3d/dist/manifest.js
   function projectPetBounds(pet, camera2, viewportWidth, viewportHeight, worldCenterOverride) {
     if (viewportWidth <= 0 || viewportHeight <= 0)
       return null;
@@ -21672,7 +21672,7 @@ void main() {
     return { meshCount, skinnedMeshCount };
   }
 
-  // apps/mobile/scripts/pet-stage-entry.ts
+  // scripts/pet-stage-entry.ts
   var rootEl = document.getElementById("stage");
   var identity = window.__PLI_IDENTITY === "mimi" ? "mimi" : "doudou";
   var interactive = !!window.__PLI_INTERACTIVE;
@@ -21727,7 +21727,7 @@ void main() {
       Math.max(1, Math.round(rect.width || window.innerWidth || 1)),
       Math.max(1, Math.round(rect.height || window.innerHeight || 1))
     );
-    return buildManifestV2({
+    const m = buildManifestV2({
       ready: true,
       representation: twinDescriptor ? "procedural-twin" : "procedural-demo-stage",
       generic: !twinDescriptor,
@@ -21753,6 +21753,8 @@ void main() {
       poseConfidence: twinDescriptor ? 0.9 : 0.3,
       projected: projected ?? null
     });
+    document.title = "PLI_MANIFEST:" + JSON.stringify(m);
+    return m;
   }
   window.__PLI_GET_MANIFEST = () => buildManifest();
   window.__PLI_REQUEST_MANIFEST = () => {

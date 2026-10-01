@@ -55,6 +55,14 @@ function UiDump([string]$dir, [string]$file = "ui.xml") {
 }
 
 function Manifest([string]$dir, [string]$file = "3d.json") {
+    # Release Hermes strips console.log, so [plimanifest] logcat never fires.
+    # The RN viewer persists the runtime manifest to app storage; read it here.
+    $persisted = (& $Adb -s $Serial exec-out run-as $pkg cat "files/pli_manifest.json" 2>&1 | Out-String)
+    if (-not [string]::IsNullOrWhiteSpace($persisted)) {
+        [System.IO.File]::WriteAllText((Join-Path $dir $file), $persisted.Trim(), [System.Text.UTF8Encoding]::new($false))
+        return
+    }
+    # Fallback: legacy logcat channel (debug builds).
     $hit = (& $Adb -s $Serial logcat -d -s ReactNativeJS:I 2>&1 | Select-String -Pattern "plimanifest" | Select-Object -Last 1)
     if ($null -ne $hit -and $hit.ToString() -match "\[plimanifest\] (.+)$") {
         [System.IO.File]::WriteAllText((Join-Path $dir $file), $Matches[1], [System.Text.UTF8Encoding]::new($false))
