@@ -184,7 +184,9 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
             <div className="v4-sec">
               <h2 className="v4-sec-title">外观</h2>
               <p className="v4-sec-sub" style={{ marginTop: 6 }}>
-                现在显示的是演示 3D 形象（开发环境），只来自演示数据。未来连接真实服务后，会用{name}的真实照片生成，并经过你确认后才会显示。外观不会替代真实照片与记录。
+                {twinDescriptor
+                  ? `现在显示的是第 ${twinVersion ?? 1} 版 3D 形象，已通过你的确认。外观由它的照片与模板生成，不会替代真实照片与记录。`
+                  : "现在显示的是简化形象（开发环境），只来自演示数据。未来连接真实服务后，会用它的真实照片生成，并经过你确认后才会显示。外观不会替代真实照片与记录。"}
               </p>
             </div>
           ) : null}
@@ -196,7 +198,9 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
           <div className="v4-sec" style={{ paddingTop: 18 }}>
             <h2 className="v4-sec-title">真实记录始终可信</h2>
               <p className="v4-note" style={{ margin: "6px 0 0" }}>
-                当前 3D 形象为演示资产（开发环境），只来自演示数据，不来自真实照片。未来真实服务接通后，生成的 3D 形象只会来自真实照片，并经过你确认后才会显示。照片、记录与规则结论始终独立于外观，移动端与 Web 一致。
+                {twinDescriptor
+                  ? `当前 3D 形象是已确认的第 ${twinVersion ?? 1} 版，由它的照片与模板生成。照片、记录与规则结论始终独立于外观，移动端与 Web 一致。`
+                  : "当前 3D 形象为演示资产（开发环境），只来自演示数据，不来自真实照片。未来真实服务接通后，生成的 3D 形象只会来自真实照片，并经过你确认后才会显示。照片、记录与规则结论始终独立于外观，移动端与 Web 一致。"}
               </p>
           </div>
         </div>
