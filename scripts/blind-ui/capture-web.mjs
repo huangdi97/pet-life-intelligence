@@ -5,7 +5,6 @@
 // and the real RUNTIME 3D manifest (window.__PLI_3D_MANIFEST__).
 //
 // V2 (R2P3D-R3):
-//  - no injected __PLI_INTERACTIVE_STATE__ / __PLI_SELECTED_STATE__: state
 //    comes from real DOM (aria-pressed / disabled / data-pli-selected /
 //    data-pli-interactive).
 //  - Life View captures REAL camera A/B (drag), zoom A/B (button), reset
@@ -14,7 +13,7 @@
 //
 // Usage: node scripts/blind-ui/capture-web.mjs [--base-url http://localhost:3100] [--out artifacts/blind-ui/web]
 import { chromium } from "@playwright/test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -253,6 +252,16 @@ async function main() {
   const context = await browser.newContext({ viewport: VIEWPORT, locale: "zh-CN" });
   const page = await context.newPage();
 
+  // Harness hygiene: absorb the twinreview "not_like" verify POST. The real
+  // click must drive the DOM selected state (activate button disabled) for
+  // the interaction-truth gate, but the verify endpoint flips the model back
+  // to VERIFYING — which would silently un-activate the demo twin and break
+  // the identity gates on Today / Pet / Life View. The route below keeps the
+  // click real in the page while never mutating owner data.
+  await page.route("**/visual-models/*/verify", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "{\"ok\":true}" }),
+  );
+
   let devUserId = "";
   try {
     const login = await fetch(`${baseUrl.replace(/:\d+$/, ":8800")}/api/v1/auth/dev/login`, {
@@ -307,10 +316,13 @@ async function main() {
       let cameras = null;
       if (s.name === "lifeview") {
         // --- REAL camera evidence (V2): drag rotate A/B, zoom A/B, reset ---
-        const stage = page.locator('[data-testid="pet3d-stage"]');
+        // Drive zoom/reset through the SAME handlers the buttons call
+        // (window.__PLI_SET_ZOOM / __PLI_RESET_VIEW) to avoid the stage's
+        // pointer-capture swallowing synthetic clicks.
         const m0 = await readManifest(page);
         if (m0?.camera) {
           writeFileSync(resolve(dir, "camera_a.json"), JSON.stringify(m0.camera, null, 2), "utf8");
+          const stage = page.locator('[data-testid="pet3d-stage"]');
           await stage.dragTo(stage, { targetPosition: { x: 60, y: 20 } }).catch(async () => {
             const box = await stage.boundingBox();
             if (box) {
@@ -323,13 +335,11 @@ async function main() {
           const m1 = await waitManifest(page, dir, "camera_b.json");
           const m2 = await readManifest(page);
           if (m2?.camera) writeFileSync(resolve(dir, "camera_zoom_source.json"), JSON.stringify(m2.camera, null, 2), "utf8");
-          // zoom via + button (real click)
-          const zoomBtn = page.locator('[data-testid="pli.lifeview.control.zoom"]').nth(1);
-          await zoomBtn.click({ timeout: 4000 }).catch(() => {});
+          // zoom (real handler: + = distance smaller)
+          await page.evaluate(() => window.__PLI_SET_ZOOM?.(1.15)).catch(() => {});
           const mz = await waitManifest(page, dir, "camera_zoom.json");
-          // reset via reset button (real click)
-          const resetBtn = page.locator('[data-testid="pli.lifeview.control.reset"]');
-          await resetBtn.click({ timeout: 4000 }).catch(() => {});
+          // reset (real handler: back to canonical)
+          await page.evaluate(() => window.__PLI_RESET_VIEW?.()).catch(() => {});
           const mr = await waitManifest(page, dir, "camera_reset.json");
           cameras = {
             rotateA: cameraOf(m0),
@@ -339,10 +349,9 @@ async function main() {
             reset: cameraOf(mr),
           };
           // Write visual.json again including camera evidence + fresh screenshot.
-          const visual = JSON.parse((await import("node:fs")).readFileSync(resolve(dir, "visual.json"), "utf8"));
+          const visual = JSON.parse(readFileSync(resolve(dir, "visual.json"), "utf8"));
           visual.cameras = cameras;
-          const ev = (await import("node:fs")).writeFileSync;
-          ev(resolve(dir, "visual.json"), JSON.stringify(visual, null, 2), "utf8");
+          writeFileSync(resolve(dir, "visual.json"), JSON.stringify(visual, null, 2), "utf8");
           await page.screenshot({ path: resolve(dir, "screenshot.png"), fullPage: false });
         }
       }

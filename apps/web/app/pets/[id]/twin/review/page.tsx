@@ -106,6 +106,9 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
 
   const identity = resolvePet3DIdentity({ name: pet?.name, species: pet?.species, breed: pet?.breed });
   const show3d = identity !== null;
+  const modelDescriptor = (model?.artifact_map as Record<string, unknown>)?.twin_descriptor as import("@pli/pet-3d").TwinDescriptor | undefined;
+  const modelSurface = (modelDescriptor as { surface?: { observed_regions?: string[] } } | undefined)?.surface?.observed_regions;
+  const twinSourceMediaCount = modelSurface?.length ?? 0;
 
   return (
     <main data-pli-selected={selected ?? ""}>
@@ -123,7 +126,10 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
               identity={identity}
               variant="life"
               interactive
-              twin={model ? { family: pet?.species === "cat" ? "standard-cat" : "corgi-like", version: model.version, provenance: model.provenance_kind } : null}
+              petId={petId}
+              frameTarget={0.23}
+              sourceMediaCount={twinSourceMediaCount}
+              twin={model ? { ...(modelDescriptor ?? {}), family: pet?.species === "cat" ? "standard-cat" : "corgi-like", version: model.version, provenance: model.provenance_kind } : null}
             />
           ) : (
             <div className="page-center" style={{ minHeight: 240 }}>
@@ -132,7 +138,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
           )}
         </div>
       </div>
-      {modelNote && <p className="muted" style={{ marginTop: 6 }}>当前为演示形象（开发环境）· {modelNote}</p>}
+      {modelNote && <p className="muted" style={{ marginTop: 6 }}>还没有可确认的 3D 形象 · {modelNote}</p>}
 
       <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 10 }}>
         {(

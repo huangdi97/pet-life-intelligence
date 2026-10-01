@@ -56,7 +56,9 @@ export type { TwinDescriptor, TwinScene, TwinTextureRegions } from "./twinScene"
 // Twin Manifest V2 (shared by web + mobile runtime + blind harness).
 export {
   buildManifestV2,
+  clampRadius,
   countMeshes,
+  fitOrbitRadius,
   projectPetBounds,
 } from "./manifest";
 export type { ManifestBuildInput, ProjectedBounds } from "./manifest";

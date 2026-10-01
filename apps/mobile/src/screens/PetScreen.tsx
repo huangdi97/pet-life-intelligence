@@ -17,6 +17,7 @@ import { usePets } from "../context";
 import { petAgeText, sexLabel } from "../format";
 import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
 import type { StackParamList } from "../navigation";
+import { usePetTwin } from "../hooks/usePetTwin";
 import { PetLivingStage } from "../components/life/PetLivingStage";
 import { ChangeNarrative } from "../components/life/ChangeNarrative";
 import { OpenSection } from "../components/feedback/OpenSection";
@@ -52,8 +53,11 @@ export function PetScreen() {
   const [goal, setGoal] = useState<TrainingGoalRow | null>(null);
   const [welfare, setWelfare] = useState<WelfareEvidence | null>(null);
   const [loading, setLoading] = useState(true);
-
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
+
+  // Individual Twin (R2P3D-R3 D): same canonical per-pet asset as Today/Life
+  // View, so Pet World shows the ACTIVE twin (generic demo only without one).
+  const { twin } = usePetTwin(pet?.id ?? null);
   const otherPets = (pets ?? []).filter((p) => p.id !== pet?.id);
 
   useEffect(() => {
@@ -135,6 +139,9 @@ export function PetScreen() {
             caption={identityLine || undefined}
             demo={DEMO_ENV}
             onPressPet={pet ? () => navigation.navigate("LifeView") : undefined}
+            twin={twin?.descriptor ?? null}
+            sourceMediaCount={twin?.observedRegions.length ?? 0}
+            frameTarget={0.21}
           />
         </View>
 

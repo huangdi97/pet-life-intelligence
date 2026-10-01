@@ -18,6 +18,7 @@ import {
   createPetStageScene,
   createTwinScene,
   DEFAULT_ORBIT,
+  fitOrbitRadius,
   orbitFromDrag,
   orbitZoom,
   POSE_NAMES,
@@ -35,6 +36,8 @@ const twinDescriptor = window.__PLI_TWIN ?? null;
 /** Injected by Pet3DViewer for the V2 identity gate (pet id + media count). */
 const injectedPetId: string | null = window.__PLI_PET_ID ?? null;
 const injectedSourceMediaCount: number = Number(window.__PLI_SOURCE_MEDIA_COUNT ?? 0);
+/** §31 framing target injected per screen (0 = demo framing, no autofit). */
+const frameTarget: number = Number(window.__PLI_FRAME_TARGET ?? 0);
 
 function post(msg: Record<string, unknown>): void {
   try {
@@ -81,19 +84,40 @@ addStageLights(scene);
 
 const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 40);
 const orbit = { ...DEFAULT_ORBIT };
-// Twin scenes are built ground-anchored and centered; keep default framing
-// but widen a touch so morph-extended pets still fit.
-if (twinDescriptor) orbit.radius = Math.max(orbit.radius, 5.2);
+// Zoom clamp is re-derived from the fitted baseline when auto-framing.
+const zoomBounds = { min: 2.6, max: 7 };
+/**
+ * §31 aspect-aware auto-framing (mirrors the web viewer): fit the projected
+ * pet box onto frameTarget of the full WebView viewport, whatever the stage
+ * aspect, so the real rendered size matches the contract's composition range.
+ */
+function applyFit(): void {
+  if (!twinDescriptor || !(frameTarget > 0)) return;
+  const fit = fitOrbitRadius(
+    stage.pet,
+    camera,
+    { yaw: DEFAULT_ORBIT.yaw, pitch: DEFAULT_ORBIT.pitch, radius: DEFAULT_ORBIT.radius },
+    frameTarget,
+    Math.max(1, Math.round(window.innerWidth || 1)),
+    Math.max(1, Math.round(window.innerHeight || 1)),
+  );
+  Object.assign(orbit, fit);
+  zoomBounds.min = fit.radius * 0.5;
+  zoomBounds.max = fit.radius * 2.5;
+  applyOrbit(camera, STAGE_TARGET, orbit);
+}
 // --- blind scene manifest (test/debug only, never owner UI) ---
 function buildManifest(): Record<string, unknown> {
   const rect = renderer.domElement.getBoundingClientRect();
   const { meshCount, skinnedMeshCount } = countMeshes(stage.pet);
   const clips = [...POSE_NAMES];
+  // §31: projected area ratio is measured against the full viewport
+  // (window), not the stage container.
   const projected = projectPetBounds(
     stage.pet,
     camera,
-    Math.max(1, Math.round(rect.width || window.innerWidth || 1)),
-    Math.max(1, Math.round(rect.height || window.innerHeight || 1)),
+    Math.max(1, Math.round(window.innerWidth || 1)),
+    Math.max(1, Math.round(window.innerHeight || 1)),
   );
   const m = buildManifestV2({
     ready: true,
@@ -139,10 +163,12 @@ function resize(): void {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   applyOrbit(camera, STAGE_TARGET, orbit);
+  // Auto-frame after each real resize so portrait stages keep the pet inside
+  // the contract's projected-size range (mirrors the web viewer).
+  applyFit();
 }
 window.addEventListener("resize", resize);
 resize();
-applyOrbit(camera, STAGE_TARGET, orbit);
 
 // --- pose control ---
 let activePose: string | null = null;
@@ -237,10 +263,13 @@ function pinchDist(e: TouchEvent): number {
 
 // --- buttons ---
 window.zoom = (inward: boolean) => {
-  Object.assign(orbit, orbitZoom(orbit, inward ? 1.2 : 1 / 1.2));
+  Object.assign(orbit, orbitZoom(orbit, inward ? 1.2 : 1 / 1.2, zoomBounds));
 };
 window.resetView = () => {
+  // Reset restores the canonical framing — re-fitted so the zoom/reset
+  // camera evidence always compares against the SAME fitted baseline.
   Object.assign(orbit, { ...DEFAULT_ORBIT });
+  applyFit();
 };
 
 const controls = document.getElementById("controls") as HTMLElement;

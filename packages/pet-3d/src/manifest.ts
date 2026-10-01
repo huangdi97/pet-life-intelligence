@@ -12,6 +12,8 @@
  * renderer on every frame check.
  */
 import * as THREE from "three";
+import { applyOrbit, STAGE_TARGET } from "./scene";
+import type { OrbitState } from "./scene";
 
 export interface ProjectedBounds {
   /** CSS pixels within the canvas. */
@@ -153,4 +155,53 @@ export function countMeshes(root: THREE.Object3D): { meshCount: number; skinnedM
     }
   });
   return { meshCount, skinnedMeshCount };
+}
+
+/**
+ * Fit the orbit radius so the pet's projected bounding box occupies
+ * `targetAreaRatio` of the full viewport (window), matching §31's
+ * "as the user sees it" semantic regardless of the stage container aspect.
+ *
+ * Deterministic: starts from `orbit` and iteratively scales the radius
+ * (projected area scales with 1/d² in perspective) until convergence.
+ * The caller keeps canonical yaw/pitch fixed, so reset always returns to the
+ * same framing — the reset≈canonical camera gate stays valid.
+ */
+export function fitOrbitRadius(
+  pet: THREE.Object3D,
+  camera: THREE.PerspectiveCamera,
+  orbit: OrbitState,
+  targetAreaRatio: number,
+  viewportWidth: number,
+  viewportHeight: number,
+  options?: { iterations?: number; minRadius?: number; maxRadius?: number; tolerance?: number },
+): OrbitState {
+  if (!(targetAreaRatio > 0.0001) || viewportWidth <= 0 || viewportHeight <= 0) return { ...orbit };
+  const iterations = options?.iterations ?? 12;
+  const minRadius = options?.minRadius ?? 1.6;
+  const maxRadius = options?.maxRadius ?? 40;
+  const tolerance = options?.tolerance ?? 0.025;
+  let radius = orbit.radius;
+  for (let i = 0; i < iterations; i += 1) {
+    const r = Math.min(maxRadius, Math.max(minRadius, radius));
+    applyOrbit(camera, STAGE_TARGET, { yaw: orbit.yaw, pitch: orbit.pitch, radius: r });
+    camera.updateProjectionMatrix();
+    const p = projectPetBounds(pet, camera, viewportWidth, viewportHeight);
+    if (!p || p.areaRatio <= 0) break;
+    const err = p.areaRatio / targetAreaRatio;
+    if (Math.abs(err - 1) <= tolerance) {
+      return { yaw: orbit.yaw, pitch: orbit.pitch, radius: r };
+    }
+    // Clamp each step so a single bad measurement cannot blow the radius.
+    radius = r * Math.min(2.5, Math.max(0.4, Math.sqrt(err)));
+  }
+  return { yaw: orbit.yaw, pitch: orbit.pitch, radius: Math.min(maxRadius, Math.max(minRadius, radius)) };
+}
+
+/**
+ * Clamp a zoomed radius into bounds (fitted framing keeps the zoom range
+ * relative to its own baseline instead of the demo default).
+ */
+export function clampRadius(radius: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, radius));
 }

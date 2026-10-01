@@ -36,10 +36,15 @@ interface Props {
   /** Pet id + source media count for the V2 identity manifest gate. */
   petId?: string | null;
   sourceMediaCount?: number;
+  /**
+   * §31 framing target (fraction of the full WebView viewport) for the
+   * auto-framed twin; >0 enables aspect-aware camera fitting, 0 = demo frame.
+   */
+  frameTarget?: number;
   onStatus?: (status: Pet3DStatus) => void;
   onOrientation?: (yaw: number) => void;
 }
-export function Pet3DViewer({ identity, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, onStatus, onOrientation }: Props) {
+export function Pet3DViewer({ identity, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, frameTarget = 0, onStatus, onOrientation }: Props) {
   const [status, setStatus] = useState<Pet3DStatus>("boot");
   const webRef = useRef<WebView>(null);
   const lastPose = useRef<string | undefined>(undefined);
@@ -119,7 +124,7 @@ export function Pet3DViewer({ identity, twin = null, pose = null, interactive = 
   }, [pose, status]);
 
   const twinJson = twin ? JSON.stringify(twin).replace(/\\/g, "\\\\").replace(/'/g, "\\'") : "";
-  const injected = `window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; window.__PLI_PET_ID = ${petId ? JSON.stringify(petId) : "null"}; window.__PLI_SOURCE_MEDIA_COUNT = ${Number(sourceMediaCount) || 0}; ${
+  const injected = `window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; window.__PLI_FRAME_TARGET = ${Number(frameTarget) || 0}; window.__PLI_PET_ID = ${petId ? JSON.stringify(petId) : "null"}; window.__PLI_SOURCE_MEDIA_COUNT = ${Number(sourceMediaCount) || 0}; ${
     twin ? `window.__PLI_TWIN = JSON.parse('${twinJson}');` : ""
   } true;`;
 

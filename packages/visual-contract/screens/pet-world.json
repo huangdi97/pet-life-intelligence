@@ -35,8 +35,8 @@
     { "id": "pet.domains.action", "dimension": "interactionTruth", "points": 4, "description": "六域入口可点击（role button）", "check": { "kind": "count", "filter": { "role": "button", "idPrefix": "pli.pet.domain." }, "range": [6, 6] } },
     { "id": "pet.lifeview.entry", "dimension": "interactionTruth", "points": 3, "description": "生命视图入口存在", "check": { "kind": "element", "idPrefix": "pli.pet.entry.lifeview" } },
     { "id": "pet.stage.interactive", "dimension": "interactionTruth", "points": 3, "description": "英雄 Stage 可交互被测量", "check": { "kind": "interaction", "id": "pli.pet.hero-stage" } },
+    { "id": "pet.style.truth", "dimension": "pixelStyleTruth", "points": 3, "description": "Design-as-Data V2：hero stage computed bg 不黑", "check": { "kind": "style-truth", "idPrefix": "pli.pet.hero-stage", "notDarkBg": true } },
     { "id": "pet.domain.a11y", "dimension": "accessibility", "points": 5, "description": "六域入口有可读文本", "check": { "kind": "element", "idPrefix": "pli.pet.domain.*", "count": [6, 6] } },
-    { "id": "pet.style.truth", "dimension": "pixelStyleTruth", "points": 3, "description": "Design-as-Data V2：hero stage computed bg 不黑", "check": { "kind": "style-truth", "idPrefix": "pli.pet.stage", "notDarkBg": true } },
     { "id": "pet.warm.pixels", "dimension": "pixelStyleTruth", "points": 2, "description": "Warm living field 像素门", "check": { "kind": "pixel-style", "surface": "pet" } }
   ]
 }

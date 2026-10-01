@@ -20,10 +20,12 @@ import {
   addStageLights,
   applyOrbit,
   buildManifestV2,
+  clampRadius,
   countMeshes,
   createPetStageScene,
   createTwinScene,
   DEFAULT_ORBIT,
+  fitOrbitRadius,
   frameCamera,
   orbitFromDrag,
   orbitZoom,
@@ -48,6 +50,12 @@ interface Props {
   /** Individual identity metadata for the V2 manifest (blind harness). */
   petId?: string | null;
   sourceMediaCount?: number;
+  /**
+   * §31 framing target: the projected pet box should occupy this fraction of
+   * the full viewport. >0 enables aspect-aware auto-framing for the twin
+   * (renderer knob — the contract ranges stay canonical). 0 = demo framing.
+   */
+  frameTarget?: number;
   onStatus?: (status: Pet3DStatus) => void;
 }
 
@@ -59,13 +67,20 @@ export function Pet3DViewer({
   interactive = false,
   petId = null,
   sourceMediaCount = 0,
+  frameTarget = 0,
   onStatus,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const orbitRef = useRef<OrbitState>({ ...DEFAULT_ORBIT });
+  /** Fitted canonical orbit (reset restores this framing, not the demo one). */
+  const canonicalFitRef = useRef<OrbitState>({ ...DEFAULT_ORBIT });
+  /** Zoom clamp bounds derived from the fitted framing baseline. */
+  const zoomBoundsRef = useRef<{ min: number; max: number }>({ min: 2.6, max: 7 });
+
   const draggingRef = useRef(false);
   const poseRef = useRef<PoseName | null>(pose);
   const [status, setStatus] = useState<Pet3DStatus>("boot");
+
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -126,6 +141,24 @@ export function Pet3DViewer({
         if (twin) {
           // Twin scenes are ground-anchored; use the shared orbit framing.
           applyOrbit(camera, STAGE_TARGET, orbitRef.current);
+          if (frameTarget > 0) {
+            // §31 aspect-aware auto-framing: fit the projected pet box onto
+            // frameTarget of the full viewport whatever the stage aspect, so
+            // the real rendered size matches the contract's composition range
+            // on portrait/landscape alike. Reset restores this fitted frame.
+            const fit = fitOrbitRadius(
+              stage.pet,
+              camera,
+              { yaw: DEFAULT_ORBIT.yaw, pitch: DEFAULT_ORBIT.pitch, radius: DEFAULT_ORBIT.radius },
+              frameTarget,
+              Math.max(1, Math.round(window.innerWidth)),
+              Math.max(1, Math.round(window.innerHeight)),
+            );
+            canonicalFitRef.current = fit;
+            zoomBoundsRef.current = { min: fit.radius * 0.5, max: fit.radius * 2.5 };
+            orbitRef.current = { ...fit };
+          }
+          applyOrbit(camera, STAGE_TARGET, orbitRef.current);
         } else {
           // Demo stage: keep the original frameCamera behavior so approved
           // visual baselines stay pixel-identical (no refactor churn).
@@ -142,11 +175,14 @@ export function Pet3DViewer({
       const { meshCount, skinnedMeshCount } = countMeshes(stage.pet);
       const rect = wrap.getBoundingClientRect();
       const clips = [...POSE_NAMES];
+      // §31: projected area ratio is measured against the full viewport
+      // (window), not the stage container, so "twin too small / too big" is
+      // judged like a human would see the screen.
       const projected = projectPetBounds(
         stage.pet,
         camera as THREE.PerspectiveCamera,
-        Math.max(1, Math.round(rect.width)),
-        Math.max(1, Math.round(rect.height)),
+        Math.max(1, Math.round(window.innerWidth)),
+        Math.max(1, Math.round(window.innerHeight)),
       );
       const orbit = orbitRef.current;
       (window as any).__PLI_3D_MANIFEST__ = buildManifestV2({
@@ -203,7 +239,7 @@ export function Pet3DViewer({
       if (!canRotate()) return;
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
-      orbitRef.current = orbitZoom(orbitRef.current, factor);
+      orbitRef.current = orbitZoom(orbitRef.current, factor, zoomBoundsRef.current);
       syncOrientation();
     };
 
@@ -218,10 +254,9 @@ export function Pet3DViewer({
       if (!alive) return;
       frameCounter += 1;
       if (frameCounter % 20 === 0) publishManifest();
-      // Gentle idle drift for the life stage (cosmetic only; off for reduced motion).
-      if (interactive && !draggingRef.current && !reducedMotion) {
-        orbitRef.current = { ...orbitRef.current, yaw: orbitRef.current.yaw + 0.0008 };
-      }
+      // R2P3D-R3: removed the continuous idle yaw drift — it silently mutates
+      // the camera between harness reads and breaks the reset≈canonical gate.
+      // The pose loop still animates the pet itself (breathing/joints).
       if (camera && scene) {
         applyOrbit(camera, STAGE_TARGET, orbitRef.current);
         if (twin) {
@@ -267,7 +302,7 @@ export function Pet3DViewer({
       renderer?.dispose();
       if (renderer?.domElement?.parentElement === wrap) wrap.removeChild(renderer.domElement);
     };
-  }, [identity, interactive, variant, onStatus, twin, petId, sourceMediaCount]);
+  }, [identity, interactive, variant, onStatus, twin, petId, sourceMediaCount, frameTarget]);
 
   // Keep poseRef in sync so the frame loop picks up pose switches.
   useEffect(() => {
@@ -275,15 +310,30 @@ export function Pet3DViewer({
   }, [pose]);
 
   const zoom = (factor: number) => {
-    orbitRef.current = orbitZoom(orbitRef.current, factor);
+    orbitRef.current = orbitZoom(orbitRef.current, factor, zoomBoundsRef.current);
     if (wrapRef.current) wrapRef.current.dataset.orientation = orbitRef.current.yaw.toFixed(2);
     publishNow();
   };
   const reset = () => {
-    orbitRef.current = { ...DEFAULT_ORBIT };
+    // Reset restores the canonical framing — the fitted one when the twin is
+    // auto-framed, the demo one otherwise — so reset≈canonical stays exact.
+    orbitRef.current = { ...canonicalFitRef.current };
     if (wrapRef.current) wrapRef.current.dataset.orientation = orbitRef.current.yaw.toFixed(2);
     publishNow();
   };
+
+  // Blind harness: expose the SAME handlers the buttons call so the capture
+  // driver can trigger real zoom/reset without synthetic clicks colliding with
+  // the stage's pointer capture (mirrors mobile window.zoom/resetView).
+  useEffect(() => {
+    const win = window as any;
+    win.__PLI_SET_ZOOM = (factor: number) => zoom(factor);
+    win.__PLI_RESET_VIEW = () => reset();
+    return () => {
+      delete win.__PLI_SET_ZOOM;
+      delete win.__PLI_RESET_VIEW;
+    };
+  }, [interactive, variant, twin, frameTarget]);
 
   // Publish immediately after a control action so harness camera evidence
   // (zoom/reset) is fresh without waiting for the next 20-frame tick.

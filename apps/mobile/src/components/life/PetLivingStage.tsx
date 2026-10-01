@@ -50,6 +50,8 @@ interface Props {
   twin?: TwinDescriptor | null;
   /** Number of observed source media regions used to build the twin (V2 identity gate). */
   sourceMediaCount?: number;
+  /** §31 framing target (fraction of the full WebView viewport) for the twin. */
+  frameTarget?: number;
   /** Active motion clip for the 3D stage. */
   pose?: PoseName | null;
 }
@@ -63,10 +65,11 @@ export function PetLivingStage({
   note,
   demo = false,
   interactive = false,
-  onPressPet,
   twin = null,
   sourceMediaCount = 0,
   pose = null,
+  frameTarget = 0,
+  onPressPet,
 }: Props) {
   const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
   const identity = pet ? resolvePet3DIdentity({ name: pet.name, species: pet.species, breed: pet.breed }) : null;
@@ -98,7 +101,7 @@ export function PetLivingStage({
         : `pli.${variant}.pet-twin`;
   const petLayer = use3d ? (
     <View style={{ width: petWidth, height: Math.round(petWidth * 1.12) }}>
-      <Pet3DViewer identity={identity} twin={twin} pose={pose} interactive={interactive} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={setPet3d} />
+      <Pet3DViewer identity={identity} twin={twin} pose={pose} interactive={interactive} frameTarget={frameTarget} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={setPet3d} />
     </View>
   ) : (
     <View pointerEvents={onPressPet ? "none" : undefined}>

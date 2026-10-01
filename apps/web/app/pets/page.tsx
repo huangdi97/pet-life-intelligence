@@ -96,6 +96,7 @@ export default function PetsHubPage() {
                 headline={current.name}
                 caption={identityParts || undefined}
                 twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
+                frameTarget={0.21}
                 sourceMediaCount={observedRegions || undefined}
                 stageTestId="pli.pet.hero-stage"
                 twinTestId="pli.pet.pet-twin"
@@ -122,6 +123,21 @@ export default function PetsHubPage() {
                 <Icon name="chevron" size={16} style={{ color: "var(--v4-text-tertiary)" }} />
               </div>
             ))}
+          </div>
+
+          <div className="v4-sec" data-testid="pli.pet.recent">
+            <div className="v4-sec-head">
+              <h2 className="v4-sec-title">最近 · 与它自己相比</h2>
+            </div>
+            {totalToday > 0 ? (
+              <p className="v4-note" style={{ margin: "6px 0 0" }}>
+                今天有 {totalToday} 条记录；相比它自己的日常，目前没有明显变化。
+              </p>
+            ) : (
+              <p className="v4-note" style={{ margin: "6px 0 0" }}>
+                记下第一件事后，这里会显示它和自己的变化。
+              </p>
+            )}
           </div>
 
           <div className="v4-sec" data-testid="pli.pet.friends">

@@ -42,6 +42,8 @@ interface Props {
   /** Blind-UI contract: id on the outer stage section (e.g. pli.today.living-stage). */
   stageTestId?: string;
   /** Blind-UI contract: id on the element containing the 3D/2.5D renderer. */
+  /** §31 framing target (fraction of full viewport) for the twin renderer. */
+  frameTarget?: number;
   twinTestId?: string;
   /** Blind-UI contract: id prefix for state anchors (`${prefix}.${anchor.id}`). */
   anchorTestIdPrefix?: string;
@@ -63,6 +65,7 @@ export function PetLivingStage({
   note,
   demo = false,
   interactive = false,
+  frameTarget = 0,
   stageTestId,
   twinTestId,
   anchorTestIdPrefix,
@@ -124,17 +127,21 @@ export function PetLivingStage({
           data-testid={twinTestId}
           data-pli-type={twinTestId ? "twin" : undefined}
         >
-          {show3d ? <Pet3DViewer identity={identity} twin={twin} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} onStatus={setPet3d} /> : corgi}
+          {show3d ? <Pet3DViewer identity={identity} twin={twin} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} frameTarget={frameTarget} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} onStatus={setPet3d} /> : corgi}
         </Link>
       ) : (
         <span className={`r2p-stage-pet ${show3d ? "r2p-stage-pet--3d" : ""}`} data-testid={twinTestId} data-pli-type={twinTestId ? "twin" : undefined}>
-          {show3d ? <Pet3DViewer identity={identity} twin={twin} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} onStatus={setPet3d} /> : corgi}
+          {show3d ? <Pet3DViewer identity={identity} twin={twin} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} frameTarget={frameTarget} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} onStatus={setPet3d} /> : corgi}
         </span>
       )}
-
       {anchors.slice(0, 6).map((a, i) =>
         a.href ? (
-          <Link key={a.id} href={a.href} className={`r2p-anchor r2p-anchor--${i}`} data-testid={anchorTestIdPrefix ? `${anchorTestIdPrefix}.${a.id}` : undefined}>
+          <Link
+            key={a.id}
+            href={a.href}
+            className={`r2p-anchor r2p-anchor--${i}`}
+            data-testid={anchorTestIdPrefix ? `${anchorTestIdPrefix}.${a.id}` : undefined}
+          >
             <span className="r2p-anchor-icon"><Icon name={a.icon} size={13} /></span>
             <span>
               <span className="r2p-anchor-label" style={{ display: "block" }}>{a.label}</span>

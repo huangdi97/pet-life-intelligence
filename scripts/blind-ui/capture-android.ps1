@@ -56,10 +56,12 @@ function UiDump([string]$dir, [string]$file = "ui.xml") {
 
 function Manifest([string]$dir, [string]$file = "3d.json") {
     # Release Hermes strips console.log, so [plimanifest] logcat never fires.
-    # The RN viewer persists the runtime manifest to app storage; read it here.
-    $persisted = (& $Adb -s $Serial exec-out run-as $pkg cat "files/pli_manifest.json" 2>&1 | Out-String)
-    if (-not [string]::IsNullOrWhiteSpace($persisted)) {
-        [System.IO.File]::WriteAllText((Join-Path $dir $file), $persisted.Trim(), [System.Text.UTF8Encoding]::new($false))
+    # The RN viewer persists the runtime manifest to app storage; the APT
+    # release build is not debuggable, so use adb root to read it directly.
+    $hit = (& $Adb -s $Serial shell cat /data/data/com.pli.mobile/files/pli_manifest.json 2>&1 | Out-String)
+    $persisted = ($hit | Out-String).Trim()
+    if (-not [string]::IsNullOrWhiteSpace($persisted) -and $persisted.StartsWith("{")) {
+        [System.IO.File]::WriteAllText((Join-Path $dir $file), $persisted, [System.Text.UTF8Encoding]::new($false))
         return
     }
     # Fallback: legacy logcat channel (debug builds).
@@ -69,6 +71,15 @@ function Manifest([string]$dir, [string]$file = "3d.json") {
         return
     }
     [System.IO.File]::WriteAllText((Join-Path $dir $file), "{}", [System.Text.UTF8Encoding]::new($false))
+}
+
+function RestoreTwin([string]$petId, [int]$version) {
+    $h = @{ "X-Dev-User-Id" = "8ec41f0f-8ca0-4afc-92aa-6a3deb08c7ae"; "Content-Type" = "application/json" }
+    try {
+        $null = Invoke-RestMethod -Uri "http://localhost:8800/api/v1/pets/$petId/visual-models/$version/verify" -Method Post -Headers $h -Body '{"result":"like","issues":[],"notes":"restored by harness"}'
+        $null = Invoke-RestMethod -Uri "http://localhost:8800/api/v1/pets/$petId/visual-models/$version/activate" -Method Post -Headers $h -Body '{}'
+        Write-Host "  restored ACTIVE twin for pet $petId v$version"
+    } catch { Write-Host "  WARN: twin restore failed for $petId : $($_.Exception.Message)" }
 }
 
 # Read the last [plimanifest] payload from logcat into the given file.
@@ -130,6 +141,11 @@ Login "owner@pli.demo"
 & $Adb -s $Serial shell am force-stop $pkg 2>&1 | Out-Null
 & $Adb -s $Serial logcat -c 2>&1 | Out-Null
 & $Adb -s $Serial shell am start -n $pkg/.MainActivity 2>&1 | Out-Null
+
+# Root read access for the persisted 3D manifest (release APT is not
+# debuggable; run-as fails, so the harness needs adb root).
+& $Adb -s $Serial root 2>&1 | Out-Null
+Start-Sleep -Seconds 2
 Start-Sleep -Seconds 40
 foreach ($sc in $screens) {
     $dir = Join-Path $out $sc.n
@@ -138,7 +154,10 @@ foreach ($sc in $screens) {
     # Long content screens get a scroll-merge second dump so below-the-fold
     # contract elements enter the accessibility tree.
     $scroll = @("pet", "me", "welfare", "quicklog", "health", "companion", "timeline", "twinversion") -contains $sc.n
-    Nav $sc.s $dir 10 -ScrollMerge:$scroll
+    # Twin-bearing hero screens get a longer settle so the ACTIVE-twin WebView
+    # remount (key change) has time to re-post its manifest after the demo one.
+    $wait = if (@("today", "pet", "lifeview", "twinreview") -contains $sc.n) { 16 } else { 10 }
+    Nav $sc.s $dir $wait -ScrollMerge:$scroll
     if ($sc.n -eq "quicklog") {
         # Open the light form by tapping the first primary tile (喂食) so
         # pli.quicklog.form / save / feedback are present in the tree.
@@ -155,6 +174,12 @@ $dir = Join-Path $out "twinreview"
 Start-Sleep -Seconds 10
 TapByText "不像" $dir
 Start-Sleep -Seconds 2
+
+# The 不像 interaction above is a REAL verify POST (review interaction truth),
+# which flips the twin back to VERIFYING; restore the ACTIVE demo twin so the
+# demo data stays truthful (like today's earlier rounds corrupted it silently).
+RestoreTwin "0070551c-8634-42b1-a361-81a635b66653" 1
+RestoreTwin "386bfba3-5485-4d4f-90f9-9a775d546259" 1
 UiDump $dir
 Shot "twinreview_b" $dir
 Write-Host "== lifeview rotation proof (real camera yaw A/B) =="

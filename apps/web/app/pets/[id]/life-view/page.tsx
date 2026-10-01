@@ -101,7 +101,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
     <main className="v4-main">
       <div className="v4-topline">
         <h1>生命视图</h1>
-        <p className="v4-topline-sub">{name} · 此刻</p>
+        <p className="v4-topline-sub" data-testid="pli.lifeview.identity">{name} · 此刻</p>
       </div>
       <div style={{ maxWidth: 288, margin: "0 auto" }}>
       <PetLivingStage
@@ -118,6 +118,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
             ? `第 ${twinVersion ?? 1} 版 3D 形象 · 已通过你的确认`
             : "暂时使用简化形象，连接照片后会生成更像它的 3D 形象"
         }
+        frameTarget={0.27}
         twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
         sourceMediaCount={observedRegions || undefined}
         interactive

@@ -27,7 +27,7 @@
 <script>
 "use strict";
 (() => {
-  // ../../node_modules/.pnpm/three@0.170.0/node_modules/three/build/three.module.js
+  // node_modules/.pnpm/three@0.170.0/node_modules/three/build/three.module.js
   var REVISION = "170";
   var CullFaceNone = 0;
   var CullFaceBack = 1;
@@ -20757,7 +20757,7 @@ void main() {
     }
   }
 
-  // ../../packages/pet-3d/dist/palette.js
+  // packages/pet-3d/dist/palette.js
   var STAGE = {
     /** Warm charcoal base — the dark, warm room the pet lives in. */
     base: "#171310",
@@ -20806,7 +20806,7 @@ void main() {
     rimIntensity: 0.55
   };
 
-  // ../../packages/pet-3d/dist/buildCorgi.js
+  // packages/pet-3d/dist/buildCorgi.js
   var CORGI_ROOT = "doudouRoot";
   function mat(color) {
     return new MeshStandardMaterial({ color, roughness: 0.92, metalness: 0 });
@@ -20867,7 +20867,7 @@ void main() {
     body.scale.set(base[0] * 1.005, base[1] * s, base[2] * 1.005);
   }
 
-  // ../../packages/pet-3d/dist/buildCat.js
+  // packages/pet-3d/dist/buildCat.js
   var MIMI_ROOT = "mimiRoot";
   function mat2(color) {
     return new MeshStandardMaterial({ color, roughness: 0.9, metalness: 0 });
@@ -20930,7 +20930,7 @@ void main() {
     body.scale.set(base[0] * 1.004, base[1] * s, base[2] * 1.004);
   }
 
-  // ../../packages/pet-3d/dist/scene.js
+  // packages/pet-3d/dist/scene.js
   var STAGE_TARGET = new Vector3(0, 0.85, 0);
   function createPetStageScene(identity2, opts = {}) {
     const pet = identity2 === "doudou" ? buildCorgi() : buildCat();
@@ -20975,8 +20975,10 @@ void main() {
     const pitch = Math.min(0.9, Math.max(-0.5, prev.pitch + dy * sensitivity));
     return { yaw, pitch, radius: prev.radius };
   }
-  function orbitZoom(prev, factor) {
-    const radius = Math.min(7, Math.max(2.6, prev.radius / factor));
+  function orbitZoom(prev, factor, bounds) {
+    const min = (bounds == null ? void 0 : bounds.min) ?? 2.6;
+    const max = (bounds == null ? void 0 : bounds.max) ?? 7;
+    const radius = Math.min(max, Math.max(min, prev.radius / factor));
     return { yaw: prev.yaw, pitch: prev.pitch, radius };
   }
   function applyOrbit(camera2, target, orbit2) {
@@ -20985,7 +20987,7 @@ void main() {
     camera2.lookAt(target);
   }
 
-  // ../../packages/pet-3d/dist/morph.js
+  // packages/pet-3d/dist/morph.js
   var M = (over) => ({
     body_length: 1,
     body_height: 1,
@@ -21132,7 +21134,7 @@ void main() {
     return TWIN_TEMPLATES["standard-dog"];
   }
 
-  // ../../packages/pet-3d/dist/rig.js
+  // packages/pet-3d/dist/rig.js
   var DOG_JOINTS = [
     { name: "root", parent: null, pos: [0, 0, 0] },
     { name: "torso", parent: "root", pos: [0, 0.42, 0] },
@@ -21242,7 +21244,7 @@ void main() {
     rig.joints.tail1.rotation.x = -m.tail_curve * 0.5;
   }
 
-  // ../../packages/pet-3d/dist/motion.js
+  // packages/pet-3d/dist/motion.js
   var POSE_NAMES = [
     "Idle",
     "Stand",
@@ -21437,7 +21439,7 @@ void main() {
     }
   }
 
-  // ../../packages/pet-3d/dist/twinScene.js
+  // packages/pet-3d/dist/twinScene.js
   var REGION_DEFAULT = {
     coat: "#E8C79A",
     cream: "#FBF6EB",
@@ -21573,7 +21575,7 @@ void main() {
     return scene2;
   }
 
-  // ../../packages/pet-3d/dist/manifest.js
+  // packages/pet-3d/dist/manifest.js
   function projectPetBounds(pet, camera2, viewportWidth, viewportHeight, worldCenterOverride) {
     if (viewportWidth <= 0 || viewportHeight <= 0)
       return null;
@@ -21671,14 +21673,38 @@ void main() {
     });
     return { meshCount, skinnedMeshCount };
   }
+  function fitOrbitRadius(pet, camera2, orbit2, targetAreaRatio, viewportWidth, viewportHeight, options) {
+    if (!(targetAreaRatio > 1e-4) || viewportWidth <= 0 || viewportHeight <= 0)
+      return { ...orbit2 };
+    const iterations = (options == null ? void 0 : options.iterations) ?? 12;
+    const minRadius = (options == null ? void 0 : options.minRadius) ?? 1.6;
+    const maxRadius = (options == null ? void 0 : options.maxRadius) ?? 40;
+    const tolerance = (options == null ? void 0 : options.tolerance) ?? 0.025;
+    let radius = orbit2.radius;
+    for (let i = 0; i < iterations; i += 1) {
+      const r = Math.min(maxRadius, Math.max(minRadius, radius));
+      applyOrbit(camera2, STAGE_TARGET, { yaw: orbit2.yaw, pitch: orbit2.pitch, radius: r });
+      camera2.updateProjectionMatrix();
+      const p = projectPetBounds(pet, camera2, viewportWidth, viewportHeight);
+      if (!p || p.areaRatio <= 0)
+        break;
+      const err = p.areaRatio / targetAreaRatio;
+      if (Math.abs(err - 1) <= tolerance) {
+        return { yaw: orbit2.yaw, pitch: orbit2.pitch, radius: r };
+      }
+      radius = r * Math.min(2.5, Math.max(0.4, Math.sqrt(err)));
+    }
+    return { yaw: orbit2.yaw, pitch: orbit2.pitch, radius: Math.min(maxRadius, Math.max(minRadius, radius)) };
+  }
 
-  // scripts/pet-stage-entry.ts
+  // apps/mobile/scripts/pet-stage-entry.ts
   var rootEl = document.getElementById("stage");
   var identity = window.__PLI_IDENTITY === "mimi" ? "mimi" : "doudou";
   var interactive = !!window.__PLI_INTERACTIVE;
   var twinDescriptor = window.__PLI_TWIN ?? null;
   var injectedPetId = window.__PLI_PET_ID ?? null;
   var injectedSourceMediaCount = Number(window.__PLI_SOURCE_MEDIA_COUNT ?? 0);
+  var frameTarget = Number(window.__PLI_FRAME_TARGET ?? 0);
   function post(msg) {
     try {
       if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
@@ -21716,7 +21742,22 @@ void main() {
   addStageLights(scene);
   var camera = new PerspectiveCamera(38, 1, 0.1, 40);
   var orbit = { ...DEFAULT_ORBIT };
-  if (twinDescriptor) orbit.radius = Math.max(orbit.radius, 5.2);
+  var zoomBounds = { min: 2.6, max: 7 };
+  function applyFit() {
+    if (!twinDescriptor || !(frameTarget > 0)) return;
+    const fit = fitOrbitRadius(
+      stage.pet,
+      camera,
+      { yaw: DEFAULT_ORBIT.yaw, pitch: DEFAULT_ORBIT.pitch, radius: DEFAULT_ORBIT.radius },
+      frameTarget,
+      Math.max(1, Math.round(window.innerWidth || 1)),
+      Math.max(1, Math.round(window.innerHeight || 1))
+    );
+    Object.assign(orbit, fit);
+    zoomBounds.min = fit.radius * 0.5;
+    zoomBounds.max = fit.radius * 2.5;
+    applyOrbit(camera, STAGE_TARGET, orbit);
+  }
   function buildManifest() {
     const rect = renderer.domElement.getBoundingClientRect();
     const { meshCount, skinnedMeshCount } = countMeshes(stage.pet);
@@ -21724,8 +21765,8 @@ void main() {
     const projected = projectPetBounds(
       stage.pet,
       camera,
-      Math.max(1, Math.round(rect.width || window.innerWidth || 1)),
-      Math.max(1, Math.round(rect.height || window.innerHeight || 1))
+      Math.max(1, Math.round(window.innerWidth || 1)),
+      Math.max(1, Math.round(window.innerHeight || 1))
     );
     const m = buildManifestV2({
       ready: true,
@@ -21767,10 +21808,10 @@ void main() {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     applyOrbit(camera, STAGE_TARGET, orbit);
+    applyFit();
   }
   window.addEventListener("resize", resize);
   resize();
-  applyOrbit(camera, STAGE_TARGET, orbit);
   var activePose = null;
   var poseTimeOffset = { value: 0 };
   window.__PLI_SET_POSE = (name) => {
@@ -21852,10 +21893,11 @@ void main() {
     return Math.sqrt(dx * dx + dy * dy);
   }
   window.zoom = (inward) => {
-    Object.assign(orbit, orbitZoom(orbit, inward ? 1.2 : 1 / 1.2));
+    Object.assign(orbit, orbitZoom(orbit, inward ? 1.2 : 1 / 1.2, zoomBounds));
   };
   window.resetView = () => {
     Object.assign(orbit, { ...DEFAULT_ORBIT });
+    applyFit();
   };
   var controls = document.getElementById("controls");
   if (interactive) controls.classList.add("show");
