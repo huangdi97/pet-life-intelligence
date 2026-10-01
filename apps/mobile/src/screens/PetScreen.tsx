@@ -151,7 +151,7 @@ export function PetScreen() {
           </View>
         ) : (
           <>
-            <OpenSection title={`${pet?.name ?? "宠物"}最近`}>
+            <OpenSection title={`${pet?.name ?? "宠物"}最近`} testID="pli.pet.recent">
               <View style={styles.pulseRow}>
                 <Ionicons name="time-outline" size={16} color={COLORS.brandPrimaryDeep} />
                 <Text style={styles.pulseText}>

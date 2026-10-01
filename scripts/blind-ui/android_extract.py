@@ -65,7 +65,6 @@ def extract(dir_path: Path) -> dict:
             nodes.extend(re.findall(r"<node[^>]*>", f.read_text(encoding="utf-8", errors="ignore")))
     elements: list[dict] = []
     texts: list[str] = []
-    seen: set[str] = set()
     for n in nodes:
         rid = re.search(r'resource-id="([^"]*)"', n)
         cd = re.search(r'content-desc="([^"]*)"', n)
@@ -88,10 +87,16 @@ def extract(dir_path: Path) -> dict:
             continue
         # pli.* ids from resource-id (RN testID maps here); else content-desc label
         ident = ridv if ridv.startswith("pli.") else (f"cd:{cdv}" if cdv else "")
-        if not ident or ident in seen:
+        if not ident:
             continue
-        seen.add(ident)
         role = "button" if 'clickable="true"' in n else (clz.group(1).split(".")[-1] if clz else "")
+        # COMPATIBILITY: React Native maps accessibilityRole="tab" to plain
+        # clickable Views on Android (uiautomator has no "tab" role), so the
+        # Life View mode bar tabs are re-derived from their semantic id plus
+        # the clickable/selected state — the same machine contract the web DOM
+        # expresses with role="tab". The id itself is the semantic carrier.
+        if role == "button" and ident.startswith("pli.lifeview.mode."):
+            role = "tab"
         surface = _surface_from_attrs(n)
         element = {
             "id": ident,
@@ -107,12 +112,21 @@ def extract(dir_path: Path) -> dict:
         }
         _selected_from_attrs(n, ident, [element])
         elements.append(element)
-    # Deduplicate by id (first occurrence keeps bounds/visibility).
+    # Deduplicate by id, preferring the interactive (clickable) node over a
+    # non-interactive container that shares the id (e.g. the tablist bar next
+    # to the selected mode tab). Deterministic, order-independent.
     uniq: dict[str, dict] = {}
     for e in elements:
-        uniq.setdefault(e["id"], e)
+        cur = uniq.get(e["id"])
+        if cur is None:
+            uniq[e["id"]] = e
+        elif e.get("role") in ("button", "tab") and cur.get("role") not in ("button", "tab"):
+            uniq[e["id"]] = e
+        elif e.get("selected") and not cur.get("selected"):
+            # A later dump can carry the real selection state (e.g. the
+            # twin-review "不像" interaction); prefer the selected node.
+            uniq[e["id"]] = e
     elements = list(uniq.values())
-
     manifest: dict = {}
     manifest_origin = None
     if man.exists():

@@ -16,7 +16,7 @@
  * On WebGL failure the page reports "failed" and screens fall back to
  * photo / 2.5D — 3D is never a single point of failure.
  */
-import React, { useEffect, useRef, useState } from "react";
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { StyleSheet, View } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import * as FileSystem from "expo-file-system";
@@ -25,6 +25,13 @@ import type { Pet3DIdentity } from "@pli/pet-3d";
 import { PET_STAGE_HTML } from "../../three/petStageHtml";
 import type { TwinDescriptor } from "@pli/pet-3d";
 export type Pet3DStatus = "boot" | "ready" | "failed";
+
+/** Imperative camera controls for the embedded 3D page (Life View zoom/reset). */
+export interface Pet3DViewerHandle {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetView: () => void;
+}
 
 interface Props {
   identity: Pet3DIdentity;
@@ -44,9 +51,17 @@ interface Props {
   onStatus?: (status: Pet3DStatus) => void;
   onOrientation?: (yaw: number) => void;
 }
-export function Pet3DViewer({ identity, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, frameTarget = 0, onStatus, onOrientation }: Props) {
+export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DViewer({ identity, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, frameTarget = 0, onStatus, onOrientation }, ref) {
   const [status, setStatus] = useState<Pet3DStatus>("boot");
   const webRef = useRef<WebView>(null);
+  // Imperative camera controls drive the embedded page's REAL handlers
+  // (window.zoom / window.resetView → orbit radius/yaw), so Life View zoom
+  // and reset produce genuine camera evidence for the blind contract.
+  useImperativeHandle(ref, () => ({
+    zoomIn: () => webRef.current?.injectJavaScript("window.zoom && window.zoom(true); true;"),
+    zoomOut: () => webRef.current?.injectJavaScript("window.zoom && window.zoom(false); true;"),
+    resetView: () => webRef.current?.injectJavaScript("window.resetView && window.resetView(); true;"),
+  }));
   const lastPose = useRef<string | undefined>(undefined);
   const lastPersist = useRef(0);
 
@@ -168,7 +183,7 @@ export function Pet3DViewer({ identity, twin = null, pose = null, interactive = 
       />
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1, overflow: "hidden" },

@@ -19,7 +19,7 @@ import { PetStateAnchor, type PetAnchor } from "./PetStateAnchor";
 
 export type StageVariant = "today" | "pet" | "life" | "review";
 
-const HEIGHTS: Record<StageVariant, number> = { today: 344, pet: 372, life: 452, review: 452 };
+const HEIGHTS: Record<StageVariant, number> = { today: 344, pet: 372, life: 452, review: 470 };
 const PET_WIDTHS: Record<StageVariant, number> = { today: 216, pet: 232, life: 252, review: 252 };
 
 const SLOTS: Array<{ top?: DimensionValue; bottom?: DimensionValue; left?: number; right?: number }> = [
@@ -54,6 +54,8 @@ interface Props {
   frameTarget?: number;
   /** Active motion clip for the 3D stage. */
   pose?: PoseName | null;
+  /** Imperative handle to the embedded 3D page (Life View zoom/reset). */
+  viewerRef?: React.Ref<import("../three/Pet3DViewer").Pet3DViewerHandle>;
 }
 export function PetLivingStage({
   pet,
@@ -68,6 +70,7 @@ export function PetLivingStage({
   twin = null,
   sourceMediaCount = 0,
   pose = null,
+  viewerRef,
   frameTarget = 0,
   onPressPet,
 }: Props) {
@@ -101,7 +104,7 @@ export function PetLivingStage({
         : `pli.${variant}.pet-twin`;
   const petLayer = use3d ? (
     <View style={{ width: petWidth, height: Math.round(petWidth * 1.12) }}>
-      <Pet3DViewer identity={identity} twin={twin} pose={pose} interactive={interactive} frameTarget={frameTarget} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={setPet3d} />
+      <Pet3DViewer ref={viewerRef} identity={identity} twin={twin} pose={pose} interactive={interactive} frameTarget={frameTarget} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={setPet3d} />
     </View>
   ) : (
     <View pointerEvents={onPressPet ? "none" : undefined}>

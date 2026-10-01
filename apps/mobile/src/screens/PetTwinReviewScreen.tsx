@@ -61,6 +61,7 @@ export function PetTwinReviewScreen() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<TwinDescriptor | null>(null);
+  const [sourceMediaCount, setSourceMediaCount] = useState(0);
   const [view, setView] = useState("front");
 
   const load = useCallback(() => {
@@ -83,7 +84,10 @@ export function PetTwinReviewScreen() {
       )
       .then((m) => {
         const map = (m as { artifact_map?: { twin_descriptor?: TwinDescriptor } }).artifact_map;
-        setCandidate(map?.twin_descriptor ?? null);
+        const desc = map?.twin_descriptor;
+        const surface = (desc as { surface?: { observed_regions?: string[] } } | undefined)?.surface;
+        setCandidate(desc ?? null);
+        setSourceMediaCount(surface?.observed_regions?.length ?? 0);
         setMessage(null);
       })
       .catch((e: unknown) => {
@@ -139,7 +143,7 @@ export function PetTwinReviewScreen() {
         <View style={styles.center}><ActivityIndicator color={COLORS.brandPrimary} /></View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV} twin={candidate} pose="Idle" interactive frameTarget={0.23} />
+          <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Idle" interactive frameTarget={0.23} />
           <Text style={styles.caption}>
             这是根据{pet?.name ?? "宠物"}的照片与模板生成的第 {version} 版形象。旋转查看后回答：像它吗？
           </Text>
