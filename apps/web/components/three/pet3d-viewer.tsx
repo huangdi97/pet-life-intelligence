@@ -3,18 +3,24 @@
 /**
  * Pet3DViewer — web adapter for the shared demo pet 3D scene.
  *
- * Renders the SAME 豆豆/咪咪 asset as the mobile app (apps/mobile expo-gl
- * adapter) through three.js WebGL. Drag rotates (full in life variant),
- * wheel/buttons zoom (life variant), reset restores the default view.
+ * Renders the SAME 豆豆/咪咪 asset as the mobile app through three.js WebGL.
+ * Drag rotates (full in life variant), wheel/buttons zoom (life variant),
+ * reset restores the default view.
  * Exposes data-testid + status/orientation attrs for deterministic Playwright
  * assertions. On WebGL failure the parent falls back to photo/2.5D — 3D is
  * never a single point of failure.
+ *
+ * Blind Contract V2: publishes a RUNTIME manifest (window.__PLI_3D_MANIFEST__)
+ * with manifestOrigin=RUNTIME, identity fields (generic/petId/sourceMediaCount)
+ * and the real projected pet bounds — never the stage container box.
  */
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import {
   addStageLights,
   applyOrbit,
+  buildManifestV2,
+  countMeshes,
   createPetStageScene,
   createTwinScene,
   DEFAULT_ORBIT,
@@ -23,6 +29,7 @@ import {
   orbitZoom,
   POSE_NAMES,
   PET_3D_ASSETS,
+  projectPetBounds,
   STAGE_FOG,
   STAGE_TARGET,
 } from "@pli/pet-3d";
@@ -38,10 +45,22 @@ interface Props {
   twin?: TwinDescriptor | null;
   /** Active motion clip for the 3D stage. */
   pose?: PoseName | null;
+  /** Individual identity metadata for the V2 manifest (blind harness). */
+  petId?: string | null;
+  sourceMediaCount?: number;
   onStatus?: (status: Pet3DStatus) => void;
 }
 
-export function Pet3DViewer({ identity, twin = null, pose = null, variant = "stage", interactive = false, onStatus }: Props) {
+export function Pet3DViewer({
+  identity,
+  twin = null,
+  pose = null,
+  variant = "stage",
+  interactive = false,
+  petId = null,
+  sourceMediaCount = 0,
+  onStatus,
+}: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const orbitRef = useRef<OrbitState>({ ...DEFAULT_ORBIT });
   const draggingRef = useRef(false);
@@ -120,30 +139,37 @@ export function Pet3DViewer({ identity, twin = null, pose = null, variant = "sta
     // Blind harness: publish the 3D runtime manifest to window (test/debug
     // only; never rendered in the owner UI). capture-web reads it.
     const publishManifest = () => {
-      let meshCount = 0;
-      stage.pet.traverse((o) => {
-        if ((o as THREE.Mesh).isMesh) meshCount += 1;
-      });
+      const { meshCount, skinnedMeshCount } = countMeshes(stage.pet);
       const rect = wrap.getBoundingClientRect();
       const clips = [...POSE_NAMES];
-      (window as any).__PLI_3D_MANIFEST__ = {
+      const projected = projectPetBounds(
+        stage.pet,
+        camera as THREE.PerspectiveCamera,
+        Math.max(1, Math.round(rect.width)),
+        Math.max(1, Math.round(rect.height)),
+      );
+      const orbit = orbitRef.current;
+      (window as any).__PLI_3D_MANIFEST__ = buildManifestV2({
         ready: true,
         representation: twin ? "procedural-twin" : "procedural-demo-stage",
-        fallbackUsed: false,
+        generic: !twin,
+        petId: petId ?? null,
+        sourceMediaCount,
         assetVersion: twin?.version ?? "demo-v1",
+        fallbackUsed: false,
+        wireframe: false,
         meshCount,
-        skinnedMeshCount: 0,
+        skinnedMeshCount,
         skeleton: !!twin,
         animationClips: clips,
-        wireframe: false,
         materialMode: "pbr",
         baseColorTexture: true,
         camera: {
-          fov: camera?.fov,
-          distance: orbitRef.current.radius,
-          yaw: orbitRef.current.yaw,
-          pitch: orbitRef.current.pitch,
-          radius: orbitRef.current.radius,
+          fov: camera?.fov ?? 38,
+          distance: orbit.radius,
+          yaw: orbit.yaw,
+          pitch: orbit.pitch,
+          radius: orbit.radius,
         },
         screenBounds: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
         activeClip: poseRef.current ?? "Idle",
@@ -153,7 +179,8 @@ export function Pet3DViewer({ identity, twin = null, pose = null, variant = "sta
         pose: poseRef.current ?? "Idle",
         poseSource: twin ? "REPRESENTATIVE" : "AMBIENT",
         poseConfidence: twin ? 0.9 : 0.3,
-      };
+        projected: projected ?? null,
+      });
     };
 
     const canRotate = () => interactive || variant === "life";
@@ -240,7 +267,7 @@ export function Pet3DViewer({ identity, twin = null, pose = null, variant = "sta
       renderer?.dispose();
       if (renderer?.domElement?.parentElement === wrap) wrap.removeChild(renderer.domElement);
     };
-  }, [identity, interactive, variant, onStatus, twin]);
+  }, [identity, interactive, variant, onStatus, twin, petId, sourceMediaCount]);
 
   // Keep poseRef in sync so the frame loop picks up pose switches.
   useEffect(() => {
@@ -250,10 +277,29 @@ export function Pet3DViewer({ identity, twin = null, pose = null, variant = "sta
   const zoom = (factor: number) => {
     orbitRef.current = orbitZoom(orbitRef.current, factor);
     if (wrapRef.current) wrapRef.current.dataset.orientation = orbitRef.current.yaw.toFixed(2);
+    publishNow();
   };
   const reset = () => {
     orbitRef.current = { ...DEFAULT_ORBIT };
     if (wrapRef.current) wrapRef.current.dataset.orientation = orbitRef.current.yaw.toFixed(2);
+    publishNow();
+  };
+
+  // Publish immediately after a control action so harness camera evidence
+  // (zoom/reset) is fresh without waiting for the next 20-frame tick.
+  const publishNow = () => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const man = (window as any).__PLI_3D_MANIFEST__;
+    if (man && typeof man === "object") {
+      man.camera = {
+        fov: man.camera?.fov ?? 38,
+        distance: orbitRef.current.radius,
+        yaw: orbitRef.current.yaw,
+        pitch: orbitRef.current.pitch,
+        radius: orbitRef.current.radius,
+      };
+    }
   };
 
   const meta = PET_3D_ASSETS[identity];
@@ -266,7 +312,7 @@ export function Pet3DViewer({ identity, twin = null, pose = null, variant = "sta
       data-orientation={DEFAULT_ORBIT.yaw.toFixed(2)}
       data-variant={variant}
       role="img"
-      aria-label={`${meta.name}的 3D 形象（演示，开发环境）。${meta.description}`}
+      aria-label={`${meta.name}的 3D 形象（演示）。${meta.description}`}
       className="pet3d-wrap"
       style={{ touchAction: "none" }}
     >

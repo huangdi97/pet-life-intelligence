@@ -136,11 +136,12 @@ export function LifeViewScreen() {
             note={
               twin
                 ? `第 ${twin.version} 版 3D 形象 · 已通过你的确认 · 外观来自${twin.mediaProvenance === "OWNER_REPORTED" ? "你的照片" : "演示素材"}`
-                : `演示 3D 形象（开发环境）· 未来连接真实服务后，将用${pet?.name ?? "宠物"}的照片生成`
+                : "暂时使用简化形象，连接照片后会生成更像它的 3D 形象"
             }
             demo={DEMO_ENV}
             interactive
             twin={twin?.descriptor ?? null}
+            sourceMediaCount={twin?.observedRegions.length ?? 0}
             pose={pose}
           />
         </View>
@@ -203,7 +204,9 @@ export function LifeViewScreen() {
             <View style={styles.lookRow}>
               <Ionicons name="cube-outline" size={18} color={COLORS.textTertiary} />
               <Text style={styles.panelText}>
-                现在显示的是演示 3D 形象（开发环境），只来自演示数据。未来连接真实服务后，会用{pet?.name ?? "宠物"}的真实照片生成，并经过你确认后才会显示。外观不会替代真实照片与记录。
+                {twin
+                  ? `这是${pet?.name ?? "宠物"}的 3D 形象，已通过你的确认。外观不会替代真实照片与记录。`
+                  : "暂时使用简化形象。连接照片后，会生成更像它的 3D 形象，并经你确认后才会显示。"}
               </Text>
             </View>
           ) : null}

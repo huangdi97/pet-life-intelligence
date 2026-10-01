@@ -108,7 +108,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
   const show3d = identity !== null;
 
   return (
-    <main>
+    <main data-pli-selected={selected ?? ""}>
       <div data-testid="pli.twinreview.identity">
         <h1>{pet ? `${pet.name} · 确认 3D 形象` : "确认 3D 形象"}</h1>
         <p className="sub">
@@ -164,6 +164,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
               className={`btn${selected === o.id ? " primary" : ""}`}
               onClick={() => verify(o.id)}
               disabled={busy}
+              aria-pressed={selected === o.id}
               data-testid={`pli.twinreview.verify.${o.id}`}
             >
               {o.label}

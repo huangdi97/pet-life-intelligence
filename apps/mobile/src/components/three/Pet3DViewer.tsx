@@ -33,11 +33,15 @@ interface Props {
   /** Active motion clip name (persisted across remounts). */
   pose?: PoseName | null;
   interactive?: boolean;
+  /** Pet id + source media count for the V2 identity manifest gate. */
+  petId?: string | null;
+  sourceMediaCount?: number;
   onStatus?: (status: Pet3DStatus) => void;
   onOrientation?: (yaw: number) => void;
 }
 
-export function Pet3DViewer({ identity, twin = null, pose = null, interactive = false, onStatus, onOrientation }: Props) {
+export function Pet3DViewer({ identity, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, onStatus, onOrientation }: Props) {
+
   const [status, setStatus] = useState<Pet3DStatus>("boot");
   const webRef = useRef<WebView>(null);
   const lastPose = useRef<string | undefined>(undefined);
@@ -94,14 +98,14 @@ export function Pet3DViewer({ identity, twin = null, pose = null, interactive = 
   }, [pose, status]);
 
   const twinJson = twin ? JSON.stringify(twin).replace(/\\/g, "\\\\").replace(/'/g, "\\'") : "";
-  const injected = `window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; ${
+  const injected = `window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; window.__PLI_PET_ID = ${petId ? JSON.stringify(petId) : "null"}; window.__PLI_SOURCE_MEDIA_COUNT = ${Number(sourceMediaCount) || 0}; ${
     twin ? `window.__PLI_TWIN = JSON.parse('${twinJson}');` : ""
   } true;`;
 
   const meta = PET_3D_ASSETS[identity];
   const label = twin
     ? `${meta.name}的 3D 形象（由照片/模板生成，待你确认后才显示）。`
-    : `${meta.name}的 3D 形象（演示，开发环境）。${meta.description}`;
+    : `${meta.name}的 3D 形象（演示）。${meta.description}`;
 
   return (
     <View

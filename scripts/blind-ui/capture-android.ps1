@@ -54,13 +54,20 @@ function UiDump([string]$dir, [string]$file = "ui.xml") {
     if (-not (Test-Path $xml)) { New-Item -Force -Path $xml -ItemType File | Out-Null }
 }
 
-function Manifest([string]$dir) {
+function Manifest([string]$dir, [string]$file = "3d.json") {
     $hit = (& $Adb -s $Serial logcat -d -s ReactNativeJS:I 2>&1 | Select-String -Pattern "plimanifest" | Select-Object -Last 1)
     if ($null -ne $hit -and $hit.ToString() -match "\[plimanifest\] (.+)$") {
-        [System.IO.File]::WriteAllText((Join-Path $dir "3d.json"), $Matches[1], [System.Text.UTF8Encoding]::new($false))
+        [System.IO.File]::WriteAllText((Join-Path $dir $file), $Matches[1], [System.Text.UTF8Encoding]::new($false))
         return
     }
-    [System.IO.File]::WriteAllText((Join-Path $dir "3d.json"), "{}", [System.Text.UTF8Encoding]::new($false))
+    [System.IO.File]::WriteAllText((Join-Path $dir $file), "{}", [System.Text.UTF8Encoding]::new($false))
+}
+
+# Read the last [plimanifest] payload from logcat into the given file.
+function ManifestSnapshot([string]$dir, [string]$file) {
+    & $Adb -s $Serial logcat -c 2>&1 | Out-Null
+    Start-Sleep -Seconds 3
+    Manifest $dir $file
 }
 
 function DismissAnr() {
@@ -142,11 +149,43 @@ TapByText "不像" $dir
 Start-Sleep -Seconds 2
 UiDump $dir
 Shot "twinreview_b" $dir
-Write-Host "== lifeview rotation proof (a/b) =="
+Write-Host "== lifeview rotation proof (real camera yaw A/B) =="
 $dir = Join-Path $out "lifeview"
+# Clear logcat so the next manifest post comes from the current view state.
+& $Adb -s $Serial logcat -c 2>&1 | Out-Null
+Start-Sleep -Seconds 4
+Manifest $dir "3d_rotate_a.json"
+# Real drag on the stage (rotates the twin; webview manifests update continuously).
 & $Adb -s $Serial shell input swipe 540 900 900 900 400 2>&1 | Out-Null
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 4
+Manifest $dir "3d_rotate_b.json"
 Shot "lifeview_b" $dir
+# Zoom: tap the zoom + control (real button event -> radius change).
+$zoomBtn = & $Adb -s $Serial shell uiautomator dump /sdcard/z.xml 2>&1 | Out-Null
+$zoomHit = (& $Adb -s $Serial shell cat /sdcard/z.xml 2>&1 | Out-String)
+$zm = [regex]::Match($zoomHit, '<node[^>]*content-desc="[^"]*放大[^"]*"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"')
+if ($zm.Success) {
+    $zx = ([int]$zm.Groups[1].Value + [int]$zm.Groups[3].Value) / 2
+    $zy = ([int]$zm.Groups[2].Value + [int]$zm.Groups[4].Value) / 2
+    & $Adb -s $Serial logcat -c 2>&1 | Out-Null
+    & $Adb -s $Serial shell input tap ([int]$zx) ([int]$zy) 2>&1 | Out-Null
+    Start-Sleep -Seconds 4
+    Manifest $dir "3d_zoom_a.json"
+} else {
+    Manifest $dir "3d_zoom_a.json"
+}
+# Reset: tap the reset control -> camera back to canonical.
+$resetHit = (& $Adb -s $Serial shell cat /sdcard/z.xml 2>&1 | Out-String)
+$rm = [regex]::Match($resetHit, '<node[^>]*content-desc="[^"]*重置视图[^"]*"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"')
+if ($rm.Success) {
+    $rx = ([int]$rm.Groups[1].Value + [int]$rm.Groups[3].Value) / 2
+    $ry = ([int]$rm.Groups[2].Value + [int]$rm.Groups[4].Value) / 2
+    & $Adb -s $Serial shell input tap ([int]$rx) ([int]$ry) 2>&1 | Out-Null
+    Start-Sleep -Seconds 4
+    Manifest $dir "3d_reset.json"
+} else {
+    Manifest $dir "3d_reset.json"
+}
 Write-Host "== offline (API stopped = real network failure) =="
 $apiPid = (Get-NetTCPConnection -LocalPort 8800 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess)
 if ($apiPid) {
@@ -168,8 +207,10 @@ Start-Sleep -Seconds 25
 UiDump $dir
 Shot "offline" $dir
 if ($apiPid) {
-    # Restart the API exactly as before (WMI-detached so it survives this shell).
-    $cmd = 'cmd.exe /c set "DATABASE_URL=postgresql+asyncpg://pli:pli_dev_password@localhost:55679/pli" && set "PLI_ENV=dev" && "E:\AI\Pet Life Intelligence\.venv\Scripts\python.exe" -m uvicorn app.main:app --app-dir "E:\AI\Pet Life Intelligence\services\api" --host 127.0.0.1 --port 8800 > "C:\Users\Kaiser\.pi-desktop\scratch\ea6fce6e-f578-45cd-aa8f-fb70804eadb7\api-out.log" 2>&1'
+    $logDir = Join-Path $repo ".local\logs"
+    New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+    $apiLog = Join-Path $logDir "api-r2p3d-r3.log"
+    $cmd = 'cmd.exe /c set "DATABASE_URL=postgresql+asyncpg://pli:pli_dev_password@localhost:55679/pli" && set "PLI_ENV=dev" && "E:\AI\Pet Life Intelligence\.venv\Scripts\python.exe" -m uvicorn app.main:app --app-dir "E:\AI\Pet Life Intelligence\services\api" --host 127.0.0.1 --port 8800 > "' + $apiLog + '" 2>&1'
     $null = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $cmd }
     Start-Sleep -Seconds 8
     Write-Host "  API restarted"

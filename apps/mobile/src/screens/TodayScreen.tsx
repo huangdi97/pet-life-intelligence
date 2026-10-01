@@ -181,6 +181,7 @@ export function TodayScreen() {
           demo={DEMO_ENV}
           onPressPet={pet ? () => stackNav.navigate("LifeView") : undefined}
           twin={twin?.descriptor ?? null}
+          sourceMediaCount={twin?.observedRegions.length ?? 0}
           pose={twin ? representativePose ?? "Idle" : null}
         />
 

@@ -54,3 +54,4 @@ artifacts/release/**/*.tgz
 
 # R2P3D-R1 repo-local runtime (weights, envs, caches, temp, logs, avd)
 .local/
+.pi/

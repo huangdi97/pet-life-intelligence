@@ -13,12 +13,15 @@ import * as THREE from "three";
 import {
   addStageLights,
   applyOrbit,
+  buildManifestV2,
+  countMeshes,
   createPetStageScene,
   createTwinScene,
   DEFAULT_ORBIT,
   orbitFromDrag,
   orbitZoom,
   POSE_NAMES,
+  projectPetBounds,
   STAGE_FOG,
   STAGE_TARGET,
 } from "@pli/pet-3d";
@@ -29,6 +32,9 @@ const rootEl = document.getElementById("stage") as HTMLElement;
 const identity = (window.__PLI_IDENTITY as string) === "mimi" ? "mimi" : "doudou";
 const interactive = !!window.__PLI_INTERACTIVE;
 const twinDescriptor = window.__PLI_TWIN ?? null;
+/** Injected by Pet3DViewer for the V2 identity gate (pet id + media count). */
+const injectedPetId: string | null = window.__PLI_PET_ID ?? null;
+const injectedSourceMediaCount: number = Number(window.__PLI_SOURCE_MEDIA_COUNT ?? 0);
 
 function post(msg: Record<string, unknown>): void {
   try {
@@ -81,21 +87,27 @@ if (twinDescriptor) orbit.radius = Math.max(orbit.radius, 5.2);
 // --- blind scene manifest (test/debug only, never owner UI) ---
 function buildManifest(): Record<string, unknown> {
   const rect = renderer.domElement.getBoundingClientRect();
-  let meshCount = 0;
-  stage.pet.traverse((o: { isMesh?: boolean }) => {
-    if (o.isMesh) meshCount += 1;
-  });
+  const { meshCount, skinnedMeshCount } = countMeshes(stage.pet);
   const clips = [...POSE_NAMES];
-  return {
+  const projected = projectPetBounds(
+    stage.pet,
+    camera,
+    Math.max(1, Math.round(rect.width || window.innerWidth || 1)),
+    Math.max(1, Math.round(rect.height || window.innerHeight || 1)),
+  );
+  return buildManifestV2({
     ready: true,
     representation: twinDescriptor ? "procedural-twin" : "procedural-demo-stage",
-    fallbackUsed: false,
+    generic: !twinDescriptor,
+    petId: injectedPetId ?? null,
+    sourceMediaCount: twinDescriptor ? injectedSourceMediaCount : 0,
     assetVersion: twinDescriptor?.version ?? "demo-v1",
+    fallbackUsed: false,
+    wireframe: false,
     meshCount,
-    skinnedMeshCount: 0,
+    skinnedMeshCount,
     skeleton: !!twinDescriptor,
     animationClips: clips,
-    wireframe: false,
     materialMode: "pbr",
     baseColorTexture: true,
     camera: { fov: camera.fov, distance: orbit.radius, yaw: orbit.yaw, pitch: orbit.pitch, radius: orbit.radius },
@@ -108,7 +120,8 @@ function buildManifest(): Record<string, unknown> {
     pose: activePose ?? "Idle",
     poseSource: twinDescriptor ? ("REPRESENTATIVE" as const) : ("AMBIENT" as const),
     poseConfidence: twinDescriptor ? 0.9 : 0.3,
-  };
+    projected: projected ?? null,
+  });
 }
 (window as any).__PLI_GET_MANIFEST = () => buildManifest();
 (window as any).__PLI_REQUEST_MANIFEST = () => {

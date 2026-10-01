@@ -1,22 +1,190 @@
 {
   "screen": "twin-version",
-  "version": 1,
-  "dimensions": { "petIdentity": 20, "composition": 20, "hierarchy": 15, "surface": 10, "contentPurity": 10, "interaction": 10, "accessibility": 5, "runtimeTruth": 10 },
-  "thresholds": { "pass": 92 },
-  "critical": ["version.current", "version.content.purity"],
+  "version": 2,
+  "dimensions": {
+    "individualPetTruth": 25,
+    "visualComposition": 20,
+    "informationHierarchy": 15,
+    "surfaceGovernance": 10,
+    "contentPurity": 10,
+    "interactionTruth": 10,
+    "accessibility": 5,
+    "pixelStyleTruth": 5
+  },
+  "thresholds": {
+    "pass": 92
+  },
+  "critical": [
+    "version.current",
+    "version.content.purity"
+  ],
   "checks": [
-    { "id": "version.identity", "dimension": "petIdentity", "points": 8, "description": "当前宠物身份存在", "check": { "kind": "element", "idPrefix": "pli.twinversion.identity" } },
-    { "id": "version.current", "dimension": "petIdentity", "points": 12, "description": "当前版本卡片存在", "check": { "kind": "element", "idPrefix": "pli.twinversion.current" } },
-    { "id": "version.info", "dimension": "composition", "points": 10, "description": "版本信息分组存在", "check": { "kind": "element", "idPrefix": "pli.twinversion.info" } },
-    { "id": "version.history", "dimension": "composition", "points": 10, "description": "历史版本区存在", "check": { "kind": "element", "idPrefix": "pli.twinversion.history" } },
-    { "id": "version.time", "dimension": "hierarchy", "points": 5, "description": "版本时间存在", "check": { "kind": "element", "idPrefix": "pli.twinversion.time" } },
-    { "id": "version.source", "dimension": "hierarchy", "points": 5, "description": "来源素材数存在", "check": { "kind": "element", "idPrefix": "pli.twinversion.source" } },
-    { "id": "version.verify", "dimension": "hierarchy", "points": 5, "description": "Owner verification 存在", "check": { "kind": "element", "idPrefix": "pli.twinversion.verify" } },
-    { "id": "version.surface", "dimension": "surface", "points": 10, "description": "非普通设置列表：大 Card ≤4", "check": { "kind": "surface", "max": 4, "minArea": 16000 } },
-    { "id": "version.content.purity", "dimension": "contentPurity", "points": 10, "description": "Owner 文本无 raw internal terms", "check": { "kind": "text-free", "tokens": ["BW-", "OWNER_REPORTED", "STRESS_RECOVERY", "OPEN", "provider_", "model_id", "event_key", "PLI-"] } },
-    { "id": "version.entry", "dimension": "interaction", "points": 5, "description": "「完善 3D 形象」入口存在", "check": { "kind": "element", "idPrefix": "pli.twinversion.entry" } },
-    { "id": "version.history.action", "dimension": "interaction", "points": 5, "description": "历史版本可查看", "check": { "kind": "count", "filter": { "role": "button", "idPrefix": "pli.twinversion.history" }, "range": [1, 6] } },
-    { "id": "version.a11y", "dimension": "accessibility", "points": 5, "description": "版本信息可读", "check": { "kind": "element", "idPrefix": "pli.twinversion.current" } },
-    { "id": "version.truth", "dimension": "runtimeTruth", "points": 10, "description": "版本数据来自真实 runtime（非占位）", "check": { "kind": "text-free", "tokens": ["占位", "TODO", "placeholder", "coming soon"] } }
+    {
+      "id": "version.identity",
+      "dimension": "individualPetTruth",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.identity"
+      }
+    },
+    {
+      "id": "version.current",
+      "dimension": "individualPetTruth",
+      "points": 12,
+      "description": "当前版本卡片存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.current"
+      }
+    },
+    {
+      "id": "version.info",
+      "dimension": "visualComposition",
+      "points": 10,
+      "description": "版本信息分组存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.info"
+      }
+    },
+    {
+      "id": "version.history",
+      "dimension": "visualComposition",
+      "points": 10,
+      "description": "历史版本区存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.history"
+      }
+    },
+    {
+      "id": "version.time",
+      "dimension": "informationHierarchy",
+      "points": 5,
+      "description": "版本时间存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.time"
+      }
+    },
+    {
+      "id": "version.source",
+      "dimension": "informationHierarchy",
+      "points": 5,
+      "description": "来源素材数存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.source"
+      }
+    },
+    {
+      "id": "version.verify",
+      "dimension": "informationHierarchy",
+      "points": 5,
+      "description": "Owner verification 存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.verify"
+      }
+    },
+    {
+      "id": "version.surface",
+      "dimension": "surfaceGovernance",
+      "points": 10,
+      "description": "非普通设置列表：大 Card ≤4",
+      "check": {
+        "kind": "surface",
+        "max": 4,
+        "minArea": 16000
+      }
+    },
+    {
+      "id": "version.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      }
+    },
+    {
+      "id": "version.entry",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "「完善 3D 形象」入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.entry"
+      }
+    },
+    {
+      "id": "version.history.action",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "历史版本可查看",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.twinversion.history"
+        },
+        "range": [
+          1,
+          6
+        ]
+      }
+    },
+    {
+      "id": "version.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "版本信息可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.twinversion.current"
+      }
+    },
+    {
+      "id": "version.truth",
+      "dimension": "individualPetTruth",
+      "points": 5.0,
+      "description": "版本数据来自真实 runtime（非占位） (real data)",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      }
+    },
+    {
+      "id": "version.truth.style",
+      "dimension": "pixelStyleTruth",
+      "points": 5.0,
+      "description": "无占位/空板书风格（style truth）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      }
+    }
   ]
 }
