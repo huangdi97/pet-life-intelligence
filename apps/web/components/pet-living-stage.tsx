@@ -35,6 +35,8 @@ interface Props {
   demo?: boolean;
   /** Blind-UI: number of source media views used to build the individual twin. */
   sourceMediaCount?: number;
+  /** Individual twin descriptor (R2P3D-R3 D): drives the real per-pet asset. */
+  twin?: import("@pli/pet-3d").TwinDescriptor | null;
   /** Enables drag rotate + pinch zoom (Life View). */
   interactive?: boolean;
   /** Blind-UI contract: id on the outer stage section (e.g. pli.today.living-stage). */
@@ -51,6 +53,7 @@ export function PetLivingStage({
   name,
   petId,
   sourceMediaCount: sourceMediaCountProp = 0,
+  twin = null,
   species,
   breed,
   variant = "today",
@@ -121,11 +124,11 @@ export function PetLivingStage({
           data-testid={twinTestId}
           data-pli-type={twinTestId ? "twin" : undefined}
         >
-          {show3d ? <Pet3DViewer identity={identity} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} onStatus={setPet3d} /> : corgi}
+          {show3d ? <Pet3DViewer identity={identity} twin={twin} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} onStatus={setPet3d} /> : corgi}
         </Link>
       ) : (
         <span className={`r2p-stage-pet ${show3d ? "r2p-stage-pet--3d" : ""}`} data-testid={twinTestId} data-pli-type={twinTestId ? "twin" : undefined}>
-          {show3d ? <Pet3DViewer identity={identity} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} onStatus={setPet3d} /> : corgi}
+          {show3d ? <Pet3DViewer identity={identity} twin={twin} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} onStatus={setPet3d} /> : corgi}
         </span>
       )}
 

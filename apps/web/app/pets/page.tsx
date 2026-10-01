@@ -46,6 +46,19 @@ export default function PetsHubPage() {
     () => (current?.id ? api.get(`/pets/${current.id}/friends`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [current?.id],
   );
+  // Individual Twin (R2P3D-R3 D): same canonical per-pet asset as Today/Life View.
+  const twin = useAsync<{ models: Array<Record<string, unknown>> }>(
+    () => (current?.id ? api.get(`/pets/${current.id}/visual-models`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [current?.id],
+  );
+  const activeTwin = twin.data?.models.find((m) => m.status === "ACTIVE") ?? null;
+  const twinDescriptor = activeTwin
+    ? ((activeTwin.artifact_map as Record<string, unknown>)?.twin_descriptor as import("@pli/pet-3d").TwinDescriptor | undefined) ?? null
+    : null;
+  const twinVersion = Number(activeTwin?.version ?? 0) || undefined;
+  const observedRegions = (
+    (twinDescriptor as { surface?: { observed_regions?: string[] } } | null)?.surface?.observed_regions ?? []
+  ).length;
 
   const counts = today.data?.event_counts ?? {};
   const totalToday = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -82,6 +95,8 @@ export default function PetsHubPage() {
                 variant="pet"
                 headline={current.name}
                 caption={identityParts || undefined}
+                twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
+                sourceMediaCount={observedRegions || undefined}
                 stageTestId="pli.pet.hero-stage"
                 twinTestId="pli.pet.pet-twin"
               />

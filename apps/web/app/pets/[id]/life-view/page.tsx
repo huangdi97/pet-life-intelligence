@@ -42,6 +42,20 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
     () => (petId ? api.get(`/pets/${petId}/today`) : Promise.reject(new Error("NO_PET"))),
     [petId],
   );
+  // Individual Twin (R2P3D-R3 D): the ACTIVE per-pet twin descriptor drives the
+  // 3D stage on Life View too — same canonical asset as Android.
+  const twin = useAsync<{ models: Array<Record<string, unknown>> }>(
+    () => (petId ? api.get(`/pets/${petId}/visual-models`) : Promise.reject(new Error("NO_PET"))),
+    [petId],
+  );
+  const activeTwin = twin.data?.models.find((m) => m.status === "ACTIVE") ?? null;
+  const twinDescriptor = activeTwin
+    ? ((activeTwin.artifact_map as Record<string, unknown>)?.twin_descriptor as import("@pli/pet-3d").TwinDescriptor | undefined) ?? null
+    : null;
+  const twinVersion = Number(activeTwin?.version ?? 0) || undefined;
+  const observedRegions = (
+    (twinDescriptor as { surface?: { observed_regions?: string[] } } | null)?.surface?.observed_regions ?? []
+  ).length;
 
   if (pet.state === "denied") {
     return (
@@ -89,7 +103,6 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         <h1>生命视图</h1>
         <p className="v4-topline-sub">{name} · 此刻</p>
       </div>
-
       <div style={{ maxWidth: 288, margin: "0 auto" }}>
       <PetLivingStage
         name={name}
@@ -100,7 +113,14 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         variant="life"
         anchors={anchors}
         caption={mode === "now" ? nowLine : undefined}
-        note="演示 3D 形象（开发环境）· 未来连接真实服务后，将用真实照片生成"
+        note={
+          twinDescriptor
+            ? `第 ${twinVersion ?? 1} 版 3D 形象 · 已通过你的确认`
+            : "暂时使用简化形象，连接照片后会生成更像它的 3D 形象"
+        }
+        twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
+        sourceMediaCount={observedRegions || undefined}
+        interactive
         stageTestId="pli.lifeview.stage"
         twinTestId="pli.lifeview.twin"
         anchorTestIdPrefix="pli.lifeview.anchor"

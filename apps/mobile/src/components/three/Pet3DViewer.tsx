@@ -136,6 +136,11 @@ export function Pet3DViewer({ identity, twin = null, pose = null, interactive = 
       testID="pet3d-stage-mobile"
     >
       <WebView
+        // The twin descriptor arrives asynchronously after mount; keying the
+        // WebView on twinVersion+petId forces a clean reload so
+        // injectedJavaScriptBeforeContentLoaded carries the real individual
+        // twin (demo stage must not win when the twin loads late).
+        key={`${petId ?? "no-pet"}:${twin ? String(twin.version ?? "") : "demo"}`}
         ref={webRef}
         source={{ html: PET_STAGE_HTML, baseUrl: "file:///android_asset/" }}
         style={styles.web}
