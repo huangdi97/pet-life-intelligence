@@ -128,6 +128,8 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
               interactive
               petId={petId}
               frameTarget={0.23}
+              stageRole="review"
+              realityField="review-studio"
               sourceMediaCount={twinSourceMediaCount}
               twin={model ? { ...(modelDescriptor ?? {}), family: pet?.species === "cat" ? "standard-cat" : "corgi-like", version: model.version, provenance: model.provenance_kind } : null}
             />
@@ -152,7 +154,11 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
             key={v.id}
             type="button"
             className={`btn${view === v.id ? " primary" : ""}`}
-            onClick={() => setView(v.id)}
+            onClick={() => {
+              setView(v.id);
+              const yaw = v.id === "front" ? 0 : v.id === "side" ? Math.PI / 2 : Math.PI;
+              (window as any).__PLI_SET_VIEW?.(yaw);
+            }}
             data-testid={`pli.twinreview.view.${v.id}`}
           >
             {v.label}

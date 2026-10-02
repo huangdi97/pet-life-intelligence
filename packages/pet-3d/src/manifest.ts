@@ -54,6 +54,19 @@ export interface ManifestBuildInput {
   poseSource: "AMBIENT" | "REPRESENTATIVE" | "OBSERVED";
   poseConfidence: number;
   projected?: ProjectedBounds | null;
+  /** V3 asset classification (Blind Contract V3 §51). */
+  representationQuality?: string;
+  productCandidate?: boolean;
+  triangleCount?: number;
+  uvPresent?: boolean;
+  texturePresent?: boolean;
+  baseColorTextureResolution?: number;
+  /** Canonical hero pose used for the capture (Stand/Idle unless observed). */
+  canonicalPose?: string | null;
+  /** Stage role: today/pet/life/review — never a dark-viewer card. */
+  stageRole?: string | null;
+  /** Reality Field presence on the hero surfaces. */
+  realityField?: string | null;
 }
 
 /** Project the pet group's world bounding box into canvas pixel space. */
@@ -142,6 +155,19 @@ export function buildManifestV2(input: ManifestBuildInput): Record<string, unkno
     pose: input.pose,
     poseSource: input.poseSource,
     poseConfidence: input.poseConfidence,
+    // --- Blind Contract V3 (§51) ---
+    projectedPetHeightRatio: input.projected
+      ? Math.round((input.projected.height / Math.max(1, input.projected.viewportHeight)) * 1000) / 1000
+      : 0,
+    representationQuality: input.representationQuality ?? "engineering",
+    productCandidate: input.productCandidate ?? false,
+    triangleCount: input.triangleCount ?? 0,
+    uvPresent: input.uvPresent ?? false,
+    texturePresent: input.texturePresent ?? false,
+    baseColorTextureResolution: input.baseColorTextureResolution ?? 0,
+    canonicalPose: input.canonicalPose ?? null,
+    stageRole: input.stageRole ?? null,
+    realityField: input.realityField ?? null,
   };
 }
 

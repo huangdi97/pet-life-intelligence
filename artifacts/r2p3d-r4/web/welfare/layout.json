@@ -1,0 +1,171 @@
+{
+  "screen": "welfare",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "contentBounds": {
+    "top": 82,
+    "bottom": 844,
+    "width": 390,
+    "height": 762,
+    "left": 0
+  },
+  "elements": [
+    {
+      "id": "header",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "nav",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 100,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "pli.nav.today",
+      "role": "button",
+      "x": 174,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "今日"
+    },
+    {
+      "id": "pli.nav.timeline",
+      "role": "button",
+      "x": 214,
+      "y": 15,
+      "width": 46,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "时间线"
+    },
+    {
+      "id": "pli.nav.pet",
+      "role": "button",
+      "x": 264,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆"
+    },
+    {
+      "id": "pli.nav.assistant",
+      "role": "button",
+      "x": 304,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "助手"
+    },
+    {
+      "id": "pli.nav.me",
+      "role": "button",
+      "x": 344,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "我的"
+    },
+    {
+      "id": "pli.multipet.switch",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）咪咪（cat）"
+    },
+    {
+      "id": "pli.multipet.current",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）"
+    },
+    {
+      "id": "pli.welfare.identity",
+      "x": 12,
+      "y": 110,
+      "width": 366,
+      "height": 77,
+      "visible": true,
+      "z": 0,
+      "text": "福祉 · Welfare\n\n豆豆 · 生活质量 / 舒适 / 压力 / 活动 / 丰富化 —— 基于证据与趋势，不是医疗结论。"
+    },
+    {
+      "id": "pli.welfare.enrichment",
+      "x": 12,
+      "y": 299,
+      "width": 366,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "丰富化\n\n最近 2 条福祉相关记录来自真实观察。"
+    },
+    {
+      "id": "pli.welfare.comfort",
+      "x": 12,
+      "y": 393,
+      "width": 366,
+      "height": 99,
+      "visible": true,
+      "z": 0,
+      "text": "休息与舒适\n\n睡眠、休息环境与舒适度相关的观察会汇总到这里。还没有相关记录。"
+    },
+    {
+      "id": "pli.welfare.liked",
+      "x": 12,
+      "y": 504,
+      "width": 366,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "最近喜欢的活动\n\n从最近的观察中可以看到它偏好的活动。"
+    },
+    {
+      "id": "pli.welfare.observable",
+      "x": 12,
+      "y": 598,
+      "width": 366,
+      "height": 239,
+      "visible": true,
+      "z": 0,
+      "text": "证据\n还没有福祉记录。\n\n证据摘要来自带来源的可观察记录；不是情绪/福利真相断言。\n\n压力恢复\n环境负荷\n选择/控制感\n生活质量问卷\n记录福祉观察"
+    },
+    {
+      "id": "pli.welfare.action",
+      "x": 12,
+      "y": 849,
+      "width": 366,
+      "height": 99,
+      "visible": true,
+      "z": 0,
+      "text": "记录观察\n\n上面的「记录福祉观察」按钮会保存一条可追溯的观察，并标记记录人与来源。"
+    }
+  ]
+}

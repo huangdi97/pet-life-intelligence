@@ -1,0 +1,57 @@
+{
+  "pet_id": "doudou",
+  "twin_version": "r4-1.0.0",
+  "family": "corgi-like",
+  "representationQuality": "HIGH_FIDELITY_SKINNED",
+  "productCandidate": true,
+  "triangleCount": 45376,
+  "vertexCount": 23975,
+  "uvPresent": true,
+  "texturePresent": true,
+  "baseColorTextureResolution": 2048,
+  "baseColorTextureFile": "doudou_baseColor.png",
+  "observedMaskFile": "doudou_observed.png",
+  "inferredMaskFile": "doudou_inferred.png",
+  "meshFile": "doudou_base.obj",
+  "weightsFile": "doudou_weights.json",
+  "joints": [
+    "root",
+    "torso",
+    "neck",
+    "head",
+    "earL",
+    "earR",
+    "tail0",
+    "tail1",
+    "shoulderFL",
+    "kneeFL",
+    "shoulderFR",
+    "kneeFR",
+    "hipBL",
+    "kneeBL",
+    "hipBR",
+    "kneeBR"
+  ],
+  "sourceProvenance": "opengameart.org/content/dog-low-poly-rigged (CC0)",
+  "normalize": {
+    "scale": 0.2583830149804632,
+    "translate_y_min": -2.475863975621564,
+    "height": 1.35,
+    "rotate_y_deg": 0.0
+  },
+  "atlasObservedRatio": 0.5109403133392334,
+  "landmarks": {
+    "eye_center": [
+      6.740494682760043e-06,
+      1.258838499935742,
+      0.727463991021054
+    ],
+    "eye_dx": 0.056266791920362276,
+    "muzzle_z": 0.9321591055198759,
+    "chest_z": 0.3338036220416153,
+    "chest_y": 0.22347081922744272,
+    "head_min_z": -0.8278777809250475,
+    "head_max_z": 0.9321591055198759,
+    "head_min_y": 0.7425000000000002
+  }
+}

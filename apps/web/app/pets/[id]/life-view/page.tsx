@@ -111,6 +111,8 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         breed={pet.data?.breed}
         headline={mode === "now" ? `${name} · 此刻` : undefined}
         variant="life"
+        stageRole="life"
+        realityField="twin-space"
         anchors={anchors}
         caption={mode === "now" ? nowLine : undefined}
         note={

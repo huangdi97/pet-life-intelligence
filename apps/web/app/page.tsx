@@ -147,6 +147,8 @@ export default function TodayPage() {
         species={current.species}
         breed={current.breed}
         variant="today"
+        stageRole="today"
+        realityField="warm-living"
         anchors={anchors}
         headline={headline}
         caption={recent}

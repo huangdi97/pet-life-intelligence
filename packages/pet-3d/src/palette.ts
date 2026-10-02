@@ -9,14 +9,14 @@
 
 // Stage environment (used by clients for CSS background + fog tint).
 export const STAGE = {
-  /** Warm charcoal base — the dark, warm room the pet lives in. */
-  base: "#171310",
-  /** Slightly warmer brown-black for the deep layer. */
-  deep: "#100D0B",
-  /** Warm radial glow behind the pet. */
-  glow: "#3A2E24",
-  /** Fog / far-layer tint. */
-  fog: "#241C16",
+  /** Warm living base — the R4 Reality Field, never a dark viewer. */
+  base: "#F7E8D1",
+  /** Slightly deeper warm for the far layer. */
+  deep: "#EDDCC0",
+  /** Soft warm radial glow behind the pet. */
+  glow: "#FBF4E8",
+  /** Fog / far-layer tint (warm light so pets never vanish into black). */
+  fog: "#EFDCC0",
 } as const;
 
 // Coat materials (corgi 豆豆).

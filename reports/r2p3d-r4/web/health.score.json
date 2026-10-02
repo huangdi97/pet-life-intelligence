@@ -1,0 +1,258 @@
+{
+  "screen": "health",
+  "total": 85,
+  "max": 100,
+  "perDimension": {
+    "individualPetTruth": {
+      "earned": 25,
+      "max": 25
+    },
+    "visualComposition": {
+      "earned": 20,
+      "max": 20
+    },
+    "informationHierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surfaceGovernance": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 0,
+      "max": 10
+    },
+    "interactionTruth": {
+      "earned": 5,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "pixelStyleTruth": {
+      "earned": 5,
+      "max": 5
+    }
+  },
+  "passed": [
+    {
+      "id": "health.identity",
+      "dimension": "individualPetTruth",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.health.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.health.identity]=1"
+    },
+    {
+      "id": "health.overview",
+      "dimension": "individualPetTruth",
+      "points": 12,
+      "description": "近期状态概览存在（非空页+一条状态）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.health.overview"
+      },
+      "passed": true,
+      "detail": "elements[pli.health.overview]=1"
+    },
+    {
+      "id": "health.changes",
+      "dimension": "visualComposition",
+      "points": 8,
+      "description": "近期变化区存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.health.changes"
+      },
+      "passed": true,
+      "detail": "elements[pli.health.changes]=1"
+    },
+    {
+      "id": "health.prevent",
+      "dimension": "visualComposition",
+      "points": 6,
+      "description": "预防与计划区存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.health.prevent"
+      },
+      "passed": true,
+      "detail": "elements[pli.health.prevent]=1"
+    },
+    {
+      "id": "health.medication",
+      "dimension": "visualComposition",
+      "points": 6,
+      "description": "用药区存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.health.medication"
+      },
+      "passed": true,
+      "detail": "elements[pli.health.medication]=1"
+    },
+    {
+      "id": "health.records",
+      "dimension": "informationHierarchy",
+      "points": 5,
+      "description": "近期健康记录存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.health.records"
+      },
+      "passed": true,
+      "detail": "elements[pli.health.records]=1"
+    },
+    {
+      "id": "health.vet",
+      "dimension": "informationHierarchy",
+      "points": 5,
+      "description": "就诊摘要/Vet Brief 入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.health.vet"
+      },
+      "passed": true,
+      "detail": "elements[pli.health.vet]=1"
+    },
+    {
+      "id": "health.hierarchy",
+      "dimension": "informationHierarchy",
+      "points": 5,
+      "description": "无真实数据模块不 fake",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "health.surface",
+      "dimension": "surfaceGovernance",
+      "points": 10,
+      "description": "大 Card ≤5（不逐条独立 Card）",
+      "check": {
+        "kind": "surface",
+        "max": 5,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 5"
+    },
+    {
+      "id": "health.action",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "记录健康入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.health.action"
+      },
+      "passed": true,
+      "detail": "elements[pli.health.action]=1"
+    },
+    {
+      "id": "health.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "关键区可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.health.overview"
+      },
+      "passed": true,
+      "detail": "elements[pli.health.overview]=1"
+    },
+    {
+      "id": "health.truth",
+      "dimension": "individualPetTruth",
+      "points": 5,
+      "description": "状态/记录来自真实 runtime (real data)",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.health.status"
+      },
+      "passed": true,
+      "detail": "elements[pli.health.status]=1"
+    },
+    {
+      "id": "health.truth.style",
+      "dimension": "pixelStyleTruth",
+      "points": 5,
+      "description": "无占位/空板书风格（style truth）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [
+    {
+      "id": "health.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": false,
+      "detail": "raw tokens found: BW-"
+    },
+    {
+      "id": "health.record.action",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "记录可查看",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.health.records"
+        },
+        "range": [
+          1,
+          12
+        ]
+      },
+      "passed": false,
+      "detail": "count=0 outside [1,12]"
+    }
+  ],
+  "criticalFailed": [
+    "health.content.purity"
+  ],
+  "pass": false,
+  "heroPass": false,
+  "blockers": [
+    "health.content.purity"
+  ]
+}

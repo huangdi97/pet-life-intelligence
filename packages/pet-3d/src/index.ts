@@ -44,16 +44,18 @@ export {
   POSE_NAMES,
   POSE_META,
   POSE_CLIPS,
+  POSE_FN,
   applyPose,
   buildClip,
   motionManifest,
   poseForEvent,
 } from "./motion";
-export type { PoseName, PoseTruth, PoseMeta, PoseClipData, PoseFrame } from "./motion";
 export { createTwinScene, twinFingerprint } from "./twinScene";
 export type { TwinDescriptor, TwinScene, TwinTextureRegions } from "./twinScene";
-
-// Twin Manifest V2 (shared by web + mobile runtime + blind harness).
+export type { PoseName, PoseTruth, PoseMeta, PoseClipData, PoseFrame } from "./motion";
+export { loadTwinGLB, setTwinAssetResolver, TWIN_GLB_PATH } from "./loader";
+export type { LoadedTwin, TwinAssetResolver } from "./loader";
+// Twin Manifest V2/V3 (shared by web + mobile runtime + blind harness).
 export {
   buildManifestV2,
   clampRadius,

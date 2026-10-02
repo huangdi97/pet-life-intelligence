@@ -36,7 +36,8 @@ import {
   STAGE_TARGET,
 } from "@pli/pet-3d";
 import type { OrbitState, Pet3DIdentity, PoseName, TwinDescriptor } from "@pli/pet-3d";
-
+import { loadTwinGLB, setTwinAssetResolver } from "@pli/pet-3d";
+import type { LoadedTwin } from "@pli/pet-3d";
 export type Pet3DStatus = "boot" | "ready" | "failed";
 
 interface Props {
@@ -54,8 +55,10 @@ interface Props {
    * §31 framing target: the projected pet box should occupy this fraction of
    * the full viewport. >0 enables aspect-aware auto-framing for the twin
    * (renderer knob — the contract ranges stay canonical). 0 = demo framing.
-   */
+  */
   frameTarget?: number;
+  stageRole?: string;
+  realityField?: string;
   onStatus?: (status: Pet3DStatus) => void;
 }
 
@@ -68,6 +71,8 @@ export function Pet3DViewer({
   petId = null,
   sourceMediaCount = 0,
   frameTarget = 0,
+  stageRole = "life",
+  realityField = "",
   onStatus,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -129,6 +134,46 @@ export function Pet3DViewer({
     scene.add(stage.shadow);
     addStageLights(scene);
 
+    // R4: the product candidate is a HIGH_FIDELITY_SKINNED GLB. The
+    // procedural twin stays only as the engineering fallback while the GLB
+    // loads (or when it fails). Manifest reclassifies accordingly.
+    let petRoot: THREE.Object3D = stage.pet;
+    let hdTwin: LoadedTwin | null = null;
+    if (twin && identity) {
+      setTwinAssetResolver(null);
+      loadTwinGLB(identity)
+        .then((twin3d) => {
+          if (!alive || !twin3d || !scene || !camera) return undefined;
+          scene.remove(stage.pet);
+          scene.add(twin3d.group);
+          petRoot = twin3d.group;
+          hdTwin = twin3d;
+          applyOrbit(camera, STAGE_TARGET, orbitRef.current);
+          if (frameTarget > 0) {
+            const fit = fitOrbitRadius(
+              twin3d.group,
+              camera,
+              { yaw: DEFAULT_ORBIT.yaw, pitch: DEFAULT_ORBIT.pitch, radius: DEFAULT_ORBIT.radius },
+              frameTarget,
+              Math.max(1, Math.round(window.innerWidth)),
+              Math.max(1, Math.round(window.innerHeight)),
+            );
+            canonicalFitRef.current = fit;
+            zoomBoundsRef.current = { min: fit.radius * 0.5, max: fit.radius * 2.5 };
+            orbitRef.current = { ...fit };
+            applyOrbit(camera, STAGE_TARGET, orbitRef.current);
+          }
+          syncOrientation();
+          return undefined;
+        })
+        .catch((err) => {
+          // PROVIDER: GLB load failures must never take down the hero; the
+          // procedural twin stays as the engineering fallback. Log for QA.
+          if (typeof console !== "undefined") console.error("R4_TWIN_GLB_LOAD_FAIL", err);
+          return undefined;
+        });
+    }
+
     camera = new THREE.PerspectiveCamera(38, 1, 0.1, 40);
 
     const resize = () => {
@@ -147,7 +192,7 @@ export function Pet3DViewer({
             // the real rendered size matches the contract's composition range
             // on portrait/landscape alike. Reset restores this fitted frame.
             const fit = fitOrbitRadius(
-              stage.pet,
+              petRoot,
               camera,
               { yaw: DEFAULT_ORBIT.yaw, pitch: DEFAULT_ORBIT.pitch, radius: DEFAULT_ORBIT.radius },
               frameTarget,
@@ -172,14 +217,14 @@ export function Pet3DViewer({
     // Blind harness: publish the 3D runtime manifest to window (test/debug
     // only; never rendered in the owner UI). capture-web reads it.
     const publishManifest = () => {
-      const { meshCount, skinnedMeshCount } = countMeshes(stage.pet);
+      const { meshCount, skinnedMeshCount } = countMeshes(petRoot);
       const rect = wrap.getBoundingClientRect();
       const clips = [...POSE_NAMES];
       // §31: projected area ratio is measured against the full viewport
       // (window), not the stage container, so "twin too small / too big" is
       // judged like a human would see the screen.
       const projected = projectPetBounds(
-        stage.pet,
+        petRoot,
         camera as THREE.PerspectiveCamera,
         Math.max(1, Math.round(window.innerWidth)),
         Math.max(1, Math.round(window.innerHeight)),
@@ -217,6 +262,18 @@ export function Pet3DViewer({
         poseConfidence: twin ? 0.9 : 0.3,
         projected: projected ?? null,
       });
+      const v3 = {
+        representationQuality: hdTwin ? "HIGH_FIDELITY_SKINNED" : "engineering",
+        productCandidate: hdTwin !== null,
+        triangleCount: hdTwin?.triangleCount ?? 0,
+        uvPresent: hdTwin !== null,
+        texturePresent: hdTwin !== null,
+        baseColorTextureResolution: hdTwin ? 2048 : 0,
+        canonicalPose: poseRef.current ?? "Stand",
+        stageRole,
+        realityField: realityField || "warm-living",
+      } as const;
+      Object.assign((window as any).__PLI_3D_MANIFEST__, v3);
     };
 
     const canRotate = () => interactive || variant === "life";
@@ -259,8 +316,11 @@ export function Pet3DViewer({
       // The pose loop still animates the pet itself (breathing/joints).
       if (camera && scene) {
         applyOrbit(camera, STAGE_TARGET, orbitRef.current);
-        if (twin) {
-          // Twin scene: setPose(poseName, timeSeconds) — real joint animation.
+        if (hdTwin) {
+          // R4 high-fidelity twin: GLB bones driven by the same pose library.
+          hdTwin.setPose(poseRef.current ?? "Idle", t / 1000);
+        } else if (twin) {
+          // Procedural twin (engineering fallback): real joint animation.
           (stage as any).setPose(poseRef.current ?? "Idle", t / 1000);
         } else {
           // Demo stage: setPose(timeSeconds, enabled) — breathing only.
@@ -329,9 +389,15 @@ export function Pet3DViewer({
     const win = window as any;
     win.__PLI_SET_ZOOM = (factor: number) => zoom(factor);
     win.__PLI_RESET_VIEW = () => reset();
+    win.__PLI_SET_VIEW = (yawDeg: number) => {
+      orbitRef.current.yaw = yawDeg;
+      if (wrapRef.current) wrapRef.current.dataset.orientation = yawDeg.toFixed(2);
+      publishNow();
+    };
     return () => {
       delete win.__PLI_SET_ZOOM;
       delete win.__PLI_RESET_VIEW;
+      delete win.__PLI_SET_VIEW;
     };
   }, [interactive, variant, twin, frameTarget]);
 

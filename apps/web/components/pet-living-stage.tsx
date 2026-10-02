@@ -49,6 +49,10 @@ interface Props {
   anchorTestIdPrefix?: string;
   /** Blind-UI contract: id on the headline element. */
   headlineTestId?: string;
+  /** V3 stage role (today/pet/life) — drives manifest + surface semantics. */
+  stageRole?: string;
+  /** V3 reality field id (warm-living / twin-space ...). */
+  realityField?: string;
 }
 
 export function PetLivingStage({
@@ -70,7 +74,11 @@ export function PetLivingStage({
   twinTestId,
   anchorTestIdPrefix,
   headlineTestId,
+  stageRole,
+  realityField,
 }: Props) {
+  const role = stageRole ?? variant;
+  const field = realityField ?? "warm-living";
   const identity = resolvePet3DIdentity({ name, species, breed });
   const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
   const show3d = identity !== null && pet3d !== "failed";
@@ -113,6 +121,7 @@ export function PetLivingStage({
       data-appearance-role="warm-living-field"
       data-surface-role={variant === "life" ? "digital-field" : "open-stage"}
       data-reality-field={variant === "life" ? "true" : "false"}
+      data-stage-role={role}
       data-pet-presence-role="individual-twin"
       data-material-role="pbr-warm"
       data-pli-interactive={(interactive || variant === "life") ? "true" : "false"}
@@ -127,11 +136,11 @@ export function PetLivingStage({
           data-testid={twinTestId}
           data-pli-type={twinTestId ? "twin" : undefined}
         >
-          {show3d ? <Pet3DViewer identity={identity} twin={twin} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} frameTarget={frameTarget} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} onStatus={setPet3d} /> : corgi}
+          {show3d ? <Pet3DViewer identity={identity} twin={twin} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} frameTarget={frameTarget} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} stageRole={role} realityField={field} onStatus={setPet3d} /> : corgi}
         </Link>
       ) : (
         <span className={`r2p-stage-pet ${show3d ? "r2p-stage-pet--3d" : ""}`} data-testid={twinTestId} data-pli-type={twinTestId ? "twin" : undefined}>
-          {show3d ? <Pet3DViewer identity={identity} twin={twin} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} frameTarget={frameTarget} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} onStatus={setPet3d} /> : corgi}
+          {show3d ? <Pet3DViewer identity={identity} twin={twin} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} frameTarget={frameTarget} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} stageRole={role} realityField={field} onStatus={setPet3d} /> : corgi}
         </span>
       )}
       {anchors.slice(0, 6).map((a, i) =>

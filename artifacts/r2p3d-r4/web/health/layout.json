@@ -1,0 +1,202 @@
+{
+  "screen": "health",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "contentBounds": {
+    "top": 82,
+    "bottom": 844,
+    "width": 390,
+    "height": 762,
+    "left": 0
+  },
+  "elements": [
+    {
+      "id": "header",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "nav",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 100,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "pli.nav.today",
+      "role": "button",
+      "x": 174,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "今日"
+    },
+    {
+      "id": "pli.nav.timeline",
+      "role": "button",
+      "x": 214,
+      "y": 15,
+      "width": 46,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "时间线"
+    },
+    {
+      "id": "pli.nav.pet",
+      "role": "button",
+      "x": 264,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆"
+    },
+    {
+      "id": "pli.nav.assistant",
+      "role": "button",
+      "x": 304,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "助手"
+    },
+    {
+      "id": "pli.nav.me",
+      "role": "button",
+      "x": 344,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "我的"
+    },
+    {
+      "id": "pli.multipet.switch",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）咪咪（cat）"
+    },
+    {
+      "id": "pli.multipet.current",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）"
+    },
+    {
+      "id": "pli.health.identity",
+      "x": 12,
+      "y": 110,
+      "width": 366,
+      "height": 96,
+      "visible": true,
+      "z": 0,
+      "text": "健康事件\n\n豆豆 · 发现异常 → 动态追问 → 可观察事实 → 红旗分级 → Vet Brief → Outcome。分级由独立规则引擎给出，AI 只整理事实，不能降低紧急度。"
+    },
+    {
+      "id": "pli.health.overview",
+      "x": 12,
+      "y": 222,
+      "width": 366,
+      "height": 122,
+      "visible": true,
+      "z": 0,
+      "text": "近期状态概览\n\n有 3 个未关闭的健康事件\n\n状态：观察（来自最近一条健康记录）"
+    },
+    {
+      "id": "pli.health.changes",
+      "x": 12,
+      "y": 356,
+      "width": 366,
+      "height": 99,
+      "visible": true,
+      "z": 0,
+      "text": "近期变化\n\n最近的健康事件是「BW-outcome-1790516398414」，打开于 2026/9/27 21:40:07。"
+    },
+    {
+      "id": "pli.health.prevent",
+      "x": 12,
+      "y": 467,
+      "width": 366,
+      "height": 99,
+      "visible": true,
+      "z": 0,
+      "text": "预防与计划\n\n疫苗、驱虫与定期体检记录会集中在这里。还没有相关记录。"
+    },
+    {
+      "id": "pli.health.medication",
+      "x": 12,
+      "y": 578,
+      "width": 366,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "用药\n\n用药计划与给药记录见「用药」页。 查看用药"
+    },
+    {
+      "id": "pli.health.action",
+      "role": "button",
+      "x": 29,
+      "y": 880,
+      "width": 114,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "打开健康事件"
+    },
+    {
+      "id": "pli.health.records",
+      "x": 12,
+      "y": 953,
+      "width": 366,
+      "height": 635,
+      "visible": true,
+      "z": 0,
+      "text": "健康记录\n\n6 条记录 · 3 个进行中\n\nBW-outcome-1790516398414\n观察\n已关闭\n2026/9/27 21:40:07\nBW-share-1790516352065\n观察\n进行中\n2026/9/27 21:39:14\nBW-outcome-1790516211132\n观察\n已关闭\n2026/9/27 21:37:03\nBW-share-1790516161769\n观察\n进"
+    },
+    {
+      "id": "pli.health.status",
+      "x": 29,
+      "y": 1001,
+      "width": 332,
+      "height": 17,
+      "visible": true,
+      "z": 0,
+      "text": "6 条记录 · 3 个进行中"
+    },
+    {
+      "id": "pli.health.vet",
+      "x": 12,
+      "y": 1600,
+      "width": 366,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "用药\n行为"
+    }
+  ]
+}
