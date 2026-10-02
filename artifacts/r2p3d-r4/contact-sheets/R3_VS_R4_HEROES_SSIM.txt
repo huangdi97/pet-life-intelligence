@@ -1,0 +1,4 @@
+today: 0.2303 
+pet: 0.2542 
+lifeview: 0.2531 
+twinreview: 0.7148 
