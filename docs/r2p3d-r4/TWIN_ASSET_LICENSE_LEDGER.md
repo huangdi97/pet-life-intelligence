@@ -68,3 +68,21 @@ To reproduce the fetch (network not required at build time):
 SHA-256 of the committed source copies is recorded in
 `artifacts/r2p3d-r4/twin-sources/SHA256SUMS.txt` (generated at bake time by
 `scripts/r2p3d-r4/bake_twin.py --write-sums`).
+
+## Entry 3 — R4.1 deterministic Corgi-like morphology (in-repo authored)
+
+| field | value |
+| --- | --- |
+| asset | `doudou_base.obj` re-baked geometry (positions only) |
+| what | `scripts/r2p3d-r4/corgi_morph.py` — deterministic, region-aware,
+  smooth-ramp vertex transform (long back, short legs, wider head, shorter
+  muzzle, upright ear pinna, thick chest, low CG) applied in the bake
+  pipeline BEFORE unwrap+paint so the texture projection conforms to the new
+  silhouette |
+| provenance | authored in-repo; derives from Entry 1's CC0 base (CC0-derived;
+  no new external asset, no new license obligation) |
+| record | `packages/pet-3d/assets/twins/doudou_meta.json → morphology`
+  {params, before, after, delta} — deterministic and auditable |
+| applied to | 豆豆 `doudou.glb` (twin_version `r4-1.1.0`, still 45,376 tris) |
+| honesty | demo Corgi-like product asset; NOT a claim of the real pet's
+  morphology (REAL_PET_IDENTITY_VALIDATION = NOT_YET_OBSERVED) |
