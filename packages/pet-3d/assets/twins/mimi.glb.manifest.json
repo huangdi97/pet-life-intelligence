@@ -50,6 +50,8 @@
     "head_max_z": 0.13143885679444894,
     "head_min_y": 0.55
   },
+  "representation": "high-fidelity-glb-twin",
+  "legacyRepresentation": "procedural-twin",
   "skinnedMeshCount": 1,
   "jointCount": 16,
   "materialCount": 1,

@@ -24,6 +24,7 @@ import math
 from pathlib import Path
 
 import numpy as np
+from corgi_morph import MorphParams, corgi_morph, measure_metrics, metrics_delta
 from meshops import (
     face_normals,
     loop_subdivide,
@@ -127,7 +128,7 @@ CONFIG = {
         "height": 1.35,
         "proc_height": 1.35,
         "pet_id": "doudou",
-        "twin_version": "r4-1.0.0",
+        "twin_version": "r4-1.1.0",
         "family": "corgi-like",
         "painter": make_dog_painter,
         "landmarks": _landmarks_dog,
@@ -173,6 +174,23 @@ def bake(identity: str, write_sums: bool = False) -> None:
     for _ in range(cfg["subdiv"]):
         V, F, colors = loop_subdivide(V, F, colors)
     V, m = normalize_mesh(V, cfg["height"], rotate_y_deg=cfg["rotate_y_deg"])
+    # R4.1: deterministic Corgi-like morphology for the demo dog twin.
+    # Positions-only transform (topology / UV / rig are regenerated downstream);
+    # it runs before landmarks + unwrap so the 5-view texture projection and
+    # the observed/inferred masks conform to the new silhouette. The cat
+    # identity is NOT morphed (parity audit; mimi keeps its own bake).
+    morph_meta: dict = {"applied": False}
+    if identity == "dog":
+        v_in, before_m, after_m = corgi_morph(V, colors, MorphParams())
+        after_m = measure_metrics(v_in)
+        morph_meta = {
+            "applied": True,
+            "params": MorphParams().__dict__,
+            "before": before_m,
+            "after": after_m,
+            "delta": metrics_delta(before_m, after_m),
+        }
+        V = v_in
     fn = face_normals(V, F)
     lnorm = np.linalg.norm(fn, axis=1, keepdims=True)
     fn = fn / np.where(lnorm > 1e-12, lnorm, 1.0)
@@ -210,6 +228,8 @@ def bake(identity: str, write_sums: bool = False) -> None:
         "pet_id": cfg["pet_id"],
         "twin_version": cfg["twin_version"],
         "family": cfg["family"],
+        "representation": "high-fidelity-glb-twin",
+        "legacyRepresentation": "procedural-twin",
         "representationQuality": "HIGH_FIDELITY_SKINNED",
         "productCandidate": True,
         "triangleCount": tris,
@@ -228,6 +248,7 @@ def bake(identity: str, write_sums: bool = False) -> None:
             "mimi": "opengameart.org/content/animated-animales-low-poly (Quaternius CC0)",
         }[cfg["pet_id"]],
         "normalize": m,
+        "morphology": morph_meta,
         "atlasObservedRatio": float(observed.mean()),
         "landmarks": {k: (list(v) if isinstance(v, tuple) else v) for k, v in landmarks.items()},
     }

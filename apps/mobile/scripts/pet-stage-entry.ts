@@ -144,7 +144,17 @@ function buildManifest(): Record<string, unknown> {
   );
   const m = buildManifestV2({
     ready: true,
-    representation: twinDescriptor ? "procedural-twin" : "procedural-demo-stage",
+    // Phase E: canonical representation names the asset that is REALLY on
+    // screen — the embedded HIGH_FIDELITY_SKINNED GLB twin when loaded;
+    // legacyRepresentation keeps the R3-era procedural label for
+    // backward-compatible readers. No auditor should see HIGH_FIDELITY_SKINNED
+    // + "procedural-demo-stage" on the same line without an explanation.
+    representation: hdTwin
+      ? "high-fidelity-glb-twin"
+      : twinDescriptor
+        ? "procedural-twin"
+        : "procedural-demo-stage",
+    legacyRepresentation: twinDescriptor ? "procedural-twin" : "procedural-demo-stage",
     generic: !twinDescriptor,
     petId: injectedPetId ?? null,
     sourceMediaCount: twinDescriptor ? injectedSourceMediaCount : 0,
@@ -293,6 +303,13 @@ window.resetView = () => {
   // evidence always compares against the SAME fitted baseline.
   Object.assign(orbit, { ...DEFAULT_ORBIT });
   applyFit();
+};
+// R4.1 (Phase C): Twin Review view presets must drive the real camera —
+// front = 0, side = π/2, back = π (mirrors the web Twin Review + pixel
+// contract). The yaw is applied in the page so the manifest camera evidence
+// (3d.json yaw) proves the view switch is a true camera move.
+window.__PLI_SET_VIEW = (yaw: number) => {
+  Object.assign(orbit, { yaw, pitch: DEFAULT_ORBIT.pitch });
 };
 
 const controls = document.getElementById("controls") as HTMLElement;

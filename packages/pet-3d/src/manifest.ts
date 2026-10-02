@@ -32,6 +32,12 @@ export interface ProjectedBounds {
 export interface ManifestBuildInput {
   ready: boolean;
   representation: string;
+  /**
+   * Phase E: legacy R3-era label kept for backward-compatible readers; the
+   * canonical `representation` must describe the asset that is really on
+   * screen (e.g. high-fidelity-glb-twin), never a stale synthetic label.
+   */
+  legacyRepresentation?: string | null;
   fallbackUsed: boolean;
   wireframe: boolean;
   generic: boolean;
@@ -131,6 +137,7 @@ export function buildManifestV2(input: ManifestBuildInput): Record<string, unkno
   return {
     ready: input.ready,
     manifestOrigin: "RUNTIME",
+    legacyRepresentation: input.legacyRepresentation ?? null,
     representation: input.representation,
     generic: input.generic,
     petId: input.petId,

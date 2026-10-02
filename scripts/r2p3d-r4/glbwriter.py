@@ -273,6 +273,11 @@ def build_glb(
     out += struct.pack("<I", len(bin_bytes)) + b"BIN\x00" + bin_bytes
     dest.write_bytes(out)
 
+    # Phase E: canonical representation names the actual asset class; the
+    # R3-era procedural label survives only as legacyRepresentation so no
+    # auditor sees HIGH_FIDELITY_SKINNED + procedural-* unqualified.
+    manifest["representation"] = "high-fidelity-glb-twin"
+    manifest["legacyRepresentation"] = "procedural-twin"
     manifest.update({
         "representationQuality": "HIGH_FIDELITY_SKINNED",
         "productCandidate": True,

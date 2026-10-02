@@ -3,6 +3,8 @@
   "twin_version": "r4-1.0.0",
   "family": "standard-cat",
   "representationQuality": "HIGH_FIDELITY_SKINNED",
+  "representation": "high-fidelity-glb-twin",
+  "legacyRepresentation": "procedural-twin",
   "productCandidate": true,
   "triangleCount": 51568,
   "vertexCount": 28951,

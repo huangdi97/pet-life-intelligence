@@ -232,7 +232,16 @@ export function Pet3DViewer({
       const orbit = orbitRef.current;
       (window as any).__PLI_3D_MANIFEST__ = buildManifestV2({
         ready: true,
-        representation: twin ? "procedural-twin" : "procedural-demo-stage",
+        // Phase E: canonical representation names the asset REALLY on screen
+        // (the HIGH_FIDELITY_SKINNED GLB twin when loaded); the V3 patch
+        // below carries the asset classification. legacyRepresentation keeps
+        // the R3-era label for backward-compatible readers.
+        representation: hdTwin
+          ? "high-fidelity-glb-twin"
+          : twin
+            ? "procedural-twin"
+            : "procedural-demo-stage",
+        legacyRepresentation: twin ? "procedural-twin" : "procedural-demo-stage",
         generic: !twin,
         petId: petId ?? null,
         sourceMediaCount,

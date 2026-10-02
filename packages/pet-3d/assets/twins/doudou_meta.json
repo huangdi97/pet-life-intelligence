@@ -1,11 +1,13 @@
 {
   "pet_id": "doudou",
-  "twin_version": "r4-1.0.0",
+  "twin_version": "r4-1.1.0",
   "family": "corgi-like",
   "representationQuality": "HIGH_FIDELITY_SKINNED",
+  "representation": "high-fidelity-glb-twin",
+  "legacyRepresentation": "procedural-twin",
   "productCandidate": true,
   "triangleCount": 45376,
-  "vertexCount": 23975,
+  "vertexCount": 23827,
   "uvPresent": true,
   "texturePresent": true,
   "baseColorTextureResolution": 2048,
@@ -39,19 +41,86 @@
     "height": 1.35,
     "rotate_y_deg": 0.0
   },
-  "atlasObservedRatio": 0.5109403133392334,
+  "morphology": {
+    "applied": true,
+    "params": {
+      "body_length_scale": 1.18,
+      "body_depth_scale": 1.05,
+      "chest_width_scale": 1.1,
+      "leg_height_scale": 0.6,
+      "head_width_scale": 1.15,
+      "muzzle_length_scale": 0.78,
+      "forehead_raise": 0.06,
+      "ear_width_scale": 1.25,
+      "ear_raise_scale": 1.08,
+      "neck_length_scale": 0.96,
+      "height_budget": 1.34
+    },
+    "before": {
+      "body_length": 1.8643182110397518,
+      "total_height": 1.35,
+      "max_y": 1.35,
+      "body_length_ratio": 1.3809764526220383,
+      "trunk_length": 1.2730832494209228,
+      "trunk_length_ratio": 0.9430246292006834,
+      "head_width": 0.41600225174433125,
+      "head_depth": 1.7600368864449234,
+      "head_width_ratio": 0.308149816106912,
+      "muzzle_stickout": 0.21941675420063556,
+      "muzzle_stickout_ratio": 0.1176927591552433,
+      "leg_top_p95": 0.4246766755580907,
+      "leg_top_ratio": 0.3145753152282153,
+      "belly_clearance": 0.0026221548463831682,
+      "belly_clearance_ratio": 0.001942336923246791
+    },
+    "after": {
+      "body_length": 1.8703422875918325,
+      "total_height": 1.34,
+      "max_y": 1.34,
+      "body_length_ratio": 1.395777826561069,
+      "trunk_length": 1.4938044884248018,
+      "trunk_length_ratio": 1.1147794689737327,
+      "head_width": 0.4723119676846966,
+      "head_depth": 1.8703422875918325,
+      "head_width_ratio": 0.3524716176751467,
+      "muzzle_stickout": 0.1703133808825944,
+      "muzzle_stickout_ratio": 0.0910600065092268,
+      "leg_top_p95": 0.34365155789779234,
+      "leg_top_ratio": 0.2564563864908898,
+      "belly_clearance": 0.0014066464708268984,
+      "belly_clearance_ratio": 0.0010497361722588794
+    },
+    "delta": {
+      "body_length_delta": 0.0032312491056561672,
+      "total_height_delta": -0.007407407407407414,
+      "max_y_delta": -0.007407407407407414,
+      "body_length_ratio_delta": 0.010718049472116312,
+      "trunk_length_delta": 0.1733753382618747,
+      "trunk_length_ratio_delta": 0.18213187063696343,
+      "head_width_delta": 0.13535916140899265,
+      "head_depth_delta": 0.0626722098817563,
+      "head_width_ratio_delta": 0.1438319909717464,
+      "muzzle_stickout_delta": -0.2237904461622873,
+      "muzzle_stickout_ratio_delta": -0.22629049431058385,
+      "leg_top_p95_delta": -0.19079248360842715,
+      "leg_top_ratio_delta": -0.18475362154580338,
+      "belly_clearance_delta": -0.46355324027978895,
+      "belly_clearance_ratio_delta": -0.45954990625202613
+    }
+  },
+  "atlasObservedRatio": 0.4582078456878662,
   "landmarks": {
     "eye_center": [
-      6.740494682760043e-06,
-      1.258838499935742,
-      0.727463991021054
+      4.312437520926252e-05,
+      1.267703020090621,
+      0.7346572274166083
     ],
-    "eye_dx": 0.056266791920362276,
-    "muzzle_z": 0.9321591055198759,
-    "chest_z": 0.3338036220416153,
-    "chest_y": 0.22347081922744272,
-    "head_min_z": -0.8278777809250475,
-    "head_max_z": 0.9321591055198759,
-    "head_min_y": 0.7425000000000002
+    "eye_dx": 0.07117749177925829,
+    "muzzle_z": 0.8934465061002765,
+    "chest_z": 0.33161346839252603,
+    "chest_y": 0.148085062611996,
+    "head_min_z": -0.976895781491556,
+    "head_max_z": 0.8934465061002765,
+    "head_min_y": 0.7370000000000001
   }
 }
