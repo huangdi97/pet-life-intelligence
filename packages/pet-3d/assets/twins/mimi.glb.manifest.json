@@ -2,10 +2,12 @@
   "pet_id": "mimi",
   "twin_version": "r4-1.0.0",
   "family": "standard-cat",
+  "representation": "high-fidelity-glb-twin",
+  "legacyRepresentation": "procedural-twin",
   "representationQuality": "HIGH_FIDELITY_SKINNED",
   "productCandidate": true,
-  "triangleCount": 51568,
-  "vertexCount": 28951,
+  "triangleCount": 51648,
+  "vertexCount": 26601,
   "uvPresent": true,
   "texturePresent": true,
   "baseColorTextureResolution": 2048,
@@ -39,19 +41,20 @@
     "height": 1.0,
     "rotate_y_deg": -90.0
   },
-  "atlasObservedRatio": 0.2250053882598877,
+  "morphology": {
+    "applied": false
+  },
+  "atlasObservedRatio": 0.21371912956237793,
   "landmarks": {
     "eye_y": 0.74,
     "eye_dx": 0.13,
-    "muzzle_z": 0.14095411088518772,
+    "muzzle_z": 0.6325041238783207,
     "nose_y": 0.6,
-    "nose_z": 0.1609541108851877,
-    "head_min_z": -0.12575310908259096,
-    "head_max_z": 0.13143885679444894,
+    "nose_z": 0.6525041238783207,
+    "head_min_z": -0.6325041238783207,
+    "head_max_z": 0.6325041238783207,
     "head_min_y": 0.55
   },
-  "representation": "high-fidelity-glb-twin",
-  "legacyRepresentation": "procedural-twin",
   "skinnedMeshCount": 1,
   "jointCount": 16,
   "materialCount": 1,
@@ -70,8 +73,8 @@
     "Stretch"
   ],
   "pbrMaterial": true,
-  "fingerprint": "71836fd4cf6a2453",
-  "fileSizeBytes": 3425528,
+  "fingerprint": "274b2dc1f341c333",
+  "fileSizeBytes": 3216560,
   "poseTruth": {
     "Idle": "AMBIENT",
     "Stand": "AMBIENT",

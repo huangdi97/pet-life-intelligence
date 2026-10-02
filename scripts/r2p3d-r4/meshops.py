@@ -188,7 +188,11 @@ def normalize_mesh(
     if rotate_y_deg:
         a = np.deg2rad(rotate_y_deg)
         ca, sa = np.cos(a), np.sin(a)
-        x, _, z = verts[:, 0], verts[:, 1], verts[:, 2]
+        # Copy before rotating: x/z are numpy views of `verts`; mutating in
+        # place would make the second axis read the already-rotated buffer and
+        # collapse both axes onto one span (observed on mimi, R4.2 root cause).
+        x = np.array(verts[:, 0], copy=True)
+        z = np.array(verts[:, 2], copy=True)
         verts[:, 0] = x * ca + z * sa
         verts[:, 2] = -x * sa + z * ca
     lo = verts.min(axis=0)
