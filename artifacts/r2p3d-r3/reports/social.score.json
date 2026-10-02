@@ -1,0 +1,250 @@
+{
+  "screen": "social",
+  "total": 95,
+  "max": 100,
+  "perDimension": {
+    "individualPetTruth": {
+      "earned": 25,
+      "max": 25
+    },
+    "visualComposition": {
+      "earned": 20,
+      "max": 20
+    },
+    "informationHierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surfaceGovernance": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interactionTruth": {
+      "earned": 5,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "pixelStyleTruth": {
+      "earned": 5,
+      "max": 5
+    }
+  },
+  "passed": [
+    {
+      "id": "social.identity",
+      "dimension": "individualPetTruth",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.social.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.social.identity]=1"
+    },
+    {
+      "id": "social.friends",
+      "dimension": "individualPetTruth",
+      "points": 12,
+      "description": "宠物朋友存在（1–2 可解释好友）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.social.friends",
+        "count": [
+          1,
+          3
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.social.friends]=1"
+    },
+    {
+      "id": "social.interactions",
+      "dimension": "visualComposition",
+      "points": 10,
+      "description": "最近互动存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.social.interactions"
+      },
+      "passed": true,
+      "detail": "elements[pli.social.interactions]=1"
+    },
+    {
+      "id": "social.preferences",
+      "dimension": "visualComposition",
+      "points": 10,
+      "description": "社交偏好存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.social.preferences"
+      },
+      "passed": true,
+      "detail": "elements[pli.social.preferences]=1"
+    },
+    {
+      "id": "social.meaning",
+      "dimension": "informationHierarchy",
+      "points": 5,
+      "description": "关系有含义",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.social.friends"
+      },
+      "passed": true,
+      "detail": "elements[pli.social.friends]=1"
+    },
+    {
+      "id": "social.role",
+      "dimension": "informationHierarchy",
+      "points": 5,
+      "description": "关系角色/最近互动描述",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.social.interactions"
+      },
+      "passed": true,
+      "detail": "elements[pli.social.interactions]=1"
+    },
+    {
+      "id": "social.nofeed",
+      "dimension": "informationHierarchy",
+      "points": 5,
+      "description": "非公开 Feed（无全站内容）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "广场",
+          "全部用户",
+          "发现宠物"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "social.surface",
+      "dimension": "surfaceGovernance",
+      "points": 10,
+      "description": "大 Card ≤5",
+      "check": {
+        "kind": "surface",
+        "max": 5,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 5"
+    },
+    {
+      "id": "social.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "social.action",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "记录互动入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.social.action"
+      },
+      "passed": true,
+      "detail": "elements[pli.social.action]=1"
+    },
+    {
+      "id": "social.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "朋友卡片可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.social.friends"
+      },
+      "passed": true,
+      "detail": "elements[pli.social.friends]=1"
+    },
+    {
+      "id": "social.truth",
+      "dimension": "individualPetTruth",
+      "points": 5,
+      "description": "关系来自真实 runtime（非测试宠物列表） (real data)",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "测试宠物"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "social.truth.style",
+      "dimension": "pixelStyleTruth",
+      "points": 5,
+      "description": "无占位/空板书风格（style truth）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [
+    {
+      "id": "social.view",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "朋友可查看",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.social.friends"
+        },
+        "range": [
+          1,
+          3
+        ]
+      },
+      "passed": false,
+      "detail": "count=0 outside [1,3]"
+    }
+  ],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}
