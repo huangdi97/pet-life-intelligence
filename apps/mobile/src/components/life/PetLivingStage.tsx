@@ -79,16 +79,14 @@ export function PetLivingStage({
 }: Props) {
   const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
   const identity = pet ? resolvePet3DIdentity({ name: pet.name, species: pet.species, breed: pet.breed }) : null;
-  // V4 §5 (PLI_VISUAL_SYSTEM_V4.md) / blind-UI 3D contract: the real 3D twin
-  // renders on every owner stage (Today / Pet / Life). "boot" (WebView
-  // loading) must still mount the viewer so the page can report ready/failed;
-  // only a real failure ("failed") falls back to photo/2.5D. This mirrors the
-  // web stage (pet3d !== "failed"), fixing the mobile deadlock where
-  // `pet3d === "ready"` prevented the viewer from ever mounting.
+  // R4.2: the stage is a warm living reality field (today/pet/life) or a
+  // neutral identity studio (review). The 3D page paints its own themed
+  // surface, so the host card must never flip to a dark viewer.
   const use3d = identity !== null && pet3d !== "failed";
+  const reviewStudio = variant === "review";
+  const stageTheme = reviewStudio ? ("review" as const) : ("living" as const);
   const height = HEIGHTS[variant];
   const petWidth = PET_WIDTHS[variant];
-  const dark = use3d;
   // Namespace mapping for machine-readable ids: today→pli.today, pet→pli.pet,
   // life→pli.lifeview (Life View ids are the canonical "stage"/"twin" pair).
   const stageTestId =
@@ -107,7 +105,7 @@ export function PetLivingStage({
         : `pli.${variant}.pet-twin`;
   const petLayer = use3d ? (
     <View style={{ width: petWidth, height: Math.round(petWidth * 1.12) }}>
-      <Pet3DViewer ref={viewerRef} identity={identity} twin={twin} pose={pose} interactive={interactive} frameTarget={frameTarget} view={view} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={setPet3d} />
+      <Pet3DViewer ref={viewerRef} identity={identity} twin={twin} pose={pose} interactive={interactive} frameTarget={frameTarget} view={view} stageTheme={stageTheme} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={setPet3d} />
     </View>
   ) : (
     <View pointerEvents={onPressPet ? "none" : undefined}>
@@ -115,15 +113,11 @@ export function PetLivingStage({
     </View>
   );
   return (
-    <View testID={stageTestId} accessible accessibilityLabel={`${pet?.name ?? "宠物"}的此刻舞台`} style={[styles.stage, { height }, dark && styles.stageDark]}>
-      {/* BACKGROUND: warm environment (charcoal when 3D, cream when fallback) */}
-      {!dark ? (
-        <>
-          <View style={styles.envTop} />
-          <View style={styles.envBase} />
-        </>
-      ) : null}
-      {dark ? <View style={styles.glow} /> : <View style={styles.wash} />}
+    <View testID={stageTestId} accessible accessibilityLabel={`${pet?.name ?? "宠物"}的此刻舞台`} style={[styles.stage, { height }, reviewStudio ? styles.stageReview : styles.stageLiving]}>
+      {/* BACKGROUND: warm living gradient (or neutral studio for review) */}
+      <View style={[styles.envTop, reviewStudio && styles.envReviewTop]} />
+      <View style={[styles.envBase, reviewStudio && styles.envReviewBase]} />
+      {reviewStudio ? <View style={styles.reviewGlow} /> : <View style={styles.glow} />}
 
       {/* MIDGROUND: pet */}
       {onPressPet ? (
@@ -142,29 +136,29 @@ export function PetLivingStage({
         </View>
       )}
 
-      {/* FOREGROUND: state anchors around the pet */}
+      {/* FOREGROUND: state anchors around the pet (ambient bubbles, low contrast) */}
       {anchors.slice(0, SLOTS.length).map((a, i) => (
         <View key={a.id} style={[styles.slot, SLOTS[i]]}>
-          <PetStateAnchor anchor={a} dark={dark} />
+          <PetStateAnchor anchor={a} />
         </View>
       ))}
 
       {/* identity + now line + honest note */}
       <View style={styles.head}>
-        <Text style={[styles.name, dark && styles.nameDark]}>{pet?.name ?? "宠物"}</Text>
+        <Text style={styles.name}>{pet?.name ?? "宠物"}</Text>
         {demo ? (
-          <View style={[styles.demoChip, dark && styles.demoChipDark]}>
-            <Text style={[styles.demoChipText, dark && styles.demoChipTextDark]}>示例数据</Text>
+          <View style={styles.demoChip}>
+            <Text style={styles.demoChipText}>示例数据</Text>
           </View>
         ) : null}
       </View>
       <View style={styles.nowBlock}>
-        {headline ? <Text style={[styles.headline, dark && styles.headlineDark]}>{headline}</Text> : null}
-        {caption ? <Text style={[styles.caption, dark && styles.captionDark]}>{caption}</Text> : null}
+        {headline ? <Text style={styles.headline}>{headline}</Text> : null}
+        {caption ? <Text style={styles.caption}>{caption}</Text> : null}
         {note ? (
           <View style={styles.noteRow}>
-            <Ionicons name="cube-outline" size={12} color={dark ? COLORS.textOnStageTertiary : COLORS.textTertiary} />
-            <Text style={[styles.note, dark && styles.noteDark]}>{note}</Text>
+            <Ionicons name="cube-outline" size={12} color={COLORS.textTertiary} />
+            <Text style={styles.note}>{note}</Text>
           </View>
         ) : null}
       </View>
@@ -179,18 +173,14 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.hero,
     overflow: "hidden",
   },
-  stageDark: { backgroundColor: COLORS.stageWarmBase },
-  envTop: { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.stageGradientTop },
-  envBase: { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.stageGradientBase, top: "55%" },
-  wash: {
-    position: "absolute",
-    width: 300,
-    height: 180,
-    borderRadius: 150,
-    backgroundColor: "rgba(255,251,242,0.6)",
-    top: -60,
-    right: -70,
-  },
+  // Warm living reality field: cream gradient + soft radial light, pet-first.
+  stageLiving: { backgroundColor: COLORS.stageWarmBase },
+  // Neutral identity studio for Twin Review: off-white / soft warm grey.
+  stageReview: { backgroundColor: COLORS.stageReviewBase },
+  envTop: { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.stageWarmBase },
+  envBase: { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.stageWarmDeep, top: "55%" },
+  envReviewTop: { backgroundColor: COLORS.stageReviewBase },
+  envReviewBase: { backgroundColor: COLORS.stageReviewDeep, top: "55%" },
   glow: {
     position: "absolute",
     width: 340,
@@ -198,6 +188,16 @@ const styles = StyleSheet.create({
     borderRadius: 170,
     backgroundColor: COLORS.stageWarmGlow,
     top: 40,
+    alignSelf: "center",
+    opacity: 0.6,
+  },
+  reviewGlow: {
+    position: "absolute",
+    width: 320,
+    height: 280,
+    borderRadius: 160,
+    backgroundColor: COLORS.stageReviewGlow,
+    top: 44,
     alignSelf: "center",
     opacity: 0.55,
   },
@@ -214,17 +214,11 @@ const styles = StyleSheet.create({
     gap: SPACE.s2,
   },
   name: { flex: 1, fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary, marginRight: SPACE.s2 },
-  nameDark: { color: COLORS.textOnStage },
   demoChip: { backgroundColor: COLORS.surfaceOverlay, borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 3 },
-  demoChipDark: { backgroundColor: "rgba(250,246,239,0.14)" },
   demoChipText: { fontSize: TYPE.caption, color: COLORS.textSecondary, fontWeight: "600" },
-  demoChipTextDark: { color: COLORS.textOnStageSecondary },
   nowBlock: { position: "absolute", left: SPACE.s4, right: SPACE.s4, bottom: SPACE.s3 },
   headline: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary },
-  headlineDark: { color: COLORS.textOnStage },
   caption: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginTop: 2 },
-  captionDark: { color: COLORS.textOnStageSecondary },
   noteRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   note: { fontSize: TYPE.caption, color: COLORS.textTertiary },
-  noteDark: { color: COLORS.textOnStageTertiary },
 });

@@ -50,10 +50,12 @@ interface Props {
   frameTarget?: number;
   /** Twin Review view preset (front/side/back) → real camera yaw (Phase C). */
   view?: "front" | "side" | "back";
+  /** R4.2 stage theme: warm living field / neutral identity studio / engineering debug. */
+  stageTheme?: "living" | "review" | "engineering";
   onStatus?: (status: Pet3DStatus) => void;
   onOrientation?: (yaw: number) => void;
 }
-export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DViewer({ identity, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, frameTarget = 0, view = "front", onStatus, onOrientation }, ref) {
+export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DViewer({ identity, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, frameTarget = 0, view = "front", stageTheme = "living", onStatus, onOrientation }, ref) {
   const [status, setStatus] = useState<Pet3DStatus>("boot");
   const webRef = useRef<WebView>(null);
   // Imperative camera controls drive the embedded page's REAL handlers
@@ -149,7 +151,7 @@ export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DVi
   }, [view, status]);
 
   const twinJson = twin ? JSON.stringify(twin).replace(/\\/g, "\\\\").replace(/'/g, "\\'") : "";
-  const injected = `window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; window.__PLI_FRAME_TARGET = ${Number(frameTarget) || 0}; window.__PLI_PET_ID = ${petId ? JSON.stringify(petId) : "null"}; window.__PLI_SOURCE_MEDIA_COUNT = ${Number(sourceMediaCount) || 0}; ${
+  const injected = `window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; window.__PLI_FRAME_TARGET = ${Number(frameTarget) || 0}; window.__PLI_PET_ID = ${petId ? JSON.stringify(petId) : "null"}; window.__PLI_SOURCE_MEDIA_COUNT = ${Number(sourceMediaCount) || 0}; window.__PLI_STAGE_THEME = ${JSON.stringify(stageTheme)}; ${
     twin ? `window.__PLI_TWIN = JSON.parse('${twinJson}');` : ""
   } true;`;
 

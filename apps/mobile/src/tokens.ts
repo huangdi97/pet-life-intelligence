@@ -51,11 +51,19 @@ export const COLORS = {
   anchorGlass: "#FFFFFFE0",
   anchorGlassBorder: "#EDE3D2",
   mediaOverlay: "#0000001A",
-  // stage warm-dark (R2-P3D): warm charcoal spatial environment
-  stageWarmBase: "#171310",
-  stageWarmDeep: "#100D0B",
-  stageWarmGlow: "#3A2E24",
-  stageFog: "#241C16",
+  // stage warm living (R2P3D-R4.2): warm cream reality field — never a dark
+  // viewer on owner hero pages. Dark stays only in the engineering debug theme.
+  stageWarmBase: "#F7E8D1",
+  stageWarmDeep: "#EDDCC0",
+  stageWarmGlow: "#FBF4E8",
+  stageFog: "#EFDCC0",
+  // review = neutral identity studio (off-white / soft warm grey)
+  stageReviewBase: "#F4F1EA",
+  stageReviewDeep: "#EBE5D8",
+  stageReviewGlow: "#FFFDF8",
+  // engineering debug only — never used on owner Hero pages
+  stageEngineeringBase: "#171310",
+  stageEngineeringDeep: "#100D0B",
   textOnStage: "#FAF6EF",
   textOnStageSecondary: "#C9BFB0",
   textOnStageTertiary: "#B8AC9C",

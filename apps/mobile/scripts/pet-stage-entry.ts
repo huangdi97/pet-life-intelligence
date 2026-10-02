@@ -19,16 +19,22 @@ import {
   POSE_NAMES,
   projectPetBounds,
   setTwinAssetResolver,
-  STAGE_FOG,
+  STAGE_THEMES,
   STAGE_TARGET,
 } from "@pli/pet-3d";
-import type { LoadedTwin, PoseName } from "@pli/pet-3d";
+import type { LoadedTwin, PoseName, StageTheme } from "@pli/pet-3d";
 
 declare const window: any;
 
 const rootEl = document.getElementById("stage") as HTMLElement;
 const identity = (window.__PLI_IDENTITY as string) === "mimi" ? "mimi" : "doudou";
 const interactive = !!window.__PLI_INTERACTIVE;
+// R4.2 stage theme: warm living field / neutral identity studio / engineering
+// debug. Owner hero pages (Today/Pet/Life/Twin Review) never use engineering.
+const stageTheme: StageTheme =
+  window.__PLI_STAGE_THEME === "review" || window.__PLI_STAGE_THEME === "engineering"
+    ? (window.__PLI_STAGE_THEME as StageTheme)
+    : "living";
 const twinDescriptor = window.__PLI_TWIN ?? null;
 // Injected by Pet3DViewer for the V2 identity gate (pet id + media count).
 const injectedPetId: string | null = window.__PLI_PET_ID ?? null;
@@ -77,8 +83,13 @@ renderer.domElement.style.width = "100%";
 renderer.domElement.style.height = "100%";
 rootEl.appendChild(renderer.domElement);
 
+const theme = STAGE_THEMES[stageTheme];
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(STAGE_FOG, 0.05);
+// R4.2: the WebView canvas paints its OWN themed surface (warm cream for
+// living, neutral for review, dark only for the engineering debug theme), so
+// owner hero pages are never a transparent dark rectangle.
+scene.background = new THREE.Color(theme.base);
+scene.fog = new THREE.FogExp2(new THREE.Color(theme.fog), 0.05);
 
 // Individual twin (R2P3D-R1) beats demo identity when a descriptor is present.
 const stage = twinDescriptor
@@ -93,6 +104,38 @@ const stage = twinDescriptor
 scene.add(stage.pet);
 scene.add(stage.shadow);
 addStageLights(scene);
+
+// Subtle grounding + ambient radial light (light environment cues). The pet
+// stays centered; these are low-contrast, low-saturation additions so the
+// hero reads as an open warm room, not a lab viewer.
+if (stageTheme !== "engineering") {
+  const floor = new THREE.Mesh(
+    new THREE.CircleGeometry(2.4, 64),
+    new THREE.MeshBasicMaterial({
+      color: new THREE.Color(theme.base),
+      transparent: true,
+      opacity: 0.25,
+      depthWrite: false,
+    }),
+  );
+  floor.name = "pliAmbientFloor";
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = 0.005;
+  scene.add(floor);
+  const glow = new THREE.Mesh(
+    new THREE.CircleGeometry(1.7, 48),
+    new THREE.MeshBasicMaterial({
+      color: new THREE.Color(theme.glow),
+      transparent: true,
+      opacity: 0.4,
+      depthWrite: false,
+    }),
+  );
+  glow.name = "pliAmbientGlow";
+  glow.rotation.x = -Math.PI / 2;
+  glow.position.y = 0.012;
+  scene.add(glow);
+}
 
 const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 40);
 const orbit = { ...DEFAULT_ORBIT };
@@ -186,8 +229,14 @@ function buildManifest(): Record<string, unknown> {
     texturePresent: hdTwin !== null,
     baseColorTextureResolution: hdTwin ? 2048 : 0,
     canonicalPose: activePose ?? "Stand",
-    stageRole: "life",
-    realityField: "warm-living",
+    stageRole: stageTheme,
+    surfaceVariant:
+      stageTheme === "review"
+        ? ("neutral-identity-studio" as const)
+        : stageTheme === "engineering"
+          ? ("dark-debug" as const)
+          : ("warm-living-field" as const),
+    realityField: stageTheme === "review" ? ("review-studio" as const) : stageTheme === "engineering" ? ("engineering-debug" as const) : ("warm-living" as const),
   });
   // Release builds strip console.log (Hermes), so uiautomator accessibility can
   // see the manifest via document.title (machine-readable runtime evidence).

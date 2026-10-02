@@ -24,7 +24,8 @@ export {
   STAGE_FOG,
 } from "./scene";
 export type { PetStageScene, OrbitState } from "./scene";
-export { STAGE, CORGI, MIMI } from "./palette";
+export { STAGE, CORGI, MIMI, STAGE_THEMES } from "./palette";
+export type { StageTheme } from "./palette";
 export { corgiFingerprint } from "./buildCorgi";
 export { catFingerprint } from "./buildCat";
 

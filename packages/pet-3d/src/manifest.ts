@@ -71,6 +71,8 @@ export interface ManifestBuildInput {
   canonicalPose?: string | null;
   /** Stage role: today/pet/life/review — never a dark-viewer card. */
   stageRole?: string | null;
+  /** R4.2 surface variant: warm-living-field / neutral-identity-studio / dark-debug. */
+  surfaceVariant?: string | null;
   /** Reality Field presence on the hero surfaces. */
   realityField?: string | null;
 }
@@ -174,6 +176,7 @@ export function buildManifestV2(input: ManifestBuildInput): Record<string, unkno
     baseColorTextureResolution: input.baseColorTextureResolution ?? 0,
     canonicalPose: input.canonicalPose ?? null,
     stageRole: input.stageRole ?? null,
+    surfaceVariant: input.surfaceVariant ?? null,
     realityField: input.realityField ?? null,
   };
 }

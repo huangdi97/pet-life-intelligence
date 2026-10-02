@@ -19,6 +19,34 @@ export const STAGE = {
   fog: "#EFDCC0",
 } as const;
 
+// R4.2 stage themes — the WebView/WebGL surface itself is themed per screen
+// role (never a dark viewer on owner hero pages):
+//   living      -> warm cream reality field (Today / Pet / Life View)
+//   review      -> neutral identity studio (Twin Review)
+//   engineering -> dark debug stage (engineering manifests only)
+export const STAGE_THEMES = {
+  living: {
+    base: "#F7E8D1",
+    deep: "#EDDCC0",
+    glow: "#FBF4E8",
+    fog: "#EFDCC0",
+  },
+  review: {
+    base: "#F4F1EA",
+    deep: "#EBE5D8",
+    glow: "#FFFDF8",
+    fog: "#EAE4D8",
+  },
+  engineering: {
+    base: "#171310",
+    deep: "#100D0B",
+    glow: "#3A2E24",
+    fog: "#241C16",
+  },
+} as const;
+
+export type StageTheme = keyof typeof STAGE_THEMES;
+
 // Coat materials (corgi 豆豆).
 export const CORGI = {
   coat: "#E8C79A",
