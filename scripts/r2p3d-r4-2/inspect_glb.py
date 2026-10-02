@@ -181,14 +181,14 @@ def inspect(path: Path, poses: list[str], times: list[float]) -> None:
                     inp = _accessor_array(gltf, bin_data, sam["input"]).flatten()
                     outp = _accessor_array(gltf, bin_data, sam["output"])
                     path = ch["target"]["path"]
-                    interp = sam.get("interpolation", "LINEAR")
+                    # linear track evaluation (our GLB writer emits LINEAR only)
                     # simple linear evaluation on the track times
                     idx0 = max(0, int(np.searchsorted(inp, t) - 1))
                     idx0 = min(idx0, len(inp) - 2) if len(inp) > 1 else 0
                     f = (t - inp[idx0]) / max(inp[idx0 + 1] - inp[idx0], 1e-9) if len(inp) > 1 else 0.0
                     f = min(1.0, max(0.0, f))
                     if path == "rotation":
-                        q0, q1 = outp[idx0], outp[idx1 := min(idx0 + 1, len(outp) - 1)]
+                        q0, q1 = outp[idx0], outp[min(idx0 + 1, len(outp) - 1)]
                         q = q0 + (q1 - q0) * f
                         q = q / (np.linalg.norm(q) or 1.0)
                         local[node] = _mat_from_trs(None, q.tolist(), None)
