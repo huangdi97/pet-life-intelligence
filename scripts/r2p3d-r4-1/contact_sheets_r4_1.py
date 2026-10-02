@@ -79,7 +79,7 @@ def main() -> None:
     hero = ["today", "pet", "lifeview", "twinreview"]
 
     web_heroes = [(h, WEB / h / "screenshot.png") for h in hero]
-    sheet("PLI R4.1 — Web Heroes (豆豆, HIGH_FIDELITY_SKINNED)", web_heroes, OUT / "PLI_R4_1_WEB_HEROES.png")
+    sheet("PLI R4.1 — Web Heroes (dog-demo, HIGH_FIDELITY_SKINNED)", web_heroes, OUT / "PLI_R4_1_WEB_HEROES.png")
 
     android_items = [(h, AND / h / "screenshot.png") for h in hero]
     android_items += [("twin_front", AND / "twinreview/twin_front.png"), ("twin_side", AND / "twinreview/twin_side.png"), ("twin_back", AND / "twinreview/twin_back.png"), ("mimi", AND / "mimi-sanity/mimi_today.png")]
@@ -119,9 +119,9 @@ def main() -> None:
         ("rear (twinreview)", AND / "twinreview/twin_back.png"),
         ("today hero (web)", WEB / "today/screenshot.png"),
     ]
-    sheet("TWIN TURNTABLE — 豆豆 (demo corgi-like, runtime captures)", doudou_angles, OUT / "TWIN_TURNTABLE_DOU_DOU.png", cols=5)
+    sheet("TWIN TURNTABLE — dog-demo (demo corgi-like, runtime captures)", doudou_angles, OUT / "TWIN_TURNTABLE_DOU_DOU.png", cols=5)
     mimi_angles = [("mimi today (android)", AND / "mimi-sanity/mimi_today.png"), ("mimi today (android b)", AND / "mimi-sanity/screenshot.png")]
-    sheet("TWIN TURNTABLE — 咪咪 (runtime capture)", mimi_angles, OUT / "TWIN_TURNTABLE_MIMI.png")
+    sheet("TWIN TURNTABLE — cat-demo (runtime capture)", mimi_angles, OUT / "TWIN_TURNTABLE_MIMI.png")
 
 
 if __name__ == "__main__":
