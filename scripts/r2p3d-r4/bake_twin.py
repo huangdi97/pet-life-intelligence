@@ -128,7 +128,7 @@ CONFIG = {
         "height": 1.35,
         "proc_height": 1.35,
         "pet_id": "doudou",
-        "twin_version": "r4-1.1.0",
+        "twin_version": "r4-2.0.0",
         "family": "corgi-like",
         "painter": make_dog_painter,
         "landmarks": _landmarks_dog,
@@ -230,6 +230,11 @@ def bake(identity: str, write_sums: bool = False) -> None:
         "family": cfg["family"],
         "representation": "high-fidelity-glb-twin",
         "legacyRepresentation": "procedural-twin",
+        # R4.2 honesty: demo twin textures are template-projected, NOT observed
+        # from real pet photos. The observed/inferred masks here only simulate
+        # the pipeline surface for template provenance — they are never
+        # evidence of real photo observation.
+        "provenanceMode": "DEMO_TEMPLATE",
         "representationQuality": "HIGH_FIDELITY_SKINNED",
         "productCandidate": True,
         "triangleCount": tris,

@@ -76,16 +76,18 @@ def _view_observed(pos: np.ndarray, nrm: np.ndarray, head: dict[str, float]) -> 
 
 
 def make_dog_painter(landmarks: dict) -> PaintFn:
-    """Dog painter — warm cream/white terrier with brown ears, blaze, chest cream."""
+    """Dog painter — R4.2 warm sable/tan coat with cream chest, muzzle, blaze
+    and paws. Coat regions stay readable (face/ears/chest/leg separation) with
+    low-frequency grain instead of muddy high-frequency noise."""
 
     def paint(pos: np.ndarray, nrm: np.ndarray, prior: np.ndarray) -> tuple[np.ndarray, bool]:
         lum = float(np.dot(prior, np.array([0.299, 0.587, 0.114])))
-        # Base coat recolor from the source mesh prior (white/brown patches).
+        # Warm sable base from the source prior (tan instead of near-black mud).
         if lum > 0.45:
             base = _blend(HEX["white"], HEX["cream"], 0.55)
             base = _blend(base, np.array([0.90, 0.79, 0.63]), _smooth(0.85, 0.98, lum))
         else:
-            base = _blend(np.array([0.42, 0.26, 0.14]), np.array([0.30, 0.17, 0.09]), lum / 0.45)
+            base = _blend(np.array([0.80, 0.60, 0.40]), np.array([0.66, 0.45, 0.27]), lum / 0.45)
         obs = _view_observed(pos, nrm, landmarks)
         y = float(pos[1])
         z = float(pos[2])
@@ -99,13 +101,13 @@ def make_dog_painter(landmarks: dict) -> PaintFn:
             dx = x / 0.19
             t = _smooth(0.35, 0.75, dy) * _smooth(-1.0, 1.0, -dx * dx - dz * dz + 0.55)
             base = _blend(base, HEX["white"], t * 0.85)
-        # Muzzle: white snout around the muzzle tip.
+        # Muzzle: cream snout around the muzzle tip.
         mz = landmarks.get("muzzle_z", 1e9)
         if mz < 1e8:
             dz = (mz - z) / 0.22
             dx = x / 0.16
             t = _smooth(0.2, 0.9, -dx * dx - dz * dz + 0.85)
-            base = _blend(base, np.array([0.96, 0.93, 0.86]), t * 0.9)
+            base = _blend(base, np.array([0.97, 0.94, 0.88]), t * 0.9)
         # Chest cream: front-lower chest.
         cz = landmarks.get("chest_z", 0.0)
         cy = landmarks.get("chest_y", 0.0)
@@ -120,15 +122,15 @@ def make_dog_painter(landmarks: dict) -> PaintFn:
             base = _blend(base, np.array([0.16, 0.10, 0.06]), ring * 0.85)
             dot = _smooth(0.0, 0.55, d2) * _smooth(1.1, 2.2, d2)
             base = _blend(base, np.array([0.045, 0.032, 0.024]), dot * 0.95)
-        # Ear shading: darken inner-ear faces (normals pointing up).
+        # Ear shading: warm sable inner-ear (readable triangle, not black).
         tx = abs(x) / 0.30
         t = _smooth(0.3, 0.9, -((y - ey - 0.10) / 0.16) ** 2 - tx * tx + 1.05) * max(0.0, float(nrm[1]))
-        base = _blend(base, np.array([0.26, 0.15, 0.08]), t * 0.7)
+        base = _blend(base, np.array([0.72, 0.50, 0.30]), t * 0.6)
         # Paw tips: cream socks near ground.
         t = _smooth(0.55, 0.95, 1.0 - y / 0.10)
         base = _blend(base, HEX["white"], t * 0.5)
-        # Subtle fur grain + warm vignette on the undercoat.
-        g = (_grain(pos) - 0.5) * 0.045
+        # Low-frequency warm grain — small, so the coat never reads as mud.
+        g = (_grain(pos) - 0.5) * 0.022
         base = base + g
         return np.clip(base, 0.0, 1.0), obs
 

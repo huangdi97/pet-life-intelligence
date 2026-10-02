@@ -1,9 +1,9 @@
-﻿"""corgi_morph 鈥?deterministic Corgi-like morphology for the demo dou-dou twin.
+﻿"""corgi_morph — deterministic Corgi-like morphology for the demo dou-dou twin.
 
 Applied AFTER normalize_mesh (PLI twin unit space: height ~1.35, ground y=0,
 z+ = forward/muzzle, x centered) and BEFORE unwrap+paint, so the 5-view
 texture projection and the observed/inferred masks conform to the new
-silhouette. Positions-only editing 鈥?topology, UV graph and skin rig are
+silhouette. Positions-only editing — topology, UV graph and skin rig are
 regenerated downstream by the bake.
 
 Design notes (WHY these choices):
@@ -44,16 +44,18 @@ class MorphMetrics(NamedTuple):
 
 @dataclass
 class MorphParams:
-    body_length_scale: float = 1.18     # long Corgi back (z stretch, torso band)
-    body_depth_scale: float = 1.05      # thicker chest/ribcage (y, torso band)
-    chest_width_scale: float = 1.10     # wider chest (x, front torso)
-    leg_height_scale: float = 0.60      # short legs (y compressed toward ground)
-    head_width_scale: float = 1.15      # wider skull
-    muzzle_length_scale: float = 0.78   # shorter muzzle (nose pulled back toward root)
-    forehead_raise: float = 0.06        # fuller forehead (fraction of head height)
-    ear_width_scale: float = 1.25       # large upright ear pinna (x widen, ear band)
-    ear_raise_scale: float = 1.08       # slight ear lift (y, ear cap only)
-    neck_length_scale: float = 0.96     # short thick neck (z compression)
+    # R4.2 targets — region-aware, silhouette-first Corgi-like proportions:
+    # long low back, short legs, wide head, upright ears, short muzzle.
+    body_length_scale: float = 1.30     # long Corgi back (z stretch, torso band)
+    body_depth_scale: float = 1.10      # thicker chest/ribcage (y, torso band)
+    chest_width_scale: float = 1.20     # wider chest (x, front torso)
+    leg_height_scale: float = 0.50      # short legs (y compressed toward ground)
+    head_width_scale: float = 1.28      # wider skull (Corgi cheek)
+    muzzle_length_scale: float = 0.68   # shorter muzzle (nose pulled back toward root)
+    forehead_raise: float = 0.09        # fuller forehead (fraction of head height)
+    ear_width_scale: float = 1.40       # large upright ear pinna (x widen, ear band)
+    ear_raise_scale: float = 1.18       # ear lift (y, ear cap only) — triangle read
+    neck_length_scale: float = 0.92     # short thick neck (z compression)
     height_budget: float = 1.34         # final max_y target after y-only scale
 
 
@@ -110,6 +112,37 @@ def _measure(v: np.ndarray) -> dict[str, float]:
 def measure_metrics(v: np.ndarray) -> dict[str, float]:
     """Public deterministic morphology measurements (unit space, meters)."""
     return _measure(v)
+
+
+def corgi_proxies(v: np.ndarray) -> dict[str, float]:
+    """Deterministic Corgi silhouette proxies (machine proxy only, never a
+    human breed-recognition claim). Ratios are dimensionless and recorded for
+    auditing; they only support regression/plausibility gates."""
+    out: dict[str, float] = {}
+    h = float(v[:, 1].max())
+    ymin = float(v[:, 1].min())
+    height = h - ymin
+    out["total_height"] = height
+    body = float(v[:, 2].max() - v[:, 2].min())
+    out["body_length_over_height"] = body / max(height, 1e-9)
+    legs = v[v[:, 1] < 0.34 * h]
+    out["leg_length_over_height"] = (
+        float(np.percentile(legs[:, 1], 95)) / max(height, 1e-9) if legs.shape[0] else 0.0
+    )
+    head = v[v[:, 1] > 0.60 * h]
+    if head.shape[0]:
+        head_h = float(head[:, 1].max() - head[:, 1].min())
+        out["head_width_over_head_height"] = float(head[:, 0].max() - head[:, 0].min()) / max(head_h, 1e-9)
+        # ear height: ear tips vs the head-floor band (y=0.60h) — proxy for the
+        # upright pinna read that a Corgi silhouette needs.
+        out["ear_height_over_head_height"] = float(head[:, 1].max() - 0.60 * h) / max(head_h, 1e-9)
+        out["muzzle_length_over_head_length"] = (
+            float(head[:, 2].max() - np.percentile(head[:, 2], 45)) / max(head[:, 2].max() - head[:, 2].min(), 1e-9)
+        )
+        chest = v[(v[:, 1] < 0.6 * h) & (np.abs(v[:, 2]) < 0.35 * max(body, 1e-9))]
+        chest_w = float(chest[:, 0].max() - chest[:, 0].min()) if chest.shape[0] else 0.0
+        out["chest_width_over_head_width"] = chest_w / max(float(head[:, 0].max() - head[:, 0].min()), 1e-9)
+    return out
 
 
 def corgi_morph(
