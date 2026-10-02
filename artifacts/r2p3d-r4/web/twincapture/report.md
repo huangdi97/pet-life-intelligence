@@ -1,6 +1,6 @@
 # twincapture
 
-- url: http://localhost:3100/pets/cc9ebb46-dead-4596-9c88-530852397c36/capture
+- url: http://localhost:3100/pets/69c4da88-0ebf-40e5-8932-5baf8aeb63eb/capture
 - viewport: {"width":390,"height":844}
 - elements: 33
 - text lines: 42

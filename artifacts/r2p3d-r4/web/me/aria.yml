@@ -47,7 +47,7 @@ children:
   name: "紧急联系卡\n出错了：页面不存在\n重试\n数据删除请求\n\nv0.1 只登记请求并审计；实际删除是高风险动作，需要显式人工确认后离线执行（不会自动删除）。\n\n原因（可选）\n登记删除请求"
   id: "pli.me.data"
   role: "text"
-  name: "访问审计（谁看过/改过什么）\nbehavior.create\nBehaviorEvent\n89b94048\n2026/9/27 21:40:11\nhandoff.end\nCareHandoff\n89b94048\n2026/9/27 21:40:10\ncare_card.view\nCareCard\nanonymous\n2026/9/27 21:40:10\ncare_card.issue\nCareCa"
+  name: "访问审计（谁看过/改过什么）\nsocial.request\nPetFriend\n2cecb2d6\n2026/10/2 14:17:34\nevent.create\nLifeEvent\n2cecb2d6\n2026/10/2 14:15:49\nevent.create\nLifeEvent\n2cecb2d6\n2026/10/2 14:15:49\nevent.create\nLifeEvent\n2cecb2d"
   id: "pli.me.help"
   role: "text"
   name: "账号与安全\n登录设备\n修改密码\n当前密码\n新密码\n更新密码\n退出登录\n删除账号\n\n删除会停用账号并使所有会话失效。高风险操作。\n\n输入密码确认\n删除账号"

@@ -2,7 +2,7 @@
 
 - url: http://localhost:3100/social
 - viewport: {"width":390,"height":844}
-- elements: 14
-- text lines: 26
+- elements: 15
+- text lines: 31
 - manifest: absent
 - cameras: none

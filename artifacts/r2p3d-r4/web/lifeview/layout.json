@@ -126,7 +126,7 @@
       "height": 470,
       "visible": true,
       "z": 0,
-      "text": "−\n+\n⟲\n饮水\n—\n进食\n—\n活动\n—\n睡眠\n—\n\n豆豆\n\n豆豆 · 此刻\n\n今天还没有记录，豆豆安安静静的。\n\n第 1 版 3D 形象 · 已通过你的确认"
+      "text": "−\n+\n⟲\n饮水\n1 次\n进食\n4 次\n活动\n165 分钟\n睡眠\n1 次\n\n豆豆\n\n豆豆 · 此刻\n\n最近一次记录：进食 · 23:30\n\n第 1 版 3D 形象 · 已通过你的确认"
     },
     {
       "id": "pli.lifeview.twin",
@@ -186,41 +186,41 @@
       "id": "pli.lifeview.anchor.water",
       "x": 67,
       "y": 229,
-      "width": 80,
+      "width": 85,
       "height": 50,
       "visible": true,
       "z": 0,
-      "text": "饮水\n—"
+      "text": "饮水\n1 次"
     },
     {
       "id": "pli.lifeview.anchor.meal",
-      "x": 243,
+      "x": 238,
       "y": 229,
-      "width": 80,
+      "width": 85,
       "height": 50,
       "visible": true,
       "z": 0,
-      "text": "进食\n—"
+      "text": "进食\n4 次"
     },
     {
       "id": "pli.lifeview.anchor.activity",
       "x": 67,
       "y": 483,
-      "width": 80,
+      "width": 116,
       "height": 50,
       "visible": true,
       "z": 0,
-      "text": "活动\n—"
+      "text": "活动\n165 分钟"
     },
     {
       "id": "pli.lifeview.anchor.sleep",
-      "x": 243,
+      "x": 238,
       "y": 483,
-      "width": 80,
+      "width": 85,
       "height": 50,
       "visible": true,
       "z": 0,
-      "text": "睡眠\n—"
+      "text": "睡眠\n1 次"
     },
     {
       "id": "pli.lifeview.mode.now",
@@ -284,7 +284,7 @@
       "width": 0,
       "height": 0,
       "visible": false,
-      "text": "cc9ebb46-dead-4596-9c88-530852397c36"
+      "text": "69c4da88-0ebf-40e5-8932-5baf8aeb63eb"
     }
   ]
 }

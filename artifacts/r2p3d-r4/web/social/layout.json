@@ -122,25 +122,35 @@
       "x": 12,
       "y": 280,
       "width": 366,
-      "height": 65,
+      "height": 91,
       "visible": true,
       "z": 0,
-      "text": "宠物朋友"
+      "text": "宠物朋友\n咪咪\n熟悉关系"
+    },
+    {
+      "id": "pli.social.friends.22740dd0-8e72-4c24-8ffb-cccc848cd524",
+      "x": 29,
+      "y": 328,
+      "width": 332,
+      "height": 26,
+      "visible": true,
+      "z": 0,
+      "text": "咪咪\n熟悉关系"
     },
     {
       "id": "pli.social.interactions",
       "x": 12,
-      "y": 357,
+      "y": 383,
       "width": 366,
-      "height": 65,
+      "height": 259,
       "visible": true,
       "z": 0,
-      "text": "互动历史"
+      "text": "互动历史\n互动 · 咪咪\n2026/10/2 14:17:34\n咪咪\n反馈冲突：无\n互动 · 咪咪\n2026/10/2 14:17:34\n咪咪\n反馈冲突：无\n认识新朋友 · 咪咪\n2026/10/2 14:17:34\n咪咪"
     },
     {
       "id": "pli.social.preferences",
       "x": 12,
-      "y": 434,
+      "y": 654,
       "width": 366,
       "height": 99,
       "visible": true,
@@ -150,7 +160,7 @@
     {
       "id": "pli.social.action",
       "x": 12,
-      "y": 545,
+      "y": 765,
       "width": 366,
       "height": 271,
       "visible": true,

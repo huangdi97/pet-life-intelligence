@@ -162,15 +162,15 @@
       "x": 12,
       "y": 783,
       "width": 366,
-      "height": 57,
+      "height": 141,
       "visible": true,
       "z": 0,
-      "text": "最近"
+      "text": "最近\n体重07:30\n喂食06:30\n睡觉05:30\ndaily.elimination04:30"
     },
     {
       "id": "pli.companion.next",
       "x": 12,
-      "y": 840,
+      "y": 924,
       "width": 366,
       "height": 76,
       "visible": true,

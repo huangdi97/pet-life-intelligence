@@ -1,6 +1,6 @@
 {
   "screen": "timeline",
-  "total": 85,
+  "total": 100,
   "max": 100,
   "perDimension": {
     "individualPetTruth": {
@@ -12,7 +12,7 @@
       "max": 20
     },
     "informationHierarchy": {
-      "earned": 10,
+      "earned": 15,
       "max": 15
     },
     "surfaceGovernance": {
@@ -20,7 +20,7 @@
       "max": 10
     },
     "contentPurity": {
-      "earned": 0,
+      "earned": 10,
       "max": 10
     },
     "interactionTruth": {
@@ -90,6 +90,22 @@
       "detail": "elements[pli.timeline.group]=1"
     },
     {
+      "id": "timeline.row",
+      "dimension": "informationHierarchy",
+      "points": 5,
+      "description": "story row / timeline node 存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.timeline.row.*",
+        "count": [
+          1,
+          40
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.timeline.row.*]=30"
+    },
+    {
       "id": "timeline.meaning",
       "dimension": "informationHierarchy",
       "points": 5,
@@ -126,6 +142,27 @@
       },
       "passed": true,
       "detail": "card surfaces(aboveFold=true)=0 <= 2"
+    },
+    {
+      "id": "timeline.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
     },
     {
       "id": "timeline.filter.action",
@@ -212,51 +249,9 @@
       "detail": "no raw tokens found"
     }
   ],
-  "failed": [
-    {
-      "id": "timeline.row",
-      "dimension": "informationHierarchy",
-      "points": 5,
-      "description": "story row / timeline node 存在",
-      "check": {
-        "kind": "element",
-        "idPrefix": "pli.timeline.row.*",
-        "count": [
-          1,
-          40
-        ]
-      },
-      "passed": false,
-      "detail": "elements[pli.timeline.row.*]=48 count=1,40 minH=undefined"
-    },
-    {
-      "id": "timeline.content.purity",
-      "dimension": "contentPurity",
-      "points": 10,
-      "description": "Owner 文本无 raw internal terms",
-      "check": {
-        "kind": "text-free",
-        "tokens": [
-          "BW-",
-          "OWNER_REPORTED",
-          "STRESS_RECOVERY",
-          "OPEN",
-          "provider_",
-          "model_id",
-          "event_key",
-          "PLI-"
-        ]
-      },
-      "passed": false,
-      "detail": "raw tokens found: BW-"
-    }
-  ],
-  "criticalFailed": [
-    "timeline.content.purity"
-  ],
-  "pass": false,
-  "heroPass": false,
-  "blockers": [
-    "timeline.content.purity"
-  ]
+  "failed": [],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
 }

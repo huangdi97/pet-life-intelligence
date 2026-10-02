@@ -165,6 +165,21 @@
     }
   },
   {
+    "id": "pli.social.friends.22740dd0-8e72-4c24-8ffb-cccc848cd524",
+    "styles": {
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(43, 39, 35)",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "borderRadius": "0px",
+      "opacity": 1,
+      "display": "list-item",
+      "position": "static",
+      "zIndex": null,
+      "overflow": "visible"
+    }
+  },
+  {
     "id": "pli.social.interactions",
     "styles": {
       "backgroundColor": "rgba(0, 0, 0, 0)",

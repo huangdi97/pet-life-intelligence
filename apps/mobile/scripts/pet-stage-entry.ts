@@ -1,14 +1,8 @@
-// pet-stage-entry.js — runtime bootstrap for the WebView-hosted pet 3D page.
-// Bundled by scripts/build-3d-page.mjs with three + the shared @pli/pet-3d
-// asset. Communicates with React Native via window.ReactNativeWebView.postMessage:
-//   { type: "status", status: "ready" | "failed" }
-//   { type: "orientation", yaw, pitch, radius }
-//
-// R2P3D-R1 individual twin: when window.__PLI_TWIN is injected (family/morph/
-// texture from the backend pipeline), the page builds that individual twin via
-// createTwinScene; otherwise it falls back to the demo identity stage. Pose
-// switching is exposed as window.__PLI_SET_POSE(name) so RN can push motion
-// clips (Idle/Sit/Walk/...) — real joint animations, never health-driven.
+// pet-stage-entry.js — WebView bootstrap for the pet 3D page (bundled by
+// scripts/build-3d-page.mjs, three + @pli/pet-3d; talks to RN via postMessage).
+// R2P3D-R1: procedural individual twin from __PLI_TWIN. R2P3D-R4: high-fidelity
+// GLB twins embedded at build time replace the procedural pet; failures fall
+// back. Poses (Idle/Sit/Walk/...) are real joint animations via __PLI_SET_POSE.
 import * as THREE from "three";
 import {
   addStageLights,
@@ -19,13 +13,16 @@ import {
   createTwinScene,
   DEFAULT_ORBIT,
   fitOrbitRadius,
+  loadTwinGLB,
   orbitFromDrag,
   orbitZoom,
   POSE_NAMES,
   projectPetBounds,
+  setTwinAssetResolver,
   STAGE_FOG,
   STAGE_TARGET,
 } from "@pli/pet-3d";
+import type { LoadedTwin, PoseName } from "@pli/pet-3d";
 
 declare const window: any;
 
@@ -33,11 +30,26 @@ const rootEl = document.getElementById("stage") as HTMLElement;
 const identity = (window.__PLI_IDENTITY as string) === "mimi" ? "mimi" : "doudou";
 const interactive = !!window.__PLI_INTERACTIVE;
 const twinDescriptor = window.__PLI_TWIN ?? null;
-/** Injected by Pet3DViewer for the V2 identity gate (pet id + media count). */
+// Injected by Pet3DViewer for the V2 identity gate (pet id + media count).
 const injectedPetId: string | null = window.__PLI_PET_ID ?? null;
 const injectedSourceMediaCount: number = Number(window.__PLI_SOURCE_MEDIA_COUNT ?? 0);
-/** §31 framing target injected per screen (0 = demo framing, no autofit). */
+// §31 framing target injected per screen (0 = demo framing, no autofit).
 const frameTarget: number = Number(window.__PLI_FRAME_TARGET ?? 0);
+
+// R2P3D-R4: the WebView has no HTTP server (file:///android_asset/), so the GLB
+// bytes are embedded at build time and decoded here; null = procedural fallback.
+setTwinAssetResolver((identity) => {
+  const b64 = window.__PLI_TWIN_GLB_B64__?.[identity];
+  if (!b64) return null;
+  try {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+    return bytes.buffer;
+  } catch {
+    return null;
+  }
+});
 
 function post(msg: Record<string, unknown>): void {
   try {
@@ -86,15 +98,27 @@ const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 40);
 const orbit = { ...DEFAULT_ORBIT };
 // Zoom clamp is re-derived from the fitted baseline when auto-framing.
 const zoomBounds = { min: 2.6, max: 7 };
-/**
- * §31 aspect-aware auto-framing (mirrors the web viewer): fit the projected
- * pet box onto frameTarget of the full WebView viewport, whatever the stage
- * aspect, so the real rendered size matches the contract's composition range.
- */
+
+// R2P3D-R4: swap in the embedded high-fidelity GLB twin when it loads (web
+// parity); the procedural stage stays until then or on failure — never a SPOF.
+let petRoot: THREE.Object3D = stage.pet;
+let hdTwin: LoadedTwin | null = null;
+loadTwinGLB(identity).then((twin) => {
+  if (!twin) return;
+  scene.remove(stage.pet);
+  scene.add(twin.group);
+  petRoot = twin.group;
+  hdTwin = twin;
+  applyFit();
+  post({ type: "manifest", manifest: buildManifest() });
+}).catch(() => {
+  // PROVIDER: GLB failure keeps the procedural stage (engineering manifest).
+});
+// §31 aspect-aware auto-framing (mirrors web): fit the projected pet box onto frameTarget of the full viewport.
 function applyFit(): void {
   if (!twinDescriptor || !(frameTarget > 0)) return;
   const fit = fitOrbitRadius(
-    stage.pet,
+    petRoot,
     camera,
     { yaw: DEFAULT_ORBIT.yaw, pitch: DEFAULT_ORBIT.pitch, radius: DEFAULT_ORBIT.radius },
     frameTarget,
@@ -109,12 +133,11 @@ function applyFit(): void {
 // --- blind scene manifest (test/debug only, never owner UI) ---
 function buildManifest(): Record<string, unknown> {
   const rect = renderer.domElement.getBoundingClientRect();
-  const { meshCount, skinnedMeshCount } = countMeshes(stage.pet);
+  const { meshCount, skinnedMeshCount } = countMeshes(petRoot);
   const clips = [...POSE_NAMES];
-  // §31: projected area ratio is measured against the full viewport
-  // (window), not the stage container.
+  // §31: projected area ratio is measured against the full viewport (window).
   const projected = projectPetBounds(
-    stage.pet,
+    petRoot,
     camera,
     Math.max(1, Math.round(window.innerWidth || 1)),
     Math.max(1, Math.round(window.innerHeight || 1)),
@@ -130,7 +153,7 @@ function buildManifest(): Record<string, unknown> {
     wireframe: false,
     meshCount,
     skinnedMeshCount,
-    skeleton: !!twinDescriptor,
+    skeleton: !!twinDescriptor || !!hdTwin,
     animationClips: clips,
     materialMode: "pbr",
     baseColorTexture: true,
@@ -145,6 +168,16 @@ function buildManifest(): Record<string, unknown> {
     poseSource: twinDescriptor ? ("REPRESENTATIVE" as const) : ("AMBIENT" as const),
     poseConfidence: twinDescriptor ? 0.9 : 0.3,
     projected: projected ?? null,
+    // --- Blind Contract V3 (§51) — additive; V2 fields above stay intact ---
+    representationQuality: hdTwin ? "HIGH_FIDELITY_SKINNED" : "engineering",
+    productCandidate: hdTwin !== null,
+    triangleCount: hdTwin?.triangleCount ?? 0,
+    uvPresent: hdTwin !== null,
+    texturePresent: hdTwin !== null,
+    baseColorTextureResolution: hdTwin ? 2048 : 0,
+    canonicalPose: activePose ?? "Stand",
+    stageRole: "life",
+    realityField: "warm-living",
   });
   // Release builds strip console.log (Hermes), so uiautomator accessibility can
   // see the manifest via document.title (machine-readable runtime evidence).
@@ -152,9 +185,7 @@ function buildManifest(): Record<string, unknown> {
   return m;
 }
 (window as any).__PLI_GET_MANIFEST = () => buildManifest();
-(window as any).__PLI_REQUEST_MANIFEST = () => {
-  post({ type: "manifest", manifest: buildManifest() });
-};
+(window as any).__PLI_REQUEST_MANIFEST = () => post({ type: "manifest", manifest: buildManifest() });
 
 function resize(): void {
   const w = Math.max(1, rootEl.clientWidth || window.innerWidth);
@@ -163,8 +194,7 @@ function resize(): void {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   applyOrbit(camera, STAGE_TARGET, orbit);
-  // Auto-frame after each real resize so portrait stages keep the pet inside
-  // the contract's projected-size range (mirrors the web viewer).
+  // Auto-frame after each real resize to keep the contract's projected range.
   applyFit();
 }
 window.addEventListener("resize", resize);
@@ -172,7 +202,7 @@ resize();
 
 // --- pose control ---
 let activePose: string | null = null;
-const poseTimeOffset = { value: 0 }; // deterministic start per pose switch
+const poseTimeOffset = { value: 0 };
 (window as any).__PLI_SET_POSE = (name: string | null) => {
   activePose = name && name !== "Idle" ? name : null;
   poseTimeOffset.value = 0;
@@ -189,12 +219,12 @@ function reportOrientation(): void {
 
 function frame(t: number): void {
   const time = (t / 1000) + poseTimeOffset.value;
-  if (twinDescriptor) {
-    // Twin scene: setPose(poseName, timeSeconds) — real joint animation.
-    (stage as any).setPose(activePose ?? "Idle", time);
+  if (hdTwin) {
+    hdTwin.setPose((activePose ?? "Idle") as PoseName, time); // R4 GLB twin: real bones
+  } else if (twinDescriptor) {
+    (stage as any).setPose(activePose ?? "Idle", time); // twin scene: joint clips
   } else {
-    // Demo stage: setPose(timeSeconds, enabled) — breathing only.
-    (stage as any).setPose(time, true);
+    (stage as any).setPose(time, true); // demo stage: breathing only
   }
   applyOrbit(camera, STAGE_TARGET, orbit);
   renderer.render(scene, camera);
@@ -205,9 +235,7 @@ requestAnimationFrame(frame);
 post({ type: "status", status: "ready" });
 post({ type: "manifest", manifest: buildManifest() });
 // Blind harness: keep the manifest fresh on the [plimanifest] logcat channel.
-setInterval(() => {
-  post({ type: "manifest", manifest: buildManifest() });
-}, 2000);
+setInterval(() => post({ type: "manifest", manifest: buildManifest() }), 2000);
 // --- touch / pointer interaction (interactive only) ---
 let pointers = new Map<number, { x: number; y: number }>();
 let lastPinch = 0;
@@ -228,9 +256,6 @@ rootEl.addEventListener(
   (e: TouchEvent) => {
     if (!interactive || e.touches.length === 0) return;
     e.preventDefault();
-    const next = new Map<number, { x: number; y: number }>();
-    for (const t of Array.from(e.touches)) next.set(t.identifier, { x: t.clientX, y: t.clientY });
-
     if (e.touches.length >= 2 && lastPinch > 0) {
       const d = pinchDist(e);
       const factor = d / lastPinch;
@@ -240,9 +265,7 @@ rootEl.addEventListener(
       const t = e.touches[0];
       const prev = pointers.get(t.identifier);
       if (prev) {
-        const dx = t.clientX - prev.x;
-        const dy = t.clientY - prev.y;
-        Object.assign(orbit, orbitFromDrag(orbit, dx, dy));
+        Object.assign(orbit, orbitFromDrag(orbit, t.clientX - prev.x, t.clientY - prev.y));
         pointers.set(t.identifier, { x: t.clientX, y: t.clientY });
       }
     }
@@ -266,8 +289,8 @@ window.zoom = (inward: boolean) => {
   Object.assign(orbit, orbitZoom(orbit, inward ? 1.2 : 1 / 1.2, zoomBounds));
 };
 window.resetView = () => {
-  // Reset restores the canonical framing — re-fitted so the zoom/reset
-  // camera evidence always compares against the SAME fitted baseline.
+  // Reset restores the canonical framing — re-fitted so the zoom/reset camera
+  // evidence always compares against the SAME fitted baseline.
   Object.assign(orbit, { ...DEFAULT_ORBIT });
   applyFit();
 };

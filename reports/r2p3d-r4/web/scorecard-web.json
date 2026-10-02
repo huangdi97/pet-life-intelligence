@@ -10,22 +10,18 @@
       "criticalFailed": []
     },
     "attention": {
-      "total": 30,
+      "total": 100,
       "max": 100,
-      "pass": false,
-      "heroPass": false,
-      "criticalFailed": [
-        "attention.one"
-      ]
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
     },
     "behavior": {
-      "total": 85,
+      "total": 95,
       "max": 100,
-      "pass": false,
-      "heroPass": false,
-      "criticalFailed": [
-        "behavior.content.purity"
-      ]
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
     },
     "companion": {
       "total": 95,
@@ -42,13 +38,11 @@
       "criticalFailed": []
     },
     "health": {
-      "total": 85,
+      "total": 95,
       "max": 100,
-      "pass": false,
-      "heroPass": false,
-      "criticalFailed": [
-        "health.content.purity"
-      ]
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
     },
     "lifeview": {
       "total": 100,
@@ -107,13 +101,11 @@
       "criticalFailed": []
     },
     "timeline": {
-      "total": 85,
+      "total": 100,
       "max": 100,
-      "pass": false,
-      "heroPass": false,
-      "criticalFailed": [
-        "timeline.content.purity"
-      ]
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
     },
     "today": {
       "total": 100,
@@ -123,14 +115,11 @@
       "criticalFailed": []
     },
     "training": {
-      "total": 56,
+      "total": 100,
       "max": 100,
-      "pass": false,
-      "heroPass": false,
-      "criticalFailed": [
-        "training.goal",
-        "training.content.purity"
-      ]
+      "pass": true,
+      "heroPass": true,
+      "criticalFailed": []
     },
     "twincapture": {
       "total": 100,

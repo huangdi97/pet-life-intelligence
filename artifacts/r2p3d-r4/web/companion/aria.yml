@@ -44,7 +44,7 @@ children:
   name: "连接设备"
   id: "pli.companion.action"
   role: "text"
-  name: "最近"
+  name: "最近\n体重07:30\n喂食06:30\n睡觉05:30\ndaily.elimination04:30"
   id: "pli.companion.recent"
   role: "text"
   name: "下一步\n\n连接一台支持的设备后，就可以在不打扰它的前提下观察与互动。"

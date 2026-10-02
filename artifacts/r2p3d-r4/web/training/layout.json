@@ -129,9 +129,29 @@
       "text": "创建"
     },
     {
-      "id": "pli.training.recent",
+      "id": "pli.training.goal",
       "x": 12,
       "y": 356,
+      "width": 366,
+      "height": 89,
+      "visible": true,
+      "z": 0,
+      "text": "当前目标\n学会“坐下”并保持 5 秒掌握度 1/5进行中"
+    },
+    {
+      "id": "pli.training.progress",
+      "x": 208,
+      "y": 404,
+      "width": 81,
+      "height": 24,
+      "visible": true,
+      "z": 0,
+      "text": "掌握度 1/5"
+    },
+    {
+      "id": "pli.training.recent",
+      "x": 12,
+      "y": 457,
       "width": 366,
       "height": 82,
       "visible": true,
@@ -141,22 +161,22 @@
     {
       "id": "pli.training.reward",
       "x": 12,
-      "y": 450,
+      "y": 727,
       "width": 366,
-      "height": 395,
+      "height": 379,
       "visible": true,
       "z": 0,
-      "text": "奖励\n\n只使用正向强化（零食、玩具、抚摸）。训练工具库仅包含安全工具，不包含惩罚性工具。\n\n零食袋（高价值奖励）\n即时奖励\n响片（Clicker）\n标记正确行为\n牵引绳（普通胸背）\n安全管理\n嗅闻垫\n嗅闻丰富化\n\n禁止使用电击项圈/暴力/惩罚式方法（PLI-084 安全过滤）。"
+      "text": "奖励\n\n只使用正向强化（零食、玩具、抚摸）。训练工具库仅包含安全工具，不包含惩罚性工具。\n\n零食袋（高价值奖励）\n即时奖励\n响片（Clicker）\n标记正确行为\n牵引绳（普通胸背）\n安全管理\n嗅闻垫\n嗅闻丰富化\n\n禁止使用电击项圈/暴力/惩罚式方法。"
     },
     {
       "id": "pli.training.next",
       "x": 12,
-      "y": 857,
+      "y": 1118,
       "width": 366,
-      "height": 82,
+      "height": 99,
       "visible": true,
       "z": 0,
-      "text": "下一步\n\n创建第一个训练目标，从 3–5 分钟的小目标开始。"
+      "text": "下一步\n\n继续「学会“坐下”并保持 5 秒」：建议每次 3–5 分钟，结束后用奖励强化。"
     }
   ]
 }

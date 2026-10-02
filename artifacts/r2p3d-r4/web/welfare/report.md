@@ -3,6 +3,6 @@
 - url: http://localhost:3100/welfare
 - viewport: {"width":390,"height":844}
 - elements: 15
-- text lines: 43
+- text lines: 60
 - manifest: absent
 - cameras: none

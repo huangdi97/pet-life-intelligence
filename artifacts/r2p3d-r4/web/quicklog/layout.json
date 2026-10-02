@@ -126,7 +126,7 @@
       "height": 350,
       "visible": true,
       "z": 0,
-      "text": "进食\n—\n饮水\n—\n活动\n—\n睡眠\n—\n\n豆豆\n示例数据\n\n今天还没有新的记录\n\n最近记录 · 13:53"
+      "text": "进食\n4 次\n饮水\n1 次\n活动\n165 分钟\n睡眠\n1 次\n\n豆豆\n示例数据\n\n今天有值得留意的变化\n\n最近记录 · 23:30"
     },
     {
       "id": "pli.today.pet-twin",
@@ -164,41 +164,41 @@
       "id": "pli.today.anchor.food",
       "x": 28,
       "y": -383,
-      "width": 80,
+      "width": 85,
       "height": 50,
       "visible": true,
       "z": 0,
-      "text": "进食\n—"
+      "text": "进食\n4 次"
     },
     {
       "id": "pli.today.anchor.water",
-      "x": 282,
+      "x": 277,
       "y": -383,
-      "width": 80,
+      "width": 85,
       "height": 50,
       "visible": true,
       "z": 0,
-      "text": "饮水\n—"
+      "text": "饮水\n1 次"
     },
     {
       "id": "pli.today.anchor.activity",
       "x": 28,
       "y": -249,
-      "width": 80,
+      "width": 116,
       "height": 50,
       "visible": true,
       "z": 0,
-      "text": "活动\n—"
+      "text": "活动\n165 分钟"
     },
     {
       "id": "pli.today.anchor.sleep",
-      "x": 282,
+      "x": 277,
       "y": -249,
-      "width": 80,
+      "width": 85,
       "height": 50,
       "visible": true,
       "z": 0,
-      "text": "睡眠\n—"
+      "text": "睡眠\n1 次"
     },
     {
       "id": "pli.today.change",
@@ -208,7 +208,7 @@
       "height": 22,
       "visible": true,
       "z": 0,
-      "text": "今天还没有新的记录"
+      "text": "今天有值得留意的变化"
     },
     {
       "id": "pli.today.health-summary",
@@ -334,10 +334,10 @@
       "x": 12,
       "y": 703,
       "width": 366,
-      "height": 110,
+      "height": 388,
       "visible": true,
       "z": 0,
-      "text": "最近\n查看完整时间线\n看看它\n陪伴"
+      "text": "最近\n查看完整时间线\n3:30:\n喂食\n主人记录\n4:17:\n社交互动\n主人记录\n4:17:\n社交互动\n主人记录\n4:17:\n伙伴邀请\n主人记录\n看看它\n陪伴"
     },
     {
       "id": "pli.quicklog.identity",
@@ -442,7 +442,7 @@
       "width": 0,
       "height": 0,
       "visible": false,
-      "text": "cc9ebb46-dead-4596-9c88-530852397c36"
+      "text": "69c4da88-0ebf-40e5-8932-5baf8aeb63eb"
     }
   ]
 }

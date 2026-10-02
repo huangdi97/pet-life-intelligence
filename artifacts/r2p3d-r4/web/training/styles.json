@@ -165,6 +165,36 @@
     }
   },
   {
+    "id": "pli.training.goal",
+    "styles": {
+      "backgroundColor": "rgb(255, 255, 255)",
+      "color": "rgb(43, 39, 35)",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "borderRadius": "12px",
+      "opacity": 1,
+      "display": "block",
+      "position": "static",
+      "zIndex": null,
+      "overflow": "visible"
+    }
+  },
+  {
+    "id": "pli.training.progress",
+    "styles": {
+      "backgroundColor": "rgb(243, 240, 235)",
+      "color": "rgb(87, 80, 74)",
+      "fontSize": 12,
+      "fontWeight": 400,
+      "borderRadius": "999px",
+      "opacity": 1,
+      "display": "inline-block",
+      "position": "static",
+      "zIndex": null,
+      "overflow": "visible"
+    }
+  },
+  {
     "id": "pli.training.recent",
     "styles": {
       "backgroundColor": "rgb(255, 255, 255)",

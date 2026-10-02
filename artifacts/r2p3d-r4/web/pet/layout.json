@@ -165,11 +165,11 @@
       "role": "button",
       "x": 16,
       "y": 656,
-      "width": 251,
+      "width": 209,
       "height": 42,
       "visible": true,
       "z": 0,
-      "text": "生活\n今天还没有记录，从快速记录开始"
+      "text": "生活\n最近有 12 条关于它的记录"
     },
     {
       "id": "pli.pet.domain.health",
@@ -234,22 +234,22 @@
       "height": 86,
       "visible": true,
       "z": 0,
-      "text": "最近 · 与它自己相比\n\n记下第一件事后，这里会显示它和自己的变化。"
+      "text": "最近 · 与它自己相比\n\n今天有 12 条记录；相比它自己的日常，目前没有明显变化。"
     },
     {
       "id": "pli.pet.friends",
       "x": 12,
       "y": 1160,
       "width": 366,
-      "height": 86,
+      "height": 114,
       "visible": true,
       "z": 0,
-      "text": "它的朋友\n管理\n\n还没有添加朋友。在「社交」页添加后会出现在这里。"
+      "text": "它的朋友\n管理\n已连接的朋友\n来往中"
     },
     {
       "id": "pli.pet.caregivers",
       "x": 12,
-      "y": 1246,
+      "y": 1274,
       "width": 366,
       "height": 86,
       "visible": true,
@@ -259,7 +259,7 @@
     {
       "id": "pli.pet.entry.lifeview",
       "x": 12,
-      "y": 1347,
+      "y": 1374,
       "width": 366,
       "height": 44,
       "visible": true,
@@ -267,10 +267,10 @@
       "text": "打开生命视图"
     },
     {
-      "id": "pli.multipet.switch.5bf145f8-fecd-415f-a4ed-23676453f454",
+      "id": "pli.multipet.switch.33047922-5c2d-4c15-8c95-d414e4a24a47",
       "role": "button",
       "x": 264,
-      "y": 1520,
+      "y": 1547,
       "width": 50,
       "height": 34,
       "visible": true,
@@ -285,7 +285,7 @@
       "width": 0,
       "height": 0,
       "visible": false,
-      "text": "cc9ebb46-dead-4596-9c88-530852397c36"
+      "text": "69c4da88-0ebf-40e5-8932-5baf8aeb63eb"
     }
   ]
 }

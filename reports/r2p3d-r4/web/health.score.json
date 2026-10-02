@@ -1,6 +1,6 @@
 {
   "screen": "health",
-  "total": 85,
+  "total": 95,
   "max": 100,
   "perDimension": {
     "individualPetTruth": {
@@ -20,7 +20,7 @@
       "max": 10
     },
     "contentPurity": {
-      "earned": 0,
+      "earned": 10,
       "max": 10
     },
     "interactionTruth": {
@@ -152,6 +152,27 @@
       "detail": "card surfaces(aboveFold=undefined)=0 <= 5"
     },
     {
+      "id": "health.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
       "id": "health.action",
       "dimension": "interactionTruth",
       "points": 5,
@@ -207,27 +228,6 @@
   ],
   "failed": [
     {
-      "id": "health.content.purity",
-      "dimension": "contentPurity",
-      "points": 10,
-      "description": "Owner 文本无 raw internal terms",
-      "check": {
-        "kind": "text-free",
-        "tokens": [
-          "BW-",
-          "OWNER_REPORTED",
-          "STRESS_RECOVERY",
-          "OPEN",
-          "provider_",
-          "model_id",
-          "event_key",
-          "PLI-"
-        ]
-      },
-      "passed": false,
-      "detail": "raw tokens found: BW-"
-    },
-    {
       "id": "health.record.action",
       "dimension": "interactionTruth",
       "points": 5,
@@ -247,12 +247,8 @@
       "detail": "count=0 outside [1,12]"
     }
   ],
-  "criticalFailed": [
-    "health.content.purity"
-  ],
-  "pass": false,
-  "heroPass": false,
-  "blockers": [
-    "health.content.purity"
-  ]
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
 }

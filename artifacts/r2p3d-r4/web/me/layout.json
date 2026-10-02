@@ -172,15 +172,15 @@
       "x": 12,
       "y": 1207,
       "width": 366,
-      "height": 3046,
+      "height": 2086,
       "visible": true,
       "z": 0,
-      "text": "访问审计（谁看过/改过什么）\nbehavior.create\nBehaviorEvent\n89b94048\n2026/9/27 21:40:11\nhandoff.end\nCareHandoff\n89b94048\n2026/9/27 21:40:10\ncare_card.view\nCareCard\nanonymous\n2026/9/27 21:40:10\ncare_card.issue\nCareCa"
+      "text": "访问审计（谁看过/改过什么）\nsocial.request\nPetFriend\n2cecb2d6\n2026/10/2 14:17:34\nevent.create\nLifeEvent\n2cecb2d6\n2026/10/2 14:15:49\nevent.create\nLifeEvent\n2cecb2d6\n2026/10/2 14:15:49\nevent.create\nLifeEvent\n2cecb2d"
     },
     {
       "id": "pli.me.settings",
       "x": 12,
-      "y": 4265,
+      "y": 3305,
       "width": 366,
       "height": 584,
       "visible": true,

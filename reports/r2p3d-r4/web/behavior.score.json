@@ -1,6 +1,6 @@
 {
   "screen": "behavior",
-  "total": 85,
+  "total": 95,
   "max": 100,
   "perDimension": {
     "individualPetTruth": {
@@ -20,7 +20,7 @@
       "max": 10
     },
     "contentPurity": {
-      "earned": 0,
+      "earned": 10,
       "max": 10
     },
     "interactionTruth": {
@@ -147,6 +147,27 @@
       "detail": "card surfaces(aboveFold=undefined)=0 <= 5"
     },
     {
+      "id": "behavior.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "无 raw enum / 无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
       "id": "behavior.action",
       "dimension": "interactionTruth",
       "points": 5,
@@ -207,27 +228,6 @@
   ],
   "failed": [
     {
-      "id": "behavior.content.purity",
-      "dimension": "contentPurity",
-      "points": 10,
-      "description": "无 raw enum / 无 raw internal terms",
-      "check": {
-        "kind": "text-free",
-        "tokens": [
-          "BW-",
-          "OWNER_REPORTED",
-          "STRESS_RECOVERY",
-          "OPEN",
-          "provider_",
-          "model_id",
-          "event_key",
-          "PLI-"
-        ]
-      },
-      "passed": false,
-      "detail": "raw tokens found: BW-"
-    },
-    {
       "id": "behavior.view",
       "dimension": "interactionTruth",
       "points": 5,
@@ -247,12 +247,8 @@
       "detail": "count=0 outside [1,12]"
     }
   ],
-  "criticalFailed": [
-    "behavior.content.purity"
-  ],
-  "pass": false,
-  "heroPass": false,
-  "blockers": [
-    "behavior.content.purity"
-  ]
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
 }

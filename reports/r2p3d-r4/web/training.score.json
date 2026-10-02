@@ -1,18 +1,18 @@
 {
   "screen": "training",
-  "total": 56,
+  "total": 100,
   "max": 100,
   "perDimension": {
     "individualPetTruth": {
-      "earned": 13,
+      "earned": 25,
       "max": 25
     },
     "visualComposition": {
-      "earned": 12,
+      "earned": 20,
       "max": 20
     },
     "informationHierarchy": {
-      "earned": 11,
+      "earned": 15,
       "max": 15
     },
     "surfaceGovernance": {
@@ -20,15 +20,15 @@
       "max": 10
     },
     "contentPurity": {
-      "earned": 0,
+      "earned": 10,
       "max": 10
     },
     "interactionTruth": {
-      "earned": 5,
+      "earned": 10,
       "max": 10
     },
     "accessibility": {
-      "earned": 0,
+      "earned": 5,
       "max": 5
     },
     "pixelStyleTruth": {
@@ -48,6 +48,30 @@
       },
       "passed": true,
       "detail": "elements[pli.training.identity]=1"
+    },
+    {
+      "id": "training.goal",
+      "dimension": "individualPetTruth",
+      "points": 12,
+      "description": "当前目标存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.goal"
+      },
+      "passed": true,
+      "detail": "elements[pli.training.goal]=1"
+    },
+    {
+      "id": "training.progress",
+      "dimension": "visualComposition",
+      "points": 8,
+      "description": "进度存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.progress"
+      },
+      "passed": true,
+      "detail": "elements[pli.training.progress]=1"
     },
     {
       "id": "training.recent",
@@ -86,6 +110,18 @@
       "detail": "elements[pli.training.next]=1"
     },
     {
+      "id": "training.localized",
+      "dimension": "informationHierarchy",
+      "points": 4,
+      "description": "目标状态已本地化",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.goal"
+      },
+      "passed": true,
+      "detail": "elements[pli.training.goal]=1"
+    },
+    {
       "id": "training.meaning",
       "dimension": "informationHierarchy",
       "points": 4,
@@ -111,6 +147,29 @@
       "detail": "card surfaces(aboveFold=undefined)=0 <= 5"
     },
     {
+      "id": "training.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "无 raw OPEN/PAUSED/ACTIVE 等",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "PAUSED",
+          "ACTIVE",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
       "id": "training.action",
       "dimension": "interactionTruth",
       "points": 5,
@@ -121,6 +180,34 @@
       },
       "passed": true,
       "detail": "elements[pli.training.action]=1"
+    },
+    {
+      "id": "training.view",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "目标可查看",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.goal",
+        "count": [
+          1,
+          6
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.training.goal]=1"
+    },
+    {
+      "id": "training.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "关键区可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.training.goal"
+      },
+      "passed": true,
+      "detail": "elements[pli.training.goal]=1"
     },
     {
       "id": "training.truth",
@@ -157,103 +244,9 @@
       "detail": "no raw tokens found"
     }
   ],
-  "failed": [
-    {
-      "id": "training.goal",
-      "dimension": "individualPetTruth",
-      "points": 12,
-      "description": "当前目标存在",
-      "check": {
-        "kind": "element",
-        "idPrefix": "pli.training.goal"
-      },
-      "passed": false,
-      "detail": "elements[pli.training.goal]=0 count=undefined minH=undefined"
-    },
-    {
-      "id": "training.progress",
-      "dimension": "visualComposition",
-      "points": 8,
-      "description": "进度存在",
-      "check": {
-        "kind": "element",
-        "idPrefix": "pli.training.progress"
-      },
-      "passed": false,
-      "detail": "elements[pli.training.progress]=0 count=undefined minH=undefined"
-    },
-    {
-      "id": "training.localized",
-      "dimension": "informationHierarchy",
-      "points": 4,
-      "description": "目标状态已本地化",
-      "check": {
-        "kind": "element",
-        "idPrefix": "pli.training.goal"
-      },
-      "passed": false,
-      "detail": "elements[pli.training.goal]=0 count=undefined minH=undefined"
-    },
-    {
-      "id": "training.content.purity",
-      "dimension": "contentPurity",
-      "points": 10,
-      "description": "无 raw OPEN/PAUSED/ACTIVE 等",
-      "check": {
-        "kind": "text-free",
-        "tokens": [
-          "BW-",
-          "OWNER_REPORTED",
-          "STRESS_RECOVERY",
-          "OPEN",
-          "PAUSED",
-          "ACTIVE",
-          "provider_",
-          "model_id",
-          "event_key",
-          "PLI-"
-        ]
-      },
-      "passed": false,
-      "detail": "raw tokens found: PLI-"
-    },
-    {
-      "id": "training.view",
-      "dimension": "interactionTruth",
-      "points": 5,
-      "description": "目标可查看",
-      "check": {
-        "kind": "element",
-        "idPrefix": "pli.training.goal",
-        "count": [
-          1,
-          6
-        ]
-      },
-      "passed": false,
-      "detail": "elements[pli.training.goal]=0 count=1,6 minH=undefined"
-    },
-    {
-      "id": "training.a11y",
-      "dimension": "accessibility",
-      "points": 5,
-      "description": "关键区可读",
-      "check": {
-        "kind": "element",
-        "idPrefix": "pli.training.goal"
-      },
-      "passed": false,
-      "detail": "elements[pli.training.goal]=0 count=undefined minH=undefined"
-    }
-  ],
-  "criticalFailed": [
-    "training.goal",
-    "training.content.purity"
-  ],
-  "pass": false,
-  "heroPass": false,
-  "blockers": [
-    "training.goal",
-    "training.content.purity"
-  ]
+  "failed": [],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
 }
