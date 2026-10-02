@@ -1,0 +1,17 @@
+﻿{
+    "probe":  "web twin review view presets drive the real camera (manifest yaw)",
+    "front_default":  {
+                          "yaw":  0.35
+                      },
+    "side":  {
+                 "yaw":  1.571
+             },
+    "noVisionModel":  true,
+    "back":  {
+                 "yaw":  3.142
+             },
+    "representation":  "high-fidelity-glb-twin",
+    "front_preset":  {
+                         "yaw":  0
+                     }
+}

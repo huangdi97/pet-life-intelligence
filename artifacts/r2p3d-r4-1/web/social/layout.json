@@ -1,0 +1,161 @@
+{
+  "screen": "social",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "contentBounds": {
+    "top": 82,
+    "bottom": 844,
+    "width": 390,
+    "height": 762,
+    "left": 0
+  },
+  "elements": [
+    {
+      "id": "header",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "nav",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 100,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "pli.nav.today",
+      "role": "button",
+      "x": 174,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "今日"
+    },
+    {
+      "id": "pli.nav.timeline",
+      "role": "button",
+      "x": 214,
+      "y": 15,
+      "width": 46,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "时间线"
+    },
+    {
+      "id": "pli.nav.pet",
+      "role": "button",
+      "x": 264,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆"
+    },
+    {
+      "id": "pli.nav.assistant",
+      "role": "button",
+      "x": 304,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "助手"
+    },
+    {
+      "id": "pli.nav.me",
+      "role": "button",
+      "x": 344,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "我的"
+    },
+    {
+      "id": "pli.multipet.switch",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）咪咪（cat）BW-Coco-1790948252505（dog）"
+    },
+    {
+      "id": "pli.multipet.current",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）"
+    },
+    {
+      "id": "pli.social.identity",
+      "x": 12,
+      "y": 110,
+      "width": 366,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "社交 · Social\n\n关系图谱 / 互动历史 / 安全 / 反馈 —— 不是传统信息流。"
+    },
+    {
+      "id": "pli.social.friends",
+      "x": 12,
+      "y": 280,
+      "width": 366,
+      "height": 65,
+      "visible": true,
+      "z": 0,
+      "text": "宠物朋友"
+    },
+    {
+      "id": "pli.social.interactions",
+      "x": 12,
+      "y": 357,
+      "width": 366,
+      "height": 65,
+      "visible": true,
+      "z": 0,
+      "text": "互动历史"
+    },
+    {
+      "id": "pli.social.preferences",
+      "x": 12,
+      "y": 434,
+      "width": 366,
+      "height": 99,
+      "visible": true,
+      "z": 0,
+      "text": "社交偏好\n\n还没有偏好记录。在记录互动后，这里会呈现它自己的相处倾向。"
+    },
+    {
+      "id": "pli.social.action",
+      "x": 12,
+      "y": 545,
+      "width": 366,
+      "height": 271,
+      "visible": true,
+      "z": 0,
+      "text": "记录互动\n选择伙伴…\n咪咪\nBW-Coco-1790948252505\n顺利\n平静\n紧张\n冲突\n未知\n记录互动\n\n安全：出现冲突或紧张时，双方 Owner 都会看到反馈；不会公开展示。"
+    }
+  ]
+}
