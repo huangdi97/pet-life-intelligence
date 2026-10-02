@@ -37,20 +37,20 @@ R4_2_PRODUCT_VISUAL_CANDIDATE = NOT_READY
 | DOUDOU_TURNTABLE_COMPLETE | PASS（web runtime camera presets，5 角度：front/front-left/side/rear/front-right，真实 yaw 0/0.35/π/2/π/−0.35） | `artifacts/r2p3d-r4-2/web/turntable/doudou/*.png+*.json` |
 | MIMI_TURNTABLE_COMPLETE | PASS（同上 5 角度；mimi front.json triangleCount=51648 = 修复后 GLB） | `web/turntable/mimi/*` |
 | CONTACT_SHEET_INTEGRITY | PASS（web sheets + manifest 有效；Android sheets 因证据缺失未生成而非占位） | `contact-sheets/manifest.json` sha256 与磁盘一致 |
-| CI_BACKEND | PASS（本地） | ruff 0；backend pytest 446 passed |
-| CI_FRONTEND | PASS（本地） | pet-3d build/typecheck、web/mobile/mini/admin typecheck、web build（PLIT_LOCAL_BUILD）、web vitest 33 passed、mobile export android/ios |
-| CI_BLIND | PASS（本地） | `pytest tests/blind_ui --confcutdir tests/blind_ui -q` → 32 passed（含 hardcoded pet names 扫描=0） |
-| CI_FUNCTIONAL_E2E | PASS（本地） | Browser E2E functional（不含 visual）→ 42 passed |
-| CI_ANDROID | PASS（本地构建） | `assembleRelease` BUILD SUCCESSFUL；远程 CI 待推送后核验 |
-| VISUAL_V2 / VISUAL_V3 | EXPECTED_BASELINE_DRIFT | R4.2 twin 资产（豆豆 morph/coat、咪咪修复）使 web 截图与 approved baseline 必然不同；本地 DB 被证据流程污染无法 clean-seed（FK），视觉链待远程 CI 用全新容器验证；approved baseline 未更新 |
-| APPROVED_VISUAL_BASELINE | OLD（未 promote） | — |
-| PR | OPEN（#2，未 merge） | `gh pr view 2` |
-| MERGED / RELEASED | FALSE / FALSE | — |
-| REAL_PET_IDENTITY_VALIDATION | NOT_YET_OBSERVED | 无真实豆豆照片验证 |
-| ANDROID_REAL_DEVICE_QA | NOT_YET_OBSERVED | — |
-| PRODUCT_VALIDATION | NOT_YET_OBSERVED | — |
-| HUMAN_VISUAL_ACCEPTANCE | PENDING | — |
-
+    | CI_BACKEND | PASS（本地 + 远程） | ruff 0；backend pytest 446 passed（本地）；远程 CI job `Backend` ✓ |
+    | CI_FRONTEND | PASS（本地 + 远程） | pet-3d build/typecheck、web/mobile/mini/admin typecheck、web build（PLIT_LOCAL_BUILD）、web vitest 33 passed、mobile export android/ios（本地）；远程 CI job `Frontend` ✓ |
+    | CI_BLIND | PASS（本地 + 远程） | `pytest tests/blind_ui --confcutdir tests/blind_ui -q` → 32 passed（本地）；远程 CI job `Blind Visual Contract` ✓ |
+    | CI_FUNCTIONAL_E2E | PASS（本地 + 远程） | Browser E2E functional（不含 visual）→ 42 passed（本地）；远程 CI `Playwright (functional specs)` ✓ |
+    | CI_ANDROID | PASS（本地 + 远程） | `assembleRelease` BUILD SUCCESSFUL（本地）；远程 CI `Android + Release Artifacts` ✓（APK + web standalone） |
+    | CI_VISUAL_CHAIN | EXPECTED_BASELINE_DRIFT（唯一红因 = OLD APPROVED BASELINE） | 远程 `Playwright (visual chain)` 仅 VISUAL-V2-01 / VISUAL-V3-01 失败：approved baseline vs current 像素 diff（today-390 63.3%、life-view-390 60.2%、pet-390 53.5% 等）；红因 = R4.2 twin 资产变更后的预期基线漂移；approved baseline 未更新 |
+    | VISUAL_V2 / VISUAL_V3 | EXPECTED_BASELINE_DRIFT | 同上（远程 CI 日志证明；本地 DB 被证据流程污染无法 clean-seed，视觉链以远程为准） |
+    | APPROVED_VISUAL_BASELINE | OLD（未 promote） | — |
+    | PR | OPEN（#2，未 merge） | `gh pr view 2`；HEAD=2cb2a85 |
+    | MERGED / RELEASED | FALSE / FALSE | — |
+    | REAL_PET_IDENTITY_VALIDATION | NOT_YET_OBSERVED | 无真实豆豆照片验证 |
+    | ANDROID_REAL_DEVICE_QA | NOT_YET_OBSERVED | — |
+    | PRODUCT_VALIDATION | NOT_YET_OBSERVED | — |
+    | HUMAN_VISUAL_ACCEPTANCE | PENDING | — |
 ## 2. 本轮改动（commit 摘要）
 
 1. `fix(ci)`：`contact_sheets_r4_1.py` W292 + hard-coded 宠物名 → 移除（neutral label）；ruff 全绿 + blind_ui 32 passed。
