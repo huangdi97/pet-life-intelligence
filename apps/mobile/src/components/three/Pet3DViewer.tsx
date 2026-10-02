@@ -48,10 +48,12 @@ interface Props {
    * auto-framed twin; >0 enables aspect-aware camera fitting, 0 = demo frame.
    */
   frameTarget?: number;
+  /** Twin Review view preset (front/side/back) → real camera yaw (Phase C). */
+  view?: "front" | "side" | "back";
   onStatus?: (status: Pet3DStatus) => void;
   onOrientation?: (yaw: number) => void;
 }
-export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DViewer({ identity, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, frameTarget = 0, onStatus, onOrientation }, ref) {
+export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DViewer({ identity, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, frameTarget = 0, view = "front", onStatus, onOrientation }, ref) {
   const [status, setStatus] = useState<Pet3DStatus>("boot");
   const webRef = useRef<WebView>(null);
   // Imperative camera controls drive the embedded page's REAL handlers
@@ -137,6 +139,14 @@ export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DVi
     lastPose.current = pose;
     webRef.current?.injectJavaScript(`window.__PLI_SET_POSE && window.__PLI_SET_POSE(${JSON.stringify(pose)}); true;`);
   }, [pose, status]);
+  // Twin Review view presets (front/side/back) must drive the REAL camera:
+  // the page's __PLI_SET_VIEW mutates its orbit and the manifest camera field
+  // (3d.json yaw) proves the switch is an actual camera movement, not a label.
+  useEffect(() => {
+    if (status !== "ready") return;
+    const yaw = view === "side" ? Math.PI / 2 : view === "back" ? Math.PI : 0;
+    webRef.current?.injectJavaScript(`window.__PLI_SET_VIEW && window.__PLI_SET_VIEW(${yaw}); true;`);
+  }, [view, status]);
 
   const twinJson = twin ? JSON.stringify(twin).replace(/\\/g, "\\\\").replace(/'/g, "\\'") : "";
   const injected = `window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; window.__PLI_FRAME_TARGET = ${Number(frameTarget) || 0}; window.__PLI_PET_ID = ${petId ? JSON.stringify(petId) : "null"}; window.__PLI_SOURCE_MEDIA_COUNT = ${Number(sourceMediaCount) || 0}; ${
@@ -145,7 +155,7 @@ export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DVi
 
   const meta = PET_3D_ASSETS[identity];
   const label = twin
-    ? `${meta.name}的 3D 形象（由照片/模板生成，待你确认后才显示）。`
+    ? `${meta.name}的 3D 形象（由照片/模板生成）。`
     : `${meta.name}的 3D 形象（演示）。${meta.description}`;
 
   return (

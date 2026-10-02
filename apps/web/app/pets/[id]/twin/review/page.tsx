@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@pli/api-client";
 import { Pet3DViewer } from "../../../../../components/three/pet3d-viewer";
@@ -109,6 +109,22 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
   const modelDescriptor = (model?.artifact_map as Record<string, unknown>)?.twin_descriptor as import("@pli/pet-3d").TwinDescriptor | undefined;
   const modelSurface = (modelDescriptor as { surface?: { observed_regions?: string[] } } | undefined)?.surface?.observed_regions;
   const twinSourceMediaCount = modelSurface?.length ?? 0;
+  // INVARIANT: pass a STABLE twin object. The spread below is intentionally
+  // memoized — a fresh object per render would remount the 3D scene (the
+  // viewer keys its effect on `twin`), resetting the camera and defeating the
+  // front/side/back presets that drive the real camera on click.
+  const viewerTwin = useMemo<import("@pli/pet-3d").TwinDescriptor | null>(
+    () =>
+      model && modelDescriptor
+        ? {
+            ...modelDescriptor,
+            family: pet?.species === "cat" ? "standard-cat" : "corgi-like",
+            version: model.version,
+            provenance: model.provenance_kind,
+          }
+        : null,
+    [model, modelDescriptor, pet?.species, model?.version, model?.provenance_kind],
+  );
 
   return (
     <main data-pli-selected={selected ?? ""}>
@@ -131,7 +147,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
               stageRole="review"
               realityField="review-studio"
               sourceMediaCount={twinSourceMediaCount}
-              twin={model ? { ...(modelDescriptor ?? {}), family: pet?.species === "cat" ? "standard-cat" : "corgi-like", version: model.version, provenance: model.provenance_kind } : null}
+              twin={viewerTwin}
             />
           ) : (
             <div className="page-center" style={{ minHeight: 240 }}>
