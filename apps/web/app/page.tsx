@@ -51,7 +51,7 @@ export default function TodayPage() {
     () => (petId ? api.get(`/pets/${petId}/visual-models`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [petId],
   );
-  const activeTwin = twin.data?.models.find((m) => m.status === "ACTIVE") ?? null;
+  const activeTwin = twin.data?.models?.find((m) => m.status === "ACTIVE") ?? null;
   const twinDescriptor = activeTwin
     ? ((activeTwin.artifact_map as Record<string, unknown>)?.twin_descriptor as import("@pli/pet-3d").TwinDescriptor | undefined) ?? null
     : null;

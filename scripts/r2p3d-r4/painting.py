@@ -76,7 +76,7 @@ def _view_observed(pos: np.ndarray, nrm: np.ndarray, head: dict[str, float]) -> 
 
 
 def make_dog_painter(landmarks: dict) -> PaintFn:
-    """豆豆 — warm cream/white terrier with brown ears, blaze, chest cream."""
+    """Dog painter — warm cream/white terrier with brown ears, blaze, chest cream."""
 
     def paint(pos: np.ndarray, nrm: np.ndarray, prior: np.ndarray) -> tuple[np.ndarray, bool]:
         lum = float(np.dot(prior, np.array([0.299, 0.587, 0.114])))
@@ -136,7 +136,7 @@ def make_dog_painter(landmarks: dict) -> PaintFn:
 
 
 def make_cat_painter(landmarks: dict) -> PaintFn:
-    """咪咪 — soft grey shorthair with tabby stripes, white muzzle/chest/belly."""
+    """Cat painter — soft grey shorthair with tabby stripes, white muzzle/chest/belly."""
 
     def paint(pos: np.ndarray, nrm: np.ndarray, prior: np.ndarray) -> tuple[np.ndarray, bool]:
         lum = float(np.dot(prior, np.array([0.299, 0.587, 0.114])))
