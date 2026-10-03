@@ -49,7 +49,7 @@
     | CI_VISUAL_CHAIN | EXPECTED_BASELINE_DRIFT（唯一红因 = OLD APPROVED BASELINE） | 最终 head `fd62549` run 37117968170 job 111188797021：`Playwright (visual chain)` 仅 VISUAL-V2-01 / VISUAL-V3-01 失败；`066b664` run 37114153709 job 111178151124 同证 —— V2 diffs（1024_3d-life-view 61.890%、1024_3d-verification 61.890%、today-390 63.3%、life-view-390 60.2%、pet-390 53.5% 等）、VISUAL-V3 24 pages max diff 63.291%；红因 = R4.2 twin 资产变更 vs OLD APPROVED BASELINE；approved baseline 未更新；该 job 唯一失败步 = visual chain，其余全部 success |
     | VISUAL_V2 / VISUAL_V3 | EXPECTED_BASELINE_DRIFT | 同上（远程 CI 日志证明；本地 DB 被证据流程污染无法 clean-seed，视觉链以远程为准） |
     | APPROVED_VISUAL_BASELINE | OLD（未 promote） | — |
-    | PR | OPEN（#2，未 merge） | `gh pr view 2`：state=OPEN / MERGEABLE / baseRefName=main / headRefOid=`fd62549`（收口轮最终推送） |
+    | PR | OPEN（#2，未 merge） | `gh pr view 2`：state=OPEN / MERGEABLE / baseRefName=main / headRefOid=`fd62549`（CI 证据核验头；其后仅 docs 同步提交，代码等价） |
     | MERGED / RELEASED | FALSE / FALSE | — |
     | REAL_PET_IDENTITY_VALIDATION | NOT_YET_OBSERVED | 无真实豆豆照片验证 |
     | ANDROID_REAL_DEVICE_QA | NOT_YET_OBSERVED | — |
