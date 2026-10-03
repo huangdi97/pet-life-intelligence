@@ -73,20 +73,20 @@ export const MIMI = {
 export const GROUND_SHADOW = {
   /** Warm dark tone for the soft contact shadow under the pet. */
   color: 0x2a2018,
-  opacity: 0.32,
+  opacity: 0.18,
 } as const;
 
 export const LIGHTS = {
   /** Warm low ambient so nothing is pitch black. */
   ambient: 0xffe8d2,
-  ambientIntensity: 0.55,
+  ambientIntensity: 0.82,
   /** Warm key light from upper front-left. */
   key: 0xffd9b8,
-  keyIntensity: 1.05,
+  keyIntensity: 1.12,
   /** Cooler fill from the right to keep shapes readable. */
   fill: 0xe8e2d8,
-  fillIntensity: 0.35,
+  fillIntensity: 0.58,
   /** Soft rim from behind to lift the silhouette off the background. */
   rim: 0xfff3e0,
-  rimIntensity: 0.55,
+  rimIntensity: 0.68,
 } as const;
