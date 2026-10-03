@@ -143,7 +143,7 @@ export function PetTwinReviewScreen() {
         <View style={styles.center}><ActivityIndicator color={COLORS.brandPrimary} /></View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Idle" interactive frameTarget={0.23} view={view} />
+          <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Idle" interactive frameTarget={0.28} view={view} />
           <Text style={styles.caption}>
             这是根据{pet?.name ?? "宠物"}的照片与模板生成的第 {version} 版形象。旋转查看后回答：像它吗？
           </Text>
