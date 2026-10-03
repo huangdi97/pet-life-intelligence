@@ -85,11 +85,17 @@ rootEl.appendChild(renderer.domElement);
 
 const theme = STAGE_THEMES[stageTheme];
 const scene = new THREE.Scene();
-// R4.2: the WebView canvas paints its OWN themed surface (warm cream for
-// living, neutral for review, dark only for the engineering debug theme), so
-// owner hero pages are never a transparent dark rectangle.
-scene.background = new THREE.Color(theme.base);
-scene.fog = new THREE.FogExp2(new THREE.Color(theme.fog), 0.035);
+// R5: owner product surfaces are composed by the native Living Stage. Keep
+// the WebGL canvas transparent so it cannot re-introduce a rectangular viewer
+// inside that field. Engineering/debug remains deliberately opaque.
+if (stageTheme === "engineering") {
+  scene.background = new THREE.Color(theme.base);
+  renderer.setClearColor(new THREE.Color(theme.base), 1);
+} else {
+  scene.background = null;
+  renderer.setClearColor(0x000000, 0);
+}
+scene.fog = new THREE.FogExp2(new THREE.Color(theme.fog), stageTheme === "engineering" ? 0.035 : 0.022);
 
 // Individual twin (R2P3D-R1) beats demo identity when a descriptor is present.
 const stage = twinDescriptor
@@ -114,7 +120,7 @@ if (stageTheme !== "engineering") {
     new THREE.MeshBasicMaterial({
       color: new THREE.Color(theme.base),
       transparent: true,
-      opacity: 0.14,
+      opacity: 0.07,
       depthWrite: false,
     }),
   );
@@ -127,7 +133,7 @@ if (stageTheme !== "engineering") {
     new THREE.MeshBasicMaterial({
       color: new THREE.Color(theme.glow),
       transparent: true,
-      opacity: 0.20,
+      opacity: 0.10,
       depthWrite: false,
     }),
   );
@@ -362,4 +368,6 @@ window.__PLI_SET_VIEW = (yaw: number) => {
 };
 
 const controls = document.getElementById("controls") as HTMLElement;
-if (interactive) controls.classList.add("show");
+// Product owner pages use the native React Native controls so there is one
+// interaction layer, not duplicated WebView + native +/-/reset buttons.
+if (interactive && stageTheme === "engineering") controls.classList.add("show");

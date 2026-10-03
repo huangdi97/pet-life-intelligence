@@ -51,11 +51,11 @@ const html = `<!doctype html>
   #controls { position: fixed; right: 12px; bottom: 12px; display: none; gap: 8px; z-index: 5; }
   #controls.show { display: flex; }
   .btn {
-    width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(250,246,239,0.3);
-    background: rgba(23,19,16,0.55); color: #FAF6EF; font-size: 18px; line-height: 1;
+    width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(120,101,78,0.24);
+    background: rgba(255,253,248,0.86); color: #4A3A2C; font-size: 18px; line-height: 1;
     display: flex; align-items: center; justify-content: center;
   }
-  .btn:active { background: rgba(58,46,36,0.85); }
+  .btn:active { background: rgba(239,229,214,0.96); }
 </style>
 </head>
 <body>

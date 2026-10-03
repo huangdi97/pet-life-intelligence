@@ -35,6 +35,12 @@ jobs:
           python scripts/r2p3d-r4/build_twins.py --identity dog
           python scripts/r2p3d-r4/asset_qa.py
 
+      - name: Synchronize web product twin
+        run: |
+          mkdir -p apps/web/public/assets/twins
+          cp packages/pet-3d/assets/twins/doudou.glb apps/web/public/assets/twins/doudou.glb
+          cmp packages/pet-3d/assets/twins/doudou.glb apps/web/public/assets/twins/doudou.glb
+
       - name: Verify native source provenance
         run: |
           python - <<'PY'
@@ -52,7 +58,7 @@ jobs:
         run: |
           git config user.name "pli-r5-bake-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add packages/pet-3d/assets/twins/doudou* reports/r2p3d-r4/ASSET_QA_R4.json
+          git add packages/pet-3d/assets/twins/doudou* apps/web/public/assets/twins/doudou.glb reports/r2p3d-r4/ASSET_QA_R4.json
           if git diff --cached --quiet; then
             echo "No generated changes"
             exit 0

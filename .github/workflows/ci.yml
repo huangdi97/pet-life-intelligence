@@ -90,6 +90,8 @@ jobs:
         run: pnpm --dir packages/ui-tokens build
       - name: pet-3d build
         run: pnpm --dir packages/pet-3d build
+      - name: Mobile 3D page build
+        run: pnpm --dir apps/mobile build:3d-page
       - name: Web typecheck
         run: pnpm --dir apps/web typecheck
       - name: Web build
