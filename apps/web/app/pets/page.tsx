@@ -96,7 +96,7 @@ export default function PetsHubPage() {
                 headline={current.name}
                 caption={identityParts || undefined}
                 twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
-                frameTarget={0.21}
+                frameTarget={0.24}
                 sourceMediaCount={observedRegions || undefined}
                 stageTestId="pli.pet.hero-stage"
                 twinTestId="pli.pet.pet-twin"
