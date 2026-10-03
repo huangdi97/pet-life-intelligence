@@ -774,3 +774,48 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
     padding: 14px 12px calc(94px + env(safe-area-inset-bottom));
   }
 }
+
+
+/* R5 living-field craft: quieter data bubbles, stronger pet presence, and a
+   soft physical edge instead of a dashboard/viewer frame. */
+.r2p-stage--3d {
+  border: 1px solid rgba(216, 195, 162, 0.52);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    0 10px 32px rgba(101,75,47,0.045);
+}
+.r2p-stage--3d .r2p-anchor {
+  min-height: 34px;
+  padding: 4px 9px;
+  gap: 6px;
+  background: rgba(255, 253, 248, 0.78);
+  border-color: rgba(178, 150, 115, 0.20);
+  box-shadow: 0 2px 8px rgba(43,39,35,0.04);
+  backdrop-filter: blur(10px);
+}
+.r2p-stage--3d .r2p-anchor-icon {
+  width: 16px;
+  height: 16px;
+}
+.r2p-stage--3d .r2p-stage-glow {
+  opacity: 0.68;
+  filter: blur(2px);
+}
+.r2p-stage--3d .r2p-stage-pet--3d {
+  width: 326px;
+  height: 372px;
+}
+.r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d {
+  width: 310px;
+  height: 354px;
+}
+.r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d {
+  width: 332px;
+  height: 396px;
+}
+@media (min-width: 1024px) {
+  .r2p-stage--3d .r2p-stage-pet--3d {
+    width: 410px;
+    height: 430px;
+  }
+}
