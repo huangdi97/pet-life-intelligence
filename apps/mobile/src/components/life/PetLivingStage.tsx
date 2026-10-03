@@ -1,6 +1,6 @@
 /**
  * PetLivingStage — the shared "pet is in the room" composition for Today / Pet /
- * Life View (R2-P3D §16/§19/§23). Three depth layers: warm charcoal environment
+ * Life View (R2-P3D §16/§19/§23). Three depth layers: warm living environment
  * background, midground REAL 3D pet (shared demo asset via Pet3DViewer), and
  * foreground state anchors + identity/now overlay. The pet visual always
  * dominates; when the 3D renderer fails or no demo identity exists, the stage
@@ -19,8 +19,8 @@ import { PetStateAnchor, type PetAnchor } from "./PetStateAnchor";
 
 export type StageVariant = "today" | "pet" | "life" | "review";
 
-const HEIGHTS: Record<StageVariant, number> = { today: 372, pet: 396, life: 492, review: 502 };
-const PET_WIDTHS: Record<StageVariant, number> = { today: 228, pet: 246, life: 268, review: 268 };
+const HEIGHTS: Record<StageVariant, number> = { today: 384, pet: 408, life: 500, review: 512 };
+const PET_WIDTHS: Record<StageVariant, number> = { today: 244, pet: 262, life: 288, review: 292 };
 
 const SLOTS: Array<{ top?: DimensionValue; bottom?: DimensionValue; left?: number; right?: number }> = [
   { top: "10%", left: 12 },
@@ -114,10 +114,23 @@ export function PetLivingStage({
   );
   return (
     <View testID={stageTestId} accessible accessibilityLabel={`${pet?.name ?? "宠物"}的此刻舞台`} style={[styles.stage, { height }, reviewStudio ? styles.stageReview : styles.stageLiving]}>
-      {/* BACKGROUND: warm living gradient (or neutral studio for review) */}
-      <View style={[styles.envTop, reviewStudio && styles.envReviewTop]} />
-      <View style={[styles.envBase, reviewStudio && styles.envReviewBase]} />
-      {reviewStudio ? <View style={styles.reviewGlow} /> : <View style={styles.glow} />}
+      {/* BACKGROUND: a quiet room field, not a viewer card. Living surfaces use
+          window-like daylight + a low floor haze; Review uses a neutral studio. */}
+      <View style={[styles.fieldBase, reviewStudio ? styles.fieldBaseReview : styles.fieldBaseLiving]} />
+      {reviewStudio ? (
+        <>
+          <View style={styles.reviewHalo} />
+          <View style={styles.reviewFloor} />
+        </>
+      ) : (
+        <>
+          <View style={styles.windowBeamA} />
+          <View style={styles.windowBeamB} />
+          <View style={styles.sunHaze} />
+          <View style={styles.floorHaze} />
+          <View style={styles.roomHorizon} />
+        </>
+      )}
 
       {/* MIDGROUND: pet */}
       {onPressPet ? (
@@ -172,34 +185,88 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s3,
     borderRadius: RADIUS.hero,
     overflow: "hidden",
+    borderWidth: 1,
   },
-  // Warm living reality field: cream gradient + soft radial light, pet-first.
-  stageLiving: { backgroundColor: COLORS.stageWarmBase },
-  // Neutral identity studio for Twin Review: off-white / soft warm grey.
-  stageReview: { backgroundColor: COLORS.stageReviewBase },
-  envTop: { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.stageWarmBase },
-  envBase: { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.stageWarmDeep, top: "55%" },
-  envReviewTop: { backgroundColor: COLORS.stageReviewBase },
-  envReviewBase: { backgroundColor: COLORS.stageReviewDeep, top: "55%" },
-  glow: {
+  stageLiving: {
+    backgroundColor: COLORS.stageWarmBase,
+    borderColor: COLORS.stageWarmBorder,
+  },
+  stageReview: {
+    backgroundColor: COLORS.stageReviewBase,
+    borderColor: COLORS.stageReviewBorder,
+  },
+  fieldBase: { ...StyleSheet.absoluteFillObject },
+  fieldBaseLiving: { backgroundColor: COLORS.stageWarmBase },
+  fieldBaseReview: { backgroundColor: COLORS.stageReviewBase },
+  // Asymmetric daylight cues keep the stage spatial without drawing a giant
+  // geometric circle behind the pet.
+  windowBeamA: {
     position: "absolute",
-    width: 340,
+    width: 92,
     height: 300,
-    borderRadius: 170,
-    backgroundColor: COLORS.stageWarmGlow,
-    top: 40,
-    alignSelf: "center",
-    opacity: 0.6,
+    left: 24,
+    top: -54,
+    borderRadius: 46,
+    backgroundColor: COLORS.stageWarmBeam,
+    opacity: 0.52,
+    transform: [{ rotate: "7deg" }],
   },
-  reviewGlow: {
+  windowBeamB: {
     position: "absolute",
-    width: 320,
-    height: 280,
-    borderRadius: 160,
+    width: 44,
+    height: 260,
+    left: 116,
+    top: -38,
+    borderRadius: 24,
+    backgroundColor: COLORS.stageWarmBeamSoft,
+    opacity: 0.42,
+    transform: [{ rotate: "7deg" }],
+  },
+  sunHaze: {
+    position: "absolute",
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    right: -58,
+    top: 24,
+    backgroundColor: COLORS.stageWarmGlow,
+    opacity: 0.40,
+  },
+  floorHaze: {
+    position: "absolute",
+    height: 142,
+    left: -32,
+    right: -32,
+    bottom: -58,
+    borderRadius: 90,
+    backgroundColor: COLORS.stageWarmFloor,
+  },
+  roomHorizon: {
+    position: "absolute",
+    height: 1,
+    left: 24,
+    right: 24,
+    bottom: 98,
+    backgroundColor: COLORS.stageWarmHorizon,
+  },
+  reviewHalo: {
+    position: "absolute",
+    width: 250,
+    height: 250,
+    borderRadius: 125,
     backgroundColor: COLORS.stageReviewGlow,
-    top: 44,
+    top: 60,
     alignSelf: "center",
-    opacity: 0.55,
+    opacity: 0.42,
+  },
+  reviewFloor: {
+    position: "absolute",
+    height: 126,
+    left: 18,
+    right: 18,
+    bottom: -48,
+    borderRadius: 82,
+    backgroundColor: COLORS.stageReviewFloor,
   },
   pressPet: { position: "absolute", left: 0, right: 0, bottom: 30, alignItems: "center" },
   petSlot: { position: "absolute", left: 0, right: 0, bottom: 30, alignItems: "center" },
