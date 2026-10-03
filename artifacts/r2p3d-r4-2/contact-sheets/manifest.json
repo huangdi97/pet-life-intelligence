@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-10-02T19:28:01.767845+00:00",
-  "android_captures": "SKIPPED_BLOCKED",
+  "generated_at": "2026-10-03T13:59:13.302475+00:00",
+  "android_captures": "REQUIRED",
   "sheets": [
     {
       "sheet": "PLI_R4_2_WEB_HEROES.png",
-      "timestamp": "2026-10-02T19:28:01.767872+00:00",
+      "timestamp": "2026-10-03T13:59:13.302544+00:00",
       "sources": [
         {
           "label": "today",
@@ -49,8 +49,94 @@
       ]
     },
     {
+      "sheet": "PLI_R4_2_ANDROID_HEROES.png",
+      "timestamp": "2026-10-03T13:59:13.305353+00:00",
+      "sources": [
+        {
+          "label": "today",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\android\\today\\today.png",
+          "sha256": "ef4574356e3488790285912b29ac1e18a74bbc18cb06db630ba79f214ece7ec8",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        },
+        {
+          "label": "pet",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\android\\pet\\pet.png",
+          "sha256": "40228e7e0c926963a3d9f54e7fc51144694e30273334e0eb5ceae4097a5126ab",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        },
+        {
+          "label": "lifeview",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\android\\lifeview\\lifeview.png",
+          "sha256": "deb5bd38bfd7d64e6892178faae8a692e77c41a0ccb48c25c9d92db220320634",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        },
+        {
+          "label": "twinreview",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\android\\twinreview\\twinreview.png",
+          "sha256": "b30a16408b760d9d34d88550405cffe3d0cf52a062a10af3fc1a04e073d70b7f",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        },
+        {
+          "label": "豆豆 front",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\android\\twinreview\\twin_front.png",
+          "sha256": "b30a16408b760d9d34d88550405cffe3d0cf52a062a10af3fc1a04e073d70b7f",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        },
+        {
+          "label": "豆豆 side",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\android\\twinreview\\twin_side.png",
+          "sha256": "0480a5d631729578b88c4c132151e859c45f1182f3f10a76b0792f43021f1d94",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        },
+        {
+          "label": "豆豆 back",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\android\\twinreview\\twin_back.png",
+          "sha256": "8351956b2b7cd13df6cfb6fa9ef5c03806d6a99d1db795bd6e97d9f3cde1e991",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        },
+        {
+          "label": "咪咪 today",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\android\\mimi-sanity\\mimi_today.png",
+          "sha256": "6ae42a287f546ae560e848c2ff05d63e85df9b54e6eb5ce83ea5ea28408d6394",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        }
+      ]
+    },
+    {
       "sheet": "PLI_R4_1_VS_R4_2_WEB_HEROES.png",
-      "timestamp": "2026-10-02T19:28:01.769986+00:00",
+      "timestamp": "2026-10-03T13:59:13.308185+00:00",
       "sources": [
         {
           "label": "R4.1 today",
@@ -135,8 +221,94 @@
       ]
     },
     {
+      "sheet": "PLI_R4_1_VS_R4_2_ANDROID_HEROES.png",
+      "timestamp": "2026-10-03T13:59:13.309796+00:00",
+      "sources": [
+        {
+          "label": "R4.1 today",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-1\\android\\today\\today.png",
+          "sha256": "7ffde338aa3c28807b54edd587782997a601b0f525cc4e531a4b49a923852636",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        },
+        {
+          "label": "R4.2 today",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\android\\today\\today.png",
+          "sha256": "ef4574356e3488790285912b29ac1e18a74bbc18cb06db630ba79f214ece7ec8",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        },
+        {
+          "label": "R4.1 pet",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-1\\android\\pet\\pet.png",
+          "sha256": "056ba5829d9ba7940986361c53124a6bb9ad56fe65ae8009cf13666ed8c62410",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        },
+        {
+          "label": "R4.2 pet",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\android\\pet\\pet.png",
+          "sha256": "40228e7e0c926963a3d9f54e7fc51144694e30273334e0eb5ceae4097a5126ab",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        },
+        {
+          "label": "R4.1 lifeview",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-1\\android\\lifeview\\lifeview.png",
+          "sha256": "e66b155c219a15422db421a5dfcd8d401e4f1a100302db59ba6e71259757b910",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        },
+        {
+          "label": "R4.2 lifeview",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\android\\lifeview\\lifeview.png",
+          "sha256": "deb5bd38bfd7d64e6892178faae8a692e77c41a0ccb48c25c9d92db220320634",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        },
+        {
+          "label": "R4.1 twinreview",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-1\\android\\twinreview\\twinreview.png",
+          "sha256": "3ad64dbb41852cd60e8e08f04a71c2d198b784eec047bcc276d0ffa7b0221658",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        },
+        {
+          "label": "R4.2 twinreview",
+          "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\android\\twinreview\\twinreview.png",
+          "sha256": "b30a16408b760d9d34d88550405cffe3d0cf52a062a10af3fc1a04e073d70b7f",
+          "dimensions": {
+            "width": 1080,
+            "height": 2400
+          },
+          "required": true
+        }
+      ]
+    },
+    {
       "sheet": "PLI_R3_VS_R4_VS_R4_1_VS_R4_2_today.png",
-      "timestamp": "2026-10-02T19:28:01.772161+00:00",
+      "timestamp": "2026-10-03T13:59:13.312560+00:00",
       "sources": [
         {
           "label": "R3 today",
@@ -182,7 +354,7 @@
     },
     {
       "sheet": "PLI_R3_VS_R4_VS_R4_1_VS_R4_2_pet.png",
-      "timestamp": "2026-10-02T19:28:01.773117+00:00",
+      "timestamp": "2026-10-03T13:59:13.313676+00:00",
       "sources": [
         {
           "label": "R3 pet",
@@ -228,7 +400,7 @@
     },
     {
       "sheet": "PLI_R3_VS_R4_VS_R4_1_VS_R4_2_lifeview.png",
-      "timestamp": "2026-10-02T19:28:01.773931+00:00",
+      "timestamp": "2026-10-03T13:59:13.314798+00:00",
       "sources": [
         {
           "label": "R3 lifeview",
@@ -274,7 +446,7 @@
     },
     {
       "sheet": "PLI_R3_VS_R4_VS_R4_1_VS_R4_2_twinreview.png",
-      "timestamp": "2026-10-02T19:28:01.774734+00:00",
+      "timestamp": "2026-10-03T13:59:13.315844+00:00",
       "sources": [
         {
           "label": "R3 twinreview",
@@ -320,10 +492,10 @@
     },
     {
       "sheet": "TWIN_TURNTABLE_DOU_DOU_R4_2.png",
-      "timestamp": "2026-10-02T19:28:01.775311+00:00",
+      "timestamp": "2026-10-03T13:59:13.316528+00:00",
       "sources": [
         {
-          "label": "DOG-DEMO front (web runtime)",
+          "label": "豆豆 front (web runtime)",
           "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\web\\turntable\\doudou\\front.png",
           "sha256": "87dc1fd22f6193090e7a317fe2746c02d30601153b687e7a7c007e4bd75bf6b8",
           "dimensions": {
@@ -333,7 +505,7 @@
           "required": true
         },
         {
-          "label": "DOG-DEMO front-left (web runtime)",
+          "label": "豆豆 front-left (web runtime)",
           "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\web\\turntable\\doudou\\front-left.png",
           "sha256": "3f2f20573d8cfa85b8bfa38952526b995d5080c3b2978fbfeeda9e5eb151d689",
           "dimensions": {
@@ -343,7 +515,7 @@
           "required": true
         },
         {
-          "label": "DOG-DEMO side (web runtime)",
+          "label": "豆豆 side (web runtime)",
           "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\web\\turntable\\doudou\\side.png",
           "sha256": "b0e6938be1132629f097bb5aab21b80f42be5cf8ea776d55e8c1f7dd39125d69",
           "dimensions": {
@@ -353,7 +525,7 @@
           "required": true
         },
         {
-          "label": "DOG-DEMO rear (web runtime)",
+          "label": "豆豆 rear (web runtime)",
           "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\web\\turntable\\doudou\\rear.png",
           "sha256": "e511fa206a8715e002c0011aed0cd579270559f000b67318ca6f83be84d13948",
           "dimensions": {
@@ -363,7 +535,7 @@
           "required": true
         },
         {
-          "label": "DOG-DEMO front-right (web runtime)",
+          "label": "豆豆 front-right (web runtime)",
           "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\web\\turntable\\doudou\\front-right.png",
           "sha256": "6e761fe6f4e6eefb8cb8fa7f1637f2bec280850d5a98ef6056dcd166bce33af3",
           "dimensions": {
@@ -376,10 +548,10 @@
     },
     {
       "sheet": "TWIN_TURNTABLE_MIMI_R4_2.png",
-      "timestamp": "2026-10-02T19:28:01.776241+00:00",
+      "timestamp": "2026-10-03T13:59:13.317529+00:00",
       "sources": [
         {
-          "label": "CAT-DEMO front (web runtime)",
+          "label": "咪咪 front (web runtime)",
           "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\web\\turntable\\mimi\\front.png",
           "sha256": "267b4df66a1ae96b4f6f72c5a28d14fb404d1b9b5bda4ffde8cd240ec631113c",
           "dimensions": {
@@ -389,7 +561,7 @@
           "required": true
         },
         {
-          "label": "CAT-DEMO front-left (web runtime)",
+          "label": "咪咪 front-left (web runtime)",
           "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\web\\turntable\\mimi\\front-left.png",
           "sha256": "d67333d840f8d200f1bed480b095b83e2a6cccd0ccf2465291d7a0f7c4035c9d",
           "dimensions": {
@@ -399,7 +571,7 @@
           "required": true
         },
         {
-          "label": "CAT-DEMO side (web runtime)",
+          "label": "咪咪 side (web runtime)",
           "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\web\\turntable\\mimi\\side.png",
           "sha256": "f2810ff8bc312cf288ef6cfc630888ca027b65d60d6a77fc66706fc64510e518",
           "dimensions": {
@@ -409,7 +581,7 @@
           "required": true
         },
         {
-          "label": "CAT-DEMO rear (web runtime)",
+          "label": "咪咪 rear (web runtime)",
           "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\web\\turntable\\mimi\\rear.png",
           "sha256": "c800d4afbb395baeaaf3bff1bd6abb51551af2770bfac58108e70565e83a4318",
           "dimensions": {
@@ -419,7 +591,7 @@
           "required": true
         },
         {
-          "label": "CAT-DEMO front-right (web runtime)",
+          "label": "咪咪 front-right (web runtime)",
           "path": "E:\\AI\\Pet Life Intelligence\\artifacts\\r2p3d-r4-2\\web\\turntable\\mimi\\front-right.png",
           "sha256": "8505971831aab78aac1205177f1df963b49cc586d13f4a0dce91b6eb39aaa745",
           "dimensions": {

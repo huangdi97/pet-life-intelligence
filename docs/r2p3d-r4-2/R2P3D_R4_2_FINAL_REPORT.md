@@ -1,28 +1,28 @@
 # R2P3D-R4.2 Final Report — Visual Reality Correction, Android Warm Living & Pet Identity Closure
 
  > 生成时间：2026-10-03（本地执行）。NO_VISION_MODEL_USED = TRUE（全程未调用任何视觉/多模态模型；机器检查仅使用 manifest / GLB 元数据 / bbox / 变换矩阵 / 权重统计 / DOM / computed styles / 像素统计 / SSIM 等允许手段）。
- > 收口复核：2026-10-03（Goal 收口/验证模式）—— Android 捕获再试 3 次（含新增候选 `pdig_tablet_api36`），仍为环境级失败；本地闸门复验通过；Final Report 结论未变化（NOT_READY，唯一阻断 = Android runtime 截图证据缺失）。
- 
+ > 收口复核：2026-10-03（Goal 收口/验证模式）。**后续会话突破**：Android 运行时
+ > 捕获成功（blocker 根因 = adb daemon 跨调用死亡丢 reverse，已修复），
+ > `R4_2_PRODUCT_VISUAL_CANDIDATE = READY_FOR_HUMAN_REVIEW`。Human Visual
+ > Acceptance = PENDING，最终由用户本人看图判断。
  ## 结论（先看这里）
  
  ```
- R4_2_PRODUCT_VISUAL_CANDIDATE = NOT_READY
+ R4_2_PRODUCT_VISUAL_CANDIDATE = READY_FOR_HUMAN_REVIEW
  ```
  
- 原因（唯一阻断项）：**Android 运行时截图证据无法在本机会话产出**
- （`docs/r2p3d-r4-2/ANDROID_CAPTURE_BLOCKED.md`；收口轮 3 次全新启动再试后
- 仍为环境级失败：`pdig_tablet_api36` 启动即崩溃、`main` 窗口模式完整启动 +
- 安装 APK + 应用 RESUMED 后消失、`main -no-window` 15 秒掉线；
- `ANDROID_RUNTIME_CAPTURE = EXTERNAL_BLOCKED`）。按 Goal §39/§40，
- 任一 required Contact Sheet 缺失即 NOT_READY，不得宣布 READY_FOR_HUMAN_REVIEW。
+ 收口轮后续会话突破：**Android 运行时捕获成功**（`ANDROID_RUNTIME_CAPTURE =
+ PASS`）。真正 blocker 是 adb daemon 在工具调用间死亡导致 `adb reverse` 丢失
+ （详见 `docs/r2p3d-r4-2/ANDROID_CAPTURE_BLOCKED.md` 的 RESOLVED 记录）。
+ 修复后捕获了豆豆 Today/Pet/Life View/Twin Review + 咪咪 Today/Review 的真实
+ RUNTIME 证据（`high-fidelity-glb-twin` / `fallbackUsed=false` /
+ `warm-living-field` / `neutral-identity-studio`，像素核验无 dark viewer），
+ 全部 contact sheets 生成且 manifest 54/54 sha256 一致。
  
- 其余全部机器可验项均已通过（见下）。**Human Visual Acceptance = PENDING** ——
- 豆豆像不像 Corgi、咪咪是否正常、Android 是否从 Viewer 变成 Living Experience，
- 最终由用户本人看图判断。未伪造任何 Android 证据；未把 fallback/占位图当作
- Hero 证据。
-
----
-
+ Goal §39 全部自动 NOT_READY 条件现已清除；按 §41，本轮可标记
+ `READY_FOR_HUMAN_REVIEW`。**Human Visual Acceptance = PENDING** —— 豆豆
+ 像不像 Corgi、咪咪是否正常、Android 是否从 Viewer 变成 Living Experience，
+ 最终由用户本人看图判断。未使用任何视觉模型；未伪造证据。
 ## 1. 逐项状态（按 Goal §38 模板）
 
 | 项 | 状态 | 证据 |
@@ -39,8 +39,8 @@
 | WEB_HERO_CAPTURE | PASS | `artifacts/r2p3d-r4-2/web/{today,pet,lifeview,twinreview}/screenshot.png`，manifest：HIGH_FIDELITY_SKINNED / fallbackUsed=false / warm-living / review-studio |
  | DOUDOU_TURNTABLE_COMPLETE | PASS（web runtime camera presets，5 角度：front/front-left/side/rear/front-right，真实 yaw 0/0.35/π/2/π/−0.35） | `artifacts/r2p3d-r4-2/web/turntable/doudou/*.png+*.json` |
  | MIMI_TURNTABLE_COMPLETE | PASS（同上 5 角度；mimi front.json triangleCount=51648 = 修复后 GLB） | `web/turntable/mimi/*` |
- | ANDROID_HERO_CAPTURE | EXTERNAL_BLOCKED | 见 ANDROID_CAPTURE_BLOCKED.md（含收口轮 3 次全新启动再试记录）；未伪造证据 |
- | CONTACT_SHEET_INTEGRITY | PASS（web sheets + manifest 有效；Android sheets 因证据缺失未生成而非占位） | `contact-sheets/manifest.json` sha256 与磁盘一致 |
+ | ANDROID_HERO_CAPTURE | **PASS** | `artifacts/r2p3d-r4-2/android/{today,pet,lifeview,twinreview}/*.png+*.json` + mimi-sanity/mimi-review：RUNTIME manifest（high-fidelity-glb-twin / fallback=false / warm-living-field / neutral-identity-studio），像素核验 mean luma 221–226、dark<3% |
+ | CONTACT_SHEET_INTEGRITY | **PASS（含 Android sheets）** | 10 张 sheet 全部生成；manifest.json 54 个 source sha256 与磁盘一致（0 缺失 / 0 占位 / 0 哈希失败）；grey 采样 0.07–0.13%（仅文字/边框） |
     | CI_BACKEND | PASS（本地复验 + 远程） | ruff check services packages tests scripts → 0 errors（收口复验 2026-10-03）；远程 CI job `Backend` ✓ |
     | CI_FRONTEND | PASS（本地 + 远程） | pet-3d build/typecheck、web/mobile/mini/admin typecheck、web build（PLIT_LOCAL_BUILD）、web vitest 33 passed、mobile export android/ios（本地）；远程 CI job `Frontend` ✓ |
     | CI_BLIND | PASS（收口复验 + 远程） | `pytest tests/blind_ui --confcutdir tests/blind_ui -q` → 32 passed（收口复验 2026-10-03，venv）；远程 CI job `Blind Visual Contract` ✓ |
@@ -67,15 +67,17 @@
 
 ## 3. NOT_READY 自动条件核验（Goal §39）
 
-| 条件 | 结果 |
-| --- | --- |
-| Android Hero 仍 dark viewer | 无法核验（capture blocked）；代码已移除 dark viewer（PASS at code level） |
-| 豆豆仍 generic terrier silhouette | PENDING（机器 proxy 显著 Corgi-like：body/height 1.44、leg/height 0.24；human 判断待定） |
-| 咪咪仍 spike/拉伸/爆炸 | PASS（已修复，机器几何正常） |
-| required Contact Sheet 出现 placeholder/错误图 | **触发**：Android sheets 未生成（generator raise，非占位）→ NOT_READY |
-| Mimi turntable <4 角度 | PASS（5 角度，web runtime） |
- | CI 因新增代码红 | PASS（本地全绿 + 远程功能层收口；最终 run 111175429455 中 functional specs 步 SUCCESS、唯一失败步 = visual chain） |
- | Runtime fallbackUsed=true | PASS（web 全部 false；Android 捕获未能获得 runtime，见 blocker 文档） |
+ | 条件 | 结果 |
+ | --- | --- |
+ | Android Hero 仍 dark viewer | **PASS**（捕获成功 + 像素核验：mean luma 221–226、dark<3%；Review=neutral-identity-studio） |
+ | 豆豆仍 generic terrier silhouette | PENDING（机器 proxy 显著 Corgi-like：body/height 1.44、leg/height 0.24；human 判断待定） |
+ | 咪咪仍 spike/拉伸/爆炸 | PASS（已修复，机器几何正常 + Android 捕获 h/l 正常） |
+ | required Contact Sheet 出现 placeholder/错误图 | **已清除**：10 张 sheet 全部生成，54/54 sha256 一致，0 占位 |
+ | Mimi turntable <4 角度 | PASS（5 角度，web runtime） |
+ | CI 因新增代码红 | PASS（本地全绿 + 远程功能层收口；functional specs 步 SUCCESS、唯一失败步 = visual chain 漂移） |
+ | Runtime fallbackUsed=true | PASS（web + Android 全部 false） |
+ 
+ **结论：§39 全部自动 NOT_READY 条件已清除 → `READY_FOR_HUMAN_REVIEW`。**
  
  ## 3b. 远程 CI 复核（收口轮，headRefOid=`fd62549`）
  
@@ -94,21 +96,21 @@
    层收口已确认。未修改任何依赖/lockfile/测试来规避。
 ## 4. 遗留与建议
 
- - 唯一阻断项：Android 运行时截图。收口轮已用现有 3 个 AVD（含新增候选
-   `pdig_tablet_api36`）再试 3 次全新启动，仍全部为环境级失败（详见
-   `docs/r2p3d-r4-2/ANDROID_CAPTURE_BLOCKED.md` 收口轮重试记录）。建议在可用
-   实机/稳定模拟器环境（先确认 `127.0.0.1:8800` API 正常 + `adb reverse`）重跑
-   `scripts/r2p3d-r4-2/capture-android-r4-2-live.ps1`（CDP 读取 RUNTIME
-   manifest）+ `scripts/r2p3d-r4-2/contact_sheets_r4_2.py --labels doudou=豆豆
-   mimi=咪咪`（不带 `--skip-android`），即可把 `R4_2_PRODUCT_VISUAL_CANDIDATE`
-   推进到 READY_FOR_HUMAN_REVIEW 的最后一个证据门槛。
- - 收口轮已推送 `43f8484` → `066b664`（纳入 2 个未提交文件：
-   capture-android-r4-2-live.ps1 + ANDROID_CAPTURE_BLOCKED.md 引用更新；
-   及收口轮文档与远程 CI 复核记录）。请复核远程 GitHub Actions（Backend /
-   Frontend / Blind / Functional E2E / Android workflow；Visual V2/V3 允许
-   EXPECTED_BASELINE_DRIFT，唯一允许的红因 = OLD APPROVED BASELINE）。
- - 用户看图后给出 Human PASS/PENDING 判断；未经批准不 merge、不 push main、不
-   promote baseline、不 release。
+ - **Android 运行时截图 blocker 已解决**（收口轮后续会话）：真正原因是 adb
+   daemon 在工具调用间死亡导致 `adb reverse` 丢失。修复方法（WMI 启动模拟器 +
+   单条命令内完成 root/reverse/启动/截图 + 精确 chip 坐标）已记录于
+   `docs/r2p3d-r4-2/ANDROID_CAPTURE_BLOCKED.md` 的 RESOLVED 部分。本轮已在
+   本机 AVD 捕获豆豆 Today/Pet/Life View/Twin Review + 咪咪 Today/Review 的
+   真实 RUNTIME 证据，并生成全部 contact sheets（含 Android sheets）。
+ - 机器门槛已全部清除：`R4_2_PRODUCT_VISUAL_CANDIDATE = READY_FOR_HUMAN_REVIEW`。
+   **下一步 = 用户看图**：Android Hero sheet、Web Hero sheet、R4.1→R4.2 对比、
+   Doudou/Mimi Turntable（均在 `artifacts/r2p3d-r4-2/contact-sheets/`）。
+   用户判断：豆豆像不像 Corgi、咪咪是否正常、Android 是否从 Viewer 变成
+   Living Experience、Web/Android 是否同一产品。Human PASS 前不 merge、不
+   push main、不 promote baseline、不 release。
+ - 远程 CI 功能层已收口（Backend / Frontend / Blind / Functional E2E /
+   Android workflow ✓；Visual V2/V3 允许 EXPECTED_BASELINE_DRIFT，唯一红因 =
+   OLD APPROVED BASELINE）。
 
 ## 5. 边界合规声明
 

@@ -27,14 +27,22 @@
    functional specs 步 SUCCESS，42 passed）。
  - 最终推送 `5065526`（docs-only）后等待该 run 复核（AC4 收口）。
  
- ## 1d. Android 捕获再试结果（本轮，Goal §40 收口）
+ ## 1d. Android 捕获结果（收口轮后续会话突破，Goal §40）
  
- 3 次全新启动全部失败（环境层）：`pdig_tablet_api36`（窗口模式/`-no-window`
- 均试）、`main`（窗口模式完整启动 + 安装 APK + 应用 RESUMED 后消失；
- `-no-window` 15 秒掉线）。详见
- `docs/r2p3d-r4-2/ANDROID_CAPTURE_BLOCKED.md` 的收口轮重试记录。
- `ANDROID_RUNTIME_CAPTURE = EXTERNAL_BLOCKED` 保持不变 → 按 Goal §39/§40，
- `R4_2_PRODUCT_VISUAL_CANDIDATE = NOT_READY`。
+ 先前 3 次全新启动失败（环境层），随后定位真正根因：**adb daemon 在工具调用间
+ 死亡，每次重启丢掉 `adb reverse` 规则与设备连接**，导致应用无法访问
+ `127.0.0.1:8800`（空宠物态）且流程反复中断。修复：
+ 
+ - WMI 启动模拟器（脱离工具会话进程树清理）；
+ - root / reverse / 安装 / 启动 / 截图 / 读 manifest 全部放在同一条命令内；
+ - 宠物切换 chip 按 `pli.multipet.switch.<petId>` 精确 bounds tap。
+ 
+ 结果：`ANDROID_RUNTIME_CAPTURE = PASS`。捕获豆豆 Today/Pet/Life View/Twin
+ Review + 咪咪 Today/Review 真实 RUNTIME 证据（high-fidelity-glb-twin /
+ fallback=false / warm-living-field / neutral-identity-studio），全部
+ contact sheets 生成，manifest 54/54 sha256 一致。详见
+ `docs/r2p3d-r4-2/ANDROID_CAPTURE_BLOCKED.md` RESOLVED 部分。→
+ `R4_2_PRODUCT_VISUAL_CANDIDATE = READY_FOR_HUMAN_REVIEW`。
  
  ## 1e. 本轮修复的环境问题（证据前置）
  

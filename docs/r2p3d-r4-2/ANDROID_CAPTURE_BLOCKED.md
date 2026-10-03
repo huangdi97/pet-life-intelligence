@@ -1,10 +1,39 @@
-# Android Runtime Capture — EXTERNAL_BLOCKED (R4.2)
-
-## 结论
-
-`ANDROID_RUNTIME_CAPTURE = EXTERNAL_BLOCKED`（本机会话）。未伪造任何 Android
-Hero / turntable 证据；相关 contact sheet 未生成（generator 对缺失 required 源
-会 raise —— 已实测）。
+ # Android Runtime Capture — RESOLVED (R4.2 closeout round)
+ 
+ ## 结论
+ 
+ `ANDROID_RUNTIME_CAPTURE = PASS`（收口轮突破，2026-10-03 后续会话）。
+ 历史 `EXTERNAL_BLOCKED` 结论已被推翻：真正的 blocker 不是模拟器能力，而是
+ **adb daemon 在工具调用之间反复死亡** —— 每次重启都会丢掉 `adb reverse`
+ 规则与设备连接，导致应用无法访问 `127.0.0.1:8800`（空宠物态）且捕获流程
+ 反复中断。修复方法：
+ 
+ 1. 用 WMI 启动模拟器（`Invoke-CimMethod Win32_Process.Create`，脱离工具会话
+    的进程树清理；此前 `Start-Process` 的子进程会被工具会话回收）。
+ 2. **root / reverse / 安装 / 启动 / 截图 / 读 manifest 全部放在同一条 bash 命令
+    内**，保证 adb daemon 全程存活（跨命令调用时 daemon 会死亡并丢 reverse）。
+ 3. 宠物切换 tap 坐标必须以 uiautomator dump 的 `pli.multipet.switch.<petId>`
+    精确 bounds 计算（此前误点当前宠物 chip 导致“切换无效”假象）。
+ 
+ ## 捕获结果（全部真实 RUNTIME 证据）
+ 
+ - 豆豆 Today / Pet / Life View / Twin Review：`manifestOrigin=RUNTIME`、
+   `representation=high-fidelity-glb-twin`、`fallbackUsed=false`、
+   `triangleCount=45376`、`HIGH_FIDELITY_SKINNED`、
+   `stageRole=living / surfaceVariant=warm-living-field`（Review 为
+   `neutral-identity-studio`）。
+ - Life View 旋转：camera.yaw 0 → 0.7567（真实拖拽）。
+ - Twin Review 视图预设：front yaw=0 / side yaw=π/2 / back yaw=π（真实相机）。
+ - 咪咪 Today + Review front/side/back：`petId=f4755c3a`、`triangleCount=51648`
+   （修复后 GLB）、`warm-living-field` / `neutral-identity-studio`。
+ - 像素机器核验（无视觉模型）：5 张 Android hero 截图 mean luma 221–226、
+   dark ratio(<40) <3% —— 不再是大面积黑色 viewer。
+ - 全部 contact sheets 生成（含 `PLI_R4_2_ANDROID_HEROES.png`、
+   `PLI_R4_1_VS_R4_2_ANDROID_HEROES.png`），manifest 54 个 source 的
+   sha256 与磁盘一致（0 缺失、0 占位、0 哈希失败）。
+ 
+ `R4_2_PRODUCT_VISUAL_CANDIDATE = READY_FOR_HUMAN_REVIEW`（机器门槛全部清除；
+ Human Visual Acceptance = PENDING，仍由用户本人看图决定）。
 
 ## 尝试记录（全部失败，每次均为环境层故障，非产品代码）
 
