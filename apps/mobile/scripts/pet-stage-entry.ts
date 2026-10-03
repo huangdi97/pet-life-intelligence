@@ -89,7 +89,7 @@ const scene = new THREE.Scene();
 // living, neutral for review, dark only for the engineering debug theme), so
 // owner hero pages are never a transparent dark rectangle.
 scene.background = new THREE.Color(theme.base);
-scene.fog = new THREE.FogExp2(new THREE.Color(theme.fog), 0.05);
+scene.fog = new THREE.FogExp2(new THREE.Color(theme.fog), 0.035);
 
 // Individual twin (R2P3D-R1) beats demo identity when a descriptor is present.
 const stage = twinDescriptor
@@ -114,7 +114,7 @@ if (stageTheme !== "engineering") {
     new THREE.MeshBasicMaterial({
       color: new THREE.Color(theme.base),
       transparent: true,
-      opacity: 0.25,
+      opacity: 0.14,
       depthWrite: false,
     }),
   );
@@ -127,7 +127,7 @@ if (stageTheme !== "engineering") {
     new THREE.MeshBasicMaterial({
       color: new THREE.Color(theme.glow),
       transparent: true,
-      opacity: 0.4,
+      opacity: 0.20,
       depthWrite: false,
     }),
   );
