@@ -31,8 +31,8 @@ export function OpenSection({ title, caption, testID, children }: OpenSectionPro
 
 
 const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
-  head: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginBottom: SPACE.s2 },
-  title: { fontSize: TYPE.section, fontWeight: "600", color: COLORS.textPrimary },
+  wrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s6 },
+  head: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginBottom: SPACE.s3 },
+  title: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary, letterSpacing: -0.15 },
   caption: { fontSize: TYPE.caption, color: COLORS.textTertiary },
 });
