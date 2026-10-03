@@ -1,0 +1,61 @@
+name: R5 Corgi Twin Bake
+
+on:
+  push:
+    branches:
+      - feat/r2p3d-r3-render-truth-ui-closure
+    paths:
+      - "artifacts/r2p3d-r5/twin-sources/doudou-gobkit-corgi/**"
+      - "scripts/r2p3d-r4/bake_twin.py"
+      - ".github/workflows/r5-twin-bake.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  bake-doudou:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/r2p3d-r3-render-truth-ui-closure
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lean bake dependencies
+        run: python -m pip install --disable-pip-version-check numpy pillow
+
+      - name: Bake native-Corgi demo twin through PLI pipeline
+        run: |
+          python scripts/r2p3d-r4/bake_twin.py --identity dog
+          python scripts/r2p3d-r4/build_twins.py --identity dog
+          python scripts/r2p3d-r4/asset_qa.py
+
+      - name: Verify native source provenance
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          meta=json.loads(Path("packages/pet-3d/assets/twins/doudou_meta.json").read_text(encoding="utf-8"))
+          assert meta["nativeBreedSource"] is True
+          assert meta["sourceGeometryClass"] == "native-corgi"
+          assert meta["twin_version"] == "r5-1.0.0"
+          assert "Gobkit" in meta["sourceProvenance"]
+          print("R5_NATIVE_CORGI_SOURCE=PASS")
+          PY
+
+      - name: Commit deterministic baked product asset
+        run: |
+          git config user.name "pli-r5-bake-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add packages/pet-3d/assets/twins/doudou* reports/r2p3d-r4/ASSET_QA_R4.json
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+            exit 0
+          fi
+          git commit -m "build(twin): bake native Corgi R5 product candidate"
+          git push origin HEAD:feat/r2p3d-r3-render-truth-ui-closure
