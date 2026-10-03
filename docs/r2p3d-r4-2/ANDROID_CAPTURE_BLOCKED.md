@@ -37,6 +37,11 @@ Hero / turntable 证据；相关 contact sheet 未生成（generator 对缺失 r
 - APK 内容：Hermes 字节码字符串表包含 `pliAmbientFloor`、`warm-living-field`、
   `neutral-identity-studio`、`__PLI_STAGE_THEME`、两个 GLB base64 魔数
   （`Z2xURg` ×2）→ 新代码与新资产已打进 APK。
+- 补全工具：`scripts/r2p3d-r4-2/capture-android-r4-2-live.ps1`（CDP 通道读取
+  `document.title` 的 RUNTIME manifest + 二进制安全 adb pull 截图）作为稳定环境的
+  推荐执行路径：先 `adb forward tcp:9222 tcp:9222` + `adb reverse tcp:8800 tcp:8800`，
+  应用需开启 WebView 调试（`setWebContentsDebuggingEnabled(true)`）；在实机/稳定
+  模拟器上运行后，再用 `contact_sheets_r4_2.py`（不带 `--skip-android`）补全 sheets。
 - Android 应用 UI 代码：`tokens.ts`（warm cream）、`PetLivingStage.tsx`
   （warm living / neutral review studio）、`Pet3DViewer.tsx`（stageTheme 注入）、
   `pet-stage-entry.ts`（scene.background + floor + glow + manifest surfaceVariant）
