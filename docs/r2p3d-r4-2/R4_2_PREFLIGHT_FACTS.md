@@ -8,23 +8,24 @@
  
  | Fact | Value |
  | --- | --- |
- | Local & remote branch HEAD | `43f8484`（= `48aa0c5` → `43f8484` 之间 8 个 R4.2 commits 之后） |
+ | Local & remote branch HEAD | `5065526`（收口轮最终推送；证据头 `808f677` 的 CI run 已完成复核） |
  | 复核前 remote HEAD | `83072b611871cd889f1c57c5c645e069a7775eca` |
- | 本轮新增 commit | `43f8484 test(r4): binary-safe android live capture script + blocker doc reference`（纳入 2 个未提交文件） |
+ | 本轮新增 commits | `43f8484`（纳入 2 个未提交文件）→ `a1b9e59`（收口轮文档）→ `066b664`/`ac9431c`/`e1e26ab`/`808f677`/`5065526`（docs 同步） |
  | Local main | `2069d8a8c8b4df9752f7c65fb3ddaad831100010`（未动） |
  | Remote main | `2069d8a8c8b4df9752f7c65fb3ddaad831100010`（未动） |
- | PR #2 | OPEN / NOT MERGED / MERGEABLE；headRefOid 推送到 `43f8484` 后复核 |
+ | PR #2 | OPEN / NOT MERGED / MERGEABLE；headRefOid=`5065526` |
  | 工作区 | 提交两个未提交文件后 clean（复核时无其他改动） |
  
  ## 1c. 收口复核后的 PR / CI 状态
  
- - PR #2：`state=OPEN`、`baseRefName=main`、`mergeable=MERGEABLE`。
- - remote CI（复核时 HEAD=`83072b6` 的 run 37105853207）：Backend ✓ / Frontend ✓ /
-   Blind Visual Contract ✓ / Android APK ✓ / Web standalone artifact ✓；
-   `Browser E2E (Playwright)` ✗ —— 唯一失败步为 `Playwright (visual chain)`
+ - PR #2：`state=OPEN`、`baseRefName=main`、`mergeable=MERGEABLE`、
+   headRefOid=`5065526`（收口轮最终推送）。
+ - remote CI（证据头 `808f677`，run 37117011861 / 37117011900）：Backend ✓ /
+   Frontend ✓ / Blind Visual Contract ✓ / Android APK ✓ / Web standalone ✓；
+   `Browser E2E (Playwright)` 仅 `Playwright (visual chain)` 步失败
    （EXPECTED_BASELINE_DRIFT：OLD APPROVED BASELINE vs R4.2 twin 资产变更；
-   functional specs 步 PASS）。`Playwright (functional specs)` 步在详情中为 success。
- - 本轮推送 `43f8484` 后等待新的远程 run 复核（AC4）。
+   functional specs 步 SUCCESS，42 passed）。
+ - 最终推送 `5065526`（docs-only）后等待该 run 复核（AC4 收口）。
  
  ## 1d. Android 捕获再试结果（本轮，Goal §40 收口）
  
