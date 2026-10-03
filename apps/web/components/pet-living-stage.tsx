@@ -33,19 +33,33 @@ interface Props {
   caption?: string;
   note?: string;
   demo?: boolean;
+  /** Blind-UI: number of source media views used to build the individual twin. */
+  sourceMediaCount?: number;
+  /** Individual twin descriptor (R2P3D-R3 D): drives the real per-pet asset. */
+  twin?: import("@pli/pet-3d").TwinDescriptor | null;
+  /** Enables drag rotate + pinch zoom (Life View). */
+  interactive?: boolean;
   /** Blind-UI contract: id on the outer stage section (e.g. pli.today.living-stage). */
   stageTestId?: string;
   /** Blind-UI contract: id on the element containing the 3D/2.5D renderer. */
+  /** §31 framing target (fraction of full viewport) for the twin renderer. */
+  frameTarget?: number;
   twinTestId?: string;
   /** Blind-UI contract: id prefix for state anchors (`${prefix}.${anchor.id}`). */
   anchorTestIdPrefix?: string;
   /** Blind-UI contract: id on the headline element. */
   headlineTestId?: string;
+  /** V3 stage role (today/pet/life) — drives manifest + surface semantics. */
+  stageRole?: string;
+  /** V3 reality field id (warm-living / twin-space ...). */
+  realityField?: string;
 }
 
 export function PetLivingStage({
   name,
   petId,
+  sourceMediaCount: sourceMediaCountProp = 0,
+  twin = null,
   species,
   breed,
   variant = "today",
@@ -54,11 +68,17 @@ export function PetLivingStage({
   caption,
   note,
   demo = false,
+  interactive = false,
+  frameTarget = 0,
   stageTestId,
   twinTestId,
   anchorTestIdPrefix,
   headlineTestId,
+  stageRole,
+  realityField,
 }: Props) {
+  const role = stageRole ?? variant;
+  const field = realityField ?? "warm-living";
   const identity = resolvePet3DIdentity({ name, species, breed });
   const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
   const show3d = identity !== null && pet3d !== "failed";
@@ -97,6 +117,14 @@ export function PetLivingStage({
       aria-label={`${name}的此刻舞台`}
       data-testid={stageTestId}
       data-pli-type={stageTestId ? "stage" : undefined}
+      data-pli-surface="STAGE"
+      data-appearance-role="warm-living-field"
+      data-surface-role={variant === "life" ? "digital-field" : "open-stage"}
+      data-reality-field={variant === "life" ? "true" : "false"}
+      data-stage-role={role}
+      data-pet-presence-role="individual-twin"
+      data-material-role="pbr-warm"
+      data-pli-interactive={(interactive || variant === "life") ? "true" : "false"}
     >
       <span className="r2p-stage-wash" aria-hidden="true" />
       <span className="r2p-stage-glow" aria-hidden="true" />
@@ -108,17 +136,21 @@ export function PetLivingStage({
           data-testid={twinTestId}
           data-pli-type={twinTestId ? "twin" : undefined}
         >
-          {show3d ? <Pet3DViewer identity={identity} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} onStatus={setPet3d} /> : corgi}
+          {show3d ? <Pet3DViewer identity={identity} twin={twin} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} frameTarget={frameTarget} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} stageRole={role} realityField={field} onStatus={setPet3d} /> : corgi}
         </Link>
       ) : (
         <span className={`r2p-stage-pet ${show3d ? "r2p-stage-pet--3d" : ""}`} data-testid={twinTestId} data-pli-type={twinTestId ? "twin" : undefined}>
-          {show3d ? <Pet3DViewer identity={identity} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} onStatus={setPet3d} /> : corgi}
+          {show3d ? <Pet3DViewer identity={identity} twin={twin} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} frameTarget={frameTarget} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} stageRole={role} realityField={field} onStatus={setPet3d} /> : corgi}
         </span>
       )}
-
       {anchors.slice(0, 6).map((a, i) =>
         a.href ? (
-          <Link key={a.id} href={a.href} className={`r2p-anchor r2p-anchor--${i}`} data-testid={anchorTestIdPrefix ? `${anchorTestIdPrefix}.${a.id}` : undefined}>
+          <Link
+            key={a.id}
+            href={a.href}
+            className={`r2p-anchor r2p-anchor--${i}`}
+            data-testid={anchorTestIdPrefix ? `${anchorTestIdPrefix}.${a.id}` : undefined}
+          >
             <span className="r2p-anchor-icon"><Icon name={a.icon} size={13} /></span>
             <span>
               <span className="r2p-anchor-label" style={{ display: "block" }}>{a.label}</span>

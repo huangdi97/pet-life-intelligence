@@ -99,9 +99,13 @@ export function orbitFromDrag(prev: OrbitState, dx: number, dy: number, sensitiv
   return { yaw, pitch, radius: prev.radius };
 }
 
-export function orbitZoom(prev: OrbitState, factor: number): OrbitState {
-  // factor > 1 zooms in (closer), clamped to keep the pet framed.
-  const radius = Math.min(7, Math.max(2.6, prev.radius / factor));
+export function orbitZoom(prev: OrbitState, factor: number, bounds?: { min: number; max: number }): OrbitState {
+  // factor > 1 zooms in (closer), clamped to keep the pet framed. The bound
+  // range is relative to the framing baseline when a fitted camera is used
+  // (portrait stages need a wider default radius than the demo default).
+  const min = bounds?.min ?? 2.6;
+  const max = bounds?.max ?? 7;
+  const radius = Math.min(max, Math.max(min, prev.radius / factor));
   return { yaw: prev.yaw, pitch: prev.pitch, radius };
 }
 

@@ -9,15 +9,43 @@
 
 // Stage environment (used by clients for CSS background + fog tint).
 export const STAGE = {
-  /** Warm charcoal base — the dark, warm room the pet lives in. */
-  base: "#171310",
-  /** Slightly warmer brown-black for the deep layer. */
-  deep: "#100D0B",
-  /** Warm radial glow behind the pet. */
-  glow: "#3A2E24",
-  /** Fog / far-layer tint. */
-  fog: "#241C16",
+  /** Warm living base — the R4 Reality Field, never a dark viewer. */
+  base: "#F7E8D1",
+  /** Slightly deeper warm for the far layer. */
+  deep: "#EDDCC0",
+  /** Soft warm radial glow behind the pet. */
+  glow: "#FBF4E8",
+  /** Fog / far-layer tint (warm light so pets never vanish into black). */
+  fog: "#EFDCC0",
 } as const;
+
+// R4.2 stage themes — the WebView/WebGL surface itself is themed per screen
+// role (never a dark viewer on owner hero pages):
+//   living      -> warm cream reality field (Today / Pet / Life View)
+//   review      -> neutral identity studio (Twin Review)
+//   engineering -> dark debug stage (engineering manifests only)
+export const STAGE_THEMES = {
+  living: {
+    base: "#F7E8D1",
+    deep: "#EDDCC0",
+    glow: "#FBF4E8",
+    fog: "#EFDCC0",
+  },
+  review: {
+    base: "#F4F1EA",
+    deep: "#EBE5D8",
+    glow: "#FFFDF8",
+    fog: "#EAE4D8",
+  },
+  engineering: {
+    base: "#171310",
+    deep: "#100D0B",
+    glow: "#3A2E24",
+    fog: "#241C16",
+  },
+} as const;
+
+export type StageTheme = keyof typeof STAGE_THEMES;
 
 // Coat materials (corgi 豆豆).
 export const CORGI = {
@@ -45,20 +73,20 @@ export const MIMI = {
 export const GROUND_SHADOW = {
   /** Warm dark tone for the soft contact shadow under the pet. */
   color: 0x2a2018,
-  opacity: 0.32,
+  opacity: 0.18,
 } as const;
 
 export const LIGHTS = {
   /** Warm low ambient so nothing is pitch black. */
   ambient: 0xffe8d2,
-  ambientIntensity: 0.55,
+  ambientIntensity: 0.82,
   /** Warm key light from upper front-left. */
   key: 0xffd9b8,
-  keyIntensity: 1.05,
+  keyIntensity: 1.12,
   /** Cooler fill from the right to keep shapes readable. */
   fill: 0xe8e2d8,
-  fillIntensity: 0.35,
+  fillIntensity: 0.58,
   /** Soft rim from behind to lift the silhouette off the background. */
   rim: 0xfff3e0,
-  rimIntensity: 0.55,
+  rimIntensity: 0.68,
 } as const;

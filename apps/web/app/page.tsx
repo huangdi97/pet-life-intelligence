@@ -46,6 +46,20 @@ export default function TodayPage() {
       .catch(() => setPets([]));
   }, [petId]);
 
+  // Individual Twin (R2P3D-R3 D): same canonical per-pet asset as Life View.
+  const twin = useAsync<{ models: Array<Record<string, unknown>> }>(
+    () => (petId ? api.get(`/pets/${petId}/visual-models`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [petId],
+  );
+  const activeTwin = twin.data?.models?.find((m) => m.status === "ACTIVE") ?? null;
+  const twinDescriptor = activeTwin
+    ? ((activeTwin.artifact_map as Record<string, unknown>)?.twin_descriptor as import("@pli/pet-3d").TwinDescriptor | undefined) ?? null
+    : null;
+  const twinVersion = Number(activeTwin?.version ?? 0) || undefined;
+  const observedRegions = (
+    (twinDescriptor as { surface?: { observed_regions?: string[] } } | null)?.surface?.observed_regions ?? []
+  ).length;
+
   if (pets === null) return <main className="v4-main"><div className="v4-loading" role="status"><span className="spinner" aria-hidden="true" />加载中……</div></main>;
   if (pets.length === 0) {
     return (
@@ -133,10 +147,15 @@ export default function TodayPage() {
         species={current.species}
         breed={current.breed}
         variant="today"
+        stageRole="today"
+        realityField="warm-living"
         anchors={anchors}
         headline={headline}
         caption={recent}
         demo={true}
+        frameTarget={0.21}
+        twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
+        sourceMediaCount={observedRegions || undefined}
         stageTestId="pli.today.living-stage"
         twinTestId="pli.today.pet-twin"
         anchorTestIdPrefix="pli.today.anchor"

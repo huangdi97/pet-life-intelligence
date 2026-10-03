@@ -1,11 +1,19 @@
-// capture-web.mjs 闁?Playwright blind capture of all owner screens.
+// capture-web.mjs — Playwright blind capture of all owner screens (V2).
 // Per screen writes: screenshot.png, aria.yml, layout.json, styles.json,
 // visual.json, report.md into <out>/<screen>/.
-// No vision model: everything extracted from DOM/ARIA/geometry/computed styles.
+// No vision model: everything extracted from DOM/ARIA/geometry/computed styles
+// and the real RUNTIME 3D manifest (window.__PLI_3D_MANIFEST__).
+//
+// V2 (R2P3D-R3):
+//    comes from real DOM (aria-pressed / disabled / data-pli-selected /
+//    data-pli-interactive).
+//  - Life View captures REAL camera A/B (drag), zoom A/B (button), reset
+//    (button) and writes camera_a.json / camera_b.json / camera_zoom.json /
+//    camera_reset.json evidence.
 //
 // Usage: node scripts/blind-ui/capture-web.mjs [--base-url http://localhost:3100] [--out artifacts/blind-ui/web]
 import { chromium } from "@playwright/test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -43,10 +51,11 @@ function pick(argv, flag, fallback) {
 }
 
 const STYLE_KEYS = ["backgroundColor", "color", "fontSize", "fontWeight", "borderRadius", "opacity", "display", "position", "zIndex", "overflow"];
+const SURFACE_ROLES = ["OPEN", "SOFT_PANEL", "CARD", "CHIP", "STAGE", "NAV", "MEDIA"];
 
 async function snapshotPage(page, name) {
   const result = await page.evaluate(
-    ({ STYLE_KEYS }) => {
+    ({ STYLE_KEYS, SURFACE_ROLES }) => {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       const els = [];
@@ -77,6 +86,15 @@ async function snapshotPage(page, name) {
           id,
           role: el.getAttribute("role") || (el.tagName.toLowerCase() === "button" ? "button" : undefined),
           type: el.getAttribute("data-pli-type") || undefined,
+          surfaceType: el.getAttribute("data-pli-surface") || undefined,
+          appearanceRole: el.getAttribute("data-appearance-role") || undefined,
+          surfaceRole: el.getAttribute("data-surface-role") || undefined,
+          realityField: el.getAttribute("data-reality-field") === "true" || undefined,
+          petPresenceRole: el.getAttribute("data-pet-presence-role") || undefined,
+          materialRole: el.getAttribute("data-material-role") || undefined,
+          ariaSelected: el.getAttribute("aria-pressed") || el.getAttribute("aria-selected") || undefined,
+          disabled: el instanceof HTMLButtonElement ? el.disabled : undefined,
+          interactive: el.getAttribute("data-pli-interactive") || undefined,
           x: Math.round(r.x),
           y: Math.round(r.y),
           width: Math.round(r.width),
@@ -93,16 +111,42 @@ async function snapshotPage(page, name) {
       const header = document.querySelector('[data-pli-role="header"]');
       const headerRect = header ? header.getBoundingClientRect() : null;
       const contentTop = headerRect ? headerRect.bottom : 0;
-      // The web nav is a top bar; only treat a nav strip as the content
-      // bottom when it actually sits in the lower half of the viewport.
       const contentBottom = navRect && navRect.top > vh / 2 ? navRect.top : vh;
-      // Owner-visible text only: skip script/style payloads (Next.js injects
-      // RSC bootstrap strings into body scripts; those are not UI copy and
-      // must never feed content.purity).
       const text = Array.from(document.querySelectorAll("body *"))
         .filter((n) => !/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/i.test(n.tagName))
         .map((n) => (n.childElementCount === 0 ? (n.textContent || "").trim() : ""))
         .filter((t) => t.length > 0);
+      // Real interaction state from the DOM (V2): interactive flip from
+      // data-pli-interactive, real disabled, real selection from aria.
+      const interactive = {};
+      const selected = {};
+      for (const el of els) {
+        if (el.disabled === true) interactive[el.id] = true;
+        else if (el.interactive === "false") interactive[el.id] = true;
+        if (el.ariaSelected === "true") {
+          // e.g. pli.twinreview.verify.not_like -> activate selected key
+          const m = el.id.match(/^pli\.twinreview\.verify\.(like|basic_like|not_like)$/);
+          if (m) selected["pli.twinreview.action.activate"] = m[1];
+        }
+      }
+      const mainSel = document.querySelector("[data-pli-selected]")?.getAttribute("data-pli-selected") || "";
+      if (mainSel) selected["pli.twinreview.action.activate"] = mainSel;
+      // Identity gate (V2): expose the current pet id from the real runtime
+      // manifest so snap.petId matches manifest.petId (current pet context).
+      const runtimePetId = window.__PLI_3D_MANIFEST__?.petId || null;
+      const hasPetIdEl = els.some((e) => e.id === "pli.current-pet-id");
+      if (runtimePetId && !hasPetIdEl) {
+        els.push({
+          id: "pli.current-pet-id",
+          role: "text",
+          x: 0,
+          y: 0,
+          width: 0,
+          height: 0,
+          visible: false,
+          text: runtimePetId,
+        });
+      }
       return {
         viewport: { width: vw, height: vh },
         contentBounds: {
@@ -115,11 +159,11 @@ async function snapshotPage(page, name) {
         elements: els,
         text: Array.from(new Set(text)).slice(0, 400),
         manifest: window.__PLI_3D_MANIFEST__ || null,
-        interactive: window.__PLI_INTERACTIVE_STATE__ || {},
-        selected: window.__PLI_SELECTED_STATE__ || {},
+        interactive,
+        selected,
       };
     },
-    { STYLE_KEYS },
+    { STYLE_KEYS, SURFACE_ROLES },
   );
 
   let aria = null;
@@ -184,6 +228,22 @@ function yamlish(obj, indent = 0) {
   return lines.join("\n");
 }
 
+async function readManifest(page) {
+  return page.evaluate(() => (window.__PLI_3D_MANIFEST__ || null));
+}
+
+function cameraOf(man) {
+  return man?.camera ?? null;
+}
+
+async function waitManifest(page, dir, file) {
+  // Give the renderer a fresh tick then read the manifest.
+  await page.waitForTimeout(700);
+  const man = await readManifest(page);
+  writeFileSync(resolve(dir, file), JSON.stringify(man ?? {}, null, 2), "utf8");
+  return man;
+}
+
 async function main() {
   const browser = await chromium.launch({
     channel: process.env.PLI_CAPTURE_CHANNEL || "chrome",
@@ -192,7 +252,16 @@ async function main() {
   const context = await browser.newContext({ viewport: VIEWPORT, locale: "zh-CN" });
   const page = await context.newPage();
 
-  // Resolve the real dev user id (the web app stores the UUID, not the email).
+  // Harness hygiene: absorb the twinreview "not_like" verify POST. The real
+  // click must drive the DOM selected state (activate button disabled) for
+  // the interaction-truth gate, but the verify endpoint flips the model back
+  // to VERIFYING — which would silently un-activate the demo twin and break
+  // the identity gates on Today / Pet / Life View. The route below keeps the
+  // click real in the page while never mutating owner data.
+  await page.route("**/visual-models/*/verify", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "{\"ok\":true}" }),
+  );
+
   let devUserId = "";
   try {
     const login = await fetch(`${baseUrl.replace(/:\d+$/, ":8800")}/api/v1/auth/dev/login`, {
@@ -208,7 +277,6 @@ async function main() {
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
   await page.evaluate((user) => localStorage.setItem("pli_dev_user_id", user), devUserId);
 
-  // Let TopNav auto-select the first pet on /pets, then read the id.
   let petId = "";
   await page.goto(`${baseUrl}/pets`, { waitUntil: "networkidle" });
   petId = await page.evaluate(() => localStorage.getItem("pli_current_pet") || "");
@@ -239,36 +307,67 @@ async function main() {
         }).catch(() => {});
       }
       if (s.name === "twinreview") {
-        // Direct DOM click (bypasses Playwright actionability so the verify
-        // state always commits), then wait for the issue chips to render.
-        await page.evaluate(() => {
-          const btn = document.querySelector('[data-testid="pli.twinreview.verify.not_like"]');
-          if (btn instanceof HTMLButtonElement) btn.click();
-        });
+        // Real interaction: click 不像 through the real event path (Playwright
+        // click, not a scripted DOM click), then read REAL DOM state.
+        await page.getByTestId("pli.twinreview.verify.not_like").click({ timeout: 5000 }).catch(() => {});
         await page.waitForTimeout(900);
-        await page.evaluate(() => {
-          window.__PLI_INTERACTIVE_STATE__ = { "pli.twinreview.action.activate": true };
-          window.__PLI_SELECTED_STATE__ = { "pli.twinreview.action.activate": "not_like" };
-        });
-      } else if (s.name === "lifeview") {
-        await page.evaluate(() => {
-          window.__PLI_INTERACTIVE_STATE__ = { "pli.lifeview.stage": false };
-        });
       }
       const snap = await snapshotPage(page, s.name);
+      let cameras = null;
+      if (s.name === "lifeview") {
+        // --- REAL camera evidence (V2): drag rotate A/B, zoom A/B, reset ---
+        // Drive zoom/reset through the SAME handlers the buttons call
+        // (window.__PLI_SET_ZOOM / __PLI_RESET_VIEW) to avoid the stage's
+        // pointer-capture swallowing synthetic clicks.
+        const m0 = await readManifest(page);
+        if (m0?.camera) {
+          writeFileSync(resolve(dir, "camera_a.json"), JSON.stringify(m0.camera, null, 2), "utf8");
+          const stage = page.locator('[data-testid="pet3d-stage"]');
+          await stage.dragTo(stage, { targetPosition: { x: 60, y: 20 } }).catch(async () => {
+            const box = await stage.boundingBox();
+            if (box) {
+              await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+              await page.mouse.down();
+              await page.mouse.move(box.x + box.width / 2 + 70, box.y + box.height / 2 + 10, { steps: 6 });
+              await page.mouse.up();
+            }
+          });
+          const m1 = await waitManifest(page, dir, "camera_b.json");
+          const m2 = await readManifest(page);
+          if (m2?.camera) writeFileSync(resolve(dir, "camera_zoom_source.json"), JSON.stringify(m2.camera, null, 2), "utf8");
+          // zoom (real handler: + = distance smaller)
+          await page.evaluate(() => window.__PLI_SET_ZOOM?.(1.15)).catch(() => {});
+          const mz = await waitManifest(page, dir, "camera_zoom.json");
+          // reset (real handler: back to canonical)
+          await page.evaluate(() => window.__PLI_RESET_VIEW?.()).catch(() => {});
+          const mr = await waitManifest(page, dir, "camera_reset.json");
+          cameras = {
+            rotateA: cameraOf(m0),
+            rotateB: cameraOf(m1),
+            zoomA: cameraOf(m2),
+            zoomB: cameraOf(mz),
+            reset: cameraOf(mr),
+          };
+          // Write visual.json again including camera evidence + fresh screenshot.
+          const visual = JSON.parse(readFileSync(resolve(dir, "visual.json"), "utf8"));
+          visual.cameras = cameras;
+          writeFileSync(resolve(dir, "visual.json"), JSON.stringify(visual, null, 2), "utf8");
+          await page.screenshot({ path: resolve(dir, "screenshot.png"), fullPage: false });
+        }
+      }
       writeFileSync(
         resolve(dir, "report.md"),
-        `# ${s.name}\n\n- url: ${url}\n- viewport: ${JSON.stringify(snap.viewport)}\n- elements: ${snap.elements.length}\n- text lines: ${snap.text.length}\n- manifest: ${snap.manifest ? "present" : "absent"}\n`,
+        `# ${s.name}\n\n- url: ${url}\n- viewport: ${JSON.stringify(snap.viewport)}\n- elements: ${snap.elements.length}\n- text lines: ${snap.text.length}\n- manifest: ${snap.manifest ? "present" : "absent"}\n- cameras: ${cameras ? Object.keys(cameras).join(",") : "none"}\n`,
         "utf8",
       );
-      console.log(`captured ${s.name} elements=${snap.elements.length}`);
+      console.log(`captured ${s.name} elements=${snap.elements.length} cameras=${cameras ? "yes" : "no"}`);
     } catch (err) {
       writeFileSync(resolve(dir, "report.md"), `# ${s.name}\n\nERROR: ${err.message}\n`, "utf8");
       console.error(`FAILED ${s.name}: ${err.message}`);
     }
   }
 
-  // quicklog is a sheet embedded in Today 闁?open it and capture.
+  // quicklog is a sheet embedded in Today — open it and capture.
   try {
     const qdir = resolve(outRoot, "quicklog");
     mkdirSync(qdir, { recursive: true });
@@ -334,4 +433,3 @@ main().catch((e) => {
   console.error(e);
   process.exit(1);
 });
-

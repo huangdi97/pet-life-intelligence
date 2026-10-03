@@ -1,0 +1,369 @@
+{
+  "screen": "twinreview",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "contentBounds": {
+    "top": 82,
+    "bottom": 844,
+    "width": 390,
+    "height": 762,
+    "left": 0
+  },
+  "elements": [
+    {
+      "id": "header",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "nav",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 100,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "pli.nav.today",
+      "role": "button",
+      "x": 174,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "今日"
+    },
+    {
+      "id": "pli.nav.timeline",
+      "role": "button",
+      "x": 214,
+      "y": 15,
+      "width": 46,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "时间线"
+    },
+    {
+      "id": "pli.nav.pet",
+      "role": "button",
+      "x": 264,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆"
+    },
+    {
+      "id": "pli.nav.assistant",
+      "role": "button",
+      "x": 304,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "助手"
+    },
+    {
+      "id": "pli.nav.me",
+      "role": "button",
+      "x": 344,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "我的"
+    },
+    {
+      "id": "pli.multipet.switch",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）咪咪（cat）BW-Coco-1790948252505（dog）"
+    },
+    {
+      "id": "pli.multipet.current",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）"
+    },
+    {
+      "id": "pli.twinreview.identity",
+      "x": 12,
+      "y": 110,
+      "width": 366,
+      "height": 77,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆 · 确认 3D 形象\n\n第 1 版 · 对比照片确认它是否像。确认后才会作为它的 3D 形象显示。"
+    },
+    {
+      "id": "pli.twinreview.stage",
+      "x": 12,
+      "y": 203,
+      "width": 366,
+      "height": 380,
+      "visible": true,
+      "z": 0,
+      "text": "−\n+\n⟲"
+    },
+    {
+      "id": "pli.twinreview.twin",
+      "x": 13,
+      "y": 204,
+      "width": 364,
+      "height": 378,
+      "visible": true,
+      "z": 0,
+      "text": "−\n+\n⟲"
+    },
+    {
+      "id": "pet3d-stage",
+      "role": "img",
+      "x": 13,
+      "y": 204,
+      "width": 364,
+      "height": 378,
+      "visible": true,
+      "z": 0,
+      "text": "−\n+\n⟲"
+    },
+    {
+      "id": "pli.lifeview.control.zoom",
+      "role": "button",
+      "x": 247,
+      "y": 536,
+      "width": 36,
+      "height": 36,
+      "visible": true,
+      "z": 0,
+      "text": "−"
+    },
+    {
+      "id": "pli.lifeview.control.reset",
+      "role": "button",
+      "x": 331,
+      "y": 536,
+      "width": 36,
+      "height": 36,
+      "visible": true,
+      "z": 0,
+      "text": "⟲"
+    },
+    {
+      "id": "pet3d-canvas",
+      "x": 13,
+      "y": 204,
+      "width": 364,
+      "height": 378,
+      "visible": true,
+      "z": 0,
+      "text": ""
+    },
+    {
+      "id": "pli.twinreview.view.front",
+      "role": "button",
+      "x": 12,
+      "y": 595,
+      "width": 58,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "正面"
+    },
+    {
+      "id": "pli.twinreview.view.side",
+      "role": "button",
+      "x": 78,
+      "y": 595,
+      "width": 58,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "侧面"
+    },
+    {
+      "id": "pli.twinreview.view.back",
+      "role": "button",
+      "x": 144,
+      "y": 595,
+      "width": 58,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "背面"
+    },
+    {
+      "id": "pli.twinreview.verify.like",
+      "role": "button",
+      "x": 29,
+      "y": 699,
+      "width": 58,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "很像"
+    },
+    {
+      "id": "pli.twinreview.verify.basic_like",
+      "role": "button",
+      "x": 95,
+      "y": 699,
+      "width": 72,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "基本像"
+    },
+    {
+      "id": "pli.twinreview.verify.not_like",
+      "role": "button",
+      "x": 175,
+      "y": 699,
+      "width": 58,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "不像"
+    },
+    {
+      "id": "pli.twinreview.issue.face",
+      "role": "button",
+      "x": 29,
+      "y": 753,
+      "width": 58,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "脸型"
+    },
+    {
+      "id": "pli.twinreview.issue.ear",
+      "role": "button",
+      "x": 95,
+      "y": 753,
+      "width": 58,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "耳朵"
+    },
+    {
+      "id": "pli.twinreview.issue.coat",
+      "role": "button",
+      "x": 161,
+      "y": 753,
+      "width": 58,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "毛发"
+    },
+    {
+      "id": "pli.twinreview.issue.pattern",
+      "role": "button",
+      "x": 227,
+      "y": 753,
+      "width": 58,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "花纹"
+    },
+    {
+      "id": "pli.twinreview.issue.body",
+      "role": "button",
+      "x": 293,
+      "y": 753,
+      "width": 58,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "身形"
+    },
+    {
+      "id": "pli.twinreview.issue.tail",
+      "role": "button",
+      "x": 29,
+      "y": 805,
+      "width": 58,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "尾巴"
+    },
+    {
+      "id": "pli.twinreview.issue.legs",
+      "role": "button",
+      "x": 95,
+      "y": 805,
+      "width": 58,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "四肢"
+    },
+    {
+      "id": "pli.twinreview.issue.unique_marks",
+      "role": "button",
+      "x": 161,
+      "y": 805,
+      "width": 86,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "独特标记"
+    },
+    {
+      "id": "pli.twinreview.status",
+      "x": 29,
+      "y": 895,
+      "width": 332,
+      "height": 21,
+      "visible": true,
+      "z": 0,
+      "text": "不像：需补充素材后重新生成"
+    },
+    {
+      "id": "pli.twinreview.action.activate",
+      "role": "button",
+      "x": 29,
+      "y": 926,
+      "width": 170,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "需补充素材后重新生成"
+    },
+    {
+      "id": "pli.current-pet-id",
+      "role": "text",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "text": "f122ca7b-bc1c-4ae6-a746-40107a920c6d"
+    }
+  ]
+}

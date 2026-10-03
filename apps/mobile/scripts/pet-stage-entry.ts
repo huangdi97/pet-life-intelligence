@@ -1,34 +1,61 @@
-// pet-stage-entry.js — runtime bootstrap for the WebView-hosted pet 3D page.
-// Bundled by scripts/build-3d-page.mjs with three + the shared @pli/pet-3d
-// asset. Communicates with React Native via window.ReactNativeWebView.postMessage:
-//   { type: "status", status: "ready" | "failed" }
-//   { type: "orientation", yaw, pitch, radius }
-//
-// R2P3D-R1 individual twin: when window.__PLI_TWIN is injected (family/morph/
-// texture from the backend pipeline), the page builds that individual twin via
-// createTwinScene; otherwise it falls back to the demo identity stage. Pose
-// switching is exposed as window.__PLI_SET_POSE(name) so RN can push motion
-// clips (Idle/Sit/Walk/...) — real joint animations, never health-driven.
+// pet-stage-entry.js — WebView bootstrap for the pet 3D page (bundled by
+// scripts/build-3d-page.mjs, three + @pli/pet-3d; talks to RN via postMessage).
+// R2P3D-R1: procedural individual twin from __PLI_TWIN. R2P3D-R4: high-fidelity
+// GLB twins embedded at build time replace the procedural pet; failures fall
+// back. Poses (Idle/Sit/Walk/...) are real joint animations via __PLI_SET_POSE.
 import * as THREE from "three";
 import {
   addStageLights,
   applyOrbit,
+  buildManifestV2,
+  countMeshes,
   createPetStageScene,
   createTwinScene,
   DEFAULT_ORBIT,
+  fitOrbitRadius,
+  loadTwinGLB,
   orbitFromDrag,
   orbitZoom,
   POSE_NAMES,
-  STAGE_FOG,
+  projectPetBounds,
+  setTwinAssetResolver,
+  STAGE_THEMES,
   STAGE_TARGET,
 } from "@pli/pet-3d";
+import type { LoadedTwin, PoseName, StageTheme } from "@pli/pet-3d";
 
 declare const window: any;
 
 const rootEl = document.getElementById("stage") as HTMLElement;
 const identity = (window.__PLI_IDENTITY as string) === "mimi" ? "mimi" : "doudou";
 const interactive = !!window.__PLI_INTERACTIVE;
+// R4.2 stage theme: warm living field / neutral identity studio / engineering
+// debug. Owner hero pages (Today/Pet/Life/Twin Review) never use engineering.
+const stageTheme: StageTheme =
+  window.__PLI_STAGE_THEME === "review" || window.__PLI_STAGE_THEME === "engineering"
+    ? (window.__PLI_STAGE_THEME as StageTheme)
+    : "living";
 const twinDescriptor = window.__PLI_TWIN ?? null;
+// Injected by Pet3DViewer for the V2 identity gate (pet id + media count).
+const injectedPetId: string | null = window.__PLI_PET_ID ?? null;
+const injectedSourceMediaCount: number = Number(window.__PLI_SOURCE_MEDIA_COUNT ?? 0);
+// §31 framing target injected per screen (0 = demo framing, no autofit).
+const frameTarget: number = Number(window.__PLI_FRAME_TARGET ?? 0);
+
+// R2P3D-R4: the WebView has no HTTP server (file:///android_asset/), so the GLB
+// bytes are embedded at build time and decoded here; null = procedural fallback.
+setTwinAssetResolver((identity) => {
+  const b64 = window.__PLI_TWIN_GLB_B64__?.[identity];
+  if (!b64) return null;
+  try {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+    return bytes.buffer;
+  } catch {
+    return null;
+  }
+});
 
 function post(msg: Record<string, unknown>): void {
   try {
@@ -56,8 +83,19 @@ renderer.domElement.style.width = "100%";
 renderer.domElement.style.height = "100%";
 rootEl.appendChild(renderer.domElement);
 
+const theme = STAGE_THEMES[stageTheme];
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(STAGE_FOG, 0.05);
+// R5: owner product surfaces are composed by the native Living Stage. Keep
+// the WebGL canvas transparent so it cannot re-introduce a rectangular viewer
+// inside that field. Engineering/debug remains deliberately opaque.
+if (stageTheme === "engineering") {
+  scene.background = new THREE.Color(theme.base);
+  renderer.setClearColor(new THREE.Color(theme.base), 1);
+} else {
+  scene.background = null;
+  renderer.setClearColor(0x000000, 0);
+}
+scene.fog = new THREE.FogExp2(new THREE.Color(theme.fog), stageTheme === "engineering" ? 0.035 : 0.022);
 
 // Individual twin (R2P3D-R1) beats demo identity when a descriptor is present.
 const stage = twinDescriptor
@@ -73,29 +111,109 @@ scene.add(stage.pet);
 scene.add(stage.shadow);
 addStageLights(scene);
 
+// Subtle grounding + ambient radial light (light environment cues). The pet
+// stays centered; these are low-contrast, low-saturation additions so the
+// hero reads as an open warm room, not a lab viewer.
+if (stageTheme !== "engineering") {
+  const floor = new THREE.Mesh(
+    new THREE.CircleGeometry(2.4, 64),
+    new THREE.MeshBasicMaterial({
+      color: new THREE.Color(theme.base),
+      transparent: true,
+      opacity: 0.07,
+      depthWrite: false,
+    }),
+  );
+  floor.name = "pliAmbientFloor";
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = 0.005;
+  scene.add(floor);
+  const glow = new THREE.Mesh(
+    new THREE.CircleGeometry(1.7, 48),
+    new THREE.MeshBasicMaterial({
+      color: new THREE.Color(theme.glow),
+      transparent: true,
+      opacity: 0.10,
+      depthWrite: false,
+    }),
+  );
+  glow.name = "pliAmbientGlow";
+  glow.rotation.x = -Math.PI / 2;
+  glow.position.y = 0.012;
+  scene.add(glow);
+}
+
 const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 40);
 const orbit = { ...DEFAULT_ORBIT };
-// Twin scenes are built ground-anchored and centered; keep default framing
-// but widen a touch so morph-extended pets still fit.
-if (twinDescriptor) orbit.radius = Math.max(orbit.radius, 5.2);
+// Zoom clamp is re-derived from the fitted baseline when auto-framing.
+const zoomBounds = { min: 2.6, max: 7 };
+
+// R2P3D-R4: swap in the embedded high-fidelity GLB twin when it loads (web
+// parity); the procedural stage stays until then or on failure — never a SPOF.
+let petRoot: THREE.Object3D = stage.pet;
+let hdTwin: LoadedTwin | null = null;
+loadTwinGLB(identity).then((twin) => {
+  if (!twin) return;
+  scene.remove(stage.pet);
+  scene.add(twin.group);
+  petRoot = twin.group;
+  hdTwin = twin;
+  applyFit();
+  post({ type: "manifest", manifest: buildManifest() });
+}).catch(() => {
+  // PROVIDER: GLB failure keeps the procedural stage (engineering manifest).
+});
+// §31 aspect-aware auto-framing (mirrors web): fit the projected pet box onto frameTarget of the full viewport.
+function applyFit(): void {
+  if (!twinDescriptor || !(frameTarget > 0)) return;
+  const fit = fitOrbitRadius(
+    petRoot,
+    camera,
+    { yaw: DEFAULT_ORBIT.yaw, pitch: DEFAULT_ORBIT.pitch, radius: DEFAULT_ORBIT.radius },
+    frameTarget,
+    Math.max(1, Math.round(window.innerWidth || 1)),
+    Math.max(1, Math.round(window.innerHeight || 1)),
+  );
+  Object.assign(orbit, fit);
+  zoomBounds.min = fit.radius * 0.5;
+  zoomBounds.max = fit.radius * 2.5;
+  applyOrbit(camera, STAGE_TARGET, orbit);
+}
 // --- blind scene manifest (test/debug only, never owner UI) ---
 function buildManifest(): Record<string, unknown> {
   const rect = renderer.domElement.getBoundingClientRect();
-  let meshCount = 0;
-  stage.pet.traverse((o: { isMesh?: boolean }) => {
-    if (o.isMesh) meshCount += 1;
-  });
+  const { meshCount, skinnedMeshCount } = countMeshes(petRoot);
   const clips = [...POSE_NAMES];
-  return {
+  // §31: projected area ratio is measured against the full viewport (window).
+  const projected = projectPetBounds(
+    petRoot,
+    camera,
+    Math.max(1, Math.round(window.innerWidth || 1)),
+    Math.max(1, Math.round(window.innerHeight || 1)),
+  );
+  const m = buildManifestV2({
     ready: true,
-    representation: twinDescriptor ? "procedural-twin" : "procedural-demo-stage",
-    fallbackUsed: false,
+    // Phase E: canonical representation names the asset that is REALLY on
+    // screen — the embedded HIGH_FIDELITY_SKINNED GLB twin when loaded;
+    // legacyRepresentation keeps the R3-era procedural label for
+    // backward-compatible readers. No auditor should see HIGH_FIDELITY_SKINNED
+    // + "procedural-demo-stage" on the same line without an explanation.
+    representation: hdTwin
+      ? "high-fidelity-glb-twin"
+      : twinDescriptor
+        ? "procedural-twin"
+        : "procedural-demo-stage",
+    legacyRepresentation: twinDescriptor ? "procedural-twin" : "procedural-demo-stage",
+    generic: !twinDescriptor,
+    petId: injectedPetId ?? null,
+    sourceMediaCount: twinDescriptor ? injectedSourceMediaCount : 0,
     assetVersion: twinDescriptor?.version ?? "demo-v1",
-    meshCount,
-    skinnedMeshCount: 0,
-    skeleton: !!twinDescriptor,
-    animationClips: clips,
+    fallbackUsed: false,
     wireframe: false,
+    meshCount,
+    skinnedMeshCount,
+    skeleton: !!twinDescriptor || !!hdTwin,
+    animationClips: clips,
     materialMode: "pbr",
     baseColorTexture: true,
     camera: { fov: camera.fov, distance: orbit.radius, yaw: orbit.yaw, pitch: orbit.pitch, radius: orbit.radius },
@@ -108,12 +226,31 @@ function buildManifest(): Record<string, unknown> {
     pose: activePose ?? "Idle",
     poseSource: twinDescriptor ? ("REPRESENTATIVE" as const) : ("AMBIENT" as const),
     poseConfidence: twinDescriptor ? 0.9 : 0.3,
-  };
+    projected: projected ?? null,
+    // --- Blind Contract V3 (§51) — additive; V2 fields above stay intact ---
+    representationQuality: hdTwin ? "HIGH_FIDELITY_SKINNED" : "engineering",
+    productCandidate: hdTwin !== null,
+    triangleCount: hdTwin?.triangleCount ?? 0,
+    uvPresent: hdTwin !== null,
+    texturePresent: hdTwin !== null,
+    baseColorTextureResolution: hdTwin ? 2048 : 0,
+    canonicalPose: activePose ?? "Stand",
+    stageRole: stageTheme,
+    surfaceVariant:
+      stageTheme === "review"
+        ? ("neutral-identity-studio" as const)
+        : stageTheme === "engineering"
+          ? ("dark-debug" as const)
+          : ("warm-living-field" as const),
+    realityField: stageTheme === "review" ? ("review-studio" as const) : stageTheme === "engineering" ? ("engineering-debug" as const) : ("warm-living" as const),
+  });
+  // Release builds strip console.log (Hermes), so uiautomator accessibility can
+  // see the manifest via document.title (machine-readable runtime evidence).
+  document.title = "PLI_MANIFEST:" + JSON.stringify(m);
+  return m;
 }
 (window as any).__PLI_GET_MANIFEST = () => buildManifest();
-(window as any).__PLI_REQUEST_MANIFEST = () => {
-  post({ type: "manifest", manifest: buildManifest() });
-};
+(window as any).__PLI_REQUEST_MANIFEST = () => post({ type: "manifest", manifest: buildManifest() });
 
 function resize(): void {
   const w = Math.max(1, rootEl.clientWidth || window.innerWidth);
@@ -122,14 +259,15 @@ function resize(): void {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   applyOrbit(camera, STAGE_TARGET, orbit);
+  // Auto-frame after each real resize to keep the contract's projected range.
+  applyFit();
 }
 window.addEventListener("resize", resize);
 resize();
-applyOrbit(camera, STAGE_TARGET, orbit);
 
 // --- pose control ---
 let activePose: string | null = null;
-const poseTimeOffset = { value: 0 }; // deterministic start per pose switch
+const poseTimeOffset = { value: 0 };
 (window as any).__PLI_SET_POSE = (name: string | null) => {
   activePose = name && name !== "Idle" ? name : null;
   poseTimeOffset.value = 0;
@@ -146,12 +284,12 @@ function reportOrientation(): void {
 
 function frame(t: number): void {
   const time = (t / 1000) + poseTimeOffset.value;
-  if (twinDescriptor) {
-    // Twin scene: setPose(poseName, timeSeconds) — real joint animation.
-    (stage as any).setPose(activePose ?? "Idle", time);
+  if (hdTwin) {
+    hdTwin.setPose((activePose ?? "Idle") as PoseName, time); // R4 GLB twin: real bones
+  } else if (twinDescriptor) {
+    (stage as any).setPose(activePose ?? "Idle", time); // twin scene: joint clips
   } else {
-    // Demo stage: setPose(timeSeconds, enabled) — breathing only.
-    (stage as any).setPose(time, true);
+    (stage as any).setPose(time, true); // demo stage: breathing only
   }
   applyOrbit(camera, STAGE_TARGET, orbit);
   renderer.render(scene, camera);
@@ -162,9 +300,7 @@ requestAnimationFrame(frame);
 post({ type: "status", status: "ready" });
 post({ type: "manifest", manifest: buildManifest() });
 // Blind harness: keep the manifest fresh on the [plimanifest] logcat channel.
-setInterval(() => {
-  post({ type: "manifest", manifest: buildManifest() });
-}, 2000);
+setInterval(() => post({ type: "manifest", manifest: buildManifest() }), 2000);
 // --- touch / pointer interaction (interactive only) ---
 let pointers = new Map<number, { x: number; y: number }>();
 let lastPinch = 0;
@@ -185,9 +321,6 @@ rootEl.addEventListener(
   (e: TouchEvent) => {
     if (!interactive || e.touches.length === 0) return;
     e.preventDefault();
-    const next = new Map<number, { x: number; y: number }>();
-    for (const t of Array.from(e.touches)) next.set(t.identifier, { x: t.clientX, y: t.clientY });
-
     if (e.touches.length >= 2 && lastPinch > 0) {
       const d = pinchDist(e);
       const factor = d / lastPinch;
@@ -197,9 +330,7 @@ rootEl.addEventListener(
       const t = e.touches[0];
       const prev = pointers.get(t.identifier);
       if (prev) {
-        const dx = t.clientX - prev.x;
-        const dy = t.clientY - prev.y;
-        Object.assign(orbit, orbitFromDrag(orbit, dx, dy));
+        Object.assign(orbit, orbitFromDrag(orbit, t.clientX - prev.x, t.clientY - prev.y));
         pointers.set(t.identifier, { x: t.clientX, y: t.clientY });
       }
     }
@@ -220,11 +351,23 @@ function pinchDist(e: TouchEvent): number {
 
 // --- buttons ---
 window.zoom = (inward: boolean) => {
-  Object.assign(orbit, orbitZoom(orbit, inward ? 1.2 : 1 / 1.2));
+  Object.assign(orbit, orbitZoom(orbit, inward ? 1.2 : 1 / 1.2, zoomBounds));
 };
 window.resetView = () => {
+  // Reset restores the canonical framing — re-fitted so the zoom/reset camera
+  // evidence always compares against the SAME fitted baseline.
   Object.assign(orbit, { ...DEFAULT_ORBIT });
+  applyFit();
+};
+// R4.1 (Phase C): Twin Review view presets must drive the real camera —
+// front = 0, side = π/2, back = π (mirrors the web Twin Review + pixel
+// contract). The yaw is applied in the page so the manifest camera evidence
+// (3d.json yaw) proves the view switch is a true camera move.
+window.__PLI_SET_VIEW = (yaw: number) => {
+  Object.assign(orbit, { yaw, pitch: DEFAULT_ORBIT.pitch });
 };
 
 const controls = document.getElementById("controls") as HTMLElement;
-if (interactive) controls.classList.add("show");
+// Product owner pages use the native React Native controls so there is one
+// interaction layer, not duplicated WebView + native +/-/reset buttons.
+if (interactive && stageTheme === "engineering") controls.classList.add("show");

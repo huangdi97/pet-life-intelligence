@@ -5,7 +5,7 @@
  * stage, owner answers 很像 / 基本像 / 不像, and only these two may reach
  * activation. 不像 cannot become active and keeps the prior active/fallback.
  */
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRoute, useNavigation, type RouteProp } from "@react-navigation/native";
@@ -17,6 +17,7 @@ import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
 import type { StackParamList } from "../navigation";
 import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { PetLivingStage } from "../components/life/PetLivingStage";
+import type { Pet3DViewerHandle } from "../components/three/Pet3DViewer";
 import type { TwinDescriptor } from "@pli/pet-3d";
 
 type StackNav = NativeStackNavigationProp<StackParamList>;
@@ -41,7 +42,7 @@ const OPTIONS = [
   { k: "basic_like", label: "基本像" },
   { k: "not_like", label: "不像" },
 ];
-const VIEWS = [
+  const VIEWS: Array<{ key: "front" | "side" | "back"; label: string }> = [
   { key: "front", label: "正面" },
   { key: "side", label: "侧面" },
   { key: "back", label: "背面" },
@@ -61,7 +62,10 @@ export function PetTwinReviewScreen() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<TwinDescriptor | null>(null);
-  const [view, setView] = useState("front");
+  const [sourceMediaCount, setSourceMediaCount] = useState(0);
+  const [view, setView] = useState<"front" | "side" | "back">("front");
+  const [resolvedVersion, setResolvedVersion] = useState(version);
+  const viewerRef = useRef<Pet3DViewerHandle>(null);
 
   const load = useCallback(() => {
     if (!petId) return;
@@ -76,14 +80,18 @@ export function PetTwinReviewScreen() {
             .get<{ models: Array<{ version: number }> }>(`/pets/${petId}/visual-models`)
             .then((r) => r.models[0]?.version ?? 0);
     request
-      .then((v) =>
-        v > 0
+      .then((v) => {
+        setResolvedVersion(v);
+        return v > 0
           ? api.get<TwinModel>(`/pets/${petId}/visual-models/${v}`)
-          : Promise.reject(new Error("NO_MODEL")),
-      )
+          : Promise.reject(new Error("NO_MODEL"));
+      })
       .then((m) => {
         const map = (m as { artifact_map?: { twin_descriptor?: TwinDescriptor } }).artifact_map;
-        setCandidate(map?.twin_descriptor ?? null);
+        const desc = map?.twin_descriptor;
+        const surface = (desc as { surface?: { observed_regions?: string[] } } | undefined)?.surface;
+        setCandidate(desc ?? null);
+        setSourceMediaCount(surface?.observed_regions?.length ?? 0);
         setMessage(null);
       })
       .catch((e: unknown) => {
@@ -105,15 +113,15 @@ export function PetTwinReviewScreen() {
     setPickedIssues((xs) => (xs.includes(it) ? xs.filter((x) => x !== it) : [...xs, it]));
 
   const submit = async () => {
-    if (!petId || !selected || selected === "not_like") return;
+    if (!petId || resolvedVersion <= 0 || !selected || selected === "not_like") return;
     setBusy(true);
     setMessage(null);
     try {
-      await api.post(`/pets/${petId}/visual-models/${version}/verify`, {
+      await api.post(`/pets/${petId}/visual-models/${resolvedVersion}/verify`, {
         result: selected,
         issues: pickedIssues,
       });
-      await api.post(`/pets/${petId}/visual-models/${version}/activate`, {});
+      await api.post(`/pets/${petId}/visual-models/${resolvedVersion}/activate`, {});
       setMessage("已确认相似，并已启用为当前 3D 形象。");
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "操作失败，请重试");
@@ -139,9 +147,9 @@ export function PetTwinReviewScreen() {
         <View style={styles.center}><ActivityIndicator color={COLORS.brandPrimary} /></View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV} twin={candidate} pose="Idle" interactive />
+          <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Idle" interactive frameTarget={0.30} view={view} viewerRef={viewerRef} />
           <Text style={styles.caption}>
-            这是根据{pet?.name ?? "宠物"}的照片与模板生成的第 {version} 版形象。旋转查看后回答：像它吗？
+            这是根据{pet?.name ?? "宠物"}的照片与模板生成的第 {resolvedVersion || "—"} 版形象。旋转查看后回答：像它吗？
           </Text>
 
           <View style={styles.viewRow} accessibilityLabel="视图选择">
@@ -159,6 +167,21 @@ export function PetTwinReviewScreen() {
             ))}
           </View>
           <Text style={styles.viewNote}>当前视图：{VIEW_LABEL[view] ?? view}</Text>
+
+          <View style={styles.cameraRow} accessibilityLabel="3D 形象缩放与重置">
+            <Pressable accessibilityRole="button" accessibilityLabel="缩小 3D 形象" onPress={() => viewerRef.current?.zoomOut()} style={styles.cameraBtn}>
+              <Ionicons name="remove" size={17} color={COLORS.textSecondary} />
+              <Text style={styles.cameraBtnText}>缩小</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="放大 3D 形象" onPress={() => viewerRef.current?.zoomIn()} style={styles.cameraBtn}>
+              <Ionicons name="add" size={17} color={COLORS.textSecondary} />
+              <Text style={styles.cameraBtnText}>放大</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="重置 3D 视图" onPress={() => viewerRef.current?.resetView()} style={styles.cameraBtn}>
+              <Ionicons name="refresh" size={16} color={COLORS.textSecondary} />
+              <Text style={styles.cameraBtnText}>重置</Text>
+            </Pressable>
+          </View>
 
           <View style={styles.options}>
             {OPTIONS.map((o) => (
@@ -219,6 +242,18 @@ const styles = StyleSheet.create({
   viewChipText: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "600" },
   viewChipTextSel: { color: COLORS.brandPrimaryDeep },
   viewNote: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: SPACE.s2 },
+  cameraRow: { flexDirection: "row", gap: SPACE.s2, marginTop: SPACE.s2 },
+  cameraBtn: {
+    flex: 1,
+    minHeight: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    backgroundColor: COLORS.surfaceRaised,
+    borderRadius: 12,
+  },
+  cameraBtnText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   options: { flexDirection: "row", gap: SPACE.s2, marginTop: SPACE.s3 },
   opt: { flex: 1, alignItems: "center", paddingVertical: 12, backgroundColor: COLORS.surface, borderRadius: 12 },
   optSel: { backgroundColor: COLORS.brandPrimary },

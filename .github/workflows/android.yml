@@ -47,6 +47,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build pet-3d
         run: pnpm --dir packages/pet-3d build
+      - name: Build embedded mobile 3D page
+        run: pnpm --dir apps/mobile build:3d-page
       - name: Mobile typecheck
         run: pnpm --dir apps/mobile typecheck
       - name: Expo prebuild (android)

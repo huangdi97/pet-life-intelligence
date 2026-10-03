@@ -1,0 +1,6 @@
+# Gobkit Corgi source material proxy for PLI deterministic repaint
+newmtl corgi_source
+Kd 0.78 0.58 0.38
+Ka 0.08 0.06 0.04
+Ks 0.02 0.02 0.02
+Ns 12

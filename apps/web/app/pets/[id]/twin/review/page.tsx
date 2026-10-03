@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@pli/api-client";
 import { Pet3DViewer } from "../../../../../components/three/pet3d-viewer";
@@ -106,9 +106,28 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
 
   const identity = resolvePet3DIdentity({ name: pet?.name, species: pet?.species, breed: pet?.breed });
   const show3d = identity !== null;
+  const modelDescriptor = (model?.artifact_map as Record<string, unknown>)?.twin_descriptor as import("@pli/pet-3d").TwinDescriptor | undefined;
+  const modelSurface = (modelDescriptor as { surface?: { observed_regions?: string[] } } | undefined)?.surface?.observed_regions;
+  const twinSourceMediaCount = modelSurface?.length ?? 0;
+  // INVARIANT: pass a STABLE twin object. The spread below is intentionally
+  // memoized — a fresh object per render would remount the 3D scene (the
+  // viewer keys its effect on `twin`), resetting the camera and defeating the
+  // front/side/back presets that drive the real camera on click.
+  const viewerTwin = useMemo<import("@pli/pet-3d").TwinDescriptor | null>(
+    () =>
+      model && modelDescriptor
+        ? {
+            ...modelDescriptor,
+            family: pet?.species === "cat" ? "standard-cat" : "corgi-like",
+            version: model.version,
+            provenance: model.provenance_kind,
+          }
+        : null,
+    [model, modelDescriptor, pet?.species, model?.version, model?.provenance_kind],
+  );
 
   return (
-    <main>
+    <main data-pli-selected={selected ?? ""}>
       <div data-testid="pli.twinreview.identity">
         <h1>{pet ? `${pet.name} · 确认 3D 形象` : "确认 3D 形象"}</h1>
         <p className="sub">
@@ -123,7 +142,12 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
               identity={identity}
               variant="life"
               interactive
-              twin={model ? { family: pet?.species === "cat" ? "standard-cat" : "corgi-like", version: model.version, provenance: model.provenance_kind } : null}
+              petId={petId}
+              frameTarget={0.28}
+              stageRole="review"
+              realityField="review-studio"
+              sourceMediaCount={twinSourceMediaCount}
+              twin={viewerTwin}
             />
           ) : (
             <div className="page-center" style={{ minHeight: 240 }}>
@@ -132,7 +156,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
           )}
         </div>
       </div>
-      {modelNote && <p className="muted" style={{ marginTop: 6 }}>当前为演示形象（开发环境）· {modelNote}</p>}
+      {modelNote && <p className="muted" style={{ marginTop: 6 }}>还没有可确认的 3D 形象 · {modelNote}</p>}
 
       <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 10 }}>
         {(
@@ -146,7 +170,11 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
             key={v.id}
             type="button"
             className={`btn${view === v.id ? " primary" : ""}`}
-            onClick={() => setView(v.id)}
+            onClick={() => {
+              setView(v.id);
+              const yaw = v.id === "front" ? 0 : v.id === "side" ? Math.PI / 2 : Math.PI;
+              (window as any).__PLI_SET_VIEW?.(yaw);
+            }}
             data-testid={`pli.twinreview.view.${v.id}`}
           >
             {v.label}
@@ -164,6 +192,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
               className={`btn${selected === o.id ? " primary" : ""}`}
               onClick={() => verify(o.id)}
               disabled={busy}
+              aria-pressed={selected === o.id}
               data-testid={`pli.twinreview.verify.${o.id}`}
             >
               {o.label}

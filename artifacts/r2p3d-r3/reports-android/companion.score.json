@@ -1,0 +1,227 @@
+{
+  "screen": "companion",
+  "total": 100,
+  "max": 100,
+  "perDimension": {
+    "individualPetTruth": {
+      "earned": 25,
+      "max": 25
+    },
+    "visualComposition": {
+      "earned": 20,
+      "max": 20
+    },
+    "informationHierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surfaceGovernance": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interactionTruth": {
+      "earned": 10,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "pixelStyleTruth": {
+      "earned": 5,
+      "max": 5
+    }
+  },
+  "passed": [
+    {
+      "id": "companion.identity",
+      "dimension": "individualPetTruth",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.companion.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.companion.identity]=1"
+    },
+    {
+      "id": "companion.overview",
+      "dimension": "individualPetTruth",
+      "points": 12,
+      "description": "能力说明存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.companion.overview"
+      },
+      "passed": true,
+      "detail": "elements[pli.companion.overview]=1"
+    },
+    {
+      "id": "companion.device-empty",
+      "dimension": "visualComposition",
+      "points": 10,
+      "description": "无设备完整空态存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.companion.device-empty"
+      },
+      "passed": true,
+      "detail": "elements[pli.companion.device-empty]=1"
+    },
+    {
+      "id": "companion.recent",
+      "dimension": "visualComposition",
+      "points": 10,
+      "description": "最近可用信息存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.companion.recent"
+      },
+      "passed": true,
+      "detail": "elements[pli.companion.recent]=1"
+    },
+    {
+      "id": "companion.next",
+      "dimension": "informationHierarchy",
+      "points": 8,
+      "description": "下一步存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.companion.next"
+      },
+      "passed": true,
+      "detail": "elements[pli.companion.next]=1"
+    },
+    {
+      "id": "companion.observable",
+      "dimension": "informationHierarchy",
+      "points": 7,
+      "description": "可观察语言（非拟人化情感）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.companion.recent"
+      },
+      "passed": true,
+      "detail": "elements[pli.companion.recent]=1"
+    },
+    {
+      "id": "companion.surface",
+      "dimension": "surfaceGovernance",
+      "points": 10,
+      "description": "大 Card ≤4",
+      "check": {
+        "kind": "surface",
+        "max": 4,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 4"
+    },
+    {
+      "id": "companion.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "无 prototype/TODO/coming soon 等",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-",
+          "prototype",
+          "TODO",
+          "coming soon"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "companion.action",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "配对/下一步动作存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.companion.action"
+      },
+      "passed": true,
+      "detail": "elements[pli.companion.action]=1"
+    },
+    {
+      "id": "companion.view",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "能力项可查看",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.companion.overview"
+        },
+        "range": [
+          1,
+          6
+        ]
+      },
+      "passed": true,
+      "detail": "count=4 in [1,6]"
+    },
+    {
+      "id": "companion.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "关键区可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.companion.overview"
+      },
+      "passed": true,
+      "detail": "elements[pli.companion.overview]=1"
+    },
+    {
+      "id": "companion.truth",
+      "dimension": "individualPetTruth",
+      "points": 5,
+      "description": "设备状态来自真实 runtime (real data)",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.companion.device-status"
+      },
+      "passed": true,
+      "detail": "elements[pli.companion.device-status]=1"
+    },
+    {
+      "id": "companion.truth.style",
+      "dimension": "pixelStyleTruth",
+      "points": 5,
+      "description": "无占位/空板书风格（style truth）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

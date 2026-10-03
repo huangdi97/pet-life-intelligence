@@ -42,6 +42,20 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
     () => (petId ? api.get(`/pets/${petId}/today`) : Promise.reject(new Error("NO_PET"))),
     [petId],
   );
+  // Individual Twin (R2P3D-R3 D): the ACTIVE per-pet twin descriptor drives the
+  // 3D stage on Life View too — same canonical asset as Android.
+  const twin = useAsync<{ models: Array<Record<string, unknown>> }>(
+    () => (petId ? api.get(`/pets/${petId}/visual-models`) : Promise.reject(new Error("NO_PET"))),
+    [petId],
+  );
+  const activeTwin = twin.data?.models.find((m) => m.status === "ACTIVE") ?? null;
+  const twinDescriptor = activeTwin
+    ? ((activeTwin.artifact_map as Record<string, unknown>)?.twin_descriptor as import("@pli/pet-3d").TwinDescriptor | undefined) ?? null
+    : null;
+  const twinVersion = Number(activeTwin?.version ?? 0) || undefined;
+  const observedRegions = (
+    (twinDescriptor as { surface?: { observed_regions?: string[] } } | null)?.surface?.observed_regions ?? []
+  ).length;
 
   if (pet.state === "denied") {
     return (
@@ -87,9 +101,8 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
     <main className="v4-main">
       <div className="v4-topline">
         <h1>生命视图</h1>
-        <p className="v4-topline-sub">{name} · 此刻</p>
+        <p className="v4-topline-sub" data-testid="pli.lifeview.identity">{name} · 此刻</p>
       </div>
-
       <div style={{ maxWidth: 288, margin: "0 auto" }}>
       <PetLivingStage
         name={name}
@@ -98,9 +111,19 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         breed={pet.data?.breed}
         headline={mode === "now" ? `${name} · 此刻` : undefined}
         variant="life"
+        stageRole="life"
+        realityField="twin-space"
         anchors={anchors}
         caption={mode === "now" ? nowLine : undefined}
-        note="演示 3D 形象（开发环境）· 未来连接真实服务后，将用真实照片生成"
+        note={
+          twinDescriptor
+            ? `第 ${twinVersion ?? 1} 版 3D 形象 · 已通过你的确认`
+            : "暂时使用简化形象，连接照片后会生成更像它的 3D 形象"
+        }
+        frameTarget={0.30}
+        twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
+        sourceMediaCount={observedRegions || undefined}
+        interactive
         stageTestId="pli.lifeview.stage"
         twinTestId="pli.lifeview.twin"
         anchorTestIdPrefix="pli.lifeview.anchor"
@@ -163,7 +186,9 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
             <div className="v4-sec">
               <h2 className="v4-sec-title">外观</h2>
               <p className="v4-sec-sub" style={{ marginTop: 6 }}>
-                现在显示的是演示 3D 形象（开发环境），只来自演示数据。未来连接真实服务后，会用{name}的真实照片生成，并经过你确认后才会显示。外观不会替代真实照片与记录。
+                {twinDescriptor
+                  ? `现在显示的是第 ${twinVersion ?? 1} 版 3D 形象，已通过你的确认。外观由它的照片与模板生成，不会替代真实照片与记录。`
+                  : "现在显示的是简化形象（开发环境），只来自演示数据。未来连接真实服务后，会用它的真实照片生成，并经过你确认后才会显示。外观不会替代真实照片与记录。"}
               </p>
             </div>
           ) : null}
@@ -175,7 +200,9 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
           <div className="v4-sec" style={{ paddingTop: 18 }}>
             <h2 className="v4-sec-title">真实记录始终可信</h2>
               <p className="v4-note" style={{ margin: "6px 0 0" }}>
-                当前 3D 形象为演示资产（开发环境），只来自演示数据，不来自真实照片。未来真实服务接通后，生成的 3D 形象只会来自真实照片，并经过你确认后才会显示。照片、记录与规则结论始终独立于外观，移动端与 Web 一致。
+                {twinDescriptor
+                  ? `当前 3D 形象是已确认的第 ${twinVersion ?? 1} 版，由它的照片与模板生成。照片、记录与规则结论始终独立于外观，移动端与 Web 一致。`
+                  : "当前 3D 形象为演示资产（开发环境），只来自演示数据，不来自真实照片。未来真实服务接通后，生成的 3D 形象只会来自真实照片，并经过你确认后才会显示。照片、记录与规则结论始终独立于外观，移动端与 Web 一致。"}
               </p>
           </div>
         </div>

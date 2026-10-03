@@ -1,0 +1,191 @@
+{
+  "screen": "me",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "contentBounds": {
+    "top": 82,
+    "bottom": 844,
+    "width": 390,
+    "height": 762,
+    "left": 0
+  },
+  "elements": [
+    {
+      "id": "header",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "nav",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 100,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "pli.nav.today",
+      "role": "button",
+      "x": 174,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "今日"
+    },
+    {
+      "id": "pli.nav.timeline",
+      "role": "button",
+      "x": 214,
+      "y": 15,
+      "width": 46,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "时间线"
+    },
+    {
+      "id": "pli.nav.pet",
+      "role": "button",
+      "x": 264,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆"
+    },
+    {
+      "id": "pli.nav.assistant",
+      "role": "button",
+      "x": 304,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "助手"
+    },
+    {
+      "id": "pli.nav.me",
+      "role": "button",
+      "x": 344,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "我的"
+    },
+    {
+      "id": "pli.multipet.switch",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）咪咪（cat）"
+    },
+    {
+      "id": "pli.multipet.current",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）"
+    },
+    {
+      "id": "pli.me.owner",
+      "x": 12,
+      "y": 110,
+      "width": 366,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "设置与隐私\n\n宠物主人账号、家庭与授权、数据与隐私。"
+    },
+    {
+      "id": "pli.me.pets",
+      "x": 12,
+      "y": 184,
+      "width": 366,
+      "height": 134,
+      "visible": true,
+      "z": 0,
+      "text": "我的宠物\n\n当前宠物：豆豆（狗）\n\n管理宠物"
+    },
+    {
+      "id": "pli.me.care-network",
+      "x": 12,
+      "y": 330,
+      "width": 366,
+      "height": 134,
+      "visible": true,
+      "z": 0,
+      "text": "家庭与照护网络\n\n与家人、照护者共享记录与任务，授权逐项管理。\n\n照护协作"
+    },
+    {
+      "id": "pli.me.notifications",
+      "x": 12,
+      "y": 476,
+      "width": 366,
+      "height": 134,
+      "visible": true,
+      "z": 0,
+      "text": "通知\n\n任务提醒、用药提醒与异常提醒。\n\n管理通知"
+    },
+    {
+      "id": "pli.me.privacy",
+      "x": 12,
+      "y": 622,
+      "width": 366,
+      "height": 115,
+      "visible": true,
+      "z": 0,
+      "text": "数据同意\n\nSERVICE_ESSENTIAL 为产品必需同意，不可撤回（撤回即无法使用服务）。"
+    },
+    {
+      "id": "pli.me.data",
+      "x": 12,
+      "y": 749,
+      "width": 366,
+      "height": 446,
+      "visible": true,
+      "z": 0,
+      "text": "紧急联系卡\n出错了：页面不存在\n重试\n数据删除请求\n\nv0.1 只登记请求并审计；实际删除是高风险动作，需要显式人工确认后离线执行（不会自动删除）。\n\n原因（可选）\n登记删除请求"
+    },
+    {
+      "id": "pli.me.help",
+      "x": 12,
+      "y": 1207,
+      "width": 366,
+      "height": 2086,
+      "visible": true,
+      "z": 0,
+      "text": "访问审计（谁看过/改过什么）\nsocial.request\nPetFriend\n2cecb2d6\n2026/10/2 14:17:34\nevent.create\nLifeEvent\n2cecb2d6\n2026/10/2 14:15:49\nevent.create\nLifeEvent\n2cecb2d6\n2026/10/2 14:15:49\nevent.create\nLifeEvent\n2cecb2d"
+    },
+    {
+      "id": "pli.me.settings",
+      "x": 12,
+      "y": 3305,
+      "width": 366,
+      "height": 584,
+      "visible": true,
+      "z": 0,
+      "text": "账号与安全\n登录设备\n修改密码\n当前密码\n新密码\n更新密码\n退出登录\n删除账号\n\n删除会停用账号并使所有会话失效。高风险操作。\n\n输入密码确认\n删除账号"
+    }
+  ]
+}

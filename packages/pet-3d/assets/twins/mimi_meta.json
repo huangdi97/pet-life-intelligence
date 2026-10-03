@@ -1,0 +1,58 @@
+{
+  "pet_id": "mimi",
+  "twin_version": "r4-1.0.0",
+  "family": "standard-cat",
+  "representation": "high-fidelity-glb-twin",
+  "legacyRepresentation": "procedural-twin",
+  "representationQuality": "HIGH_FIDELITY_SKINNED",
+  "productCandidate": true,
+  "triangleCount": 51648,
+  "vertexCount": 26601,
+  "uvPresent": true,
+  "texturePresent": true,
+  "baseColorTextureResolution": 2048,
+  "baseColorTextureFile": "mimi_baseColor.png",
+  "observedMaskFile": "mimi_observed.png",
+  "inferredMaskFile": "mimi_inferred.png",
+  "meshFile": "mimi_base.obj",
+  "weightsFile": "mimi_weights.json",
+  "joints": [
+    "root",
+    "torso",
+    "neck",
+    "head",
+    "earL",
+    "earR",
+    "tail0",
+    "tail1",
+    "shoulderFL",
+    "kneeFL",
+    "shoulderFR",
+    "kneeFR",
+    "hipBL",
+    "kneeBL",
+    "hipBR",
+    "kneeBR"
+  ],
+  "sourceProvenance": "opengameart.org/content/animated-animales-low-poly (Quaternius CC0)",
+  "normalize": {
+    "scale": 0.2237338037511929,
+    "translate_y_min": -0.05321439252746105,
+    "height": 1.0,
+    "rotate_y_deg": -90.0
+  },
+  "morphology": {
+    "applied": false
+  },
+  "atlasObservedRatio": 0.21371912956237793,
+  "landmarks": {
+    "eye_y": 0.74,
+    "eye_dx": 0.13,
+    "muzzle_z": 0.6325041238783207,
+    "nose_y": 0.6,
+    "nose_z": 0.6525041238783207,
+    "head_min_z": -0.6325041238783207,
+    "head_max_z": 0.6325041238783207,
+    "head_min_y": 0.55
+  }
+}

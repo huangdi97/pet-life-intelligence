@@ -1,6 +1,6 @@
 /**
  * PetLivingStage — the shared "pet is in the room" composition for Today / Pet /
- * Life View (R2-P3D §16/§19/§23). Three depth layers: warm charcoal environment
+ * Life View (R2-P3D §16/§19/§23). Three depth layers: warm living environment
  * background, midground REAL 3D pet (shared demo asset via Pet3DViewer), and
  * foreground state anchors + identity/now overlay. The pet visual always
  * dominates; when the 3D renderer fails or no demo identity exists, the stage
@@ -19,8 +19,8 @@ import { PetStateAnchor, type PetAnchor } from "./PetStateAnchor";
 
 export type StageVariant = "today" | "pet" | "life" | "review";
 
-const HEIGHTS: Record<StageVariant, number> = { today: 344, pet: 372, life: 452, review: 452 };
-const PET_WIDTHS: Record<StageVariant, number> = { today: 216, pet: 232, life: 252, review: 252 };
+const HEIGHTS: Record<StageVariant, number> = { today: 384, pet: 408, life: 500, review: 512 };
+const PET_WIDTHS: Record<StageVariant, number> = { today: 244, pet: 262, life: 288, review: 292 };
 
 const SLOTS: Array<{ top?: DimensionValue; bottom?: DimensionValue; left?: number; right?: number }> = [
   { top: "10%", left: 12 },
@@ -48,10 +48,17 @@ interface Props {
   onPressPet?: () => void;
   /** Individual twin descriptor from the backend (R2P3D-R1). */
   twin?: TwinDescriptor | null;
+  /** Number of observed source media regions used to build the twin (V2 identity gate). */
+  sourceMediaCount?: number;
+  /** §31 framing target (fraction of the full WebView viewport) for the twin. */
+  frameTarget?: number;
   /** Active motion clip for the 3D stage. */
   pose?: PoseName | null;
+  /** Imperative handle to the embedded 3D page (Life View zoom/reset). */
+  viewerRef?: React.Ref<import("../three/Pet3DViewer").Pet3DViewerHandle>;
+  /** Twin Review view preset (front/side/back) — drives the real camera. */
+  view?: "front" | "side" | "back";
 }
-
 export function PetLivingStage({
   pet,
   spec,
@@ -62,21 +69,24 @@ export function PetLivingStage({
   note,
   demo = false,
   interactive = false,
-  onPressPet,
   twin = null,
+  sourceMediaCount = 0,
   pose = null,
+  viewerRef,
+  view = "front",
+  frameTarget = 0,
+  onPressPet,
 }: Props) {
   const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
   const identity = pet ? resolvePet3DIdentity({ name: pet.name, species: pet.species, breed: pet.breed }) : null;
-  // V4 §5 (PLI_VISUAL_SYSTEM_V4.md) / blind-UI 3D contract: the real 3D twin
-  // renders on every owner stage (Today / Pet / Life) once the renderer
-  // reports ready; "boot" (WebView loading / WebGL unavailable) must never
-  // force a dark empty stage — that failure class is what v3.4-R1 §45 flags.
-  // A twin descriptor alone is not grounds to go dark.
-  const use3d = identity !== null && pet3d === "ready";
+  // R4.2: the stage is a warm living reality field (today/pet/life) or a
+  // neutral identity studio (review). The 3D page paints its own themed
+  // surface, so the host card must never flip to a dark viewer.
+  const use3d = identity !== null && pet3d !== "failed";
+  const reviewStudio = variant === "review";
+  const stageTheme = reviewStudio ? ("review" as const) : ("living" as const);
   const height = HEIGHTS[variant];
   const petWidth = PET_WIDTHS[variant];
-  const dark = use3d;
   // Namespace mapping for machine-readable ids: today→pli.today, pet→pli.pet,
   // life→pli.lifeview (Life View ids are the canonical "stage"/"twin" pair).
   const stageTestId =
@@ -93,10 +103,9 @@ export function PetLivingStage({
       : variant === "review"
         ? "pli.twinreview.twin"
         : `pli.${variant}.pet-twin`;
-
   const petLayer = use3d ? (
     <View style={{ width: petWidth, height: Math.round(petWidth * 1.12) }}>
-      <Pet3DViewer identity={identity} twin={twin} pose={pose} interactive={interactive} onStatus={setPet3d} />
+      <Pet3DViewer ref={viewerRef} identity={identity} twin={twin} pose={pose} interactive={interactive} frameTarget={frameTarget} view={view} stageTheme={stageTheme} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={setPet3d} />
     </View>
   ) : (
     <View pointerEvents={onPressPet ? "none" : undefined}>
@@ -104,15 +113,24 @@ export function PetLivingStage({
     </View>
   );
   return (
-    <View testID={stageTestId} accessible accessibilityLabel={`${pet?.name ?? "宠物"}的此刻舞台`} style={[styles.stage, { height }, dark && styles.stageDark]}>
-      {/* BACKGROUND: warm environment (charcoal when 3D, cream when fallback) */}
-      {!dark ? (
+    <View testID={stageTestId} accessible accessibilityLabel={`${pet?.name ?? "宠物"}的此刻舞台`} style={[styles.stage, { height }, reviewStudio ? styles.stageReview : styles.stageLiving]}>
+      {/* BACKGROUND: a quiet room field, not a viewer card. Living surfaces use
+          window-like daylight + a low floor haze; Review uses a neutral studio. */}
+      <View style={[styles.fieldBase, reviewStudio ? styles.fieldBaseReview : styles.fieldBaseLiving]} />
+      {reviewStudio ? (
         <>
-          <View style={styles.envTop} />
-          <View style={styles.envBase} />
+          <View style={styles.reviewHalo} />
+          <View style={styles.reviewFloor} />
         </>
-      ) : null}
-      {dark ? <View style={styles.glow} /> : <View style={styles.wash} />}
+      ) : (
+        <>
+          <View style={styles.windowBeamA} />
+          <View style={styles.windowBeamB} />
+          <View style={styles.sunHaze} />
+          <View style={styles.floorHaze} />
+          <View style={styles.roomHorizon} />
+        </>
+      )}
 
       {/* MIDGROUND: pet */}
       {onPressPet ? (
@@ -131,29 +149,29 @@ export function PetLivingStage({
         </View>
       )}
 
-      {/* FOREGROUND: state anchors around the pet */}
+      {/* FOREGROUND: state anchors around the pet (ambient bubbles, low contrast) */}
       {anchors.slice(0, SLOTS.length).map((a, i) => (
         <View key={a.id} style={[styles.slot, SLOTS[i]]}>
-          <PetStateAnchor anchor={a} dark={dark} />
+          <PetStateAnchor anchor={a} />
         </View>
       ))}
 
       {/* identity + now line + honest note */}
       <View style={styles.head}>
-        <Text style={[styles.name, dark && styles.nameDark]}>{pet?.name ?? "宠物"}</Text>
+        <Text style={styles.name}>{pet?.name ?? "宠物"}</Text>
         {demo ? (
-          <View style={[styles.demoChip, dark && styles.demoChipDark]}>
-            <Text style={[styles.demoChipText, dark && styles.demoChipTextDark]}>示例数据</Text>
+          <View style={styles.demoChip}>
+            <Text style={styles.demoChipText}>示例数据</Text>
           </View>
         ) : null}
       </View>
       <View style={styles.nowBlock}>
-        {headline ? <Text style={[styles.headline, dark && styles.headlineDark]}>{headline}</Text> : null}
-        {caption ? <Text style={[styles.caption, dark && styles.captionDark]}>{caption}</Text> : null}
+        {headline ? <Text style={styles.headline}>{headline}</Text> : null}
+        {caption ? <Text style={styles.caption}>{caption}</Text> : null}
         {note ? (
           <View style={styles.noteRow}>
-            <Ionicons name="cube-outline" size={12} color={dark ? COLORS.textOnStageTertiary : COLORS.textTertiary} />
-            <Text style={[styles.note, dark && styles.noteDark]}>{note}</Text>
+            <Ionicons name="cube-outline" size={12} color={COLORS.textTertiary} />
+            <Text style={styles.note}>{note}</Text>
           </View>
         ) : null}
       </View>
@@ -168,27 +186,87 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.hero,
     overflow: "hidden",
   },
-  stageDark: { backgroundColor: COLORS.stageWarmBase },
-  envTop: { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.stageGradientTop },
-  envBase: { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.stageGradientBase, top: "55%" },
-  wash: {
-    position: "absolute",
-    width: 300,
-    height: 180,
-    borderRadius: 150,
-    backgroundColor: "rgba(255,251,242,0.6)",
-    top: -60,
-    right: -70,
+  stageLiving: {
+    backgroundColor: COLORS.stageWarmBase,
+    borderColor: COLORS.stageWarmBorder,
   },
-  glow: {
+  stageReview: {
+    backgroundColor: COLORS.stageReviewBase,
+    borderColor: COLORS.stageReviewBorder,
+  },
+  fieldBase: { ...StyleSheet.absoluteFillObject },
+  fieldBaseLiving: { backgroundColor: COLORS.stageWarmBase },
+  fieldBaseReview: { backgroundColor: COLORS.stageReviewBase },
+  // Asymmetric daylight cues keep the stage spatial without drawing a giant
+  // geometric circle behind the pet.
+  windowBeamA: {
     position: "absolute",
-    width: 340,
+    width: 92,
     height: 300,
-    borderRadius: 170,
+    left: 24,
+    top: -54,
+    borderRadius: 46,
+    backgroundColor: COLORS.stageWarmBeam,
+    opacity: 0.52,
+    transform: [{ rotate: "7deg" }],
+  },
+  windowBeamB: {
+    position: "absolute",
+    width: 44,
+    height: 260,
+    left: 116,
+    top: -38,
+    borderRadius: 24,
+    backgroundColor: COLORS.stageWarmBeamSoft,
+    opacity: 0.42,
+    transform: [{ rotate: "7deg" }],
+  },
+  sunHaze: {
+    position: "absolute",
+    width: 132,
+    height: 132,
+    borderRadius: 66,
+    right: -34,
+    top: 34,
     backgroundColor: COLORS.stageWarmGlow,
-    top: 40,
+    opacity: 0.22,
+  },
+  floorHaze: {
+    position: "absolute",
+    height: 142,
+    left: -32,
+    right: -32,
+    bottom: -58,
+    borderRadius: 90,
+    backgroundColor: COLORS.stageWarmFloor,
+  },
+  roomHorizon: {
+    position: "absolute",
+    height: 1,
+    left: 42,
+    right: 42,
+    bottom: 94,
+    backgroundColor: COLORS.stageWarmHorizon,
+    opacity: 0.42,
+  },
+  reviewHalo: {
+    position: "absolute",
+    width: 188,
+    height: 188,
+    borderRadius: 94,
+    backgroundColor: COLORS.stageReviewGlow,
+    top: 76,
     alignSelf: "center",
-    opacity: 0.55,
+    opacity: 0.24,
+  },
+  reviewFloor: {
+    position: "absolute",
+    height: 126,
+    left: 18,
+    right: 18,
+    bottom: -48,
+    borderRadius: 82,
+    backgroundColor: COLORS.stageReviewFloor,
   },
   pressPet: { position: "absolute", left: 0, right: 0, bottom: 30, alignItems: "center" },
   petSlot: { position: "absolute", left: 0, right: 0, bottom: 30, alignItems: "center" },
@@ -203,17 +281,11 @@ const styles = StyleSheet.create({
     gap: SPACE.s2,
   },
   name: { flex: 1, fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary, marginRight: SPACE.s2 },
-  nameDark: { color: COLORS.textOnStage },
   demoChip: { backgroundColor: COLORS.surfaceOverlay, borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 3 },
-  demoChipDark: { backgroundColor: "rgba(250,246,239,0.14)" },
   demoChipText: { fontSize: TYPE.caption, color: COLORS.textSecondary, fontWeight: "600" },
-  demoChipTextDark: { color: COLORS.textOnStageSecondary },
   nowBlock: { position: "absolute", left: SPACE.s4, right: SPACE.s4, bottom: SPACE.s3 },
   headline: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary },
-  headlineDark: { color: COLORS.textOnStage },
   caption: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginTop: 2 },
-  captionDark: { color: COLORS.textOnStageSecondary },
   noteRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   note: { fontSize: TYPE.caption, color: COLORS.textTertiary },
-  noteDark: { color: COLORS.textOnStageTertiary },
 });

@@ -67,6 +67,19 @@ export default function PetProfilePage() {
     () => (id ? api.get(`/pets/${id}/friends`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [id],
   );
+  // R4: same canonical individual twin as Today / Life View. Declared with
+  // the other hooks BEFORE any early return: a data error below (404/denied)
+  // must not change hook count or React will hit the error boundary instead
+  // of the dedicated not-found state (STAGE-V-VISUAL-02 regression).
+  const twinModels = useAsync<{ models: Array<Record<string, unknown>> }>(
+    () => (id ? api.get(`/pets/${id}/visual-models`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [id],
+  );
+  const activeTwin = twinModels.data?.models.find((m) => m.status === "ACTIVE") ?? null;
+  const twinDescriptor = activeTwin
+    ? ((activeTwin.artifact_map as Record<string, unknown>)?.twin_descriptor as
+        import("@pli/pet-3d").TwinDescriptor | undefined) ?? null
+    : null;
 
   if (!id || pet.state === "denied") {
     return (
@@ -116,6 +129,8 @@ export default function PetProfilePage() {
       icon: ANCHOR_ICONS[et] ?? "paw",
       href: "/timeline",
     }));
+
+
   const identityLine = [
     p?.birth_date ? ageText(p.birth_date) : "",
     p?.breed || p?.species,
@@ -125,6 +140,7 @@ export default function PetProfilePage() {
     .join(" · ");
 
   return (
+
     <main className="v4-main">
       {p ? (
         <div data-testid="pli.pet.identity">
@@ -134,6 +150,10 @@ export default function PetProfilePage() {
             species={p.species}
             breed={p.breed}
             variant="pet"
+            stageRole="pet"
+            realityField="warm-living"
+            twin={twinDescriptor}
+            frameTarget={0.20}
             anchors={anchors.length ? anchors : undefined}
             headline={p.name}
             caption={identityLine || undefined}

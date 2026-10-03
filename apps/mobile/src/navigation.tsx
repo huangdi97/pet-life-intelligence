@@ -89,7 +89,20 @@ function Tabs() {
         headerShown: false,
         tabBarActiveTintColor: COLORS.brandPrimaryDeep,
         tabBarInactiveTintColor: COLORS.textTertiary,
-        tabBarStyle: { backgroundColor: COLORS.surface, borderTopColor: COLORS.dividerSubtle },
+        tabBarStyle: {
+          height: 68,
+          paddingTop: 7,
+          paddingBottom: 8,
+          backgroundColor: COLORS.surfaceOverlay,
+          borderTopWidth: 0,
+          shadowColor: COLORS.textPrimary,
+          shadowOpacity: 0.07,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: -3 },
+          elevation: 10,
+        },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
+        tabBarItemStyle: { borderRadius: 16, marginHorizontal: 2 },
         tabBarTestID: TAB_TEST_IDS[route.name as keyof TabParamList],
         tabBarIcon: ({ color, size, focused }) => {
           // Pet tab shows the current pet's avatar (rounded); fallback paw icon.

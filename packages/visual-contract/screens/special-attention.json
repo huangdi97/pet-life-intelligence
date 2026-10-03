@@ -1,19 +1,160 @@
 {
   "screen": "special-attention",
-  "version": 1,
-  "dimensions": { "petIdentity": 20, "composition": 20, "hierarchy": 15, "surface": 10, "contentPurity": 10, "interaction": 10, "accessibility": 5, "runtimeTruth": 10 },
-  "thresholds": { "pass": 85 },
-  "critical": ["attention.one", "attention.content.purity"],
+  "version": 2,
+  "dimensions": {
+    "individualPetTruth": 25,
+    "visualComposition": 20,
+    "informationHierarchy": 15,
+    "surfaceGovernance": 10,
+    "contentPurity": 10,
+    "interactionTruth": 10,
+    "accessibility": 5,
+    "pixelStyleTruth": 5
+  },
+  "thresholds": {
+    "pass": 85
+  },
+  "critical": [
+    "attention.one",
+    "attention.content.purity"
+  ],
   "checks": [
-    { "id": "attention.one", "dimension": "petIdentity", "points": 12, "description": "Attention 态：单 attention", "check": { "kind": "element", "idPrefix": "pli.attention.panel", "count": [1, 1] } },
-    { "id": "attention.identity", "dimension": "petIdentity", "points": 8, "description": "当前宠物身份存在", "check": { "kind": "element", "idPrefix": "pli.today.identity" } },
-    { "id": "attention.composition", "dimension": "composition", "points": 20, "description": "attention 面板为清晰主视觉", "check": { "kind": "element", "idPrefix": "pli.attention.panel", "count": [1, 1] } },
-    { "id": "attention.evidence", "dimension": "hierarchy", "points": 8, "description": "Attention 态：evidence", "check": { "kind": "element", "idPrefix": "pli.attention.evidence" } },
-    { "id": "attention.body", "dimension": "hierarchy", "points": 7, "description": "attention 说明文本存在", "check": { "kind": "element", "idPrefix": "pli.attention.panel" } },
-    { "id": "attention.surface", "dimension": "surface", "points": 10, "description": "大 Card ≤3", "check": { "kind": "surface", "max": 3, "minArea": 16000 } },
-    { "id": "attention.content.purity", "dimension": "contentPurity", "points": 10, "description": "Owner 文本无 raw internal terms", "check": { "kind": "text-free", "tokens": ["BW-", "OWNER_REPORTED", "STRESS_RECOVERY", "OPEN", "provider_", "model_id", "event_key", "PLI-"] } },
-    { "id": "attention.action", "dimension": "interaction", "points": 10, "description": "Attention 态：action 可点", "check": { "kind": "element", "idPrefix": "pli.attention.action" } },
-    { "id": "attention.a11y", "dimension": "accessibility", "points": 5, "description": "attention 面板可读", "check": { "kind": "element", "idPrefix": "pli.attention.panel" } },
-    { "id": "attention.truth", "dimension": "runtimeTruth", "points": 10, "description": "attention 来自真实 risk/hint runtime", "check": { "kind": "text-free", "tokens": ["占位", "TODO", "placeholder"] } }
+    {
+      "id": "attention.one",
+      "dimension": "individualPetTruth",
+      "points": 12,
+      "description": "Attention 态：单 attention",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.panel",
+        "count": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "id": "attention.identity",
+      "dimension": "individualPetTruth",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.identity"
+      }
+    },
+    {
+      "id": "attention.composition",
+      "dimension": "visualComposition",
+      "points": 20,
+      "description": "attention 面板为清晰主视觉",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.panel",
+        "count": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "id": "attention.evidence",
+      "dimension": "informationHierarchy",
+      "points": 8,
+      "description": "Attention 态：evidence",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.evidence"
+      }
+    },
+    {
+      "id": "attention.body",
+      "dimension": "informationHierarchy",
+      "points": 7,
+      "description": "attention 说明文本存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.panel"
+      }
+    },
+    {
+      "id": "attention.surface",
+      "dimension": "surfaceGovernance",
+      "points": 10,
+      "description": "大 Card ≤3",
+      "check": {
+        "kind": "surface",
+        "max": 3,
+        "minArea": 16000
+      }
+    },
+    {
+      "id": "attention.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      }
+    },
+    {
+      "id": "attention.action",
+      "dimension": "interactionTruth",
+      "points": 10,
+      "description": "Attention 态：action 可点",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.action"
+      }
+    },
+    {
+      "id": "attention.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "attention 面板可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.panel"
+      }
+    },
+    {
+      "id": "attention.truth",
+      "dimension": "individualPetTruth",
+      "points": 5.0,
+      "description": "attention 来自真实 risk/hint runtime (real data)",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder"
+        ]
+      }
+    },
+    {
+      "id": "attention.truth.style",
+      "dimension": "pixelStyleTruth",
+      "points": 5.0,
+      "description": "无占位/空板书风格（style truth）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      }
+    }
   ]
 }

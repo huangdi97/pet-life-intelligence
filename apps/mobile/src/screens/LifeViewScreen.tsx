@@ -8,7 +8,7 @@
  * 趋势 / 时间线 / 外观 (minimal but real). Provider/model/raw keys never
  * appear on the owner surface.
  */
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +16,7 @@ import { api, type LifeEvent } from "../api";
 import { usePets } from "../context";
 import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
 import { PetLivingStage } from "../components/life/PetLivingStage";
+import type { Pet3DViewerHandle } from "../components/three/Pet3DViewer";
 import { LivingModeSwitcher, type LivingMode } from "../components/life/LivingModeSwitcher";
 import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../components/timeline/LifeStream";
 import { resolvePetStage } from "../components/pet/PetStageRenderer";
@@ -37,6 +38,7 @@ export function LifeViewScreen() {
   const { twin } = usePetTwin(petId);
   const [today, setToday] = useState<{ events: LifeEvent[] } | null>(null);
   const [mode, setMode] = useState<LivingMode>("now");
+  const viewerRef = useRef<Pet3DViewerHandle>(null);
   const [pose, setPose] = useState<PoseName>("Idle");
   const [error, setError] = useState(false);
   const [detail, setDetail] = useState<AnchorDetail | null>(null);
@@ -125,6 +127,9 @@ export function LifeViewScreen() {
   return (
     <SafeAreaView style={styles.page} edges={["top"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.identityRow} testID="pli.lifeview.identity">
+          <Text style={styles.identityText}>{pet?.name ?? "宠物"} · 此刻</Text>
+        </View>
         <View style={styles.stageWrap}>
           <PetLivingStage
             pet={pet}
@@ -136,11 +141,14 @@ export function LifeViewScreen() {
             note={
               twin
                 ? `第 ${twin.version} 版 3D 形象 · 已通过你的确认 · 外观来自${twin.mediaProvenance === "OWNER_REPORTED" ? "你的照片" : "演示素材"}`
-                : `演示 3D 形象（开发环境）· 未来连接真实服务后，将用${pet?.name ?? "宠物"}的照片生成`
+                : "暂时使用简化形象，连接照片后会生成更像它的 3D 形象"
             }
             demo={DEMO_ENV}
             interactive
             twin={twin?.descriptor ?? null}
+            sourceMediaCount={twin?.observedRegions.length ?? 0}
+            frameTarget={0.30}
+            viewerRef={viewerRef}
             pose={pose}
           />
         </View>
@@ -157,6 +165,21 @@ export function LifeViewScreen() {
               <Text style={[styles.poseChipText, pose === p && styles.poseChipTextSel]}>{POSE_META[p].label}</Text>
             </Pressable>
           ))}
+        </View>
+
+        <View testID="pli.lifeview.control.zoom" style={styles.controlRow} accessibilityLabel="3D 视图控制">
+          <Pressable accessibilityRole="button" onPress={() => viewerRef.current?.zoomOut()} style={styles.controlBtn}>
+            <Ionicons name="remove" size={16} color={COLORS.textSecondary} />
+            <Text style={styles.controlBtnText}>缩小</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => viewerRef.current?.zoomIn()} style={styles.controlBtn}>
+            <Ionicons name="add" size={16} color={COLORS.textSecondary} />
+            <Text style={styles.controlBtnText}>放大</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => viewerRef.current?.resetView()} style={styles.controlBtn}>
+            <Ionicons name="refresh" size={16} color={COLORS.textSecondary} />
+            <Text style={styles.controlBtnText}>重置视图</Text>
+          </Pressable>
         </View>
 
 
@@ -203,7 +226,9 @@ export function LifeViewScreen() {
             <View style={styles.lookRow}>
               <Ionicons name="cube-outline" size={18} color={COLORS.textTertiary} />
               <Text style={styles.panelText}>
-                现在显示的是演示 3D 形象（开发环境），只来自演示数据。未来连接真实服务后，会用{pet?.name ?? "宠物"}的真实照片生成，并经过你确认后才会显示。外观不会替代真实照片与记录。
+                {twin
+                  ? `这是${pet?.name ?? "宠物"}的 3D 形象，已通过你的确认。外观不会替代真实照片与记录。`
+                  : "暂时使用简化形象。连接照片后，会生成更像它的 3D 形象，并经你确认后才会显示。"}
               </Text>
             </View>
           ) : null}
@@ -279,6 +304,20 @@ const styles = StyleSheet.create({
   poseChipSel: { backgroundColor: COLORS.brandPrimary, borderColor: COLORS.brandPrimary },
   poseChipText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
   poseChipTextSel: { color: COLORS.textInverse, fontWeight: "600" },
+  controlBtnText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
+  identityRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
+  identityText: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
+  controlRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginTop: SPACE.s3 },
+  controlBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceOverlay,
+    minHeight: 40,
+  },
   scrim: { flex: 1, backgroundColor: "rgba(16,13,11,0.45)", justifyContent: "flex-end" },
   sheet: {
     backgroundColor: COLORS.surfaceRaised,
