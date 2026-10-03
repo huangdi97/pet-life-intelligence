@@ -143,7 +143,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
               variant="life"
               interactive
               petId={petId}
-              frameTarget={0.23}
+              frameTarget={0.28}
               stageRole="review"
               realityField="review-studio"
               sourceMediaCount={twinSourceMediaCount}
