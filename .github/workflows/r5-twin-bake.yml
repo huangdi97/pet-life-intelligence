@@ -58,4 +58,9 @@ jobs:
             exit 0
           fi
           git commit -m "build(twin): bake native Corgi R5 product candidate"
+          # Other product/UI commits may land while this deterministic bake is
+          # running. Rebase the generated commit onto the current branch tip;
+          # never force-push and never overwrite concurrent work.
+          git fetch origin feat/r2p3d-r3-render-truth-ui-closure
+          git rebase origin/feat/r2p3d-r3-render-truth-ui-closure
           git push origin HEAD:feat/r2p3d-r3-render-truth-ui-closure
