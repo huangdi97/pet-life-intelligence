@@ -40,6 +40,7 @@ from unwrap import paint_atlas, unwrap
 
 ROOT = Path(__file__).resolve().parent
 SRC = Path("artifacts/r2p3d-r4/twin-sources")
+R5_SRC = Path("artifacts/r2p3d-r5/twin-sources")
 OUT = Path("packages/pet-3d/assets/twins")
 ATLAS_RES = 2048
 
@@ -65,15 +66,22 @@ def _vertex_colors(faces, face_mat, mat_colors, verts, vcount):
 def _landmarks_dog(verts: np.ndarray, colors: np.ndarray, palette: list[np.ndarray]) -> dict:
     lm = {}
     cents = material_region_centroids(verts, colors, palette)
-    # palette: [0]=brown [1]=eye_black [2]=eye_white [3]=white
-    eye_c = cents[1]
+    # Legacy source carried separate eye materials. The R5 native Corgi source
+    # is a single textured material, so fall back to geometry-derived face
+    # anchors rather than inventing material semantics.
+    eye_c = cents[1] if len(cents) > 1 else np.array([math.nan, math.nan, math.nan])
     if not math.isnan(eye_c[0]):
         lm["eye_center"] = [float(eye_c[0]), float(eye_c[1]), float(eye_c[2])]
-        sel = np.all(
-            np.abs(colors - palette[1]) < 0.12, axis=1
-        )  # eye_black-ish verts (subdivision spreads colors)
+        sel = np.all(np.abs(colors - palette[1]) < 0.12, axis=1)
         xs = np.abs(verts[sel, 0])
         lm["eye_dx"] = float(np.mean(xs)) if xs.size else 0.16
+    else:
+        h = float(verts[:, 1].max())
+        head = verts[verts[:, 1] > 0.62 * h]
+        if head.size:
+            head_w = float(head[:, 0].max() - head[:, 0].min())
+            lm["eye_center"] = [0.0, 0.76 * h, float(np.percentile(head[:, 2], 78))]
+            lm["eye_dx"] = max(0.055, 0.19 * head_w)
     muzzle = np.flatnonzero(verts[:, 1] > 0.62 * verts[:, 1].max())
     lm["muzzle_z"] = float(verts[muzzle, 2].max()) if muzzle.size else 1e9
     chest = np.flatnonzero((verts[:, 2] > 0) & (verts[:, 1] < 0.5 * verts[:, 1].max()))
@@ -121,14 +129,16 @@ def _head_band(verts: np.ndarray) -> dict[str, float]:
 
 CONFIG = {
     "dog": {
-        "src_obj": SRC / "doudou-jackrussell-dog/dog_jackrussell_release.obj",
-        "src_mtl": SRC / "doudou-jackrussell-dog/dog_jackrussell_release.mtl",
-        "subdiv": 2,
+        "src_obj": R5_SRC / "doudou-gobkit-corgi/Corgi.obj",
+        "src_mtl": R5_SRC / "doudou-gobkit-corgi/Corgi.mtl",
+        "subdiv": 3,
+        "native_breed_source": True,
+        "apply_corgi_morph": False,
         "rotate_y_deg": 0.0,
         "height": 1.35,
         "proc_height": 1.35,
         "pet_id": "doudou",
-        "twin_version": "r4-2.0.0",
+        "twin_version": "r5-1.0.0",
         "family": "corgi-like",
         "painter": make_dog_painter,
         "landmarks": _landmarks_dog,
@@ -180,7 +190,7 @@ def bake(identity: str, write_sums: bool = False) -> None:
     # the observed/inferred masks conform to the new silhouette. The cat
     # identity is NOT morphed (parity audit; mimi keeps its own bake).
     morph_meta: dict = {"applied": False}
-    if identity == "dog":
+    if identity == "dog" and cfg.get("apply_corgi_morph", True):
         v_in, before_m, after_m = corgi_morph(V, colors, MorphParams())
         after_m = measure_metrics(v_in)
         morph_meta = {
@@ -249,11 +259,13 @@ def bake(identity: str, write_sums: bool = False) -> None:
         "weightsFile": wjson.name,
         "joints": JOINT_NAMES,
         "sourceProvenance": {
-            "doudou": "opengameart.org/content/dog-low-poly-rigged (CC0)",
+            "doudou": "github.com/Ariescar/gobkit-free-assets animal/Corgi.glb (Gobkit, CC0 1.0)",
             "mimi": "opengameart.org/content/animated-animales-low-poly (Quaternius CC0)",
         }[cfg["pet_id"]],
         "normalize": m,
         "morphology": morph_meta,
+        "nativeBreedSource": bool(cfg.get("native_breed_source", False)),
+        "sourceGeometryClass": "native-corgi" if cfg.get("native_breed_source", False) else "template-morphed",
         "atlasObservedRatio": float(observed.mean()),
         "landmarks": {k: (list(v) if isinstance(v, tuple) else v) for k, v in landmarks.items()},
     }
