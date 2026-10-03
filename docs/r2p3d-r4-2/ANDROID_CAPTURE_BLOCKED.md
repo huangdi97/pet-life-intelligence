@@ -21,8 +21,13 @@ Hero / turntable 证据；相关 contact sheet 未生成（generator 对缺失 r
    注入）后应用可登录并显示真实数据（visual.json 含豆豆/咪咪 pet + living
    stage 卡片），但 WebView 渲染进程在模拟器会话内无法启动 11MB 页面
    （`pli_diag.json` 无 load-start/load-end 标记 → WebView 未开始加载）。
+   补充排查：`dumpsys webviewupdate` 查询 WebView 实现选项时 adb daemon 再次崩溃；
+   尝试 `-gpu angle_indirect`（此前未试）同样在安装阶段崩溃。累计 10+ 种配置，
+   全部在「安装重型 Hermes bundle / 应用启动 / adb 传输」阶段崩溃（qemu 进程消失
+   或 adb daemon 重启），确认是主机会话级环境不稳定。
 4. 备选 AVD `zhishen_rc` 系统镜像缺失（`FATAL Broken AVD system path`），不可用。
-
+5. 截图方法修正：`exec-out` 直出曾产生损坏 PNG（7/13），capture 脚本已改为
+   设备端 `screencap -p` + `adb pull`（二进制安全，含重试），供稳定环境复用。
 ## 已排除的怀疑（有证据）
 
 - pet-stage.html 页面本身：headless Chromium 中打开即成功 —— RUNTIME manifest、

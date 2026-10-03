@@ -17,16 +17,19 @@ $mimi = "f4755c3a-2c59-4fcf-a73e-508011d19679"
 $scratch = "$env:PI_SCRATCH_DIR"
 
 function Shot([string]$name, [string]$dir) {
-    & cmd.exe /c "`"$Adb`" -s $Serial exec-out screencap -p > `"$(Join-Path $dir "$name.png")`"" 2>&1 | Out-Null
+    # Binary-safe: screencap on-device then pull (adb exec-out through a pipe on
+    # Windows can corrupt PNGs when the emulator is under load).
+    for ($i = 0; $i -lt 3; $i++) {
+        & $Adb -s $Serial shell screencap -p /sdcard/pli_shot.png 2>&1 | Out-Null
+        & $Adb -s $Serial pull /sdcard/pli_shot.png (Join-Path $dir "$name.png") 2>&1 | Out-Null
+        $f = Join-Path $dir "$name.png"
+        if ((Test-Path $f) -and ((Get-Item $f).Length -gt 2000)) { return }
+        Start-Sleep -Seconds 2
+    }
 }
 function UiDump([string]$dir, [string]$file = "ui.xml") {
     & $Adb -s $Serial shell uiautomator dump /sdcard/pli_ui.xml 2>&1 | Out-Null
     & $Adb -s $Serial pull /sdcard/pli_ui.xml (Join-Path $dir $file) 2>&1 | Out-Null
-}
-function Manifest([string]$dir, [string]$file = "3d.json") {
-    $p = ((& $Adb -s $Serial shell cat /data/data/com.pli.mobile/files/pli_manifest.json 2>&1 | Out-String)).Trim()
-    if ($p.StartsWith("{")) { [System.IO.File]::WriteAllText((Join-Path $dir $file), $p, [System.Text.UTF8Encoding]::new($false)) }
-    else { [System.IO.File]::WriteAllText((Join-Path $dir $file), "{}", [System.Text.UTF8Encoding]::new($false)) }
 }
 function Manifest([string]$dir, [string]$file = "3d.json") {
     $p = ((& $Adb -s $Serial shell "su 0 cat /data/data/com.pli.mobile/files/pli_manifest.json" 2>&1 | Out-String)).Trim()
