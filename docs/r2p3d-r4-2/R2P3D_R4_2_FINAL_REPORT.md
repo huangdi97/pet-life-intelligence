@@ -1,21 +1,25 @@
 # R2P3D-R4.2 Final Report — Visual Reality Correction, Android Warm Living & Pet Identity Closure
 
-> 生成时间：2026-10-03（本地执行）。NO_VISION_MODEL_USED = TRUE（全程未调用任何视觉/多模态模型；机器检查仅使用 manifest / GLB 元数据 / bbox / 变换矩阵 / 权重统计 / DOM / computed styles / 像素统计 / SSIM 等允许手段）。
-
-## 结论（先看这里）
-
-```
-R4_2_PRODUCT_VISUAL_CANDIDATE = NOT_READY
-```
-
-原因（唯一阻断项）：**Android 运行时截图证据无法在本机会话产出**
-（`docs/r2p3d-r4-2/ANDROID_CAPTURE_BLOCKED.md`，模拟器反复崩溃 + WebView 无法
-启动 11MB 页面；`ANDROID_RUNTIME_CAPTURE = EXTERNAL_BLOCKED`）。按 Goal §39/§40，
-任一 required Contact Sheet 缺失即 NOT_READY，不得宣布 READY_FOR_HUMAN_REVIEW。
-
-其余全部机器可验项均已通过（见下）。**Human Visual Acceptance = PENDING** ——
-豆豆像不像 Corgi、咪咪是否正常、Android 是否从 Viewer 变成 Living Experience，
-最终由用户本人看图判断。
+ > 生成时间：2026-10-03（本地执行）。NO_VISION_MODEL_USED = TRUE（全程未调用任何视觉/多模态模型；机器检查仅使用 manifest / GLB 元数据 / bbox / 变换矩阵 / 权重统计 / DOM / computed styles / 像素统计 / SSIM 等允许手段）。
+ > 收口复核：2026-10-03（Goal 收口/验证模式）—— Android 捕获再试 3 次（含新增候选 `pdig_tablet_api36`），仍为环境级失败；本地闸门复验通过；Final Report 结论未变化（NOT_READY，唯一阻断 = Android runtime 截图证据缺失）。
+ 
+ ## 结论（先看这里）
+ 
+ ```
+ R4_2_PRODUCT_VISUAL_CANDIDATE = NOT_READY
+ ```
+ 
+ 原因（唯一阻断项）：**Android 运行时截图证据无法在本机会话产出**
+ （`docs/r2p3d-r4-2/ANDROID_CAPTURE_BLOCKED.md`；收口轮 3 次全新启动再试后
+ 仍为环境级失败：`pdig_tablet_api36` 启动即崩溃、`main` 窗口模式完整启动 +
+ 安装 APK + 应用 RESUMED 后消失、`main -no-window` 15 秒掉线；
+ `ANDROID_RUNTIME_CAPTURE = EXTERNAL_BLOCKED`）。按 Goal §39/§40，
+ 任一 required Contact Sheet 缺失即 NOT_READY，不得宣布 READY_FOR_HUMAN_REVIEW。
+ 
+ 其余全部机器可验项均已通过（见下）。**Human Visual Acceptance = PENDING** ——
+ 豆豆像不像 Corgi、咪咪是否正常、Android 是否从 Viewer 变成 Living Experience，
+ 最终由用户本人看图判断。未伪造任何 Android 证据；未把 fallback/占位图当作
+ Hero 证据。
 
 ---
 
@@ -33,19 +37,19 @@ R4_2_PRODUCT_VISUAL_CANDIDATE = NOT_READY
 | CAT_IDLE_GEOMETRY | PASS | Idle @ t=1.0 size=[0.3157,0.99,1.31]，max|disp|<0.03，无 spike / collapse / joint explosion |
 | CAT_VISUAL_HUMAN_REVIEW | PENDING | 需用户看图 |
 | WEB_HERO_CAPTURE | PASS | `artifacts/r2p3d-r4-2/web/{today,pet,lifeview,twinreview}/screenshot.png`，manifest：HIGH_FIDELITY_SKINNED / fallbackUsed=false / warm-living / review-studio |
-| ANDROID_HERO_CAPTURE | EXTERNAL_BLOCKED | 见 ANDROID_CAPTURE_BLOCKED.md；未伪造证据 |
-| DOUDOU_TURNTABLE_COMPLETE | PASS（web runtime camera presets，5 角度：front/front-left/side/rear/front-right，真实 yaw 0/0.35/π/2/π/−0.35） | `artifacts/r2p3d-r4-2/web/turntable/doudou/*.png+*.json` |
-| MIMI_TURNTABLE_COMPLETE | PASS（同上 5 角度；mimi front.json triangleCount=51648 = 修复后 GLB） | `web/turntable/mimi/*` |
-| CONTACT_SHEET_INTEGRITY | PASS（web sheets + manifest 有效；Android sheets 因证据缺失未生成而非占位） | `contact-sheets/manifest.json` sha256 与磁盘一致 |
-    | CI_BACKEND | PASS（本地 + 远程） | ruff 0；backend pytest 446 passed（本地）；远程 CI job `Backend` ✓ |
+ | DOUDOU_TURNTABLE_COMPLETE | PASS（web runtime camera presets，5 角度：front/front-left/side/rear/front-right，真实 yaw 0/0.35/π/2/π/−0.35） | `artifacts/r2p3d-r4-2/web/turntable/doudou/*.png+*.json` |
+ | MIMI_TURNTABLE_COMPLETE | PASS（同上 5 角度；mimi front.json triangleCount=51648 = 修复后 GLB） | `web/turntable/mimi/*` |
+ | ANDROID_HERO_CAPTURE | EXTERNAL_BLOCKED | 见 ANDROID_CAPTURE_BLOCKED.md（含收口轮 3 次全新启动再试记录）；未伪造证据 |
+ | CONTACT_SHEET_INTEGRITY | PASS（web sheets + manifest 有效；Android sheets 因证据缺失未生成而非占位） | `contact-sheets/manifest.json` sha256 与磁盘一致 |
+    | CI_BACKEND | PASS（本地复验 + 远程） | ruff check services packages tests scripts → 0 errors（收口复验 2026-10-03）；远程 CI job `Backend` ✓ |
     | CI_FRONTEND | PASS（本地 + 远程） | pet-3d build/typecheck、web/mobile/mini/admin typecheck、web build（PLIT_LOCAL_BUILD）、web vitest 33 passed、mobile export android/ios（本地）；远程 CI job `Frontend` ✓ |
-    | CI_BLIND | PASS（本地 + 远程） | `pytest tests/blind_ui --confcutdir tests/blind_ui -q` → 32 passed（本地）；远程 CI job `Blind Visual Contract` ✓ |
-    | CI_FUNCTIONAL_E2E | PASS（本地 + 远程） | Browser E2E functional（不含 visual）→ 42 passed（本地）；远程 CI `Playwright (functional specs)` ✓ |
-    | CI_ANDROID | PASS（本地 + 远程） | `assembleRelease` BUILD SUCCESSFUL（本地）；远程 CI `Android + Release Artifacts` ✓（APK + web standalone） |
-    | CI_VISUAL_CHAIN | EXPECTED_BASELINE_DRIFT（唯一红因 = OLD APPROVED BASELINE） | 远程 `Playwright (visual chain)` 仅 VISUAL-V2-01 / VISUAL-V3-01 失败：approved baseline vs current 像素 diff（today-390 63.3%、life-view-390 60.2%、pet-390 53.5% 等）；红因 = R4.2 twin 资产变更后的预期基线漂移；approved baseline 未更新 |
+    | CI_BLIND | PASS（收口复验 + 远程） | `pytest tests/blind_ui --confcutdir tests/blind_ui -q` → 32 passed（收口复验 2026-10-03，venv）；远程 CI job `Blind Visual Contract` ✓ |
+    | CI_FUNCTIONAL_E2E | PASS（本地 + 远程） | Browser E2E functional（不含 visual）→ 42 passed（本地）；远程 CI `Playwright (functional specs)` ✓（job 红仅来自 visual chain 步，见下行） |
+    | CI_ANDROID | PASS（远程） | 远程 CI `Android + Release Artifacts` ✓（APK + web standalone）；本地 `assembleRelease` 之前已 BUILD SUCCESSFUL |
+    | CI_VISUAL_CHAIN | EXPECTED_BASELINE_DRIFT（唯一红因 = OLD APPROVED BASELINE） | 远程 `Playwright (visual chain)` 仅 VISUAL-V2-01 / VISUAL-V3-01 失败：approved baseline vs current 像素 diff（today-390 63.3%、life-view-390 60.2%、pet-390 53.5% 等）；红因 = R4.2 twin 资产变更后的预期基线漂移；approved baseline 未更新；功能层步（functional specs）全部 success |
     | VISUAL_V2 / VISUAL_V3 | EXPECTED_BASELINE_DRIFT | 同上（远程 CI 日志证明；本地 DB 被证据流程污染无法 clean-seed，视觉链以远程为准） |
     | APPROVED_VISUAL_BASELINE | OLD（未 promote） | — |
-    | PR | OPEN（#2，未 merge） | `gh pr view 2`；HEAD=2cb2a85 |
+    | PR | OPEN（#2，未 merge） | `gh pr view 2`：state=OPEN / MERGEABLE；推送 `43f8484` 后最终 headRefOid 以 remote 为准 |
     | MERGED / RELEASED | FALSE / FALSE | — |
     | REAL_PET_IDENTITY_VALIDATION | NOT_YET_OBSERVED | 无真实豆豆照片验证 |
     | ANDROID_REAL_DEVICE_QA | NOT_YET_OBSERVED | — |
@@ -75,14 +79,20 @@ R4_2_PRODUCT_VISUAL_CANDIDATE = NOT_READY
 
 ## 4. 遗留与建议
 
-- 唯一阻断项：Android 运行时截图。建议在可用实机/稳定模拟器重跑
-  `scripts/r2p3d-r4-2/capture-android-r4-2.ps1` + `contact_sheets_r4_2.py`（不带
-  `--skip-android`），即可把 `R4_2_PRODUCT_VISUAL_CANDIDATE` 推进到
-  READY_FOR_HUMAN_REVIEW 的最后一个证据门槛。
-- 推送分支后请复核远程 GitHub Actions（Backend / Frontend / Blind / E2E functional /
-  Android workflow；Visual V2/V3 允许 EXPECTED_BASELINE_DRIFT）。
-- 用户看图后给出 Human PASS/PENDING 判断；未经批准不 merge、不 push main、不
-  promote baseline、不 release。
+ - 唯一阻断项：Android 运行时截图。收口轮已用现有 3 个 AVD（含新增候选
+   `pdig_tablet_api36`）再试 3 次全新启动，仍全部为环境级失败（详见
+   `docs/r2p3d-r4-2/ANDROID_CAPTURE_BLOCKED.md` 收口轮重试记录）。建议在可用
+   实机/稳定模拟器环境（先确认 `127.0.0.1:8800` API 正常 + `adb reverse`）重跑
+   `scripts/r2p3d-r4-2/capture-android-r4-2-live.ps1`（CDP 读取 RUNTIME
+   manifest）+ `scripts/r2p3d-r4-2/contact_sheets_r4_2.py --labels doudou=豆豆
+   mimi=咪咪`（不带 `--skip-android`），即可把 `R4_2_PRODUCT_VISUAL_CANDIDATE`
+   推进到 READY_FOR_HUMAN_REVIEW 的最后一个证据门槛。
+ - 收口轮已推送 `43f8484`（纳入 2 个未提交文件：capture-android-r4-2-live.ps1 +
+   ANDROID_CAPTURE_BLOCKED.md 引用更新）。请复核远程 GitHub Actions（Backend /
+   Frontend / Blind / Functional E2E / Android workflow；Visual V2/V3 允许
+   EXPECTED_BASELINE_DRIFT，唯一允许的红因 = OLD APPROVED BASELINE）。
+ - 用户看图后给出 Human PASS/PENDING 判断；未经批准不 merge、不 push main、不
+   promote baseline、不 release。
 
 ## 5. 边界合规声明
 
