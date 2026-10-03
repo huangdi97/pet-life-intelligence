@@ -21,7 +21,7 @@
 | attribution | not required (CC0); credit recorded here for provenance |
 | retrieved | 2026-10-02 |
 | local copy | `artifacts/r2p3d-r4/twin-sources/doudou-jackrussell-dog/` |
-| applied to | 豆豆 `doudou.glb` base geometry (subdivided + re-painted) |
+| historical use | R4/R4.1 豆豆 base geometry only; superseded for R5 product candidate by Entry 4. Kept for reproducibility/fallback provenance. |
 
 ## Entry 2 — 咪咪 (cat) base mesh
 
@@ -86,3 +86,27 @@ SHA-256 of the committed source copies is recorded in
 | applied to | 豆豆 `doudou.glb` (twin_version `r4-1.1.0`, still 45,376 tris) |
 | honesty | demo Corgi-like product asset; NOT a claim of the real pet's
   morphology (REAL_PET_IDENTITY_VALIDATION = NOT_YET_OBSERVED) |
+
+## Entry 4 — R5 native Corgi source (current 豆豆 product-candidate geometry)
+
+| field | value |
+| --- | --- |
+| asset | `animal/Corgi.glb` |
+| title | Gobkit Free 3D Assets — Corgi |
+| source | GitHub `Ariescar/gobkit-free-assets`, path `animal/Corgi.glb` |
+| upstream Git blob | `5e76b79fe002de2158309d56fdd02402de69f8af` |
+| provider | Gobkit / Alsomind Tech Co., Ltd. |
+| license | CC0 1.0 Universal |
+| commercial use | yes (unrestricted) |
+| redistribution | yes (unrestricted) |
+| attribution | not required; credit retained in provenance |
+| retrieved | 2026-10-03 |
+| local original | `artifacts/r2p3d-r5/twin-sources/doudou-gobkit-corgi/Corgi.glb` |
+| local derived source | `Corgi.obj` + `Corgi.mtl`; only upstream mesh-node world rotation is baked into OBJ before the normal PLI pipeline |
+| applied to | R5 豆豆 demo-twin geometry; then PLI subdivision / UV / template coat / 16-joint skin / 12 motion clips |
+| honesty | native Corgi demo source, still **not** a reconstruction or validation of the real pet 豆豆 |
+
+The upstream CC0 license text is committed beside the source as
+`LICENSE-CC0.txt`; `SOURCE.md` records the transformation and provenance.
+The original upstream GLB is committed byte-for-byte. No runtime network fetch
+is introduced.
