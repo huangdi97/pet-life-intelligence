@@ -44,12 +44,12 @@
     | CI_BACKEND | PASS（本地复验 + 远程） | ruff check services packages tests scripts → 0 errors（收口复验 2026-10-03）；远程 CI job `Backend` ✓ |
     | CI_FRONTEND | PASS（本地 + 远程） | pet-3d build/typecheck、web/mobile/mini/admin typecheck、web build（PLIT_LOCAL_BUILD）、web vitest 33 passed、mobile export android/ios（本地）；远程 CI job `Frontend` ✓ |
     | CI_BLIND | PASS（收口复验 + 远程） | `pytest tests/blind_ui --confcutdir tests/blind_ui -q` → 32 passed（收口复验 2026-10-03，venv）；远程 CI job `Blind Visual Contract` ✓ |
-    | CI_FUNCTIONAL_E2E | PASS（本地 + 远程） | Browser E2E functional（不含 visual）→ 42 passed（本地）；远程 CI `Playwright (functional specs)` 步 ✓（最终 head `808f677` run 37117011900 job 111186198275 该步 SUCCESS；`e1e26ab` run 37116000848 job 111183341295 同证 42 passed） |
-    | CI_ANDROID | PASS（远程） | 远程 CI `Android + Release Artifacts` ✓（APK + Web standalone artifact，最终 head `808f677` run 37117011861 两个 job 均 SUCCESS） |
-    | CI_VISUAL_CHAIN | EXPECTED_BASELINE_DRIFT（唯一红因 = OLD APPROVED BASELINE） | 最终 head `808f677` run 37117011900 job 111186198275：`Playwright (visual chain)` 仅 VISUAL-V2-01 / VISUAL-V3-01 失败；`066b664` run 37114153709 job 111178151124 同证 —— V2 diffs（1024_3d-life-view 61.890%、1024_3d-verification 61.890%、today-390 63.3%、life-view-390 60.2%、pet-390 53.5% 等）、VISUAL-V3 24 pages max diff 63.291%；红因 = R4.2 twin 资产变更 vs OLD APPROVED BASELINE；approved baseline 未更新；该 job 唯一失败步 = visual chain，其余全部 success |
+    | CI_FUNCTIONAL_E2E | PASS（本地 + 远程） | Browser E2E functional（不含 visual）→ 42 passed（本地）；远程 CI `Playwright (functional specs)` 步 ✓（最终 head `fd62549` run 37117968170 job 111188797021 该步 SUCCESS；`808f677` run 37117011900 job 111186198275 同证 42 passed） |
+    | CI_ANDROID | PASS（远程） | 远程 CI `Android + Release Artifacts` ✓（APK + Web standalone artifact，最终 head `fd62549` run 37117968231 两个 job 均 SUCCESS） |
+    | CI_VISUAL_CHAIN | EXPECTED_BASELINE_DRIFT（唯一红因 = OLD APPROVED BASELINE） | 最终 head `fd62549` run 37117968170 job 111188797021：`Playwright (visual chain)` 仅 VISUAL-V2-01 / VISUAL-V3-01 失败；`066b664` run 37114153709 job 111178151124 同证 —— V2 diffs（1024_3d-life-view 61.890%、1024_3d-verification 61.890%、today-390 63.3%、life-view-390 60.2%、pet-390 53.5% 等）、VISUAL-V3 24 pages max diff 63.291%；红因 = R4.2 twin 资产变更 vs OLD APPROVED BASELINE；approved baseline 未更新；该 job 唯一失败步 = visual chain，其余全部 success |
     | VISUAL_V2 / VISUAL_V3 | EXPECTED_BASELINE_DRIFT | 同上（远程 CI 日志证明；本地 DB 被证据流程污染无法 clean-seed，视觉链以远程为准） |
     | APPROVED_VISUAL_BASELINE | OLD（未 promote） | — |
-    | PR | OPEN（#2，未 merge） | `gh pr view 2`：state=OPEN / MERGEABLE / baseRefName=main / headRefOid=`808f677`（收口轮证据头；此后仅 docs 同步提交） |
+    | PR | OPEN（#2，未 merge） | `gh pr view 2`：state=OPEN / MERGEABLE / baseRefName=main / headRefOid=`fd62549`（收口轮最终推送） |
     | MERGED / RELEASED | FALSE / FALSE | — |
     | REAL_PET_IDENTITY_VALIDATION | NOT_YET_OBSERVED | 无真实豆豆照片验证 |
     | ANDROID_REAL_DEVICE_QA | NOT_YET_OBSERVED | — |
@@ -77,22 +77,21 @@
  | CI 因新增代码红 | PASS（本地全绿 + 远程功能层收口；最终 run 111175429455 中 functional specs 步 SUCCESS、唯一失败步 = visual chain） |
  | Runtime fallbackUsed=true | PASS（web 全部 false；Android 捕获未能获得 runtime，见 blocker 文档） |
  
- ## 3b. 远程 CI 复核（收口轮，证据头 `808f677`）
+ ## 3b. 远程 CI 复核（收口轮，headRefOid=`fd62549`）
  
- 最终 `gh pr checks 2`（run 37117011861 / 37117011900，head `808f677`）：
+ 最终 `gh pr checks 2`（run 37117968170 / 37117968231，head `fd62549`）：
  Backend ✓ / Frontend ✓ / Blind Visual Contract ✓ / Android APK ✓ /
  Web standalone artifact ✓；
  - `Browser E2E (Playwright)` job：唯一失败步 = `Playwright (visual chain)`
    （VISUAL-V2-01 / VISUAL-V3-01，approved baseline 像素 diff ——
    EXPECTED_BASELINE_DRIFT，红因 = R4.2 twin 资产变更 vs OLD APPROVED
    BASELINE，approved baseline 未更新）；`Playwright (functional specs)` 步
-   SUCCESS（42 passed）。详情：job 111186198275；`066b664`/`e1e26ab` run 同证。
+   SUCCESS（42 passed）。详情：job 111188797021；`808f677`/`066b664` run 同证。
  - 说明：E2E / Web standalone job 曾在 runner 侧 `pnpm install` 缓存态下于
    `apps/web next build` 阶段偶发 `Suspense`/`@types/react@19.0.6` 类型解析
    漂移（相同 lockfile `4c26537e…`、相同提交在 Frontend job 与 rerun 均构建
    成功），属 runner/pnpm 缓存非确定性，非本分支代码问题；最终 functional
    层收口已确认。未修改任何依赖/lockfile/测试来规避。
-
 ## 4. 遗留与建议
 
  - 唯一阻断项：Android 运行时截图。收口轮已用现有 3 个 AVD（含新增候选
