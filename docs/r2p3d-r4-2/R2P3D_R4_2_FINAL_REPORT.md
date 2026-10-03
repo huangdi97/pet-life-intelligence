@@ -44,12 +44,12 @@
     | CI_BACKEND | PASS（本地复验 + 远程） | ruff check services packages tests scripts → 0 errors（收口复验 2026-10-03）；远程 CI job `Backend` ✓ |
     | CI_FRONTEND | PASS（本地 + 远程） | pet-3d build/typecheck、web/mobile/mini/admin typecheck、web build（PLIT_LOCAL_BUILD）、web vitest 33 passed、mobile export android/ios（本地）；远程 CI job `Frontend` ✓ |
     | CI_BLIND | PASS（收口复验 + 远程） | `pytest tests/blind_ui --confcutdir tests/blind_ui -q` → 32 passed（收口复验 2026-10-03，venv）；远程 CI job `Blind Visual Contract` ✓ |
-    | CI_FUNCTIONAL_E2E | PASS（本地 + 远程） | Browser E2E functional（不含 visual）→ 42 passed（本地）；远程 CI `Playwright (functional specs)` 步 ✓（最终 run 111175429455 该步 SUCCESS） |
-    | CI_ANDROID | PASS（远程） | 远程 CI `Android + Release Artifacts` ✓（APK + Web standalone artifact，run 37112419389 两个 job 均 SUCCESS）；本地 `assembleRelease` 之前已 BUILD SUCCESSFUL |
-    | CI_VISUAL_CHAIN | EXPECTED_BASELINE_DRIFT（唯一红因 = OLD APPROVED BASELINE） | 远程 `Playwright (visual chain)` 仅 VISUAL-V2-01 / VISUAL-V3-01 失败（run 37112419398 job 111175429455）：VISUAL-V2 approved vs current 像素 diff（today-390 63.3%、life-view-390 60.2%、pet-390 53.5% 等）、VISUAL-V3 assistant-1440 9.0% 等；红因 = R4.2 twin 资产变更后的预期基线漂移；approved baseline 未更新；该 job 唯一失败步 = visual chain，其余全部 success |
+    | CI_FUNCTIONAL_E2E | PASS（本地 + 远程） | Browser E2E functional（不含 visual）→ 42 passed（本地）；远程 CI `Playwright (functional specs)` 步 ✓（最终 commit `066b664` run 37114153709 job 111178151124 该步 SUCCESS） |
+    | CI_ANDROID | PASS（远程） | 远程 CI `Android + Release Artifacts` ✓（APK + Web standalone artifact，最终 commit run 37114153701 两个 job 均 SUCCESS）；本地 `assembleRelease` 之前已 BUILD SUCCESSFUL |
+    | CI_VISUAL_CHAIN | EXPECTED_BASELINE_DRIFT（唯一红因 = OLD APPROVED BASELINE） | 最终 commit `066b664` run 37114153709 job 111178151124：`Playwright (visual chain)` 仅 VISUAL-V2-01 / VISUAL-V3-01 失败 —— V2 diffs（1024_3d-life-view 61.890%、1024_3d-verification 61.890%、today-390 63.3%、life-view-390 60.2%、pet-390 53.5% 等）、VISUAL-V3 24 pages max diff 63.291%；红因 = R4.2 twin 资产变更 vs OLD APPROVED BASELINE；approved baseline 未更新；该 job 唯一失败步 = visual chain，其余全部 success |
     | VISUAL_V2 / VISUAL_V3 | EXPECTED_BASELINE_DRIFT | 同上（远程 CI 日志证明；本地 DB 被证据流程污染无法 clean-seed，视觉链以远程为准） |
     | APPROVED_VISUAL_BASELINE | OLD（未 promote） | — |
-    | PR | OPEN（#2，未 merge） | `gh pr view 2`：state=OPEN / MERGEABLE / baseRefName=main / headRefOid=`a1b9e59`（推送后） |
+    | PR | OPEN（#2，未 merge） | `gh pr view 2`：state=OPEN / MERGEABLE / baseRefName=main / headRefOid=`066b664`（收口轮最终推送） |
     | MERGED / RELEASED | FALSE / FALSE | — |
     | REAL_PET_IDENTITY_VALIDATION | NOT_YET_OBSERVED | 无真实豆豆照片验证 |
     | ANDROID_REAL_DEVICE_QA | NOT_YET_OBSERVED | — |
@@ -77,18 +77,18 @@
  | CI 因新增代码红 | PASS（本地全绿 + 远程功能层收口；最终 run 111175429455 中 functional specs 步 SUCCESS、唯一失败步 = visual chain） |
  | Runtime fallbackUsed=true | PASS（web 全部 false；Android 捕获未能获得 runtime，见 blocker 文档） |
  
- ## 3b. 远程 CI 复核（收口轮，headRefOid=`a1b9e59`）
+ ## 3b. 远程 CI 复核（收口轮，headRefOid=`066b664`）
  
- 最终 `gh pr checks 2`（run 37112419389 / 37112419398）：
- 
- - Backend ✓ / Frontend ✓ / Blind Visual Contract ✓ / Android APK ✓ /
-   Web standalone artifact ✓；
+ 最终 `gh pr checks 2`（run 37114153701 / 37114153709，commit `066b664`）：
+ Backend ✓ / Frontend ✓ / Blind Visual Contract ✓ / Android APK ✓ /
+ Web standalone artifact ✓；
  - `Browser E2E (Playwright)` job：唯一失败步 = `Playwright (visual chain)`
    （VISUAL-V2-01 / VISUAL-V3-01，approved baseline 像素 diff ——
    EXPECTED_BASELINE_DRIFT，红因 = R4.2 twin 资产变更 vs OLD APPROVED
    BASELINE，approved baseline 未更新）；`Playwright (functional specs)` 步
-   SUCCESS（42 passed 同类）。详情：job 111175429455。
- - 说明：前两次 E2E job 尝试曾在 runner 侧 `pnpm install` 缓存态下于
+   SUCCESS（42 passed）。详情：job 111178151124（log 中 functional specs
+   `42 passed (1.8m)`；visual chain 仅 V2-01/V3-01 失败）。
+ - 说明：E2E job 曾在 runner 侧 `pnpm install` 缓存态下于
    `apps/web next build` 阶段偶发 `Suspense`/`@types/react@19.0.6` 类型解析
    漂移（相同 lockfile `4c26537e…`、相同提交在 Frontend job 与 Web standalone
    job 均构建成功），属 runner/pnpm 缓存非确定性，非本分支代码问题；最终
@@ -104,8 +104,9 @@
    manifest）+ `scripts/r2p3d-r4-2/contact_sheets_r4_2.py --labels doudou=豆豆
    mimi=咪咪`（不带 `--skip-android`），即可把 `R4_2_PRODUCT_VISUAL_CANDIDATE`
    推进到 READY_FOR_HUMAN_REVIEW 的最后一个证据门槛。
- - 收口轮已推送 `43f8484`（纳入 2 个未提交文件：capture-android-r4-2-live.ps1 +
-   ANDROID_CAPTURE_BLOCKED.md 引用更新）。请复核远程 GitHub Actions（Backend /
+ - 收口轮已推送 `43f8484` → `066b664`（纳入 2 个未提交文件：
+   capture-android-r4-2-live.ps1 + ANDROID_CAPTURE_BLOCKED.md 引用更新；
+   及收口轮文档与远程 CI 复核记录）。请复核远程 GitHub Actions（Backend /
    Frontend / Blind / Functional E2E / Android workflow；Visual V2/V3 允许
    EXPECTED_BASELINE_DRIFT，唯一允许的红因 = OLD APPROVED BASELINE）。
  - 用户看图后给出 Human PASS/PENDING 判断；未经批准不 merge、不 push main、不
