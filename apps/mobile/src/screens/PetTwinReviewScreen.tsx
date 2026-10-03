@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: COLORS.surfaceRaised,
     borderRadius: 12,
   },
   cameraBtnText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
