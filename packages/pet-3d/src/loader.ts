@@ -100,6 +100,25 @@ export async function loadTwinGLB(identity: Pet3DIdentity): Promise<LoadedTwin |
     const mesh = o as THREE.Mesh;
     if (mesh.isMesh) {
       const geo = mesh.geometry;
+
+      // R5 product finish: GLTF base-color textures are authored as the final
+      // coat color. Some source materials also carry a dark baseColorFactor;
+      // multiplying the two made the finished twin read muddy/near-black even
+      // under the warm stage lights. Normalize textured PBR materials to a
+      // neutral multiplier and a soft fur-like response. This is presentation
+      // only: geometry, UV, skinning and provenance remain unchanged.
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const rawMaterial of materials) {
+        const material = rawMaterial as THREE.MeshStandardMaterial;
+        if (!material?.isMeshStandardMaterial) continue;
+        if (material.map) material.color.set(0xffffff);
+        material.metalness = 0;
+        material.roughness = Math.max(material.roughness ?? 0.72, 0.72);
+        material.envMapIntensity = 0.55;
+        material.emissive.set(identity === "doudou" ? 0x2a170b : 0x1d1814);
+        material.emissiveIntensity = identity === "doudou" ? 0.10 : 0.06;
+        material.needsUpdate = true;
+      }
       if ((mesh as THREE.SkinnedMesh).isSkinnedMesh === true || (mesh as THREE.SkinnedMesh).skeleton != null) {
         skinned += 1;
       }
