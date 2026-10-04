@@ -56,7 +56,8 @@ export default function Pets() {
   ).length;
   const lastBehavior = lastOf("behavior.");
   const lastGoal = lastOf("training.goal_created");
-  const lastMedication = lastOf("medication.administered");
+  const lastWelfare = lastOf("welfare.");
+  const lastSocial = lastOf("social.");
 
   const domains: Array<{ label: string; hint: string; url: string }> = [
     {
@@ -75,9 +76,14 @@ export default function Pets() {
       url: "/pages/training/index",
     },
     {
-      label: "用药",
-      hint: lastMedication ? "最近有给药记录" : "还没有用药记录",
-      url: "/pages/medication/index",
+      label: "福利",
+      hint: lastWelfare ? `最近一次：${eventTypeLabel(lastWelfare.event_type)}` : "还没有福利观察",
+      url: "/pages/welfare/index",
+    },
+    {
+      label: "社交",
+      hint: lastSocial ? `最近一次：${eventTypeLabel(lastSocial.event_type)}` : "还没有互动记录",
+      url: "/pages/social/index",
     },
   ];
 
@@ -142,7 +148,7 @@ export default function Pets() {
                   <Text className="life-row-type">看看它</Text>
                   <Text className="life-row-time">›</Text>
                 </View>
-                <View className="life-row-detail">当前以照片与记录呈现；3D 形象尚未创建。</View>
+                <View className="life-row-detail">此刻、趋势与生命记忆在这里汇合；支持的客户端会呈现可交互 3D 形象。</View>
               </View>
             </View>
           </View>
@@ -161,6 +167,20 @@ export default function Pets() {
                 </View>
               </View>
             ))}
+          </View>
+
+          <View className="open-section">
+            <View className="section-title">陪伴与在家</View>
+            <View className="life-row" onClick={() => Taro.navigateTo({ url: "/pages/monitoring/index" })}>
+              <View className="life-dot" />
+              <View className="life-row-body">
+                <View className="life-row-head">
+                  <Text className="life-row-type">在家</Text>
+                  <Text className="life-row-time">›</Text>
+                </View>
+                <View className="life-row-detail">查看真实设备连接与最近一次同步状态；没有设备时不会模拟在线。</View>
+              </View>
+            </View>
             <View className="life-row" onClick={() => Taro.navigateTo({ url: "/pages/companion/index" })}>
               <View className="life-dot" />
               <View className="life-row-body">
@@ -168,7 +188,16 @@ export default function Pets() {
                   <Text className="life-row-type">陪伴</Text>
                   <Text className="life-row-time">›</Text>
                 </View>
-                <View className="life-row-detail">连接支持的设备后，可以在不打扰它的前提下观察和互动。</View>
+                <View className="life-row-detail">连接支持的设备后，在不打扰它的前提下观察、理解并适度互动。</View>
+              </View>
+            </View>
+            <View className="life-row" onClick={() => Taro.navigateTo({ url: "/pages/medication/index" })}>
+              <View className="life-row-body">
+                <View className="life-row-head">
+                  <Text className="life-row-type">用药</Text>
+                  <Text className="life-row-time">›</Text>
+                </View>
+                <View className="life-row-detail">用药计划与给药记录放在健康照护语境中管理。</View>
               </View>
             </View>
           </View>
