@@ -61,6 +61,11 @@ export default function Pets() {
 
   const domains: Array<{ label: string; hint: string; url: string }> = [
     {
+      label: "生活",
+      hint: "此刻、趋势与生命记忆都在这里",
+      url: "/pages/pets/life-view/index",
+    },
+    {
       label: "健康",
       hint: healthCount7d ? `最近 7 天 · ${healthCount7d} 条记录` : "还没有健康记录",
       url: "/pages/health/index",
@@ -140,20 +145,6 @@ export default function Pets() {
           <PetHero pet={current} headline="它的生活，从这里看见" identity={identityLine(current)} />
 
           <View className="open-section">
-            <View className="section-title">生命视图</View>
-            <View className="life-row" onClick={() => Taro.navigateTo({ url: "/pages/pets/life-view/index" })}>
-              <View className="life-dot" />
-              <View className="life-row-body">
-                <View className="life-row-head">
-                  <Text className="life-row-type">看看它</Text>
-                  <Text className="life-row-time">›</Text>
-                </View>
-                <View className="life-row-detail">此刻、趋势与生命记忆在这里汇合；支持的客户端会呈现可交互 3D 形象。</View>
-              </View>
-            </View>
-          </View>
-
-          <View className="open-section">
             <View className="section-title">生活</View>
             {domains.map((d) => (
               <View className="life-row" key={d.label} onClick={() => Taro.navigateTo({ url: d.url })}>
@@ -189,15 +180,6 @@ export default function Pets() {
                   <Text className="life-row-time">›</Text>
                 </View>
                 <View className="life-row-detail">连接支持的设备后，在不打扰它的前提下观察、理解并适度互动。</View>
-              </View>
-            </View>
-            <View className="life-row" onClick={() => Taro.navigateTo({ url: "/pages/medication/index" })}>
-              <View className="life-row-body">
-                <View className="life-row-head">
-                  <Text className="life-row-type">用药</Text>
-                  <Text className="life-row-time">›</Text>
-                </View>
-                <View className="life-row-detail">用药计划与给药记录放在健康照护语境中管理。</View>
               </View>
             </View>
           </View>
