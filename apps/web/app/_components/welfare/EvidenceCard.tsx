@@ -16,8 +16,8 @@ interface EvidenceCardProps {
 /** OWN-011 证据（带来源的可观察记录）+ 记录观察控件。 */
 export function EvidenceCard({ evidence, kind, setKind, busy, onRecord }: EvidenceCardProps) {
   return (
-    <div className="card">
-      <h2>{t("welfare.evidence")}</h2>
+    <section className="v4-sec">
+      <h2 className="v4-sec-title">观察依据</h2>
       <State
         state={evidence.state}
         error={evidence.error ? mapErrorMessage(evidence.error) : null}
@@ -40,17 +40,20 @@ export function EvidenceCard({ evidence, kind, setKind, busy, onRecord }: Eviden
           </p>
         )}
       </State>
-      <div className="row" style={{ marginTop: 10, gap: 8 }}>
-        <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="观察类型" style={{ maxWidth: 220 }}>
-          <option value="STRESS_RECOVERY">压力恢复</option>
-          <option value="ENVIRONMENT_LOAD">环境负荷</option>
-          <option value="CHOICE">选择/控制感</option>
-          <option value="QOL_QUESTIONNAIRE">生活质量问卷</option>
-        </select>
-        <button className="btn primary" disabled={busy} onClick={onRecord}>
-          {t("welfare.record")}
-        </button>
+      <div className="v5-inline-record" aria-label="记录新的生活观察">
+        <p className="v4-note">需要补充新情况时再记录；已有事实与趋势始终优先显示。</p>
+        <div className="row" style={{ marginTop: 8, gap: 8 }}>
+          <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="观察类型" style={{ maxWidth: 220 }}>
+            <option value="STRESS_RECOVERY">压力恢复</option>
+            <option value="ENVIRONMENT_LOAD">环境负荷</option>
+            <option value="CHOICE">选择与自主</option>
+            <option value="QOL_QUESTIONNAIRE">生活质量问卷</option>
+          </select>
+          <button className="btn primary" disabled={busy} onClick={onRecord}>
+            {busy ? "记录中…" : "记录观察"}
+          </button>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
