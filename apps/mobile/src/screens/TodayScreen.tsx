@@ -52,6 +52,8 @@ export function TodayScreen() {
     if (!petId) return;
     let alive = true;
     setLoading(true);
+    setHint(null);
+    setHealth([]);
     Promise.allSettled([
       api.get<TodayResp>(`/pets/${petId}/today`),
       api.get<Task[]>(`/pets/${petId}/tasks`),
@@ -85,12 +87,19 @@ export function TodayScreen() {
         footer: "由风险规则引擎判定 · 查看健康页了解详情",
       };
     }
-    const abnormal = hint?.hints.find((x) => !x.includes("无明显异常"));
+    if (hint === null) {
+      return {
+        kind: "unknown" as const,
+        body: "今天还没有足够信息判断是否有需要关注的变化。",
+        footer: "记录更多生活片段后再进行与自身基线的比较",
+      };
+    }
+    const abnormal = hint.hints.find((x) => !x.includes("无明显异常"));
     if (abnormal) {
       return {
         kind: "attention" as const,
         body: abnormal,
-        footer: hint?.rule ? "确定性对比（今日计数 vs 基线）" : undefined,
+        footer: hint.rule ? "确定性对比（今日计数 vs 基线）" : undefined,
       };
     }
     return { kind: "calm" as const, body: "目前没有需要特别关注的变化。" };
@@ -117,11 +126,15 @@ export function TodayScreen() {
   }, [counts, todayEvents]);
 
   const calm = attention.kind === "calm";
-  const headline = !pet ? undefined : attention.kind === "danger"
-    ? "今天需要注意一下"
-    : todayEvents.length === 0
-      ? "今天还没有新的记录"
-      : !calm ? "今天有值得留意的变化" : `今天记录了 ${todayEvents.length} 件生活片段`;
+  const headline = !pet
+    ? undefined
+    : attention.kind === "danger"
+      ? "今天需要注意一下"
+      : todayEvents.length === 0
+        ? "今天还没有新的记录"
+        : attention.kind === "attention"
+          ? "今天有值得留意的变化"
+          : `今天记录了 ${todayEvents.length} 件生活片段`;
 
   const memoryRows = useMemo(() => todayEvents.slice(0, 5).map(eventRowFromEvent), [todayEvents]);
   const memoryDays: LifeStreamDay[] = memoryRows.length
@@ -251,8 +264,11 @@ const styles = StyleSheet.create({
   content: { paddingBottom: SPACE.s8 },
   chipRow: { flexDirection: "row", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s2 },
   chip: {
+    minHeight: 44,
     paddingHorizontal: SPACE.s4,
     paddingVertical: 6,
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 999,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
