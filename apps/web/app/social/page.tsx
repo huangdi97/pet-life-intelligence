@@ -78,8 +78,8 @@ export default function SocialPage() {
   return (
     <main className="v4-main v5-domain-page">
       <div className="v4-topline v5-page-lede" data-testid="pli.social.identity">
-        <h1>{t("social.title")}</h1>
-        <p className="sub">{t("social.sub")}</p>
+        <h1>社交与伙伴</h1>
+        <p className="sub">它和谁熟悉、最近发生了什么互动，以及有哪些需要留意的相处情况。</p>
       </div>
       {msg && <div className="alert info">{msg}</div>}
 
