@@ -212,3 +212,10 @@ The canonical target remains:
 
 `R5_PRODUCT_DESIGN_IMPLEMENTATION = CANDIDATE`  
 `HUMAN_VISUAL_ACCEPTANCE = PENDING`
+
+
+## 12. R5.5 final implementation master
+
+All owner surfaces, page completion contracts, cross-client parity, Twin review rules, evidence requirements and human-acceptance boundaries are consolidated in `docs/product/R5_5_FINAL_PRODUCT_UI_IMPLEMENTATION_MASTER.md`.
+
+R5 remains the visual language; R5.5 is the implementation-facing closure. Any implementation claiming final design completion must satisfy both documents and the canonical v3.4-R1 master.
