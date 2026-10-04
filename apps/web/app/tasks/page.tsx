@@ -5,6 +5,28 @@ import { api, type Task } from "@pli/api-client";
 import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State } from "../../components/ui";
 
+const TASK_TYPE_LABELS: Record<string, string> = {
+  FEED: "喂食",
+  WALK: "散步",
+  MEDICATION: "用药",
+  GROOMING: "清洁护理",
+  VET_VISIT: "就诊",
+  OTHER: "其他",
+};
+
+function taskStatusLabel(status: string): string {
+  if (status === "OPEN") return "待完成";
+  if (status === "COMPLETED") return "已完成";
+  if (status === "CANCELLED") return "已取消";
+  return "进行中";
+}
+
+function repeatLabel(rule: string): string {
+  if (rule === "DAILY") return "每天";
+  if (rule === "WEEKLY") return "每周";
+  return "不重复";
+}
+
 /** Surface 6: Tasks (PLI-026/027/028) — create, complete, conflict warnings. */
 export default function TasksPage() {
   const { petId } = useCurrentPet();
@@ -72,8 +94,8 @@ export default function TasksPage() {
           <label className="field">
             类型
             <select value={type} onChange={(e) => setType(e.target.value)}>
-              {["FEED", "WALK", "MEDICATION", "GROOMING", "VET_VISIT", "OTHER"].map((t) => (
-                <option key={t}>{t}</option>
+              {Object.entries(TASK_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
               ))}
             </select>
           </label>
@@ -104,13 +126,13 @@ export default function TasksPage() {
             <li key={t.id}>
               <div className="tl-head">
                 <span className="tl-type">{t.title}</span>
-                <span className={`badge status-${t.status}`}>{t.status}</span>
-                <span className="badge">{t.task_type}</span>
-                {t.repeat_rule !== "NONE" && <span className="badge">{t.repeat_rule}</span>}
+                <span className={`badge status-${t.status}`}>{taskStatusLabel(t.status)}</span>
+                <span className="badge">{TASK_TYPE_LABELS[t.task_type] ?? "其他"}</span>
+                {t.repeat_rule !== "NONE" && <span className="badge">{repeatLabel(t.repeat_rule)}</span>}
                 {t.conflict_count > 0 && (
                   <span className="badge EMERGENCY">{t.conflict_count} 次重复尝试</span>
                 )}
-                <span className="tl-time">{t.due_at ? `due ${fmtTime(t.due_at)}` : ""}</span>
+                <span className="tl-time">{t.due_at ? `截至 ${fmtTime(t.due_at)}` : ""}</span>
               </div>
               {t.status === "OPEN" && (
                 <div className="row" style={{ marginTop: 8 }}>
@@ -121,7 +143,7 @@ export default function TasksPage() {
               )}
               {t.status === "COMPLETED" && (
                 <div className="muted">
-                  由 {t.completed_by_user_id} 完成于 {fmtTime(t.completed_at)}
+                  由照护成员完成 · {fmtTime(t.completed_at)}
                 </div>
               )}
             </li>

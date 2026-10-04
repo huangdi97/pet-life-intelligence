@@ -5,6 +5,21 @@ import { api, type MedicationPlan } from "@pli/api-client";
 import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State } from "../../components/ui";
 import { CareTask, EmptyState } from "@pli/ui-kit";
+function sourceLabel(source: string): string {
+  if (source === "PROFESSIONAL_CONFIRMED") return "兽医确认";
+  if (source === "OWNER_REPORTED") return "主人记录";
+  if (source === "LAB_CONFIRMED") return "检验确认";
+  return "来源已记录";
+}
+
+function doseStatusLabel(status: string): string {
+  if (status === "GIVEN") return "已给药";
+  if (status === "MISSED") return "已遗漏";
+  if (status === "PENDING") return "待给药";
+  if (status === "CANCELLED") return "已取消";
+  return "计划中";
+}
+
 /** Surface 11: Medication (PLI-059/060) — plan, administrations, missed
  *  reminders, duplicate protection. v0.1 never recommends doses. */
 export default function MedicationPage() {
@@ -141,8 +156,8 @@ export default function MedicationPage() {
               <div className="tl-head">
                 <span className="tl-type">{p.medicine_name}</span>
                 <span className="badge">{p.dose_text}</span>
-                <span className="badge">{p.frequency_text || `每日 ${p.doses.length ? "" : ""}`}</span>
-                <span className="badge">{p.source_type}</span>
+                <span className="badge">{p.frequency_text || "按计划给药"}</span>
+                <span className="badge">{sourceLabel(p.source_type)}</span>
                 {missed.length > 0 && (
                   <span className="badge EMERGENCY">{missed.length} 次遗漏</span>
                 )}
@@ -173,10 +188,10 @@ export default function MedicationPage() {
                   <li key={d.dose_id}>
                     <div className="tl-head">
                       <span className={`badge ${d.status === "GIVEN" ? "status-COMPLETED" : d.status === "MISSED" ? "EMERGENCY" : ""}`}>
-                        {d.status}
+                        {doseStatusLabel(d.status)}
                       </span>
                       <span className="tl-time">{fmtTime(d.planned_at)}</span>
-                      {d.given_at && <span className="muted">given {fmtTime(d.given_at)}</span>}
+                      {d.given_at && <span className="muted">给药于 {fmtTime(d.given_at)}</span>}
                     </div>
                   </li>
                 ))}

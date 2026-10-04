@@ -15,6 +15,22 @@ interface Handoff {
   notes: string;
 }
 
+const SCOPE_LABELS: Record<string, string> = {
+  "daily:read": "查看日常记录",
+  "daily:write": "记录日常照护",
+  "medical:read": "查看健康记录",
+  "medical:write": "记录健康信息",
+  "card:read": "查看照护卡",
+};
+
+function careStatusLabel(status: string): string {
+  if (status === "ACTIVE") return "生效中";
+  if (status === "EXPIRED") return "已到期";
+  if (status === "ENDED" || status === "REVOKED") return "已结束";
+  if (status === "PENDING") return "待确认";
+  return "已记录";
+}
+
 /** Surfaces 5 + 7: Care Network / Handoff / Care Card (PLI-035..038, PLI-010/011). */
 export default function CarePage() {
   const { petId } = useCurrentPet();
@@ -86,12 +102,12 @@ export default function CarePage() {
       <section className="v5-utility-surface v5-utility-surface--soft">
         <h2>发起照护交接</h2>
         <p className="muted">
-          仅 Owner/Co-owner 可操作；被交接人获得限时、限定范围的权限，到期自动失效，manage 权限不可授予。
+          仅主人或共同主人可操作；临时照护人只获得限时、限定范围的权限，到期自动失效，无法转授管理权限。
         </p>
         <div className="grid2">
           <label className="field">
-            临时照护人 User ID
-            <input value={caregiver} onChange={(e) => setCaregiver(e.target.value)} placeholder="uuid" />
+            临时照护人成员标识
+            <input value={caregiver} onChange={(e) => setCaregiver(e.target.value)} placeholder="输入家庭成员标识" />
           </label>
           <label className="field">
             有效时长（小时）
@@ -113,7 +129,7 @@ export default function CarePage() {
                     )
                   }
                 />
-                {s}
+                {SCOPE_LABELS[s] ?? "限定权限"}
               </label>
             ))}
           </div>
@@ -131,8 +147,8 @@ export default function CarePage() {
               <li key={h.handoff_id}>
                 <div className="tl-head">
                   <span className="tl-type">→ {h.caregiver_user_id.slice(0, 8)}…</span>
-                  <span className="badge">{h.status}</span>
-                  <span className="badge">{h.scope.join(", ")}</span>
+                  <span className="badge">{careStatusLabel(h.status)}</span>
+                  <span className="badge">{h.scope.map((scope) => SCOPE_LABELS[scope] ?? "限定权限").join(" · ")}</span>
                   <span className="tl-time">至 {fmtTime(h.end_at)}</span>
                 </div>
                 {h.status === "ACTIVE" && (
@@ -172,8 +188,8 @@ export default function CarePage() {
               <li key={g.grant_id}>
                 <div className="tl-head">
                   <span className="tl-type">{g.user_id.slice(0, 8)}…</span>
-                  <span className={`badge ${g.status === "ACTIVE" ? "MONITOR" : "EMERGENCY"}`}>{g.status}</span>
-                  <span className="badge">{g.scopes.join(", ")}</span>
+                  <span className={`badge ${g.status === "ACTIVE" ? "MONITOR" : "EMERGENCY"}`}>{careStatusLabel(g.status)}</span>
+                  <span className="badge">{g.scopes.map((scope) => SCOPE_LABELS[scope] ?? "限定权限").join(" · ")}</span>
                   <span className="tl-time">{fmtTime(g.starts_at)} → {g.expires_at ? fmtTime(g.expires_at) : "无限期"}</span>
                 </div>
               </li>
