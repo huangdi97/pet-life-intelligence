@@ -613,3 +613,9 @@ Human gate:
 `HUMAN_VISUAL_ACCEPTANCE = PENDING`
 
 Only fresh user-reviewed evidence may change the last line to PASS.
+
+## 35. R5.6 source closure
+
+`docs/product/R5_6_SOURCE_DESIGN_CLOSURE.md` records the final source-level alignment after this screen-by-screen implementation master. R5.5 remains the exhaustive page contract; R5.6 confirms that Web/Mobile/Mini source code now follows the same IA, truthful state policy, Living Pet visual authority and accessibility/navigation contract.
+
+No new product-design version should be created solely to rename the same scope. From this point, the normal path is fresh runtime evidence → user visual review → baseline promotion only if approved.
