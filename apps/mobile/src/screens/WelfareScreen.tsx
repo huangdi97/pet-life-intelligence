@@ -47,6 +47,17 @@ const SOURCE_LABELS: Record<string, string> = {
   LIVE: "实时",
 };
 
+function ownerValue(value: unknown): string {
+  if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "已有记录" : "暂无记录";
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (!text) return "暂无记录";
+    return /^[A-Z0-9_:-]+$/.test(text) ? "已有记录" : text;
+  }
+  return value == null ? "暂无记录" : "已有记录";
+}
+
 export function WelfareScreen() {
   const { pets, petId } = usePets();
   const [profile, setProfile] = useState<WelfareProfile | null>(null);
@@ -92,7 +103,7 @@ export function WelfareScreen() {
         data: { recorded_from: "mobile", note: "" },
         source_type: "OWNER_REPORTED",
       });
-      setMsg("已记录福利观察。");
+      setMsg("已记录生活观察。");
       setVersion((v) => v + 1);
     } catch (e: unknown) {
       setMsg(humanizeError(e));
@@ -108,7 +119,7 @@ export function WelfareScreen() {
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.head} testID="pli.welfare.identity">
-          <Text style={styles.title}>{pet ? `${pet.name}的福利` : "福利"}</Text>
+          <Text style={styles.title}>{pet ? `${pet.name}的福祉` : "生活与福祉"}</Text>
           <Text style={styles.sub}>用观察与证据说话，不做开心指数。</Text>
         </View>
 
@@ -122,13 +133,13 @@ export function WelfareScreen() {
             <OpenSection title="近期观察" testID="pli.welfare.observable">
               {Object.keys(counts).length === 0 ? (
                 <EmptyState
-                  title="还没有福利观察"
+                  title="还没有福祉观察"
                   body="记录舒适、压力恢复、环境等观察后，趋势会出现在这里。"
                 />
               ) : (
                 Object.entries(counts).map(([k, v], i) => (
                   <View key={k} style={[styles.countRow, i > 0 && styles.countDivider]}>
-                    <Text style={styles.countLabel}>{DOMAIN_LABELS[k] ?? k}</Text>
+                    <Text style={styles.countLabel}>{DOMAIN_LABELS[k] ?? "其他观察"}</Text>
                     <View style={styles.countPill}>
                       <Text style={styles.countText}>{v} 条</Text>
                     </View>
@@ -136,7 +147,7 @@ export function WelfareScreen() {
                 ))
               )}
               {evidence?.sources && evidence.sources.length > 0 ? (
-                <Text style={styles.sourceText}>来源:{evidence.sources.map((s) => SOURCE_LABELS[s] ?? s).join("、")}</Text>
+                <Text style={styles.sourceText}>来源:{evidence.sources.map((s) => SOURCE_LABELS[s] ?? "其他来源").join("、")}</Text>
               ) : null}
               {evidence?.notice ? <Text style={styles.sourceText}>{evidence.notice}</Text> : null}
             </OpenSection>
@@ -159,7 +170,7 @@ export function WelfareScreen() {
                 Object.entries(domains).map(([k, v]) => (
                   <View key={k} style={styles.countRow}>
                     <Text style={styles.countLabel}>{DOMAIN_LABELS[k] ?? k}</Text>
-                    <Text style={styles.domainValue}>{String(v)}</Text>
+                    <Text style={styles.domainValue}>{ownerValue(v)}</Text>
                   </View>
                 ))
               ) : (
@@ -168,7 +179,7 @@ export function WelfareScreen() {
             </OpenSection>
 
             <View style={styles.formSection} testID="pli.welfare.liked">
-              <Text style={styles.formLabel}>记录福利观察</Text>
+              <Text style={styles.formLabel}>记录生活观察</Text>
               <View style={styles.chipRow}>
                 {WELFARE_KINDS.map((k) => (
                   <Pressable key={k.value} onPress={() => setKind(k.value)} style={[styles.chip, kind === k.value && styles.chipActive]}>
