@@ -5,7 +5,6 @@ import { EmptyState, TrendCard } from "@pli/ui-kit";
 import { fmtTime, type Async } from "../../../lib/hooks";
 import { mapErrorMessage, t } from "../../../lib/i18n";
 import { ProvenanceBadge, State } from "../../../components/ui";
-import { KIND_LABELS } from "./constants";
 import { eventPayloadSummary, eventTypeLabel } from "../../../lib/ownerLabels";
 
 interface WelfareTrendCardProps {
