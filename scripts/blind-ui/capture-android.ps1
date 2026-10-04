@@ -155,6 +155,8 @@ $screens = @(
     @{ n = "me";           s = "me" },
     @{ n = "quicklog";     s = "quicklog" },
     @{ n = "health";       s = "health" },
+    @{ n = "medication";   s = "medication" },
+    @{ n = "care";         s = "care" },
     @{ n = "behavior";     s = "behavior" },
     @{ n = "training";     s = "training" },
     @{ n = "welfare";      s = "welfare" },
@@ -183,7 +185,7 @@ foreach ($sc in $screens) {
     $dir = Join-Path $out $sc.n
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
     Write-Host "== $($sc.n) =="
-    $scroll = @("pet", "me", "welfare", "quicklog", "health", "companion", "timeline", "twinversion", "lifeview", "twinreview") -contains $sc.n
+    $scroll = @("pet", "me", "welfare", "quicklog", "health", "medication", "care", "companion", "timeline", "twinversion", "lifeview", "twinreview") -contains $sc.n
     Nav $sc.s $dir -ScrollMerge:$scroll
     if ($sc.n -eq "quicklog") {
         # Open the light form by tapping the first primary tile (喂食) so
