@@ -75,7 +75,10 @@
 | MIN-010 | Training | pages/training | 训练目标/进度 |
 | MIN-011 | Pets | pages/pets | 宠物切换/创建 |
 | MIN-012 | Notifications | pages/notifications | 通知列表 |
-| MIN-013 | Companion | pages/companion（新增，原型） | 四层原型（feature-flagged） |
+| MIN-013 | Companion | pages/companion | Observe / Presence / Enrichment / Learned；真实设备状态，空态不伪装在线 |
+| MIN-014 | Welfare | pages/welfare | 观察与证据优先的生活质量/舒适/压力恢复/环境/丰富化 |
+| MIN-015 | Social | pages/social | 关系与真实互动历史；不做伪精确兼容度 |
+| MIN-016 | Monitoring | pages/monitoring | 真实设备连接/离线/无设备状态；不伪装 LIVE |
 
 ## Mobile（apps/mobile）
 
@@ -96,3 +99,15 @@
 |---|---|---|---|
 | SHR-001 | Vet Brief Share | /share/vet-brief/[token] | 专业阅读（mobile-first/revocable/expiry/无 app） |
 | SHR-002 | Care Card Share | /share/care-card/[token] | 照护卡阅读（同上） |
+
+
+## R5.3 cross-client addendum（2026-10-04）
+
+Stage H 的 Page ID 与功能责任继续有效；R5.3 不重新编号既有页面，而是完成 Owner 体验跨端收口：
+
+- Web / Mobile / Mini 的一级 IA 均保持 **Today / Timeline / Pet / Assistant / Me**。
+- Welfare / Social / Monitoring / Companion 均为 Pet / Today 情境二级能力，不挤占一级导航。
+- Mini 的 Pet World 现在与 Web/Mobile 对齐六个生活域：Life / Health / Behavior / Training / Welfare / Social；Medication 归健康照护语境，Monitoring / Companion 归陪伴与在家语境。
+- Mini Life View 保持轻量模式：照片/物种视觉 + 此刻/生命轨迹；高保真交互 3D 在支持的 Web/Android 客户端呈现。本端不得声称已加载本地 3D。
+- Companion Owner UI 不再出现 feature flag、PROTOTYPE 或内部实现术语；没有硬件时显示诚实空态。
+- 以上为产品语义/页面覆盖补充，不改变 v3.4-R1 母版优先级，也不意味着 Human Visual Acceptance。
