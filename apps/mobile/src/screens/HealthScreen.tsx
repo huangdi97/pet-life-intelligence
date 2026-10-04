@@ -164,7 +164,14 @@ export function HealthScreen() {
                 rows.map((r, i) => {
                   const colors = triageColors(r.latest_triage_level);
                   return (
-                    <View key={r.health_event_id} testID={`pli.health.record.${r.health_event_id}`} style={[styles.recordRow, i > 0 && styles.recordDivider]}>
+                    <Pressable
+                      key={r.health_event_id}
+                      testID={`pli.health.record.${r.health_event_id}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`查看健康记录：${r.chief_complaint}`}
+                      onPress={() => navigation.navigate("HealthDetail", { id: r.health_event_id })}
+                      style={[styles.recordRow, i > 0 && styles.recordDivider]}
+                    >
                       <View style={[styles.riskPill, { backgroundColor: colors.bg }]}>
                         <Text style={[styles.riskPillText, { color: colors.color }]}>{riskLabel(r.latest_triage_level)}</Text>
                       </View>
@@ -174,7 +181,7 @@ export function HealthScreen() {
                           {statusLabel(r.status)} · {fmtDate(r.opened_at)}
                         </Text>
                       </View>
-                    </View>
+                    </Pressable>
                   );
                 })
               )}
