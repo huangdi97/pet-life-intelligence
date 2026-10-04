@@ -112,14 +112,14 @@ export default function Health() {
       <View className="open-section">
         <View className="section-title">健康记录</View>
         {rows.length ? rows.map((row) => (
-          <View className="life-row" key={row.health_event_id}>
+          <View className="life-row" key={row.health_event_id} onClick={() => Taro.navigateTo({ url: `/pages/health/detail/index?id=${row.health_event_id}` })}>
             <View className={highRisk(row.latest_triage_level) ? "life-dot life-dot-danger" : "life-dot"} />
             <View className="life-row-body">
               <View className="life-row-head">
                 <Text className="life-row-type">{row.chief_complaint}</Text>
                 <Text className="life-row-time">{riskLabel(row.latest_triage_level)}</Text>
               </View>
-              <View className="life-row-detail">{statusLabel(row.status)} · {fmtTime(row.opened_at)}</View>
+              <View className="life-row-detail">{statusLabel(row.status)} · {fmtTime(row.opened_at)} · 查看详情 ›</View>
             </View>
           </View>
         )) : (
