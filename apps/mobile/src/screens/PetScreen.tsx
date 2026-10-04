@@ -211,6 +211,11 @@ export function PetScreen() {
                   <Text style={styles.friendText}>你 · 主人</Text>
                 </View>
                 <Text style={styles.caregiverNote}>家庭成员与临时照护人加入后会显示在这里。</Text>
+                <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Care")} style={styles.entryRow}>
+                  <Ionicons name="people-outline" size={18} color={COLORS.brandPrimaryDeep} />
+                  <Text style={styles.entryText}>管理照护交接与限时权限</Text>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+                </Pressable>
               </OpenSection>
             </View>
 
