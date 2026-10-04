@@ -249,11 +249,8 @@ importers:
         specifier: 0.74.87
         version: 0.74.87
       '@types/react':
-        specifier: 19.0.6
-        version: 19.0.6
-      '@types/react-dom':
-        specifier: 19.0.3
-        version: 19.0.3(@types/react@19.0.6)
+        specifier: 18.3.31
+        version: 18.3.31
       '@types/three':
         specifier: ^0.170.0
         version: 0.170.0
