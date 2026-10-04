@@ -248,25 +248,27 @@ export function PetScreen() {
             </View>
 
             <OpenSection title="生命与陪伴">
-              <View style={styles.entryRow}>
+              <Pressable
+                testID="pli.pet.entry.lifeview"
+                accessibilityRole="button"
+                accessibilityLabel={`打开${pet?.name ?? "宠物"}的生命视图`}
+                onPress={() => navigation.navigate("LifeView")}
+                style={({ pressed }) => [styles.entryRow, pressed && styles.entryRowPressed]}
+              >
                 <Ionicons name="planet-outline" size={18} color={COLORS.brandPrimaryDeep} />
                 <Text style={styles.entryText}>生命视图 · {pet?.name ?? "宠物"}的此刻与生活轨迹</Text>
-                <Pressable
-                  testID="pli.pet.entry.lifeview"
-                  accessibilityRole="button"
-                  accessibilityLabel="打开生命视图"
-                  onPress={() => navigation.navigate("LifeView")}
-                >
-                  <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-                </Pressable>
-              </View>
-              <View style={styles.entryRow}>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`查看${pet?.name ?? "宠物"}的 3D 形象版本`}
+                onPress={() => navigation.navigate("TwinVersion")}
+                style={({ pressed }) => [styles.entryRow, pressed && styles.entryRowPressed]}
+              >
                 <Ionicons name="sparkles-outline" size={18} color={COLORS.brandPrimaryDeep} />
                 <Text style={styles.entryText}>3D 形象 · 为{pet?.name ?? "宠物"}创建/查看 3D 形象</Text>
-                <Pressable accessibilityRole="button" accessibilityLabel="创建 3D 形象" onPress={() => navigation.navigate("TwinVersion")}>
-                  <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-                </Pressable>
-              </View>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+              </Pressable>
             </OpenSection>
           </>
         )}
@@ -292,6 +294,7 @@ const styles = StyleSheet.create({
   friendText: { fontSize: TYPE.body, color: COLORS.textPrimary },
   caregiverNote: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: 2 },
   emptyText: { fontSize: TYPE.body, color: COLORS.textTertiary, paddingVertical: 8, lineHeight: 22 },
-  entryRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingVertical: 10 },
+  entryRow: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingVertical: 10 },
+  entryRowPressed: { opacity: 0.72 },
   entryText: { fontSize: TYPE.sm, color: COLORS.textSecondary, flex: 1 },
 });
