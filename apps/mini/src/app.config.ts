@@ -3,6 +3,7 @@
     "pages/index/index",
     "pages/timeline/index",
     "pages/health/index",
+    "pages/health/detail/index",
     "pages/agent/index",
     "pages/mine/index",
     // 二级页保留（从对应 tab 页内入口进入；IA §5）
