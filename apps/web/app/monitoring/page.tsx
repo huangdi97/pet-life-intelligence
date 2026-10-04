@@ -68,15 +68,15 @@ export default function MonitoringPage() {
   };
 
   return (
-    <main>
-      <div data-testid="pli.monitoring.identity">
+    <main className="v4-main">
+      <div className="v4-topline" data-testid="pli.monitoring.identity">
         <h1>{t("monitoring.title")}</h1>
         <p className="sub">{t("monitoring.sub")}</p>
       </div>
-      <div className="card" data-testid={`pli.monitoring.state.${stateKey}`}>
-        <h2>当前状态</h2>
-        <p className="sub" style={{ margin: 0 }}>{stateText[stateKey]}</p>
-      </div>
+      <section className="v4-sec" data-testid={`pli.monitoring.state.${stateKey}`}>
+        <h2 className="v4-sec-title">当前状态</h2>
+        <div className="v4-calm" style={{ marginTop: 8 }}>{stateText[stateKey]}</div>
+      </section>
       {/* 最近看到 */}
       <div data-testid="pli.monitoring.last">
         <LastSeenPanel recent={recent} />
@@ -90,12 +90,12 @@ export default function MonitoringPage() {
         <DevicesPanel devices={devices} />
 
         {/* 近期变化（基于自己的历史，非跨宠物、非诊断） */}
-        <div className="card">
-          <h2>{t("monitoring.changes")}</h2>
-          <p className="sub" style={{ margin: 0 }}>
+        <section className="v4-sec">
+          <h2 className="v4-sec-title">{t("monitoring.changes")}</h2>
+          <p className="v4-sec-sub">
             与它自己的 30 日范围对比；暂无自动判定时此处为空。
           </p>
-        </div>
+        </section>
 
         {/* Camera Candidate Review Queue */}
         <ReviewQueuePanel queue={queue} reviewBusy={reviewBusy} onReview={review} />

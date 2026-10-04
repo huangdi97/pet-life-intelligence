@@ -60,8 +60,8 @@ export default function HealthPage() {
   const latestLevel = rows[0]?.latest_triage_level ?? null;
 
   return (
-    <main>
-      <div data-testid="pli.health.identity" style={{ marginBottom: 8 }}>
+    <main className="v4-main">
+      <div className="v4-topline" data-testid="pli.health.identity">
         <h1>健康事件</h1>
         <p className="sub">
           {current ? `${current.name} · 发现异常 → 动态追问 → 可观察事实 → 红旗分级 → Vet Brief → Outcome。` : "发现异常 → 动态追问 → 可观察事实 → 红旗分级 → Vet Brief → Outcome。"}
@@ -69,35 +69,35 @@ export default function HealthPage() {
         </p>
       </div>
 
-      <div className="card" data-testid="pli.health.overview">
-        <h2>近期状态概览</h2>
+      <section className="v4-sec" data-testid="pli.health.overview">
+        <h2 className="v4-sec-title">近期状态概览</h2>
         <p className="sub" style={{ margin: 0 }}>
           {list.state === "loading" ? "加载中……" : openCount > 0 ? `有 ${openCount} 个未关闭的健康事件` : "没有未关闭的健康事件。"}
         </p>
         <p className="muted" style={{ marginTop: 8 }}>
           状态：{latestLevel ? triageLabel(latestLevel) : "未分级"}（来自最近一条健康记录）
         </p>
-      </div>
+      </section>
 
-      <div className="card" data-testid="pli.health.changes">
-        <h2>近期变化</h2>
+      <section className="v4-sec" data-testid="pli.health.changes">
+        <h2 className="v4-sec-title">近期变化</h2>
         <p className="muted" style={{ margin: 0 }}>
           {rows.length > 0 ? `最近的健康事件是「${rows[0].chief_complaint}」，打开于 ${fmtTime(rows[0].opened_at)}。` : "还没有健康记录，变化会从第一条记录开始汇总。"}
         </p>
-      </div>
+      </section>
 
-      <div className="card" data-testid="pli.health.prevent">
-        <h2>预防与计划</h2>
+      <section className="v4-sec" data-testid="pli.health.prevent">
+        <h2 className="v4-sec-title">预防与计划</h2>
         <p className="muted" style={{ margin: 0 }}>疫苗、驱虫与定期体检记录会集中在这里。还没有相关记录。</p>
-      </div>
+      </section>
 
-      <div className="card" data-testid="pli.health.medication">
-        <h2>用药</h2>
+      <section className="v4-sec" data-testid="pli.health.medication">
+        <h2 className="v4-sec-title">用药</h2>
         <p className="muted" style={{ margin: 0 }}>
           用药计划与给药记录见「用药」页。{" "}
           <Link href="/medication">查看用药</Link>
         </p>
-      </div>
+      </section>
 
       <div className="card">
         <h2>发现异常</h2>
@@ -120,8 +120,8 @@ export default function HealthPage() {
         </button>
       </div>
 
-      <div className="card" data-testid="pli.health.records">
-        <h2>健康记录</h2>
+      <section className="v4-sec" data-testid="pli.health.records">
+        <h2 className="v4-sec-title">健康记录</h2>
         <p className="muted" style={{ marginTop: 0 }} data-testid="pli.health.status">
           {rows.length} 条记录 · {openCount} 个进行中
         </p>
@@ -141,7 +141,7 @@ export default function HealthPage() {
             ))}
           </ul>
         </State>
-      </div>
+      </section>
 
       <div className="row" style={{ marginTop: 8 }} data-testid="pli.health.vet">
         <Link href="/medication" className="btn">

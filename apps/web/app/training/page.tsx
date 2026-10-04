@@ -71,26 +71,10 @@ export default function TrainingPage() {
   const activeGoals = (goals.data ?? []).filter((g) => g.status === "OPEN" || g.status === "ACTIVE");
 
   return (
-    <main>
-      <div data-testid="pli.training.identity">
+    <main className="v4-main">
+      <div className="v4-topline" data-testid="pli.training.identity">
         <h1>训练</h1>
         <p className="sub">{current ? `${current.name} · 奖励式训练目标与会话记录。仅使用正向强化方法。` : "奖励式训练目标与会话记录。仅使用正向强化方法。"}</p>
-      </div>
-
-      <div className="card">
-        <h2>新建训练目标</h2>
-        <div className="row">
-          <input
-            style={{ maxWidth: 380 }}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="如：安静应对门铃"
-          />
-          <button className="btn primary" onClick={createGoal} disabled={!petId} data-testid="pli.training.action">
-            创建
-          </button>
-        </div>
-        <ErrorNote message={error} />
       </div>
 
       <State state={goals.state} error={goals.error} onRetry={goals.reload} empty="还没有训练目标。">
@@ -136,8 +120,25 @@ export default function TrainingPage() {
         </>
       </State>
 
-      <div className="card" data-testid="pli.training.reward">
-        <h2>奖励</h2>
+      <section className="v4-sec">
+        <h2 className="v4-sec-title">开始一个新目标</h2>
+        <p className="v4-sec-sub">先看当前目标与最近进展；需要时再添加一个新的小目标。</p>
+        <div className="row" style={{ marginTop: 10 }}>
+          <input
+            style={{ maxWidth: 380 }}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="如：安静应对门铃"
+          />
+          <button className="btn primary" onClick={createGoal} disabled={!petId} data-testid="pli.training.action">
+            创建
+          </button>
+        </div>
+        <ErrorNote message={error} />
+      </section>
+
+      <section className="v4-sec" data-testid="pli.training.reward">
+        <h2 className="v4-sec-title">奖励</h2>
         <p className="muted" style={{ margin: 0 }}>只使用正向强化（零食、玩具、抚摸）。训练工具库仅包含安全工具，不包含惩罚性工具。</p>
         <ul className="tl" style={{ marginTop: 8 }}>
           {tools.data?.tools.map((t) => (
@@ -150,14 +151,14 @@ export default function TrainingPage() {
           ))}
         </ul>
         <p className="notice-ai">{tools.data?.banned_note}</p>
-      </div>
+      </section>
 
-      <div className="card" data-testid="pli.training.next">
-        <h2>下一步</h2>
+      <section className="v4-sec" data-testid="pli.training.next">
+        <h2 className="v4-sec-title">下一步</h2>
         <p className="muted" style={{ margin: 0 }}>
           {activeGoals.length > 0 ? `继续「${activeGoals[0].title}」：建议每次 3–5 分钟，结束后用奖励强化。` : "创建第一个训练目标，从 3–5 分钟的小目标开始。"}
         </p>
-      </div>
+      </section>
     </main>
   );
 }

@@ -61,8 +61,8 @@ export default function BehaviorPage() {
   }
 
   return (
-    <main>
-      <div data-testid="pli.behavior.identity">
+    <main className="v4-main">
+      <div className="v4-topline" data-testid="pli.behavior.identity">
         <h1>行为记录</h1>
         <p className="sub">
           ABC 记录法：前因（Antecedent）→ 可观察行为（Behavior）→ 后果（Consequence）。
@@ -70,19 +70,19 @@ export default function BehaviorPage() {
         </p>
       </div>
 
-      <div className="card" data-testid="pli.behavior.patterns">
-        <h2>模式与倾向</h2>
+      <section className="v4-sec" data-testid="pli.behavior.patterns">
+        <h2 className="v4-sec-title">模式与倾向</h2>
         <p className="muted" style={{ margin: 0 }}>
           {(list.data?.length ?? 0) > 0
             ? "行为记录积累后，这里会汇总出现的情境与模式，不判断情绪。"
             : "还没有足够记录，模式会在多条行为记录后慢慢成形。"}
         </p>
-      </div>
+      </section>
 
-      <div className="card" data-testid="pli.behavior.context">
-        <h2>情境与触发</h2>
+      <section className="v4-sec" data-testid="pli.behavior.context">
+        <h2 className="v4-sec-title">情境与触发</h2>
         <p className="muted" style={{ margin: 0 }}>前因、环境与触发条件会从每条行为记录中汇总到这里。</p>
-      </div>
+      </section>
 
       <div className="card">
         <h2>记录一次行为事件</h2>
@@ -132,8 +132,8 @@ export default function BehaviorPage() {
         </button>
       </div>
 
-      <div className="card" data-testid="pli.behavior.recent">
-        <h2>最近记录</h2>
+      <section className="v4-sec" data-testid="pli.behavior.recent">
+        <h2 className="v4-sec-title">最近记录</h2>
         <State state={list.state} error={list.error} onRetry={list.reload} empty="还没有行为记录。">
           <ul className="tl" data-testid="pli.behavior.observations">
             {list.data?.map((b) => (
@@ -150,7 +150,7 @@ export default function BehaviorPage() {
             ))}
           </ul>
         </State>
-      </div>
+      </section>
     </main>
   );
 }
