@@ -40,7 +40,7 @@ const DOMAIN_LABELS: Record<string, string> = {
   health: "健康",
   behavior: "行为",
   training: "训练",
-  welfare: "福利",
+  welfare: "福祉",
   social: "社交",
   life: "生活",
 };
