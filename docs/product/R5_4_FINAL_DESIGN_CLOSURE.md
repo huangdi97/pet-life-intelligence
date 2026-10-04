@@ -409,3 +409,8 @@ Implementation may reach:
 Only user review of fresh runtime screenshots may change:
 
 `HUMAN_VISUAL_ACCEPTANCE = PASS`
+
+
+## 17. R5.5 implementation authority
+
+The exhaustive screen-by-screen product/UI closure is now maintained in `docs/product/R5_5_FINAL_PRODUCT_UI_IMPLEMENTATION_MASTER.md`. R5.4 remains the design-closure addendum; R5.5 is the implementation-facing expansion and does not override the canonical v3.4-R1 master or L2 Feature Inventory.
