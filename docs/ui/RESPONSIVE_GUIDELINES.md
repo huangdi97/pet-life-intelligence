@@ -1,36 +1,84 @@
-# RESPONSIVE_GUIDELINES — Stage H 冻结版
+# RESPONSIVE_GUIDELINES — R5.6 Cross-client Composition
 
-> 状态：`FROZEN（Stage H）` · Breakpoints：xs 360 / sm 390 / md 768 / lg 1024 / xl 1440（tokens.breakpoint）
+> Authority: canonical v3.4-R1 + R5 visual system + R5.5 implementation master.
+> Status: SOURCE DESIGN CLOSED / fresh runtime evidence pending.
 
-## 1. 必须验证的断点（§64/§90）
+## 1. Validation widths
 
-每个核心页面至少检查：**360 / 390 / 768 / 1440**（全量验证加 1024）。
-检查项：overflow / alignment / spacing / font / navigation / modal / sheet / keyboard / safe area。
+Web/PWA core surfaces must be checked at:
 
-## 2. 断点行为规则
+- 360
+- 390
+- 768
+- 1024
+- 1440
 
-| 断点 | 布局 |
-|---|---|
-| <768（xs/sm） | 单列；TopNav 折叠为底部/精简；QuickLog/Sheet 底部化；表格转卡片 |
-| ≥768（md） | 双列栅格；侧栏内容上提；表格可用 |
-| ≥1024（lg） | 12 列栅格完整；Admin 侧栏常驻 |
-| ≥1440（xl） | container_max 1200 居中，不无限拉伸 |
+Mobile native uses actual device/simulator viewport + safe areas rather than pretending to share Web breakpoints. Mini uses platform viewport and safe-area rules.
 
-## 3. 各端规则
+## 2. Composition rules
 
-- **Web**：fluid 360→1440；核心页（Today/Timeline/Health/Vet Brief/Behavior/Monitoring/Companion/Admin/Pro）全部通过 UI QA 断点检查；截图回归 Desktop(1440) + Mobile(390)。
-- **Mini**：以 390 为设计基准；信息密度低于 Desktop；无大表格/侧栏/多层 Modal。
-- **Mobile**：以 390 为基准；safe area（刘海/手势条）适配。
-- **Admin**：768 以下侧栏折叠；表格在 <768 转卡片或横向滚动容器。
-- **Pro**：同 Web；打印样式（@media print）隐藏导航。
+### <768 Web/PWA
 
-## 4. 实现规范
+- one-column owner composition;
+- five primary destinations become the bottom navigation;
+- top shell stays quiet;
+- no compressed desktop toolbar;
+- sheets/actions favor bottom placement;
+- Living/Twin surfaces use almost the full content width;
+- page bottom padding clears the fixed nav + safe-area inset.
 
-- 断点 tokens：`var(--pli-breakpoint-*)`（由 ui-tokens 生成）。
-- 媒体查询统一写法：`@media (min-width: 768px)`（mobile-first）。
-- 禁止 fixed px 布局宽度（除 icon/头像尺寸档）。
-- 触控目标 ≥44px（tokens.touch）。
+### 768–1023
 
-## 5. 验证记录
+- content may use two-column support layouts where it improves reading;
+- one dominant subject remains visually clear;
+- domain forms must not become dense admin grids.
 
-见 `reports/STAGE_H_RESPONSIVE_AUDIT.md`（360/390/768/1024/1440 逐页记录 + 已知问题）。
+### >=1024
+
+- content remains bounded and centered;
+- secondary evidence/utilities may sit beside the primary narrative;
+- pet/Twin scale may grow, but the canvas must not become an empty oversized stage.
+
+### >=1440
+
+- do not stretch text or cards across the viewport;
+- preserve readable line length and a calm centered owner experience.
+
+## 3. Living surfaces
+
+Today / Pet World / Life View:
+
+- pet remains the dominant mass at every width;
+- anchors must not cover the head/face;
+- identity/caption shelf must not cover paws/camera controls;
+- no giant decorative circle/arch may become more salient than the pet;
+- the stage must remain warm/open rather than turning into a bordered Viewer.
+
+Twin Review:
+
+- studio remains neutral;
+- front/side/rear and zoom/reset remain reachable without scrolling the Twin off screen where practical.
+
+## 4. Navigation
+
+Web desktop uses a compact toolbar. Web mobile uses bottom navigation. Android/Mobile uses native bottom tabs. Mini follows platform conventions while preserving the same five primary owner jobs.
+
+No sixth capability becomes a first-level tab at any width.
+
+## 5. Forms and utilities
+
+- primary CTA remains obvious;
+- <=2 peer secondary actions at the same hierarchy;
+- tables become readable stacked rows/cards on narrow layouts;
+- Care/Medication/Monitoring operational details remain contextual rather than dominating the page.
+
+## 6. Safe area and keyboard
+
+- all mobile bottom controls account for gesture/home indicators;
+- bottom navigation must not overlap focused inputs;
+- keyboard presentation may hide bottom navigation where needed;
+- sheets/forms must keep the active field and primary action reachable.
+
+## 7. Acceptance
+
+Fresh runtime capture after the final source commit is required. Source CSS/layout compliance alone is not visual acceptance.
