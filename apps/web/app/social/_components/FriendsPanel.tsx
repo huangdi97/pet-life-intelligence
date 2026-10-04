@@ -31,11 +31,13 @@ export function FriendsPanel({ friends, friendName }: FriendsPanelProps) {
         onRetry={friends.reload}
         empty="还没有伙伴关系。"
       >
-        {friends.data?.map((f) => (
-          <li key={f.request_id} data-testid={`pli.social.friends.${f.request_id}`}>
-            <PersonChip name={friendName(f.friend_pet_id)} role={statusZh(f.status)} />
-          </li>
-        ))}
+        <div className="v5-people-row">
+          {friends.data?.map((f) => (
+            <div key={f.request_id} data-testid={`pli.social.friends.${f.request_id}`}>
+              <PersonChip name={friendName(f.friend_pet_id)} role={statusZh(f.status)} />
+            </div>
+          ))}
+        </div>
       </State>
     </section>
   );
