@@ -113,14 +113,20 @@ export function PetTwinReviewScreen() {
     setPickedIssues((xs) => (xs.includes(it) ? xs.filter((x) => x !== it) : [...xs, it]));
 
   const submit = async () => {
-    if (!petId || resolvedVersion <= 0 || !selected || selected === "not_like") return;
+    if (!petId || resolvedVersion <= 0 || !selected) return;
     setBusy(true);
     setMessage(null);
     try {
       await api.post(`/pets/${petId}/visual-models/${resolvedVersion}/verify`, {
         result: selected,
-        issues: pickedIssues,
+        issues: selected === "not_like" ? pickedIssues : [],
       });
+      if (selected === "not_like") {
+        // R5.4: negative review is real product feedback. Persist the selected
+        // issue details, but never activate this candidate.
+        setMessage("已记录哪里不像。补充更多素材后可以重新生成；当前 3D 形象不会被替换。");
+        return;
+      }
       await api.post(`/pets/${petId}/visual-models/${resolvedVersion}/activate`, {});
       setMessage("已确认相似，并已启用为当前 3D 形象。");
     } catch (e) {
@@ -130,9 +136,8 @@ export function PetTwinReviewScreen() {
     }
   };
 
-  // SAFETY: 不像 must never reach activation; the CTA is disabled and the
-  // owner is told to add more source material and regenerate.
-  const ctaDisabled = !selected || busy || selected === "not_like";
+  // SAFETY: 不像 may be submitted as feedback but must never reach activation.
+  const ctaDisabled = !selected || busy;
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
@@ -224,7 +229,7 @@ export function PetTwinReviewScreen() {
             style={[styles.cta, ctaDisabled && styles.ctaDisabled]}
           >
             <Text style={styles.ctaText}>
-              {busy ? "提交中…" : selected === "not_like" ? "需补充素材后重新生成" : "提交确认"}
+              {busy ? "提交中…" : selected === "not_like" ? "提交反馈" : "提交确认"}
             </Text>
           </Pressable>
         </ScrollView>
