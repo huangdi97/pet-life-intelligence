@@ -41,7 +41,7 @@ importers:
         version: 19.0.6
       '@types/react-dom':
         specifier: 19.0.3
-        version: 19.0.3(@types/react@18.3.31)
+        version: 19.0.3(@types/react@19.0.6)
       typescript:
         specifier: 5.7.3
         version: 5.7.3
@@ -342,7 +342,7 @@ importers:
         version: 19.0.6
       '@types/react-dom':
         specifier: 19.0.3
-        version: 19.0.3(@types/react@18.3.31)
+        version: 19.0.3(@types/react@19.0.6)
       '@types/three':
         specifier: ^0.170.0
         version: 0.170.0
@@ -385,8 +385,8 @@ importers:
         version: 18.2.0
     devDependencies:
       '@types/react':
-        specifier: 18.3.31
-        version: 18.3.31
+        specifier: 19.0.6
+        version: 19.0.6
       typescript:
         specifier: 5.7.3
         version: 5.7.3
