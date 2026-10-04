@@ -43,7 +43,7 @@ export default function SocialPage() {
     [petId],
   );
 
-  const friendName = (id: string) => pets.data?.find((p) => p.id === id)?.name ?? id.slice(0, 8);
+  const friendName = (id: string) => pets.data?.find((p) => p.id === id)?.name ?? "未命名伙伴";
 
   async function recordInteraction() {
     if (!petId || !friendPetId) return;
