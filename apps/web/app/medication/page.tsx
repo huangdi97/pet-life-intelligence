@@ -77,15 +77,17 @@ export default function MedicationPage() {
   }
 
   return (
-    <main>
-      <h1>用药管理</h1>
-      <p className="sub">
-        用药计划与给药记录。系统不推荐剂量、不自动建议停药；药物信息必须注明来源。
-      </p>
+    <main className="v4-main v5-domain-page v5-utility-page">
+      <div className="v4-topline v5-page-lede">
+        <h1>用药管理</h1>
+        <p className="sub">
+          用药计划与给药记录。系统不推荐剂量、不自动建议停药；药物信息必须注明来源。
+        </p>
+      </div>
       {flash && <div className="alert info">{flash}</div>}
       {conflict && <div className="alert emergency">{conflict}</div>}
 
-      <div className="card">
+      <section className="v5-form-surface">
         <h2>新建用药计划</h2>
         <div className="grid2">
           <label className="field">
@@ -125,7 +127,7 @@ export default function MedicationPage() {
         <button className="btn primary" onClick={createPlan} disabled={!petId || !form.medicine_name || !form.dose_text}>
           创建计划
         </button>
-      </div>
+      </section>
 
       <State state={plans.state} error={plans.error} onRetry={plans.reload} empty="还没有用药计划。">
         {plans.data?.length === 0 && (
@@ -135,7 +137,7 @@ export default function MedicationPage() {
           const pending = p.doses.filter((d) => d.status === "PENDING");
           const missed = p.doses.filter((d) => d.status === "MISSED");
           return (
-            <div className="card" key={p.plan_id}>
+            <div className="v5-plan-card" key={p.plan_id}>
               <div className="tl-head">
                 <span className="tl-type">{p.medicine_name}</span>
                 <span className="badge">{p.dose_text}</span>

@@ -90,9 +90,9 @@ export default function AgentPage() {
   }
 
   return (
-    <main className="v4-main">
+    <main className="v4-main v5-domain-page">
       <div data-testid="pli.assistant.identity">
-        <div className="v4-topline">
+        <div className="v4-topline v5-page-lede">
           <h1>{petName ? `${petName}的助手` : t("agent.title")}</h1>
           <p className="v4-topline-sub">基于 {petName || "它"}已有的真实记录回答，不诊断。</p>
         </div>

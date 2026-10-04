@@ -76,13 +76,15 @@ export default function CarePage() {
   }
 
   return (
-    <main>
-      <h1>照护网络</h1>
-      <p className="sub">家庭成员、临时交接与 Care Card。</p>
+    <main className="v4-main v5-domain-page v5-utility-page">
+      <div className="v4-topline v5-page-lede">
+        <h1>照护网络</h1>
+        <p className="sub">家庭成员、临时交接与 Care Card。权限按人、用途与时间清楚管理。</p>
+      </div>
       <ErrorNote message={error} />
 
-      <div className="card">
-        <h2>发起照护交接 Care Handoff</h2>
+      <section className="v5-utility-surface v5-utility-surface--soft">
+        <h2>发起照护交接</h2>
         <p className="muted">
           仅 Owner/Co-owner 可操作；被交接人获得限时、限定范围的权限，到期自动失效，manage 权限不可授予。
         </p>
@@ -119,9 +121,9 @@ export default function CarePage() {
         <button className="btn primary" onClick={createHandoff} disabled={!petId}>
           创建交接
         </button>
-      </div>
+      </section>
 
-      <div className="card">
+      <section className="v5-utility-surface">
         <h2>交接记录</h2>
         <State state={handoffs.state} error={handoffs.error} onRetry={handoffs.reload} empty="暂无交接。">
           <ul className="tl">
@@ -142,9 +144,9 @@ export default function CarePage() {
             ))}
           </ul>
         </State>
-      </div>
+      </section>
 
-      <div className="card">
+      <section className="v5-utility-surface v5-utility-surface--soft">
         <h2>生成 Care Card</h2>
         <p className="muted">
           最小字段卡片：喂养/用药/行为禁忌/紧急联系人/首选医院（文字），不含完整医疗历史。
@@ -160,10 +162,10 @@ export default function CarePage() {
             <span className="muted">在浏览器打开 {`${API_URL}/api/v1/care-card/${card.token}`} 查看效果</span>
           </div>
         )}
-      </div>
+      </section>
 
-      <div className="card">
-        <h2>权限授予记录（Grants）</h2>
+      <section className="v5-utility-surface">
+        <h2>权限授予记录</h2>
         <State state={grants.state} error={grants.error} onRetry={grants.reload} empty="暂无授权记录。">
           <ul className="tl">
             {grants.data?.map((g) => (
@@ -178,7 +180,7 @@ export default function CarePage() {
             ))}
           </ul>
         </State>
-      </div>
+      </section>
     </main>
   );
 }

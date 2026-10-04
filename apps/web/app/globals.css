@@ -1061,3 +1061,53 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
   }
 }
 
+/* R5.2 utility/care surfaces — same warm owner language as the Living
+   Experience. Operational controls remain explicit, but no longer read as a
+   detached admin console. */
+.v5-utility-page .v5-page-lede {
+  margin-top: 10px;
+}
+.v5-utility-stack {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+.v5-utility-surface {
+  padding: 18px;
+  border: 1px solid rgba(222,212,198,0.70);
+  border-radius: 22px;
+  background: rgba(255,253,249,0.82);
+  box-shadow: 0 10px 28px rgba(65,52,39,0.03);
+}
+.v5-utility-surface--soft {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(242,247,239,0.74), rgba(242,247,239,0) 62%),
+    rgba(255,253,249,0.82);
+}
+.v5-utility-surface h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+.v5-plan-card {
+  margin: 12px 0;
+  padding: 16px;
+  border: 1px solid rgba(226,218,206,0.68);
+  border-radius: 20px;
+  background: rgba(255,253,249,0.74);
+}
+.v5-plan-card h3 { margin-top: 14px; }
+.v5-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+@media (max-width: 768px) {
+  .v5-utility-stack { gap: 12px; }
+  .v5-utility-surface,
+  .v5-plan-card {
+    padding: 15px;
+    border-radius: 19px;
+  }
+}
+

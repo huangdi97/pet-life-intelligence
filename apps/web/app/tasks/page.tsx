@@ -57,10 +57,12 @@ export default function TasksPage() {
   }
 
   return (
-    <main>
-      <h1>照护任务</h1>
-      <p className="sub">创建、完成、重复任务与冲突提醒。</p>
-      <div className="card">
+    <main className="v4-main v5-domain-page v5-utility-page">
+      <div className="v4-topline v5-page-lede">
+        <h1>照护任务</h1>
+        <p className="sub">今天要做的事、重复照护与多人协作冲突，都围绕同一只宠物记录。</p>
+      </div>
+      <section className="v5-form-surface">
         <h2>新建任务</h2>
         <div className="grid2">
           <label className="field">
@@ -92,7 +94,7 @@ export default function TasksPage() {
         <button className="btn primary" onClick={create} disabled={!petId}>
           创建
         </button>
-      </div>
+      </section>
 
       {conflict && <div className="alert emergency">{conflict}</div>}
 
