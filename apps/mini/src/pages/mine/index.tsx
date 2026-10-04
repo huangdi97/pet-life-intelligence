@@ -3,31 +3,43 @@ import { View, Text, Button } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { getPlatform } from "../../platform/index";
 
-/** 我的（MIN-005）：家庭 / 通知 / 设置入口 + 账号（IA §2 Me 分区）。 */
-const FAMILY_ENTRIES: Array<{ label: string; url: string }> = [
-  { label: "宠物档案", url: "/pages/pets/index" },
-  { label: "照护协作", url: "/pages/care/index" },
+/**
+ * 我的（MIN-005）— R5.5 owner utility surface.
+ *
+ * Me is deliberately quieter than pet-life pages: account/session, household,
+ * pets, notifications, privacy/data and device utilities live here without
+ * becoming a second feature dashboard. Platform/auth implementation details
+ * never appear in owner copy.
+ */
+const HOUSEHOLD_ENTRIES: Array<{ label: string; detail: string; url: string }> = [
+  { label: "宠物档案", detail: "查看与切换家庭里的宠物", url: "/pages/pets/index" },
+  { label: "照护协作", detail: "管理照护交接、范围与有效期", url: "/pages/care/index" },
 ];
 
-const NOTIFICATION_ENTRIES: Array<{ label: string; url: string }> = [
-  { label: "通知", url: "/pages/notifications/index" },
+const UTILITY_ENTRIES: Array<{ label: string; detail: string; url: string }> = [
+  { label: "通知", detail: "查看需要处理的提醒", url: "/pages/notifications/index" },
+  { label: "在家与设备", detail: "查看真实连接与最近同步状态", url: "/pages/monitoring/index" },
+  { label: "健康", detail: "查看健康记录与风险提示", url: "/pages/health/index" },
+  { label: "用药", detail: "查看计划与给药记录", url: "/pages/medication/index" },
+  { label: "任务", detail: "查看待办与照护事项", url: "/pages/tasks/index" },
 ];
 
-const MORE_ENTRIES: Array<{ label: string; url: string }> = [
-  { label: "任务", url: "/pages/tasks/index" },
-  { label: "健康", url: "/pages/health/index" },
-  { label: "用药", url: "/pages/medication/index" },
-  { label: "行为", url: "/pages/behavior/index" },
-  { label: "训练", url: "/pages/training/index" },
-];
-
-function EntryList({ items }: { items: Array<{ label: string; url: string }> }) {
+function EntryList({ items }: { items: Array<{ label: string; detail: string; url: string }> }) {
   return (
     <View>
-      {items.map((m) => (
-        <View className="menu-item" key={m.url} onClick={() => Taro.navigateTo({ url: m.url })}>
-          <Text className="menu-label">{m.label}</Text>
-          <Text className="menu-arrow">›</Text>
+      {items.map((item) => (
+        <View
+          className="life-row"
+          key={item.url}
+          onClick={() => Taro.navigateTo({ url: item.url })}
+        >
+          <View className="life-row-body">
+            <View className="life-row-head">
+              <Text className="life-row-type">{item.label}</Text>
+              <Text className="life-row-time">›</Text>
+            </View>
+            <View className="life-row-detail">{item.detail}</View>
+          </View>
         </View>
       ))}
     </View>
@@ -36,14 +48,13 @@ function EntryList({ items }: { items: Array<{ label: string; url: string }> }) 
 
 export default function Mine() {
   const platform = getPlatform();
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   async function handleLogin() {
-    const ok = platform.auth.available;
-    if (!ok) {
+    if (!platform.auth.available) {
       Taro.showModal({
         title: "登录暂未开放",
-        content: "当前为开发模式；正式上线需小程序主体与 AppID。",
+        content: "当前客户端还不能完成平台账号登录。你仍可以浏览当前可用的演示内容。",
         showCancel: false,
       });
       return;
@@ -54,71 +65,89 @@ export default function Mine() {
     } catch {
       Taro.showModal({
         title: "登录失败",
-        content: "小程序登录依赖平台账号（EXTERNAL_BLOCKED）。",
+        content: "暂时无法完成平台账号登录，请稍后再试。",
         showCancel: false,
       });
     }
   }
 
+  const loggedIn = platform.auth.isLoggedIn();
+
   return (
     <View className="page">
       <View className="h1">我的</View>
-      <View className="sub">账号、家庭与设置</View>
+      <View className="sub">家庭、通知、设备与数据设置</View>
 
-      <View className="card">
-        <View className="row" style={{ justifyContent: "space-between" }}>
-          <Text>{platform.auth.isLoggedIn() ? "已登录" : "未登录（开发模式）"}</Text>
+      <View className="soft-hero">
+        <View className="section-title">账号</View>
+        <View className="metric-row">
+          <View className="metric-cell">
+            <View className="metric-value">{loggedIn ? "已登录" : "未登录"}</View>
+            <View className="metric-label">当前会话</View>
+          </View>
+        </View>
+        {!loggedIn ? (
           <Button className="btn btn-primary" size="mini" onClick={handleLogin}>
             登录
           </Button>
-        </View>
-        <View className="muted" style={{ marginTop: 12 }}>
-          账号系统上线依赖真实认证服务；当前 dev-auth 仅限开发环境。
-        </View>
+        ) : null}
+        {!platform.auth.available ? (
+          <View className="life-empty-note">
+            平台账号登录尚未在当前客户端开放；这不会影响已经可用的浏览与演示内容。
+          </View>
+        ) : null}
       </View>
 
-      <View className="card">
-        <Text>家庭</Text>
-        <View style={{ marginTop: 8 }}>
-          <EntryList items={FAMILY_ENTRIES} />
-        </View>
+      <View className="open-section">
+        <View className="section-title">家庭</View>
+        <EntryList items={HOUSEHOLD_ENTRIES} />
       </View>
 
-      <View className="card">
-        <Text>通知</Text>
-        <View style={{ marginTop: 8 }}>
-          <EntryList items={NOTIFICATION_ENTRIES} />
-          <View
-            className="menu-item"
-            onClick={() => Taro.navigateTo({ url: "/pages/notifications/index" })}
-          >
-            <Text className="menu-label">通知设置</Text>
-            <Text className="menu-arrow">›</Text>
+      <View className="open-section">
+        <View className="section-title">常用</View>
+        <EntryList items={UTILITY_ENTRIES} />
+      </View>
+
+      <View className="open-section">
+        <View className="section-title">隐私与数据</View>
+        <View className="life-row">
+          <View className="life-row-body">
+            <View className="life-row-head">
+              <Text className="life-row-type">隐私</Text>
+            </View>
+            <View className="life-row-detail">只展示完成当前任务所需的信息；共享与照护权限由你确认。</View>
+          </View>
+        </View>
+        <View className="life-row">
+          <View className="life-row-body">
+            <View className="life-row-head">
+              <Text className="life-row-type">数据</Text>
+            </View>
+            <View className="life-row-detail">记录会保留来源与时间；支持的导出、分享和撤销能力会明确说明范围。</View>
           </View>
         </View>
       </View>
 
-      <View className="card">
-        <Text>更多</Text>
-        <View style={{ marginTop: 8 }}>
-          <EntryList items={MORE_ENTRIES} />
+      <View className="open-section">
+        <View
+          className="section-title"
+          onClick={() => setAccountOpen((value) => !value)}
+        >
+          应用
+          <Text className="section-caption">{accountOpen ? "收起" : "查看"}</Text>
         </View>
-      </View>
-
-      <View className="card">
-        <View className="row" style={{ justifyContent: "space-between" }} onClick={() => setSettingsOpen((v) => !v)}>
-          <Text>设置</Text>
-          <Text className="muted">{settingsOpen ? "收起" : "展开"}</Text>
-        </View>
-        {settingsOpen && (
-          <View className="muted" style={{ marginTop: 12 }}>
-            当前版本暂无更多设置项。应用版本 v1.0.0；数据与隐私说明随正式版提供。
+        {accountOpen ? (
+          <View className="soft-panel">
+            <View className="life-row">
+              <View className="life-row-body">
+                <View className="life-row-head">
+                  <Text className="life-row-type">Pet Life Intelligence</Text>
+                </View>
+                <View className="life-row-detail">当前为预览构建；未开放的能力会在页面中明确说明，不会伪装成已连接或已完成。</View>
+              </View>
+            </View>
           </View>
-        )}
-      </View>
-
-      <View className="muted" style={{ textAlign: "center", marginTop: 20 }}>
-        宠物生活智能 v1.0.0
+        ) : null}
       </View>
     </View>
   );
