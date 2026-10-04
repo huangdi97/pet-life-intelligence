@@ -137,3 +137,8 @@ R5.4 does not renumber the Stage H catalog; it closes the final design semantics
 - Required final visual evidence is a release gate. A missing required screenshot/contact-sheet source is a failure, not a placeholder.
 - Product Twin capability remains full on capable Web/Android and lightweight/honest on Mini.
 - No page-inventory completion claim changes `HUMAN_VISUAL_ACCEPTANCE = PENDING`.
+
+
+## R5.5 implementation-master addendum（2026-10-04）
+
+The page catalog is now bound to `docs/product/R5_5_FINAL_PRODUCT_UI_IMPLEMENTATION_MASTER.md`. Every listed owner surface must satisfy the shared page-completion contract, truthful state model, one-primary-action hierarchy, accessibility requirements and fresh-evidence rule defined there. This addendum changes no Page IDs and does not imply Human Visual Acceptance.
