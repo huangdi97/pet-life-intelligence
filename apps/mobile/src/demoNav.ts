@@ -28,6 +28,8 @@ export type DemoScreen =
   | "social"
   | "monitoring"
   | "companion"
+  | "medication"
+  | "care"
   | "twincapture"
   | "twinreview"
   | "twinversion";
@@ -51,6 +53,8 @@ const STACK_SCREENS: Record<string, keyof StackParamList> = {
   social: "Social",
   monitoring: "Monitoring",
   companion: "Companion",
+  medication: "Medication",
+  care: "Care",
   twincapture: "TwinCapture",
   twinreview: "TwinReview",
   twinversion: "TwinVersion",
