@@ -1,8 +1,8 @@
 /**
  * 生命视图 — 豆豆的可视生命状态入口 (Stage R.2 §31-36).
  * Photo-first：宠物视觉为焦点；此刻只显示真实来源的数据；
- * 3D 未接入时诚实显示“尚未创建 / 等待连接真实服务”，不伪装成功，
- * 不把 Provider/model 诊断信息放到 Owner 界面（保留在数据层）。
+ * 小程序保持轻量视觉模式：真实照片/物种视觉 + 此刻/趋势/记忆。
+ * 高保真交互 3D 已在支持的 Web/Android 客户端呈现；本端不伪装成已加载 3D。
  */
 import { useEffect, useState } from "react";
 import { Icon, Text, View } from "@tarojs/components";
@@ -93,18 +93,18 @@ export default function LifeView() {
       </View>
 
       <View className="open-section">
-        <View className="section-title">3D 形象</View>
+        <View className="section-title">可视形象</View>
         <View className="life-row">
           <View className="life-dot" />
           <View className="life-row-body">
             <View className="life-row-head">
-              <Text className="life-row-type">尚未创建</Text>
+              <Text className="life-row-type">小程序轻量模式</Text>
             </View>
-            <View className="life-row-detail">等待连接真实 3D 服务后生成。当前以照片与记录呈现。</View>
+            <View className="life-row-detail">当前小程序以照片/物种视觉与真实记录呈现；可交互高保真 3D 请在支持的 Web 或 Android 客户端查看。</View>
             {visualState === "ready" && providerReal === true && (
-              <View className="life-row-source">3D 服务已就绪，等待形象生成。</View>
+              <View className="life-row-source">3D 服务可用；本端仍保持轻量展示，不伪装成本地 3D。</View>
             )}
-            {visualState === "error" && <View className="life-row-source"><Icon type="info" size={14} color="#8A8074" /> 服务暂未开放，稍后重试。</View>}
+            {visualState === "error" && <View className="life-row-source"><Icon type="info" size={14} color="#8A8074" /> 3D 服务状态暂不可确认；不影响本端记录与生命轨迹。</View>}
           </View>
         </View>
       </View>
