@@ -51,10 +51,11 @@ export function MonitoringScreen() {
   if (loading) state = "LOADING";
   else if (error) state = "ERROR";
   else if (devices.length === 0) state = "NO_DEVICE";
+  else if (devices.some((d) => String(d.status).toLowerCase() === "offline")) state = "OFFLINE";
   else state = "CONNECTED";
 
   const stateText: Record<MonitorState, string> = {
-    LOADING: "正在连接…",
+    LOADING: "正在读取设备状态",
     CONNECTED: "已连接设备",
     NO_DEVICE: "尚未连接设备",
     OFFLINE: "设备离线",
@@ -68,7 +69,7 @@ export function MonitoringScreen() {
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.head} testID="pli.monitoring.identity">
           <Text style={styles.title}>{pet ? `${pet.name} · 在家` : "在家"}</Text>
-          <Text style={styles.sub}>设备与当前环境</Text>
+          <Text style={styles.sub}>真实设备连接与最近一次同步状态；未知或离线不会显示成在线。</Text>
         </View>
 
         <View testID={`pli.monitoring.state.${state}`} style={styles.stateRow}>
@@ -81,7 +82,7 @@ export function MonitoringScreen() {
         </View>
 
         {state === "LOADING" ? (
-          <Text style={styles.emptyText}>正在连接…</Text>
+          <Text style={styles.emptyText}>正在读取最近一次设备状态…</Text>
         ) : state === "ERROR" ? (
           <View style={styles.empty}>
             <Text style={styles.emptyBody}>暂时无法获取设备状态，请稍后重试。</Text>
