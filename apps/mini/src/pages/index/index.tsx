@@ -235,8 +235,8 @@ export default function Index() {
             <AttentionPanel kind="calm" body="目前没有需要特别关注的变化。" />
           )}
 
-          {tasks && tasks.length > 0 && <TodayTasks tasks={tasks} onComplete={completeTask} />}
-
+          {/* R5.4: ACTION immediately follows Attention; supporting tasks
+              and contextual capabilities must not displace the primary action. */}
           <View className="primary-action" onClick={() => setSheetOpen(true)}>
             快速记录
           </View>
@@ -253,10 +253,17 @@ export default function Index() {
               <Text className="secondary-action-icon">看</Text>
               看看它
             </View>
-            <View className="secondary-action" onClick={toggleMonitor}>
-              <Text className="secondary-action-icon">家</Text>
-              {monitorOpen ? "收起在家" : "在家"}
-            </View>
+          </View>
+
+          {tasks && tasks.length > 0 && <TodayTasks tasks={tasks} onComplete={completeTask} />}
+
+          <View
+            className="secondary-action"
+            style={{ marginTop: 8, marginLeft: 16, marginRight: 16 }}
+            onClick={toggleMonitor}
+          >
+            <Text className="secondary-action-icon">家</Text>
+            {monitorOpen ? "收起在家状态" : "查看在家状态"}
           </View>
 
           {monitorOpen && (
