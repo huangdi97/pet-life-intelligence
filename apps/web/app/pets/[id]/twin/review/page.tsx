@@ -236,14 +236,25 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
                 ? "基本像：已记录确认"
                 : "很像：已记录确认"}
         </h2>
+        {selected === "not_like" ? (
+          <button
+            type="button"
+            className="btn"
+            onClick={submitReview}
+            disabled={busy}
+            data-testid="pli.twinreview.action.feedback"
+          >
+            {busy ? "提交中…" : "提交不像反馈"}
+          </button>
+        ) : null}
         <button
           type="button"
           className="btn primary"
           onClick={submitReview}
-          disabled={busy || !selected}
+          disabled={busy || !selected || selected === "not_like"}
           data-testid="pli.twinreview.action.activate"
         >
-          {busy ? "提交中…" : selected === "not_like" ? "提交反馈" : "确认并启用"}
+          {selected === "not_like" ? "需补充素材后重新生成" : busy ? "提交中…" : "确认并启用"}
         </button>
         <div className="row" style={{ marginTop: 10 }}>
           <Link href={`/pets/${petId}/capture`} className="btn">
