@@ -38,8 +38,8 @@
   "normalize": {
     "scale": 0.2237338037511929,
     "translate_y_min": -0.05321439252746105,
-    "height": 1.0,
-    "rotate_y_deg": -90.0
+    "height": 1,
+    "rotate_y_deg": -90
   },
   "morphology": {
     "applied": false
@@ -54,5 +54,7 @@
     "head_min_z": -0.6325041238783207,
     "head_max_z": 0.6325041238783207,
     "head_min_y": 0.55
-  }
+  },
+  "provenanceMode": "DEMO_TEMPLATE",
+  "sourceGeometryClass": "template-cat"
 }
