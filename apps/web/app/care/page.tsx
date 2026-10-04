@@ -1,6 +1,7 @@
 "use client";
 
-import { api, API_URL, type Grant, type HouseholdMemberRow } from "@pli/api-client";
+import Link from "next/link";
+import { api, type Grant } from "@pli/api-client";
 import { useState } from "react";
 import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State } from "../../components/ui";
@@ -95,7 +96,7 @@ export default function CarePage() {
     <main className="v4-main v5-domain-page v5-utility-page">
       <div className="v4-topline v5-page-lede">
         <h1>照护网络</h1>
-        <p className="sub">家庭成员、临时交接与 Care Card。权限按人、用途与时间清楚管理。</p>
+        <p className="sub">家庭成员、临时交接与照护卡。权限按人、用途与时间清楚管理。</p>
       </div>
       <ErrorNote message={error} />
 
@@ -163,7 +164,7 @@ export default function CarePage() {
       </section>
 
       <section className="v5-utility-surface v5-utility-surface--soft">
-        <h2>生成 Care Card</h2>
+        <h2>生成照护卡</h2>
         <p className="muted">
           最小字段卡片：喂养/用药/行为禁忌/紧急联系人/首选医院（文字），不含完整医疗历史。
           链接可撤销、会过期、访问留审计。
@@ -172,10 +173,24 @@ export default function CarePage() {
           生成并获取链接
         </button>
         {card && (
-          <div className="alert info" style={{ marginTop: 10 }}>
-            分享链接（72h 有效）：<code>/care-card/{card.token}</code>
-            <br />
-            <span className="muted">在浏览器打开 {`${API_URL}/api/v1/care-card/${card.token}`} 查看效果</span>
+          <div className="v4-calm" style={{ marginTop: 12 }}>
+            <div>
+              <p className="v4-calm-title">照护卡已生成 · 72 小时有效</p>
+              <p className="v4-calm-body">
+                分享给临时照护人即可查看最小必要信息；不会暴露完整医疗历史。
+              </p>
+              <div className="v4-linkrow">
+                <Link
+                  className="v4-action v4-action--primary"
+                  href={`/share/care-card/${card.token}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  打开照护卡
+                </Link>
+                <code>/care-card/{card.token}</code>
+              </div>
+            </div>
           </div>
         )}
       </section>
