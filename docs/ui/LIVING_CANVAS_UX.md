@@ -1,6 +1,6 @@
 # LIVING_CANVAS_UX — Living Canvas（Today）体验规范
 
-> 阶段：Stage R.2（v0.2.0）· 日期：2026-09-26 · 状态：MOBILE + WEB + MINI IMPLEMENTED
+> 阶段：Stage R.2 → R5.4 · 日期：2026-10-04 · 状态：MOBILE + WEB + MINI IMPLEMENTED CANDIDATE / HUMAN VISUAL ACCEPTANCE PENDING
 > 更新说明：由 Stage H.2 版升级为 R.2 版（§18-§27）；实现：apps/mobile/src/screens/TodayScreen.tsx、apps/web/app/page.tsx、apps/mini/src/pages/index/
 
 ## 1. 体验主轴（§6，禁止 Banner + 宫格 + Dashboard 范式）
@@ -84,3 +84,20 @@ Recent 不是 Event Card 列表，而是 compact life stream preview（时间 + 
 - §78 Gate：PET_VISUAL_PRESENT=YES · PET_IS_PRIMARY_FOCUS=YES · LIVING_CANVAS=YES · CARD_DASHBOARD_PATTERN=NO · ONE_ATTENTION=YES · PRIMARY_ACTION_CLEAR=YES · OWNER_INTERNAL_TERMS=0。
 - §90 量化护栏：宠物 visible above fold=YES；real/demo media when available=YES（本轮 species visual，ACCEPTED_LIMITATION）；首屏同权卡片 ≤2；primary CTA ≤2；internal terms=0。
 - 截图：artifacts/visual-reconstruction/v0.2.0/wave-01-today/after/（with-data 390+360 / empty / attention / offline / multipet）。
+
+
+## 13. R5.4 final ordering
+
+R5.4 freezes the owner-facing ordering as:
+
+`PET → NOW → CHANGE → ATTENTION → ACTION → SUPPORT → MEMORY`
+
+where SUPPORT includes tasks, monitoring and other contextual utilities. SUPPORT may be omitted and does not become a new primary layer.
+
+Implementation implications:
+
+- Mobile and Mini place **快速记录** immediately after Attention.
+- The primary secondary-action cluster contains at most two peer actions; contextual Monitoring is separated from that cluster.
+- Tasks do not appear before the primary action.
+- Web may use a two-column responsive composition, but the semantic order remains Now → Attention → Action before supporting rail content.
+- Human Visual Acceptance still requires fresh runtime screenshots after the final implementation commit.
