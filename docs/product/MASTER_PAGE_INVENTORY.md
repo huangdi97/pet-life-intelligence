@@ -84,14 +84,26 @@
 
 | Page ID | Name | Screen | JTBD |
 |---|---|---|---|
-| MOB-001 | Today | TodayScreen | 五问 + Quick Log + Companion/Monitoring 入口 |
-| MOB-002 | Quick Log | QuickLogScreen(modal) | ≤10 秒记录（11 类） |
-| MOB-003 | Timeline | TimelineScreen | 时间线 + 筛选 |
-| MOB-004 | Monitoring | MonitoringScreen | 在家状态/设备 |
-| MOB-005 | Companion | CompanionScreen(原型) | Observe/Presence/Enrichment |
-| MOB-006 | Notifications | NotificationsScreen | 通知 |
-| MOB-007 | Health | HealthScreen | 健康流程 |
-| MOB-008 | Me | MeScreen | 设置/家庭/隐私 |
+| MOB-001 | Today | TodayScreen | Pet-first 五问 + Quick Log + 当前状态/关注/最近记忆 |
+| MOB-002 | Quick Log | QuickLogScreen(modal) | ≤10 秒高频生活记录 |
+| MOB-003 | Timeline | TimelineScreen | 生命时间线 + 筛选 + 来源 |
+| MOB-004 | Monitoring | MonitoringScreen | 真实设备连接/无设备/离线/错误状态 |
+| MOB-005 | Companion | CompanionScreen | Observe/Presence/Enrichment/Learned；不伪装 LIVE |
+| MOB-006 | Notifications | NotificationsScreen | 统一通知与注意力入口 |
+| MOB-007 | Health | HealthScreen | 读先于写：近期状态/变化/记录/风险分级 |
+| MOB-008 | Me | MeScreen | 家庭/宠物/常用/隐私/数据/应用 |
+| MOB-009 | Pet World | PetScreen | 个体宠物主页 + 六生活域 + 朋友/照护/生命入口 |
+| MOB-010 | Assistant | AssistantScreen | Pet-aware Ask/Brief/Find/Plan/Explain |
+| MOB-011 | Life View | LifeViewScreen | Warm Reality Field + Individual Twin + 此刻/趋势/外观 |
+| MOB-012 | Behavior | BehaviorScreen | 真实行为观察；Owner 语言优先 |
+| MOB-013 | Training | TrainingScreen | 目标/训练记录/进展 |
+| MOB-014 | Welfare | WelfareScreen | Evidence/Trend/Uncertainty；不做情绪分数 |
+| MOB-015 | Social | SocialScreen | 关系/朋友/真实互动，不做伪精确兼容度 |
+| MOB-016 | Medication | MedicationScreen | 处方来源约束的计划/待给药/给药历史 |
+| MOB-017 | Care | CareScreen | 临时交接/限定权限/到期/最小照护卡 |
+| MOB-018 | Twin Capture | PetTwinCaptureScreen | 个体形象素材采集/状态 |
+| MOB-019 | Twin Review | PetTwinReviewScreen | Front/Side/Rear Identity Review + 不像阻断激活 |
+| MOB-020 | Twin Versions | PetTwinVersionScreen | 3D 形象版本/激活/回看 |
 
 ## H5 Share（apps/web/share）
 
