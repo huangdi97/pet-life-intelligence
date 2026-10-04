@@ -182,7 +182,7 @@ export function WelfareScreen() {
               <Text style={styles.formLabel}>记录生活观察</Text>
               <View style={styles.chipRow}>
                 {WELFARE_KINDS.map((k) => (
-                  <Pressable key={k.value} onPress={() => setKind(k.value)} style={[styles.chip, kind === k.value && styles.chipActive]}>
+                  <Pressable key={k.value} accessibilityRole="button" accessibilityLabel={k.label} accessibilityState={{ selected: kind === k.value }} onPress={() => setKind(k.value)} style={[styles.chip, kind === k.value && styles.chipActive]}>
                     <Text style={[styles.chipText, kind === k.value && styles.chipActiveText]}>{k.label}</Text>
                   </Pressable>
                 ))}
@@ -191,6 +191,7 @@ export function WelfareScreen() {
                 testID="pli.welfare.action"
                 accessibilityRole="button"
                 accessibilityLabel="记录观察"
+                accessibilityState={{ disabled: busy }}
                 disabled={busy}
                 onPress={() => void recordObservation()}
                 style={({ pressed }) => [styles.submitBtn, busy && styles.pressed, pressed && styles.pressed]}
@@ -231,11 +232,11 @@ const styles = StyleSheet.create({
   formSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
   formLabel: { fontSize: TYPE.section, fontWeight: "600", color: COLORS.textPrimary, marginBottom: SPACE.s2 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
-  chip: { paddingHorizontal: SPACE.s3, paddingVertical: 6, borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
+  chip: { minHeight: 44, paddingHorizontal: SPACE.s3, paddingVertical: 6, justifyContent: "center", borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
   chipActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
   chipText: { fontSize: TYPE.sm, color: COLORS.textTertiary },
   chipActiveText: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
-  submitBtn: { marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 12, alignItems: "center" },
+  submitBtn: { marginTop: SPACE.s3, minHeight: 48, justifyContent: "center", backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 12, alignItems: "center" },
   submitText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   msg: { fontSize: TYPE.sm, marginTop: SPACE.s2 },
   msgOk: { color: COLORS.success },

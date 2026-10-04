@@ -136,6 +136,8 @@ export function MeScreen() {
           <OpenSection title="开发者设置" testID="pli.me.settings">
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={devOpen ? "收起演示环境登录" : "展开演示环境登录"}
+              accessibilityState={{ expanded: devOpen }}
               style={styles.linkRow}
               onPress={() => setDevOpen((v) => !v)}
             >
@@ -146,7 +148,7 @@ export function MeScreen() {
             {devOpen ? (
               <View style={styles.devForm}>
                 <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="demo 邮箱" placeholderTextColor={COLORS.textTertiary} />
-                <Pressable accessibilityRole="button" accessibilityLabel="登录" onPress={() => void login()} disabled={loginBusy} style={styles.devLoginBtn}>
+                <Pressable accessibilityRole="button" accessibilityLabel="登录" accessibilityState={{ disabled: loginBusy }} onPress={() => void login()} disabled={loginBusy} style={[styles.devLoginBtn, loginBusy && styles.controlDisabled]}>
                   <Text style={styles.devLoginText}>{loginBusy ? "登录中…" : "登录"}</Text>
                 </Pressable>
                 {loginError ? <Text style={styles.errorText}>{loginError}</Text> : null}
@@ -204,10 +206,11 @@ const styles = StyleSheet.create({
     fontSize: TYPE.body,
     color: COLORS.textPrimary,
   },
-  devLoginBtn: { backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 10, alignItems: "center" },
+  devLoginBtn: { minHeight: 48, justifyContent: "center", backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 10, alignItems: "center" },
   devLoginText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   devNote: { fontSize: TYPE.caption, color: COLORS.textTertiary },
   errorText: { fontSize: TYPE.sm, color: COLORS.danger },
-  logoutBtn: { marginHorizontal: SPACE.s4, marginTop: SPACE.s5, paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: COLORS.dividerStrong, alignItems: "center" },
+  logoutBtn: { minHeight: 48, justifyContent: "center", marginHorizontal: SPACE.s4, marginTop: SPACE.s5, paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: COLORS.dividerStrong, alignItems: "center" },
+  controlDisabled: { opacity: 0.5 },
   logoutText: { fontSize: TYPE.button, color: COLORS.textSecondary, fontWeight: "600" },
 });

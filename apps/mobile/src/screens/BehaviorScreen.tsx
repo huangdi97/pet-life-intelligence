@@ -156,6 +156,8 @@ export function BehaviorScreen() {
               <Pressable
                 testID="pli.behavior.action"
                 accessibilityRole="button"
+                accessibilityLabel={formOpen ? "收起行为记录表单" : "记录行为"}
+                accessibilityState={{ expanded: formOpen }}
                 onPress={() => setFormOpen((v) => !v)}
                 style={({ pressed }) => [styles.formToggle, pressed && styles.pressed]}
               >
@@ -192,6 +194,7 @@ export function BehaviorScreen() {
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="保存行为事件"
+                    accessibilityState={{ disabled: saving }}
                     disabled={saving}
                     onPress={() => void submit()}
                     style={({ pressed }) => [styles.submitBtn, saving && styles.pressed, pressed && !saving && styles.pressed]}
@@ -219,7 +222,7 @@ function AbcLine({ label, value }: { label: string; value: string }) {
 
 function ChipPressable({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: active }} onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
       <Text style={[styles.chipText, active && styles.chipActiveText]}>{label}</Text>
     </Pressable>
   );
@@ -247,7 +250,7 @@ const styles = StyleSheet.create({
   abcValue: { fontSize: TYPE.sm, color: COLORS.textPrimary, flex: 1 },
   hintText: { fontSize: TYPE.body, color: COLORS.textTertiary, lineHeight: 22 },
   formSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
-  formToggle: { paddingVertical: 12, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center" },
+  formToggle: { minHeight: 48, paddingVertical: 12, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center", justifyContent: "center" },
   formToggleText: { fontSize: TYPE.button, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   formWrap: { marginTop: SPACE.s3 },
   fieldLabel: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginTop: SPACE.s3, marginBottom: SPACE.s1 },
@@ -265,12 +268,12 @@ const styles = StyleSheet.create({
   fieldRow: { flexDirection: "row", gap: SPACE.s3 },
   fieldHalf: { flex: 1 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
-  chip: { paddingHorizontal: SPACE.s3, paddingVertical: 6, borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
+  chip: { minHeight: 44, paddingHorizontal: SPACE.s3, paddingVertical: 6, justifyContent: "center", borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
   chipActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
   chipText: { fontSize: TYPE.sm, color: COLORS.textTertiary },
   chipActiveText: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   errorText: { fontSize: TYPE.sm, color: COLORS.danger, marginTop: SPACE.s2 },
-  submitBtn: { marginTop: SPACE.s4, backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 12, alignItems: "center" },
+  submitBtn: { marginTop: SPACE.s4, minHeight: 48, justifyContent: "center", backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 12, alignItems: "center" },
   submitText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   pressed: { opacity: 0.85 },
 });

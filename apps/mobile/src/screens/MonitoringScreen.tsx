@@ -152,6 +152,6 @@ const styles = StyleSheet.create({
   devicePill: { backgroundColor: COLORS.brandSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   devicePillText: { fontSize: TYPE.caption, color: COLORS.textSecondary, fontWeight: "600" },
   lastSync: { fontSize: TYPE.caption, color: COLORS.textTertiary, paddingHorizontal: SPACE.s4, marginTop: SPACE.s3 },
-  refreshBtn: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3, paddingVertical: 10, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center" },
+  refreshBtn: { minHeight: 48, marginHorizontal: SPACE.s4, marginTop: SPACE.s3, paddingVertical: 10, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center", justifyContent: "center" },
   refreshText: { fontSize: TYPE.button, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
 });

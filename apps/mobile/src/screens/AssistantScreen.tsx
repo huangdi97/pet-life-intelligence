@@ -112,6 +112,7 @@ export function AssistantScreen() {
                 key={m.id}
                 accessibilityRole="button"
                 accessibilityLabel={m.label}
+                accessibilityState={{ selected: active }}
                 onPress={() => setTab(m.id)}
                 style={[styles.mode, active && styles.modeActive, primary && styles.modePrimary, active && primary && styles.modePrimaryActive]}
               >
@@ -129,6 +130,7 @@ export function AssistantScreen() {
                   key={a.key}
                   testID={`pli.assistant.suggestion.${a.key}`}
                   accessibilityRole="button"
+                  accessibilityLabel={a.label}
                   onPress={() => (a.route === "Timeline" ? tabNav.navigate("Timeline") : setQuestion(a.fill ?? ""))}
                   style={styles.suggestion}
                 >
@@ -147,7 +149,15 @@ export function AssistantScreen() {
                 onSubmitEditing={() => void ask(question)}
                 returnKeyType="send"
               />
-              <Pressable testID="pli.assistant.send" accessibilityRole="button" accessibilityLabel="提问" onPress={() => void ask(question)} style={styles.askBtn}>
+              <Pressable
+                testID="pli.assistant.send"
+                accessibilityRole="button"
+                accessibilityLabel="提问"
+                accessibilityState={{ disabled: asking || !question.trim() }}
+                disabled={asking || !question.trim()}
+                onPress={() => void ask(question)}
+                style={[styles.askBtn, (asking || !question.trim()) && styles.askBtnDisabled]}
+              >
                 <Text style={styles.askBtnText}>{asking ? "思考中…" : "提问"}</Text>
               </Pressable>
             </View>
@@ -220,7 +230,7 @@ const styles = StyleSheet.create({
   title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
   modeRow: { flexDirection: "row", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s4 },
-  mode: { paddingHorizontal: SPACE.s4, paddingVertical: 8, borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
+  mode: { minHeight: 44, paddingHorizontal: SPACE.s4, paddingVertical: 8, alignItems: "center", justifyContent: "center", borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
   modeActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
   modePrimary: { backgroundColor: COLORS.brandPrimary, borderColor: COLORS.brandPrimary },
   modePrimaryActive: { backgroundColor: COLORS.brandPrimaryDeep },
@@ -230,7 +240,7 @@ const styles = StyleSheet.create({
   modePrimaryTextActive: { color: COLORS.textInverse },
   askWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s4 },
   suggestionRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
-  suggestion: { backgroundColor: COLORS.brandSoft, borderRadius: 999, paddingHorizontal: SPACE.s3, paddingVertical: 6 },
+  suggestion: { minHeight: 44, justifyContent: "center", backgroundColor: COLORS.brandSoft, borderRadius: 999, paddingHorizontal: SPACE.s3, paddingVertical: 6 },
   suggestionText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
   askRow: { flexDirection: "row", gap: SPACE.s2, marginTop: SPACE.s3 },
   input: {
@@ -244,7 +254,8 @@ const styles = StyleSheet.create({
     fontSize: TYPE.body,
     color: COLORS.textPrimary,
   },
-  askBtn: { backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingHorizontal: SPACE.s4, justifyContent: "center" },
+  askBtn: { minHeight: 44, backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingHorizontal: SPACE.s4, justifyContent: "center" },
+  askBtnDisabled: { opacity: 0.5 },
   askBtnText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   errorText: { fontSize: TYPE.sm, color: COLORS.danger, marginTop: SPACE.s2 },
   emptyState: { alignItems: "center", paddingVertical: SPACE.s8 },
