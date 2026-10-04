@@ -177,7 +177,7 @@ export function PetTwinCaptureScreen() {
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.canvas },
   header: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2 },
-  back: { padding: 4 },
+  back: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   headerText: { flex: 1 },
   title: { fontSize: TYPE.pageTitle, color: COLORS.textPrimary, fontWeight: "700" },
   subtitle: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginTop: 2 },
@@ -197,12 +197,12 @@ const styles = StyleSheet.create({
   qcValue: { fontSize: TYPE.sm, color: COLORS.textTertiary },
   retakeBox: { backgroundColor: COLORS.attentionBg, borderRadius: 14, padding: SPACE.s3, marginTop: SPACE.s3 },
   retakeText: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20 },
-  retakeBtn: { marginTop: SPACE.s2, alignSelf: "flex-start", backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingHorizontal: SPACE.s4, paddingVertical: 8 },
+  retakeBtn: { minHeight: 44, justifyContent: "center", marginTop: SPACE.s2, alignSelf: "flex-start", backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingHorizontal: SPACE.s4, paddingVertical: 8 },
   retakeBtnText: { color: COLORS.textInverse, fontSize: TYPE.sm, fontWeight: "600" },
   error: { color: COLORS.danger, marginTop: SPACE.s3, fontSize: TYPE.sm },
   qcBox: { backgroundColor: COLORS.attentionBg, borderRadius: 14, padding: SPACE.s3, marginTop: SPACE.s3 },
   qcItem: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20 },
-  cta: { marginTop: SPACE.s4, backgroundColor: COLORS.brandPrimary, borderRadius: 14, paddingVertical: 14, alignItems: "center" },
+  cta: { minHeight: 52, justifyContent: "center", marginTop: SPACE.s4, backgroundColor: COLORS.brandPrimary, borderRadius: 14, paddingVertical: 14, alignItems: "center" },
   ctaDisabled: { opacity: 0.5 },
   ctaText: { color: COLORS.textInverse, fontSize: TYPE.body, fontWeight: "700" },
 });

@@ -87,7 +87,7 @@ export function PetTwinVersionScreen() {
             <OpenSection title="暂时连接不上">
               <View style={styles.loadErrorRow}>
                 <Text style={styles.emptyText}>暂时无法获取 3D 形象列表，请稍后重试。</Text>
-                <Pressable accessibilityRole="button" onPress={load} style={styles.cta}>
+                <Pressable accessibilityRole="button" accessibilityLabel="重试加载 3D 形象版本" onPress={load} style={styles.cta}>
                   <Text style={styles.ctaText}>重试</Text>
                 </Pressable>
               </View>
@@ -144,7 +144,7 @@ export function PetTwinVersionScreen() {
                       {observed.length ? `来自照片：${observed.join("、")}` : "外观由模板默认生成（无照片）"}
                     </Text>
                     <View testID={`pli.twinversion.history.action.${v.version}`} style={styles.rowActions}>
-                      <Pressable testID={`pli.twinversion.history.${v.version}`} accessibilityRole="button" onPress={() => navigation.navigate("TwinReview", { version: v.version })} style={styles.smallBtn}>
+                      <Pressable testID={`pli.twinversion.history.${v.version}`} accessibilityRole="button" accessibilityLabel={`查看并确认第 ${v.version} 版 3D 形象`} onPress={() => navigation.navigate("TwinReview", { version: v.version })} style={styles.smallBtn}>
                         <Text style={styles.smallBtnText}>查看 / 确认</Text>
                       </Pressable>
                     </View>
@@ -165,14 +165,14 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: TYPE.body, color: COLORS.textSecondary, lineHeight: 22 },
   loadErrorRow: { alignItems: "flex-start", gap: SPACE.s3 },
   header: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2 },
-  back: { padding: 4 },
+  back: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   headerText: { flex: 1 },
   title: { fontSize: TYPE.pageTitle, color: COLORS.textPrimary, fontWeight: "700" },
   subtitle: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginTop: 2 },
-  add: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.brandPrimary, alignItems: "center", justifyContent: "center" },
+  add: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.brandPrimary, alignItems: "center", justifyContent: "center" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: SPACE.s3, paddingBottom: SPACE.s8 },
-  cta: { marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
+  cta: { minHeight: 48, justifyContent: "center", marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
   ctaText: { color: COLORS.textInverse, fontSize: TYPE.body, fontWeight: "700" },
   activeRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingVertical: 4 },
   activeText: { fontSize: TYPE.body, color: COLORS.textPrimary, flex: 1 },
@@ -184,6 +184,6 @@ const styles = StyleSheet.create({
   status: { fontSize: TYPE.sm, color: COLORS.textSecondary },
   versionMeta: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: 3 },
   rowActions: { marginTop: 8 },
-  smallBtn: { alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: COLORS.bgSurfaceMuted },
+  smallBtn: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: COLORS.bgSurfaceMuted },
   smallBtnText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
 });

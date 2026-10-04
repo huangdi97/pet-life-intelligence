@@ -147,7 +147,7 @@ export function MedicationScreen() {
                         <Text style={styles.doseTitle}>{doseLabel(d.status)}</Text>
                         <Text style={styles.meta}>{timeLabel(d.planned_at)}</Text>
                       </View>
-                      <Pressable accessibilityRole="button" onPress={() => void give(plan.plan_id, d.dose_id)} style={styles.giveBtn}>
+                      <Pressable accessibilityRole="button" accessibilityLabel={`记录给药：${plan.medicine_name}`} accessibilityState={{ disabled: busy }} disabled={busy} onPress={() => void give(plan.plan_id, d.dose_id)} style={[styles.giveBtn, busy && styles.disabled]}>
                         <Text style={styles.giveText}>记录给药</Text>
                       </Pressable>
                     </View>
@@ -167,7 +167,7 @@ export function MedicationScreen() {
         )}
 
         <View style={styles.formSection}>
-          <Pressable accessibilityRole="button" onPress={() => setFormOpen((v) => !v)} style={styles.toggle}>
+          <Pressable accessibilityRole="button" accessibilityLabel={formOpen ? "收起新建用药计划" : "新建用药计划"} accessibilityState={{ expanded: formOpen }} onPress={() => setFormOpen((v) => !v)} style={styles.toggle}>
             <Text style={styles.toggleText}>{formOpen ? "收起新计划" : "＋ 新建用药计划"}</Text>
           </Pressable>
           {formOpen ? (
@@ -177,7 +177,7 @@ export function MedicationScreen() {
               <Text style={styles.label}>剂量文字</Text>
               <TextInput style={styles.input} value={dose} onChangeText={setDose} placeholder="例如 50mg" placeholderTextColor={COLORS.textTertiary} />
               <Text style={styles.note}>此入口只保存你依据处方录入的信息，不生成剂量建议。</Text>
-              <Pressable accessibilityRole="button" disabled={busy || !medicine.trim() || !dose.trim()} onPress={() => void createPlan()} style={[styles.primary, (busy || !medicine.trim() || !dose.trim()) && styles.disabled]}>
+              <Pressable accessibilityRole="button" accessibilityLabel="创建用药计划" accessibilityState={{ disabled: busy || !medicine.trim() || !dose.trim() }} disabled={busy || !medicine.trim() || !dose.trim()} onPress={() => void createPlan()} style={[styles.primary, (busy || !medicine.trim() || !dose.trim()) && styles.disabled]}>
                 <Text style={styles.primaryText}>{busy ? "处理中…" : "创建计划"}</Text>
               </Pressable>
             </View>
@@ -203,20 +203,20 @@ const styles = StyleSheet.create({
   missed: { fontSize: TYPE.caption, color: COLORS.danger, backgroundColor: COLORS.dangerBg, borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 4 },
   doseRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, marginTop: SPACE.s3 },
   doseTitle: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "600" },
-  giveBtn: { backgroundColor: COLORS.brandSoftGreen, borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 8 },
+  giveBtn: { minHeight: 44, justifyContent: "center", backgroundColor: COLORS.brandSoftGreen, borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 8 },
   giveText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   history: { marginTop: SPACE.s3 },
   historyRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5 },
   historyStatus: { fontSize: TYPE.sm, color: COLORS.textSecondary },
   emptyLine: { marginTop: SPACE.s3, fontSize: TYPE.sm, color: COLORS.textTertiary },
   formSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
-  toggle: { paddingVertical: 12, borderRadius: RADIUS.pill, backgroundColor: COLORS.brandSoftGreen, alignItems: "center" },
+  toggle: { minHeight: 48, justifyContent: "center", paddingVertical: 12, borderRadius: RADIUS.pill, backgroundColor: COLORS.brandSoftGreen, alignItems: "center" },
   toggleText: { fontSize: TYPE.button, fontWeight: "600", color: COLORS.brandPrimaryDeep },
   form: { marginTop: SPACE.s3, backgroundColor: COLORS.surfaceRaised, borderRadius: RADIUS.xl, padding: SPACE.s4 },
   label: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginTop: SPACE.s2, marginBottom: 4 },
   input: { borderWidth: 1, borderColor: COLORS.dividerStrong, borderRadius: RADIUS.md, backgroundColor: COLORS.surface, paddingHorizontal: SPACE.s3, paddingVertical: 10, fontSize: TYPE.body, color: COLORS.textPrimary },
   note: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: SPACE.s3, lineHeight: 18 },
-  primary: { marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: "center" },
+  primary: { minHeight: 48, justifyContent: "center", marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: "center" },
   primaryText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   disabled: { opacity: 0.5 },
 });

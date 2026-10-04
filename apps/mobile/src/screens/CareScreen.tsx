@@ -127,7 +127,7 @@ export function CareScreen() {
                     <Text style={styles.meta}>至 {timeLabel(handoff.end_at)}</Text>
                   </View>
                   {handoff.status === "ACTIVE" ? (
-                    <Pressable accessibilityRole="button" onPress={() => void endHandoff(handoff.handoff_id)} style={styles.secondary}>
+                    <Pressable accessibilityRole="button" accessibilityLabel={`结束${handoff.caregiver_label || "临时照护人"}的照护交接`} accessibilityState={{ disabled: busy }} disabled={busy} onPress={() => void endHandoff(handoff.handoff_id)} style={[styles.secondary, busy && styles.disabled]}>
                       <Text style={styles.secondaryText}>结束</Text>
                     </Pressable>
                   ) : null}
@@ -151,14 +151,14 @@ export function CareScreen() {
           <Text style={styles.note}>临时照护人默认只获得日常查看与记录权限；到期自动失效，不能转授管理权限。</Text>
           <TextInput style={styles.input} value={caregiver} onChangeText={setCaregiver} placeholder="临时照护人成员标识" placeholderTextColor={COLORS.textTertiary} />
           <TextInput style={styles.input} value={hours} onChangeText={setHours} keyboardType="number-pad" placeholder="有效小时数" placeholderTextColor={COLORS.textTertiary} />
-          <Pressable accessibilityRole="button" disabled={busy || !caregiver.trim()} onPress={() => void createHandoff()} style={[styles.primary, (busy || !caregiver.trim()) && styles.disabled]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="创建临时照护交接" accessibilityState={{ disabled: busy || !caregiver.trim() }} disabled={busy || !caregiver.trim()} onPress={() => void createHandoff()} style={[styles.primary, (busy || !caregiver.trim()) && styles.disabled]}>
             <Text style={styles.primaryText}>{busy ? "处理中…" : "创建交接"}</Text>
           </Pressable>
         </OpenSection>
 
         <OpenSection title="照护卡">
           <Text style={styles.note}>只分享喂养、用药、禁忌与紧急联系人等最小必要信息，不包含完整医疗历史。</Text>
-          <Pressable accessibilityRole="button" disabled={busy} onPress={() => void issueCard()} style={styles.primary}>
+          <Pressable accessibilityRole="button" accessibilityLabel="生成 72 小时照护卡" accessibilityState={{ disabled: busy }} disabled={busy} onPress={() => void issueCard()} style={[styles.primary, busy && styles.disabled]}>
             <Text style={styles.primaryText}>生成 72 小时照护卡</Text>
           </Pressable>
           {card ? (
@@ -185,13 +185,13 @@ const styles = StyleSheet.create({
   rowTitle: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary },
   rowBody: { marginTop: 3, fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20 },
   meta: { marginTop: 3, fontSize: TYPE.caption, color: COLORS.textTertiary },
-  secondary: { backgroundColor: COLORS.brandSoft, borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 7 },
+  secondary: { minHeight: 44, justifyContent: "center", backgroundColor: COLORS.brandSoft, borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 7 },
   secondaryText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   record: { paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: COLORS.dividerSubtle },
   emptyLine: { fontSize: TYPE.body, color: COLORS.textTertiary, paddingVertical: 8 },
   note: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20, marginBottom: SPACE.s2 },
   input: { marginTop: SPACE.s2, borderWidth: 1, borderColor: COLORS.dividerStrong, borderRadius: RADIUS.md, backgroundColor: COLORS.surface, paddingHorizontal: SPACE.s3, paddingVertical: 10, fontSize: TYPE.body, color: COLORS.textPrimary },
-  primary: { marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: "center" },
+  primary: { minHeight: 48, justifyContent: "center", marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: "center" },
   primaryText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   disabled: { opacity: 0.5 },
   cardResult: { marginTop: SPACE.s3, backgroundColor: COLORS.brandSoftGreen, borderRadius: RADIUS.xl, padding: SPACE.s3 },

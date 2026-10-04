@@ -189,7 +189,7 @@ export function HealthDetailScreen() {
 
 function Action({ label, disabled, onPress }: { label: string; disabled: boolean; onPress: () => void | Promise<void> }) {
   return (
-    <Pressable accessibilityRole="button" disabled={disabled} onPress={() => void onPress()} style={[styles.action, disabled && styles.disabled]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={() => void onPress()} style={[styles.action, disabled && styles.disabled]}>
       <Text style={styles.actionText}>{label}</Text>
     </Pressable>
   );
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   empty: { fontSize: TYPE.body, color: COLORS.textTertiary, paddingVertical: 8 },
   form: { marginTop: SPACE.s2 },
   input: { marginTop: SPACE.s2, borderWidth: 1, borderColor: COLORS.dividerStrong, borderRadius: RADIUS.md, backgroundColor: COLORS.surface, paddingHorizontal: SPACE.s3, paddingVertical: 10, fontSize: TYPE.body, color: COLORS.textPrimary },
-  action: { marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: RADIUS.pill, paddingVertical: 11, alignItems: "center" },
+  action: { minHeight: 48, justifyContent: "center", marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: RADIUS.pill, paddingVertical: 11, alignItems: "center" },
   actionText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   disabled: { opacity: 0.5 },
   brief: { marginTop: SPACE.s3, borderRadius: RADIUS.xl, backgroundColor: COLORS.surfaceRaised, padding: SPACE.s3 },

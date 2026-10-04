@@ -208,7 +208,8 @@ export function PetTwinReviewScreen() {
               <Text style={styles.issueLabel}>哪里不像？</Text>
               <View style={styles.chipRow}>
                 {ISSUES.map((i, idx) => (
-                  <Pressable key={i} testID={`pli.twinreview.issue.${idx}`} accessibilityRole="button" onPress={() => toggleIssue(i)}
+                  <Pressable key={i} testID={`pli.twinreview.issue.${idx}`} accessibilityRole="button"
+                    accessibilityState={{ selected: pickedIssues.includes(i) }} onPress={() => toggleIssue(i)}
                     style={[styles.chip, pickedIssues.includes(i) && styles.chipSel]}>
                     <Text style={[styles.chipText, pickedIssues.includes(i) && styles.chipTextSel]}>{i}</Text>
                   </Pressable>

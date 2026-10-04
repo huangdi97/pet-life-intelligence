@@ -167,6 +167,8 @@ export function TrainingScreen() {
               <Pressable
                 testID="pli.training.action"
                 accessibilityRole="button"
+                accessibilityLabel={formOpen ? "收起新训练目标表单" : "新建训练目标"}
+                accessibilityState={{ expanded: formOpen }}
                 onPress={() => setFormOpen((v) => !v)}
                 style={({ pressed }) => [styles.formToggle, pressed && styles.pressed]}
               >
@@ -180,6 +182,7 @@ export function TrainingScreen() {
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="创建目标"
+                    accessibilityState={{ disabled: !title.trim() }}
                     disabled={!title.trim()}
                     onPress={() => void createGoal()}
                     style={({ pressed }) => [styles.submitBtn, !title.trim() && styles.pressed, pressed && styles.pressed]}
@@ -205,7 +208,7 @@ function statusLabel(status: string): string {
 
 function SessionChip({ label, onPress, disabled }: { label: string; onPress: () => void; disabled: boolean }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`记录会话：${label}`} onPress={onPress} disabled={disabled} style={({ pressed }) => [styles.sessionChip, disabled && styles.pressed, pressed && styles.pressed]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`记录会话：${label}`} accessibilityState={{ disabled }} onPress={onPress} disabled={disabled} style={({ pressed }) => [styles.sessionChip, disabled && styles.pressed, pressed && styles.pressed]}>
       <Text style={styles.sessionChipText}>{label}</Text>
     </Pressable>
   );
@@ -234,14 +237,14 @@ const styles = StyleSheet.create({
   stepMark: { fontSize: TYPE.body, color: COLORS.brandPrimaryDeep, width: 16 },
   stepText: { fontSize: TYPE.sm, color: COLORS.textSecondary, flex: 1 },
   sessionRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, marginTop: SPACE.s3 },
-  sessionChip: { backgroundColor: COLORS.brandSoftGreen, borderRadius: 999, paddingHorizontal: SPACE.s3, paddingVertical: 8 },
+  sessionChip: { minHeight: 44, justifyContent: "center", backgroundColor: COLORS.brandSoftGreen, borderRadius: 999, paddingHorizontal: SPACE.s3, paddingVertical: 8 },
   sessionChipText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   progressNote: { fontSize: TYPE.body, color: COLORS.textTertiary, lineHeight: 22 },
   toolRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.dividerSubtle },
   toolName: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "500" },
   toolUse: { fontSize: TYPE.meta, color: COLORS.textTertiary },
   formSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
-  formToggle: { paddingVertical: 12, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center" },
+  formToggle: { minHeight: 48, justifyContent: "center", paddingVertical: 12, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center" },
   formToggleText: { fontSize: TYPE.button, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   formWrap: { marginTop: SPACE.s3 },
   fieldLabel: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginBottom: SPACE.s1 },
@@ -256,7 +259,7 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   errorText: { fontSize: TYPE.sm, color: COLORS.danger, marginTop: SPACE.s2 },
-  submitBtn: { marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 12, alignItems: "center" },
+  submitBtn: { minHeight: 48, justifyContent: "center", marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 12, alignItems: "center" },
   submitText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   pressed: { opacity: 0.85 },
 });
