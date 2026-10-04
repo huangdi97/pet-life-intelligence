@@ -195,8 +195,10 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
 
   // issue care card and read the shared link anonymously
   await page.getByRole("button", { name: "生成并获取链接" }).click();
-  const alert = await page.locator(".alert.info").textContent();
-  const token = alert!.match(/\/care-card\/([A-Za-z0-9_-]+)/)![1];
+  const card = page.getByText("照护卡已生成 · 72 小时有效").first();
+  await expect(card).toBeVisible();
+  const sharePath = await page.locator("code").filter({ hasText: "/care-card/" }).first().textContent();
+  const token = sharePath!.match(/\/care-card\/([A-Za-z0-9_-]+)/)![1];
   const shared = await request.get(`${API}/care-card/${token}`);
   expect(shared.status()).toBe(200);
   const cardBody = await shared.json();
