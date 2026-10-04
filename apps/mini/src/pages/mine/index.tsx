@@ -19,9 +19,6 @@ const HOUSEHOLD_ENTRIES: Array<{ label: string; detail: string; url: string }> =
 const UTILITY_ENTRIES: Array<{ label: string; detail: string; url: string }> = [
   { label: "通知", detail: "查看需要处理的提醒", url: "/pages/notifications/index" },
   { label: "在家与设备", detail: "查看真实连接与最近同步状态", url: "/pages/monitoring/index" },
-  { label: "健康", detail: "查看健康记录与风险提示", url: "/pages/health/index" },
-  { label: "用药", detail: "查看计划与给药记录", url: "/pages/medication/index" },
-  { label: "任务", detail: "查看待办与照护事项", url: "/pages/tasks/index" },
 ];
 
 function EntryList({ items }: { items: Array<{ label: string; detail: string; url: string }> }) {
@@ -104,7 +101,7 @@ export default function Mine() {
       </View>
 
       <View className="open-section">
-        <View className="section-title">常用</View>
+        <View className="section-title">通知与设备</View>
         <EntryList items={UTILITY_ENTRIES} />
       </View>
 
