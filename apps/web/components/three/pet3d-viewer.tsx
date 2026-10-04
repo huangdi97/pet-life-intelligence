@@ -108,6 +108,7 @@ export function Pet3DViewer({
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "low-power" });
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.08;
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     } catch {
       setStatus("failed");

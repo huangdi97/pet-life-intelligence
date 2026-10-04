@@ -113,10 +113,12 @@ export async function loadTwinGLB(identity: Pet3DIdentity): Promise<LoadedTwin |
         if (!material?.isMeshStandardMaterial) continue;
         if (material.map) material.color.set(0xffffff);
         material.metalness = 0;
-        material.roughness = Math.max(material.roughness ?? 0.72, 0.72);
-        material.envMapIntensity = 0.55;
-        material.emissive.set(identity === "doudou" ? 0x2a170b : 0x1d1814);
-        material.emissiveIntensity = identity === "doudou" ? 0.10 : 0.06;
+        // Fur should read matte and light-reactive, not self-lit plastic.
+        // The warm stage already provides ambient/key/fill/rim illumination.
+        material.roughness = Math.max(material.roughness ?? 0.80, 0.80);
+        material.envMapIntensity = 0.35;
+        material.emissive.set(0x000000);
+        material.emissiveIntensity = 0;
         material.needsUpdate = true;
       }
       if ((mesh as THREE.SkinnedMesh).isSkinnedMesh === true || (mesh as THREE.SkinnedMesh).skeleton != null) {

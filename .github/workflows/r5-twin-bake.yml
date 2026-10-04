@@ -7,6 +7,9 @@ on:
     paths:
       - "artifacts/r2p3d-r5/twin-sources/doudou-gobkit-corgi/**"
       - "scripts/r2p3d-r4/bake_twin.py"
+      - "scripts/r2p3d-r4/unwrap.py"
+      - "scripts/r2p3d-r4/painting.py"
+      - "scripts/r2p3d-r4/meshops.py"
       - ".github/workflows/r5-twin-bake.yml"
 
 permissions:

@@ -74,6 +74,7 @@ try {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.08;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 } catch {
   post({ type: "status", status: "failed" });

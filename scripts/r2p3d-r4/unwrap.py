@@ -120,7 +120,10 @@ def unwrap(
     # fixed texel density (TEXELS_PER_UNIT), instead of being squeezed into a
     # fixed grid cell — big charts (body/flanks) keep real UV resolution.
     canvas = 2048.0
-    pad_px = 2.0
+    # Leave a real sampling gutter around every island. The old 2 px padding
+    # was smaller than the bilinear/mipmap footprint at hero scale and exposed
+    # the neutral atlas background as dark/grey triangular seams.
+    pad_px = 8.0
     layout: list[tuple[int, float, float, float, float]] = []  # idx, x, y, w, h
 
     def shelf_place(tex_per_unit: float) -> float:
@@ -207,6 +210,9 @@ def paint_atlas(
     """
     rgb = np.full((res, res, 3), 0.5, dtype=np.float64)
     obs = np.zeros((res, res), dtype=bool)
+    # Coverage is deliberately separate from OBSERVED/INFERRED provenance:
+    # inferred surface pixels are still valid painted atlas pixels.
+    coverage = np.zeros((res, res), dtype=bool)
 
     def edge(u0, u1, p):
         # p is the (H, W, 2) grid — use the last axis for x/y channels.
@@ -264,6 +270,39 @@ def paint_atlas(
             color_out[q] = col
             obs_out[q] = ob
         rows, cols = np.unravel_index(flat, (H, W))
-        rgb[lo[1] + rows, lo[0] + cols] = color_out
-        obs[lo[1] + rows, lo[0] + cols] = obs_out
+        rr = lo[1] + rows
+        cc = lo[0] + cols
+        rgb[rr, cc] = color_out
+        obs[rr, cc] = obs_out
+        coverage[rr, cc] = True
+
+    # UV gutter dilation. Expand the nearest painted texel six pixels into the
+    # empty chart padding. This never changes the provenance mask: it exists
+    # solely so bilinear filtering and mipmaps sample coat colour rather than
+    # the atlas' neutral background at island edges.
+    for _ in range(6):
+        frontier = ~coverage
+        if not frontier.any():
+            break
+        next_rgb = rgb.copy()
+        grown = np.zeros_like(coverage)
+        for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            src_coverage = np.roll(coverage, shift=(dy, dx), axis=(0, 1))
+            src_rgb = np.roll(rgb, shift=(dy, dx), axis=(0, 1))
+            if dy < 0:
+                src_coverage[-1, :] = False
+            elif dy > 0:
+                src_coverage[0, :] = False
+            if dx < 0:
+                src_coverage[:, -1] = False
+            elif dx > 0:
+                src_coverage[:, 0] = False
+            take = frontier & src_coverage & ~grown
+            next_rgb[take] = src_rgb[take]
+            grown |= take
+        if not grown.any():
+            break
+        rgb = next_rgb
+        coverage |= grown
+
     return rgb, obs
