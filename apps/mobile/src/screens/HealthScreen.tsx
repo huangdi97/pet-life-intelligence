@@ -7,12 +7,17 @@
 import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { usePets } from "../context";
 import { api, humanizeError, type HealthEventRow } from "../api";
 import { fmtDate, riskLabel } from "../format";
 import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
 import { OpenSection } from "../components/feedback/OpenSection";
 import { EmptyState, InlineError, Skeleton } from "../components/feedback/Feedback";
+import type { StackParamList } from "../navigation";
+
+type StackNav = NativeStackNavigationProp<StackParamList>;
 
 interface HealthEventCreateResp {
   health_event_id: string;
@@ -43,6 +48,7 @@ function isHighRisk(level: string | null): boolean {
 
 export function HealthScreen() {
   const { pets, petId } = usePets();
+  const navigation = useNavigation<StackNav>();
   const [rows, setRows] = useState<HealthEventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -178,9 +184,16 @@ export function HealthScreen() {
               <View testID="pli.health.prevent" style={styles.recordRow}>
                 <Text style={styles.recordMeta}>疫苗与驱虫：暂无记录</Text>
               </View>
-              <View testID="pli.health.medication" style={styles.recordRow}>
-                <Text style={styles.recordMeta}>用药计划：暂无进行中的计划</Text>
-              </View>
+              <Pressable
+                testID="pli.health.medication"
+                accessibilityRole="button"
+                accessibilityLabel="打开用药管理"
+                onPress={() => navigation.navigate("Medication")}
+                style={styles.recordRow}
+              >
+                <Text style={styles.recordMeta}>用药计划与给药记录</Text>
+                <Text style={styles.recordMeta}>›</Text>
+              </Pressable>
               <View testID="pli.health.vet" style={styles.recordRow}>
                 <Text style={styles.recordMeta}>就医记录：暂无</Text>
               </View>
