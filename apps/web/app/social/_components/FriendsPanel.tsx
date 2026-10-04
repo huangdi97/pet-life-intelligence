@@ -23,8 +23,8 @@ function statusZh(status: string): string {
 /** OWN-012 Social — 伙伴关系列表。 */
 export function FriendsPanel({ friends, friendName }: FriendsPanelProps) {
   return (
-    <div className="card" data-testid="pli.social.friends">
-      <h2>宠物朋友</h2>
+    <section className="v4-sec" data-testid="pli.social.friends">
+      <h2 className="v4-sec-title">宠物朋友</h2>
       <State
         state={friends.state}
         error={friends.error ? mapErrorMessage(friends.error) : null}
@@ -37,6 +37,6 @@ export function FriendsPanel({ friends, friendName }: FriendsPanelProps) {
           </li>
         ))}
       </State>
-    </div>
+    </section>
   );
 }

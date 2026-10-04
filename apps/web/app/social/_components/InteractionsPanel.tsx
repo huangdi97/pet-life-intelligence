@@ -14,8 +14,8 @@ interface InteractionsPanelProps {
 /** OWN-012 Social — 互动历史（最近 8 条）。 */
 export function InteractionsPanel({ events, friendName }: InteractionsPanelProps) {
   return (
-    <div className="card">
-      <h2>{t("social.interactions")}</h2>
+    <section className="v4-sec">
+      <h2 className="v4-sec-title">{t("social.interactions")}</h2>
       <State
         state={events.state}
         error={events.error ? mapErrorMessage(events.error) : null}
@@ -52,6 +52,6 @@ export function InteractionsPanel({ events, friendName }: InteractionsPanelProps
           })}
         </div>
       </State>
-    </div>
+    </section>
   );
 }
