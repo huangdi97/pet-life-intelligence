@@ -1,36 +1,102 @@
-# EMPTY_LOADING_ERROR_STATES — 空态 / 加载 / 错误状态规范
+# EMPTY_LOADING_ERROR_STATES — R5.6 Truthful State Language
 
-> 阶段：Stage R.2（v0.2.0）· 日期：2026-09-26 · 状态：MOBILE + WEB + MINI IMPLEMENTED
-> 依据 GOAL §59-§61；实现：apps/mobile/src/components/feedback/Feedback.tsx（EmptyState / InlineError / Skeleton）
+> Authority: canonical v3.4-R1 master + R5.5 implementation master.
+> Status: SOURCE DESIGN CLOSED / runtime evidence pending.
 
-## 1. 状态清单
+## 1. Canonical state vocabulary
 
-| 状态 | 组件 | 规则 |
+Owner surfaces use a shared state model:
+
+- Loading / Skeleton
+- Empty
+- Partial
+- Populated
+- Error
+- Offline
+- Permission denied
+- Not found
+- Feature unavailable
+- External unavailable
+- Safety blocked
+
+These states are semantic, not cosmetic. Missing data is never silently presented as “normal”.
+
+## 2. State rules
+
+| State | Meaning | Required owner treatment |
 |---|---|---|
-| EmptyState | EmptyState | 必须含 meaning + next action |
-| InlineError | InlineError | 局部失败，页面其余内容继续可用 |
-| FullPageError | —（组合） | 整页不可用，含重试 |
-| OfflineBanner | — | 顶部横幅：「暂时连接不上 · 你的本地操作不会丢失」 |
-| RetryState | — | 明确的 [重试] 按钮，非自动狂刷 |
-| PartialDataState | — | 已有内容保留 + 缺失部分说明 |
-| Skeleton | Skeleton | 加载骨架，非大空白 Card + spinner |
+| Loading | Initial facts are not ready | Skeleton or retained previous content; avoid full-page spinner when possible |
+| Empty | Valid scope, no records yet | Explain what the empty state means + one next action |
+| Partial | Some facts available, some missing | Preserve available facts and explicitly mark what is unavailable |
+| Populated | Required facts available | Normal product composition |
+| Error | Product request failed | Human-readable explanation + retry/recovery |
+| Offline | Network is known unavailable | Explain cached/local behavior honestly |
+| Permission denied | User/system denied required access | Explain why permission matters + route to recovery |
+| Not found | Resource/route does not exist or is inaccessible as designed | Dedicated not-found state; generic error boundary must not swallow it |
+| Feature unavailable | Capability is intentionally not supported on this client | Explain capability boundary and alternate route if available |
+| External unavailable | Device/provider/external dependency unavailable | Keep product usable where possible; do not fabricate success |
+| Safety blocked | Action intentionally blocked by safety/policy | Explain the block and safe next step |
 
-## 2. 文案（用户语言）
+## 3. Truth invariants
 
-- 禁止 raw 红色错误文本直接插页面（如「请求超时，请检查网络后重试。」这类工程化红字，§59）。
-- 标准文案：「暂时连接不上」+「你的本地操作不会丢失」+ [重试]。
-- exception / stack trace 留 logs，不上屏（§16 global / §59）。
-- 具体错误如已实现本地草稿/重试语义，按产品事实说明，不夸大。
+- no-device != offline;
+- cached != live;
+- generated Twin != scan;
+- missing sensor value != normal;
+- unknown state != healthy;
+- request failure != permission denied;
+- unavailable hardware != command success;
+- an unknown pet 404 must not become a generic crash screen.
 
-## 3. Empty State（§61）示例
+## 4. Empty-state writing pattern
 
-- Timeline：「豆豆的时间线还很安静 —— 第一次喂食、散步或健康记录会从这里开始」+ [快速记录]。
-- Training：「还没有训练目标 —— 记录豆豆正在学习的第一件事」+ [创建目标]。
-- Today Now：「今天还没有足够记录」（数据不足时不编造，§22）。
-- Companion：「连接支持的设备后，可以在不打扰它的前提下观察和互动。」
+`meaning → why it is empty → next useful action`
 
-## 4. 约束
+Examples:
 
-- 所有核心 Domain 必须有 Empty（meaning + next action）；不是只有「还没有记录。」
-- Loading 默认 skeleton / retained previous content / subtle progress；仅必要时局部加载。
-- 任何重要状态不能只在图片上（§68）：空态/错误态需文本等价物。
+- Timeline: “时间线还很安静。第一次喂食、散步或健康记录会从这里开始。” → 快速记录
+- Training: “还没有训练目标。记录它正在学习的第一件事。” → 创建目标
+- Today: “今天还没有足够记录。” Do not invent a normal-status summary.
+- Monitoring: “还没有连接支持的设备。” Do not show offline when no device exists.
+- Twin: “还没有可确认的 3D 形象。” → 收集素材 / 查看要求
+
+## 5. Loading
+
+Prefer:
+
+1. retained previous facts when safe;
+2. local skeleton matching the final layout;
+3. subtle scoped progress.
+
+Avoid a large blank card with a centered spinner.
+
+## 6. Error
+
+Owner copy contains:
+
+- what failed in owner language;
+- whether existing data remains usable;
+- one recovery action;
+- optional secondary route.
+
+Exception text, stack traces, provider names and internal codes stay in logs.
+
+## 7. Offline / cached
+
+When cached data is shown:
+
+- mark it as cached/last updated;
+- never label it LIVE;
+- write actions through the real offline queue only if that queue exists.
+
+## 8. Permission
+
+Permission requests must be contextual. Explain the benefit before the OS prompt where possible. A denied state must remain usable for non-dependent capabilities.
+
+## 9. Client capability states
+
+Mini may legitimately show `Feature unavailable` for interactive high-fidelity 3D while preserving Twin status/version and routing to capable clients. This is a truthful capability boundary, not an error.
+
+## 10. Acceptance
+
+Every core owner page must expose all states applicable to its data and external dependencies. Machine tests may assert semantics; final wording/hierarchy remains subject to product review.
