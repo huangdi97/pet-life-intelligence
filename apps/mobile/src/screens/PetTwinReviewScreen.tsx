@@ -42,7 +42,7 @@ const OPTIONS = [
   { k: "basic_like", label: "基本像" },
   { k: "not_like", label: "不像" },
 ];
-  const VIEWS: Array<{ key: "front" | "side" | "back"; label: string }> = [
+const VIEWS: Array<{ key: "front" | "side" | "back"; label: string }> = [
   { key: "front", label: "正面" },
   { key: "side", label: "侧面" },
   { key: "back", label: "背面" },
@@ -149,7 +149,12 @@ export function PetTwinReviewScreen() {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Idle" interactive frameTarget={0.30} view={view} viewerRef={viewerRef} />
           <Text style={styles.caption}>
-            这是根据{pet?.name ?? "宠物"}的照片与模板生成的第 {resolvedVersion || "—"} 版形象。旋转查看后回答：像它吗？
+            这是第 {resolvedVersion || "—"} 版候选形象。请从正面、侧面和背面重点看脸、耳朵、毛色、体型与尾巴；只有你确认相似后才会启用。
+          </Text>
+          <Text style={styles.provenanceNote}>
+            {sourceMediaCount > 0
+              ? `已关联 ${sourceMediaCount} 处素材区域；未观察到的部分仍可能来自模板推断。`
+              : `当前外观来自演示/模板，不代表${pet?.name ?? "宠物"}的真实扫描或已验证个体外观。`}
           </Text>
 
           <View style={styles.viewRow} accessibilityLabel="视图选择">
@@ -236,6 +241,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: SPACE.s3, paddingBottom: SPACE.s8 },
   caption: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20, marginTop: SPACE.s2 },
+  provenanceNote: { fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18, marginTop: SPACE.s1 },
   viewRow: { flexDirection: "row", gap: SPACE.s2, marginTop: SPACE.s3 },
   viewChip: { flex: 1, alignItems: "center", paddingVertical: 10, backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.dividerSubtle },
   viewChipSel: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
