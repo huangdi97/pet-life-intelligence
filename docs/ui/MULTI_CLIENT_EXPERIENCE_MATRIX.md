@@ -1,48 +1,58 @@
-# MULTI_CLIENT_EXPERIENCE_MATRIX — Stage H 冻结版
+# MULTI_CLIENT_EXPERIENCE_MATRIX — R5.6 Capability-aware Owner Parity
 
-> 状态：`FROZEN（Stage H）` · 实际状态按代码确定（下表为 Stage H 完成后目标态；审计以 reports/STAGE_H_MULTI_CLIENT_AUDIT.md 为准）
-> 取值：Full / Compact / View / Audit / Prototype / —（不提供）
+> Authority: canonical v3.4-R1 + L2 Feature Inventory + R5.5/R5.6.
+> Status: SOURCE DESIGN CLOSED / runtime evidence pending.
+> “Full” means complete owner-facing information/state/action semantics on that client; it does not imply unavailable hardware or external dependencies are magically present.
 
-## 跨端体验矩阵
+## Cross-client matrix
 
-| Experience | Web | Mini | Mobile | Admin | Professional |
+| Experience | Web | Mini | Android/Mobile | Admin | Professional |
 |---|---|---|---|---|---|
-| Today | Full | Full | Full | — | — |
-| Timeline | Full | Full | Full | View | View |
-| Quick Log | Full | Full | Full | — | — |
-| Health | Full | Full | Full | Audit | Full |
-| Medication | Full | Full | Full | — | Full |
-| Vet Brief | Full | Full | Full | — | Full |
-| Care / Handoff | Full | Full | Full | — | Full |
-| Behavior | Full | Full | Full | — | Full（ABC 显式） |
-| Training | Full | Full | Full | — | Full |
-| Welfare | Full | Full | Full | — | — |
-| Social | Full | Full | Full | — | — |
-| Monitoring | Full | Compact | Full | Device audit | — |
-| Companion | Full（硬件能力按真实状态降级） | Full（轻量） | Full（硬件能力按真实状态降级） | — | — |
-| Agent (Assistant) | Full | Full | Full | — | — |
-| Notifications | Full | Full | Full | — | — |
-| Settings / Me | Full | Full | Full | — | — |
+| Today | Full | Full compact | Full | — | — |
+| Timeline | Full | Full compact | Full | View | View |
+| Quick Log | Full | Full compact | Full | — | — |
+| Pet World | Full | Full compact | Full | — | View |
+| Interactive high-fidelity Twin | Full | **Unavailable locally; status/route only** | Full | — | — |
+| Life View | Full interactive | Lightweight/status | Full interactive | — | — |
+| Twin Capture | Full | Guided/lightweight where supported | Full | — | — |
+| Twin Review | Full | Route/status where local 3D unavailable | Full | — | — |
+| Twin Versions | Full | View/status | Full | Audit | — |
+| Health | Full | Full compact | Full | Audit | Full |
+| Health Detail | Full | View/compact | Full | Audit | Full |
+| Medication | Full | Full compact | Full | — | Full |
+| Vet Brief | Full | View/share where supported | Full | — | Full |
+| Care / Handoff | Full | Full compact | Full | Audit | Full |
+| Behavior | Full | Full compact | Full | — | Full (ABC explicit) |
+| Training | Full | Full compact | Full | — | Full |
+| Welfare | Full | Full compact | Full | — | — |
+| Social | Full | Full compact | Full | — | — |
+| Monitoring | Full truthful state | Compact truthful state | Full truthful state | Device audit | — |
+| Companion | Full capability-aware | Compact capability-aware | Full capability-aware | — | — |
+| Assistant | Full | Full compact | Full | — | — |
+| Notifications | Full | Full compact | Full | — | — |
+| Me / Settings | Full | Full compact | Full | — | — |
 | Platform / Flags | — | — | — | Full | — |
 
-## 一致性规则
+## Canonical parity rules
 
-1. 同一能力跨端：同一信息层级（State/Attention/Action），同一语义色与 Risk 标签，同一 zh-CN 文案（COPY_GUIDELINES）。
-2. Compact 端（Mini/Mobile）降低信息密度，不删关键状态与安全信息。
-3. Companion 端：跨端一致的诚实能力降级原则；Owner UI 不展示 PROTOTYPE / feature flag，未接硬件时显示无设备/不可用状态，不伪装 LIVE。
-4. 审计端（Admin）：只看平台事实（users/pets/safety/ai/devices/audit/incidents/flags），不混 Owner 体验。
-5. Professional：专业术语显式（ABC / Vet Brief 分区），数据与 Owner 端同源（同一 API/schema）。
+1. Primary owner IA is always Today / Timeline / Pet / Assistant / Me.
+2. Compact clients reduce density, not safety/provenance/state truth.
+3. Mini never fakes local high-fidelity 3D; it exposes Twin status/version and routes interactive review to capable clients.
+4. Monitoring distinguishes connected/offline/no-device/cached/permission/error.
+5. Companion does not expose prototype flags or fake hardware execution in owner UI.
+6. Health remains read-first and never fabricates diagnosis.
+7. Welfare is evidence-first; Social is relationship-first; Care is scoped/time-bounded.
+8. Shared DTO/schema comes from the repository contracts, not client-specific invention.
+9. Human Visual Acceptance remains independent from functional parity.
 
-## 契约保护
+## Evidence required for final acceptance
 
-- 前端不各自造 DTO：统一 packages/domain-schema + packages/api-client。
-- E2E：现有 12/12（Web 七路径 + auth + PWA/share）不回归；新增关键 UX E2E 覆盖 Today/Quick Log/Timeline。
+Fresh post-final-source contact sheets:
 
+- Web: Today / Timeline / Pet / Life View / Twin Review / Health / Assistant / Me
+- Android: same eight surfaces
+- Mini: Today / Timeline / Pet / Health / Assistant / Me
+- Doudou and Mimi turntables on capable runtime
+- representative Empty / Attention / Offline / Not Found / Permission states
 
-## R5.3 implementation note（2026-10-04）
-
-- Mobile 已补齐原生 Care / Handoff 与 Medication owner surfaces，并从 Pet / Health / Me 的真实情境入口进入。
-- Mini 已补齐 Welfare / Social / Monitoring，并将 Companion 从 prototype gate 升级为诚实的 Living Experience。
-- Mini 的高保真交互 3D 仍是明确的平台能力例外：该客户端保持轻量视觉；Web/Android 承担可交互 Twin。
-- 表格中的 “Full” 指该客户端拥有完整的 owner-facing information/state/action surface，不表示外部硬件/第三方依赖已解除。
-- Human Visual Acceptance 仍独立于功能矩阵，必须依据最新截图/Contact Sheet 判定。
+Missing required source images must fail evidence generation rather than silently rendering placeholders.
