@@ -1,77 +1,204 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Text, Button } from "@tarojs/components";
+import { Button, Input, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
 import { fmtTime } from "../../utils/format";
 
 interface Grant {
-  id: string;
+  grant_id?: string;
+  id?: string;
   user_id: string;
   scopes: string[];
   expires_at: string | null;
   status: string;
 }
+interface Handoff {
+  handoff_id: string;
+  caregiver_user_id: string;
+  scope: string[];
+  start_at: string;
+  end_at: string | null;
+  status: string;
+}
+interface CareCard {
+  token: string;
+  expires_at: string;
+}
+
+const SCOPE_LABELS: Record<string, string> = {
+  "daily:read": "查看日常记录",
+  "daily:write": "记录日常照护",
+  "medical:read": "查看健康记录",
+  "medical:write": "记录健康信息",
+  "card:read": "查看照护卡",
+};
+
+function statusLabel(status: string): string {
+  if (status === "ACTIVE") return "生效中";
+  if (status === "PENDING") return "待确认";
+  if (status === "EXPIRED") return "已到期";
+  if (status === "ENDED" || status === "REVOKED") return "已结束";
+  return "已记录";
+}
 
 export default function Care() {
-  const { petId } = usePets();
+  const { pets, petId } = usePets();
+  const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
   const [grants, setGrants] = useState<Grant[]>([]);
+  const [handoffs, setHandoffs] = useState<Handoff[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [caregiver, setCaregiver] = useState("");
+  const [hours, setHours] = useState("48");
+  const [card, setCard] = useState<CareCard | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback((pid: string) => {
     setState("loading");
-    api
-      .get<Grant[]>(`/pets/${pid}/grants`)
-      .then((rows) => {
-        setGrants(rows);
-        setState("ready");
-      })
-      .catch(() => setState("error"));
+    Promise.allSettled([
+      api.get<Grant[]>(`/pets/${pid}/grants`),
+      api.get<Handoff[]>(`/pets/${pid}/handoffs`),
+    ]).then(([g, h]) => {
+      if (g.status === "fulfilled") setGrants(g.value);
+      if (h.status === "fulfilled") setHandoffs(h.value);
+      setState(g.status === "rejected" && h.status === "rejected" ? "error" : "ready");
+    });
   }, []);
 
   useEffect(() => {
     if (petId) load(petId);
   }, [petId, load]);
 
-  async function revoke(grantId: string) {
+  async function createHandoff() {
+    if (!petId || !caregiver.trim() || busy) return;
+    setBusy(true);
     try {
-      await api.del(`/grants/${grantId}`);
+      await api.post(`/pets/${petId}/handoffs`, {
+        caregiver_user_id: caregiver.trim(),
+        scopes: ["daily:read", "daily:write"],
+        end_at: new Date(Date.now() + Math.max(1, Number(hours) || 48) * 3600_000).toISOString(),
+        reason: "care handoff",
+      });
+      setCaregiver("");
+      load(petId);
+      Taro.showToast({ title: "交接已创建", icon: "success" });
+    } catch {
+      Taro.showToast({ title: "创建失败", icon: "none" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function endHandoff(id: string) {
+    try {
+      await api.post(`/handoffs/${id}/end`, {});
       if (petId) load(petId);
-      Taro.showToast({ title: "已撤销", icon: "success" });
+      Taro.showToast({ title: "交接已结束", icon: "success" });
     } catch {
       Taro.showToast({ title: "操作失败", icon: "none" });
     }
   }
 
+  async function issueCard() {
+    if (!petId || busy) return;
+    setBusy(true);
+    try {
+      const result = await api.post<CareCard>(`/pets/${petId}/care-cards`, { expires_in_hours: 72 });
+      setCard(result);
+      Taro.showToast({ title: "照护卡已生成", icon: "success" });
+    } catch {
+      Taro.showToast({ title: "生成失败", icon: "none" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copyCard() {
+    if (!card) return;
+    await Taro.setClipboardData({ data: `/share/care-card/${card.token}` });
+  }
+
   return (
     <View className="page">
-      <View className="h1">照护协作</View>
-      <View className="sub">家庭成员、临时授权与到期</View>
+      <View className="h1">{current ? `${current.name}的照护网络` : "照护网络"}</View>
+      <View className="sub">家庭成员、临时交接与照护卡。权限按人、用途与时间清楚管理。</View>
 
       {state === "loading" && <View className="state">加载中……</View>}
       {state === "error" && (
         <View className="state state-error">
-          出错了
+          暂时连接不上
           <Button className="btn" onClick={() => petId && load(petId)}>重试</Button>
         </View>
       )}
-      {state === "ready" && grants.length === 0 && <View className="state">还没有照护授权。</View>}
-      {grants.map((g) => (
-        <View className="card" key={g.id}>
-          <View className="row" style={{ justifyContent: "space-between" }}>
-            <Text style={{ fontWeight: 600 }}>{g.scopes.join(" / ")}</Text>
-            <Text className="badge">{g.status}</Text>
+
+      <View className="open-section">
+        <View className="section-title">正在进行的交接</View>
+        {handoffs.length ? handoffs.map((handoff) => (
+          <View className="life-row" key={handoff.handoff_id}>
+            <View className="life-dot" />
+            <View className="life-row-body">
+              <View className="life-row-head">
+                <Text className="life-row-type">照护人 {handoff.caregiver_user_id.slice(0, 8)}…</Text>
+                <Text className="life-row-time">{statusLabel(handoff.status)}</Text>
+              </View>
+              <View className="life-row-detail">
+                {handoff.scope.map((scope) => SCOPE_LABELS[scope] ?? "限定权限").join(" · ")}
+              </View>
+              <View className="life-row-source">至 {handoff.end_at ? fmtTime(handoff.end_at) : "手动结束"}</View>
+              {handoff.status === "ACTIVE" ? (
+                <Button className="btn" size="mini" onClick={() => endHandoff(handoff.handoff_id)}>提前结束</Button>
+              ) : null}
+            </View>
           </View>
-          <View className="muted">
-            {g.expires_at ? `到期 ${fmtTime(g.expires_at)}` : "长期有效"}
-          </View>
-          {g.status === "ACTIVE" && (
-            <Button className="btn btn-danger" size="mini" onClick={() => revoke(g.id)}>
-              撤销授权
-            </Button>
-          )}
+        )) : (
+          <View className="life-empty-note">目前没有进行中的照护交接。</View>
+        )}
+      </View>
+
+      <View className="open-section">
+        <View className="section-title">发起临时交接</View>
+        <View className="life-row-detail">默认只开放日常查看与记录权限；到期自动失效，临时照护人不能转授管理权限。</View>
+        <View className="field">
+          <Text>临时照护人成员标识</Text>
+          <Input className="input" value={caregiver} onInput={(e) => setCaregiver(e.detail.value)} placeholder="输入家庭成员标识" />
         </View>
-      ))}
+        <View className="field">
+          <Text>有效时长（小时）</Text>
+          <Input className="input" type="number" value={hours} onInput={(e) => setHours(e.detail.value)} />
+        </View>
+        <Button className="btn btn-primary" onClick={createHandoff} disabled={busy || !caregiver.trim()}>
+          {busy ? "处理中…" : "创建交接"}
+        </Button>
+      </View>
+
+      <View className="open-section">
+        <View className="section-title">照护卡</View>
+        <View className="life-row-detail">仅分享喂养、用药、行为禁忌、紧急联系人等最小必要信息，不包含完整医疗历史。</View>
+        <Button className="btn btn-primary" onClick={issueCard} disabled={busy}>生成 72 小时照护卡</Button>
+        {card ? (
+          <View className="soft-panel">
+            <View className="section-title">照护卡已生成</View>
+            <View className="life-row-detail">72 小时有效，可分享给临时照护人；链接过期后自动失效。</View>
+            <Button className="btn" onClick={copyCard}>复制分享路径</Button>
+          </View>
+        ) : null}
+      </View>
+
+      <View className="open-section">
+        <View className="section-title">权限记录</View>
+        {grants.length ? grants.map((grant) => (
+          <View className="life-row" key={grant.grant_id ?? grant.id ?? grant.user_id}>
+            <View className="life-row-body">
+              <View className="life-row-head">
+                <Text className="life-row-type">{grant.user_id.slice(0, 8)}…</Text>
+                <Text className="life-row-time">{statusLabel(grant.status)}</Text>
+              </View>
+              <View className="life-row-detail">{grant.scopes.map((scope) => SCOPE_LABELS[scope] ?? "限定权限").join(" · ")}</View>
+              <View className="life-row-source">{grant.expires_at ? `到期 ${fmtTime(grant.expires_at)}` : "长期有效"}</View>
+            </View>
+          </View>
+        )) : <View className="life-empty-note">还没有授权记录。</View>}
+      </View>
     </View>
   );
 }
