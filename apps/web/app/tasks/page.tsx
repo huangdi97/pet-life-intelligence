@@ -118,38 +118,57 @@ export default function TasksPage() {
         </button>
       </section>
 
-      {conflict && <div className="alert emergency">{conflict}</div>}
+      {conflict && (
+        <div className="v4-attn">
+          <div>
+            <p className="v4-attn-title">这项任务已经被其他照护人处理</p>
+            <p className="v4-attn-body">{conflict}</p>
+          </div>
+        </div>
+      )}
 
-      <State state={tasks.state} error={tasks.error} onRetry={tasks.reload} empty="还没有任务。">
-        <ul className="tl">
-          {tasks.data?.map((t) => (
-            <li key={t.id}>
-              <div className="tl-head">
-                <span className="tl-type">{t.title}</span>
-                <span className={`badge status-${t.status}`}>{taskStatusLabel(t.status)}</span>
-                <span className="badge">{TASK_TYPE_LABELS[t.task_type] ?? "其他"}</span>
-                {t.repeat_rule !== "NONE" && <span className="badge">{repeatLabel(t.repeat_rule)}</span>}
-                {t.conflict_count > 0 && (
-                  <span className="badge EMERGENCY">{t.conflict_count} 次重复尝试</span>
-                )}
-                <span className="tl-time">{t.due_at ? `截至 ${fmtTime(t.due_at)}` : ""}</span>
-              </div>
-              {t.status === "OPEN" && (
-                <div className="row" style={{ marginTop: 8 }}>
-                  <button className="btn primary" onClick={() => complete(t)}>
-                    完成
-                  </button>
-                </div>
-              )}
-              {t.status === "COMPLETED" && (
-                <div className="muted">
-                  由照护成员完成 · {fmtTime(t.completed_at)}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      </State>
+      <section className="v5-utility-surface">
+        <div className="v4-sec-head">
+          <div>
+            <h2>当前任务</h2>
+            <p className="v4-sec-sub">待完成事项优先；已经完成的任务保留记录但降低视觉权重。</p>
+          </div>
+          {tasks.data ? <span className="v4-chip">{tasks.data.filter((t) => t.status === "OPEN").length} 项待完成</span> : null}
+        </div>
+        <State state={tasks.state} error={tasks.error} onRetry={tasks.reload} empty="还没有任务。">
+          <ul className="tl">
+            {tasks.data
+              ?.slice()
+              .sort((a, b) => (a.status === "OPEN" ? 0 : 1) - (b.status === "OPEN" ? 0 : 1))
+              .map((t) => (
+                <li key={t.id} style={t.status === "COMPLETED" ? { opacity: 0.68 } : undefined}>
+                  <div className="tl-head">
+                    <span className="tl-type">{t.title}</span>
+                    <span className={`badge status-${t.status}`}>{taskStatusLabel(t.status)}</span>
+                    <span className="badge">{TASK_TYPE_LABELS[t.task_type] ?? "其他"}</span>
+                    {t.repeat_rule !== "NONE" && <span className="badge">{repeatLabel(t.repeat_rule)}</span>}
+                    {t.conflict_count > 0 && (
+                      <span className="badge EMERGENCY">{t.conflict_count} 次重复尝试</span>
+                    )}
+                    <span className="tl-time">{t.due_at ? `截至 ${fmtTime(t.due_at)}` : ""}</span>
+                  </div>
+                  {t.status === "OPEN" && (
+                    <div className="v4-actions" style={{ marginTop: 8 }}>
+                      <button className="v4-action v4-action--primary" onClick={() => complete(t)}>
+                        完成
+                      </button>
+                    </div>
+                  )}
+                  {t.status === "COMPLETED" && (
+                    <div className="muted">
+                      由照护成员完成 · {fmtTime(t.completed_at)}
+                    </div>
+                  )}
+                </li>
+              ))}
+          </ul>
+        </State>
+      </section>
     </main>
   );
 }
