@@ -1,6 +1,5 @@
 "use client";
 
-import { MetricCard } from "@pli/ui-kit";
 import { type Async } from "../../../lib/hooks";
 import { mapErrorMessage, t } from "../../../lib/i18n";
 import { State } from "../../../components/ui";
@@ -13,8 +12,8 @@ interface QualityCardProps {
 /** OWN-011 生活质量概览（问卷/域数据，非 AI 百分比）。 */
 export function QualityCard({ profile }: QualityCardProps) {
   return (
-    <div className="card">
-      <h2>{t("welfare.quality")}</h2>
+    <section className="v4-sec" data-testid="pli.welfare.quality">
+      <h2 className="v4-sec-title">生活状态概览</h2>
       <State
         state={profile.state}
         error={profile.error ? mapErrorMessage(profile.error) : null}
@@ -23,14 +22,12 @@ export function QualityCard({ profile }: QualityCardProps) {
       >
         {profile.data?.profile ? (
           <>
-            <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
+            <div className="v5-observation-list">
               {Object.entries(profile.data.profile.domains ?? {}).map(([d, v]) => (
-                <MetricCard
-                  key={d}
-                  label={KIND_LABELS[d] ?? d}
-                  value={String(v)}
-                  unit={typeof v === "number" ? "" : undefined}
-                />
+                <div key={d} className="v5-observation-row">
+                  <span className="v5-observation-label">{KIND_LABELS[d] ?? "生活观察"}</span>
+                  <strong className="v5-observation-value">{String(v)}</strong>
+                </div>
               ))}
             </div>
             {profile.data.profile.notes && (
@@ -48,6 +45,6 @@ export function QualityCard({ profile }: QualityCardProps) {
           </p>
         )}
       </State>
-    </div>
+    </section>
   );
 }
