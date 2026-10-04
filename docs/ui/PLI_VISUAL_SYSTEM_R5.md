@@ -196,3 +196,19 @@ Current target state:
 
 `R5_PRODUCT_DESIGN_IMPLEMENTATION = CANDIDATE`  
 `HUMAN_VISUAL_ACCEPTANCE = PENDING`
+
+
+## 11. R5.4 closure authority
+
+The final cross-client design closure is `docs/product/R5_4_FINAL_DESIGN_CLOSURE.md`.
+
+R5.4 adds three mandatory design rules:
+
+1. **Every page has a completion contract**: JTBD, entry/exit, primary action, truthful states, owner-safe copy, responsive behavior and accessibility.
+2. **Every visual approval uses fresh runtime evidence**: final screenshots must come after the last implementation commit; missing required evidence must fail loudly rather than render a silent placeholder.
+3. **Engineering truth and visual truth stay separate**: GLB/manifest/CI can prove a real implementation, but only the user may approve pet likeness, living quality or final visual fidelity.
+
+The canonical target remains:
+
+`R5_PRODUCT_DESIGN_IMPLEMENTATION = CANDIDATE`  
+`HUMAN_VISUAL_ACCEPTANCE = PENDING`
