@@ -70,8 +70,8 @@ export default function MonitoringPage() {
   return (
     <main className="v4-main v5-domain-page v5-utility-page">
       <div className="v4-topline v5-page-lede" data-testid="pli.monitoring.identity">
-        <h1>{t("monitoring.title")}</h1>
-        <p className="sub">{t("monitoring.sub")}</p>
+        <h1>在家状态</h1>
+        <p className="sub">查看真实设备连接、最近看到的活动与需要你确认的设备记录；没有设备时仍可正常使用其他生活功能。</p>
       </div>
       <section className="v5-utility-surface v5-utility-surface--soft" data-testid={`pli.monitoring.state.${stateKey}`}>
         <div className="v4-sec-head">
@@ -122,15 +122,12 @@ export default function MonitoringPage() {
       </div>
 
       <div className="v4-actions" style={{ marginTop: 16 }} data-testid="pli.monitoring.action">
-        <button type="button" className="v4-action v4-action--secondary" onClick={() => devices.reload()}>
-          刷新设备状态
-        </button>
         <Link href="/companion" className="v4-action v4-action--primary">
           进入陪伴模式
         </Link>
-        <Link href="/" className="v4-action v4-action--soft">
-          回到今日
-        </Link>
+        <button type="button" className="v4-action v4-action--soft" onClick={() => devices.reload()}>
+          刷新状态
+        </button>
       </div>
     </main>
   );
