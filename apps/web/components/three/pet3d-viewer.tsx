@@ -109,6 +109,10 @@ export function Pet3DViewer({
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.08;
+      // R5 Living Experience: the owner-facing stage owns the warm/neutral
+      // surface. Keep WebGL explicitly transparent so the renderer can never
+      // re-introduce the old black viewer rectangle over that composition.
+      renderer.setClearColor(0x000000, 0);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     } catch {
       setStatus("failed");
@@ -120,7 +124,8 @@ export function Pet3DViewer({
     wrap.appendChild(renderer.domElement);
 
     scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(STAGE_FOG, 0.045);
+    scene.background = null;
+    scene.fog = new THREE.FogExp2(STAGE_FOG, 0.028);
     // Individual twin (R2P3D-R1) beats demo identity when a descriptor exists.
     const stage = twin
       ? createTwinScene({
