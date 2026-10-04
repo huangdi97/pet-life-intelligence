@@ -64,9 +64,17 @@ export function SocialScreen() {
     };
   }, [petId, version]);
 
-  const friendName = (id: string) => allPets.find((p) => p.id === id)?.name ?? id.slice(0, 8);
+  const friendName = (id: string) => allPets.find((p) => p.id === id)?.name ?? "宠物朋友";
   const friendCandidates = allPets.filter((p) => p.id !== petId);
   const p = profile?.profile;
+  const relationLabel = (value: string | undefined) => {
+    if (!value || value === "UNKNOWN") return "未知";
+    if (value === "GOOD") return "很好";
+    if (value === "OK") return "可以";
+    if (value === "CAUTION") return "需注意";
+    if (value === "NO") return "不适合";
+    return "已记录";
+  };
 
   async function recordInteraction() {
     if (!petId || !friendPetId || busy) return;
@@ -109,7 +117,7 @@ export function SocialScreen() {
                 PROFILE_LABELS.map((row) => (
                   <View key={row.key} style={styles.profileRow}>
                     <Text style={styles.profileLabel}>{row.label}</Text>
-                    <Text style={styles.profileValue}>{(p as Record<string, string | undefined>)[row.key] ?? "未知"}</Text>
+                    <Text style={styles.profileValue}>{relationLabel((p as Record<string, string | undefined>)[row.key])}</Text>
                   </View>
                 ))
               ) : (
@@ -177,10 +185,11 @@ export function SocialScreen() {
 }
 
 function friendStatusLabel(status: string): string {
-  if (status === "ACCEPTED") return "已添加";
+  if (status === "ACTIVE" || status === "ACCEPTED") return "已添加";
   if (status === "PENDING") return "待确认";
   if (status === "BLOCKED") return "已屏蔽";
-  return status;
+  if (status === "DECLINED") return "已拒绝";
+  return "已记录";
 }
 
 const styles = StyleSheet.create({
