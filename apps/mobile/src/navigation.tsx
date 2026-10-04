@@ -36,6 +36,7 @@ import { PetTwinReviewScreen } from "./screens/PetTwinReviewScreen";
 import { PetTwinVersionScreen } from "./screens/PetTwinVersionScreen";
 import { MedicationScreen } from "./screens/MedicationScreen";
 import { CareScreen } from "./screens/CareScreen";
+import { HealthDetailScreen } from "./screens/HealthDetailScreen";
 
 export type TabParamList = {
   Today: undefined;
@@ -50,6 +51,7 @@ export type StackParamList = {
   QuickLog: undefined;
   Notifications: undefined;
   Health: undefined;
+  HealthDetail: { id: string };
   LifeView: undefined;
   Behavior: undefined;
   Training: undefined;
@@ -149,6 +151,7 @@ export function AppNavigation() {
         <Stack.Screen name="QuickLog" component={QuickLogScreen} options={{ presentation: "modal", headerShown: false }} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Health" component={HealthScreen} />
+        <Stack.Screen name="HealthDetail" component={HealthDetailScreen} />
         <Stack.Screen name="LifeView" component={LifeViewScreen} />
         <Stack.Screen name="Behavior" component={BehaviorScreen} />
         <Stack.Screen name="Training" component={TrainingScreen} />
