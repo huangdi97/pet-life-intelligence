@@ -90,7 +90,7 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     await loginAsEmail(page, request, "owner@pli.demo");
     await page.goto("/companion");
     await expect(page).toHaveURL(urlRe("/companion"));
-    await expect(page.getByText(/当前为演示体验，不是实时画面/).first()).toBeVisible();
+    await expect(page.getByText(/当前演示不会伪装成实时画面/).first()).toBeVisible();
     await expect(page.getByText("尚未连接设备").first()).toBeVisible();
   });
   test("today living canvas shows pet life-view entry (no fatal)", async ({ page, request }) => {
