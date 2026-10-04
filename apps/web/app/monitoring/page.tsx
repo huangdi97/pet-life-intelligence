@@ -68,14 +68,34 @@ export default function MonitoringPage() {
   };
 
   return (
-    <main className="v4-main v5-domain-page">
+    <main className="v4-main v5-domain-page v5-utility-page">
       <div className="v4-topline v5-page-lede" data-testid="pli.monitoring.identity">
         <h1>{t("monitoring.title")}</h1>
         <p className="sub">{t("monitoring.sub")}</p>
       </div>
-      <section className="v4-sec" data-testid={`pli.monitoring.state.${stateKey}`}>
-        <h2 className="v4-sec-title">当前状态</h2>
-        <div className="v4-calm" style={{ marginTop: 8 }}>{stateText[stateKey]}</div>
+      <section className="v5-utility-surface v5-utility-surface--soft" data-testid={`pli.monitoring.state.${stateKey}`}>
+        <div className="v4-sec-head">
+          <div>
+            <h2>当前状态</h2>
+            <p className="v4-sec-sub">只展示最近一次真实同步结果，不把未知状态伪装成在线。</p>
+          </div>
+        </div>
+        <div className="v4-calm">
+          <div>
+            <p className="v4-calm-title">{stateText[stateKey]}</p>
+            <p className="v4-calm-body">
+              {stateKey === "CONNECTED"
+                ? "设备数据会作为生活记录的一个来源，不替代你的观察。"
+                : stateKey === "NO_DEVICE"
+                  ? "没有设备也不影响记录、健康、行为和时间线。"
+                  : stateKey === "OFFLINE"
+                    ? "离线期间不会生成伪实时状态；恢复连接后再继续同步。"
+                    : stateKey === "ERROR"
+                      ? "当前无法读取设备状态，可以稍后刷新。"
+                      : "正在读取最近一次设备状态。"}
+            </p>
+          </div>
+        </div>
       </section>
       {/* 最近看到 */}
       <div data-testid="pli.monitoring.last">
@@ -101,15 +121,15 @@ export default function MonitoringPage() {
         <ReviewQueuePanel queue={queue} reviewBusy={reviewBusy} onReview={review} />
       </div>
 
-      <div className="row" style={{ marginTop: 8 }} data-testid="pli.monitoring.action">
-        <button type="button" className="btn" onClick={() => devices.reload()}>
-          重试
+      <div className="v4-actions" style={{ marginTop: 16 }} data-testid="pli.monitoring.action">
+        <button type="button" className="v4-action v4-action--secondary" onClick={() => devices.reload()}>
+          刷新设备状态
         </button>
-        <Link href="/" className="btn">
-          回到今日
+        <Link href="/companion" className="v4-action v4-action--primary">
+          进入陪伴模式
         </Link>
-        <Link href="/companion" className="btn">
-          陪伴
+        <Link href="/" className="v4-action v4-action--soft">
+          回到今日
         </Link>
       </div>
     </main>
