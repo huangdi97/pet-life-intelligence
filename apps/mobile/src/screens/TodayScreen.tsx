@@ -206,6 +206,16 @@ export function TodayScreen() {
               )}
             </View>
 
+            {/* R5.4: preserve the canonical living hierarchy
+                PET → NOW → CHANGE → ATTENTION → ACTION → MEMORY.
+                Tasks are supporting utilities, so they must not displace the
+                one primary owner action immediately after Attention. */}
+            <PrimaryAction testID="pli.today.primary-action" label="快速记录" onPress={() => stackNav.navigate("QuickLog")} />
+            <ActionRow>
+              <SecondaryAction label="看看它" icon="eye-outline" onPress={() => stackNav.navigate("LifeView")} />
+              <SecondaryAction label="问助手" icon="chatbubble-ellipses-outline" onPress={() => tabNav.navigate("Assistant")} />
+            </ActionRow>
+
             {tasks.length > 0 ? (
               <OpenSection title="今天任务" caption={`${tasks.filter((t) => t.status === "OPEN").length} 项待办`}>
                 {todayTasks(tasks).map((t) => (
@@ -216,12 +226,6 @@ export function TodayScreen() {
                 ))}
               </OpenSection>
             ) : null}
-
-            <PrimaryAction testID="pli.today.primary-action" label="快速记录" onPress={() => stackNav.navigate("QuickLog")} />
-            <ActionRow>
-              <SecondaryAction label="看看它" icon="eye-outline" onPress={() => stackNav.navigate("LifeView")} />
-              <SecondaryAction label="问助手" icon="chatbubble-ellipses-outline" onPress={() => tabNav.navigate("Assistant")} />
-            </ActionRow>
 
             <View testID="pli.today.memory-preview">
               <OpenSection title="最近发生" caption={todayEvents.length ? `今天 · ${todayEvents.length} 条` : undefined}>
