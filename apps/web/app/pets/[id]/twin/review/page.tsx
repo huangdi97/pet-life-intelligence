@@ -135,7 +135,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
         </p>
       </div>
 
-      <div className="card" data-testid="pli.twinreview.stage" style={{ position: "relative", minHeight: 380 }}>
+      <div className="card r5-review-studio" data-testid="pli.twinreview.stage">
         <div data-testid="pli.twinreview.twin" style={{ position: "absolute", inset: 0 }}>
           {show3d ? (
             <Pet3DViewer
@@ -143,7 +143,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
               variant="life"
               interactive
               petId={petId}
-              frameTarget={0.28}
+              frameTarget={0.36}
               stageRole="review"
               realityField="review-studio"
               sourceMediaCount={twinSourceMediaCount}

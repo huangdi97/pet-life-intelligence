@@ -103,7 +103,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         <h1>生命视图</h1>
         <p className="v4-topline-sub" data-testid="pli.lifeview.identity">{name} · 此刻</p>
       </div>
-      <div style={{ maxWidth: 288, margin: "0 auto" }}>
+      <div className="r5-life-stage-shell">
       <PetLivingStage
         name={name}
         petId={petId}

@@ -144,7 +144,7 @@ export function PetLivingStage({
           {petLayer}
         </Pressable>
       ) : (
-        <View testID={twinTestId} accessible accessibilityLabel={`${pet?.name ?? "宠物"}的 3D 形象`} style={styles.petSlot}>
+        <View testID={twinTestId} accessible accessibilityLabel={`${pet?.name ?? "宠物"}的 3D 形象`} style={[styles.petSlot, variant === "life" && styles.petSlotLife]}>
           {petLayer}
         </View>
       )}
@@ -165,7 +165,7 @@ export function PetLivingStage({
           </View>
         ) : null}
       </View>
-      <View style={styles.nowBlock}>
+      <View style={[styles.nowBlock, variant === "life" && styles.nowBlockLife]}>
         {headline ? <Text style={styles.headline}>{headline}</Text> : null}
         {caption ? <Text style={styles.caption}>{caption}</Text> : null}
         {note ? (
@@ -270,6 +270,7 @@ const styles = StyleSheet.create({
   },
   pressPet: { position: "absolute", left: 0, right: 0, bottom: 30, alignItems: "center" },
   petSlot: { position: "absolute", left: 0, right: 0, bottom: 30, alignItems: "center" },
+  petSlotLife: { bottom: 74 },
   slot: { position: "absolute" },
   head: {
     position: "absolute",
@@ -284,6 +285,17 @@ const styles = StyleSheet.create({
   demoChip: { backgroundColor: COLORS.surfaceOverlay, borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 3 },
   demoChipText: { fontSize: TYPE.caption, color: COLORS.textSecondary, fontWeight: "600" },
   nowBlock: { position: "absolute", left: SPACE.s4, right: SPACE.s4, bottom: SPACE.s3 },
+  nowBlockLife: {
+    left: SPACE.s3,
+    right: SPACE.s3,
+    bottom: SPACE.s2,
+    paddingHorizontal: SPACE.s3,
+    paddingVertical: SPACE.s2,
+    borderRadius: RADIUS.xl,
+    backgroundColor: COLORS.surfaceGlass,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.stageWarmBorder,
+  },
   headline: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary },
   caption: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginTop: 2 },
   noteRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
