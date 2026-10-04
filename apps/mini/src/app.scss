@@ -1,8 +1,8 @@
-// app.scss â€?global styles for all mini pages.
+// app.scss — global styles for all mini pages.
 // Colors/sizes come from styles/tokens.scss (PLI Visual System V4, Stage R.2).
 // Information density is LOWER than desktop: cards + chips + bottom sheet,
-// no wide tables, no sidebars, no multi-layer modals (IA Â§5 / æ¯ç‰ˆ Â§68).
-// V4: warm canvas, reduced border density â€?hierarchy via spacing/background
+// no wide tables, no sidebars, no multi-layer modals (IA §5 / 母版 §68).
+// V4: warm canvas, reduced border density — hierarchy via spacing/background
 // instead of borders around everything.
 @use "./styles/tokens.scss" as *;
 
@@ -116,7 +116,7 @@ page {
 .secondary-action:active { opacity: 0.9; }
 .secondary-action-icon { font-size: $font-meta; color: $color-brand-primary; display: block; margin-bottom: 4px; }
 
-// ---- Pet context strip ("ä¸ºè±†è±†è®°å½?) ---------------------------------- //
+// ---- Pet context strip（为当前宠物记录） ---------------------------------- //
 .pet-context {
   display: flex; align-items: center; gap: $space-3;
   padding: $space-2 $space-1 $space-3;
@@ -229,7 +229,7 @@ page {
   padding: 14px 18px; font-size: $font-size-base; width: 100%; color: $color-ink-primary;
 }
 
-// --- é¡µå†… chipsï¼ˆäºŒçº§å¯¼èˆªï¼Œä¸åšä¾§æ ï¼?---
+// --- 页内 chips（二级导航，不做侧栏） ---
 .chips { display: flex; flex-wrap: wrap; gap: $space-1; margin: $space-2 0; }
 .chip {
   padding: 10px $space-3; border-radius: $radius-pill; font-size: $font-size-sm;
@@ -237,7 +237,7 @@ page {
 }
 .chip-active { border-color: $color-line-focus; background: $color-primary-100; color: $color-primary-800; font-weight: $font-weight-medium; }
 
-// --- ä»Šæ—¥é¡?å½“å‰çŠ¶æ€å¡ï¼ˆä½Žå¯†åº¦ç»Ÿè®¡ï¼Œlegacyï¼?---
+// --- 今日页当前状态卡（低密度统计，legacy） ---
 .statgrid { display: flex; flex-wrap: wrap; gap: $space-2; }
 .stat {
   flex: 1 1 30%; min-width: 180px; background: $color-bg-surface-muted;
@@ -246,7 +246,7 @@ page {
 .stat-n { font-size: $font-size-lg; font-weight: $font-weight-semibold; color: $color-ink-primary; }
 .stat-label { font-size: $font-size-xs; color: $color-ink-muted; margin-top: 2px; }
 
-// --- å…¥å£å¡ï¼ˆç›‘æµ‹ / é™ªä¼´ï¼Œlegacyï¼?---
+// --- 入口卡（监测 / 陪伴，legacy） ---
 .entry-card {
   display: flex; align-items: center; justify-content: space-between;
   background: $color-bg-surface; border-radius: $radius-md;
@@ -256,7 +256,7 @@ page {
 .entry-desc { font-size: $font-size-xs; color: $color-ink-muted; margin-top: 4px; }
 .entry-arrow { color: $color-ink-disabled; font-size: $font-size-md; }
 
-// --- Bottom Sheetï¼ˆå¿«é€Ÿè®°å½•ï¼Œå•å±‚ï¼Œéžå¤šå±‚ Modalï¼?---
+// --- Bottom Sheet（快速记录，单层，非多层 Modal） ---
 .sheet-mask {
   position: fixed; left: 0; right: 0; top: 0; bottom: 0;
   background: rgba(43, 39, 35, 0.4); z-index: 1000;
@@ -286,7 +286,7 @@ page {
 .quick-section-label { font-size: $font-size-xs; color: $color-ink-muted; margin: $space-3 0 $space-1; }
 .quick-item-nav { color: $color-text-secondary; }
 
-// --- Companion å››å±‚ï¼ˆlegacyï¼›R.2 å·²æ”¹ä¸ºç”¨æˆ·è¯­è¨€ç©ºæ€ï¼‰ ---
+// --- Companion 四层（legacy；R.2 已改为用户语言空态） ---
 .proto-tag {
   display: inline-block; font-size: $font-size-xs * 0.9; padding: 2px $space-2; border-radius: $radius-pill;
   border: 1px solid $color-accent-200; background: $color-accent-50; color: $color-accent-600; font-weight: $font-weight-medium;
@@ -299,7 +299,7 @@ page {
 .layer-en { font-size: $font-size-xs; color: $color-ink-disabled; margin-left: $space-1; }
 .layer-desc { font-size: $font-size-xs; color: $color-ink-muted; margin: $space-1 0; }
 
-// --- Agent 5 é¡µå†… tabï¼ˆlegacyï¼›R.2 å·²æ”¹ä¸ºä¸»æ¨¡å¼ + æƒ…å¢ƒå…¥å£ï¼?---
+// --- Agent 5 页内 tab（legacy；R.2 已改为主模式 + 情境入口） ---
 .agent-tabs { display: flex; gap: $space-1; margin: $space-2 0; }
 .agent-tab {
   flex: 1; text-align: center; padding: $space-2 0; border-radius: $radius-sm;
@@ -316,7 +316,7 @@ page {
 .menu-label { font-size: $font-size-base; color: $color-ink-primary; }
 .menu-arrow { color: $color-ink-disabled; }
 
-// --- prefers-reduced-motion å…¨å±€é™çº§ ---
+// --- prefers-reduced-motion 全局降级 ---
 @media (prefers-reduced-motion: reduce) {
   page { transition: none !important; }
   .card, .btn, .chip, .sheet, .layer-card, .primary-action, .secondary-action { transition: none !important; }
