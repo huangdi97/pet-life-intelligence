@@ -2,10 +2,10 @@
 
 /**
  * PetLivingStage — shared web stage composition (R2-P3D §16/§19/§23).
- * Three depth layers: warm charcoal environment background, midground REAL 3D
- * pet (shared demo asset, Pet3DViewer), foreground state anchors + identity/now
- * overlay. Used by Today / Pet / Life View pages so the same 豆豆 dominates all
- * three surfaces. When no demo identity or WebGL failure, degrades to the
+ * Three depth layers: warm living environment, midground REAL 3D pet,
+ * foreground state anchors + identity/now overlay. The same canonical asset
+ * is used by Today / Pet / Life View so one pet identity persists across all
+ * three surfaces. When no demo identity or WebGL failure, it degrades to the
  * certified 2.5D layer (labeled fallback — never the P0 target).
  */
 import Link from "next/link";
@@ -128,7 +128,7 @@ export function PetLivingStage({
     >
       <span className="r2p-stage-wash" aria-hidden="true" />
       <span className="r2p-stage-glow" aria-hidden="true" />
-      {petId ? (
+      {petId && variant !== "life" ? (
         <Link
           href={`/pets/${petId}/life-view`}
           className={`r2p-stage-pet ${show3d ? "r2p-stage-pet--3d" : ""}`}
@@ -136,11 +136,40 @@ export function PetLivingStage({
           data-testid={twinTestId}
           data-pli-type={twinTestId ? "twin" : undefined}
         >
-          {show3d ? <Pet3DViewer identity={identity} twin={twin} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} frameTarget={frameTarget} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} stageRole={role} realityField={field} onStatus={setPet3d} /> : corgi}
+          {show3d ? (
+            <Pet3DViewer
+              identity={identity}
+              twin={twin}
+              variant="stage"
+              frameTarget={frameTarget}
+              petId={petId}
+              sourceMediaCount={sourceMediaCountProp}
+              stageRole={role}
+              realityField={field}
+              onStatus={setPet3d}
+            />
+          ) : corgi}
         </Link>
       ) : (
-        <span className={`r2p-stage-pet ${show3d ? "r2p-stage-pet--3d" : ""}`} data-testid={twinTestId} data-pli-type={twinTestId ? "twin" : undefined}>
-          {show3d ? <Pet3DViewer identity={identity} twin={twin} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} frameTarget={frameTarget} petId={petId ?? null} sourceMediaCount={sourceMediaCountProp} stageRole={role} realityField={field} onStatus={setPet3d} /> : corgi}
+        <span
+          className={`r2p-stage-pet ${show3d ? "r2p-stage-pet--3d" : ""}`}
+          data-testid={twinTestId}
+          data-pli-type={twinTestId ? "twin" : undefined}
+        >
+          {show3d ? (
+            <Pet3DViewer
+              identity={identity}
+              twin={twin}
+              variant={variant === "life" ? "life" : "stage"}
+              interactive={variant === "life"}
+              frameTarget={frameTarget}
+              petId={petId ?? null}
+              sourceMediaCount={sourceMediaCountProp}
+              stageRole={role}
+              realityField={field}
+              onStatus={setPet3d}
+            />
+          ) : corgi}
         </span>
       )}
       {anchors.slice(0, 6).map((a, i) =>
