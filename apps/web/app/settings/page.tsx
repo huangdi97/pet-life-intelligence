@@ -144,6 +144,16 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      <div className="v5-utility-surface" data-testid="pli.me.devices">
+        <h2>在家与设备</h2>
+        <p className="muted" style={{ margin: 0 }}>查看真实设备连接、离线状态与最近一次同步；没有设备时不会伪装在线。</p>
+        <div className="row" style={{ marginTop: 8 }}>
+          <Link href="/monitoring" className="btn">
+            查看设备状态
+          </Link>
+        </div>
+      </div>
+
       <div data-testid="pli.me.privacy">
         <ConsentsCard consents={consents} onToggle={toggleConsent} />
       </div>
