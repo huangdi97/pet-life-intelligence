@@ -104,6 +104,32 @@ def test_daily_summary_ai_provenance(client, seeded):
     assert "不构成诊断" in body["disclaimer"] or "仅供参考" in body["disclaimer"]
 
 
+def test_care_lists_expose_human_labels_not_raw_ids(client, seeded):
+    owner, sitter, coco = seeded["owner_id"], seeded["sitter_id"], seeded["coco_id"]
+    created = client.post(
+        f"/api/v1/pets/{coco}/handoffs",
+        json={
+            "caregiver_user_id": sitter,
+            "scopes": ["daily:read", "daily:write"],
+            "end_at": (NOW + timedelta(hours=2)).isoformat(),
+        },
+        headers=auth(owner),
+    )
+    assert created.status_code == 201
+
+    handoffs = client.get(f"/api/v1/pets/{coco}/handoffs", headers=auth(owner)).json()
+    row = next(h for h in handoffs if h["handoff_id"] == created.json()["handoff_id"])
+    assert row["caregiver_label"]
+    assert row["caregiver_label"] != sitter
+    assert sitter[:8] not in row["caregiver_label"]
+
+    grants = client.get(f"/api/v1/pets/{coco}/grants", headers=auth(owner)).json()
+    grant = next(g for g in grants if g["grant_id"] == created.json()["grant_id"])
+    assert grant["user_label"]
+    assert grant["user_label"] != sitter
+    assert sitter[:8] not in grant["user_label"]
+
+
 def test_handoff_checklist_flow(client, seeded):
     """E2E (care deepening): handoff → checklist → caregiver checks items →
     daily report + end summary."""
