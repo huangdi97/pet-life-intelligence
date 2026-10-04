@@ -9,6 +9,7 @@ import { ErrorNote, State } from "../../components/ui";
 interface Handoff {
   handoff_id: string;
   caregiver_user_id: string;
+  caregiver_label?: string;
   scope: string[];
   start_at: string;
   end_at: string | null;
@@ -147,7 +148,7 @@ export default function CarePage() {
             {handoffs.data?.map((h) => (
               <li key={h.handoff_id}>
                 <div className="tl-head">
-                  <span className="tl-type">临时照护人</span>
+                  <span className="tl-type">{h.caregiver_label || "临时照护人"}</span>
                   <span className="badge">{careStatusLabel(h.status)}</span>
                   <span className="badge">{h.scope.map((scope) => SCOPE_LABELS[scope] ?? "限定权限").join(" · ")}</span>
                   <span className="tl-time">至 {fmtTime(h.end_at)}</span>
@@ -201,7 +202,7 @@ export default function CarePage() {
             {grants.data?.map((g) => (
               <li key={g.grant_id}>
                 <div className="tl-head">
-                  <span className="tl-type">已授权成员</span>
+                  <span className="tl-type">{g.user_label || "已授权成员"}</span>
                   <span className={`badge ${g.status === "ACTIVE" ? "MONITOR" : "EMERGENCY"}`}>{careStatusLabel(g.status)}</span>
                   <span className="badge">{g.scopes.map((scope) => SCOPE_LABELS[scope] ?? "限定权限").join(" · ")}</span>
                   <span className="tl-time">{fmtTime(g.starts_at)} → {g.expires_at ? fmtTime(g.expires_at) : "无限期"}</span>
