@@ -51,6 +51,6 @@ test.describe("Stage H UX — new domain routes", () => {
     await expect(page.getByText("陪伴模式").first()).toBeVisible();
     await expect(page.getByText("四种能力").first()).toBeVisible();
     await expect(page.getByText("尚未连接设备").first()).toBeVisible();
-    await expect(page.getByText(/陪伴不用于医疗判断/).first()).toBeVisible();
+    await expect(page.getByText(/陪伴模式不用于医疗判断/).first()).toBeVisible();
   });
 });
