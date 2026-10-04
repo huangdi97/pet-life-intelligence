@@ -29,7 +29,7 @@ const DOMAIN_ROWS: Array<{ id: string; label: string; href: string; icon: "sun" 
   { id: "health", label: "健康", href: "/health", icon: "heart", meaning: () => "近期健康记录与变化会汇总在这里" },
   { id: "behavior", label: "行为", href: "/behavior", icon: "eye", meaning: () => "最近的观察与行为模式会汇总在这里" },
   { id: "training", label: "训练", href: "/training", icon: "target", meaning: () => "当前目标与最近练习会汇总在这里" },
-  { id: "welfare", label: "福利", href: "/welfare", icon: "shield", meaning: () => "舒适、活动与恢复的观察会汇总在这里" },
+  { id: "welfare", label: "福祉", href: "/welfare", icon: "shield", meaning: () => "舒适、活动与恢复的观察会汇总在这里" },
   { id: "social", label: "社交", href: "/social", icon: "users", meaning: () => "它和朋友的互动会汇总在这里" },
 ];
 
