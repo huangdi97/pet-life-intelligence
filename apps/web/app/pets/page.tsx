@@ -71,18 +71,6 @@ export default function PetsHubPage() {
         <p className="v4-topline-sub">每一只宠物都有独立的档案与生命记录。</p>
       </div>
 
-      <div className="v4-linkrow" style={{ marginBottom: 12 }}>
-        <Link href="/pets/new" className="v4-action v4-action--primary">
-          <span className="v4-action-icon">
-            <Icon name="plus" size={16} />
-          </span>
-          新建宠物
-        </Link>
-        <Link href="/care" className="v4-action v4-action--secondary">
-          家庭协作
-        </Link>
-      </div>
-
       <State state={pets.state} error={pets.error} onRetry={pets.reload} empty="还没有宠物，先创建一只吧。">
         <>
           {current ? (
