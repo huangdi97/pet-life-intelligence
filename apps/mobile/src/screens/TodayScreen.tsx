@@ -121,7 +121,7 @@ export function TodayScreen() {
     ? "今天需要注意一下"
     : todayEvents.length === 0
       ? "今天还没有新的记录"
-      : !calm ? "今天有值得留意的变化" : "今天整体稳定";
+      : !calm ? "今天有值得留意的变化" : `今天记录了 ${todayEvents.length} 件生活片段`;
 
   const memoryRows = useMemo(() => todayEvents.slice(0, 5).map(eventRowFromEvent), [todayEvents]);
   const memoryDays: LifeStreamDay[] = memoryRows.length
