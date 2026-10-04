@@ -39,6 +39,17 @@ const SOURCES: Record<string, string> = {
   RECORDED: "系统记录",
 };
 
+function ownerValue(value: unknown): string {
+  if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "已有记录" : "暂无记录";
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (!text) return "暂无记录";
+    return /^[A-Z0-9_:-]+$/.test(text) ? "已有记录" : text;
+  }
+  return value == null ? "暂无记录" : "已有记录";
+}
+
 export default function Welfare() {
   const { pets, petId } = usePets();
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
@@ -90,7 +101,7 @@ export default function Welfare() {
 
   return (
     <View className="page">
-      <View className="h1">{current ? `${current.name}的福利` : "福利"}</View>
+      <View className="h1">{current ? `${current.name}的福祉` : "生活与福祉"}</View>
       <View className="sub">用观察与证据说话，不做开心指数或情绪评分。</View>
 
       {state === "loading" && <View className="state">加载中……</View>}
@@ -103,7 +114,7 @@ export default function Welfare() {
             <View className="life-dot" />
             <View className="life-row-body">
               <View className="life-row-head">
-                <Text className="life-row-type">{LABELS[key] ?? key}</Text>
+                <Text className="life-row-type">{LABELS[key] ?? "其他观察"}</Text>
                 <Text className="life-row-time">{value} 条</Text>
               </View>
             </View>
@@ -137,7 +148,7 @@ export default function Welfare() {
             <View className="life-row-body">
               <View className="life-row-head">
                 <Text className="life-row-type">{LABELS[key] ?? key}</Text>
-                <Text className="life-row-time">{String(value)}</Text>
+                <Text className="life-row-time">{ownerValue(value)}</Text>
               </View>
             </View>
           </View>
@@ -145,7 +156,7 @@ export default function Welfare() {
       </View>
 
       <View className="open-section">
-        <View className="section-title">记录福利观察</View>
+        <View className="section-title">记录生活观察</View>
         <View className="field">
           <Text>观察类型</Text>
           <Picker
