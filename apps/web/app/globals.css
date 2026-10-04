@@ -1008,3 +1008,56 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
   }
 }
 
+/* R5.2 domain-surface hierarchy: owner pages read as calm living sections,
+   not a pile of generic admin cards. */
+.v5-domain-page {
+  --v5-panel: rgba(255,253,249,0.78);
+}
+.v5-page-lede {
+  max-width: 760px;
+  margin-bottom: 12px;
+}
+.v5-form-surface,
+.v5-progress-surface {
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid rgba(222,212,198,0.72);
+  border-radius: 22px;
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(248,242,230,0.78), rgba(248,242,230,0) 58%),
+    rgba(255,253,249,0.86);
+  box-shadow: 0 12px 32px rgba(65,52,39,0.032);
+}
+.v5-form-surface h2,
+.v5-progress-surface h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+.v5-goal-stack {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+.v5-goal-card {
+  margin: 10px 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(226,218,206,0.68);
+  border-radius: 18px;
+  background: rgba(255,253,249,0.72);
+}
+.v5-goal-card .tl-head { margin-top: 0; }
+.v5-domain-page .v4-sec {
+  scroll-margin-top: 84px;
+}
+@media (max-width: 768px) {
+  .v5-form-surface,
+  .v5-progress-surface {
+    padding: 16px;
+    border-radius: 20px;
+  }
+  .v5-goal-card {
+    padding: 13px 14px;
+    border-radius: 17px;
+  }
+}
+

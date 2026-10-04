@@ -71,8 +71,8 @@ export default function TrainingPage() {
   const activeGoals = (goals.data ?? []).filter((g) => g.status === "OPEN" || g.status === "ACTIVE");
 
   return (
-    <main className="v4-main">
-      <div className="v4-topline" data-testid="pli.training.identity">
+    <main className="v4-main v5-domain-page">
+      <div className="v4-topline v5-page-lede" data-testid="pli.training.identity">
         <h1>训练</h1>
         <p className="sub">{current ? `${current.name} · 奖励式训练目标与会话记录。仅使用正向强化方法。` : "奖励式训练目标与会话记录。仅使用正向强化方法。"}</p>
       </div>
@@ -80,7 +80,7 @@ export default function TrainingPage() {
       <State state={goals.state} error={goals.error} onRetry={goals.reload} empty="还没有训练目标。">
         <>
           {activeGoals.length > 0 && (
-            <div className="card" data-testid="pli.training.goal">
+            <div className="v5-progress-surface" data-testid="pli.training.goal">
               <h2>当前目标</h2>
               {activeGoals.slice(0, 3).map((g) => (
                 <div className="tl-head" key={g.goal_id} style={{ marginTop: 8 }}>
@@ -92,12 +92,12 @@ export default function TrainingPage() {
             </div>
           )}
 
-          <div className="card" data-testid="pli.training.recent">
+          <div className="v5-progress-surface" data-testid="pli.training.recent">
             <h2>最近训练</h2>
             <p className="muted" style={{ margin: 0 }}>每次记录训练会话后，这里会显示最近几次训练的表现。</p>
           </div>
           {goals.data?.map((g) => (
-            <div className="card" key={g.goal_id}>
+            <div className="v5-goal-card" key={g.goal_id}>
               <div className="tl-head">
                 <span className="tl-type">{g.title}</span>
                 <span className="badge">掌握度 {g.mastery_level}/5</span>

@@ -60,8 +60,8 @@ export default function HealthPage() {
   const latestLevel = rows[0]?.latest_triage_level ?? null;
 
   return (
-    <main className="v4-main">
-      <div className="v4-topline" data-testid="pli.health.identity">
+    <main className="v4-main v5-domain-page">
+      <div className="v4-topline v5-page-lede" data-testid="pli.health.identity">
         <h1>健康事件</h1>
         <p className="sub">
           {current ? `${current.name} · 发现异常 → 动态追问 → 可观察事实 → 红旗分级 → Vet Brief → Outcome。` : "发现异常 → 动态追问 → 可观察事实 → 红旗分级 → Vet Brief → Outcome。"}
@@ -99,7 +99,7 @@ export default function HealthPage() {
         </p>
       </section>
 
-      <div className="card">
+      <div className="v5-form-surface">
         <h2>发现异常</h2>
         <label className="field">
           主诉 *（描述你观察到的异常）

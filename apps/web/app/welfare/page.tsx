@@ -67,8 +67,8 @@ export default function WelfarePage() {
   );
 
   return (
-    <main>
-      <div data-testid="pli.welfare.identity">
+    <main className="v4-main v5-domain-page">
+      <div className="v4-topline v5-page-lede" data-testid="pli.welfare.identity">
         <h1>{t("welfare.title")}</h1>
         <p className="sub">{current ? `${current.name} · ${t("welfare.sub")}` : t("welfare.sub")}</p>
       </div>
@@ -76,7 +76,7 @@ export default function WelfarePage() {
 
       <QualityCard profile={profile} />
 
-      <div className="card" data-testid="pli.welfare.enrichment">
+      <div className="v4-sec" data-testid="pli.welfare.enrichment">
         <h2>丰富化</h2>
         <p className="muted" style={{ margin: 0 }}>
           {welfareEvents.length > 0
@@ -85,12 +85,12 @@ export default function WelfarePage() {
         </p>
       </div>
 
-      <div className="card" data-testid="pli.welfare.comfort">
+      <div className="v4-sec" data-testid="pli.welfare.comfort">
         <h2>休息与舒适</h2>
         <p className="muted" style={{ margin: 0 }}>睡眠、休息环境与舒适度相关的观察会汇总到这里。还没有相关记录。</p>
       </div>
 
-      <div className="card" data-testid="pli.welfare.liked">
+      <div className="v4-sec" data-testid="pli.welfare.liked">
         <h2>最近喜欢的活动</h2>
         <p className="muted" style={{ margin: 0 }}>
           {welfareEvents.length > 0 ? "从最近的观察中可以看到它偏好的活动。" : "记录几次玩耍与探索后，这里会呈现它自己的偏好，不猜测情绪。"}
@@ -101,7 +101,7 @@ export default function WelfarePage() {
         <EvidenceCard evidence={evidence} kind={kind} setKind={setKind} busy={busy} onRecord={recordObservation} />
       </div>
 
-      <div className="card" data-testid="pli.welfare.action">
+      <div className="v5-form-surface" data-testid="pli.welfare.action">
         <h2>记录观察</h2>
         <p className="muted" style={{ margin: 0 }}>上面的「记录福祉观察」按钮会保存一条可追溯的观察，并标记记录人与来源。</p>
       </div>

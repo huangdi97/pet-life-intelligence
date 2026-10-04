@@ -76,8 +76,8 @@ export default function SocialPage() {
   }
 
   return (
-    <main className="v4-main">
-      <div className="v4-topline" data-testid="pli.social.identity">
+    <main className="v4-main v5-domain-page">
+      <div className="v4-topline v5-page-lede" data-testid="pli.social.identity">
         <h1>{t("social.title")}</h1>
         <p className="sub">{t("social.sub")}</p>
       </div>

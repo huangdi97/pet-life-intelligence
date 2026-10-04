@@ -61,8 +61,8 @@ export default function BehaviorPage() {
   }
 
   return (
-    <main className="v4-main">
-      <div className="v4-topline" data-testid="pli.behavior.identity">
+    <main className="v4-main v5-domain-page">
+      <div className="v4-topline v5-page-lede" data-testid="pli.behavior.identity">
         <h1>行为记录</h1>
         <p className="sub">
           ABC 记录法：前因（Antecedent）→ 可观察行为（Behavior）→ 后果（Consequence）。
@@ -84,7 +84,7 @@ export default function BehaviorPage() {
         <p className="muted" style={{ margin: 0 }}>前因、环境与触发条件会从每条行为记录中汇总到这里。</p>
       </section>
 
-      <div className="card">
+      <div className="v5-form-surface">
         <h2>记录一次行为事件</h2>
         <label className="field">
           发生时间
