@@ -11,6 +11,7 @@ interface Grant {
   grant_id?: string;
   id?: string;
   user_id: string;
+  user_label?: string;
   scopes: string[];
   expires_at: string | null;
   status: string;
@@ -18,6 +19,7 @@ interface Grant {
 interface Handoff {
   handoff_id: string;
   caregiver_user_id: string;
+  caregiver_label?: string;
   scope: string[];
   start_at: string;
   end_at: string | null;
@@ -120,7 +122,7 @@ export function CareScreen() {
               ) : handoffs.map((handoff) => (
                 <View key={handoff.handoff_id} style={styles.row}>
                   <View style={styles.rowText}>
-                    <Text style={styles.rowTitle}>照护人 {handoff.caregiver_user_id.slice(0, 8)}… · {statusLabel(handoff.status)}</Text>
+                    <Text style={styles.rowTitle}>{handoff.caregiver_label || "临时照护人"} · {statusLabel(handoff.status)}</Text>
                     <Text style={styles.rowBody}>{handoff.scope.map((s) => SCOPE_LABELS[s] ?? "限定权限").join(" · ")}</Text>
                     <Text style={styles.meta}>至 {timeLabel(handoff.end_at)}</Text>
                   </View>
@@ -136,7 +138,7 @@ export function CareScreen() {
             <OpenSection title="权限记录">
               {grants.length ? grants.map((grant) => (
                 <View key={grant.grant_id ?? grant.id ?? grant.user_id} style={styles.record}>
-                  <Text style={styles.rowTitle}>{grant.user_id.slice(0, 8)}… · {statusLabel(grant.status)}</Text>
+                  <Text style={styles.rowTitle}>{grant.user_label || "已授权成员"} · {statusLabel(grant.status)}</Text>
                   <Text style={styles.rowBody}>{grant.scopes.map((s) => SCOPE_LABELS[s] ?? "限定权限").join(" · ")}</Text>
                   <Text style={styles.meta}>{grant.expires_at ? `到期 ${timeLabel(grant.expires_at)}` : "长期有效"}</Text>
                 </View>
