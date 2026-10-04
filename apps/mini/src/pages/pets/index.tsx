@@ -76,8 +76,8 @@ export default function Pets() {
       url: "/pages/training/index",
     },
     {
-      label: "福利",
-      hint: lastWelfare ? `最近一次：${eventTypeLabel(lastWelfare.event_type)}` : "还没有福利观察",
+      label: "福祉",
+      hint: lastWelfare ? `最近一次：${eventTypeLabel(lastWelfare.event_type)}` : "还没有福祉观察",
       url: "/pages/welfare/index",
     },
     {
