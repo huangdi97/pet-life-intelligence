@@ -27,7 +27,7 @@ export function NowCard({ lastEvent, counts }: NowCardProps) {
           {entries.map(([et, n]) => (
             <div key={et} className="v4-metric">
               <span className="v4-metric-value">{n}</span>
-              <span className="v4-metric-label">{EVENT_LABELS[et] ?? et}</span>
+              <span className="v4-metric-label">{EVENT_LABELS[et] ?? "其他记录"}</span>
             </div>
           ))}
         </div>
