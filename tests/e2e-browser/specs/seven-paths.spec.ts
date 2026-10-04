@@ -72,7 +72,7 @@ test("E2E-02 家庭协作 / 权限（成员可完成，Owner-only 被拒，API 4
   await useCurrentPet(famPage, coco.id);
   await famPage.goto("/tasks");
   await famPage.locator(".tl li", { hasText: title }).first().getByRole("button", { name: "完成" }).click();
-  await expect(famPage.locator(".tl li", { hasText: title }).first()).toContainText("COMPLETED");
+  await expect(famPage.locator(".tl li", { hasText: title }).first()).toContainText("已完成");
   await famPage.close();
 
   // completed_by visible via API
@@ -189,9 +189,9 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
   await useCurrentPet(page, coco.id);
 
   await page.goto("/care");
-  await page.getByPlaceholder("uuid").fill(sitterId);
+  await page.getByPlaceholder("输入家庭成员标识").fill(sitterId);
   await page.getByRole("button", { name: "创建交接" }).click();
-  await expect(page.locator(".tl li", { hasText: sitterId.slice(0, 8) }).first()).toContainText("ACTIVE");
+  await expect(page.locator(".tl li", { hasText: sitterId.slice(0, 8) }).first()).toContainText("生效中");
 
   // issue care card and read the shared link anonymously
   await page.getByRole("button", { name: "生成并获取链接" }).click();
@@ -216,7 +216,7 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
 
   // end handoff → scoped access revoked
   await page.getByRole("button", { name: "提前结束" }).first().click();
-  await expect(page.locator(".tl li", { hasText: sitterId.slice(0, 8) }).first()).toContainText("ENDED");
+  await expect(page.locator(".tl li", { hasText: sitterId.slice(0, 8) }).first()).toContainText("已结束");
   const after = await request.get(`${API}/pets/${coco.id}`, {
     headers: { "X-Dev-User-Id": sitterId },
   });
