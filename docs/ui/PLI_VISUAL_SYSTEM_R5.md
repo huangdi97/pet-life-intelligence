@@ -219,3 +219,9 @@ The canonical target remains:
 All owner surfaces, page completion contracts, cross-client parity, Twin review rules, evidence requirements and human-acceptance boundaries are consolidated in `docs/product/R5_5_FINAL_PRODUCT_UI_IMPLEMENTATION_MASTER.md`.
 
 R5 remains the visual language; R5.5 is the implementation-facing closure. Any implementation claiming final design completion must satisfy both documents and the canonical v3.4-R1 master.
+
+## 13. R5.6 source-design closure
+
+The current source-design closure is `docs/product/R5_6_SOURCE_DESIGN_CLOSURE.md`.
+
+R5.6 does not introduce a new visual language. It closes the remaining source-level drift across Web, Android/Mobile and Mini while preserving this R5 system. The visual system remains **Warm Living Intelligence**; remaining work before merge is fresh runtime evidence and explicit user visual approval, not another round of design invention.
