@@ -120,7 +120,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
             ? `第 ${twinVersion ?? 1} 版 3D 形象 · 已通过你的确认`
             : "暂时使用简化形象，连接照片后会生成更像它的 3D 形象"
         }
-        frameTarget={0.30}
+        frameTarget={0.34}
         twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
         sourceMediaCount={observedRegions || undefined}
         interactive

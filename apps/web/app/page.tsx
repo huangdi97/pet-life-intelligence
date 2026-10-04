@@ -153,7 +153,7 @@ export default function TodayPage() {
         headline={headline}
         caption={recent}
         demo={true}
-        frameTarget={0.21}
+        frameTarget={0.25}
         twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
         sourceMediaCount={observedRegions || undefined}
         stageTestId="pli.today.living-stage"

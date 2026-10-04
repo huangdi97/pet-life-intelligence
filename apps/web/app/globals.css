@@ -898,3 +898,113 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
     height: 374px;
   }
 }
+
+/* ==========================================================================
+   R5.2 — Living Experience product-craft closure.
+   Reduce viewer/card chrome, strengthen pet presence, and keep review a calm
+   identity studio. Runtime truth stays machine-readable; visual approval stays
+   a human gate.
+   ========================================================================== */
+.r2p-stage--3d {
+  border: 0;
+  border-radius: 30px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.58),
+    0 18px 44px rgba(103,76,48,0.045);
+}
+.r2p-stage--3d::after {
+  opacity: 0.34;
+  filter: blur(0.4px);
+}
+.r2p-stage--3d .r2p-stage-pet--3d { bottom: 38px; }
+.r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d { bottom: 88px; }
+.r2p-stage--3d .r2p-anchor {
+  background: rgba(255,253,248,0.74);
+  border-color: rgba(174,145,110,0.16);
+  box-shadow: 0 4px 14px rgba(65,52,39,0.035);
+}
+.r2p-stage--3d .r2p-stage-now { max-width: min(78%, 360px); }
+
+.v5-review-page {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.v5-review-identity {
+  max-width: 720px;
+  margin: 12px 0 16px;
+}
+.v5-review-identity h1 { margin-bottom: 6px; }
+.v5-review-stage {
+  margin: 0;
+  min-height: 500px;
+}
+.v5-segmented {
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(86px, 1fr));
+  gap: 4px;
+  padding: 4px;
+  margin-top: 12px;
+  border: 1px solid var(--v4-divider, #e8e2d9);
+  border-radius: 999px;
+  background: rgba(255,253,249,0.86);
+}
+.v5-segmented .btn {
+  min-height: 38px;
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+}
+.v5-segmented .btn.primary {
+  background: var(--v4-brand-primary, #4e6349);
+  color: #fff;
+}
+.v5-review-confirm,
+.v5-review-status {
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid rgba(222,212,198,0.72);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(252,248,241,0.76));
+  box-shadow: 0 12px 32px rgba(65,52,39,0.035);
+}
+.v5-review-status { background: rgba(244,247,241,0.76); }
+.v5-review-hint {
+  margin: 6px 0 0;
+  color: var(--v4-text-tertiary, #7c7369);
+  font-size: 12px;
+}
+.v5-review-issues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.v5-review-issues .btn { border-radius: 999px; }
+
+@media (max-width: 768px) {
+  .r2p-stage--3d {
+    margin-left: -2px;
+    margin-right: -2px;
+    border-radius: 28px;
+    min-height: 438px;
+  }
+  .r2p-stage--3d .r2p-stage-pet--3d {
+    width: min(96%, 342px);
+    height: 390px;
+  }
+  .r2p-stage--life.r2p-stage--3d { min-height: 520px; }
+  .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d {
+    width: min(98%, 366px);
+    height: 404px;
+  }
+  .v5-review-stage {
+    min-height: 470px;
+    border-radius: 28px;
+  }
+  .v5-segmented {
+    display: grid;
+    width: 100%;
+  }
+}
+

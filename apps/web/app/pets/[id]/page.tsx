@@ -153,7 +153,7 @@ export default function PetProfilePage() {
             stageRole="pet"
             realityField="warm-living"
             twin={twinDescriptor}
-            frameTarget={0.20}
+            frameTarget={0.24}
             anchors={anchors.length ? anchors : undefined}
             headline={p.name}
             caption={identityLine || undefined}

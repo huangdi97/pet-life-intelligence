@@ -127,15 +127,15 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
   );
 
   return (
-    <main data-pli-selected={selected ?? ""}>
-      <div data-testid="pli.twinreview.identity">
+    <main className="v4-main v5-review-page" data-pli-selected={selected ?? ""}>
+      <div className="v5-review-identity" data-testid="pli.twinreview.identity">
         <h1>{pet ? `${pet.name} · 确认 3D 形象` : "确认 3D 形象"}</h1>
         <p className="sub">
           第 {version} 版 · 对比照片确认它是否像。确认后才会作为它的 3D 形象显示。
         </p>
       </div>
 
-      <div className="card r5-review-studio" data-testid="pli.twinreview.stage">
+      <div className="r5-review-studio v5-review-stage" data-testid="pli.twinreview.stage">
         <div data-testid="pli.twinreview.twin" style={{ position: "absolute", inset: 0 }}>
           {show3d ? (
             <Pet3DViewer
@@ -158,7 +158,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
       </div>
       {modelNote && <p className="muted" style={{ marginTop: 6 }}>还没有可确认的 3D 形象 · {modelNote}</p>}
 
-      <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+      <div className="v5-segmented" aria-label="查看角度">
         {(
           [
             { id: "front", label: "正面" },
@@ -182,8 +182,9 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
         ))}
       </div>
 
-      <div className="card" style={{ marginTop: 12 }}>
+      <div className="v5-review-confirm">
         <h2>它像吗？</h2>
+        <p className="v5-review-hint">只确认外观是否像它；这个选择不会改变健康、行为或时间线里的真实记录。</p>
         <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
           {VERIFY_OPTIONS.map((o) => (
             <button
@@ -201,7 +202,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
         </div>
 
         {selected === "not_like" && (
-          <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+          <div className="v5-review-issues">
             {ISSUES.map((i) => (
               <button
                 key={i.key}
@@ -220,7 +221,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
       </div>
 
       {msg && <div className="alert info">{msg}</div>}
-      <div className="card">
+      <div className="v5-review-status">
         <h2 data-testid="pli.twinreview.status">
           {selected === null
             ? "还未确认"

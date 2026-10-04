@@ -20,7 +20,7 @@ import { PetStateAnchor, type PetAnchor } from "./PetStateAnchor";
 export type StageVariant = "today" | "pet" | "life" | "review";
 
 const HEIGHTS: Record<StageVariant, number> = { today: 384, pet: 408, life: 500, review: 512 };
-const PET_WIDTHS: Record<StageVariant, number> = { today: 244, pet: 262, life: 288, review: 292 };
+const PET_WIDTHS: Record<StageVariant, number> = { today: 268, pet: 286, life: 318, review: 326 };
 
 const SLOTS: Array<{ top?: DimensionValue; bottom?: DimensionValue; left?: number; right?: number }> = [
   { top: "10%", left: 12 },
@@ -187,6 +187,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   stageLiving: {
+    marginHorizontal: SPACE.s2,
     backgroundColor: COLORS.stageWarmBase,
     borderColor: COLORS.stageWarmBorder,
   },
