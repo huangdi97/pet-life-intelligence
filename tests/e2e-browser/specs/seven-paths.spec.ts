@@ -191,14 +191,20 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
   await page.goto("/care");
   await page.getByPlaceholder("输入家庭成员标识").fill(sitterId);
   await page.getByRole("button", { name: "创建交接" }).click();
-  await expect(page.locator(".tl li", { hasText: sitterId.slice(0, 8) }).first()).toContainText("生效中");
+  // Owner UI intentionally no longer exposes raw caregiver/user IDs. Assert
+  // against the newest semantic handoff row instead of an internal identifier.
+  const activeHandoff = page.locator(".tl li", { hasText: "临时照护人" }).first();
+  await expect(activeHandoff).toContainText("生效中");
 
   // issue care card and read the shared link anonymously
   await page.getByRole("button", { name: "生成并获取链接" }).click();
   const card = page.getByText("照护卡已生成 · 72 小时有效").first();
   await expect(card).toBeVisible();
-  const sharePath = await page.locator("code").filter({ hasText: "/care-card/" }).first().textContent();
-  const token = sharePath!.match(/\/care-card\/([A-Za-z0-9_-]+)/)![1];
+  // The productized Care page exposes a real link rather than a raw token/code
+  // block. Read the href the same way an owner would open/share the card.
+  const sharePath = await page.getByRole("link", { name: "打开照护卡" }).getAttribute("href");
+  expect(sharePath).toMatch(/\/share\/care-card\/[A-Za-z0-9_-]+/);
+  const token = sharePath!.match(/\/share\/care-card\/([A-Za-z0-9_-]+)/)![1];
   const shared = await request.get(`${API}/care-card/${token}`);
   expect(shared.status()).toBe(200);
   const cardBody = await shared.json();
@@ -217,8 +223,8 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
   await sitterPage.close();
 
   // end handoff → scoped access revoked
-  await page.getByRole("button", { name: "提前结束" }).first().click();
-  await expect(page.locator(".tl li", { hasText: sitterId.slice(0, 8) }).first()).toContainText("已结束");
+  await activeHandoff.getByRole("button", { name: "提前结束" }).click();
+  await expect(activeHandoff).toContainText("已结束");
   const after = await request.get(`${API}/pets/${coco.id}`, {
     headers: { "X-Dev-User-Id": sitterId },
   });
