@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Text, Button, Input, Textarea } from "@tarojs/components";
+import { Button, Input, Text, Textarea, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
@@ -14,8 +14,19 @@ interface HealthEventRow {
   closed_at: string | null;
 }
 
+function statusLabel(status: string): string {
+  if (status === "OPEN") return "进行中";
+  if (status === "CLOSED") return "已结束";
+  return "已记录";
+}
+
+function highRisk(level: string | null): boolean {
+  return level === "URGENT" || level === "EMERGENCY";
+}
+
 export default function Health() {
-  const { petId } = usePets();
+  const { pets, petId } = usePets();
+  const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
   const [rows, setRows] = useState<HealthEventRow[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [showCreate, setShowCreate] = useState(false);
@@ -25,10 +36,9 @@ export default function Health() {
 
   const load = useCallback((pid: string) => {
     setState("loading");
-    api
-      .get<HealthEventRow[]>(`/pets/${pid}/health-events`)
-      .then((rows) => {
-        setRows(rows);
+    api.get<HealthEventRow[]>(`/pets/${pid}/health-events`)
+      .then((items) => {
+        setRows(items);
         setState("ready");
       })
       .catch(() => setState("error"));
@@ -39,7 +49,7 @@ export default function Health() {
   }, [petId, load]);
 
   async function openEvent() {
-    if (!complaint.trim() || !petId) return;
+    if (!complaint.trim() || !petId || busy) return;
     setBusy(true);
     try {
       await api.post(`/pets/${petId}/health-events`, {
@@ -50,7 +60,7 @@ export default function Health() {
       setComplaint("");
       setDuration("");
       load(petId);
-      Taro.showToast({ title: "已记录，请继续描述", icon: "success" });
+      Taro.showToast({ title: "健康记录已创建", icon: "success" });
     } catch {
       Taro.showToast({ title: "操作失败", icon: "none" });
     } finally {
@@ -58,59 +68,106 @@ export default function Health() {
     }
   }
 
+  const latest = rows[0] ?? null;
+  const recentSevenDays = rows.filter((row) => Date.now() - new Date(row.opened_at).getTime() < 7 * 24 * 60 * 60 * 1000);
+
   return (
     <View className="page">
-      <View className="h1">健康</View>
-      <View className="sub">发现异常 → 追问 → 红旗 → 分级 → 就诊摘要 → 结局</View>
-      <View className="entry-card" onClick={() => Taro.navigateTo({ url: "/pages/medication/index" })}>
-        <View>
-          <View className="entry-title">用药</View>
-          <View className="entry-desc">用药计划与给药记录 · 剂量以兽医处方为准</View>
-        </View>
-        <Text className="entry-arrow">›</Text>
-      </View>
+      <View className="h1">{current ? `${current.name}的健康` : "健康"}</View>
+      <View className="sub">整理观察与风险分级，帮助你知道下一步；不构成诊断。</View>
 
-
-      <Button className="btn btn-primary" onClick={() => setShowCreate((v) => !v)}>
-        {showCreate ? "收起" : "＋ 发现异常"}
-      </Button>
-
-      {showCreate && (
-        <View className="card">
-          <View className="field">
-            <Text>主诉 *</Text>
-            <Textarea className="input" value={complaint} onInput={(e) => setComplaint(e.detail.value)} placeholder="例如：今天早上开始呕吐，精神不振" autoHeight />
-          </View>
-          <View className="field">
-            <Text>持续时长</Text>
-            <Input className="input" value={duration} onInput={(e) => setDuration(e.detail.value)} placeholder="例如：2小时" />
-          </View>
-          <Button className="btn btn-primary" onClick={openEvent} disabled={busy || !complaint.trim()}>
-            {busy ? "提交中…" : "开始健康事件"}
-          </Button>
-          <View className="muted" style={{ marginTop: 12 }}>系统将追问更多信息并做规则引擎红旗检测（非 AI 诊断）。</View>
-        </View>
-      )}
-
-      {state === "loading" && <View className="state">加载中……</View>}
+      {state === "loading" && <View className="state">正在读取健康记录……</View>}
       {state === "error" && (
         <View className="state state-error">
-          出错了
+          暂时连接不上，已有内容不会被改写。
           <Button className="btn" onClick={() => petId && load(petId)}>重试</Button>
         </View>
       )}
-      {state === "ready" && rows.length === 0 && <View className="state">还没有健康记录。</View>}
-      {rows.map((h) => (
-        <View className="card" key={h.health_event_id}>
-          <View className="row" style={{ justifyContent: "space-between" }}>
-            <Text style={{ fontWeight: 600 }}>{h.chief_complaint}</Text>
-            <Text className={`badge ${h.latest_triage_level ?? ""}`}>{riskLabel(h.latest_triage_level)}</Text>
+
+      <View className="soft-hero">
+        <View className="section-title">近期状态</View>
+        <View className="metric-row">
+          <View className="metric-cell">
+            <View className="metric-value">{latest ? riskLabel(latest.latest_triage_level) : "暂无"}</View>
+            <View className="metric-label">最近一次分级</View>
           </View>
-          <View className="muted">
-            {h.status === "CLOSED" ? "已结束" : "进行中"} · {fmtTime(h.opened_at)}
+          <View className="metric-cell">
+            <View className="metric-value">{recentSevenDays.length}</View>
+            <View className="metric-label">近 7 天记录</View>
           </View>
         </View>
-      ))}
+        {latest ? (
+          <View className={highRisk(latest.latest_triage_level) ? "attention-panel attention-danger" : "attention-panel attention-calm"}>
+            <View>
+              <View className="attention-title">{riskLabel(latest.latest_triage_level)}</View>
+              <View className="attention-body">{latest.chief_complaint}</View>
+              <View className="attention-footer">{statusLabel(latest.status)} · {fmtTime(latest.opened_at)}</View>
+            </View>
+          </View>
+        ) : (
+          <View className="life-empty-note">还没有健康变化记录。</View>
+        )}
+      </View>
+
+      <View className="open-section">
+        <View className="section-title">健康记录</View>
+        {rows.length ? rows.map((row) => (
+          <View className="life-row" key={row.health_event_id}>
+            <View className={highRisk(row.latest_triage_level) ? "life-dot life-dot-danger" : "life-dot"} />
+            <View className="life-row-body">
+              <View className="life-row-head">
+                <Text className="life-row-type">{row.chief_complaint}</Text>
+                <Text className="life-row-time">{riskLabel(row.latest_triage_level)}</Text>
+              </View>
+              <View className="life-row-detail">{statusLabel(row.status)} · {fmtTime(row.opened_at)}</View>
+            </View>
+          </View>
+        )) : (
+          <View className="life-empty-note">从一次真实观察开始，分级与后续变化会留在这里。</View>
+        )}
+      </View>
+
+      <View className="open-section">
+        <View className="section-title">预防与用药</View>
+        <View className="life-row" onClick={() => Taro.navigateTo({ url: "/pages/medication/index" })}>
+          <View className="life-row-body">
+            <View className="life-row-head">
+              <Text className="life-row-type">用药计划与给药记录</Text>
+              <Text className="life-row-time">›</Text>
+            </View>
+            <View className="life-row-detail">剂量以兽医处方为准；这里区分计划、已给、跳过与漏服。</View>
+          </View>
+        </View>
+        <View className="life-row">
+          <View className="life-row-body">
+            <View className="life-row-head"><Text className="life-row-type">疫苗与驱虫</Text></View>
+            <View className="life-row-detail">暂无记录；不会因为缺少数据显示“正常”。</View>
+          </View>
+        </View>
+      </View>
+
+      <View className="open-section">
+        <View className="section-title" onClick={() => setShowCreate((value) => !value)}>
+          记录健康事件
+          <Text className="section-caption">{showCreate ? "收起" : "＋ 记录"}</Text>
+        </View>
+        {showCreate ? (
+          <View className="soft-panel">
+            <View className="field">
+              <Text>主要情况 *</Text>
+              <Textarea className="input" value={complaint} onInput={(e) => setComplaint(e.detail.value)} placeholder="例如：今天早上开始呕吐，精神不振" autoHeight />
+            </View>
+            <View className="field">
+              <Text>持续时长</Text>
+              <Input className="input" value={duration} onInput={(e) => setDuration(e.detail.value)} placeholder="例如：2 小时" />
+            </View>
+            <View className="life-row-source">提交后由确定性规则做风险提示，不是 AI 诊断；紧急情况请直接联系兽医。</View>
+            <Button className="btn btn-primary" onClick={openEvent} disabled={busy || !complaint.trim()}>
+              {busy ? "提交中…" : "提交"}
+            </Button>
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }
