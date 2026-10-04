@@ -46,6 +46,26 @@ interface CaptureResult {
   qc_result: Record<string, unknown>;
 }
 
+function captureStatusLabel(status: string): string {
+  if (status === "READY") return "素材已就绪";
+  if (status === "QC_PASSED") return "质检通过";
+  if (status === "QC_FAILED") return "需要补拍";
+  if (status === "UPLOADING") return "上传中";
+  return "素材已记录";
+}
+
+function qcValueLabel(value: unknown): string {
+  if (value === true) return "通过";
+  if (value === false) return "需改善";
+  if (typeof value === "string") {
+    const v = value.toUpperCase();
+    if (v === "PASS" || v === "GOOD" || v === "OK") return "通过";
+    if (v === "FAIL" || v === "BAD") return "需改善";
+    return "已评估";
+  }
+  return "待评估";
+}
+
 export default function CaptureWizard({ params }: { params: Promise<{ id: string }> }) {
   const petId = use(params).id;
   const [petName, setPetName] = useState<string | null>(null);
@@ -107,8 +127,8 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
   const uploaded = Object.keys(shots).length;
 
   return (
-    <main>
-      <div data-testid="pli.twincapture.identity">
+    <main className="v4-main v5-domain-page v5-utility-page">
+      <div className="v4-topline v5-page-lede" data-testid="pli.twincapture.identity">
         <h1 data-testid="pli.twincapture.title">{petName ? `${petName} · 拍摄宠物照片 · 3D 形象素材` : "拍摄宠物照片 · 3D 形象素材"}</h1>
         <p className="sub">
           拍 6 个角度的照片（或 12–20 张 / 10–20 秒环绕视频），生成 3D 形象会更像它。
@@ -117,14 +137,14 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
       </div>
       {error && <div className="alert emergency" role="alert">{error}</div>}
 
-      <div className="card" data-testid="pli.twincapture.preview">
+      <section className="v5-form-surface" data-testid="pli.twincapture.preview">
         <h2>拍摄角度</h2>
         <p className="muted" style={{ margin: "0 0 10px" }}>
           已上传 {uploaded}/6 · 也可以只传 1 张先试（推荐凑齐 4 张以上以提高相似度）。
         </p>
-        <div className="grid2">
+        <div className="v5-capture-grid">
           {ANGLES.map((a) => (
-            <label key={a.key} className="field" style={{ border: "1px solid var(--pli-line-default, #e8e2d9)", borderRadius: 10, padding: 10, margin: 0 }} data-testid={`pli.twincapture.view.${a.key}`}>
+            <label key={a.key} className="field v5-capture-tile" data-testid={`pli.twincapture.view.${a.key}`}>
               <span style={{ fontWeight: 600 }}>{a.label}</span>
               <span className="muted" style={{ display: "block", marginBottom: 6 }}>{a.hint}</span>
               <input
@@ -142,9 +162,9 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
         <button className="btn primary" onClick={submit} disabled={busy || uploaded === 0} data-testid="pli.twincapture.action">
           {busy ? "上传并质检…" : "上传并质检"}
         </button>
-      </div>
+      </section>
 
-      <div className="card">
+      <section className="v5-utility-surface v5-utility-surface--soft">
         <h2>拍摄与隐私提示</h2>
         <ul className="tl">
           {QC_CHECKS.map((c) => (
@@ -153,14 +173,14 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
             </li>
           ))}
         </ul>
-      </div>
+      </section>
 
-      <div className="card" data-testid="pli.twincapture.qc">
+      <section className="v5-utility-surface" data-testid="pli.twincapture.qc">
         <h2>质检结果</h2>
         <div className="row" style={{ flexWrap: "wrap", gap: 8 }} data-testid="pli.twincapture.qc.dims">
           {QC_DIMS.map((d) => (
             <span key={d.key} className="badge" data-testid={`pli.twincapture.qc.${d.key}`}>
-              {d.label}：{result ? (typeof result.qc_result?.[d.key] === "string" || typeof result.qc_result?.[d.key] === "boolean" ? String(result.qc_result[d.key]) : "待评估") : "待上传后评估"}
+              {d.label}：{result ? qcValueLabel(result.qc_result?.[d.key]) : "待上传后评估"}
             </span>
           ))}
         </div>
@@ -170,7 +190,7 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
               <span className={`badge ${result.qc_passed ? "MONITOR" : "EMERGENCY"}`}>
                 {result.qc_passed ? "质检通过" : "质检未通过（最少需要 1 张照片）"}
               </span>
-              <span className="badge">{result.status}</span>
+              <span className="badge">{captureStatusLabel(result.status)}</span>
             </p>
             <p className="muted" style={{ marginTop: 8 }}>
               {String(result.qc_result?.note ?? "")}
@@ -185,9 +205,9 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
             </div>
           </State>
         )}
-      </div>
+      </section>
 
-      <div className="card" data-testid="pli.twincapture.retake">
+      <section className="v5-utility-surface v5-utility-surface--soft" data-testid="pli.twincapture.retake">
         <h2>需要补拍？</h2>
         <p className="muted" style={{ margin: 0 }}>
           某个角度缺失或画面不清晰时，重新选择对应角度的照片即可覆盖。
@@ -197,7 +217,7 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
             重新拍摄
           </button>
         </div>
-      </div>
+      </section>
     </main>
   );
 }

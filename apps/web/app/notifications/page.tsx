@@ -16,6 +16,15 @@ interface NotificationRow {
   data: Record<string, unknown>;
 }
 
+function notificationTypeLabel(type: string): string {
+  if (type.includes("EMERGENCY")) return "紧急提醒";
+  if (type === "TASK_CONFLICT") return "任务冲突";
+  if (type.includes("MEDICATION")) return "用药提醒";
+  if (type.includes("GRANT") || type.includes("HANDOFF") || type.includes("PERMISSION")) return "照护权限";
+  if (type.includes("TASK")) return "照护任务";
+  return "生活提醒";
+}
+
 /** Surface 13: unified notification center (PLI-219). */
 export default function NotificationsPage() {
   const notifications = useAsync<NotificationRow[]>(() =>
@@ -30,9 +39,11 @@ export default function NotificationsPage() {
   );
 
   return (
-    <main>
-      <h1>通知中心</h1>
-      <p className="sub">任务冲突、红旗警告、权限到期、用药遗漏等统一通知。</p>
+    <main className="v4-main v5-domain-page">
+      <div className="v4-topline v5-page-lede">
+        <h1>通知中心</h1>
+        <p className="sub">任务、健康、权限与用药提醒集中在这里，优先呈现真正需要处理的事情。</p>
+      </div>
       <State
         state={notifications.state}
         error={notifications.error}
@@ -46,7 +57,7 @@ export default function NotificationsPage() {
                 <span className={`tl-type ${n.type.includes("EMERGENCY") || n.type === "TASK_CONFLICT" ? "" : ""}`}>
                   {n.title}
                 </span>
-                <span className="badge">{n.type}</span>
+                <span className="badge">{notificationTypeLabel(n.type)}</span>
                 <span className="tl-time">{fmtTime(n.created_at)}</span>
               </div>
               <div className="tl-body">{n.body}</div>

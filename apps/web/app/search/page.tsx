@@ -61,12 +61,14 @@ export default function SearchPage() {
   }
 
   return (
-    <main>
-      <h1>记录搜索与个人问答</h1>
-      <p className="sub">
-        只搜索真实事件并给出引用；问答必须引用证据，无证据就直说找不到。
-      </p>
-      <div className="card">
+    <main className="v4-main v5-domain-page">
+      <div className="v4-topline v5-page-lede">
+        <h1>记录搜索与个人问答</h1>
+        <p className="sub">
+          从它自己的真实记录里查找和回答；没有证据时就明确说没有找到。
+        </p>
+      </div>
+      <section className="v5-form-surface">
         <div className="row">
           <input
             style={{ maxWidth: 420 }}
@@ -82,17 +84,17 @@ export default function SearchPage() {
           </button>
         </div>
         <ErrorNote message={error} />
-      </div>
+      </section>
 
       {ask && (
-        <div className="card">
+        <section className="v5-utility-surface v5-utility-surface--soft">
           <h2>回答</h2>
           <p>{ask.answer}</p>
           {ask.citations.length > 0 && (
             <p className="muted">证据引用：{ask.citations.join(", ")}</p>
           )}
           <div className="notice-ai">{ask.disclaimer}</div>
-        </div>
+        </section>
       )}
 
       <State state={hits === null ? "loading" : "ready"} empty={null}>

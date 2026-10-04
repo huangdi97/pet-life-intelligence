@@ -1111,3 +1111,37 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
   }
 }
 
+/* R5.2 capture / identity utilities. */
+.v5-capture-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.v5-capture-tile {
+  display: block;
+  margin: 0 !important;
+  padding: 14px !important;
+  border: 1px solid rgba(222,212,198,0.72) !important;
+  border-radius: 18px !important;
+  background: rgba(255,253,249,0.76);
+}
+.v5-capture-tile:focus-within {
+  border-color: var(--v4-brand-primary, #4e6349) !important;
+  box-shadow: 0 0 0 3px rgba(78,99,73,0.10);
+}
+.v5-version-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.v5-version-row {
+  width: 100%;
+  padding: 12px 14px !important;
+  border: 1px solid rgba(226,218,206,0.68) !important;
+  border-radius: 16px !important;
+  background: rgba(255,253,249,0.72) !important;
+}
+@media (max-width: 640px) {
+  .v5-capture-grid { grid-template-columns: 1fr; }
+}
+
