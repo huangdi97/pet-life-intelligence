@@ -113,7 +113,7 @@ export function PetLivingStage({
     </View>
   );
   return (
-    <View testID={stageTestId} accessible accessibilityLabel={`${pet?.name ?? "宠物"}的此刻舞台`} style={[styles.stage, { height }, reviewStudio ? styles.stageReview : styles.stageLiving]}>
+    <View testID={stageTestId} style={[styles.stage, { height }, reviewStudio ? styles.stageReview : styles.stageLiving]}>
       {/* BACKGROUND: a quiet room field, not a viewer card. Living surfaces use
           window-like daylight + a low floor haze; Review uses a neutral studio. */}
       <View style={[styles.fieldBase, reviewStudio ? styles.fieldBaseReview : styles.fieldBaseLiving]} />
