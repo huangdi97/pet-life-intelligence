@@ -191,10 +191,13 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
   await page.goto("/care");
   await page.getByPlaceholder("输入家庭成员标识").fill(sitterId);
   await page.getByRole("button", { name: "创建交接" }).click();
-  // Owner UI intentionally no longer exposes raw caregiver/user IDs. Assert
-  // against the newest semantic handoff row instead of an internal identifier.
-  const activeHandoff = page.locator(".tl li", { hasText: "临时照护人" }).first();
+  // Owner UI intentionally no longer exposes raw caregiver/user IDs. Locate
+  // the active semantic handoff by its action, then assert the readable state.
+  const activeHandoff = page.locator(".tl li").filter({
+    has: page.getByRole("button", { name: "提前结束" }),
+  }).first();
   await expect(activeHandoff).toContainText("生效中");
+  await expect(activeHandoff).not.toContainText(sitterId);
 
   // issue care card and read the shared link anonymously
   await page.getByRole("button", { name: "生成并获取链接" }).click();
