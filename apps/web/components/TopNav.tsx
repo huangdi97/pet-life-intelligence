@@ -40,6 +40,19 @@ export default function TopNav() {
   const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
+    setMoreOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMoreOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [moreOpen]);
+
+  useEffect(() => {
     setUser(getDevUserId());
     api
       .get<Pet[]>("/pets")
@@ -93,7 +106,7 @@ export default function TopNav() {
               href={n.href}
               className={active ? "active" : ""}
               aria-current={active ? "page" : undefined}
-              role="button"
+              aria-label={n.href === "/pets" ? `宠物：${label}` : label}
               data-testid={n.testId}
             >
               <span className="nav-icon" aria-hidden="true">
@@ -109,12 +122,13 @@ export default function TopNav() {
             onClick={() => setMoreOpen((o) => !o)}
             aria-haspopup="true"
             aria-expanded={moreOpen}
+            aria-controls="pli-more-menu"
           >
             更多
             <Icon name="chevron" size={13} style={{ marginLeft: 3 }} />
           </button>
           {moreOpen && (
-            <div className="more-menu" role="menu">
+            <div id="pli-more-menu" className="more-menu" role="menu" aria-label="更多功能">
               {MORE_LINKS.map((l) => (
                 <Link key={l.href} href={l.href} role="menuitem" onClick={() => setMoreOpen(false)}>
                   {l.label}
@@ -145,7 +159,7 @@ export default function TopNav() {
                 ))}
               </select>
             </label>
-            <button className="btn" onClick={logout}>
+            <button className="btn" onClick={logout} aria-label="退出当前账号">
               {t("nav.logout")}
             </button>
           </>
