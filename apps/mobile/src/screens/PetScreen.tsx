@@ -27,11 +27,13 @@ import { eventTypeLabel } from "./ui_labels";
 
 type StackNav = NativeStackNavigationProp<StackParamList>;
 
+type DomainRoute = "LifeView" | "Health" | "Behavior" | "Training" | "Welfare" | "Social";
+
 interface DomainRow {
   key: string;
   icon: keyof typeof Ionicons.glyphMap;
   meaning: string;
-  route: keyof StackParamList;
+  route: DomainRoute;
 }
 
 const DOMAIN_LABELS: Record<string, string> = {
@@ -127,6 +129,32 @@ export function PetScreen() {
     ? [`${petAgeText(pet.birth_date) ?? ""}`, pet.breed, sexLabel(pet.sex)].filter(Boolean).join(" · ")
     : "";
 
+  const navigateDomain = (route: DomainRoute) => {
+    // React Navigation's generated overloads cannot safely accept
+    // `keyof StackParamList` because some routes require params. Keep this
+    // owner-domain list explicitly narrowed to its six parameterless screens.
+    switch (route) {
+      case "LifeView":
+        navigation.navigate("LifeView");
+        break;
+      case "Health":
+        navigation.navigate("Health");
+        break;
+      case "Behavior":
+        navigation.navigate("Behavior");
+        break;
+      case "Training":
+        navigation.navigate("Training");
+        break;
+      case "Welfare":
+        navigation.navigate("Welfare");
+        break;
+      case "Social":
+        navigation.navigate("Social");
+        break;
+    }
+  };
+
   return (
     <SafeAreaView style={styles.page} edges={["top"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -179,7 +207,7 @@ export function PetScreen() {
                   testID={`pli.pet.domain.${r.key}`}
                   accessibilityRole="button"
                   accessibilityLabel={`${DOMAIN_LABELS[r.key] ?? r.key}：${r.meaning}，点击查看`}
-                  onPress={() => navigation.navigate(r.route)}
+                  onPress={() => navigateDomain(r.route)}
                   style={[styles.domainRow, i > 0 && styles.domainDivider]}
                 >
                   <View style={styles.domainText}>
