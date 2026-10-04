@@ -24,6 +24,7 @@ function identityLine(pet: Pet | undefined): string {
 export default function Pets() {
   const { pets, petId, choose, refresh } = usePets();
   const [events, setEvents] = useState<LifeEvent[] | null>(null);
+  const [twinModels, setTwinModels] = useState<Array<Record<string, unknown>> | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -40,10 +41,16 @@ export default function Pets() {
 
   useEffect(() => {
     if (!petId) return;
+    setEvents(null);
+    setTwinModels(null);
     api
       .get<{ events: LifeEvent[]; count: number }>(`/pets/${petId}/events`)
       .then((r) => setEvents(r.events))
       .catch(() => setEvents([]));
+    api
+      .get<{ models: Array<Record<string, unknown>> }>(`/pets/${petId}/visual-models`)
+      .then((r) => setTwinModels(r.models))
+      .catch(() => setTwinModels([]));
   }, [petId]);
 
   const lastOf = (prefix: string): LifeEvent | undefined => {
@@ -58,6 +65,16 @@ export default function Pets() {
   const lastGoal = lastOf("training.goal_created");
   const lastWelfare = lastOf("welfare.");
   const lastSocial = lastOf("social.");
+  const activeTwin = twinModels?.find((model) => model.status === "ACTIVE") ?? null;
+  const latestTwin = twinModels?.[0] ?? null;
+  const twinVersion = activeTwin?.version ?? activeTwin?.twin_version ?? latestTwin?.version ?? latestTwin?.twin_version;
+  const twinStatusCopy = activeTwin
+    ? `已启用${twinVersion ? `第 ${String(twinVersion)} 版` : "当前 3D 形象"}`
+    : twinModels === null
+      ? "正在读取 3D 形象状态…"
+      : latestTwin
+        ? "已有候选形象，等待你在支持的客户端确认"
+        : "还没有启用 3D 形象";
 
   const domains: Array<{ label: string; hint: string; url: string }> = [
     {
@@ -143,6 +160,24 @@ export default function Pets() {
       ) : (
         <>
           <PetHero pet={current} headline="它的生活，从这里看见" identity={identityLine(current)} />
+
+          <View className="soft-panel" data-testid="pli.mini.pet.twin-status">
+            <View className="section-title">
+              3D 形象
+              <Text className="section-caption">{activeTwin ? "已确认" : "轻量查看"}</Text>
+            </View>
+            <View className="life-row-detail">{twinStatusCopy}</View>
+            <View className="life-row-source">
+              小程序保留轻量生活视图；交互式高保真 3D 请在支持的 Web / Android 客户端查看与确认。
+            </View>
+            <View
+              className="secondary-action"
+              style={{ marginTop: 12 }}
+              onClick={() => Taro.navigateTo({ url: "/pages/pets/life-view/index" })}
+            >
+              查看生命视图
+            </View>
+          </View>
 
           <View className="open-section">
             <View className="section-title">生活</View>
