@@ -6,7 +6,7 @@ import { fmtTime, type Async } from "../../../lib/hooks";
 import { mapErrorMessage, t } from "../../../lib/i18n";
 import { ProvenanceBadge, State } from "../../../components/ui";
 import { KIND_LABELS } from "./constants";
-import { eventTypeLabel } from "../../../lib/ownerLabels";
+import { eventPayloadSummary, eventTypeLabel } from "../../../lib/ownerLabels";
 
 interface WelfareTrendCardProps {
   events: Async<{ events: LifeEvent[] }>;
@@ -16,8 +16,8 @@ interface WelfareTrendCardProps {
 /** OWN-011 趋势（基于福祉相关日常事件频次，非医疗结论）。 */
 export function WelfareTrendCard({ events, welfareEvents }: WelfareTrendCardProps) {
   return (
-    <div className="card">
-      <h2>{t("welfare.trend")}</h2>
+    <section className="v4-sec">
+      <h2 className="v4-sec-title">近期趋势</h2>
       <State
         state={events.state}
         error={events.error ? mapErrorMessage(events.error) : null}
@@ -44,11 +44,11 @@ export function WelfareTrendCard({ events, welfareEvents }: WelfareTrendCardProp
                     <ProvenanceBadge level={e.provenance_level} />
                     <span className="tl-time">{fmtTime(e.occurred_at)}</span>
                   </div>
-                  <div className="tl-body">
-                    {Object.entries(e.payload)
-                      .map(([k, v]) => `${k}: ${String(v)}`)
-                      .join(" · ")}
-                  </div>
+                  {eventPayloadSummary(e.payload) ? (
+                    <div className="tl-body">{eventPayloadSummary(e.payload)}</div>
+                  ) : (
+                    <div className="tl-body muted">这条记录没有需要额外展示的详情。</div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -58,6 +58,6 @@ export function WelfareTrendCard({ events, welfareEvents }: WelfareTrendCardProp
           </>
         )}
       </State>
-    </div>
+    </section>
   );
 }
