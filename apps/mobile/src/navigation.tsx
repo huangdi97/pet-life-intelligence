@@ -85,6 +85,14 @@ const TAB_TEST_IDS: Record<keyof TabParamList, string> = {
   Me: "pli.nav.me",
 };
 
+const TAB_A11Y_LABELS: Record<keyof TabParamList, string> = {
+  Today: "今天，查看宠物当前状态与需要关注的变化",
+  Timeline: "时间线，查看宠物的长期生活记录",
+  Pet: "宠物，进入宠物主页与生活领域",
+  Assistant: "助手，询问、查找、解释和规划",
+  Me: "我的，管理家庭、通知、隐私和设置",
+};
+
 function Tabs() {
   const { pets, petId } = usePets();
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
@@ -110,6 +118,8 @@ function Tabs() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
         tabBarItemStyle: { borderRadius: 16, marginHorizontal: 2 },
         tabBarTestID: TAB_TEST_IDS[route.name as keyof TabParamList],
+        tabBarAccessibilityLabel: TAB_A11Y_LABELS[route.name as keyof TabParamList],
+        tabBarHideOnKeyboard: true,
         tabBarIcon: ({ color, size, focused }) => {
           // Pet tab shows the current pet's avatar (rounded); fallback paw icon.
           if (route.name === "Pet" && current) {
