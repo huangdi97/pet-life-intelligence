@@ -20,7 +20,10 @@
       "@/*": [
         "src/*"
       ]
-    }
+    },
+    "types": [
+      "react"
+    ]
   },
   "include": [
     "src",
