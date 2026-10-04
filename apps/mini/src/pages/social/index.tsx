@@ -22,13 +22,24 @@ const PROFILE_ROWS = [
   ["good_with_strangers", "对陌生人"],
 ] as const;
 const QUALITY = [
-  { value: "POSITIVE", label: "愉快" },
+  { value: "GOOD", label: "顺利" },
   { value: "NEUTRAL", label: "平静" },
   { value: "TENSE", label: "紧张" },
+  { value: "BAD", label: "冲突" },
 ];
 
+function relationLabel(value: string | undefined): string {
+  if (!value) return "未知";
+  if (value === "GOOD") return "很好";
+  if (value === "OK") return "可以";
+  if (value === "CAUTION") return "需注意";
+  if (value === "NO") return "不适合";
+  if (value === "UNKNOWN") return "未知";
+  return "已记录";
+}
+
 function friendStatusLabel(status: string): string {
-  if (status === "ACCEPTED") return "已添加";
+  if (status === "ACTIVE" || status === "ACCEPTED") return "已添加";
   if (status === "PENDING") return "待确认";
   if (status === "BLOCKED") return "已屏蔽";
   return "已记录";
@@ -105,7 +116,7 @@ export default function Social() {
             <View className="life-row-body">
               <View className="life-row-head">
                 <Text className="life-row-type">{label}</Text>
-                <Text className="life-row-time">{profile.profile?.[key] ?? "未知"}</Text>
+                <Text className="life-row-time">{relationLabel(profile.profile?.[key])}</Text>
               </View>
             </View>
           </View>
