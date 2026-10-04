@@ -89,7 +89,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
   const lastEvent = events[0] ?? null;
   const nowLine = lastEvent
     ? `最近一次记录：${EVENT_LABELS[lastEvent.event_type] ?? "活动"} · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
-    : `今天还没有记录，${name}安安静静的。`;
+    : "今天还没有足够记录。";
 
   const timelineRows = events.slice(0, 4).map((e) => ({
     key: e.event_type + e.occurred_at,
@@ -138,7 +138,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
             <div className="v4-sec" data-testid="pli.lifeview.panel">
               <h2 className="v4-sec-title">此刻</h2>
               <p className="v4-sec-sub" style={{ marginTop: 6 }}>
-                {anchors.length ? "上面的数值来自今天真实的记录。" : "今天还没有足够记录，记下第一件事后，这里会围绕它展开。"}
+                {events.length > 0 ? "上面的数值来自今天真实的记录。" : "今天还没有足够记录，记下第一件事后，这里会围绕它展开。"}
               </p>
             </div>
           ) : null}
@@ -147,7 +147,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
             <div className="v4-sec">
               <h2 className="v4-sec-title">趋势</h2>
               <div className="v4-statsline" style={{ marginTop: 8 }}>
-                {anchors.length ? (
+                {events.length > 0 ? (
                   anchors.map((a) => (
                     <span key={a.id} className="v4-chip">
                       <span className="v4-chip-icon"><Icon name={a.icon} size={13} /></span>
