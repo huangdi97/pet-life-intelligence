@@ -105,7 +105,7 @@ export default function TodayPage() {
   // blind-UI contract can count pli.today.anchor.{water,food,activity,sleep}.
   const anchors = anchorsAll;
   const headline =
-    totalCount === 0 ? "今天还没有新的记录" : hasAttention ? "今天有值得留意的变化" : "今天整体稳定";
+    totalCount === 0 ? "今天还没有新的记录" : hasAttention ? "今天有值得留意的变化" : `今天记录了 ${totalCount} 件生活片段`;
   const recent = lastEvent
     ? `最近记录 · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
     : `今天 · ${new Date().toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" })}`;
@@ -163,7 +163,7 @@ export default function TodayPage() {
       />
 
       <p className="v4-note" data-testid="pli.today.health-summary" style={{ margin: "10px 0 0" }}>
-        {hints.length > 0 ? `健康：${hints.length} 项需要留意` : "健康状态：总体稳定"}
+        {hints.length > 0 ? `健康：${hints.length} 项需要留意` : "当前没有规则标记的健康变化"}
       </p>
 
       <div className="v4-grid">
