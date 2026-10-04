@@ -51,7 +51,10 @@ export function LifeViewScreen() {
     api
       .get<{ events: LifeEvent[] }>(`/pets/${pet.id}/today`)
       .then((r) => {
-        if (alive) setToday(r);
+        if (alive) {
+          setToday(r);
+          setError(false);
+        }
       })
       .catch(() => {
         if (alive) setError(true);
@@ -190,14 +193,14 @@ export function LifeViewScreen() {
         <View testID="pli.lifeview.panel" style={styles.panel} accessibilityLiveRegion="polite">
           {mode === "now" ? (
             <Text style={styles.panelText}>
-              {anchors.length
+              {petEvents.length > 0
                 ? "上面的数值来自今天真实的记录。点一下数值，可以看到事实、来源与更新时间。拖动宠物可以旋转，双指缩放。"
                 : `今天还没有足够记录，记下第一件事后，这里会围绕${pet?.name ?? "宠物"}展开。`}
             </Text>
           ) : null}
 
           {mode === "trend" ? (
-            anchors.length ? (
+            petEvents.length > 0 ? (
               <View style={styles.trendRow}>
                 {anchors.map((a) => (
                   <View key={a.id} style={styles.trendCell}>
@@ -294,6 +297,8 @@ const styles = StyleSheet.create({
   lookRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2 },
   poseRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
   poseChip: {
+    minHeight: 44,
+    justifyContent: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
@@ -316,7 +321,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 18,
     backgroundColor: COLORS.surfaceOverlay,
-    minHeight: 40,
+    minHeight: 44,
   },
   scrim: { flex: 1, backgroundColor: "rgba(16,13,11,0.45)", justifyContent: "flex-end" },
   sheet: {
@@ -328,7 +333,7 @@ const styles = StyleSheet.create({
   },
   sheetHead: { flexDirection: "row", alignItems: "center", marginBottom: SPACE.s2 },
   sheetTitle: { flex: 1, fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
-  sheetClose: { padding: 4 },
+  sheetClose: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   sheetValue: { fontSize: TYPE.metric, fontWeight: "700", color: COLORS.brandPrimaryDeep, marginBottom: SPACE.s3 },
   row: { flexDirection: "row", paddingVertical: 9, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.dividerSubtle },
   rowKey: { width: 92, fontSize: TYPE.body, color: COLORS.textTertiary },
