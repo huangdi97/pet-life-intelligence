@@ -136,8 +136,9 @@ export function PetTwinReviewScreen() {
     }
   };
 
-  // SAFETY: 不像 may be submitted as feedback but must never reach activation.
-  const ctaDisabled = !selected || busy;
+  // SAFETY: 不像 may be submitted as feedback, but the activation CTA itself
+  // remains disabled to preserve the canonical not_like → disabled contract.
+  const ctaDisabled = !selected || busy || selected === "not_like";
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
@@ -220,6 +221,19 @@ export function PetTwinReviewScreen() {
             {message ?? "等待你的确认：像它吗？"}
           </Text>
 
+          {selected === "not_like" ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: busy }}
+              testID="pli.twinreview.action.feedback"
+              disabled={busy}
+              onPress={submit}
+              style={[styles.feedbackCta, busy && styles.ctaDisabled]}
+            >
+              <Text style={styles.feedbackCtaText}>{busy ? "提交中…" : "提交不像反馈"}</Text>
+            </Pressable>
+          ) : null}
+
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ disabled: ctaDisabled }}
@@ -228,9 +242,7 @@ export function PetTwinReviewScreen() {
             onPress={submit}
             style={[styles.cta, ctaDisabled && styles.ctaDisabled]}
           >
-            <Text style={styles.ctaText}>
-              {busy ? "提交中…" : selected === "not_like" ? "提交反馈" : "提交确认"}
-            </Text>
+            <Text style={styles.ctaText}>{busy ? "提交中…" : selected === "not_like" ? "需补充素材后重新生成" : "提交确认"}</Text>
           </Pressable>
         </ScrollView>
       )}
@@ -279,6 +291,16 @@ const styles = StyleSheet.create({
   chipTextSel: { color: COLORS.textInverse },
   message: { marginTop: SPACE.s3, fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20 },
   cta: { marginTop: SPACE.s4, backgroundColor: COLORS.brandPrimary, borderRadius: 14, paddingVertical: 14, alignItems: "center" },
+  feedbackCta: {
+    marginTop: SPACE.s4,
+    backgroundColor: COLORS.surfaceRaised,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.dividerStrong,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  feedbackCtaText: { color: COLORS.textPrimary, fontSize: TYPE.body, fontWeight: "700" },
   ctaDisabled: { opacity: 0.5 },
   ctaText: { color: COLORS.textInverse, fontSize: TYPE.body, fontWeight: "700" },
 });
