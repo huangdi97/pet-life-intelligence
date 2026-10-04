@@ -128,9 +128,22 @@ async def list_handoffs(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -> 
             .order_by(CareHandoff.created_at.desc())
         )
     ).scalars().all()
+    caregiver_ids = {h.caregiver_user_id for h in rows}
+    caregivers = (
+        (
+            await db.execute(select(User).where(User.id.in_(caregiver_ids)))
+        ).scalars().all()
+        if caregiver_ids
+        else []
+    )
+    caregiver_labels = {
+        u.id: (u.display_name.strip() or u.email)
+        for u in caregivers
+    }
     return [
         {
             "handoff_id": str(h.id), "caregiver_user_id": str(h.caregiver_user_id),
+            "caregiver_label": caregiver_labels.get(h.caregiver_user_id, "临时照护人"),
             "scope": h.scope, "start_at": h.start_at.isoformat(),
             "end_at": h.end_at.isoformat() if h.end_at else None,
             "status": h.status, "notes": h.notes,
