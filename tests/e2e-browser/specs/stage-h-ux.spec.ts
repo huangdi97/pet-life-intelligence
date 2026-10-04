@@ -14,8 +14,8 @@ test.describe("Stage H UX — new domain routes", () => {
     await page.goto("/welfare");
     await expect(page).toHaveURL(urlRe("/welfare"));
     await expectNoFatalState(page);
-    await expect(page.getByText(/福祉 · Welfare/).first()).toBeVisible();
-    await expect(page.getByText(/不是医疗结论|不是医疗诊断/).first()).toBeVisible();
+    await expect(page.getByTestId("pli.welfare.identity")).toContainText("生活与福祉");
+    await expect(page.getByTestId("pli.welfare.action")).toContainText("不推断情绪或幸福指数");
   });
 
   test("social renders relationship view (no fatal)", async ({ page, request }) => {
@@ -23,7 +23,7 @@ test.describe("Stage H UX — new domain routes", () => {
     await page.goto("/social");
     await expect(page).toHaveURL(urlRe("/social"));
     await expectNoFatalState(page);
-    await expect(page.getByText(/社交 · Social/).first()).toBeVisible();
+    await expect(page.getByTestId("pli.social.identity")).toContainText("社交与伙伴");
   });
 
   test("monitoring renders device status UI (no fatal, no fake online)", async ({ page, request }) => {
@@ -31,7 +31,8 @@ test.describe("Stage H UX — new domain routes", () => {
     await page.goto("/monitoring");
     await expect(page).toHaveURL(urlRe("/monitoring"));
     await expectNoFatalState(page);
-    await expect(page.getByText(/在家 · Monitoring/).first()).toBeVisible();
+    await expect(page.getByTestId("pli.monitoring.identity")).toContainText("在家状态");
+    await expect(page.getByTestId(/pli\.monitoring\.state\./)).toContainText(/设备|读取/);
   });
 
   test("agent renders 5 assistant tabs (navigation)", async ({ page, request }) => {
