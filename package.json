@@ -9,7 +9,6 @@
     "typecheck:web": "pnpm --dir apps/web typecheck"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
-    "@types/react": "18.3.31"
+    "@playwright/test": "^1.63.0"
   }
 }
