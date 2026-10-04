@@ -4,20 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { api, type LifeEvent, type Pet } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
-import { mapErrorMessage, t } from "../../lib/i18n";
+import { mapErrorMessage } from "../../lib/i18n";
 import { FriendsPanel } from "./_components/FriendsPanel";
 import { InteractionsPanel } from "./_components/InteractionsPanel";
 import { RecordInteractionPanel } from "./_components/RecordInteractionPanel";
 import { RelationsPanel } from "./_components/RelationsPanel";
 import type { PetFriend, SocialProfile } from "./_components/types";
-
-const QUALITY_LABELS: Record<string, string> = {
-  UNKNOWN: "未知",
-  GOOD: "顺利",
-  NEUTRAL: "平静",
-  TENSE: "紧张",
-  BAD: "冲突",
-};
 
 /** OWN-012 Social（Stage H §27-28）：关系图谱 + 互动历史 + 安全 + 反馈，不是传统 Feed。 */
 export default function SocialPage() {
