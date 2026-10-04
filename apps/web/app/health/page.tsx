@@ -64,8 +64,8 @@ export default function HealthPage() {
       <div className="v4-topline v5-page-lede" data-testid="pli.health.identity">
         <h1>健康事件</h1>
         <p className="sub">
-          {current ? `${current.name} · 发现异常 → 动态追问 → 可观察事实 → 红旗分级 → Vet Brief → Outcome。` : "发现异常 → 动态追问 → 可观察事实 → 红旗分级 → Vet Brief → Outcome。"}
-          分级由独立规则引擎给出，AI 只整理事实，不能降低紧急度。
+          {current ? `${current.name} · 先看最近的健康记录和变化，需要时再记录新的异常。` : "先看最近的健康记录和变化，需要时再记录新的异常。"}
+          风险提示来自独立规则；AI 只整理已有事实，不替代兽医判断。
         </p>
       </div>
 
@@ -134,7 +134,7 @@ export default function HealthPage() {
                     {h.chief_complaint}
                   </Link>
                   <TriageBadge level={h.latest_triage_level} />
-                  <span className={`badge status-${h.status}`}>{h.status === "OPEN" ? "进行中" : h.status === "CLOSED" ? "已关闭" : h.status}</span>
+                  <span className={`badge status-${h.status}`}>{h.status === "OPEN" ? "进行中" : h.status === "CLOSED" ? "已关闭" : "其他状态"}</span>
                   <span className="tl-time">{fmtTime(h.opened_at)}</span>
                 </div>
               </li>
