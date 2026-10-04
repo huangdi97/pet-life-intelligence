@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api } from "@pli/api-client";
 import { fmtTime, useCurrentPet } from "../../lib/hooks";
-import { ErrorNote, State } from "../../components/ui";
+import { ErrorNote } from "../../components/ui";
 import { eventTypeLabel, eventPayloadSummary } from "../../lib/ownerLabels";
 
 interface SearchHit {
@@ -29,10 +29,13 @@ export default function SearchPage() {
   const [ask, setAsk] = useState<AskResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<"search" | "ask" | null>(null);
 
   async function runSearch() {
     if (!petId || !q.trim()) return;
     setBusy(true);
+    setMode("search");
+    setAsk(null);
     setError(null);
     try {
       const r = await api.get<{ hits: SearchHit[] }>(
@@ -49,6 +52,8 @@ export default function SearchPage() {
   async function runAsk() {
     if (!petId || !q.trim()) return;
     setBusy(true);
+    setMode("ask");
+    setHits(null);
     setError(null);
     try {
       const r = await api.post<AskResult>(`/pets/${petId}/ask`, { question: q.trim() });
@@ -86,33 +91,61 @@ export default function SearchPage() {
         <ErrorNote message={error} />
       </section>
 
+      {mode === null && (
+        <section className="v5-utility-surface v5-utility-surface--soft">
+          <h2>从真实记录开始</h2>
+          <p className="v4-note" style={{ margin: 0 }}>
+            可以找“猫砂盆”“散步”“疫苗”等记录，也可以直接问“最近有什么变化？”。回答只使用这只宠物已有的记录。
+          </p>
+        </section>
+      )}
+
+      {mode === "ask" && busy && <div className="v4-loading">正在整理已有记录…</div>}
+
       {ask && (
         <section className="v5-utility-surface v5-utility-surface--soft">
-          <h2>回答</h2>
+          <h2>基于记录的回答</h2>
           <p>{ask.answer}</p>
           {ask.citations.length > 0 && (
-            <p className="muted">证据引用：{ask.citations.join(", ")}</p>
+            <p className="muted">依据：{ask.citations.length} 条相关记录</p>
           )}
           <div className="notice-ai">{ask.disclaimer}</div>
         </section>
       )}
 
-      <State state={hits === null ? "loading" : "ready"} empty={null}>
-        {hits !== null && (
-          <ul className="tl">
-            {hits.length === 0 && <div className="state">没有匹配的真实记录（不生成历史）。</div>}
-            {hits.map((h) => (
-              <li key={h.event_id}>
-                <div className="tl-head">
-                  <span className="tl-type">{eventTypeLabel(h.event_type)}</span>
-                  <span className="tl-time">{fmtTime(h.occurred_at)}</span>
-                </div>
-                <div className="tl-body">{eventPayloadSummary(h.payload) || "已记录事件"}</div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </State>
+      {mode === "search" && busy && <div className="v4-loading">正在查找记录…</div>}
+
+      {hits !== null && (
+        <section className="v5-utility-surface">
+          <div className="v4-sec-head">
+            <div>
+              <h2>搜索结果</h2>
+              <p className="v4-sec-sub">只展示真正存在的记录，不补写不存在的历史。</p>
+            </div>
+            <span className="v4-chip">{hits.length} 条</span>
+          </div>
+          {hits.length === 0 ? (
+            <div className="v4-calm">
+              <div>
+                <p className="v4-calm-title">没有找到匹配记录</p>
+                <p className="v4-calm-body">换一个关键词试试；这里不会为了给出结果而生成历史。</p>
+              </div>
+            </div>
+          ) : (
+            <ul className="tl">
+              {hits.map((h) => (
+                <li key={h.event_id}>
+                  <div className="tl-head">
+                    <span className="tl-type">{eventTypeLabel(h.event_type)}</span>
+                    <span className="tl-time">{fmtTime(h.occurred_at)}</span>
+                  </div>
+                  <div className="tl-body">{eventPayloadSummary(h.payload) || "已记录事件"}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </main>
   );
 }
