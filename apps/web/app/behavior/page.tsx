@@ -65,8 +65,7 @@ export default function BehaviorPage() {
       <div className="v4-topline v5-page-lede" data-testid="pli.behavior.identity">
         <h1>行为记录</h1>
         <p className="sub">
-          ABC 记录法：前因（Antecedent）→ 可观察行为（Behavior）→ 后果（Consequence）。
-          系统只保存可观察事实，不会自动推断疾病或行为诊断。
+          记录它当时遇到了什么、你实际看到了什么，以及之后发生了什么。系统只保存可观察事实，不会自动推断情绪、疾病或行为诊断。
         </p>
       </div>
 
@@ -91,15 +90,15 @@ export default function BehaviorPage() {
           <input type="datetime-local" value={form.occurred_at} onChange={(e) => set("occurred_at", e.target.value)} />
         </label>
         <label className="field">
-          前因 / 情境（发生了什么之前？）
+          发生之前（当时遇到了什么？）
           <input value={form.antecedent} onChange={(e) => set("antecedent", e.target.value)} placeholder="如：门铃响 / 陌生狗经过" />
         </label>
         <label className="field">
-          观察到的行为 *（写你看到的，不要写结论）
+          你观察到的行为 *（写看到的事实，不写结论）
           <input value={form.behavior} onChange={(e) => set("behavior", e.target.value)} placeholder="如：连续吠叫约1分钟后躲到沙发下" />
         </label>
         <label className="field">
-          后果（之后发生了什么？）
+          发生之后（接着发生了什么？）
           <input value={form.consequence} onChange={(e) => set("consequence", e.target.value)} placeholder="如：主人安抚后自行出来" />
         </label>
         <div className="grid2">
@@ -144,7 +143,7 @@ export default function BehaviorPage() {
                   <span className="tl-time" data-testid="pli.behavior.source">{fmtTime(b.occurred_at)}</span>
                 </div>
                 <div className="tl-body">
-                  前因：{b.antecedent || "—"} · 后果：{b.consequence || "—"} · 环境：{b.environment || "—"}
+                  之前：{b.antecedent || "—"} · 之后：{b.consequence || "—"} · 环境：{b.environment || "—"}
                 </div>
               </li>
             ))}
