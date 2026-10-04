@@ -242,7 +242,7 @@ export function PetTwinReviewScreen() {
             onPress={submit}
             style={[styles.cta, ctaDisabled && styles.ctaDisabled]}
           >
-            <Text style={styles.ctaText}>{busy ? "提交中…" : selected === "not_like" ? "需补充素材后重新生成" : "提交确认"}</Text>
+            <Text style={styles.ctaText}>{busy ? "提交中…" : selected === "not_like" ? "需补充素材后重新生成" : "确认并启用"}</Text>
           </Pressable>
         </ScrollView>
       )}
