@@ -225,9 +225,11 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
   expect([403, 404]).toContain(mimiDenied.status());
   await sitterPage.close();
 
-  // end handoff → scoped access revoked
+  // end handoff → scoped access revoked. The ACTIVE locator is action-based;
+  // after the mutation the action disappears, so re-query the ended state.
+  const endedBefore = await page.locator(".tl li").filter({ hasText: "已结束" }).count();
   await activeHandoff.getByRole("button", { name: "提前结束" }).click();
-  await expect(activeHandoff).toContainText("已结束");
+  await expect(page.locator(".tl li").filter({ hasText: "已结束" })).toHaveCount(endedBefore + 1);
   const after = await request.get(`${API}/pets/${coco.id}`, {
     headers: { "X-Dev-User-Id": sitterId },
   });
