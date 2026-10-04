@@ -116,6 +116,16 @@ export function MeScreen() {
             <Text style={styles.linkText}>健康</Text>
             <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
           </Pressable>
+          <Pressable accessibilityRole="button" style={[styles.linkRow, styles.rowDivider]} onPress={() => navigation.navigate("Medication")}>
+            <Ionicons name="medical-outline" size={18} color={COLORS.brandPrimaryDeep} />
+            <Text style={styles.linkText}>用药</Text>
+            <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+          </Pressable>
+          <Pressable accessibilityRole="button" style={[styles.linkRow, styles.rowDivider]} onPress={() => navigation.navigate("Care")}>
+            <Ionicons name="people-outline" size={18} color={COLORS.brandPrimaryDeep} />
+            <Text style={styles.linkText}>照护网络</Text>
+            <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+          </Pressable>
           <Pressable accessibilityRole="button" style={[styles.linkRow, styles.rowDivider]} onPress={() => navigation.navigate("LifeView")}>
             <Ionicons name="planet-outline" size={18} color={COLORS.brandPrimaryDeep} />
             <Text style={styles.linkText}>生命视图</Text>
