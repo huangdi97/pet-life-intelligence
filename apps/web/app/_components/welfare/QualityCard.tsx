@@ -9,6 +9,19 @@ interface QualityCardProps {
   profile: Async<WelfareProfile>;
 }
 
+function ownerValue(value: unknown): string {
+  if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "已有记录" : "暂无记录";
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (!text) return "暂无记录";
+    // Raw enum-like values are implementation detail, not owner copy.
+    if (/^[A-Z0-9_:-]+$/.test(text)) return "已有记录";
+    return text;
+  }
+  return value == null ? "暂无记录" : "已有记录";
+}
+
 /** OWN-011 生活质量概览（问卷/域数据，非 AI 百分比）。 */
 export function QualityCard({ profile }: QualityCardProps) {
   return (
@@ -26,7 +39,7 @@ export function QualityCard({ profile }: QualityCardProps) {
               {Object.entries(profile.data.profile.domains ?? {}).map(([d, v]) => (
                 <div key={d} className="v5-observation-row">
                   <span className="v5-observation-label">{KIND_LABELS[d] ?? "生活观察"}</span>
-                  <strong className="v5-observation-value">{String(v)}</strong>
+                  <strong className="v5-observation-value">{ownerValue(v)}</strong>
                 </div>
               ))}
             </div>
