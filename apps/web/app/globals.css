@@ -1203,3 +1203,36 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
     min-height: 44px;
   }
 }
+
+
+.v5-interaction-list {
+  display: grid;
+  margin-top: 2px;
+}
+.v5-interaction-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 2px;
+  border-bottom: 1px solid rgba(226,218,206,0.56);
+}
+.v5-interaction-row:last-child { border-bottom: 0; }
+.v5-interaction-main {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.v5-interaction-main strong {
+  color: var(--v4-text-primary, #2b2723);
+  font-size: 14px;
+}
+.v5-interaction-main span,
+.v5-interaction-time {
+  color: var(--v4-text-tertiary, #7c7369);
+  font-size: 12px;
+}
+.v5-interaction-time {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
