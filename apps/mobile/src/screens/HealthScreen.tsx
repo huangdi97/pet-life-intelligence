@@ -217,6 +217,8 @@ export function HealthScreen() {
               <Pressable
                 testID="pli.health.action"
                 accessibilityRole="button"
+                accessibilityLabel={formOpen ? "收起健康记录表单" : "记录健康事件"}
+                accessibilityState={{ expanded: formOpen }}
                 onPress={() => setFormOpen((v) => !v)}
                 style={({ pressed }) => [styles.formToggle, pressed && styles.pressed]}
               >
@@ -279,7 +281,7 @@ const styles = StyleSheet.create({
   changeTypeDanger: { color: COLORS.danger },
   changeMeta: { fontSize: TYPE.caption, color: COLORS.textTertiary },
   changeBody: { fontSize: TYPE.body, color: COLORS.textPrimary, marginTop: SPACE.s2, lineHeight: 22 },
-  recordRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: 10 },
+  recordRow: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: 10 },
   recordDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
   riskPill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   riskPillText: { fontSize: TYPE.caption, fontWeight: "700" },
@@ -289,7 +291,7 @@ const styles = StyleSheet.create({
   feedback: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3, backgroundColor: COLORS.successBg, borderRadius: RADIUS.lg, padding: SPACE.s3 },
   feedbackText: { fontSize: TYPE.sm, color: COLORS.success },
   formSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
-  formToggle: { paddingVertical: 12, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center" },
+  formToggle: { minHeight: 48, paddingVertical: 12, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center", justifyContent: "center" },
   formToggleText: { fontSize: TYPE.button, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   formWrap: { marginTop: SPACE.s3 },
   fieldLabel: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginBottom: SPACE.s1 },
@@ -305,7 +307,7 @@ const styles = StyleSheet.create({
   },
   inputMultiline: { minHeight: 80, textAlignVertical: "top" },
   note: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: SPACE.s2 },
-  submitBtn: { marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 12, alignItems: "center" },
+  submitBtn: { marginTop: SPACE.s3, minHeight: 48, backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 12, alignItems: "center", justifyContent: "center" },
   submitText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   errorText: { fontSize: TYPE.sm, color: COLORS.danger, marginTop: SPACE.s2 },
   pressed: { opacity: 0.85 },

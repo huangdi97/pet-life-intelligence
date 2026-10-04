@@ -27,6 +27,7 @@ export function PrimaryAction({
       accessibilityLabel={label}
       testID={testID}
       disabled={disabled}
+      accessibilityState={{ disabled: !!disabled }}
       onPress={onPress}
       style={({ pressed }) => [styles.primary, disabled && styles.disabled, pressed && !disabled && styles.pressed]}
     >
@@ -91,6 +92,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.dividerSubtle,
     paddingHorizontal: SPACE.s4,
     paddingVertical: 10,
+    minHeight: 44,
+    justifyContent: "center",
   },
   secondaryText: { color: COLORS.brandPrimaryDeep, fontSize: TYPE.sm, fontWeight: "600" },
   row: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },

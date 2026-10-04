@@ -83,6 +83,9 @@ export function TimelineScreen() {
             <Pressable
               key={f.key}
               testID={i < 5 ? `pli.timeline.filter.${f.key}` : undefined}
+              accessibilityRole="button"
+              accessibilityLabel={`筛选：${f.zh}`}
+              accessibilityState={{ selected: f.key === "all" ? selected.length === 0 : selected.includes(f.key) }}
               onPress={() => toggle(f.key)}
               style={[styles.chip, (f.key === "all" ? selected.length === 0 : selected.includes(f.key)) && styles.chipActive]}
             >
@@ -119,7 +122,7 @@ const styles = StyleSheet.create({
   title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3 },
-  chip: { paddingHorizontal: SPACE.s3, paddingVertical: 6, borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
+  chip: { minHeight: 44, paddingHorizontal: SPACE.s3, paddingVertical: 6, alignItems: "center", justifyContent: "center", borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
   chipActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
   chipText: { fontSize: TYPE.sm, color: COLORS.textTertiary },
   chipActiveText: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },

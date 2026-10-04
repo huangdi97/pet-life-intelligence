@@ -1,9 +1,9 @@
 /**
  * PetStateAnchor — a state chip anchored around the pet on the Living Stage
  * (R2-P3D §19/§46.8): label + value + optional personal-baseline delta.
- * Glass foreground layer; ≥48dp touch; values always real API facts. On the
- * warm-charcoal 3D stage the chip flips to dark glass so the pet stays the
- * visual center.
+ * Glass foreground layer; interactive anchors expose a ≥44dp touch target;
+ * values always come from real API facts. Read-only anchors may stay visually
+ * compact so the pet remains the visual center.
  */
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -43,7 +43,7 @@ export function PetStateAnchor({ anchor, dark = false }: { anchor: PetAnchor; da
         accessibilityRole="button"
         accessibilityLabel={`${anchor.label} ${anchor.value || "—"}`}
         testID={anchor.testID}
-        style={[styles.chip, dark && styles.chipDark]}
+        style={[styles.chip, styles.chipInteractive, dark && styles.chipDark]}
         onPress={anchor.onPress}
       >
         {inner}
@@ -72,6 +72,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
+  chipInteractive: { minHeight: 44 },
   chipDark: {
     backgroundColor: COLORS.anchorGlassDark,
     borderColor: COLORS.anchorGlassBorderDark,
