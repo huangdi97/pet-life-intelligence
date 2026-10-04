@@ -38,8 +38,8 @@
   "normalize": {
     "scale": 0.2237338037511929,
     "translate_y_min": -0.05321439252746105,
-    "height": 1.0,
-    "rotate_y_deg": -90.0
+    "height": 1,
+    "rotate_y_deg": -90
   },
   "morphology": {
     "applied": false
@@ -88,5 +88,7 @@
     "Play": "REPRESENTATIVE",
     "Sniff": "OBSERVED",
     "Stretch": "OBSERVED"
-  }
+  },
+  "provenanceMode": "DEMO_TEMPLATE",
+  "sourceGeometryClass": "template-cat"
 }
