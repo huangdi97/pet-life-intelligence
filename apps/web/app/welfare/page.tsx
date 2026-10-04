@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { api, type LifeEvent, type Pet } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
-import { mapErrorMessage, t } from "../../lib/i18n";
+import { mapErrorMessage } from "../../lib/i18n";
 import {
   WELFARE_EVENT_TYPES,
   type WelfareEvidence,
@@ -70,7 +70,7 @@ export default function WelfarePage() {
     <main className="v4-main v5-domain-page">
       <div className="v4-topline v5-page-lede" data-testid="pli.welfare.identity">
         <h1>生活与福祉</h1>
-        <p className="sub">{current ? `${current.name} · ${t("welfare.sub")}` : t("welfare.sub")}</p>
+        <p className="sub">{current ? `${current.name} · 从真实观察里看休息、活动、压力恢复、环境与丰富化的变化。` : "从真实观察里看休息、活动、压力恢复、环境与丰富化的变化。"}</p>
       </div>
       {msg && <div className="alert info">{msg}</div>}
 
