@@ -69,7 +69,7 @@ export default function WelfarePage() {
   return (
     <main className="v4-main v5-domain-page">
       <div className="v4-topline v5-page-lede" data-testid="pli.welfare.identity">
-        <h1>{t("welfare.title")}</h1>
+        <h1>生活与福祉</h1>
         <p className="sub">{current ? `${current.name} · ${t("welfare.sub")}` : t("welfare.sub")}</p>
       </div>
       {msg && <div className="alert info">{msg}</div>}
@@ -101,9 +101,8 @@ export default function WelfarePage() {
         <EvidenceCard evidence={evidence} kind={kind} setKind={setKind} busy={busy} onRecord={recordObservation} />
       </div>
 
-      <div className="v5-form-surface" data-testid="pli.welfare.action">
-        <h2>记录观察</h2>
-        <p className="muted" style={{ margin: 0 }}>上面的「记录福祉观察」按钮会保存一条可追溯的观察，并标记记录人与来源。</p>
+      <div className="v4-note" data-testid="pli.welfare.action">
+        新观察会保存记录人与来源；趋势只基于已记录事实，不推断情绪或幸福指数。
       </div>
 
       <WelfareTrendCard events={events} welfareEvents={welfareEvents} />
