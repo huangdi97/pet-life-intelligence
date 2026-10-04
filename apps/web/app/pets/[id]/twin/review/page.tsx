@@ -73,28 +73,28 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
     });
   }, [petId, version]);
 
-  async function verify(option: "like" | "basic_like" | "not_like") {
+  function chooseReview(option: "like" | "basic_like" | "not_like") {
     setSelected(option);
     setMsg(null);
     if (option !== "not_like") setIssueKeys([]);
-    // 真实 API 存在（POST /visual-models/{version}/verify）；失败时保持客户端诚实态。
-    try {
-      await api.post(`/pets/${petId}/visual-models/${version}/verify`, {
-        result: option,
-        issues: option === "not_like" ? issueKeys : [],
-        notes: "",
-      });
-    } catch (e) {
-      setMsg("还没有可确认的 3D 形象，先拍摄素材并生成后再确认。");
-      setModelNote(mapErrorMessage(e));
-    }
   }
 
-  async function activate() {
-    if (!selected || selected === "not_like" || busy) return;
+  async function submitReview() {
+    if (!selected || busy) return;
     setBusy(true);
     setMsg(null);
     try {
+      await api.post(`/pets/${petId}/visual-models/${version}/verify`, {
+        result: selected,
+        issues: selected === "not_like" ? issueKeys : [],
+        notes: "",
+      });
+      if (selected === "not_like") {
+        // Negative feedback is persisted with the final selected issue set but
+        // can never activate the candidate.
+        setMsg("已记录哪里不像。补充更多素材后可以重新生成；当前 3D 形象不会被替换。");
+        return;
+      }
       await api.post(`/pets/${petId}/visual-models/${version}/activate`, {});
       setMsg("已确认并激活这个 3D 形象。");
     } catch (e) {
@@ -131,7 +131,12 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
       <div className="v5-review-identity" data-testid="pli.twinreview.identity">
         <h1>{pet ? `${pet.name} · 确认 3D 形象` : "确认 3D 形象"}</h1>
         <p className="sub">
-          第 {version} 版 · 对比照片确认它是否像。确认后才会作为它的 3D 形象显示。
+          第 {version} 版 · 从正面、侧面和背面重点看脸、耳朵、毛色、身形与尾巴。只有你确认相似后才会启用。
+        </p>
+        <p className="v4-note" style={{ marginTop: 6 }}>
+          {twinSourceMediaCount > 0
+            ? `已关联 ${twinSourceMediaCount} 处素材区域；未观察到的部分仍可能来自模板推断。`
+            : `当前外观来自演示/模板，不代表${pet?.name ?? "宠物"}的真实扫描或已验证个体外观。`}
         </p>
       </div>
 
@@ -191,7 +196,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
               key={o.id}
               type="button"
               className={`btn${selected === o.id ? " primary" : ""}`}
-              onClick={() => verify(o.id)}
+              onClick={() => chooseReview(o.id)}
               disabled={busy}
               aria-pressed={selected === o.id}
               data-testid={`pli.twinreview.verify.${o.id}`}
@@ -234,11 +239,11 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
         <button
           type="button"
           className="btn primary"
-          onClick={activate}
-          disabled={busy || !selected || selected === "not_like"}
+          onClick={submitReview}
+          disabled={busy || !selected}
           data-testid="pli.twinreview.action.activate"
         >
-          {selected === "not_like" ? "需补充素材后重新生成" : "激活这个 3D 形象"}
+          {busy ? "提交中…" : selected === "not_like" ? "提交反馈" : "确认并启用"}
         </button>
         <div className="row" style={{ marginTop: 10 }}>
           <Link href={`/pets/${petId}/capture`} className="btn">
