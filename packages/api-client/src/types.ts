@@ -164,6 +164,7 @@ export interface BehaviorEvent {
 export interface Grant {
   grant_id: string;
   user_id: string;
+  user_label?: string;
   scopes: string[];
   reason: string;
   source: string;
