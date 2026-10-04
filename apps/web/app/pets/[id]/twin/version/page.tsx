@@ -70,9 +70,9 @@ export default function TwinVersionPage({ params }: { params: Promise<{ id: stri
             <span className="badge" data-testid="pli.twinversion.source">来自 {Object.keys(current.artifact_map).length || 6} 张照片</span>
             <span className="badge" data-testid="pli.twinversion.verify">{current.owner_verified ? "已通过主人确认" : "待主人确认"}</span>
           </div>
-        </div>
+        </section>
       ) : (
-        <div className="card" data-testid="pli.twinversion.current">
+        <section className="v5-utility-surface v5-utility-surface--soft" data-testid="pli.twinversion.current">
           <h2>当前版本</h2>
           <p className="sub" style={{ margin: 0 }}>还没有生成 3D 形象。拍摄素材并生成后，这里会显示版本信息。</p>
           <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 8 }}>
@@ -81,7 +81,7 @@ export default function TwinVersionPage({ params }: { params: Promise<{ id: stri
             <span className="badge" data-testid="pli.twinversion.verify">主人确认 · 待确认</span>
           </div>
           {note && <p className="muted" style={{ marginTop: 8 }}>{note}</p>}
-        </div>
+        </section>
       )}
 
       <section className="v4-sec" data-testid="pli.twinversion.info">
