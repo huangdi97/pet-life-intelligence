@@ -1145,3 +1145,61 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
   .v5-capture-grid { grid-template-columns: 1fr; }
 }
 
+
+
+/* R5.4 owner-domain closure — Welfare/Social should read like pet-life
+   narratives, not administration dashboards. */
+.v5-observation-list {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+}
+.v5-observation-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 2px;
+  border-bottom: 1px solid rgba(226,218,206,0.55);
+}
+.v5-observation-row:last-child { border-bottom: 0; }
+.v5-observation-label {
+  color: var(--v4-text-secondary, #5c554c);
+  font-size: 14px;
+}
+.v5-observation-value {
+  color: var(--v4-text-primary, #2b2723);
+  font-size: 15px;
+  font-weight: 650;
+  text-align: right;
+}
+.v5-inline-record {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(226,218,206,0.62);
+}
+.v5-people-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+.v5-domain-page > .v4-sec {
+  border-left: 0;
+  border-right: 0;
+}
+.v5-domain-page > .v4-sec + .v4-sec {
+  margin-top: 4px;
+}
+@media (max-width: 768px) {
+  .v5-observation-row {
+    padding: 9px 0;
+  }
+  .v5-inline-record .row {
+    align-items: stretch;
+  }
+  .v5-inline-record select,
+  .v5-inline-record .btn {
+    min-height: 44px;
+  }
+}
