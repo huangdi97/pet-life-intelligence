@@ -1,7 +1,6 @@
 "use client";
 
 import type { LifeEvent } from "@pli/api-client";
-import { InteractionCard } from "@pli/ui-kit";
 import { State } from "../../../components/ui";
 import { fmtTime, type Async } from "../../../lib/hooks";
 import { mapErrorMessage, t } from "../../../lib/i18n";
@@ -22,32 +21,31 @@ export function InteractionsPanel({ events, friendName }: InteractionsPanelProps
         onRetry={events.reload}
         empty={t("social.noData")}
       >
-        <div className="tl">
+        <div className="v5-interaction-list">
           {events.data?.events.slice(0, 8).map((e) => {
             const friendId = typeof e.payload["friend_pet_id"] === "string" ? String(e.payload["friend_pet_id"]) : "";
             const q = typeof e.payload["quality"] === "string" ? String(e.payload["quality"]) : "";
             const dur = e.payload["duration_minutes"];
+            const qualityLabel =
+              q === "GOOD" ? "相处顺利" :
+              q === "NEUTRAL" ? "相处平静" :
+              q === "TENSE" ? "有些紧张" :
+              q === "BAD" ? "发生冲突" :
+              "未记录相处状态";
+            const title =
+              e.event_type === "social.interaction_logged"
+                ? `和${friendId ? friendName(friendId) : "伙伴"}互动`
+                : e.event_type === "social.friend_requested"
+                  ? `认识${friendId ? friendName(friendId) : "新伙伴"}`
+                  : "关系状态有更新";
             return (
-              <InteractionCard
-                key={e.event_id}
-                title={
-                  e.event_type === "social.interaction_logged"
-                    ? `互动 · ${friendId ? friendName(friendId) : ""}`
-                    : e.event_type === "social.friend_requested"
-                      ? `认识新朋友 · ${friendId ? friendName(friendId) : ""}`
-                      : t("social.block")
-                }
-                time={fmtTime(e.occurred_at)}
-                participants={friendId ? [friendName(friendId)] : undefined}
-                notes={dur ? `共同玩耍：${String(dur)} min` : undefined}
-                feedback={
-                  q === "BAD"
-                    ? `${t("social.conflict")}：有`
-                    : q
-                      ? `${t("social.conflict")}：${t("social.noConflict")}`
-                      : undefined
-                }
-              />
+              <div className="v5-interaction-row" key={e.event_id}>
+                <div className="v5-interaction-main">
+                  <strong>{title}</strong>
+                  <span>{qualityLabel}{dur ? ` · ${String(dur)} 分钟` : ""}</span>
+                </div>
+                <time className="v5-interaction-time">{fmtTime(e.occurred_at)}</time>
+              </div>
             );
           })}
         </div>
