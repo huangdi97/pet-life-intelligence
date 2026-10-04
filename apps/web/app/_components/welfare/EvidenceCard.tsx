@@ -27,7 +27,7 @@ export function EvidenceCard({ evidence, kind, setKind, busy, onRecord }: Eviden
         <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
           {Object.entries(evidence.data?.observation_counts ?? {}).map(([k, n]) => (
             <span key={k} className="badge">
-              {KIND_LABELS[k] ?? k} × {n}
+              {KIND_LABELS[k] ?? "其他观察"} × {n}
             </span>
           ))}
           {Object.keys(evidence.data?.observation_counts ?? {}).length === 0 && (
