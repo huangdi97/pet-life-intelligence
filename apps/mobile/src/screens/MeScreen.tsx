@@ -86,7 +86,11 @@ export function MeScreen() {
         <OpenSection title="家庭" testID="pli.me.care-network">
           <Row label="当前宠物" value={current ? current.name : "未选择"} />
           <Row label="家庭" value={pets && pets.length > 0 ? "已加入" : "未加入"} />
-          <Row label="会话" value={sessionKind === "dev" || sessionKind === "token" ? "已登录" : "未登录"} />
+          <Pressable accessibilityRole="button" style={[styles.linkRow, styles.rowDivider]} onPress={() => navigation.navigate("Care")}>
+            <Ionicons name="people-outline" size={18} color={COLORS.brandPrimaryDeep} />
+            <Text style={styles.linkText}>照护协作</Text>
+            <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+          </Pressable>
         </OpenSection>
 
         <OpenSection title="我的宠物" testID="pli.me.pets">
@@ -105,30 +109,15 @@ export function MeScreen() {
           ))}
         </OpenSection>
 
-        <OpenSection title="常用">
+        <OpenSection title="通知与设备">
           <Pressable testID="pli.me.notifications" accessibilityRole="button" style={styles.linkRow} onPress={() => navigation.navigate("Notifications")}>
             <Ionicons name="notifications-outline" size={18} color={COLORS.brandPrimaryDeep} />
             <Text style={styles.linkText}>通知</Text>
             <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
           </Pressable>
-          <Pressable accessibilityRole="button" style={[styles.linkRow, styles.rowDivider]} onPress={() => navigation.navigate("Health")}>
-            <Ionicons name="medkit-outline" size={18} color={COLORS.brandPrimaryDeep} />
-            <Text style={styles.linkText}>健康</Text>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-          </Pressable>
-          <Pressable accessibilityRole="button" style={[styles.linkRow, styles.rowDivider]} onPress={() => navigation.navigate("Medication")}>
-            <Ionicons name="medical-outline" size={18} color={COLORS.brandPrimaryDeep} />
-            <Text style={styles.linkText}>用药</Text>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-          </Pressable>
-          <Pressable accessibilityRole="button" style={[styles.linkRow, styles.rowDivider]} onPress={() => navigation.navigate("Care")}>
-            <Ionicons name="people-outline" size={18} color={COLORS.brandPrimaryDeep} />
-            <Text style={styles.linkText}>照护网络</Text>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-          </Pressable>
-          <Pressable accessibilityRole="button" style={[styles.linkRow, styles.rowDivider]} onPress={() => navigation.navigate("LifeView")}>
-            <Ionicons name="planet-outline" size={18} color={COLORS.brandPrimaryDeep} />
-            <Text style={styles.linkText}>生命视图</Text>
+          <Pressable accessibilityRole="button" style={[styles.linkRow, styles.rowDivider]} onPress={() => navigation.navigate("Monitoring")}>
+            <Ionicons name="hardware-chip-outline" size={18} color={COLORS.brandPrimaryDeep} />
+            <Text style={styles.linkText}>在家与设备</Text>
             <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
           </Pressable>
         </OpenSection>
@@ -139,7 +128,7 @@ export function MeScreen() {
         </OpenSection>
 
         <OpenSection title="应用" testID="pli.me.help">
-          <Row label="版本" value="v0.2.0 · 预览版" />
+          <Row label="版本" value="预览构建" />
           <Row label="关于" value="Pet Life Intelligence" />
         </OpenSection>
 
