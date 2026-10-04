@@ -15,6 +15,9 @@
     "pages/training/index",
     "pages/notifications/index",
     "pages/companion/index",
+    "pages/monitoring/index",
+    "pages/welfare/index",
+    "pages/social/index",
   ],
   window: {
     backgroundTextStyle: "light",
