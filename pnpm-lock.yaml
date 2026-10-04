@@ -11307,6 +11307,10 @@ snapshots:
 
   '@types/range-parser@1.2.7': {}
 
+  '@types/react-dom@19.0.3(@types/react@18.3.31)':
+    dependencies:
+      '@types/react': 18.3.31
+
   '@types/react-dom@19.0.3(@types/react@19.0.6)':
     dependencies:
       '@types/react': 19.0.6
