@@ -104,6 +104,8 @@
 | MOB-018 | Twin Capture | PetTwinCaptureScreen | 个体形象素材采集/状态 |
 | MOB-019 | Twin Review | PetTwinReviewScreen | Front/Side/Rear Identity Review + 不像阻断激活 |
 | MOB-020 | Twin Versions | PetTwinVersionScreen | 3D 形象版本/激活/回看 |
+| MOB-021 | Health Detail | HealthDetailScreen | 单条健康事件详情：症状/时间/分级/处置/证据/来源/结果 |
+| MOB-022 | Vet Brief | HealthDetailScreen 内 Vet Brief 流 | 从真实健康事件生成可分享就诊摘要；明确来源、撤销与时效 |
 
 ## H5 Share（apps/web/share）
 
@@ -123,3 +125,15 @@ Stage H 的 Page ID 与功能责任继续有效；R5.3 不重新编号既有页�
 - Mini Life View 保持轻量模式：照片/物种视觉 + 此刻/生命轨迹；高保真交互 3D 在支持的 Web/Android 客户端呈现。本端不得声称已加载本地 3D。
 - Companion Owner UI 不再出现 feature flag、PROTOTYPE 或内部实现术语；没有硬件时显示诚实空态。
 - 以上为产品语义/页面覆盖补充，不改变 v3.4-R1 母版优先级，也不意味着 Human Visual Acceptance。
+
+
+## R5.4 final design closure addendum（2026-10-04）
+
+R5.4 does not renumber the Stage H catalog; it closes the final design semantics through `docs/product/R5_4_FINAL_DESIGN_CLOSURE.md`.
+
+- Owner primary IA is frozen at **Today / Timeline / Pet / Assistant / Me**.
+- Mobile now explicitly includes **Health Detail** and the **Vet Brief** flow as first-class implemented surfaces.
+- All owner pages inherit the same truthful state contract: Loading / Empty / Partial / Populated / Error / Offline / Permission / Not Found / External Unavailable / Safety Blocked as applicable.
+- Required final visual evidence is a release gate. A missing required screenshot/contact-sheet source is a failure, not a placeholder.
+- Product Twin capability remains full on capable Web/Android and lightweight/honest on Mini.
+- No page-inventory completion claim changes `HUMAN_VISUAL_ACCEPTANCE = PENDING`.
