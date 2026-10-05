@@ -119,7 +119,7 @@ jobs:
           POSTGRES_USER: pli
           POSTGRES_PASSWORD: pli_dev_password
           POSTGRES_DB: pli
-        ports: ["55432:5432"]
+        ports: ["5432/tcp"]
         options: >-
           --health-cmd "pg_isready -U pli -d pli"
           --health-interval 5s
@@ -127,7 +127,7 @@ jobs:
           --health-retries 20
       redis:
         image: redis:7-alpine
-        ports: ["56379:6379"]
+        ports: ["6379/tcp"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -140,13 +140,17 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Configure dynamic runtime service ports
+        run: |
+          echo "DATABASE_URL=postgresql+asyncpg://pli:pli_dev_password@localhost:${{ job.services.postgres.ports[5432] }}/pli" >> "$GITHUB_ENV"
+          echo "TEST_DATABASE_URL=postgresql+asyncpg://pli:pli_dev_password@localhost:${{ job.services.postgres.ports[5432] }}/pli_test" >> "$GITHUB_ENV"
+          echo "REDIS_URL=redis://localhost:${{ job.services.redis.ports[6379] }}/0" >> "$GITHUB_ENV"
       - name: Install backend + frontend dependencies
         run: |
           pip install -e "services/api[dev]" -e "packages/rules" -e "services/ai-gateway"
           pnpm install --frozen-lockfile
       - name: Seed demo backend
         run: |
-          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
           cd services/api
           alembic upgrade head
           python -m app.seed
@@ -162,7 +166,6 @@ jobs:
           ./gradlew assembleDebug --no-daemon
       - name: Start API
         run: |
-          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
           (cd services/api && nohup python -m uvicorn app.main:app --host 0.0.0.0 --port 8800 > /tmp/pli-api.log 2>&1 &)
           for i in {1..30}; do
             if curl -fsS http://localhost:8800/api/v1/health >/dev/null; then
