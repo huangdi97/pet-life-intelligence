@@ -42,6 +42,8 @@ export type Pet3DStatus = "boot" | "ready" | "failed";
 
 interface Props {
   identity: Pet3DIdentity;
+  /** Owner-visible pet name; never derive identity copy from a demo asset label. */
+  displayName?: string;
   variant?: "stage" | "life";
   interactive?: boolean;
   /** Individual twin descriptor from the backend pipeline (R2P3D-R1). */
@@ -66,6 +68,7 @@ interface Props {
 
 export function Pet3DViewer({
   identity,
+  displayName,
   twin = null,
   pose = null,
   variant = "stage",
@@ -459,9 +462,10 @@ export function Pet3DViewer({
   }, [view, status]);
 
   const meta = PET_3D_ASSETS[identity];
+  const ownerName = displayName?.trim() || "宠物";
   const accessibleLabel = twin
-    ? `${meta.name}的 3D 形象。外观由素材与模板生成，不代表真实扫描。`
-    : `${meta.name}的 3D 形象（演示）。${meta.description}`;
+    ? `${ownerName}的 3D 形象。外观由素材与模板生成，不代表真实扫描。`
+    : `${ownerName}的 3D 形象（演示）。${meta.description}`;
 
   return (
     <div
