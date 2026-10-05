@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.canvas },
   flex: { flex: 1 },
   content: { paddingBottom: SPACE.s8 },
-  stageWrap: { alignSelf: "center", width: "100%", maxWidth: 340 },
+  stageWrap: { alignSelf: "center", width: "100%", maxWidth: 430 },
   panel: { marginHorizontal: SPACE.s4, marginTop: SPACE.s4 },
   panelText: { fontSize: TYPE.body, color: COLORS.textSecondary, lineHeight: 22 },
   trendRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s3 },
