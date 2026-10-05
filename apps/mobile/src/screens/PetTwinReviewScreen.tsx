@@ -143,7 +143,7 @@ export function PetTwinReviewScreen() {
 
   // SAFETY: 不像 may be submitted as feedback, but the activation CTA itself
   // remains disabled to preserve the canonical not_like → disabled contract.
-  const ctaDisabled = !selected || busy || selected === "not_like";
+  const ctaDisabled = !candidate || !selected || busy || selected === "not_like";
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
@@ -158,7 +158,15 @@ export function PetTwinReviewScreen() {
         <View style={styles.center}><ActivityIndicator color={COLORS.brandPrimary} /></View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Idle" interactive frameTarget={0.36} view={view} viewerRef={viewerRef} />
+          {candidate ? (
+            <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Idle" interactive frameTarget={0.36} view={view} viewerRef={viewerRef} />
+          ) : (
+            <View style={styles.emptyStage} testID="pli.twinreview.empty">
+              <Ionicons name="cube-outline" size={28} color={COLORS.textTertiary} />
+              <Text style={styles.emptyStageTitle}>还没有可确认的 3D 形象</Text>
+              <Text style={styles.emptyStageBody}>先拍摄素材并生成候选形象，再从多个角度确认是否像它。</Text>
+            </View>
+          )}
           <Text style={styles.caption}>
             这是第 {resolvedVersion || "—"} 版候选形象。请从正面、侧面和背面重点看脸、耳朵、毛色、体型与尾巴；只有你确认相似后才会启用。
           </Text>
@@ -206,7 +214,8 @@ export function PetTwinReviewScreen() {
           <View style={styles.options}>
             {OPTIONS.map((o) => (
               <Pressable key={o.k} testID={`pli.twinreview.verify.${o.k}`} accessibilityRole="button" accessibilityState={{ selected: selected === o.k }}
-                onPress={() => setSelected(o.k)} style={[styles.opt, selected === o.k && styles.optSel]}>
+                disabled={!candidate || busy}
+                onPress={() => setSelected(o.k)} style={[styles.opt, selected === o.k && styles.optSel, (!candidate || busy) && styles.ctaDisabled]}>
                 <Text style={[styles.optText, selected === o.k && styles.optTextSel]}>{o.label}</Text>
               </Pressable>
             ))}
@@ -234,9 +243,9 @@ export function PetTwinReviewScreen() {
           {selected === "not_like" ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ disabled: busy }}
+              accessibilityState={{ disabled: busy || !candidate }}
               testID="pli.twinreview.action.feedback"
-              disabled={busy}
+              disabled={busy || !candidate}
               onPress={submit}
               style={[styles.feedbackCta, busy && styles.ctaDisabled]}
             >
@@ -267,6 +276,29 @@ const styles = StyleSheet.create({
   title: { fontSize: TYPE.pageTitle, color: COLORS.textPrimary, fontWeight: "700", flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: SPACE.s3, paddingBottom: SPACE.s8 },
+  emptyStage: {
+    height: 360,
+    marginTop: SPACE.s3,
+    marginHorizontal: SPACE.s1,
+    borderRadius: 24,
+    backgroundColor: COLORS.stageReviewBase,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: SPACE.s6,
+  },
+  emptyStageTitle: {
+    marginTop: SPACE.s3,
+    fontSize: TYPE.section,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
+  },
+  emptyStageBody: {
+    marginTop: SPACE.s2,
+    fontSize: TYPE.sm,
+    lineHeight: 20,
+    textAlign: "center",
+    color: COLORS.textTertiary,
+  },
   sectionLabel: {
     marginTop: SPACE.s4,
     fontSize: TYPE.section,
