@@ -3,6 +3,7 @@ import { Button, Input, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { PetContextGate } from "../../components/feedback/Feedback";
 import { fmtTime } from "../../utils/format";
 
 interface Grant {
@@ -43,7 +44,7 @@ function statusLabel(status: string): string {
 }
 
 export default function Care() {
-  const { pets, petId } = usePets();
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
   const [grants, setGrants] = useState<Grant[]>([]);
   const [handoffs, setHandoffs] = useState<Handoff[]>([]);
@@ -79,6 +80,15 @@ export default function Care() {
   useEffect(() => {
     if (petId) load(petId);
   }, [petId, load]);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">照护网络</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   async function createHandoff() {
     if (!petId || !caregiver.trim() || busy) return;
