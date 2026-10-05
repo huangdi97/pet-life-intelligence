@@ -10,6 +10,10 @@ on:
         description: "Regenerate approved visual baseline on Linux (fonts-noto-cjk) and upload it; run visual chain with PLI_UPDATE_VISUAL_BASELINE=1"
         type: boolean
         default: false
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
     name: Backend (lint + unit + integration + safety)
@@ -21,7 +25,7 @@ jobs:
           POSTGRES_USER: pli
           POSTGRES_PASSWORD: pli_dev_password
           POSTGRES_DB: pli
-        ports: ["55432:5432"]
+        ports: ["5432/tcp"]
         options: >-
           --health-cmd "pg_isready -U pli -d pli"
           --health-interval 5s
@@ -29,7 +33,7 @@ jobs:
           --health-retries 20
       redis:
         image: redis:7-alpine
-        ports: ["56379:6379"]
+        ports: ["6379/tcp"]
       minio:
         # PROVIDER:
         # quay.io/minio/minio anonymous pull has returned "unauthorized"
@@ -42,12 +46,18 @@ jobs:
         env:
           MINIO_ROOT_USER: pli_minio
           MINIO_ROOT_PASSWORD: pli_minio_dev_secret
-        ports: ["59000:9000", "59001:9001"]
+        ports: ["9000/tcp", "9001/tcp"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Configure dynamic backend service ports
+        run: |
+          echo "DATABASE_URL=postgresql+asyncpg://pli:pli_dev_password@localhost:${{ job.services.postgres.ports[5432] }}/pli" >> "$GITHUB_ENV"
+          echo "TEST_DATABASE_URL=postgresql+asyncpg://pli:pli_dev_password@localhost:${{ job.services.postgres.ports[5432] }}/pli_test" >> "$GITHUB_ENV"
+          echo "REDIS_URL=redis://localhost:${{ job.services.redis.ports[6379] }}/0" >> "$GITHUB_ENV"
+          echo "S3_ENDPOINT=http://localhost:${{ job.services.minio.ports[9000] }}" >> "$GITHUB_ENV"
       - name: Install
         run: |
           pip install -e "services/api[dev]" -e "packages/rules" -e "services/ai-gateway"
@@ -55,21 +65,15 @@ jobs:
         run: ruff check services packages tests scripts
       - name: Migration replay
         run: |
-          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
-          export TEST_DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli_test"
           cd services/api && alembic upgrade head && alembic current
       - name: Pytest
         run: |
-          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
-          export TEST_DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli_test"
           pytest -q --tb=short --ignore=tests/blind_ui
       - name: Twin QA (GLB + animation manifest, no model downloads)
         run: |
-          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
           python scripts/twin/twin_glb_qa.py
       - name: OpenAPI artifact freshness
         run: |
-          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
           python scripts/gen_openapi.py && git diff --exit-code docs/api/openapi.json
 
   frontend:
@@ -145,10 +149,14 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Configure dynamic E2E service ports
+        run: |
+          echo "DATABASE_URL=postgresql+asyncpg://pli:pli_dev_password@localhost:${{ job.services.postgres.ports[5432] }}/pli" >> "$GITHUB_ENV"
+          echo "TEST_DATABASE_URL=postgresql+asyncpg://pli:pli_dev_password@localhost:${{ job.services.postgres.ports[5432] }}/pli_test" >> "$GITHUB_ENV"
+          echo "REDIS_URL=redis://localhost:${{ job.services.redis.ports[6379] }}/0" >> "$GITHUB_ENV"
       - name: Backend install + seed
         run: |
           pip install -e "services/api[dev]" -e "packages/rules" -e "services/ai-gateway"
-          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
           cd services/api && alembic upgrade head && python -m app.seed
       - name: Frontend install + build
         env:
@@ -170,7 +178,6 @@ jobs:
           sudo apt-get install -y fonts-noto-cjk
       - name: Start API + Web
         run: |
-          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
           (cd services/api && python -m uvicorn app.main:app --port 8800 &)
           (cd apps/web && pnpm start -p 3100 &)
           sleep 15
@@ -186,7 +193,6 @@ jobs:
           # Idempotent seed wipes all rows then recreates the demo household,
           # so stage-v-visual captures and visual-regression-v2 diff start from
           # an identical clean data state (no cross-test pollution).
-          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
           cd services/api && python -m app.seed
       - name: Playwright (visual chain)
         env:
