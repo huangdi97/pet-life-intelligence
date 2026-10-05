@@ -128,6 +128,20 @@ def main() -> None:
     turntable_capture = load_json(TURNTABLE / "capture-manifest.json")
     source_head = validate_capture_source([web_capture, android_capture, mini_capture, turntable_capture])
 
+    web_primary_pet_id = str(web_capture.get("primary_pet_id") or "")
+    android_primary_pet_id = str(android_capture.get("primary_pet_id") or "")
+    android_secondary_pet_id = str(android_capture.get("secondary_pet_id") or "")
+    turntable_primary_pet_id = str(turntable_capture.get("primary_pet_id") or "")
+    turntable_secondary_pet_id = str(turntable_capture.get("secondary_pet_id") or "")
+    if not web_primary_pet_id:
+        raise ValueError("Web final capture must record an explicit primary_pet_id")
+    if web_primary_pet_id != android_primary_pet_id or web_primary_pet_id != turntable_primary_pet_id:
+        raise ValueError("primary pet identity differs across Web / Android / turntable evidence")
+    if not android_secondary_pet_id or android_secondary_pet_id != turntable_secondary_pet_id:
+        raise ValueError("secondary pet identity differs across Android / turntable evidence")
+    if web_primary_pet_id == android_secondary_pet_id:
+        raise ValueError("primary and secondary evidence identities must be distinct")
+
     for surface in WEB_SURFACES:
         require_image(WEB / surface / "screenshot.png")
     for state in WEB_STATES:
@@ -140,7 +154,7 @@ def main() -> None:
         temp = WEB / surface / ".runtime-manifest-validation.json"
         temp.write_text(json.dumps(manifest), encoding="utf-8")
         try:
-            require_product_manifest(temp)
+            require_product_manifest(temp, expected_pet_id=web_primary_pet_id)
         finally:
             temp.unlink(missing_ok=True)
 
@@ -156,23 +170,38 @@ def main() -> None:
     for surface in ANDROID_SURFACES:
         require_image(ANDROID / surface / f"{surface}.png")
     for surface in ANDROID_TWIN_SURFACES:
-        require_product_manifest(ANDROID / surface / "3d.json")
+        require_product_manifest(
+            ANDROID / surface / "3d.json",
+            expected_pet_id=android_primary_pet_id,
+        )
 
     require_image(ANDROID / "secondary-sanity" / "secondary_today.png")
-    secondary_today = require_product_manifest(ANDROID / "secondary-sanity" / "3d.json")
+    secondary_today = require_product_manifest(
+        ANDROID / "secondary-sanity" / "3d.json",
+        expected_pet_id=android_secondary_pet_id,
+    )
     require_image(ANDROID / "secondary-review" / "secondary_twinreview.png")
-    secondary_review = require_product_manifest(ANDROID / "secondary-review" / "3d.json")
+    secondary_review = require_product_manifest(
+        ANDROID / "secondary-review" / "3d.json",
+        expected_pet_id=android_secondary_pet_id,
+    )
     if secondary_today.get("petId") != secondary_review.get("petId"):
         raise ValueError("secondary-pet Today/Review manifests refer to different pets")
 
     for view, expected in {"front": 0.0, "side": math.pi / 2, "back": math.pi}.items():
-        manifest = require_product_manifest(ANDROID / "twinreview" / f"3d_view_{view}.json")
+        manifest = require_product_manifest(
+            ANDROID / "twinreview" / f"3d_view_{view}.json",
+            expected_pet_id=android_primary_pet_id,
+        )
         actual = float((manifest.get("camera") or {}).get("yaw"))
         if yaw_error(actual, expected) > 0.08:
             raise ValueError(f"Android primary review camera mismatch: {view} -> {actual}")
         require_image(ANDROID / "twinreview" / f"twin_{view}.png")
 
-        secondary = require_product_manifest(ANDROID / "secondary-review" / f"3d_view_{view}.json")
+        secondary = require_product_manifest(
+            ANDROID / "secondary-review" / f"3d_view_{view}.json",
+            expected_pet_id=android_secondary_pet_id,
+        )
         actual_secondary = float((secondary.get("camera") or {}).get("yaw"))
         if yaw_error(actual_secondary, expected) > 0.08:
             raise ValueError(f"Android secondary review camera mismatch: {view} -> {actual_secondary}")
