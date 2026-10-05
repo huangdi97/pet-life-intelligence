@@ -104,3 +104,98 @@ jobs:
           name: pli-web-standalone
           path: pli-web-standalone.tgz
           if-no-files-found: error
+
+  android-runtime-evidence:
+    name: Android R5.6 runtime evidence (NO_VISION_MODEL_USED)
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.head_ref == 'feat/r2p3d-r3-render-truth-ui-closure') }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: pli
+          POSTGRES_PASSWORD: pli_dev_password
+          POSTGRES_DB: pli
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U pli -d pli"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["56379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install backend + frontend dependencies
+        run: |
+          pip install -e "services/api[dev]" -e "packages/rules" -e "services/ai-gateway"
+          pnpm install --frozen-lockfile
+      - name: Seed demo backend
+        run: |
+          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
+          cd services/api
+          alembic upgrade head
+          python -m app.seed
+      - name: Build demo-evidence Android APK
+        env:
+          EXPO_PUBLIC_PLI_API_URL: http://10.0.2.2:8800
+          EXPO_PUBLIC_PLI_DEMO_ENV: "1"
+        run: |
+          pnpm --dir packages/pet-3d build
+          pnpm --dir apps/mobile build:3d-page
+          pnpm --dir apps/mobile exec expo prebuild --platform android --non-interactive
+          cd apps/mobile/android
+          ./gradlew assembleDebug --no-daemon
+      - name: Start API
+        run: |
+          export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
+          (cd services/api && nohup python -m uvicorn app.main:app --host 0.0.0.0 --port 8800 > /tmp/pli-api.log 2>&1 &)
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8800/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/pli-api.log
+          exit 1
+      - name: Capture real Android runtime evidence
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            adb install -r apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+            adb shell wm size 1080x2340
+            adb shell wm density 440
+            python scripts/r5-6/capture-android-final.py --serial emulator-5554 --api-url http://localhost:8800
+      - name: Upload R5.6 Android runtime evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: r5-6-android-runtime-evidence
+          path: artifacts/r5-6-final/android/
+          if-no-files-found: error
+      - name: Upload emulator/API diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r5-6-android-runtime-diagnostics
+          path: |
+            /tmp/pli-api.log
+            artifacts/r5-6-final/android/
+          if-no-files-found: warn
+
