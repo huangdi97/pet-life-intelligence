@@ -3,6 +3,7 @@ import { View, Text, Button, Input } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { PetContextGate } from "../../components/feedback/Feedback";
 import { fmtTime } from "../../utils/format";
 
 function statusLabel(status: string): string {
@@ -20,7 +21,7 @@ interface TrainingGoal {
 }
 
 export default function Training() {
-  const { petId } = usePets();
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const [goals, setGoals] = useState<TrainingGoal[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [title, setTitle] = useState("");
@@ -39,6 +40,15 @@ export default function Training() {
   useEffect(() => {
     if (petId) load(petId);
   }, [petId, load]);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">训练</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   async function create() {
     if (!title.trim() || !petId) return;
