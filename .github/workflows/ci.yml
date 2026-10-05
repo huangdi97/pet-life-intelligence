@@ -128,7 +128,7 @@ jobs:
           POSTGRES_USER: pli
           POSTGRES_PASSWORD: pli_dev_password
           POSTGRES_DB: pli
-        ports: ["55432:5432"]
+        ports: ["5432/tcp"]
         options: >-
           --health-cmd "pg_isready -U pli -d pli"
           --health-interval 5s
@@ -136,7 +136,7 @@ jobs:
           --health-retries 20
       redis:
         image: redis:7-alpine
-        ports: ["56379:6379"]
+        ports: ["6379/tcp"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
