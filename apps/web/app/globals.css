@@ -1356,3 +1356,42 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
     min-height: 44px;
   }
 }
+
+/* R5.6 final responsive craft — dense mode rails stay one-dimensional on
+   phones, and progressive forms open inside the reading flow rather than as
+   a second nested card. */
+.v5-form-surface--inline {
+  margin: 10px 0 0;
+  box-shadow: none;
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(248,242,230,0.62), rgba(248,242,230,0) 58%),
+    rgba(255,253,249,0.62);
+}
+.v5-health-compose .v4-sec-head {
+  align-items: center;
+}
+@media (max-width: 768px) {
+  .v4-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    margin-right: -12px;
+    padding-right: 12px;
+  }
+  .v4-tabs::-webkit-scrollbar { display: none; }
+  .v4-tab {
+    flex: 0 0 auto;
+    min-height: 44px;
+  }
+  .v5-health-compose .v4-sec-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .v5-health-compose .v4-sec-head > .btn {
+    align-self: flex-start;
+    min-height: 44px;
+  }
+}
+
