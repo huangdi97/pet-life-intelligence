@@ -76,6 +76,16 @@ export function PetTwinReviewScreen() {
   const load = useCallback(() => {
     if (!petId) return;
     setLoading(true);
+    // Pet/version changes are identity boundaries. Never keep a previous
+    // candidate visible while the next candidate is resolving or has failed.
+    setCandidate(null);
+    setCandidateDemo(false);
+    setSourceMediaCount(0);
+    setSelected(null);
+    setPickedIssues([]);
+    setView("front");
+    setMessage(null);
+    setResolvedVersion(version);
     // The demo deep-link navigates without a version param; resolve the
     // latest candidate before review so the screen never renders a dead
     // error state just because a URL omitted the version.
