@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import math
 import os
 import re
 import shutil
@@ -271,7 +272,7 @@ def capture_review_views(
         time.sleep(2)
         manifest = android.read_runtime_manifest(expected_pet_id=expected_pet_id)
         actual = float((manifest.get("camera") or {}).get("yaw", 999.0))
-        wrapped_error = abs(__import__("math").atan2(__import__("math").sin(actual - yaw), __import__("math").cos(actual - yaw)))
+        wrapped_error = abs(math.atan2(math.sin(actual - yaw), math.cos(actual - yaw)))
         if wrapped_error > 0.08:
             raise CaptureError(f"Android review camera mismatch: {view}, expected={yaw}, actual={actual}")
         save_manifest(directory / f"3d_view_{view}.json", manifest)
@@ -314,13 +315,13 @@ def main() -> None:
     primary_select_dir.mkdir(parents=True, exist_ok=True)
     xml = android.dump_xml(primary_select_dir / "ui.xml")
     try:
-        android.tap(xml, str(primary_pet["name"]), "text")
-        time.sleep(5)
+        primary_manifest = android.read_runtime_manifest(retries=2, expected_pet_id=primary_id)
     except CaptureError:
-        # The active pet chip can be represented by a non-clickable text node
-        # on some RN/Android combinations; the manifest below is the authority.
-        pass
-    primary_manifest = android.read_runtime_manifest(expected_pet_id=primary_id)
+        # If persisted demo state points at the other pet, switch through the
+        # semantic multi-pet control by Pet ID rather than display text.
+        android.tap(xml, f"pli.multipet.switch.{primary_id}", "id")
+        time.sleep(5)
+        primary_manifest = android.read_runtime_manifest(expected_pet_id=primary_id)
     save_manifest(primary_select_dir / "3d.json", primary_manifest)
 
     for screen, manifest in SURFACES:
@@ -336,7 +337,7 @@ def main() -> None:
     android.start_link("pli-demo://nav?screen=today")
     time.sleep(4)
     xml = android.dump_xml(secondary_today / "ui.xml")
-    android.tap(xml, str(secondary_pet["name"]), "text")
+    android.tap(xml, f"pli.multipet.switch.{secondary_id}", "id")
     time.sleep(6)
     android.dump_xml(secondary_today / "ui.xml")
     android.screenshot(secondary_today / "secondary_today.png")
