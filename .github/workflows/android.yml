@@ -162,7 +162,7 @@ jobs:
           export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
           (cd services/api && nohup python -m uvicorn app.main:app --host 0.0.0.0 --port 8800 > /tmp/pli-api.log 2>&1 &)
           for i in {1..30}; do
-            if curl -fsS http://localhost:8800/health >/dev/null; then
+            if curl -fsS http://localhost:8800/api/v1/health >/dev/null; then
               exit 0
             fi
             sleep 1
