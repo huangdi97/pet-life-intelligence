@@ -23,7 +23,11 @@ param(
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $false
 $repo = (Get-Location).Path
-$out = Join-Path $repo $Out
+$out = [System.IO.Path]::GetFullPath((Join-Path $repo $Out))
+$repoRoot = [System.IO.Path]::GetFullPath($repo).TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+if (-not $out.StartsWith($repoRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "Out must stay inside the current repository: $out"
+}
 $py = Join-Path $repo ".venv\Scripts\python.exe"
 
 function Invoke-Adb([string[]]$Args) {
@@ -125,6 +129,9 @@ if ([string]::IsNullOrWhiteSpace($SecondaryPetLabel)) {
     throw "SecondaryPetLabel is required for the final R5.6 evidence package."
 }
 
+if (Test-Path $out) {
+    Remove-Item -Recurse -Force $out
+}
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 
 # Deterministic demo login. Production builds do not expose this deep link.
@@ -193,5 +200,21 @@ if (-not [string]::IsNullOrWhiteSpace($SecondaryPetLabel)) {
         UiDump $secondaryReviewDir
     }
 }
+
+$captureManifest = [ordered]@{
+    captured_at = [DateTime]::UtcNow.ToString("o")
+    source_head = (& git -C $repo rev-parse HEAD | Out-String).Trim()
+    source_branch = (& git -C $repo branch --show-current | Out-String).Trim()
+    serial = $Serial
+    package = $Package
+    vision_model_used = $false
+    required_secondary_pet = $true
+}
+$captureManifestJson = $captureManifest | ConvertTo-Json -Depth 4
+[System.IO.File]::WriteAllText(
+    (Join-Path $out "capture-manifest.json"),
+    $captureManifestJson + [Environment]::NewLine,
+    [System.Text.UTF8Encoding]::new($false)
+)
 
 Write-Host "R5.6 Android final evidence complete: $out"
