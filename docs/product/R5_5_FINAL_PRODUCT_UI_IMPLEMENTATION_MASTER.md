@@ -11,7 +11,7 @@ PLI is one living pet experience, not a collection of feature pages.
 
 Canonical owner mental model:
 
-`PET → NOW → CHANGE → ATTENTION → ACTION → MEMORY`
+`PET → NOW → CHANGE → ATTENTION → ACTION → SUPPORT → MEMORY`
 
 Every surface must answer one of those jobs without introducing a competing navigation or visual language.
 
