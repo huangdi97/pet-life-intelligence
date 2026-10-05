@@ -55,6 +55,7 @@ export function PetScreen() {
   const [goal, setGoal] = useState<TrainingGoalRow | null>(null);
   const [welfare, setWelfare] = useState<WelfareEvidence | null>(null);
   const [friends, setFriends] = useState<PetFriend[]>([]);
+  const [friendsState, setFriendsState] = useState<"loading" | "ready" | "error">("loading");
   const [loading, setLoading] = useState(true);
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
@@ -66,6 +67,7 @@ export function PetScreen() {
     if (!pet?.id) return;
     let alive = true;
     setLoading(true);
+    setFriendsState("loading");
     Promise.allSettled([
       api.get<{ events: LifeEvent[]; event_counts: Record<string, number> }>(`/pets/${pet.id}/today`),
       api.get<{ hints: string[]; rule: string }>(`/pets/${pet.id}/abnormal-day-hint`),
@@ -82,7 +84,12 @@ export function PetScreen() {
       if (be.status === "fulfilled") setLastBehavior(be.value[0] ?? null);
       if (tg.status === "fulfilled") setGoal(tg.value[0] ?? null);
       if (wv.status === "fulfilled") setWelfare(wv.value);
-      if (fr.status === "fulfilled") setFriends(fr.value);
+      if (fr.status === "fulfilled") {
+        setFriends(fr.value);
+        setFriendsState("ready");
+      } else {
+        setFriendsState("error");
+      }
       setLoading(false);
     });
     return () => {
@@ -230,7 +237,11 @@ export function PetScreen() {
 
             <View testID="pli.pet.friends">
               <OpenSection title="它的关系">
-                {visibleRelationships.length > 0 ? (
+                {friendsState === "loading" ? (
+                  <Text style={styles.emptyText}>正在读取已记录的宠物关系……</Text>
+                ) : friendsState === "error" ? (
+                  <Text style={styles.emptyText}>关系记录暂时没有加载成功；进入「社交」页可以重试。</Text>
+                ) : visibleRelationships.length > 0 ? (
                   visibleRelationships.slice(0, 2).map((friend) => (
                     <View key={friend.request_id} style={styles.friendRow}>
                       <Text style={styles.friendText}>{relationshipText(friend)}</Text>
