@@ -102,8 +102,8 @@ export default function SettingsPage() {
   return (
     <main className="v4-main v5-domain-page v5-utility-page">
       <div className="v4-topline v5-page-lede" data-testid="pli.me.owner">
-        <h1>设置与隐私</h1>
-        <p className="sub">宠物主人账号、家庭与授权、数据与隐私。</p>
+        <h1>我的</h1>
+        <p className="sub">家庭、通知、设备、隐私与数据设置。</p>
       </div>
       {flash && <div className="alert info">{flash}</div>}
       <ErrorNote message={error} />
