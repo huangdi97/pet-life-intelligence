@@ -76,61 +76,120 @@ def _view_observed(pos: np.ndarray, nrm: np.ndarray, head: dict[str, float]) -> 
 
 
 def make_dog_painter(landmarks: dict) -> PaintFn:
-    """Dog painter — R4.2 warm sable/tan coat with cream chest, muzzle, blaze
-    and paws. Coat regions stay readable (face/ears/chest/leg separation) with
-    low-frequency grain instead of muddy high-frequency noise."""
+    """Dog painter — breed-readable sable + cream Corgi demo coat.
+
+    The native Gobkit Corgi source has a single flat material, so relying on
+    the source Kd makes the product Twin read as one uniform tan shape. This
+    painter deliberately introduces large, low-frequency breed-readable coat
+    regions (blaze / muzzle / chest-ruff / belly / socks / ear contrast)
+    anchored to geometry landmarks. It remains a DEMO_TEMPLATE: none of these
+    markings are claims about a real pet.
+    """
+
+    sable = np.array([0.73, 0.43, 0.20])
+    sable_light = np.array([0.84, 0.57, 0.29])
+    sable_deep = np.array([0.47, 0.25, 0.12])
+    cream = np.array([0.96, 0.91, 0.80])
+    white = np.array([0.985, 0.965, 0.91])
+    ear_inner = np.array([0.76, 0.48, 0.36])
+    eye_dark = np.array([0.055, 0.035, 0.022])
 
     def paint(pos: np.ndarray, nrm: np.ndarray, prior: np.ndarray) -> tuple[np.ndarray, bool]:
-        lum = float(np.dot(prior, np.array([0.299, 0.587, 0.114])))
-        # Warm sable base from the source prior (tan instead of near-black mud).
-        if lum > 0.45:
-            base = _blend(HEX["white"], HEX["cream"], 0.55)
-            base = _blend(base, np.array([0.90, 0.79, 0.63]), _smooth(0.85, 0.98, lum))
-        else:
-            base = _blend(np.array([0.80, 0.60, 0.40]), np.array([0.66, 0.45, 0.27]), lum / 0.45)
         obs = _view_observed(pos, nrm, landmarks)
         y = float(pos[1])
         z = float(pos[2])
         x = float(pos[0])
+        ax = abs(x)
 
-        # Forehead blaze: white wedge on the crown, anchored at the eyes.
-        ex, ey, ez = landmarks.get("eye_center", (0.0, 1e9, 0.0))
-        if ey < 1e8:
-            dy = (y - ey) / 0.18
-            dz = (z + ez * -0.2) / 0.30
-            dx = x / 0.19
-            t = _smooth(0.35, 0.75, dy) * _smooth(-1.0, 1.0, -dx * dx - dz * dz + 0.55)
-            base = _blend(base, HEX["white"], t * 0.85)
-        # Muzzle: cream snout around the muzzle tip.
-        mz = landmarks.get("muzzle_z", 1e9)
-        if mz < 1e8:
-            dz = (mz - z) / 0.22
-            dx = x / 0.16
-            t = _smooth(0.2, 0.9, -dx * dx - dz * dz + 0.85)
-            base = _blend(base, np.array([0.97, 0.94, 0.88]), t * 0.9)
-        # Chest cream: front-lower chest.
-        cz = landmarks.get("chest_z", 0.0)
-        cy = landmarks.get("chest_y", 0.0)
-        t = _smooth(0.25, 1.0, -(x / 0.34) ** 2 - ((z - cz) / 0.34) ** 2 - ((y - cy) / 0.30) ** 2 + 1.1)
-        base = _blend(base, HEX["cream"], t * 0.6)
-        # Eye rings + glossy dark eyes.
+        ex, ey, ez = landmarks.get("eye_center", (0.0, 1.02, 0.24))
+        eye_dx = max(0.08, float(landmarks.get("eye_dx", 0.18)))
+        mz = float(landmarks.get("muzzle_z", 0.42))
+        cz = float(landmarks.get("chest_z", 0.30))
+        cy = float(landmarks.get("chest_y", 0.48))
+
+        # Main coat: saturated warm sable instead of the previous near-uniform
+        # beige. Top-facing/back-facing fur gets a modest deeper saddle while
+        # side/front planes stay warm enough to read under the cream stage.
+        upper = _smooth(0.42, 1.10, y)
+        top_facing = max(0.0, float(nrm[1]))
+        rearward = _smooth(-0.55, 0.20, -z)
+        saddle = min(1.0, 0.55 * upper * top_facing + 0.32 * upper * rearward)
+        base = _blend(sable_light, sable, 0.62)
+        base = _blend(base, sable_deep, saddle * 0.48)
+
+        # Central forehead blaze: a high-contrast tapered white stripe that is
+        # still readable at Today-card scale. Restrict it to the front/head
+        # half so it cannot paint a white stripe down the back.
+        head_front = _smooth(mz - 0.58, mz - 0.10, z)
+        head_height = _smooth(ey - 0.05, ey + 0.20, y)
+        center = 1.0 - _smooth(0.045, 0.155, ax)
+        blaze = head_front * head_height * center
+        base = _blend(base, white, min(1.0, blaze * 1.08))
+
+        # Wide cream muzzle / lower mask. This is intentionally broader than
+        # the old tiny analytic ellipse: the face must remain identifiable in
+        # the small Today/Pet render.
+        muzzle_front = _smooth(mz - 0.28, mz - 0.035, z)
+        muzzle_center = 1.0 - _smooth(eye_dx * 0.82, eye_dx * 1.48, ax)
+        muzzle_y_low = _smooth(ey - 0.28, ey - 0.14, y)
+        muzzle_y_high = 1.0 - _smooth(ey + 0.00, ey + 0.12, y)
+        muzzle = muzzle_front * muzzle_center * muzzle_y_low * muzzle_y_high
+        base = _blend(base, white, min(1.0, muzzle * 1.15))
+
+        # Cream neck/chest bib: front-centre ruff that remains separate from
+        # the sable shoulder mass. A second lower chest term carries the white
+        # region down toward the belly without whitening the whole torso.
+        chest_front = _smooth(cz - 0.30, cz + 0.10, z)
+        chest_center = 1.0 - _smooth(0.16, 0.38, ax)
+        ruff_y = _smooth(0.54, 0.72, y) * (1.0 - _smooth(0.82, 0.98, y))
+        lower_chest_y = _smooth(cy - 0.30, cy - 0.06, y) * (1.0 - _smooth(cy + 0.22, cy + 0.38, y))
+        chest = chest_front * chest_center * max(ruff_y, lower_chest_y)
+        base = _blend(base, cream, min(1.0, chest * 0.96))
+
+        # Belly/underside cream is low and central. It helps side/rear views
+        # read as a Corgi coat rather than a uniformly brown low-poly dog.
+        belly_low = 1.0 - _smooth(0.22, 0.43, y)
+        belly_center = 1.0 - _smooth(0.20, 0.48, ax)
+        belly_long = 1.0 - _smooth(0.58, 0.90, abs(z))
+        base = _blend(base, cream, belly_low * belly_center * belly_long * 0.88)
+
+        # Cream socks. The old 0.10-unit threshold was too small to survive
+        # normal phone framing; carry the sock up roughly the lower fifth.
+        socks = 1.0 - _smooth(0.10, 0.24, y)
+        base = _blend(base, white, socks * 0.90)
+
+        # Ear contrast: deepen the outer tips and warm the inner/front-facing
+        # pinna. This preserves the large upright-ear silhouette visually.
+        ear_band = _smooth(ey + 0.06, ey + 0.25, y)
+        ear_side = _smooth(eye_dx * 0.50, eye_dx * 1.55, ax)
+        ear_tip = ear_band * ear_side
+        base = _blend(base, sable_deep, ear_tip * 0.38)
+        ear_front = max(0.0, float(nrm[2]))
+        base = _blend(base, ear_inner, ear_tip * ear_front * 0.48)
+
+        # Eyes: slightly larger high-contrast masks than R4.2 so facial
+        # expression remains legible after down-sampling. These are cosmetic
+        # template features, not observed identity landmarks.
         for sx in (-1.0, 1.0):
-            dx = (x - sx * landmarks.get("eye_dx", 0.16)) / 0.055
-            dy = (y - ey) / 0.055
-            d2 = dx * dx + dy * dy
-            ring = _smooth(0.75, 1.35, d2) * _smooth(1.6, 3.2, d2 * 1.6)
-            base = _blend(base, np.array([0.16, 0.10, 0.06]), ring * 0.85)
-            dot = _smooth(0.0, 0.55, d2) * _smooth(1.1, 2.2, d2)
-            base = _blend(base, np.array([0.045, 0.032, 0.024]), dot * 0.95)
-        # Ear shading: warm sable inner-ear (readable triangle, not black).
-        tx = abs(x) / 0.30
-        t = _smooth(0.3, 0.9, -((y - ey - 0.10) / 0.16) ** 2 - tx * tx + 1.05) * max(0.0, float(nrm[1]))
-        base = _blend(base, np.array([0.72, 0.50, 0.30]), t * 0.6)
-        # Paw tips: cream socks near ground.
-        t = _smooth(0.55, 0.95, 1.0 - y / 0.10)
-        base = _blend(base, HEX["white"], t * 0.5)
-        # Low-frequency warm grain — small, so the coat never reads as mud.
-        g = (_grain(pos) - 0.5) * 0.022
+            dx = (x - sx * eye_dx) / 0.066
+            dy = (y - ey) / 0.060
+            dz = (z - ez) / 0.11
+            d2 = dx * dx + dy * dy + 0.35 * dz * dz
+            eye = 1.0 - _smooth(0.52, 1.30, d2)
+            base = _blend(base, eye_dark, eye * 0.96)
+
+        # Nose/front muzzle punctuation. Keep the mask small and front-only so
+        # it cannot become a dark band across the cream muzzle.
+        nose_dx = x / 0.075
+        nose_dy = (y - (ey - 0.13)) / 0.065
+        nose_dz = (z - mz) / 0.075
+        nose_d2 = nose_dx * nose_dx + nose_dy * nose_dy + nose_dz * nose_dz
+        nose = 1.0 - _smooth(0.45, 1.45, nose_d2)
+        base = _blend(base, np.array([0.12, 0.075, 0.045]), nose * 0.96)
+
+        # Very low-amplitude deterministic grain: enough to break perfectly
+        # flat paint without turning the coat muddy/noisy.
+        g = (_grain(pos * 1.7) - 0.5) * 0.018
         base = base + g
         return np.clip(base, 0.0, 1.0), obs
 
