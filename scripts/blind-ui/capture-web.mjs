@@ -424,6 +424,13 @@ async function main() {
     await page.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(2500);
   });
+  await captureSpecial("notfound", async () => {
+    // Dedicated product 404 state: must not be swallowed by the generic error
+    // boundary. This UUID is intentionally nonexistent and contains no owner data.
+    await loginAs("owner@pli.demo");
+    await page.goto(`${baseUrl}/pets/00000000-0000-0000-0000-00000000dead`, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(2000);
+  });
 
   await browser.close();
   console.log(`done -> ${outRoot}`);
