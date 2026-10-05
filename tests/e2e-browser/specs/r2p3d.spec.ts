@@ -77,6 +77,9 @@ test("R2P3D-02 3D stage is loaded and never failed on the three pages", async ({
     await expect(stage).toHaveAttribute("data-pet3d", "ready", { timeout: 15000 });
     await expect(page.locator('[data-testid="pet3d-canvas"]').first()).toBeAttached();
     await expect(page.locator('[data-testid="pet3d-stage"][data-pet3d="failed"]')).toHaveCount(0);
+    // Seeded CI pets use demo/template Twins. Accessibility copy must disclose
+    // that truth too; screen-reader users must not hear a real-pet identity claim.
+    await expect(stage).toHaveAttribute("aria-label", /示例 3D 形象|演示模板|演示/);
   }
 });
 
