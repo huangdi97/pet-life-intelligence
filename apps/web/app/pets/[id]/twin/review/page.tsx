@@ -65,6 +65,16 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
 
   useEffect(() => {
     let alive = true;
+    // Pet/version changes are identity boundaries. Clear the prior candidate
+    // before resolving the next one so a stale Twin can never appear under a
+    // different pet name while requests are in flight.
+    setPet(null);
+    setModel(null);
+    setModelNote(null);
+    setSelected(null);
+    setIssueKeys([]);
+    setView("front");
+    setMsg(null);
     const requestedVersion = Number(new URLSearchParams(window.location.search).get("version")) || 0;
 
     const modelRequest = async (): Promise<VisualModelRow | null> => {
