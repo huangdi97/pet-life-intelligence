@@ -15,6 +15,7 @@ export function TrainingScreen() {
   const { pets, petId } = usePets();
   const [goals, setGoals] = useState<TrainingGoalRow[]>([]);
   const [tools, setTools] = useState<TrainingTools | null>(null);
+  const [toolsState, setToolsState] = useState<"loading" | "ready" | "error">("loading");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [title, setTitle] = useState("");
@@ -29,6 +30,7 @@ export function TrainingScreen() {
     if (!petId) return;
     let alive = true;
     setLoading(true);
+    setToolsState("loading");
     api
       .get<TrainingGoalRow[]>(`/pets/${petId}/training-goals`)
       .then((r) => {
@@ -46,10 +48,16 @@ export function TrainingScreen() {
     api
       .get<TrainingTools>("/training/tools")
       .then((r) => {
-        if (alive) setTools(r);
+        if (alive) {
+          setTools(r);
+          setToolsState("ready");
+        }
       })
       .catch(() => {
-        if (alive) setTools(null);
+        if (alive) {
+          setTools(null);
+          setToolsState("error");
+        }
       });
     return () => {
       alive = false;
@@ -89,6 +97,7 @@ export function TrainingScreen() {
   }
 
   const current = goals[0] ?? null;
+  const goalsUnavailable = error && goals.length === 0;
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
@@ -106,7 +115,9 @@ export function TrainingScreen() {
         ) : (
           <>
             <OpenSection title="当前目标" testID="pli.training.goal">
-              {current ? (
+              {goalsUnavailable ? (
+                <Text style={styles.emptyText}>训练目标暂时没有加载成功；不会把未知状态显示成“没有目标”。</Text>
+              ) : current ? (
                 <View style={styles.goalCard}>
                   <View style={styles.goalHead}>
                     <Text style={styles.goalTitle}>{current.title}</Text>
@@ -152,16 +163,22 @@ export function TrainingScreen() {
               </OpenSection>
             ) : null}
 
-            {tools ? (
-              <OpenSection title="安全工具" caption={tools.banned_note ?? undefined}>
-                {tools.tools.map((t) => (
+            <OpenSection title="安全工具" caption={tools?.banned_note ?? undefined}>
+              {toolsState === "loading" ? (
+                <Text style={styles.emptyText}>正在读取训练工具说明……</Text>
+              ) : toolsState === "error" ? (
+                <Text style={styles.emptyText}>训练工具说明暂时没有加载成功；不会用默认建议替代真实配置。</Text>
+              ) : tools ? (
+                tools.tools.map((t) => (
                   <View key={t.name} style={styles.toolRow}>
                     <Text style={styles.toolName}>{t.name}</Text>
                     <Text style={styles.toolUse}>{t.use}</Text>
                   </View>
-                ))}
-              </OpenSection>
-            ) : null}
+                ))
+              ) : (
+                <Text style={styles.emptyText}>当前没有可用的训练工具说明。</Text>
+              )}
+            </OpenSection>
 
             <View style={styles.formSection}>
               <Pressable
@@ -203,7 +220,7 @@ function statusLabel(status: string): string {
   if (status === "ACTIVE" || status === "OPEN") return "进行中";
   if (status === "ACHIEVED") return "已达成";
   if (status === "PAUSED") return "已暂停";
-  return status;
+  return "状态已记录";
 }
 
 function SessionChip({ label, onPress, disabled }: { label: string; onPress: () => void; disabled: boolean }) {
@@ -222,6 +239,7 @@ const styles = StyleSheet.create({
   title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  emptyText: { fontSize: TYPE.body, color: COLORS.textTertiary, lineHeight: 22 },
   // V4 §5 SoftPanel: warm soft surface, no white bordered box.
   goalCard: { backgroundColor: COLORS.brandSoftAmber, borderRadius: RADIUS.xl, padding: SPACE.s4 },
   goalHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: SPACE.s2 },
