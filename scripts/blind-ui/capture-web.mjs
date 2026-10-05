@@ -245,10 +245,13 @@ async function waitManifest(page, dir, file) {
 }
 
 async function main() {
-  const browser = await chromium.launch({
-    channel: process.env.PLI_CAPTURE_CHANNEL || "chrome",
+  const launchOptions = {
     args: ["--no-proxy-server", "--proxy-bypass-list=*"],
-  });
+  };
+  if (process.env.PLI_CAPTURE_CHANNEL) {
+    launchOptions.channel = process.env.PLI_CAPTURE_CHANNEL;
+  }
+  const browser = await chromium.launch(launchOptions);
   const context = await browser.newContext({ viewport: VIEWPORT, locale: "zh-CN" });
   const page = await context.newPage();
 
