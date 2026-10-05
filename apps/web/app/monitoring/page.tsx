@@ -12,7 +12,7 @@ import { TodayPanel } from "./_components/TodayPanel";
 import type { HomeSummary, PetDevice, ReviewDecision, ReviewItem } from "./_components/types";
 
 /** OWN-013 Monitoring（Stage H §29-33）：Home Intelligence 产品页，不是 IoT dashboard。
- *  无真实设备 provider 时显示 PROTOTYPE + 未知状态，不伪装在线。 */
+ *  无真实设备 provider 时明确显示“未连接/待确认”，绝不伪装在线。 */
 export default function MonitoringPage() {
   const { petId } = useCurrentPet();
   const [reviewBusy, setReviewBusy] = useState(false);
