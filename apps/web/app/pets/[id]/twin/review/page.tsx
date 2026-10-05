@@ -153,6 +153,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
               realityField="review-studio"
               sourceMediaCount={twinSourceMediaCount}
               twin={viewerTwin}
+              view={view}
             />
           ) : (
             <div className="page-center" style={{ minHeight: 240 }}>
@@ -175,11 +176,8 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
             key={v.id}
             type="button"
             className={`btn${view === v.id ? " primary" : ""}`}
-            onClick={() => {
-              setView(v.id);
-              const yaw = v.id === "front" ? 0 : v.id === "side" ? Math.PI / 2 : Math.PI;
-              (window as any).__PLI_SET_VIEW?.(yaw);
-            }}
+            onClick={() => setView(v.id)}
+            aria-pressed={view === v.id}
             data-testid={`pli.twinreview.view.${v.id}`}
           >
             {v.label}
