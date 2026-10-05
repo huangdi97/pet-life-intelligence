@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -120,6 +121,19 @@ def mini_path(surface: str) -> Path:
     return MINI / f"{surface}.png"
 
 
+def git_fact(*args: str) -> str:
+    try:
+        return subprocess.check_output(
+            ["git", *args],
+            cwd=ROOT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        ).strip()
+    except Exception:
+        return "UNKNOWN"
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     generated: list[dict[str, object]] = []
@@ -215,6 +229,8 @@ def main() -> None:
 
     manifest = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source_head": git_fact("rev-parse", "HEAD"),
+        "source_branch": git_fact("branch", "--show-current"),
         "policy": {
             "vision_model_used": False,
             "missing_required_source": "hard_fail",
