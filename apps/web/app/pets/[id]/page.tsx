@@ -215,10 +215,14 @@ export default function PetProfilePage() {
               <h2 className="v4-sec-title">它的关系</h2>
               <Link href="/social" className="v4-sec-link">管理</Link>
             </div>
-            {friends.state === "ready" && visibleRelationships.length > 0 ? (
+            {friends.state === "loading" ? (
+              <p className="v4-note" style={{ margin: "6px 0 0" }}>正在读取已记录的宠物关系……</p>
+            ) : friends.state === "error" || friends.state === "denied" ? (
+              <p className="v4-note" style={{ margin: "6px 0 0" }}>关系记录暂时没有加载成功；进入「社交」页可以重试。</p>
+            ) : visibleRelationships.length > 0 ? (
               visibleRelationships.map((f) => (
                 <div key={f.friend_pet_id} className="v4-domain">
-                  <span className="v4-domain-label">{petsList.data?.find((x) => x.id === f.friend_pet_id)?.name ?? "朋友"}</span>
+                  <span className="v4-domain-label">{petsList.data?.find((x) => x.id === f.friend_pet_id)?.name ?? "宠物朋友"}</span>
                   <span className="v4-domain-value">{relationshipStatusLabel(f.status)}</span>
                 </div>
               ))
