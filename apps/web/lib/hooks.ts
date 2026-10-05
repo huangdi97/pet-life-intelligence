@@ -21,6 +21,10 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []): Async<T
     let alive = true;
     setState("loading");
     setError(null);
+    // Dependency changes often mean a different Pet ID. Keeping prior data
+    // during that transition can briefly present the previous pet's facts or
+    // Twin as the newly selected pet. Clear it until the new request resolves.
+    setData(null);
     fn()
       .then((d) => {
         if (!alive) return;
