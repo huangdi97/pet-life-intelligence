@@ -199,8 +199,6 @@ export function TodayScreen() {
           pose={twin ? representativePose ?? "Idle" : null}
         />
 
-        {loading || !pet ? null : <TodayHealthSummary health={health} hint={hint} />}
-
         {error && !loading ? <TodayOffline cachedAt={cachedAt} onRetry={() => setLoading((v) => !v)} /> : null}
 
         {loading ? (
@@ -219,15 +217,21 @@ export function TodayScreen() {
               )}
             </View>
 
-            {/* R5.4: preserve the canonical living hierarchy
-                PET → NOW → CHANGE → ATTENTION → ACTION → MEMORY.
-                Tasks are supporting utilities, so they must not displace the
-                one primary owner action immediately after Attention. */}
+            {/* R5.6 closure: preserve the canonical living hierarchy
+                PET → NOW → CHANGE → ATTENTION → ACTION → SUPPORT → MEMORY.
+                Health summary and tasks are support, so neither may displace
+                the one primary owner action immediately after Attention. */}
             <PrimaryAction testID="pli.today.primary-action" label="快速记录" onPress={() => stackNav.navigate("QuickLog")} />
             <ActionRow>
               <SecondaryAction label="看看它" icon="eye-outline" onPress={() => stackNav.navigate("LifeView")} />
               <SecondaryAction label="问助手" icon="chatbubble-ellipses-outline" onPress={() => tabNav.navigate("Assistant")} />
             </ActionRow>
+
+            {pet ? (
+              <View testID="pli.today.support">
+                <TodayHealthSummary health={health} hint={hint} />
+              </View>
+            ) : null}
 
             {tasks.length > 0 ? (
               <OpenSection title="今天任务" caption={`${tasks.filter((t) => t.status === "OPEN").length} 项待办`}>
