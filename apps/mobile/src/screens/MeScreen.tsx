@@ -10,7 +10,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { usePets } from "../context";
-import { devLogin } from "../api";
+import { api, devLogin, humanizeError } from "../api";
 import { getDevUserId, getToken, setDevUserId, setToken } from "../storage/session";
 import { COLORS, DEMO_ENV, RADIUS, SPACE, TYPE } from "../tokens";
 import type { StackParamList } from "../navigation";
@@ -22,6 +22,15 @@ type StackNav = NativeStackNavigationProp<StackParamList>;
 
 const SHOW_DEVELOPER_SETTINGS = DEMO_ENV || __DEV__;
 
+const FEEDBACK_CATEGORIES = [
+  { key: "bug", label: "出错" },
+  { key: "confusing", label: "看不懂" },
+  { key: "missing", label: "缺少内容" },
+  { key: "feature_request", label: "功能建议" },
+  { key: "privacy", label: "隐私担忧" },
+  { key: "other", label: "其他" },
+] as const;
+
 export function MeScreen() {
   const { pets, petId, choose, reload, reset } = usePets();
   const navigation = useNavigation<StackNav>();
@@ -30,6 +39,10 @@ export function MeScreen() {
   const [email, setEmail] = useState("owner@pli.demo");
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [feedbackCategory, setFeedbackCategory] = useState<(typeof FEEDBACK_CATEGORIES)[number]["key"]>("confusing");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [feedbackStatus, setFeedbackStatus] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -68,6 +81,29 @@ export function MeScreen() {
     await setDevUserId(null);
     setSessionKind("none");
     reset();
+  }
+
+  async function sendFeedback() {
+    const message = feedbackMessage.trim();
+    if (!message || feedbackBusy || !hasSession) return;
+    setFeedbackBusy(true);
+    setFeedbackStatus(null);
+    try {
+      await api.post("/pilot/feedback", {
+        category: feedbackCategory,
+        message,
+        page_url: "mobile://me",
+        pet_id: current?.id ?? null,
+        client: "android",
+        extra: { surface: "me" },
+      });
+      setFeedbackMessage("");
+      setFeedbackStatus("反馈已提交，感谢你帮助我们改进。");
+    } catch (error: unknown) {
+      setFeedbackStatus(humanizeError(error));
+    } finally {
+      setFeedbackBusy(false);
+    }
   }
 
   return (
@@ -125,6 +161,50 @@ export function MeScreen() {
         <OpenSection title="隐私与数据" testID="pli.me.privacy">
           <Row label="隐私" value="仅向你展示必要信息" />
           <View testID="pli.me.data"><Row label="数据" value="由你记录，可随时导出" /></View>
+        </OpenSection>
+
+        <OpenSection title="试点反馈" testID="pli.me.feedback">
+          <Text style={styles.feedbackLead}>告诉我们哪里出错、难懂或缺少内容；请不要填写病历全文或联系方式。</Text>
+          <View style={styles.feedbackChips} accessibilityLabel="反馈类别">
+            {FEEDBACK_CATEGORIES.map((category) => {
+              const selected = feedbackCategory === category.key;
+              return (
+                <Pressable
+                  key={category.key}
+                  testID={`pli.me.feedback.category.${category.key}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  onPress={() => setFeedbackCategory(category.key)}
+                  style={[styles.feedbackChip, selected && styles.feedbackChipSelected]}
+                >
+                  <Text style={[styles.feedbackChipText, selected && styles.feedbackChipTextSelected]}>{category.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <TextInput
+            testID="pli.me.feedback.message"
+            style={[styles.input, styles.feedbackInput]}
+            value={feedbackMessage}
+            onChangeText={setFeedbackMessage}
+            multiline
+            maxLength={4000}
+            textAlignVertical="top"
+            placeholder="描述你遇到的问题或建议"
+            placeholderTextColor={COLORS.textTertiary}
+          />
+          <Pressable
+            testID="pli.me.feedback.submit"
+            accessibilityRole="button"
+            accessibilityLabel={hasSession ? "提交试点反馈" : "登录后可提交试点反馈"}
+            accessibilityState={{ disabled: feedbackBusy || !feedbackMessage.trim() || !hasSession }}
+            disabled={feedbackBusy || !feedbackMessage.trim() || !hasSession}
+            onPress={() => void sendFeedback()}
+            style={[styles.feedbackSubmit, (feedbackBusy || !feedbackMessage.trim() || !hasSession) && styles.controlDisabled]}
+          >
+            <Text style={styles.feedbackSubmitText}>{feedbackBusy ? "提交中…" : hasSession ? "提交反馈" : "登录后可提交"}</Text>
+          </Pressable>
+          {feedbackStatus ? <Text style={styles.feedbackStatus} accessibilityLiveRegion="polite">{feedbackStatus}</Text> : null}
         </OpenSection>
 
         <OpenSection title="应用" testID="pli.me.help">
@@ -210,6 +290,16 @@ const styles = StyleSheet.create({
   devLoginText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   devNote: { fontSize: TYPE.caption, color: COLORS.textTertiary },
   errorText: { fontSize: TYPE.sm, color: COLORS.danger },
+  feedbackLead: { fontSize: TYPE.sm, color: COLORS.textTertiary, lineHeight: 20 },
+  feedbackChips: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, marginTop: SPACE.s3 },
+  feedbackChip: { minHeight: 44, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised, borderWidth: 1, borderColor: COLORS.dividerSubtle },
+  feedbackChipSelected: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
+  feedbackChipText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
+  feedbackChipTextSelected: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  feedbackInput: { minHeight: 88, marginTop: SPACE.s3 },
+  feedbackSubmit: { minHeight: 48, justifyContent: "center", alignItems: "center", marginTop: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.brandPrimary },
+  feedbackSubmitText: { fontSize: TYPE.button, color: COLORS.textInverse, fontWeight: "600" },
+  feedbackStatus: { marginTop: SPACE.s2, fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20 },
   logoutBtn: { minHeight: 48, justifyContent: "center", marginHorizontal: SPACE.s4, marginTop: SPACE.s5, paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: COLORS.dividerStrong, alignItems: "center" },
   controlDisabled: { opacity: 0.5 },
   logoutText: { fontSize: TYPE.button, color: COLORS.textSecondary, fontWeight: "600" },
