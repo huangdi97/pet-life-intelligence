@@ -36,6 +36,10 @@ TURNTABLE = FINAL / "turntable"
 OUT = FINAL / "contact-sheets"
 PREVIOUS_WEB = ROOT / "artifacts" / "r2p3d-r4-2" / "web"
 PREVIOUS_ANDROID = ROOT / "artifacts" / "r2p3d-r4-2" / "android"
+R3_WEB = ROOT / "artifacts" / "r2p3d-r3" / "web"
+R4_WEB = ROOT / "artifacts" / "r2p3d-r4" / "web"
+R41_WEB = ROOT / "artifacts" / "r2p3d-r4-1" / "web"
+R42_WEB = ROOT / "artifacts" / "r2p3d-r4-2" / "web"
 
 WEB_SURFACES = ("today", "timeline", "pet", "lifeview", "twinreview", "health", "assistant", "me")
 ANDROID_SURFACES = WEB_SURFACES
@@ -197,6 +201,24 @@ def main() -> None:
             cols=4,
         )
     )
+
+    # Historical progression is a required human-review surface, not a report-only claim.
+    # Every source is required so an incomplete chronology cannot silently look complete.
+    for surface in hero:
+        generated.append(
+            sheet(
+                f"PLI Hero progression — {surface}",
+                [
+                    (f"R3 · {surface}", R3_WEB / surface / "screenshot.png"),
+                    (f"R4 · {surface}", R4_WEB / surface / "screenshot.png"),
+                    (f"R4.1 · {surface}", R41_WEB / surface / "screenshot.png"),
+                    (f"R4.2 · {surface}", R42_WEB / surface / "screenshot.png"),
+                    (f"R5.6 · {surface}", web_path(surface)),
+                ],
+                OUT / f"PLI_R3_R4_R4_1_R4_2_R5_6_{surface}.png",
+                cols=5,
+            )
+        )
 
     special_states = ("empty", "attention", "offline", "notfound")
     generated.append(
