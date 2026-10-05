@@ -147,7 +147,12 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
       model && modelDescriptor
         ? {
             ...modelDescriptor,
-            family: pet?.species === "cat" ? "standard-cat" : "corgi-like",
+            // Preserve the backend's per-candidate family. Never coerce every
+            // dog into a Corgi template just because the current demo dog is a
+            // Corgi; fallback only when an older descriptor omitted family.
+            family:
+              modelDescriptor.family ??
+              (pet?.species === "cat" ? "standard-cat" : "standard-dog"),
             version: model.version,
             provenance: model.provenance_kind,
           }
