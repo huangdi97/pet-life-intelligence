@@ -9,7 +9,7 @@ import { Button, Input, Text, View } from "@tarojs/components";
 import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
 import { eventPayloadText, eventTypeLabel } from "../../utils/labels";
-import { EmptyState, InlineError } from "../../components/feedback/Feedback";
+import { EmptyState, InlineError, PetContextGate } from "../../components/feedback/Feedback";
 import { PetContextHeader } from "../../components/pet_visual";
 
 interface SearchHit {
@@ -27,11 +27,20 @@ function timeLabel(iso: string): string {
 }
 
 export default function Search() {
-  const { pets, petId } = usePets();
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const current = pets?.find((pet) => pet.id === petId) ?? pets?.[0];
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[] | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">搜索记录</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   async function run() {
     const value = query.trim();
