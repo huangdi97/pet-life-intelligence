@@ -431,6 +431,14 @@ async function main() {
     await page.goto(`${baseUrl}/pets/00000000-0000-0000-0000-00000000dead`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(2000);
   });
+  await captureSpecial("permission", async () => {
+    // Seeded family member has household access but not Owner-only settings.
+    // Capture the explicit permission state rather than treating 403 as a
+    // generic error or inventing inaccessible data.
+    await loginAs("family@pli.demo");
+    await page.goto(`${baseUrl}/settings`, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(2000);
+  });
 
   await browser.close();
   console.log(`done -> ${outRoot}`);
