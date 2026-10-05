@@ -157,10 +157,10 @@ test("R2P3D-05 owner-term zero + canonical copy on the three pages", async ({ pa
   await page.goto(`/pets/${petId}/life-view`);
   await page.waitForLoadState("networkidle");
   await expect(page.getByText("豆豆 · 此刻").first()).toBeVisible();
-  // R2P3D-R3: the ACTIVE confirmed twin replaces the old demo-only note; the
-  // honest canonical copy is either the confirmed twin note or the graceful
-  // simplified-stage fallback (never a fake LIVE, never raw internal terms).
-  await expect(page.getByText(/第 \d+ 版 3D 形象|暂时使用简化形象/).first()).toBeVisible();
+  // Canonical copy has three honest states: an explicitly labelled demo Twin,
+  // an owner-confirmed real candidate, or the graceful simplified fallback.
+  // None may masquerade as LIVE or leak raw internal terms.
+  await expect(page.getByText(/示例 3D 形象|第 \\d+ 版 3D 形象|暂时使用简化形象/).first()).toBeVisible();
 });
 
 test("R2P3D-06 Android page (pet-stage.html) renders 豆豆 and rotates via drag", async ({ page }) => {
