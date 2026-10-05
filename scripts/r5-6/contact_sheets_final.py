@@ -33,6 +33,8 @@ ANDROID = FINAL / "android"
 MINI = FINAL / "mini"
 TURNTABLE = FINAL / "turntable"
 OUT = FINAL / "contact-sheets"
+PREVIOUS_WEB = ROOT / "artifacts" / "r2p3d-r4-2" / "web"
+PREVIOUS_ANDROID = ROOT / "artifacts" / "r2p3d-r4-2" / "android"
 
 WEB_SURFACES = ("today", "timeline", "pet", "lifeview", "twinreview", "health", "assistant", "me")
 ANDROID_SURFACES = WEB_SURFACES
@@ -160,6 +162,35 @@ def main() -> None:
             comparison,
             OUT / "PLI_R5_6_WEB_ANDROID_HERO_PARITY.png",
             cols=2,
+        )
+    )
+
+    previous_comparison: list[tuple[str, Path]] = []
+    for surface in hero:
+        previous_comparison.extend(
+            [
+                (f"R4.2 web · {surface}", PREVIOUS_WEB / surface / "screenshot.png"),
+                (f"R5.6 web · {surface}", web_path(surface)),
+                (f"R4.2 android · {surface}", PREVIOUS_ANDROID / surface / f"{surface}.png"),
+                (f"R5.6 android · {surface}", android_path(surface)),
+            ]
+        )
+    generated.append(
+        sheet(
+            "PLI previous vs final — R4.2 / R5.6 Hero comparison",
+            previous_comparison,
+            OUT / "PLI_R4_2_VS_R5_6_HEROES.png",
+            cols=4,
+        )
+    )
+
+    special_states = ("empty", "attention", "offline", "notfound")
+    generated.append(
+        sheet(
+            "PLI R5.6 — representative product states",
+            [(state, WEB / state / "screenshot.png") for state in special_states],
+            OUT / "PLI_R5_6_STATES.png",
+            cols=4,
         )
     )
 
