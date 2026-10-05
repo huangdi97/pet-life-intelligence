@@ -20,6 +20,7 @@ export type DemoScreen =
   | "me"
   | "quicklog"
   | "notifications"
+  | "search"
   | "health"
   | "lifeview"
   | "behavior"
@@ -45,6 +46,7 @@ const TAB_SCREENS: Record<string, keyof TabParamList> = {
 const STACK_SCREENS: Record<string, keyof StackParamList> = {
   quicklog: "QuickLog",
   notifications: "Notifications",
+  search: "Search",
   health: "Health",
   lifeview: "LifeView",
   behavior: "Behavior",
