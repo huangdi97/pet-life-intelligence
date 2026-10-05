@@ -13,6 +13,7 @@ const pick = (flag, fallback) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
 };
 const baseUrl = pick("--base-url", "http://localhost:3100");
+const petId = pick("--pet-id", "");
 const out = resolve(root, "artifacts/r5-6-final/web");
 
 const git = (...gitArgs) => {
@@ -31,6 +32,7 @@ const capture = spawnSync(
     baseUrl,
     "--out",
     out,
+    ...(petId ? ["--pet-id", petId] : []),
   ],
   {
     cwd: root,
@@ -88,6 +90,7 @@ const provenance = {
   source_head: git("rev-parse", "HEAD"),
   source_branch: git("branch", "--show-current"),
   base_url: baseUrl,
+  primary_pet_id: petId || null,
   vision_model_used: false,
   required_surfaces: required,
   product_twin_surfaces: ["today", "pet", "lifeview", "twinreview"],
