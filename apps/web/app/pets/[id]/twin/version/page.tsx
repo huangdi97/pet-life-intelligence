@@ -21,6 +21,11 @@ interface VisualModelRow {
   activated_at: string | null;
   artifact_map: Record<string, string>;
   identity_qc: Record<string, unknown>;
+  observed_surface_manifest?: Record<string, string>;
+  metadata_json?: {
+    demo_fixture?: boolean;
+    opts?: { observed_photo_count?: number; media_provenance?: string };
+  };
 }
 
 /** 模型状态 → 用户语言（不泄漏 raw 枚举）。 */
@@ -53,6 +58,9 @@ export default function TwinVersionPage({ params }: { params: Promise<{ id: stri
 
   const current = models[0] ?? null;
   const history = models.slice(1);
+  const currentIsDemo = current?.metadata_json?.demo_fixture === true;
+  const currentPhotoCount = Number(current?.metadata_json?.opts?.observed_photo_count ?? 0);
+  const currentObservedCount = Object.keys(current?.observed_surface_manifest ?? {}).length;
 
   return (
     <main className="v4-main v5-domain-page v5-utility-page">
@@ -67,8 +75,18 @@ export default function TwinVersionPage({ params }: { params: Promise<{ id: stri
           <p className="sub" style={{ margin: 0 }}>{statusZh(current.status)}</p>
           <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 8 }}>
             <span className="badge" data-testid="pli.twinversion.time">生成于 {fmtTime(current.created_at)}</span>
-            <span className="badge" data-testid="pli.twinversion.source">来自 {Object.keys(current.artifact_map).length || 6} 张照片</span>
-            <span className="badge" data-testid="pli.twinversion.verify">{current.owner_verified ? "已通过主人确认" : "待主人确认"}</span>
+            <span className="badge" data-testid="pli.twinversion.source">
+              {currentIsDemo
+                ? "来源 · 示例模板"
+                : currentPhotoCount > 0
+                  ? `来源 · ${currentPhotoCount} 张照片`
+                  : currentObservedCount > 0
+                    ? `来源素材区域 · ${currentObservedCount} 项`
+                    : "来源素材 · 未观察到"}
+            </span>
+            <span className="badge" data-testid="pli.twinversion.verify">
+              {currentIsDemo ? "示例体验 · 非真实宠物身份确认" : current.owner_verified ? "已通过主人确认" : "待主人确认"}
+            </span>
           </div>
         </section>
       ) : (
@@ -87,7 +105,7 @@ export default function TwinVersionPage({ params }: { params: Promise<{ id: stri
       <section className="v4-sec" data-testid="pli.twinversion.info">
         <h2>版本说明</h2>
         <p className="muted" style={{ margin: 0 }}>
-          每个版本都记录来源素材数量、生成时间与确认状态；确认后才会显示，未确认版本不会覆盖已使用版本。
+          每个版本都记录来源、生成时间与确认状态；示例模板会明确标注，真实候选只有在主人确认后才会成为当前形象。
         </p>
       </section>
 
