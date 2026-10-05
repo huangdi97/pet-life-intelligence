@@ -103,14 +103,20 @@ export function AssistantScreen() {
           )}
         </View>
 
-        <View style={styles.modeRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.modeRow}
+          accessibilityRole="tablist"
+          accessibilityLabel="助手模式"
+        >
           {MODES.map((m) => {
             const active = tab === m.id;
             const primary = m.id === "ask";
             return (
               <Pressable
                 key={m.id}
-                accessibilityRole="button"
+                accessibilityRole="tab"
                 accessibilityLabel={m.label}
                 accessibilityState={{ selected: active }}
                 onPress={() => setTab(m.id)}
@@ -120,7 +126,7 @@ export function AssistantScreen() {
               </Pressable>
             );
           })}
-        </View>
+        </ScrollView>
 
         {tab === "ask" && (
           <View style={styles.askWrap} testID="pli.assistant.chat">
@@ -229,7 +235,7 @@ const styles = StyleSheet.create({
   petSub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
   title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
-  modeRow: { flexDirection: "row", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s4 },
+  modeRow: { flexDirection: "row", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s4, paddingRight: SPACE.s6 },
   mode: { minHeight: 44, paddingHorizontal: SPACE.s4, paddingVertical: 8, alignItems: "center", justifyContent: "center", borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
   modeActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
   modePrimary: { backgroundColor: COLORS.brandPrimary, borderColor: COLORS.brandPrimary },
