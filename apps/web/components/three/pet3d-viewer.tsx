@@ -44,6 +44,8 @@ interface Props {
   identity: Pet3DIdentity;
   /** Owner-visible pet name; never derive identity copy from a demo asset label. */
   displayName?: string;
+  /** True only when the rendered Twin is a bundled demo/template identity. */
+  demoTwin?: boolean;
   variant?: "stage" | "life";
   interactive?: boolean;
   /** Individual twin descriptor from the backend pipeline (R2P3D-R1). */
@@ -69,6 +71,7 @@ interface Props {
 export function Pet3DViewer({
   identity,
   displayName,
+  demoTwin = false,
   twin = null,
   pose = null,
   variant = "stage",
@@ -464,7 +467,9 @@ export function Pet3DViewer({
   const meta = PET_3D_ASSETS[identity];
   const ownerName = displayName?.trim() || "宠物";
   const accessibleLabel = twin
-    ? `${ownerName}的 3D 形象。外观由素材与模板生成，不代表真实扫描。`
+    ? demoTwin
+      ? `${ownerName}的示例 3D 形象。来自演示模板，不代表真实宠物扫描或已验证个体外观。`
+      : `${ownerName}的 3D 形象。外观由素材与模板生成，不代表真实扫描。`
     : `${ownerName}的 3D 形象（演示）。${meta.description}`;
 
   return (
