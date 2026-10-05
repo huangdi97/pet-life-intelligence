@@ -48,6 +48,8 @@ export function CareScreen() {
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   const [grants, setGrants] = useState<Grant[]>([]);
   const [handoffs, setHandoffs] = useState<Handoff[]>([]);
+  const [grantsState, setGrantsState] = useState<"loading" | "ready" | "error">("loading");
+  const [handoffsState, setHandoffsState] = useState<"loading" | "ready" | "error">("loading");
   const [caregiver, setCaregiver] = useState("");
   const [hours, setHours] = useState("48");
   const [card, setCard] = useState<{ token: string; expires_at: string } | null>(null);
@@ -60,13 +62,25 @@ export function CareScreen() {
     if (!petId) return;
     let alive = true;
     setLoading(true);
+    setGrantsState("loading");
+    setHandoffsState("loading");
     Promise.allSettled([
       api.get<Grant[]>(`/pets/${petId}/grants`),
       api.get<Handoff[]>(`/pets/${petId}/handoffs`),
     ]).then(([g, h]) => {
       if (!alive) return;
-      if (g.status === "fulfilled") setGrants(g.value);
-      if (h.status === "fulfilled") setHandoffs(h.value);
+      if (g.status === "fulfilled") {
+        setGrants(g.value);
+        setGrantsState("ready");
+      } else {
+        setGrantsState("error");
+      }
+      if (h.status === "fulfilled") {
+        setHandoffs(h.value);
+        setHandoffsState("ready");
+      } else {
+        setHandoffsState("error");
+      }
       setError(g.status === "rejected" && h.status === "rejected" ? "暂时连接不上照护网络。" : null);
       setLoading(false);
     });
@@ -117,7 +131,9 @@ export function CareScreen() {
         {loading ? <View style={styles.loading}><Skeleton rows={3} /></View> : (
           <>
             <OpenSection title="正在进行的交接">
-              {handoffs.length === 0 ? (
+              {handoffsState === "error" ? (
+                <Text style={styles.emptyLine}>照护交接暂时没有加载成功；不会把未知状态显示成“没有交接”。</Text>
+              ) : handoffs.length === 0 ? (
                 <EmptyState title="目前没有照护交接" body="需要他人临时照护时，可以创建一个限时、限定范围的交接。" />
               ) : handoffs.map((handoff) => (
                 <View key={handoff.handoff_id} style={styles.row}>
@@ -136,11 +152,13 @@ export function CareScreen() {
             </OpenSection>
 
             <OpenSection title="权限记录">
-              {grants.length ? grants.map((grant) => (
+              {grantsState === "error" ? (
+                <Text style={styles.emptyLine}>权限记录暂时没有加载成功；不会把未知状态显示成“没有授权”。</Text>
+              ) : grants.length ? grants.map((grant) => (
                 <View key={grant.grant_id ?? grant.id ?? grant.user_id} style={styles.record}>
                   <Text style={styles.rowTitle}>{grant.user_label || "已授权成员"} · {statusLabel(grant.status)}</Text>
                   <Text style={styles.rowBody}>{grant.scopes.map((s) => SCOPE_LABELS[s] ?? "限定权限").join(" · ")}</Text>
-                  <Text style={styles.meta}>{grant.expires_at ? `到期 ${timeLabel(grant.expires_at)}` : "长期有效"}</Text>
+                  <Text style={styles.meta}>{grant.expires_at ? `到期 ${timeLabel(grant.expires_at)}` : "未设置到期时间"}</Text>
                 </View>
               )) : <Text style={styles.emptyLine}>还没有授权记录。</Text>}
             </OpenSection>
