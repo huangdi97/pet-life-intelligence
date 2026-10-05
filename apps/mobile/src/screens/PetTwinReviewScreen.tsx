@@ -163,6 +163,8 @@ export function PetTwinReviewScreen() {
               : `当前外观来自演示/模板，不代表${pet?.name ?? "宠物"}的真实扫描或已验证个体外观。`}
           </Text>
 
+          <Text style={styles.sectionLabel}>观察角度</Text>
+          <Text style={styles.sectionHint}>先从不同角度看清脸、耳朵、身形与尾巴，再判断是否像它。</Text>
           <View style={styles.viewRow} accessibilityLabel="视图选择">
             {VIEWS.map((v) => (
               <Pressable
@@ -194,6 +196,8 @@ export function PetTwinReviewScreen() {
             </Pressable>
           </View>
 
+          <Text style={styles.sectionLabel}>它像吗？</Text>
+          <Text style={styles.sectionHint}>只确认外观相似度；不会改变健康、行为或时间线里的真实记录。</Text>
           <View style={styles.options}>
             {OPTIONS.map((o) => (
               <Pressable key={o.k} testID={`pli.twinreview.verify.${o.k}`} accessibilityRole="button" accessibilityState={{ selected: selected === o.k }}
@@ -258,6 +262,19 @@ const styles = StyleSheet.create({
   title: { fontSize: TYPE.pageTitle, color: COLORS.textPrimary, fontWeight: "700", flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: SPACE.s3, paddingBottom: SPACE.s8 },
+  sectionLabel: {
+    marginTop: SPACE.s4,
+    fontSize: TYPE.section,
+    color: COLORS.textPrimary,
+    fontWeight: "700",
+  },
+  sectionHint: {
+    marginTop: 4,
+    marginBottom: SPACE.s2,
+    fontSize: TYPE.sm,
+    lineHeight: 20,
+    color: COLORS.textTertiary,
+  },
   caption: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20, marginTop: SPACE.s2 },
   provenanceNote: { fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18, marginTop: SPACE.s1 },
   viewRow: { flexDirection: "row", gap: SPACE.s2, marginTop: SPACE.s3 },
