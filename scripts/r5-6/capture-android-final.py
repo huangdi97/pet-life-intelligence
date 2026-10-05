@@ -237,6 +237,25 @@ def git(*args: str) -> str:
     return run(["git", *args]).stdout.strip()
 
 
+def source_identity() -> tuple[str, str]:
+    if os.environ.get("PLI_SOURCE_HEAD"):
+        return (
+            os.environ["PLI_SOURCE_HEAD"],
+            os.environ.get("PLI_SOURCE_BRANCH", ""),
+        )
+    event_path = os.environ.get("GITHUB_EVENT_PATH")
+    if event_path:
+        try:
+            event = json.loads(Path(event_path).read_text(encoding="utf-8"))
+            pull_request = event.get("pull_request") or {}
+            head = pull_request.get("head") or {}
+            if head.get("sha"):
+                return str(head["sha"]), str(head.get("ref") or "")
+        except Exception:
+            pass
+    return git("rev-parse", "HEAD"), git("branch", "--show-current")
+
+
 def save_manifest(path: Path, manifest: dict) -> None:
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
@@ -360,10 +379,11 @@ def main() -> None:
     android.screenshot(secondary_review / "secondary_twinreview.png")
     capture_review_views(android, secondary_review, "secondary", secondary_id)
 
+    source_head, source_branch = source_identity()
     capture_manifest = {
         "captured_at": datetime.now(timezone.utc).isoformat(),
-        "source_head": os.environ.get("PLI_SOURCE_HEAD") or git("rev-parse", "HEAD"),
-        "source_branch": os.environ.get("PLI_SOURCE_BRANCH") or git("branch", "--show-current"),
+        "source_head": source_head,
+        "source_branch": source_branch,
         "checkout_head": git("rev-parse", "HEAD"),
         "serial": args.serial,
         "package": args.package,
