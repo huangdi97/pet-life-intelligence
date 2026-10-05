@@ -98,7 +98,7 @@ export function PetScreen() {
     const healthMeaning =
       healthCount === null || healthCount === 0
         ? "最近还没有健康记录"
-        : `最近 ${healthCount} 条健康记录（${new Date().getMonth() + 1} 月内）`;
+        : `最近有 ${healthCount} 条健康记录`;
     const behaviorMeaning = lastBehavior
       ? `最近一次：${lastBehavior.behavior.slice(0, 22)}${lastBehavior.behavior.length > 22 ? "…" : ""}`
       : "还没有行为观察";
@@ -113,7 +113,7 @@ export function PetScreen() {
       { key: "behavior", icon: "paw-outline", meaning: behaviorMeaning, route: "Behavior" },
       { key: "training", icon: "ribbon-outline", meaning: trainingMeaning, route: "Training" },
       { key: "welfare", icon: "home-outline", meaning: welfareMeaning, route: "Welfare" },
-      { key: "social", icon: "people-outline", meaning: "最近互动：请查看社交页", route: "Social" },
+      { key: "social", icon: "people-outline", meaning: "关系与互动记录都在这里", route: "Social" },
     ];
   }, [healthCount, lastBehavior, goal, welfare]);
 
@@ -220,7 +220,7 @@ export function PetScreen() {
             </OpenSection>
 
             <View testID="pli.pet.friends">
-              <OpenSection title="宠物朋友">
+              <OpenSection title="它的朋友">
                 {otherPets.length > 0 ? (
                   otherPets.slice(0, 2).map((o) => (
                     <View key={o.id} style={styles.friendRow}>
