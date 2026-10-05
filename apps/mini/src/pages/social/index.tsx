@@ -3,6 +3,7 @@ import { Button, Input, Picker, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api, type LifeEvent, type Pet } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { PetContextGate } from "../../components/feedback/Feedback";
 import { eventTypeLabel } from "../../utils/labels";
 import { fmtTime } from "../../utils/format";
 
@@ -46,7 +47,7 @@ function friendStatusLabel(status: string): string {
 }
 
 export default function Social() {
-  const { pets, petId } = usePets();
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
   const [profile, setProfile] = useState<SocialProfile | null>(null);
   const [friends, setFriends] = useState<PetFriend[]>([]);
@@ -94,6 +95,15 @@ export default function Social() {
       }
     });
   }, [petId, version]);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">社交</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   const candidates = allPets.filter((p) => p.id !== petId);
   const selectedIndex = Math.max(0, candidates.findIndex((p) => p.id === friendPetId));
