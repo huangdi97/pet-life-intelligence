@@ -37,11 +37,11 @@ function ageText(birthDate: string | null): string {
 }
 
 const DOMAIN_ROWS: Array<{ id: string; label: string; href: string; desc: string; icon: WebIconName }> = [
-  { id: "life", label: "生活", href: "/timeline", desc: "今天的状态与最近发生的变化", icon: "sun" },
+  { id: "life", label: "生活", href: "/timeline", desc: "此刻、趋势与外观", icon: "sun" },
   { id: "health", label: "健康", href: "/health", desc: "最近记录与近期变化", icon: "heart" },
   { id: "behavior", label: "行为", href: "/behavior", desc: "最近一次观察与行为模式", icon: "eye" },
   { id: "training", label: "训练", href: "/training", desc: "当前目标与最近练习", icon: "target" },
-  { id: "welfare", label: "福利", href: "/welfare", desc: "近期观察：舒适、活动与恢复", icon: "shield" },
+  { id: "welfare", label: "福祉", href: "/welfare", desc: "近期观察：舒适、活动与恢复", icon: "shield" },
   { id: "social", label: "社交", href: "/social", desc: "最近互动与它的朋友", icon: "users" },
 ];
 
@@ -177,14 +177,14 @@ export default function PetProfilePage() {
                 打开生命视图
               </Link>
             </div>
-            <p className="v4-sec-sub">它的此刻与长期生活轨迹。真实照片与记录始终是基础，不依赖 3D。</p>
+            <p className="v4-sec-sub">查看它的此刻、趋势与外观；完整生命轨迹仍在一级时间线。真实照片与记录始终是基础，不依赖 3D。</p>
           </div>
 
           <div className="v4-sec">
             <h2 className="v4-sec-title">它的生活</h2>
             {DOMAIN_ROWS.map((row) => (
               <div key={row.id} className="v4-domain">
-                <Link href={row.href} className="v4-domain-main" role="button" data-testid={`pli.pet.domain.${row.id}`}>
+                <Link href={row.id === "life" ? `/pets/${id}/life-view` : row.href} className="v4-domain-main" role="button" data-testid={`pli.pet.domain.${row.id}`}>
                   <span className="v4-domain-icon">
                     <Icon name={row.icon} size={20} />
                   </span>
