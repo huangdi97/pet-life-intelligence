@@ -153,7 +153,7 @@ export function PetTwinReviewScreen() {
         <View style={styles.center}><ActivityIndicator color={COLORS.brandPrimary} /></View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Idle" interactive frameTarget={0.30} view={view} viewerRef={viewerRef} />
+          <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Idle" interactive frameTarget={0.36} view={view} viewerRef={viewerRef} />
           <Text style={styles.caption}>
             这是第 {resolvedVersion || "—"} 版候选形象。请从正面、侧面和背面重点看脸、耳朵、毛色、体型与尾巴；只有你确认相似后才会启用。
           </Text>
