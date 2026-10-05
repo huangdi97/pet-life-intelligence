@@ -207,5 +207,6 @@ jobs:
           path: |
             /tmp/pli-api.log
             artifacts/r5-6-final/android/
+            artifacts/r5-6-final/contact-sheets-ci/
           if-no-files-found: warn
 
