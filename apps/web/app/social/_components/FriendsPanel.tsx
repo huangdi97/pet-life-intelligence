@@ -17,7 +17,7 @@ function statusZh(status: string): string {
   if (status === "PENDING") return "待确认";
   if (status === "BLOCKED") return "已屏蔽";
   if (status === "DECLINED") return "已拒绝";
-  return "朋友";
+  return "状态已记录";
 }
 
 /** OWN-012 Social — 伙伴关系列表。 */
