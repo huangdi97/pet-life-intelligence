@@ -200,3 +200,16 @@ A final implementation pass was applied directly on the working branch after re-
 These are product-craft corrections under R5.6, not a new design version.
 
 The remaining gate is evidence: fresh runtime screenshots/contact sheets and explicit user Human Visual Acceptance. Approved visual baselines remain frozen until then.
+
+## 13. Pet-presence finalization pass — 2026-10-05
+
+After the direct GitHub source audit, the final R5.6 craft pass tightened the Pet-first visual hierarchy without changing product scope:
+
+- Mobile Today / Pet / Life View / Twin Review now use stronger runtime framing targets so the Pet Twin occupies more of the hero field rather than reading as a small object inside a large stage.
+- Mobile Living Stage dimensions were tightened while Twin render slots were enlarged, reducing unused hero space and strengthening `PET → NOW` ordering.
+- Web Today / Pet / Life View / Twin Review framing was aligned upward for the same Pet-first hierarchy and cross-client parity.
+- Twin Review on both Web and Mobile now explicitly separates **观察角度** from **它像吗？**, so owners inspect face/ears/body/tail before making an identity decision.
+- These changes remain inside the existing Warm Living / Neutral Identity Studio authority; no new design version is introduced.
+
+Fresh runtime evidence is required after these commits. Human Visual Acceptance remains pending; baselines remain frozen.
+
