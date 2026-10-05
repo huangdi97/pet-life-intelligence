@@ -65,6 +65,24 @@ async function capture(browser, userId, petId, folder, requiredViews) {
     if (!manifest || manifest.petId !== petId) {
       throw new Error(`runtime manifest pet mismatch for ${folder}/${name}`);
     }
+    if (
+      manifest.ready !== true ||
+      manifest.manifestOrigin !== "RUNTIME" ||
+      manifest.representation !== "high-fidelity-glb-twin" ||
+      manifest.fallbackUsed === true
+    ) {
+      throw new Error(`non-product runtime representation for ${folder}/${name}`);
+    }
+    const actualYaw = Number(manifest.camera?.yaw);
+    if (!Number.isFinite(actualYaw)) {
+      throw new Error(`runtime camera yaw missing for ${folder}/${name}`);
+    }
+    const yawError = Math.abs(Math.atan2(Math.sin(actualYaw - yaw), Math.cos(actualYaw - yaw)));
+    if (yawError > 0.08) {
+      throw new Error(
+        `runtime camera mismatch for ${folder}/${name}: expected=${yaw.toFixed(3)} actual=${actualYaw.toFixed(3)}`,
+      );
+    }
     writeFileSync(resolve(dir, `${name}.json`), JSON.stringify(manifest, null, 2) + "\n", "utf8");
     await page.screenshot({ path: resolve(dir, `${name}.png`), fullPage: false });
   }
