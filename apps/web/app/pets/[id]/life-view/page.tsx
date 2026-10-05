@@ -56,6 +56,8 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
   const observedRegions = (
     (twinDescriptor as { surface?: { observed_regions?: string[] } } | null)?.surface?.observed_regions ?? []
   ).length;
+  const twinMeta = (activeTwin?.metadata_json as Record<string, unknown> | undefined) ?? {};
+  const isDemoTwin = twinMeta.demo_fixture === true;
 
   if (pet.state === "denied") {
     return (
@@ -111,7 +113,9 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         caption={mode === "now" ? nowLine : undefined}
         note={
           twinDescriptor
-            ? `第 ${twinVersion ?? 1} 版 3D 形象 · 已通过你的确认`
+            ? isDemoTwin
+              ? "示例 3D 形象 · 演示模板 · 不代表真实宠物扫描或已验证个体外观"
+              : `第 ${twinVersion ?? 1} 版 3D 形象 · 已通过你的确认`
             : "暂时使用简化形象，连接照片后会生成更像它的 3D 形象"
         }
         frameTarget={0.36}
@@ -160,7 +164,9 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
               <h2 className="v4-sec-title">外观</h2>
               <p className="v4-sec-sub" style={{ marginTop: 6 }}>
                 {twinDescriptor
-                  ? `现在显示的是第 ${twinVersion ?? 1} 版 3D 形象，已通过你的确认。外观由它的照片与模板生成，不会替代真实照片与记录。`
+                  ? isDemoTwin
+                    ? "当前显示示例 3D 形象，用于体验交互。它来自演示模板，不代表真实宠物扫描或已验证个体外观。"
+                    : `现在显示的是第 ${twinVersion ?? 1} 版 3D 形象，已通过你的确认。外观由它的照片与模板生成，不会替代真实照片与记录。`
                   : "现在显示的是简化形象（开发环境），只来自演示数据。未来连接真实服务后，会用它的真实照片生成，并经过你确认后才会显示。外观不会替代真实照片与记录。"}
               </p>
             </div>
@@ -174,7 +180,9 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
             <h2 className="v4-sec-title">真实记录始终可信</h2>
               <p className="v4-note" style={{ margin: "6px 0 0" }}>
                 {twinDescriptor
-                  ? `当前 3D 形象是已确认的第 ${twinVersion ?? 1} 版，由它的照片与模板生成。照片、记录与规则结论始终独立于外观，移动端与 Web 一致。`
+                  ? isDemoTwin
+                    ? "当前是演示 3D 形象，仅用于验证产品体验；照片、记录与规则结论始终独立于外观，且不把示例模板当作真实宠物身份。"
+                    : `当前 3D 形象是已确认的第 ${twinVersion ?? 1} 版，由它的照片与模板生成。照片、记录与规则结论始终独立于外观，移动端与 Web 一致。`
                   : "当前 3D 形象为演示资产（开发环境），只来自演示数据，不来自真实照片。未来真实服务接通后，生成的 3D 形象只会来自真实照片，并经过你确认后才会显示。照片、记录与规则结论始终独立于外观，移动端与 Web 一致。"}
               </p>
           </div>
