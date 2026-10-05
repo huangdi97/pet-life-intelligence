@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Text, View } from "@tarojs/components";
 import { api, type Task } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { PetContextGate } from "../../components/feedback/Feedback";
 import { PetContextHeader } from "../../components/pet_visual";
 import {
   AskPanel,
@@ -26,7 +27,7 @@ import {
 } from "./_lib";
 
 export default function Agent() {
-  const { pets, petId } = usePets();
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const [tab, setTab] = useState<AgentTab>("ask");
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
 
@@ -60,6 +61,15 @@ export default function Agent() {
   useEffect(() => {
     if (petId) loadBriefAndPlan(petId);
   }, [petId, loadBriefAndPlan]);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">宠物助手</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   async function ask(q?: string) {
     const text = (q ?? question).trim();
