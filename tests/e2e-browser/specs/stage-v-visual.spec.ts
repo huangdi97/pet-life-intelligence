@@ -29,8 +29,9 @@ const PAGES: PageDef[] = [
   { key: "companion", buildUrl: () => "/companion" },
   { key: "3d-life-view", buildUrl: (id) => `/pets/${id}/life-view` },
   { key: "capture-wizard", buildUrl: (id) => `/pets/${id}/capture` },
-  // 3D verification UI lives inside the life-view page (identity verify section)
-  { key: "3d-verification", buildUrl: (id) => `/pets/${id}/life-view` },
+  // Identity verification is a dedicated Twin Review studio; keep it in the
+  // visual chain so Life View cannot accidentally stand in for review UI.
+  { key: "twin-review", buildUrl: (id) => `/pets/${id}/twin/review?version=1` },
 ];
 
 test.describe.configure({ mode: "serial" });
