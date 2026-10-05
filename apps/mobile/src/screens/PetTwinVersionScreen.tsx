@@ -56,6 +56,7 @@ export function PetTwinVersionScreen() {
 
   const statusText = (s: string) => STATUS_LABEL[s] ?? "其他状态";
   const active = versions?.find((v) => v.status === "ACTIVE");
+  const activeIsDemo = active?.metadata_json?.demo_fixture === true;
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
@@ -99,11 +100,17 @@ export function PetTwinVersionScreen() {
                   <OpenSection title="当前 3D 形象">
                     <View style={styles.activeRow}>
                       <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
-                      <Text testID="pli.twinversion.time" style={styles.activeText}>第 {active.version} 版 · 使用中 · {active.texture_version === "photo-projection-v1" ? "由照片生成" : "模板默认"}外观</Text>
+                      <Text testID="pli.twinversion.time" style={styles.activeText}>
+                        {activeIsDemo
+                          ? "示例 3D 形象 · 使用中 · 演示模板"
+                          : `第 ${active.version} 版 · 使用中 · ${active.texture_version === "photo-projection-v1" ? "由照片生成" : "模板默认"}外观`}
+                      </Text>
                     </View>
                     <View style={styles.badgeRow}>
                       <Text testID="pli.twinversion.source" style={styles.badgeText}>来源素材 · {Object.keys(active.observed_surface_manifest ?? {}).length} 项</Text>
-                      <Text testID="pli.twinversion.verify" style={styles.badgeText}>{active.owner_verified ? "已通过主人确认" : "待主人确认"}</Text>
+                      <Text testID="pli.twinversion.verify" style={styles.badgeText}>
+                        {activeIsDemo ? "示例体验 · 非真实宠物身份确认" : active.owner_verified ? "已通过主人确认" : "待主人确认"}
+                      </Text>
                     </View>
                   </OpenSection>
                 </View>
@@ -126,7 +133,7 @@ export function PetTwinVersionScreen() {
           )}
 
           <OpenSection title="版本说明" testID="pli.twinversion.info">
-            <Text style={styles.emptyText}>每个版本都记录生成时间、来源素材与确认状态；确认后才会显示，未确认版本不会覆盖已使用版本。</Text>
+            <Text style={styles.emptyText}>每个版本都记录生成时间、来源与确认状态；示例模板会明确标注，真实候选只有确认后才会成为当前形象。</Text>
           </OpenSection>
 
           <View testID="pli.twinversion.history">
