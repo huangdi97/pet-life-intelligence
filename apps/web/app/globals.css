@@ -1004,7 +1004,7 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
   filter: blur(0.4px);
 }
 .r2p-stage--3d .r2p-stage-pet--3d { bottom: 38px; }
-.r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d { bottom: 88px; }
+.r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d { bottom: 104px; }
 .r2p-stage--3d .r2p-anchor {
   background: rgba(255,253,248,0.74);
   border-color: rgba(174,145,110,0.16);
@@ -1113,7 +1113,7 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
   .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d {
     width: min(72%, 500px);
     height: 452px;
-    bottom: 88px;
+    bottom: 104px;
   }
   .r2p-stage--life .r2p-stage-now {
     max-width: 430px;
