@@ -136,7 +136,7 @@ export default function Welfare() {
               </View>
             </View>
           </View>
-        )) : <View className="life-empty-note">还没有福祉观察。</View>
+        )) : <View className="life-empty-note">还没有福祉观察。</View>}
         {evidence?.sources?.length ? (
           <View className="life-row-source">来源：{evidence.sources.map((s) => SOURCES[s] ?? "其他来源").join("、")}</View>
         ) : null}
@@ -159,7 +159,7 @@ export default function Welfare() {
               </View>
             </View>
           </View>
-        )) : <View className="life-empty-note">还没有相关日常记录。</View>
+        )) : <View className="life-empty-note">还没有相关日常记录。</View>}
       </View>
 
       <View className="open-section">
@@ -177,7 +177,7 @@ export default function Welfare() {
               </View>
             </View>
           </View>
-        )) : <View className="life-empty-note">观察积累后，会按舒适、压力恢复、活动与环境逐渐归纳。</View>
+        )) : <View className="life-empty-note">观察积累后，会按舒适、压力恢复、活动与环境逐渐归纳。</View>}
       </View>
 
       <View className="open-section">
