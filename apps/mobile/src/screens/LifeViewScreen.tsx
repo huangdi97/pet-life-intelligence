@@ -22,7 +22,7 @@ import { LivingModeSwitcher, type LivingMode } from "../components/life/LivingMo
 import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { eventTypeLabel, sourceLabel } from "./ui_labels";
 import { usePetTwin } from "../hooks/usePetTwin";
-import { POSE_META, type PoseName } from "@pli/pet-3d";
+import { poseForEvent } from "@pli/pet-3d";
 
 interface AnchorDetail {
   id: string;
@@ -39,7 +39,6 @@ export function LifeViewScreen() {
   const [today, setToday] = useState<{ events: LifeEvent[] } | null>(null);
   const [mode, setMode] = useState<LivingMode>("now");
   const viewerRef = useRef<Pet3DViewerHandle>(null);
-  const [pose, setPose] = useState<PoseName>("Idle");
   const [error, setError] = useState(false);
   const [detail, setDetail] = useState<AnchorDetail | null>(null);
 
@@ -65,6 +64,10 @@ export function LifeViewScreen() {
   }, [pet?.id]);
   const petEvents = useMemo(() => (today?.events ?? []).filter((e) => e.event_type !== "today.viewed"), [today]);
   const lastEvent = petEvents[0] ?? null;
+  // Owner UI does not expose an animation-demo toolbar. Motion follows the
+  // most recent non-health life event as a representative pose; otherwise the
+  // twin rests in Idle. This keeps Life View about the pet, not model controls.
+  const representativePose = poseForEvent(lastEvent?.event_type ?? null) ?? "Idle";
 
   const anchors = useMemo(() => {
     const rows = petEvents.map((e) => e.event_type);
@@ -140,22 +143,8 @@ export function LifeViewScreen() {
             sourceMediaCount={twin?.observedRegions.length ?? 0}
             frameTarget={0.30}
             viewerRef={viewerRef}
-            pose={pose}
+            pose={twin ? representativePose : null}
           />
-        </View>
-
-        <View testID="pli.lifeview.control.pose" style={styles.poseRow} accessibilityLabel="3D 形象动作选择">
-          {(["Idle", "Sit", "Walk", "Run", "Eat", "Drink", "Sleep"] as PoseName[]).map((p) => (
-            <Pressable
-              key={p}
-              accessibilityRole="button"
-              accessibilityState={{ selected: pose === p }}
-              onPress={() => setPose(p)}
-              style={[styles.poseChip, pose === p && styles.poseChipSel]}
-            >
-              <Text style={[styles.poseChipText, pose === p && styles.poseChipTextSel]}>{POSE_META[p].label}</Text>
-            </Pressable>
-          ))}
         </View>
 
         <View testID="pli.lifeview.control.zoom" style={styles.controlRow} accessibilityLabel="3D 视图控制">
@@ -273,20 +262,6 @@ const styles = StyleSheet.create({
   trendLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary },
   trendValue: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary },
   lookRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2 },
-  poseRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
-  poseChip: {
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.dividerSubtle,
-  },
-  poseChipSel: { backgroundColor: COLORS.brandPrimary, borderColor: COLORS.brandPrimary },
-  poseChipText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
-  poseChipTextSel: { color: COLORS.textInverse, fontWeight: "600" },
   controlBtnText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   identityRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
   identityText: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
