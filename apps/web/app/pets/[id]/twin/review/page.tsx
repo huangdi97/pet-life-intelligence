@@ -109,7 +109,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
   }
 
   async function submitReview() {
-    if (!selected || busy) return;
+    if (!selected || busy || version <= 0 || !model) return;
     setBusy(true);
     setMsg(null);
     try {
@@ -134,8 +134,8 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
   }
 
   const identity = resolvePet3DIdentity({ name: pet?.name, species: pet?.species, breed: pet?.breed });
-  const show3d = identity !== null;
   const modelDescriptor = (model?.artifact_map as Record<string, unknown>)?.twin_descriptor as import("@pli/pet-3d").TwinDescriptor | undefined;
+  const show3d = identity !== null && modelDescriptor != null;
   const modelSurface = (modelDescriptor as { surface?: { observed_regions?: string[] } } | undefined)?.surface?.observed_regions;
   const twinSourceMediaCount = modelSurface?.length ?? 0;
   // INVARIANT: pass a STABLE twin object. The spread below is intentionally
@@ -228,7 +228,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
               type="button"
               className={`btn${selected === o.id ? " primary" : ""}`}
               onClick={() => chooseReview(o.id)}
-              disabled={busy}
+              disabled={busy || !model}
               aria-pressed={selected === o.id}
               data-testid={`pli.twinreview.verify.${o.id}`}
             >
@@ -282,7 +282,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
           type="button"
           className="btn primary"
           onClick={submitReview}
-          disabled={busy || !selected || selected === "not_like"}
+          disabled={busy || !model || version <= 0 || !selected || selected === "not_like"}
           data-testid="pli.twinreview.action.activate"
         >
           {selected === "not_like" ? "需补充素材后重新生成" : busy ? "提交中…" : "确认并启用"}
