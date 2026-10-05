@@ -31,6 +31,9 @@ export function SocialScreen() {
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [profileState, setProfileState] = useState<"loading" | "ready" | "error">("loading");
+  const [friendsState, setFriendsState] = useState<"loading" | "ready" | "error">("loading");
+  const [eventsState, setEventsState] = useState<"loading" | "ready" | "error">("loading");
   const [friendPetId, setFriendPetId] = useState("");
   const [quality, setQuality] = useState("NEUTRAL");
   const [duration, setDuration] = useState("30");
@@ -45,6 +48,9 @@ export function SocialScreen() {
     if (!petId) return;
     let alive = true;
     setLoading(true);
+    setProfileState("loading");
+    setFriendsState("loading");
+    setEventsState("loading");
     Promise.allSettled([
       api.get<SocialProfile>(`/pets/${petId}/social-profile`),
       api.get<PetFriend[]>(`/pets/${petId}/friends`),
@@ -52,10 +58,25 @@ export function SocialScreen() {
       api.get<{ events: LifeEvent[] }>(`/pets/${petId}/events?limit=40${INTERACTION_EVENT_TYPES.map((w) => `&event_type=${w}`).join("")}`),
     ]).then(([p, f, ap, ev]) => {
       if (!alive) return;
-      if (p.status === "fulfilled") setProfile(p.value);
-      if (f.status === "fulfilled") setFriends(f.value);
+      if (p.status === "fulfilled") {
+        setProfile(p.value);
+        setProfileState("ready");
+      } else {
+        setProfileState("error");
+      }
+      if (f.status === "fulfilled") {
+        setFriends(f.value);
+        setFriendsState("ready");
+      } else {
+        setFriendsState("error");
+      }
       if (ap.status === "fulfilled") setAllPets(ap.value);
-      if (ev.status === "fulfilled") setEvents(ev.value.events);
+      if (ev.status === "fulfilled") {
+        setEvents(ev.value.events);
+        setEventsState("ready");
+      } else {
+        setEventsState("error");
+      }
       setLoading(false);
       setError(p.status === "rejected" && f.status === "rejected" && ev.status === "rejected");
     });
@@ -113,7 +134,11 @@ export function SocialScreen() {
         ) : (
           <>
             <OpenSection title="关系" testID="pli.social.preferences">
-              {p ? (
+              {profileState === "loading" ? (
+                <Text style={styles.emptyText}>正在读取关系档案……</Text>
+              ) : profileState === "error" ? (
+                <Text style={styles.emptyText}>关系档案暂时没有加载成功；不会把加载失败显示成“尚未形成”。</Text>
+              ) : p ? (
                 PROFILE_LABELS.map((row) => (
                   <View key={row.key} style={styles.profileRow}>
                     <Text style={styles.profileLabel}>{row.label}</Text>
@@ -130,7 +155,11 @@ export function SocialScreen() {
             </OpenSection>
 
             <OpenSection title="宠物好友" testID="pli.social.friends">
-              {friends.length === 0 ? (
+              {friendsState === "loading" ? (
+                <Text style={styles.emptyText}>正在读取宠物关系……</Text>
+              ) : friendsState === "error" ? (
+                <Text style={styles.emptyText}>宠物关系暂时没有加载成功；不会把未知关系显示成“没有好友”。</Text>
+              ) : friends.length === 0 ? (
                 <Text style={styles.emptyText}>还没有好友关系。</Text>
               ) : (
                 friends.map((f) => (
@@ -145,7 +174,11 @@ export function SocialScreen() {
             </OpenSection>
 
             <OpenSection title="最近互动" testID="pli.social.interactions">
-              {events.length === 0 ? (
+              {eventsState === "loading" ? (
+                <Text style={styles.emptyText}>正在读取最近互动……</Text>
+              ) : eventsState === "error" ? (
+                <Text style={styles.emptyText}>最近互动暂时没有加载成功；不会把加载失败显示成“没有互动”。</Text>
+              ) : events.length === 0 ? (
                 <EmptyState
                   title="还没有互动记录"
                   body="记录一起玩耍或散步，历史会从这里开始。"
