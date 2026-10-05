@@ -146,9 +146,19 @@ export function PetTwinVersionScreen() {
                       <Text style={styles.versionTitle}>第 {v.version} 版</Text>
                       <Text style={styles.status}>{statusText(v.status)}</Text>
                     </View>
-                    <Text style={styles.versionMeta}>外形 {v.geometry_version} · 外观 {v.texture_version} · 动作 {v.rig_version}</Text>
                     <Text style={styles.versionMeta}>
-                      {observed.length ? `来自照片：${observed.join("、")}` : "外观由模板默认生成（无照片）"}
+                      {v.metadata_json?.demo_fixture === true
+                        ? "示例模板 · 仅用于产品体验"
+                        : observed.length
+                          ? `来源素材区域 · ${observed.length} 项`
+                          : "来源素材 · 未观察到"}
+                    </Text>
+                    <Text style={styles.versionMeta}>
+                      {v.metadata_json?.demo_fixture === true
+                        ? "非真实宠物身份确认"
+                        : v.owner_verified
+                          ? "已通过主人确认"
+                          : "待主人确认"}
                     </Text>
                     <View testID={`pli.twinversion.history.action.${v.version}`} style={styles.rowActions}>
                       <Pressable testID={`pli.twinversion.history.${v.version}`} accessibilityRole="button" accessibilityLabel={`查看并确认第 ${v.version} 版 3D 形象`} onPress={() => navigation.navigate("TwinReview", { version: v.version })} style={styles.smallBtn}>
