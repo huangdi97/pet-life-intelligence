@@ -87,8 +87,9 @@ for (const surface of ["today", "pet", "lifeview", "twinreview"]) {
 
 const provenance = {
   captured_at: new Date().toISOString(),
-  source_head: git("rev-parse", "HEAD"),
-  source_branch: git("branch", "--show-current"),
+  source_head: process.env.PLI_SOURCE_HEAD || git("rev-parse", "HEAD"),
+  source_branch: process.env.PLI_SOURCE_BRANCH || git("branch", "--show-current"),
+  checkout_head: git("rev-parse", "HEAD"),
   base_url: baseUrl,
   primary_pet_id: petId || null,
   vision_model_used: false,
