@@ -81,7 +81,10 @@ export function PetLivingStage({
   const field = realityField ?? "warm-living";
   const identity = resolvePet3DIdentity({ name, species, breed });
   const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
-  const show3d = identity !== null && pet3d !== "failed";
+  // A bundled procedural/demo identity is allowed only in an explicitly
+  // marked demo session. Production owner surfaces need an actual persisted
+  // Twin descriptor; otherwise they fall back to the honest 2.5D/photo path.
+  const show3d = identity !== null && (twin !== null || demo) && pet3d !== "failed";
   const stageClass = [
     "r2p-stage",
     variant === "life" ? "r2p-stage--life" : variant === "pet" ? "r2p-stage--pet" : "",
