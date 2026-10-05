@@ -153,8 +153,15 @@ const zoomBounds = { min: 2.6, max: 7 };
 // parity); the procedural stage stays until then or on failure — never a SPOF.
 let petRoot: THREE.Object3D = stage.pet;
 let hdTwin: LoadedTwin | null = null;
+// If the product GLB fails, the procedural bridge remains usable but is
+// explicitly classified as fallback in the runtime manifest.
+let hdLoadFailed = false;
 loadTwinGLB(identity).then((twin) => {
-  if (!twin) return;
+  if (!twin) {
+    hdLoadFailed = Boolean(twinDescriptor);
+    post({ type: "manifest", manifest: buildManifest() });
+    return;
+  }
   scene.remove(stage.pet);
   scene.add(twin.group);
   petRoot = twin.group;
@@ -162,7 +169,10 @@ loadTwinGLB(identity).then((twin) => {
   applyFit();
   post({ type: "manifest", manifest: buildManifest() });
 }).catch(() => {
-  // PROVIDER: GLB failure keeps the procedural stage (engineering manifest).
+  // PROVIDER: GLB failure keeps the procedural stage, but never masquerades
+  // as the high-fidelity product representation.
+  hdLoadFailed = Boolean(twinDescriptor);
+  post({ type: "manifest", manifest: buildManifest() });
 });
 // §31 aspect-aware auto-framing (mirrors web): fit the projected pet box onto frameTarget of the full viewport.
 function applyFit(): void {
@@ -209,14 +219,14 @@ function buildManifest(): Record<string, unknown> {
     petId: injectedPetId ?? null,
     sourceMediaCount: twinDescriptor ? injectedSourceMediaCount : 0,
     assetVersion: twinDescriptor?.version ?? "demo-v1",
-    fallbackUsed: false,
+    fallbackUsed: hdLoadFailed,
     wireframe: false,
     meshCount,
     skinnedMeshCount,
     skeleton: !!twinDescriptor || !!hdTwin,
     animationClips: clips,
     materialMode: "pbr",
-    baseColorTexture: true,
+    baseColorTexture: hdTwin !== null,
     camera: { fov: camera.fov, distance: orbit.radius, yaw: orbit.yaw, pitch: orbit.pitch, radius: orbit.radius },
     screenBounds: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
     activeClip: activePose ?? "Idle",
