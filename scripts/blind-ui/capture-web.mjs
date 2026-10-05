@@ -309,12 +309,9 @@ async function main() {
           return !el || el.getAttribute("data-pet3d") === "ready" || el.getAttribute("data-pet3d") === "failed";
         }).catch(() => {});
       }
-      if (s.name === "twinreview") {
-        // Real interaction: click 不像 through the real event path (Playwright
-        // click, not a scripted DOM click), then read REAL DOM state.
-        await page.getByTestId("pli.twinreview.verify.not_like").click({ timeout: 5000 }).catch(() => {});
-        await page.waitForTimeout(900);
-      }
+      // Keep the canonical Twin Review screenshot neutral for human identity
+      // review. Negative-feedback truth is captured separately below so the
+      // issue controls never obscure the primary visual evidence.
       const snap = await snapshotPage(page, s.name);
       let cameras = null;
       if (s.name === "lifeview") {
@@ -357,6 +354,26 @@ async function main() {
           writeFileSync(resolve(dir, "visual.json"), JSON.stringify(visual, null, 2), "utf8");
           await page.screenshot({ path: resolve(dir, "screenshot.png"), fullPage: false });
         }
+      }
+      if (s.name === "twinreview") {
+        // Interaction truth is separate from the neutral human-review frame.
+        await page.getByTestId("pli.twinreview.verify.not_like").click({ timeout: 5000 });
+        await page.waitForTimeout(700);
+        const interaction = await page.evaluate(() => {
+          const activate = document.querySelector('[data-testid="pli.twinreview.action.activate"]');
+          const negative = document.querySelector('[data-testid="pli.twinreview.verify.not_like"]');
+          return {
+            selected: negative?.getAttribute("aria-pressed") === "true",
+            activateDisabled:
+              activate instanceof HTMLButtonElement ? activate.disabled : activate?.getAttribute("aria-disabled") === "true",
+            selectedValue: document.querySelector("[data-pli-selected]")?.getAttribute("data-pli-selected") ?? "",
+          };
+        });
+        if (!interaction.selected || !interaction.activateDisabled || interaction.selectedValue !== "not_like") {
+          throw new Error(`Twin Review negative-feedback contract failed: ${JSON.stringify(interaction)}`);
+        }
+        writeFileSync(resolve(dir, "interaction_not_like.json"), JSON.stringify(interaction, null, 2), "utf8");
+        await page.screenshot({ path: resolve(dir, "not_like.png"), fullPage: false });
       }
       writeFileSync(
         resolve(dir, "report.md"),
