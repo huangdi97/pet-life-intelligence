@@ -67,6 +67,7 @@ export function PetTwinReviewScreen() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<TwinDescriptor | null>(null);
+  const [candidateDemo, setCandidateDemo] = useState(false);
   const [sourceMediaCount, setSourceMediaCount] = useState(0);
   const [view, setView] = useState<"front" | "side" | "back">("front");
   const [resolvedVersion, setResolvedVersion] = useState(version);
@@ -96,6 +97,7 @@ export function PetTwinReviewScreen() {
         const desc = map?.twin_descriptor;
         const surface = (desc as { surface?: { observed_regions?: string[] } } | undefined)?.surface;
         setCandidate(desc ?? null);
+        setCandidateDemo(m.metadata_json?.demo_fixture === true);
         setSourceMediaCount(surface?.observed_regions?.length ?? 0);
         setMessage(null);
       })
@@ -159,7 +161,7 @@ export function PetTwinReviewScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {candidate ? (
-            <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Idle" interactive frameTarget={0.36} view={view} viewerRef={viewerRef} />
+            <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV || candidateDemo} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Idle" interactive frameTarget={0.36} view={view} viewerRef={viewerRef} />
           ) : (
             <View style={styles.emptyStage} testID="pli.twinreview.empty">
               <Ionicons name="cube-outline" size={28} color={COLORS.textTertiary} />
@@ -171,9 +173,11 @@ export function PetTwinReviewScreen() {
             这是第 {resolvedVersion || "—"} 版候选形象。请从正面、侧面和背面重点看脸、耳朵、毛色、体型与尾巴；只有你确认相似后才会启用。
           </Text>
           <Text style={styles.provenanceNote}>
-            {sourceMediaCount > 0
-              ? `已关联 ${sourceMediaCount} 处素材区域；未观察到的部分仍可能来自模板推断。`
-              : `当前外观来自演示/模板，不代表${pet?.name ?? "宠物"}的真实扫描或已验证个体外观。`}
+            {candidateDemo
+              ? `当前为示例 3D 形象，来自演示模板，不代表${pet?.name ?? "宠物"}的真实扫描或已验证个体外观。`
+              : sourceMediaCount > 0
+                ? `已关联 ${sourceMediaCount} 处素材区域；未观察到的部分仍可能来自模板推断。`
+                : "当前候选尚无可确认的素材区域；不会把模板部分描述为真实观察。"}
           </Text>
 
           <Text style={styles.sectionLabel}>观察角度</Text>
