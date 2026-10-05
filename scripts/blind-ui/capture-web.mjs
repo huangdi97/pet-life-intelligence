@@ -23,6 +23,7 @@ const root = resolve(here, "..", "..");
 const args = process.argv.slice(2);
 const baseUrl = pick(args, "--base-url", "http://localhost:3100");
 const outRoot = resolve(pick(args, "--out", resolve(root, "artifacts/blind-ui/web")));
+const requestedPetId = pick(args, "--pet-id", "");
 
 const VIEWPORT = { width: 390, height: 844 };
 
@@ -278,11 +279,17 @@ async function main() {
     devUserId = "";
   }
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
-  await page.evaluate((user) => localStorage.setItem("pli_dev_user_id", user), devUserId);
+  await page.evaluate(
+    ({ user, pet }) => {
+      localStorage.setItem("pli_dev_user_id", user);
+      if (pet) localStorage.setItem("pli_current_pet", pet);
+    },
+    { user: devUserId, pet: requestedPetId },
+  );
 
-  let petId = "";
+  let petId = requestedPetId;
   await page.goto(`${baseUrl}/pets`, { waitUntil: "networkidle" });
-  petId = await page.evaluate(() => localStorage.getItem("pli_current_pet") || "");
+  if (!petId) petId = await page.evaluate(() => localStorage.getItem("pli_current_pet") || "");
   if (!petId) {
     petId = await page.evaluate(() => {
       const rows = document.querySelectorAll('[data-testid="pet-row"]');
