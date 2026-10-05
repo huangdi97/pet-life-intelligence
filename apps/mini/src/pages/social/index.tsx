@@ -57,23 +57,41 @@ export default function Social() {
   const [duration, setDuration] = useState("30");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
-  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [profileState, setProfileState] = useState<"loading" | "ready" | "error">("loading");
+  const [friendsState, setFriendsState] = useState<"loading" | "ready" | "error">("loading");
+  const [eventsState, setEventsState] = useState<"loading" | "ready" | "error">("loading");
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
     if (!petId) return;
-    setState("loading");
+    setProfileState("loading");
+    setFriendsState("loading");
+    setEventsState("loading");
     Promise.allSettled([
       api.get<SocialProfile>(`/pets/${petId}/social-profile`),
       api.get<PetFriend[]>(`/pets/${petId}/friends`),
       api.get<Pet[]>("/pets"),
       api.get<{ events: LifeEvent[] }>(`/pets/${petId}/events?limit=30&event_type=social.interaction_logged`),
     ]).then(([p, f, ap, ev]) => {
-      if (p.status === "fulfilled") setProfile(p.value);
-      if (f.status === "fulfilled") setFriends(f.value);
+      if (p.status === "fulfilled") {
+        setProfile(p.value);
+        setProfileState("ready");
+      } else {
+        setProfileState("error");
+      }
+      if (f.status === "fulfilled") {
+        setFriends(f.value);
+        setFriendsState("ready");
+      } else {
+        setFriendsState("error");
+      }
       if (ap.status === "fulfilled") setAllPets(ap.value);
-      if (ev.status === "fulfilled") setEvents(ev.value.events);
-      setState(p.status === "rejected" && f.status === "rejected" && ev.status === "rejected" ? "error" : "ready");
+      if (ev.status === "fulfilled") {
+        setEvents(ev.value.events);
+        setEventsState("ready");
+      } else {
+        setEventsState("error");
+      }
     });
   }, [petId, version]);
 
@@ -106,12 +124,13 @@ export default function Social() {
       <View className="h1">{current ? `${current.name}的社交` : "社交"}</View>
       <View className="sub">关系与真实互动记录，不做伪精确兼容度。</View>
 
-      {state === "loading" && <View className="state">加载中……</View>}
-      {state === "error" && <View className="state state-error">暂时连接不上，稍后重试。</View>}
-
       <View className="open-section">
         <View className="section-title">关系</View>
-        {profile?.profile ? PROFILE_ROWS.map(([key, label]) => (
+        {profileState === "loading" ? (
+          <View className="state">正在读取关系档案……</View>
+        ) : profileState === "error" ? (
+          <View className="state state-error">关系档案暂时没有加载成功；不会把加载失败显示成“尚未形成”。</View>
+        ) : profile?.profile ? PROFILE_ROWS.map(([key, label]) => (
           <View className="life-row" key={key}>
             <View className="life-row-body">
               <View className="life-row-head">
@@ -125,7 +144,11 @@ export default function Social() {
 
       <View className="open-section">
         <View className="section-title">宠物好友</View>
-        {friends.length ? friends.map((f) => {
+        {friendsState === "loading" ? (
+          <View className="state">正在读取宠物关系……</View>
+        ) : friendsState === "error" ? (
+          <View className="state state-error">宠物关系暂时没有加载成功；不会把未知关系显示成“没有好友”。</View>
+        ) : friends.length ? friends.map((f) => {
           const name = allPets.find((p) => p.id === f.friend_pet_id)?.name ?? "宠物朋友";
           return (
             <View className="life-row" key={f.request_id}>
@@ -143,7 +166,11 @@ export default function Social() {
 
       <View className="open-section">
         <View className="section-title">最近互动</View>
-        {events.length ? events.slice(0, 6).map((e) => (
+        {eventsState === "loading" ? (
+          <View className="state">正在读取最近互动……</View>
+        ) : eventsState === "error" ? (
+          <View className="state state-error">最近互动暂时没有加载成功；不会把加载失败显示成“没有互动”。</View>
+        ) : events.length ? events.slice(0, 6).map((e) => (
           <View className="life-row" key={e.event_id}>
             <View className="life-dot" />
             <View className="life-row-body">
