@@ -915,7 +915,7 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
    ========================================================================== */
 .r5-life-stage-shell {
   width: 100%;
-  max-width: 430px;
+  max-width: 760px;
   margin: 0 auto;
 }
 .r2p-stage--life.r2p-stage--3d {
@@ -1100,6 +1100,26 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
   .v5-segmented {
     display: grid;
     width: 100%;
+  }
+}
+
+/* R5.6 desktop Twin Space craft: on wide screens Life View should read as
+   a spatial pet surface, not a phone-sized viewer floating in empty canvas. */
+@media (min-width: 1024px) {
+  .r2p-stage--life.r2p-stage--3d {
+    min-height: 560px;
+    border-radius: 34px;
+  }
+  .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d {
+    width: min(72%, 500px);
+    height: 452px;
+    bottom: 88px;
+  }
+  .r2p-stage--life .r2p-stage-now {
+    max-width: 430px;
+    left: 18px;
+    right: auto;
+    width: min(58%, 430px);
   }
 }
 
