@@ -179,6 +179,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
           {show3d ? (
             <Pet3DViewer
               identity={identity}
+              displayName={pet?.name}
               variant="life"
               interactive
               petId={petId}
