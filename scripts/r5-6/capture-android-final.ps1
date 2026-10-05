@@ -15,7 +15,8 @@ param(
     [string]$Adb = "adb",
     [string]$Serial = "emulator-5554",
     [string]$Package = "com.pli.mobile",
-    [string]$LoginEmail = "owner@pli.demo"
+    [string]$LoginEmail = "owner@pli.demo",
+    [string]$SecondaryPetLabel = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -50,6 +51,15 @@ function Manifest([string]$Dir) {
     } else {
         [System.IO.File]::WriteAllText($dest, "{}", [System.Text.UTF8Encoding]::new($false))
     }
+}
+
+
+function Tap-ByText([string]$Text, [string]$Dir) {
+    if ([string]::IsNullOrWhiteSpace($Text)) { throw "text target is required" }
+    UiDump $Dir
+    $tapScript = Join-Path $repo "scripts\\blind-ui\\android_tap.py"
+    & $py $tapScript (Join-Path $Dir "ui.xml") $Text "text" $Adb $Serial | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "failed to tap text target: $Text" }
 }
 
 function Nav([string]$Screen) {
@@ -107,6 +117,38 @@ foreach ($view in @("front", "side", "back")) {
     Copy-Item (Join-Path $reviewDir "3d.json") (Join-Path $reviewDir "3d_view_$view.json") -Force
     Shot "twin_$view" $reviewDir
     UiDump $reviewDir
+}
+
+
+# Secondary-pet sanity/review is mandatory when a label is supplied.
+# The script intentionally does not hard-code an owner pet name; pass the
+# current demo label from the runtime fixture, e.g. -SecondaryPetLabel <label>.
+if (-not [string]::IsNullOrWhiteSpace($SecondaryPetLabel)) {
+    $sanityDir = Join-Path $out "secondary-sanity"
+    New-Item -ItemType Directory -Force -Path $sanityDir | Out-Null
+    Nav "today"
+    Tap-ByText $SecondaryPetLabel $sanityDir
+    Start-Sleep -Seconds 8
+    UiDump $sanityDir
+    Shot "secondary_today" $sanityDir
+    Manifest $sanityDir
+
+    $secondaryReviewDir = Join-Path $out "secondary-review"
+    New-Item -ItemType Directory -Force -Path $secondaryReviewDir | Out-Null
+    Nav "twinreview"
+    UiDump $secondaryReviewDir
+    Shot "secondary_twinreview" $secondaryReviewDir
+    Manifest $secondaryReviewDir
+    foreach ($view in @("front", "side", "back")) {
+        $tapScript = Join-Path $repo "scripts\\blind-ui\\android_tap.py"
+        & $py $tapScript (Join-Path $secondaryReviewDir "ui.xml") "pli.twinreview.view.$view" "id" $Adb $Serial | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "failed secondary review view: $view" }
+        Start-Sleep -Seconds 3
+        Manifest $secondaryReviewDir
+        Copy-Item (Join-Path $secondaryReviewDir "3d.json") (Join-Path $secondaryReviewDir "3d_view_$view.json") -Force
+        Shot "secondary_$view" $secondaryReviewDir
+        UiDump $secondaryReviewDir
+    }
 }
 
 Write-Host "R5.6 Android final evidence complete: $out"
