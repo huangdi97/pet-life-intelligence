@@ -124,6 +124,7 @@ export function PetLivingStage({
       data-stage-role={role}
       data-pet-presence-role="individual-twin"
       data-material-role="pbr-warm"
+      data-anchor-count={Math.min(anchors.length, 4)}
       data-pli-interactive={(interactive || variant === "life") ? "true" : "false"}
     >
       <span className="r2p-stage-wash" aria-hidden="true" />
@@ -172,7 +173,7 @@ export function PetLivingStage({
           ) : corgi}
         </span>
       )}
-      {anchors.slice(0, 6).map((a, i) =>
+      {anchors.slice(0, 4).map((a, i) =>
         a.href ? (
           <Link
             key={a.id}
