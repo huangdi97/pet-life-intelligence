@@ -3,6 +3,7 @@ import { View, Text, Button, Input } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { PetContextGate } from "../../components/feedback/Feedback";
 import { fmtTime } from "../../utils/format";
 
 interface Dose {
@@ -28,7 +29,7 @@ interface Plan {
 }
 
 export default function Medication() {
-  const { petId } = usePets();
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [showCreate, setShowCreate] = useState(false);
@@ -48,6 +49,15 @@ export default function Medication() {
   useEffect(() => {
     if (petId) load(petId);
   }, [petId, load]);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">用药</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   async function create() {
     if (!form.medicine_name.trim() || !form.dose_text.trim() || !petId) return;
