@@ -76,6 +76,7 @@ async function capture(browser, userId, petId, folder, requiredViews) {
       manifest.ready !== true ||
       manifest.manifestOrigin !== "RUNTIME" ||
       manifest.representation !== "high-fidelity-glb-twin" ||
+      manifest.generic === true ||
       manifest.fallbackUsed === true
     ) {
       throw new Error(`non-product runtime representation for ${folder}/${name}`);
