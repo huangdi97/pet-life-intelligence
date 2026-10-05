@@ -142,6 +142,15 @@ def main() -> None:
         finally:
             temp.unlink(missing_ok=True)
 
+    # Human Twin Review frame must stay neutral; the negative path is required
+    # as separate machine evidence so it cannot obscure the identity studio.
+    review_interaction = load_json(WEB / "twinreview" / "interaction_not_like.json")
+    if review_interaction.get("selected") is not True or review_interaction.get("activateDisabled") is not True:
+        raise ValueError("Web Twin Review not_like -> activate disabled evidence is invalid")
+    if review_interaction.get("selectedValue") != "not_like":
+        raise ValueError("Web Twin Review selected value is not not_like")
+    require_image(WEB / "twinreview" / "not_like.png")
+
     for surface in ANDROID_SURFACES:
         require_image(ANDROID / surface / f"{surface}.png")
     for surface in ANDROID_TWIN_SURFACES:
