@@ -173,3 +173,15 @@ HUMAN_VISUAL_ACCEPTANCE = PENDING
 MERGE = BLOCKED_UNTIL_HUMAN_APPROVAL
 RELEASE = BLOCKED_UNTIL_HUMAN_APPROVAL
 ```
+
+## 11. Final cross-client craft pass — 2026-10-05
+
+A final source-level craft pass tightened the canonical five-tab experience without changing product scope:
+
+- **Web mobile**: Today / Timeline / Pet / Assistant / Me is now a real fixed bottom dock with safe-area spacing, warm glass treatment and reliable touch targets; primary IA no longer wraps into a second row under the top header.
+- **Android / Mobile**: the native bottom tab surface now includes the device bottom safe-area in its height and padding so gesture/home-indicator space does not compress owner controls.
+- **Android / Mobile Assistant**: Ask / Brief / Find / Plan / Explain is now a horizontally scrollable semantic tab rail instead of squeezing five equal controls on narrow devices.
+- **Mini**: native navigation and tab chrome now use the light warm surface instead of the older dark-green bar, matching the R5 Living visual authority.
+
+These are implementation/craft corrections under R5.6, not a new product-design version. Fresh runtime screenshots remain mandatory after the final commit. Human Visual Acceptance remains pending.
+
