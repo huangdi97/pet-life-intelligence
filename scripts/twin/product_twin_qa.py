@@ -73,8 +73,20 @@ def qa_pet(pet: str) -> dict:
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    if manifest != meta:
-        errors.append("GLB manifest and *_meta.json differ")
+    # *_meta.json is generation/source metadata; the shipped GLB manifest is a
+    # strict superset that additionally records runtime/packaging facts such as
+    # skin counts, animation clips, fingerprint and file size. Compare every
+    # metadata key against the manifest instead of requiring object equality.
+    meta_mismatches = {
+        key: {"meta": value, "manifest": manifest.get(key)}
+        for key, value in meta.items()
+        if manifest.get(key) != value
+    }
+    if meta_mismatches:
+        errors.append(
+            "GLB manifest disagrees with *_meta.json on shared keys: "
+            + ", ".join(sorted(meta_mismatches))
+        )
 
     required_manifest = {
         "pet_id": pet,
