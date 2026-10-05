@@ -134,10 +134,17 @@ export default function PetProfilePage() {
   const identityLine = [
     p?.birth_date ? ageText(p.birth_date) : "",
     p?.breed || p?.species,
-    p?.sex === "FEMALE" ? "雌性" : p?.sex === "MALE" ? "雄性" : p?.sex,
+    p?.sex === "FEMALE" ? "雌性" : p?.sex === "MALE" ? "雄性" : p?.sex === "UNKNOWN" ? "性别未知" : "",
   ]
     .filter(Boolean)
     .join(" · ");
+  const meaningfulTodayCount = countEntries
+    .filter(([eventType]) => eventType !== "today.viewed")
+    .reduce((sum, [, count]) => sum + count, 0);
+  const petHeadline =
+    meaningfulTodayCount > 0
+      ? `今天留下了 ${meaningfulTodayCount} 条生活记录`
+      : "今天还没有新的生活记录";
 
   return (
 
@@ -155,7 +162,7 @@ export default function PetProfilePage() {
             twin={twinDescriptor}
             frameTarget={0.24}
             anchors={anchors.length ? anchors : undefined}
-            headline={p.name}
+            headline={petHeadline}
             caption={identityLine || undefined}
             stageTestId="pli.pet.hero-stage"
             twinTestId="pli.pet.pet-twin"
