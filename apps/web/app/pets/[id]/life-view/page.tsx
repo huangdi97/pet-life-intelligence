@@ -109,6 +109,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         variant="life"
         stageRole="life"
         realityField="twin-space"
+        demo={isDemoTwin || process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1"}
         anchors={anchors}
         caption={mode === "now" ? nowLine : undefined}
         note={
