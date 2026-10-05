@@ -134,7 +134,9 @@ export function LifeViewScreen() {
             caption={mode === "now" ? nowLine : undefined}
             note={
               twin
-                ? `第 ${twin.version} 版 3D 形象 · 已通过你的确认 · 外观来自${twin.mediaProvenance === "OWNER_REPORTED" ? "你的照片" : "演示素材"}`
+                ? twin.demoFixture
+                  ? "示例 3D 形象 · 演示模板 · 不代表真实宠物扫描或已验证个体外观"
+                  : `第 ${twin.version} 版 3D 形象 · 已通过你的确认 · 外观来自${twin.mediaProvenance === "OWNER_REPORTED" ? "你的照片" : "已记录素材"}`
                 : "暂时使用简化形象，连接照片后会生成更像它的 3D 形象"
             }
             demo={DEMO_ENV}
@@ -197,7 +199,9 @@ export function LifeViewScreen() {
               <Ionicons name="cube-outline" size={18} color={COLORS.textTertiary} />
               <Text style={styles.panelText}>
                 {twin
-                  ? `这是${pet?.name ?? "宠物"}的 3D 形象，已通过你的确认。外观不会替代真实照片与记录。`
+                  ? twin.demoFixture
+                    ? "当前是示例 3D 形象，用于体验交互；它不代表真实宠物扫描或已验证个体外观。"
+                    : `这是${pet?.name ?? "宠物"}的 3D 形象，已通过你的确认。外观不会替代真实照片与记录。`
                   : "暂时使用简化形象。连接照片后，会生成更像它的 3D 形象，并经你确认后才会显示。"}
               </Text>
             </View>
