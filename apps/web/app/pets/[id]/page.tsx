@@ -145,6 +145,11 @@ export default function PetProfilePage() {
     meaningfulTodayCount > 0
       ? `今天留下了 ${meaningfulTodayCount} 条生活记录`
       : "今天还没有新的生活记录";
+  const visibleRelationships = (friends.data ?? []).filter(
+    (friend) => friend.status === "ACTIVE" || friend.status === "ACCEPTED" || friend.status === "PENDING",
+  );
+  const relationshipStatusLabel = (status: string) =>
+    status === "PENDING" ? "待确认" : status === "ACTIVE" || status === "ACCEPTED" ? "已连接" : "已记录";
 
   return (
 
@@ -207,18 +212,18 @@ export default function PetProfilePage() {
 
           <div className="v4-sec" data-testid="pli.pet.friends">
             <div className="v4-sec-head">
-              <h2 className="v4-sec-title">它的朋友</h2>
+              <h2 className="v4-sec-title">它的关系</h2>
               <Link href="/social" className="v4-sec-link">管理</Link>
             </div>
-            {friends.state === "ready" && (friends.data?.length ?? 0) > 0 ? (
-              friends.data?.map((f) => (
+            {friends.state === "ready" && visibleRelationships.length > 0 ? (
+              visibleRelationships.map((f) => (
                 <div key={f.friend_pet_id} className="v4-domain">
                   <span className="v4-domain-label">{petsList.data?.find((x) => x.id === f.friend_pet_id)?.name ?? "朋友"}</span>
-                  <span className="v4-domain-value">{f.status === "ACTIVE" ? "已连接" : f.status === "PENDING" ? "待确认" : "朋友"}</span>
+                  <span className="v4-domain-value">{relationshipStatusLabel(f.status)}</span>
                 </div>
               ))
             ) : (
-              <p className="v4-note" style={{ margin: "6px 0 0" }}>还没有添加朋友。在「社交」页添加后会出现在这里。</p>
+              <p className="v4-note" style={{ margin: "6px 0 0" }}>还没有已连接或待确认的宠物关系；在「社交」页记录真实关系与互动后会出现在这里。</p>
             )}
           </div>
         </div>
