@@ -3,10 +3,11 @@ import { View, Text, Button, Input } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api, type Task } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { PetContextGate } from "../../components/feedback/Feedback";
 import { fmtTime } from "../../utils/format";
 
 export default function Tasks() {
-  const { petId } = usePets();
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [title, setTitle] = useState("");
@@ -25,6 +26,15 @@ export default function Tasks() {
   useEffect(() => {
     if (petId) load(petId);
   }, [petId, load]);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">任务</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   async function create() {
     if (!title.trim() || !petId) return;
