@@ -149,10 +149,17 @@ def main() -> None:
             OUT / "PLI_R5_6_WEB_FINAL.png",
         )
     )
+    android_items = [(surface, android_path(surface)) for surface in ANDROID_SURFACES]
+    android_items.extend(
+        [
+            ("secondary · today", ANDROID / "secondary-sanity" / "secondary_today.png"),
+            ("secondary · review", ANDROID / "secondary-review" / "secondary_twinreview.png"),
+        ]
+    )
     generated.append(
         sheet(
-            "PLI R5.6 — Android final owner surfaces",
-            [(surface, android_path(surface)) for surface in ANDROID_SURFACES],
+            "PLI R5.6 — Android final owner surfaces + secondary-pet sanity",
+            android_items,
             OUT / "PLI_R5_6_ANDROID_FINAL.png",
         )
     )
