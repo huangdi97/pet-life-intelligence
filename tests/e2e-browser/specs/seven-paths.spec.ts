@@ -104,6 +104,10 @@ test("E2E-03 红旗 → EMERGENCY → Vet Brief（前端不降级、刷新一致
   await useCurrentPet(page, mimi.id);
 
   await page.goto("/health");
+  // R5.6 Health is read-first: recording is progressive disclosure so existing
+  // evidence remains the visual core. Open the composer, then exercise the
+  // same real create -> intake route.
+  await page.getByRole("button", { name: "记录健康事件" }).click();
   await page.getByLabel(/主诉/).fill("反复进猫砂盆但几乎尿不出来");
   await page.getByRole("button", { name: "打开健康事件" }).click();
   await expect(page).toHaveURL(urlReTail("/health/[0-9a-f-]{36}"));
