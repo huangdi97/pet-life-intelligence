@@ -120,10 +120,26 @@ def main() -> None:
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     generated = build_web() if args.platform == "web" else build_android()
+    capture_manifest_path = FINAL / args.platform / "capture-manifest.json"
+    if not capture_manifest_path.exists():
+        raise FileNotFoundError(f"required capture provenance missing: {capture_manifest_path}")
+    capture_manifest = json.loads(capture_manifest_path.read_text(encoding="utf-8-sig"))
+    if not capture_manifest.get("source_head"):
+        raise ValueError(f"capture provenance has no source_head: {capture_manifest_path}")
+    if args.platform == "web":
+        turntable_manifest = json.loads(
+            (FINAL / "turntable" / "capture-manifest.json").read_text(encoding="utf-8-sig")
+        )
+        if turntable_manifest.get("source_head") != capture_manifest.get("source_head"):
+            raise ValueError("Web surface and turntable evidence were captured from different source heads")
+
     (OUT / f"{args.platform}-manifest.json").write_text(
         json.dumps(
             {
                 "platform": args.platform,
+                "source_head": capture_manifest.get("source_head"),
+                "source_branch": capture_manifest.get("source_branch"),
+                "checkout_head": capture_manifest.get("checkout_head"),
                 "vision_model_used": False,
                 "human_visual_acceptance": "PENDING",
                 "sheets": generated,
