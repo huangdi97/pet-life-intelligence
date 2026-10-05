@@ -378,8 +378,8 @@ importers:
   packages/ui-kit:
     dependencies:
       react:
-        specifier: '>=18'
-        version: 18.2.0
+        specifier: ^19.0.0
+        version: 19.0.0
     devDependencies:
       '@types/react':
         specifier: 19.0.6
