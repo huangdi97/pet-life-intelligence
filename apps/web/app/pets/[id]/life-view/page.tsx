@@ -91,12 +91,6 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
     ? `最近一次记录：${EVENT_LABELS[lastEvent.event_type] ?? "活动"} · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
     : "今天还没有足够记录。";
 
-  const timelineRows = events.slice(0, 4).map((e) => ({
-    key: e.event_type + e.occurred_at,
-    label: EVENT_LABELS[e.event_type] ?? "记录",
-    time: new Date(e.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }),
-  }));
-
   return (
     <main className="v4-main">
       <div className="v4-topline">
@@ -158,27 +152,6 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
                   <p className="v4-sec-sub">数据积累后，这里会展示它自己的趋势。</p>
                 )}
               </div>
-            </div>
-          ) : null}
-
-          {mode === "timeline" ? (
-            <div className="v4-sec">
-              <div className="v4-sec-head">
-                <h2 className="v4-sec-title">生命轨迹</h2>
-                <Link href="/timeline" className="v4-sec-link">查看完整时间线</Link>
-              </div>
-              {timelineRows.length ? (
-                <div style={{ paddingLeft: 0 }}>
-                  {timelineRows.map((r) => (
-                    <div key={r.key} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: "1px solid var(--v4-divider)" }}>
-                      <span>{r.label}</span>
-                      <span style={{ color: "var(--v4-text-tertiary)" }}>{r.time}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="v4-sec-sub">从第一次喂食、散步或健康记录开始，生命轨迹会慢慢成形。</p>
-              )}
             </div>
           ) : null}
 
