@@ -74,8 +74,19 @@ export function TimelineScreen() {
     <SafeAreaView style={styles.page} edges={["top"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.head} testID="pli.timeline.identity">
-          <Text style={styles.title}>时间线</Text>
-          <Text style={styles.sub}>记录每一天真实发生的事情</Text>
+          <View style={styles.headText}>
+            <Text style={styles.title}>时间线</Text>
+            <Text style={styles.sub}>记录每一天真实发生的事情</Text>
+          </View>
+          <Pressable
+            testID="pli.timeline.search"
+            accessibilityRole="button"
+            accessibilityLabel="搜索宠物记录"
+            onPress={() => navigation.navigate("Search")}
+            style={styles.searchAction}
+          >
+            <Text style={styles.searchActionText}>搜索</Text>
+          </Pressable>
         </View>
 
         <ScrollView
@@ -123,7 +134,10 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.canvas },
   flex: { flex: 1 },
   content: { paddingBottom: SPACE.s8 },
-  head: { paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3 },
+  head: { paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: SPACE.s3 },
+  headText: { flex: 1 },
+  searchAction: { minHeight: 44, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen },
+  searchActionText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
   chipRow: { flexDirection: "row", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3, paddingRight: SPACE.s6 },
