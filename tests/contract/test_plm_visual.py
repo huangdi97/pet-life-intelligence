@@ -226,6 +226,25 @@ def test_model_versioning_increments(client, seeded):
     assert set(int(m["version"]) for m in before).issubset(set(versions))
 
 
+def test_seeded_demo_twins_are_explicit_templates_not_real_identity(client, seeded):
+    owner = seeded["owner_id"]
+    headers = auth(owner)
+
+    for pet_id in (seeded["coco_id"], seeded["mimi_id"]):
+        models = client.get(
+            f"/api/v1/pets/{pet_id}/visual-models",
+            headers=headers,
+        ).json()["models"]
+        demo = next((m for m in models if (m.get("metadata_json") or {}).get("demo_fixture") is True), None)
+        assert demo is not None
+        assert demo["status"] == "ACTIVE"
+        assert demo["provenance_kind"] == "GENERATED_3D"
+        assert (demo.get("metadata_json") or {}).get("media_provenance") == "DEMO_TEMPLATE"
+        assert (demo.get("metadata_json") or {}).get("real_pet_identity_validation") == "NOT_YET_OBSERVED"
+        assert (demo.get("identity_qc") or {}).get("scope") == "DEMO_FIXTURE_ONLY"
+        assert (demo.get("identity_qc") or {}).get("real_pet_identity_validation") == "NOT_YET_OBSERVED"
+
+
 def test_non_owner_cannot_create_capture(client, seeded):
     # another household member without manage capability
     other = seeded.get("family_id") or seeded["owner_id"]
