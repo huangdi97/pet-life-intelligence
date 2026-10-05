@@ -22,13 +22,13 @@ export type StageVariant = "today" | "pet" | "life" | "review";
 const HEIGHTS: Record<StageVariant, number> = { today: 384, pet: 408, life: 500, review: 512 };
 const PET_WIDTHS: Record<StageVariant, number> = { today: 268, pet: 286, life: 318, review: 326 };
 
+// R5.5: a Living Stage may expose at most four ambient life anchors.
+ // Extra facts belong below the Hero so the pet remains the dominant subject.
 const SLOTS: Array<{ top?: DimensionValue; bottom?: DimensionValue; left?: number; right?: number }> = [
   { top: "10%", left: 12 },
   { top: "10%", right: 12 },
   { bottom: "22%", left: 12 },
   { bottom: "22%", right: 12 },
-  { top: "42%", left: 12 },
-  { top: "42%", right: 12 },
 ];
 
 interface Props {
