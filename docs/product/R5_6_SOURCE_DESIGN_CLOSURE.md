@@ -9,7 +9,7 @@
 
 R5.6 does not add a new product layer. It closes the remaining source-level drift after R5.5 so Web, Android/Mobile and Mini share one owner product model:
 
-`PET → NOW → CHANGE → ATTENTION → ACTION → MEMORY`
+`PET → NOW → CHANGE → ATTENTION → ACTION → SUPPORT → MEMORY`
 
 The source design is considered closed when the owner information architecture, Living Pet visual language, truthful state semantics, cross-client capability policy and accessibility/navigation contracts are represented in product code rather than only in design documents.
 
@@ -32,6 +32,7 @@ Monitoring, Companion, Care, Health, Medication, Behavior, Training, Welfare, So
 ### Web
 
 - R5 Living Pet composition remains the reference implementation.
+- Life View uses only 此刻 / 趋势 / 外观; Timeline stays a first-level owner destination instead of being duplicated inside the Twin inspection space.
 - Primary navigation keeps native link semantics and explicit `aria-current`.
 - The Pet destination receives an explicit current-pet accessible label.
 - The More menu exposes `aria-haspopup`, `aria-expanded`, `aria-controls`, menu labeling, route-close behavior and Escape-key dismissal.
@@ -40,6 +41,8 @@ Monitoring, Companion, Care, Health, Medication, Behavior, Training, Welfare, So
 ### Android / Mobile
 
 - Five-tab canonical IA remains unchanged.
+- Today preserves PET → NOW → CHANGE → ATTENTION → ACTION → SUPPORT → MEMORY; health summary/tasks remain supporting content after the primary action.
+- Life View uses only 此刻 / 趋势 / 外观, matching the final R5.5 contract.
 - All primary tabs now expose explicit accessibility labels describing their owner job-to-be-done.
 - The tab bar hides on keyboard presentation to avoid overlapping focused input flows.
 - High-fidelity Twin runtime, Life View camera interaction and Twin Review views remain product-source behavior.
