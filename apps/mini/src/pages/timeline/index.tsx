@@ -10,7 +10,7 @@ import { api, type LifeEvent } from "../../services/api";
 import { usePets } from "../../utils/usePets";
 import { eventPayloadText, eventTypeLabel, sourceLabel } from "../../utils/labels";
 import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../../components/timeline/LifeStream";
-import { EmptyState, InlineError } from "../../components/feedback/Feedback";
+import { EmptyState, InlineError, PetContextGate } from "../../components/feedback/Feedback";
 import { PetContextHeader } from "../../components/pet_visual";
 
 const FILTERS: Array<{ label: string; types: string[] | null }> = [
@@ -62,7 +62,7 @@ function rowFromEvent(e: LifeEvent): LifeStreamRow {
 }
 
 export default function Timeline() {
-  const { pets, petId, choose } = usePets();
+  const { pets, petId, choose, state: petContextState, refresh: refreshPets } = usePets();
   const [events, setEvents] = useState<LifeEvent[] | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [filter, setFilter] = useState(0);
@@ -90,6 +90,15 @@ export default function Timeline() {
     if (petId) load(petId, filter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [petId]);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">时间线</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   // Keep internal page-view telemetry out of the owner's life memory.
   // Web and Android use the same rule: "today.viewed" is product telemetry,
