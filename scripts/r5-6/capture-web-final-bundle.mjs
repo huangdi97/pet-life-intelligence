@@ -55,7 +55,7 @@ function run(script, scriptArgs) {
 const { dogId, catId } = await resolvePets();
 console.log(`R5.6 evidence identities resolved by species: primary=${dogId} secondary=${catId}`);
 
-run("scripts/r5-6/capture-web-final.mjs", ["--base-url", baseUrl]);
+run("scripts/r5-6/capture-web-final.mjs", ["--base-url", baseUrl, "--pet-id", dogId]);
 run("scripts/r5-6/capture-web-turntables-final.mjs", [
   "--base-url",
   baseUrl,
