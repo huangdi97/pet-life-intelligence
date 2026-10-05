@@ -185,3 +185,18 @@ A final source-level craft pass tightened the canonical five-tab experience with
 
 These are implementation/craft corrections under R5.6, not a new product-design version. Fresh runtime screenshots remain mandatory after the final commit. Human Visual Acceptance remains pending.
 
+
+
+## 12. Direct GitHub final craft pass — 2026-10-05
+
+A final implementation pass was applied directly on the working branch after re-auditing the current GitHub truth:
+
+- Mobile Twin Review now uses a broad neutral light well instead of a circular halo, preserving the identity-studio contract and avoiding the old “pet in a decorative circle” visual pattern.
+- Mobile Pet World no longer claims a month-bounded health count unless the API guarantees that range; Social and friend language remains relationship-first.
+- Web Pet World no longer repeats the pet name as both identity and Hero headline; the Hero headline now describes the pet's current day.
+- Unknown sex values no longer leak raw enum-like values into owner-facing identity copy.
+- `R5_6_FINAL_DESIGN_IMPLEMENTATION_AUDIT.md` is the final source-level acceptance checklist for this scope.
+
+These are product-craft corrections under R5.6, not a new design version.
+
+The remaining gate is evidence: fresh runtime screenshots/contact sheets and explicit user Human Visual Acceptance. Approved visual baselines remain frozen until then.
