@@ -20,6 +20,9 @@ import { QUICK_TYPES, SHEET_TYPES, type TodayData } from "./_components/today/co
  *  此刻/变化/注意/动作/记忆依次展开。E2E 契约保留：快速记录 → .alert.info。 */
 export default function TodayPage() {
   const { petId } = useCurrentPet();
+  // Demo disclosure is an environment truth, not a permanent decoration.
+  // Production/real-data sessions must never be mislabeled as "示例数据".
+  const demoMode = process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1";
   const [pets, setPets] = useState<Pet[] | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const today = useAsync<TodayData>(
@@ -152,7 +155,7 @@ export default function TodayPage() {
         anchors={anchors}
         headline={headline}
         caption={recent}
-        demo={true}
+        demo={demoMode}
         frameTarget={0.25}
         twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
         sourceMediaCount={observedRegions || undefined}
