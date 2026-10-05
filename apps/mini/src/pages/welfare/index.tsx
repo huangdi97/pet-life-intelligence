@@ -58,23 +58,39 @@ export default function Welfare() {
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [kind, setKind] = useState(KINDS[0].value);
   const [busy, setBusy] = useState(false);
-  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [profileState, setProfileState] = useState<"loading" | "ready" | "error">("loading");
+  const [evidenceState, setEvidenceState] = useState<"loading" | "ready" | "error">("loading");
+  const [eventsState, setEventsState] = useState<"loading" | "ready" | "error">("loading");
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
     if (!petId) return;
-    setState("loading");
+    setProfileState("loading");
+    setEvidenceState("loading");
+    setEventsState("loading");
     Promise.allSettled([
       api.get<WelfareProfile>(`/pets/${petId}/welfare-profile`),
       api.get<WelfareEvidence>(`/pets/${petId}/welfare-evidence`),
       api.get<{ events: LifeEvent[] }>(`/pets/${petId}/events?limit=30`),
     ]).then(([p, ev, es]) => {
-      if (p.status === "fulfilled") setProfile(p.value);
-      if (ev.status === "fulfilled") setEvidence(ev.value);
+      if (p.status === "fulfilled") {
+        setProfile(p.value);
+        setProfileState("ready");
+      } else {
+        setProfileState("error");
+      }
+      if (ev.status === "fulfilled") {
+        setEvidence(ev.value);
+        setEvidenceState("ready");
+      } else {
+        setEvidenceState("error");
+      }
       if (es.status === "fulfilled") {
         setEvents(es.value.events.filter((e) => ["daily.sleep","daily.play","daily.walk","daily.weight","daily.elimination"].includes(e.event_type)));
+        setEventsState("ready");
+      } else {
+        setEventsState("error");
       }
-      setState(p.status === "rejected" && ev.status === "rejected" && es.status === "rejected" ? "error" : "ready");
     });
   }, [petId, version]);
 
@@ -104,12 +120,13 @@ export default function Welfare() {
       <View className="h1">{current ? `${current.name}的福祉` : "生活与福祉"}</View>
       <View className="sub">用观察与证据说话，不做开心指数或情绪评分。</View>
 
-      {state === "loading" && <View className="state">加载中……</View>}
-      {state === "error" && <View className="state state-error">暂时连接不上，稍后重试。</View>}
-
       <View className="open-section">
         <View className="section-title">近期观察</View>
-        {Object.keys(counts).length ? Object.entries(counts).map(([key, value]) => (
+        {evidenceState === "loading" ? (
+          <View className="state">正在读取近期观察……</View>
+        ) : evidenceState === "error" ? (
+          <View className="state state-error">近期观察暂时没有加载成功；不会把未知状态显示成“没有观察”。</View>
+        ) : Object.keys(counts).length ? Object.entries(counts).map(([key, value]) => (
           <View className="life-row" key={key}>
             <View className="life-dot" />
             <View className="life-row-body">
@@ -119,7 +136,7 @@ export default function Welfare() {
               </View>
             </View>
           </View>
-        )) : <View className="life-empty-note">还没有福利观察。</View>}
+        )) : <View className="life-empty-note">还没有福祉观察。</View>
         {evidence?.sources?.length ? (
           <View className="life-row-source">来源：{evidence.sources.map((s) => SOURCES[s] ?? "其他来源").join("、")}</View>
         ) : null}
@@ -128,7 +145,11 @@ export default function Welfare() {
 
       <View className="open-section">
         <View className="section-title">生活质量记录</View>
-        {events.length ? events.slice(0, 6).map((e) => (
+        {eventsState === "loading" ? (
+          <View className="state">正在读取相关日常记录……</View>
+        ) : eventsState === "error" ? (
+          <View className="state state-error">日常记录暂时没有加载成功；不会把加载失败显示成“没有记录”。</View>
+        ) : events.length ? events.slice(0, 6).map((e) => (
           <View className="life-row" key={e.event_id}>
             <View className="life-dot" />
             <View className="life-row-body">
@@ -138,21 +159,25 @@ export default function Welfare() {
               </View>
             </View>
           </View>
-        )) : <View className="life-empty-note">还没有相关日常记录。</View>}
+        )) : <View className="life-empty-note">还没有相关日常记录。</View>
       </View>
 
       <View className="open-section">
         <View className="section-title">各维度概况</View>
-        {Object.keys(domains).length ? Object.entries(domains).map(([key, value]) => (
+        {profileState === "loading" ? (
+          <View className="state">正在读取福祉概况……</View>
+        ) : profileState === "error" ? (
+          <View className="state state-error">福祉概况暂时没有加载成功；不会用默认结论填补未知状态。</View>
+        ) : Object.keys(domains).length ? Object.entries(domains).map(([key, value]) => (
           <View className="life-row" key={key}>
             <View className="life-row-body">
               <View className="life-row-head">
-                <Text className="life-row-type">{LABELS[key] ?? key}</Text>
+                <Text className="life-row-type">{LABELS[key] ?? "其他维度"}</Text>
                 <Text className="life-row-time">{ownerValue(value)}</Text>
               </View>
             </View>
           </View>
-        )) : <View className="life-empty-note">观察积累后，会按舒适、压力恢复、活动与环境逐渐归纳。</View>}
+        )) : <View className="life-empty-note">观察积累后，会按舒适、压力恢复、活动与环境逐渐归纳。</View>
       </View>
 
       <View className="open-section">
