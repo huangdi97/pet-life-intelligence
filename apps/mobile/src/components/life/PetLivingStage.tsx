@@ -82,7 +82,10 @@ export function PetLivingStage({
   // R4.2: the stage is a warm living reality field (today/pet/life) or a
   // neutral identity studio (review). The 3D page paints its own themed
   // surface, so the host card must never flip to a dark viewer.
-  const use3d = identity !== null && pet3d !== "failed";
+  // Bundled demo geometry is permitted only in a build/session that is
+  // explicitly marked demo. A production pet without a persisted Twin stays
+  // on the honest 2.5D/photo fallback instead of borrowing a generic template.
+  const use3d = identity !== null && (twin !== null || demo) && pet3d !== "failed";
   const reviewStudio = variant === "review";
   const stageTheme = reviewStudio ? ("review" as const) : ("living" as const);
   const height = HEIGHTS[variant];
