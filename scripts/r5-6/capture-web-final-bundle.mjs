@@ -32,11 +32,15 @@ async function resolvePets() {
   const pets = await petsResponse.json();
   if (!Array.isArray(pets)) throw new Error("pet list is not an array");
 
-  const dog = pets.find((pet) => String(pet.species ?? "").toLowerCase() === "dog");
-  const cat = pets.find((pet) => String(pet.species ?? "").toLowerCase() === "cat");
-  if (!dog?.id || !cat?.id) {
-    throw new Error("final demo evidence requires one dog and one cat in the seeded owner household");
+  const dogs = pets.filter((pet) => String(pet.species ?? "").toLowerCase() === "dog");
+  const cats = pets.filter((pet) => String(pet.species ?? "").toLowerCase() === "cat");
+  if (dogs.length !== 1 || cats.length !== 1 || !dogs[0]?.id || !cats[0]?.id) {
+    throw new Error(
+      `final demo evidence requires exactly one seeded dog and one seeded cat; got dogs=${dogs.length}, cats=${cats.length}`,
+    );
   }
+  const dog = dogs[0];
+  const cat = cats[0];
   if (dog.id === cat.id) throw new Error("primary and secondary pet ids must be distinct");
   return { dogId: dog.id, catId: cat.id };
 }
