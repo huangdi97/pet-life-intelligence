@@ -139,7 +139,7 @@ export function LifeViewScreen() {
                   : `第 ${twin.version} 版 3D 形象 · 已通过你的确认 · 外观来自${twin.mediaProvenance === "OWNER_REPORTED" ? "你的照片" : "已记录素材"}`
                 : "暂时使用简化形象，连接照片后会生成更像它的 3D 形象"
             }
-            demo={DEMO_ENV}
+            demo={DEMO_ENV || twin?.demoFixture === true}
             interactive
             twin={twin?.descriptor ?? null}
             sourceMediaCount={twin?.observedRegions.length ?? 0}
