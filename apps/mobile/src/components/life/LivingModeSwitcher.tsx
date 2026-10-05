@@ -1,6 +1,7 @@
 /**
  * LivingModeSwitcher — Life View bottom mode bar: 此刻 (default) / 趋势 /
- * 时间线 / 外观 (v3.4 §34.3, R2-P §20). Segmented, ≥48dp targets,
+ * 外观. Timeline remains a first-level owner destination rather than a
+ * duplicate nested mode. Segmented, ≥44dp targets,
  * reduced-motion safe (no animation). Modes only change panel content —
  * the pet stage stays the dominant visual.
  */
@@ -8,12 +9,11 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS, RADIUS, SPACE, TYPE } from "../../tokens";
 
-export type LivingMode = "now" | "trend" | "timeline" | "look";
+export type LivingMode = "now" | "trend" | "look";
 
 const MODES: Array<{ id: LivingMode; label: string }> = [
   { id: "now", label: "此刻" },
   { id: "trend", label: "趋势" },
-  { id: "timeline", label: "时间线" },
   { id: "look", label: "外观" },
 ];
 
