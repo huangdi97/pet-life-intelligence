@@ -168,7 +168,7 @@ export default function PetProfilePage() {
             realityField="warm-living"
             demo={demoTwin || process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1"}
             twin={twinDescriptor}
-            frameTarget={0.28}
+            frameTarget={0.34}
             anchors={anchors.length ? anchors : undefined}
             headline={petHeadline}
             caption={identityLine || undefined}
