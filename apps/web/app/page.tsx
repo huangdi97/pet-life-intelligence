@@ -142,24 +142,24 @@ export default function TodayPage() {
 
       <div data-testid="pli.today.identity">
         <PetLivingStage
-        name={current.name}
-        petId={current.id}
-        species={current.species}
-        breed={current.breed}
-        variant="today"
-        stageRole="today"
-        realityField="warm-living"
-        anchors={anchors}
-        headline={headline}
-        caption={recent}
-        demo={demoMode}
-        frameTarget={0.27}
-        twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
-        sourceMediaCount={observedRegions || undefined}
-        stageTestId="pli.today.living-stage"
-        twinTestId="pli.today.pet-twin"
-        anchorTestIdPrefix="pli.today.anchor"
-        headlineTestId="pli.today.change"
+          name={current.name}
+          petId={current.id}
+          species={current.species}
+          breed={current.breed}
+          variant="today"
+          stageRole="today"
+          realityField="warm-living"
+          anchors={anchors}
+          headline={headline}
+          caption={recent}
+          demo={demoMode}
+          frameTarget={0.27}
+          twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
+          sourceMediaCount={observedRegions || undefined}
+          stageTestId="pli.today.living-stage"
+          twinTestId="pli.today.pet-twin"
+          anchorTestIdPrefix="pli.today.anchor"
+          headlineTestId="pli.today.change"
         />
       </div>
 
