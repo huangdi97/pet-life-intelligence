@@ -11,7 +11,7 @@ import { usePets } from "../../../utils/usePets";
 import { eventPayloadText, eventTypeLabel, sourceLabel } from "../../../utils/labels";
 import { PetSpeciesTile } from "../../../components/pet_visual";
 import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../../../components/timeline/LifeStream";
-import { InlineError } from "../../../components/feedback/Feedback";
+import { InlineError, PetContextGate } from "../../../components/feedback/Feedback";
 
 function rowFromEvent(e: LifeEvent): LifeStreamRow {
   const t = new Date(e.occurred_at);
@@ -26,7 +26,7 @@ function rowFromEvent(e: LifeEvent): LifeStreamRow {
 }
 
 export default function LifeView() {
-  const { pets, petId } = usePets();
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const [providerReal, setProviderReal] = useState<boolean | null>(null);
   const [today, setToday] = useState<{ events: LifeEvent[] } | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -56,6 +56,15 @@ export default function LifeView() {
       })
       .catch(() => setVisualState("error"));
   }, []);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">生命视图</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   const petEvents = (today?.events ?? []).filter((e) => e.event_type !== "today.viewed");
   const lastEvent = petEvents[0] ?? null;
