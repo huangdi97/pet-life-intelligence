@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   hintBody: { marginTop: SPACE.s1, fontSize: TYPE.sm, lineHeight: 20, color: COLORS.textSecondary },
   results: { marginHorizontal: SPACE.s4, marginTop: SPACE.s5 },
   resultsHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  resultsTitle: { fontSize: TYPE.sectionTitle, fontWeight: "700", color: COLORS.textPrimary },
+  resultsTitle: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary },
   resultsCount: { fontSize: TYPE.meta, color: COLORS.textTertiary },
   row: { paddingVertical: SPACE.s3 },
   rowDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
