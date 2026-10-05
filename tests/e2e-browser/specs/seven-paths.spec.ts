@@ -225,11 +225,34 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
   expect([403, 404]).toContain(mimiDenied.status());
   await sitterPage.close();
 
-  // end handoff → scoped access revoked. The ACTIVE locator is action-based;
-  // after the mutation the action disappears, so re-query the ended state.
-  const endedBefore = await page.locator(".tl li").filter({ hasText: "已结束" }).count();
+  // end handoff → scoped access revoked. Use the exact newly-created
+  // handoff as the truth anchor instead of counting every historical ENDED row:
+  // CI seed/history may contain other completed handoffs with the same label.
+  const handoffRows = await (
+    await request.get(`${API}/pets/${coco.id}/handoffs`, {
+      headers: { "X-Dev-User-Id": ownerId },
+    })
+  ).json();
+  const createdHandoff = handoffRows
+    .filter((h: { caregiver_user_id: string; status: string }) => h.caregiver_user_id === sitterId && h.status === "ACTIVE")
+    .sort((a: { start_at: string }, b: { start_at: string }) => Date.parse(b.start_at) - Date.parse(a.start_at))[0];
+  expect(createdHandoff).toBeTruthy();
+
   await activeHandoff.getByRole("button", { name: "提前结束" }).click();
-  await expect(page.locator(".tl li").filter({ hasText: "已结束" })).toHaveCount(endedBefore + 1);
+
+  await expect
+    .poll(async () => {
+      const rows = await (
+        await request.get(`${API}/pets/${coco.id}/handoffs`, {
+          headers: { "X-Dev-User-Id": ownerId },
+        })
+      ).json();
+      return rows.find((h: { handoff_id: string }) => h.handoff_id === createdHandoff.handoff_id)?.status ?? null;
+    })
+    .toBe("ENDED");
+
+  await expect(page.locator(".tl li").filter({ hasText: createdHandoff.caregiver_label || "临时照护人" }).filter({ hasText: "已结束" }).first()).toBeVisible();
+
   const after = await request.get(`${API}/pets/${coco.id}`, {
     headers: { "X-Dev-User-Id": sitterId },
   });
