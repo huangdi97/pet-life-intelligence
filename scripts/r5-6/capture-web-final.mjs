@@ -76,6 +76,7 @@ for (const surface of ["today", "pet", "lifeview", "twinreview"]) {
     manifest.ready !== true ||
     manifest.manifestOrigin !== "RUNTIME" ||
     manifest.representation !== "high-fidelity-glb-twin" ||
+    manifest.generic === true ||
     manifest.fallbackUsed === true
   ) {
     throw new Error(`non-product Twin runtime on final Web surface: ${surface}`);
