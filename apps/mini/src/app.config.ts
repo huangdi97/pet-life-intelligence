@@ -22,15 +22,15 @@
   ],
   window: {
     backgroundTextStyle: "light",
-    navigationBarBackgroundColor: "#4E6349",
+    navigationBarBackgroundColor: "#FFFDF8",
     navigationBarTitleText: "宠物生活",
-    navigationBarTextStyle: "white",
+    navigationBarTextStyle: "black",
     backgroundColor: "#F6F1E9",
   },
   tabBar: {
     color: "#8A8074",
     selectedColor: "#4E6349",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFFDF8",
     borderStyle: "white",
     list: [
       { pagePath: "pages/index/index", text: "今天" },
