@@ -311,22 +311,16 @@ def main() -> None:
     android.start_link(f"pli-demo://login?email={args.login_email}")
     time.sleep(6)
 
-    # Explicitly select the primary dog through the real owner control. Fresh
-    # installs normally start there anyway, but evidence must never depend on
-    # seed ordering or stale persisted selection.
-    android.start_link("pli-demo://nav?screen=today")
-    time.sleep(4)
+    # Explicitly select the primary dog through a DEMO-ONLY deep link. This
+    # avoids depending on UIAutomator exposing React Native testID as a
+    # resource-id on every emulator image while still exercising the real
+    # PetsContext selection + persisted current-pet state.
+    android.start_link(f"pli-demo://nav?screen=today&pet={primary_id}")
+    time.sleep(6)
     primary_select_dir = out / "_primary-select"
     primary_select_dir.mkdir(parents=True, exist_ok=True)
-    xml = android.dump_xml(primary_select_dir / "ui.xml")
-    try:
-        primary_manifest = android.read_runtime_manifest(retries=2, expected_pet_id=primary_id)
-    except CaptureError:
-        # If persisted demo state points at the other pet, switch through the
-        # semantic multi-pet control by Pet ID rather than display text.
-        android.tap(xml, f"pli.multipet.switch.{primary_id}", "id")
-        time.sleep(5)
-        primary_manifest = android.read_runtime_manifest(expected_pet_id=primary_id)
+    android.dump_xml(primary_select_dir / "ui.xml")
+    primary_manifest = android.read_runtime_manifest(expected_pet_id=primary_id)
     save_manifest(primary_select_dir / "3d.json", primary_manifest)
 
     for screen, manifest in SURFACES:
@@ -335,14 +329,12 @@ def main() -> None:
     review_dir = out / "twinreview"
     capture_review_views(android, review_dir, "twin", primary_id)
 
-    # Switch through the real Today multi-pet control; no pet name is baked
-    # into source. The API resolves the current seeded cat display label.
+    # Switch to the secondary cat through the same DEMO-ONLY current-pet
+    # deep link. The pet id is resolved from the seeded API at runtime; no
+    # owner pet display name is hard-coded in production source.
     secondary_today = out / "secondary-sanity"
     secondary_today.mkdir(parents=True, exist_ok=True)
-    android.start_link("pli-demo://nav?screen=today")
-    time.sleep(4)
-    xml = android.dump_xml(secondary_today / "ui.xml")
-    android.tap(xml, f"pli.multipet.switch.{secondary_id}", "id")
+    android.start_link(f"pli-demo://nav?screen=today&pet={secondary_id}")
     time.sleep(6)
     android.dump_xml(secondary_today / "ui.xml")
     secondary_manifest = android.read_runtime_manifest(expected_pet_id=secondary_id)
