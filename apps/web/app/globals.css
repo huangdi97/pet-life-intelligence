@@ -1061,6 +1061,14 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
   color: var(--v4-text-tertiary, #7c7369);
   font-size: 12px;
 }
+.v5-review-tools {
+  margin-top: 16px;
+}
+.v5-review-tools h2 {
+  margin: 0;
+  color: var(--v4-text-primary, #2b2723);
+  font-size: 16px;
+}
 .v5-review-issues {
   display: flex;
   flex-wrap: wrap;
