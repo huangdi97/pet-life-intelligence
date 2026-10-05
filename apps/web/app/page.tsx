@@ -156,7 +156,7 @@ export default function TodayPage() {
         headline={headline}
         caption={recent}
         demo={demoMode}
-        frameTarget={0.25}
+        frameTarget={0.27}
         twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
         sourceMediaCount={observedRegions || undefined}
         stageTestId="pli.today.living-stage"
