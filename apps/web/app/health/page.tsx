@@ -34,6 +34,7 @@ export default function HealthPage() {
   const [onset, setOnset] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
 
   async function open() {
     if (!petId || !complaint.trim()) return;
@@ -45,6 +46,7 @@ export default function HealthPage() {
         onset_at: onset ? new Date(onset).toISOString() : null,
       });
       setComplaint("");
+      setComposerOpen(false);
       list.reload();
       // jump straight into the intake flow
       router.push(`/health/${r.health_event_id}`);
@@ -99,26 +101,50 @@ export default function HealthPage() {
         </p>
       </section>
 
-      <div className="v5-form-surface">
-        <h2>发现异常</h2>
-        <label className="field">
-          主诉 *（描述你观察到的异常）
-          <textarea
-            rows={2}
-            value={complaint}
-            onChange={(e) => setComplaint(e.target.value)}
-            placeholder="如：精神不太好，晚饭没吃；或：反复进猫砂盆但几乎尿不出来"
-          />
-        </label>
-        <label className="field">
-          开始时间（可选）
-          <input type="datetime-local" value={onset} onChange={(e) => setOnset(e.target.value)} />
-        </label>
-        <ErrorNote message={error} />
-        <button className="btn primary" onClick={open} disabled={busy || !petId} data-testid="pli.health.action">
-          {busy ? "创建中…" : "打开健康事件"}
-        </button>
-      </div>
+      <section className="v4-sec v5-health-compose" data-testid="pli.health.compose">
+        <div className="v4-sec-head">
+          <div>
+            <h2 className="v4-sec-title">需要记录新的变化？</h2>
+            <p className="v4-sec-sub">只有发现新的异常或需要补充事实时再记录；阅读已有证据始终优先。</p>
+          </div>
+          <button
+            type="button"
+            className="btn"
+            aria-expanded={composerOpen}
+            aria-controls="pli-health-compose-form"
+            onClick={() => {
+              setComposerOpen((value) => !value);
+              setError(null);
+            }}
+            data-testid="pli.health.compose.toggle"
+          >
+            {composerOpen ? "收起" : "记录健康事件"}
+          </button>
+        </div>
+        {composerOpen ? (
+          <div id="pli-health-compose-form" className="v5-form-surface v5-form-surface--inline">
+            <h2>记录你真实观察到的情况</h2>
+            <label className="field">
+              主诉 *（描述你观察到的异常）
+              <textarea
+                rows={2}
+                value={complaint}
+                onChange={(e) => setComplaint(e.target.value)}
+                placeholder="如：精神不太好，晚饭没吃；或：反复进猫砂盆但几乎尿不出来"
+              />
+            </label>
+            <label className="field">
+              开始时间（可选）
+              <input type="datetime-local" value={onset} onChange={(e) => setOnset(e.target.value)} />
+            </label>
+            <p className="v4-note">提交后由独立规则进行风险提示，不是 AI 诊断；紧急情况请直接联系兽医。</p>
+            <ErrorNote message={error} />
+            <button className="btn primary" onClick={open} disabled={busy || !petId || !complaint.trim()} data-testid="pli.health.action">
+              {busy ? "创建中…" : "打开健康事件"}
+            </button>
+          </div>
+        ) : null}
+      </section>
 
       <section className="v4-sec" data-testid="pli.health.records">
         <h2 className="v4-sec-title">健康记录</h2>
