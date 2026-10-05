@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   PLAY_STORE_SIGNING: EXTERNAL_BLOCKED
@@ -147,7 +147,7 @@ jobs:
           echo "REDIS_URL=redis://localhost:${{ job.services.redis.ports[6379] }}/0" >> "$GITHUB_ENV"
       - name: Install backend + frontend dependencies
         run: |
-          pip install -e "services/api[dev]" -e "packages/rules" -e "services/ai-gateway"
+          pip install -e "services/api[dev]" -e "packages/rules" -e "services/ai-gateway" pillow
           pnpm install --frozen-lockfile
       - name: Seed demo backend
         run: |
@@ -189,11 +189,15 @@ jobs:
             adb shell wm size 1080x2340
             adb shell wm density 440
             python scripts/r5-6/capture-android-final.py --serial emulator-5554 --api-url http://localhost:8800
+      - name: Build Android human-gate contact sheets
+        run: python scripts/r5-6/contact_sheets_ci.py --platform android
       - name: Upload R5.6 Android runtime evidence
         uses: actions/upload-artifact@v4
         with:
           name: r5-6-android-runtime-evidence
-          path: artifacts/r5-6-final/android/
+          path: |
+            artifacts/r5-6-final/android/
+            artifacts/r5-6-final/contact-sheets-ci/
           if-no-files-found: error
       - name: Upload emulator/API diagnostics on failure
         if: failure()
