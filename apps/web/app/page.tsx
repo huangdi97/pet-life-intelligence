@@ -140,11 +140,8 @@ export default function TodayPage() {
     <main className="v4-main">
       {flash && <div className="alert info">{flash}</div>}
 
-      <p className="v4-topline-sub" data-testid="pli.today.identity" style={{ margin: "12px 0 10px" }}>
-        {current.name} · {identity}
-      </p>
-
-      <PetLivingStage
+      <div data-testid="pli.today.identity">
+        <PetLivingStage
         name={current.name}
         petId={current.id}
         species={current.species}
@@ -163,7 +160,8 @@ export default function TodayPage() {
         twinTestId="pli.today.pet-twin"
         anchorTestIdPrefix="pli.today.anchor"
         headlineTestId="pli.today.change"
-      />
+        />
+      </div>
 
       <p className="v4-note" data-testid="pli.today.health-summary" style={{ margin: "10px 0 0" }}>
         {hints.length > 0 ? `健康：${hints.length} 项需要留意` : "当前没有规则标记的健康变化"}
