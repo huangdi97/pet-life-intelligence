@@ -3,6 +3,7 @@ import { View, Text, Button, Textarea, Input } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { PetContextGate } from "../../components/feedback/Feedback";
 import { fmtTime } from "../../utils/format";
 
 interface BehaviorRow {
@@ -14,7 +15,7 @@ interface BehaviorRow {
 }
 
 export default function Behavior() {
-  const { petId } = usePets();
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const [rows, setRows] = useState<BehaviorRow[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [showCreate, setShowCreate] = useState(false);
@@ -34,6 +35,15 @@ export default function Behavior() {
   useEffect(() => {
     if (petId) load(petId);
   }, [petId, load]);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">行为</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   async function save() {
     if (!form.behavior.trim() || !petId) return;
