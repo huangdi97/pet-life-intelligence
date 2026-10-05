@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { Text, View } from "@tarojs/components";
-import { useDidShow } from "@tarojs/taro";
+import Taro, { useDidShow } from "@tarojs/taro";
 import { api, type LifeEvent } from "../../services/api";
 import { usePets } from "../../utils/usePets";
 import { eventPayloadText, eventTypeLabel, sourceLabel } from "../../utils/labels";
@@ -106,6 +106,14 @@ export default function Timeline() {
   return (
     <View className="page">
       <PetContextHeader pet={current ?? null} title="时间线" sub="记录每一天真实发生的事情" />
+
+      <View
+        className="secondary-action"
+        data-testid="pli.mini.timeline.search"
+        onClick={() => Taro.navigateTo({ url: "/pages/search/index" })}
+      >
+        搜索已有记录
+      </View>
 
       {pets && pets.length > 1 && (
         <View className="chips">
