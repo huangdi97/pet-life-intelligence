@@ -143,7 +143,8 @@ def make_dog_painter(landmarks: dict) -> PaintFn:
         chest_center = 1.0 - _smooth(0.16, 0.38, ax)
         ruff_y = _smooth(0.54, 0.72, y) * (1.0 - _smooth(0.82, 0.98, y))
         lower_chest_y = _smooth(cy - 0.30, cy - 0.06, y) * (1.0 - _smooth(cy + 0.22, cy + 0.38, y))
-        front_surface = _smooth(0.05, 0.55, float(nrm[2]))\n        chest = chest_front * chest_center * max(ruff_y, lower_chest_y) * front_surface
+        front_surface = _smooth(0.05, 0.55, float(nrm[2]))
+        chest = chest_front * chest_center * max(ruff_y, lower_chest_y) * front_surface
         base = _blend(base, cream, min(1.0, chest * 0.96))
 
         # Belly/underside cream is low and central. It helps side/rear views
