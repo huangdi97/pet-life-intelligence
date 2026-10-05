@@ -192,6 +192,7 @@ class Android:
             manifest.get("ready") is True
             and manifest.get("manifestOrigin") == "RUNTIME"
             and manifest.get("representation") == "high-fidelity-glb-twin"
+            and manifest.get("generic") is not True
             and manifest.get("fallbackUsed") is not True
         )
 
