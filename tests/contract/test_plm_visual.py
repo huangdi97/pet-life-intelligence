@@ -199,6 +199,14 @@ def test_model_versioning_increments(client, seeded):
     owner = seeded["owner_id"]
     coco = seeded["coco_id"]
     headers = auth(owner)
+
+    # The canonical demo seed now carries an ACTIVE DEMO_TEMPLATE Twin so
+    # Web/Android runtime evidence exercises the real high-fidelity path.
+    # Versioning must therefore be tested relative to the existing history,
+    # not by assuming an empty model table.
+    before = client.get(f"/api/v1/pets/{coco}/visual-models", headers=headers).json()["models"]
+    baseline = max((int(m["version"]) for m in before), default=0)
+
     cap = client.post(
         f"/api/v1/pets/{coco}/visual-captures",
         json={"artifact_ids": [str(uuid.uuid4())]},
@@ -210,10 +218,12 @@ def test_model_versioning_increments(client, seeded):
     m2 = client.post(
         f"/api/v1/pets/{coco}/visual-models", json={"capture_id": cap["capture_id"]}, headers=headers
     ).json()
-    assert m1["version"] == 1
-    assert m2["version"] == 2
+    assert m1["version"] == baseline + 1
+    assert m2["version"] == baseline + 2
     lst = client.get(f"/api/v1/pets/{coco}/visual-models", headers=headers).json()["models"]
-    assert [m["version"] for m in lst] == [2, 1]
+    versions = [int(m["version"]) for m in lst]
+    assert versions[:2] == [baseline + 2, baseline + 1]
+    assert set(int(m["version"]) for m in before).issubset(set(versions))
 
 
 def test_non_owner_cannot_create_capture(client, seeded):
