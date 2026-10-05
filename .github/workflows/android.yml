@@ -18,6 +18,9 @@ on:
   pull_request:
     paths:
       - "apps/mobile/**"
+      - "packages/pet-3d/**"
+      - "scripts/r2p3d-r4/**"
+      - "scripts/r5-6/**"
       - ".github/workflows/android.yml"
 
 concurrency:
