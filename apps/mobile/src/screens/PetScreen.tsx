@@ -181,7 +181,7 @@ export function PetScreen() {
             variant="pet"
             headline={lastActivity ? `最近记录了${eventTypeLabel(lastActivity.event_type)}` : "今天还没有记录"}
             caption={identityLine || undefined}
-            demo={DEMO_ENV}
+            demo={DEMO_ENV || twin?.demoFixture === true}
             onPressPet={pet ? () => navigation.navigate("LifeView") : undefined}
             twin={twin?.descriptor ?? null}
             sourceMediaCount={twin?.observedRegions.length ?? 0}
