@@ -24,7 +24,9 @@ function identityLine(pet: Pet | undefined): string {
 export default function Pets() {
   const { pets, petId, choose, refresh } = usePets();
   const [events, setEvents] = useState<LifeEvent[] | null>(null);
+  const [eventsState, setEventsState] = useState<"loading" | "ready" | "error">("loading");
   const [twinModels, setTwinModels] = useState<Array<Record<string, unknown>> | null>(null);
+  const [twinState, setTwinState] = useState<"loading" | "ready" | "error">("loading");
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -43,14 +45,28 @@ export default function Pets() {
     if (!petId) return;
     setEvents(null);
     setTwinModels(null);
+    setEventsState("loading");
+    setTwinState("loading");
     api
       .get<{ events: LifeEvent[]; count: number }>(`/pets/${petId}/events`)
-      .then((r) => setEvents(r.events))
-      .catch(() => setEvents([]));
+      .then((r) => {
+        setEvents(r.events);
+        setEventsState("ready");
+      })
+      .catch(() => {
+        setEvents([]);
+        setEventsState("error");
+      });
     api
       .get<{ models: Array<Record<string, unknown>> }>(`/pets/${petId}/visual-models`)
-      .then((r) => setTwinModels(r.models))
-      .catch(() => setTwinModels([]));
+      .then((r) => {
+        setTwinModels(r.models);
+        setTwinState("ready");
+      })
+      .catch(() => {
+        setTwinModels([]);
+        setTwinState("error");
+      });
   }, [petId]);
 
   const lastOf = (prefix: string): LifeEvent | undefined => {
@@ -68,14 +84,18 @@ export default function Pets() {
   const activeTwin = twinModels?.find((model) => model.status === "ACTIVE") ?? null;
   const latestTwin = twinModels?.[0] ?? null;
   const twinVersion = activeTwin?.version ?? activeTwin?.twin_version ?? latestTwin?.version ?? latestTwin?.twin_version;
-  const twinStatusCopy = activeTwin
-    ? `已启用${twinVersion ? `第 ${String(twinVersion)} 版` : "当前 3D 形象"}`
-    : twinModels === null
+  const twinStatusCopy =
+    twinState === "loading"
       ? "正在读取 3D 形象状态…"
-      : latestTwin
-        ? "已有候选形象，等待你在支持的客户端确认"
-        : "还没有启用 3D 形象";
+      : twinState === "error"
+        ? "3D 形象状态暂时没有加载成功"
+        : activeTwin
+          ? `已启用${twinVersion ? `第 ${String(twinVersion)} 版` : "当前 3D 形象"}`
+          : latestTwin
+            ? "已有候选形象，等待你在支持的客户端确认"
+            : "还没有启用 3D 形象";
 
+  const eventDataUnavailable = eventsState === "error";
   const domains: Array<{ label: string; hint: string; url: string }> = [
     {
       label: "生活",
@@ -84,27 +104,27 @@ export default function Pets() {
     },
     {
       label: "健康",
-      hint: healthCount7d ? `最近 7 天 · ${healthCount7d} 条记录` : "还没有健康记录",
+      hint: eventDataUnavailable ? "健康记录暂时没有加载成功" : healthCount7d ? `最近 7 天 · ${healthCount7d} 条记录` : "还没有健康记录",
       url: "/pages/health/index",
     },
     {
       label: "行为",
-      hint: lastBehavior ? `最近一次：${String((lastBehavior.payload as Record<string, unknown>)?.behavior ?? eventTypeLabel(lastBehavior.event_type))}` : "还没有行为记录",
+      hint: eventDataUnavailable ? "行为记录暂时没有加载成功" : lastBehavior ? `最近一次：${String((lastBehavior.payload as Record<string, unknown>)?.behavior ?? eventTypeLabel(lastBehavior.event_type))}` : "还没有行为记录",
       url: "/pages/behavior/index",
     },
     {
       label: "训练",
-      hint: lastGoal ? `当前目标：${String((lastGoal.payload as Record<string, unknown>)?.title ?? "训练目标")}` : "还没有训练目标",
+      hint: eventDataUnavailable ? "训练记录暂时没有加载成功" : lastGoal ? `当前目标：${String((lastGoal.payload as Record<string, unknown>)?.title ?? "训练目标")}` : "还没有训练目标",
       url: "/pages/training/index",
     },
     {
       label: "福祉",
-      hint: lastWelfare ? `最近一次：${eventTypeLabel(lastWelfare.event_type)}` : "还没有福祉观察",
+      hint: eventDataUnavailable ? "福祉记录暂时没有加载成功" : lastWelfare ? `最近一次：${eventTypeLabel(lastWelfare.event_type)}` : "还没有福祉观察",
       url: "/pages/welfare/index",
     },
     {
       label: "社交",
-      hint: lastSocial ? `最近一次：${eventTypeLabel(lastSocial.event_type)}` : "还没有互动记录",
+      hint: eventDataUnavailable ? "互动记录暂时没有加载成功" : lastSocial ? `最近一次：${eventTypeLabel(lastSocial.event_type)}` : "还没有互动记录",
       url: "/pages/social/index",
     },
   ];
@@ -164,7 +184,7 @@ export default function Pets() {
           <View className="soft-panel" data-testid="pli.mini.pet.twin-status">
             <View className="section-title">
               3D 形象
-              <Text className="section-caption">{activeTwin ? "已确认" : "轻量查看"}</Text>
+              <Text className="section-caption">{twinState === "error" ? "状态未知" : activeTwin ? "已确认" : "轻量查看"}</Text>
             </View>
             <View className="life-row-detail">{twinStatusCopy}</View>
             <View className="life-row-source">
