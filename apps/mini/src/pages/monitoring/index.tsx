@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button, Text, View } from "@tarojs/components";
 import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { PetContextGate } from "../../components/feedback/Feedback";
 
 interface DeviceRow {
   device_id: string;
@@ -19,7 +20,7 @@ function deviceStateLabel(status: string): string {
 }
 
 export default function Monitoring() {
-  const { pets, petId } = usePets();
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
   const [devices, setDevices] = useState<DeviceRow[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -38,6 +39,15 @@ export default function Monitoring() {
         setState("error");
       });
   }, [petId, tick]);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">在家</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   return (
     <View className="page">
