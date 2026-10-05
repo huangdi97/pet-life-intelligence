@@ -163,15 +163,14 @@ export default function TodayPage() {
         />
       </div>
 
-      <p className="v4-note" data-testid="pli.today.health-summary" style={{ margin: "10px 0 0" }}>
-        {hints.length > 0 ? `健康：${hints.length} 项需要留意` : "当前没有规则标记的健康变化"}
-      </p>
-
       <div className="v4-grid">
         <div>
           <NowCard lastEvent={lastEvent} counts={counts} />
           <AttentionCard hints={hints} />
           <ActionCard quickTypes={QUICK_TYPES} onQuickLog={quickLog} onMore={() => setSheetOpen(true)} />
+          <p className="v4-note" data-testid="pli.today.health-summary" style={{ margin: "10px 0 0" }}>
+            {hints.length > 0 ? `健康：${hints.length} 项需要留意` : "当前没有规则标记的健康变化"}
+          </p>
         </div>
         <div className="v4-rail">
           {pets.length > 1 && (
@@ -180,14 +179,15 @@ export default function TodayPage() {
               可在顶部切换多宠
             </div>
           )}
-          <RecentCard hasPet={hasPet} today={today} />
           <TasksCard hasPet={hasPet} tasks={tasks} />
 
-          {/* AI Summary — 服务未开放时诚实显示 */}
+          {/* AI Summary — supporting utility; memory remains the final layer. */}
           <div className="v4-sec">
             <h2 className="v4-sec-title">AI 摘要</h2>
             <p className="v4-note" style={{ margin: "6px 0 0" }}>服务暂未开放。回答会基于真实记录生成，并保留不确定性说明。</p>
           </div>
+
+          <RecentCard hasPet={hasPet} today={today} />
         </div>
       </div>
 
