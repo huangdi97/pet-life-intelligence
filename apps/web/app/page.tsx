@@ -59,6 +59,8 @@ export default function TodayPage() {
     ? ((activeTwin.artifact_map as Record<string, unknown>)?.twin_descriptor as import("@pli/pet-3d").TwinDescriptor | undefined) ?? null
     : null;
   const twinVersion = Number(activeTwin?.version ?? 0) || undefined;
+  const twinMeta = (activeTwin?.metadata_json as Record<string, unknown> | undefined) ?? {};
+  const demoTwin = twinMeta.demo_fixture === true;
   const observedRegions = (
     (twinDescriptor as { surface?: { observed_regions?: string[] } } | null)?.surface?.observed_regions ?? []
   ).length;
@@ -152,7 +154,7 @@ export default function TodayPage() {
           anchors={anchors}
           headline={headline}
           caption={recent}
-          demo={demoMode}
+          demo={demoMode || demoTwin}
           frameTarget={0.27}
           twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
           sourceMediaCount={observedRegions || undefined}
