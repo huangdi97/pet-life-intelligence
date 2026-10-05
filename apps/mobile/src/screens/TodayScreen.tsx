@@ -102,7 +102,7 @@ export function TodayScreen() {
         footer: hint.rule ? "确定性对比（今日计数 vs 基线）" : undefined,
       };
     }
-    return { kind: "calm" as const, body: "目前没有需要特别关注的变化。" };
+    return { kind: "calm" as const, body: "按当前规则，暂未标记需要特别关注的变化。", footer: "仅基于已记录的数据，不等同于健康结论" };
   }, [health, hint]);
 
   const counts = today?.event_counts ?? {};
