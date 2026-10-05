@@ -46,7 +46,7 @@ export function FilterBar({
 }: FilterBarProps) {
   return (
     <div className="v4-sec" style={{ paddingTop: 6, paddingBottom: 10 }}>
-      <div className="row" style={{ marginBottom: 8, flexWrap: "wrap", gap: 6 }} role="group" aria-label="按域筛选">
+      <div className="row v5-timeline-filter-rail" role="group" aria-label="按域筛选">
         {DOMAIN_CHIPS.map((c, i) => (
           <button
             key={c.id}
@@ -61,7 +61,7 @@ export function FilterBar({
         ))}
       </div>
 
-      <div className="row" style={{ marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+      <div className="row v5-timeline-tools">
         <select
           style={{ maxWidth: 260, borderRadius: 14, border: "1px solid var(--v4-divider)" }}
           value={filter}
@@ -74,7 +74,7 @@ export function FilterBar({
             </option>
           ))}
         </select>
-        <div className="row" style={{ flexWrap: "wrap", gap: 6 }} role="group" aria-label="按来源筛选">
+        <div className="row v5-timeline-filter-rail v5-timeline-source-rail" role="group" aria-label="按来源筛选">
           {SOURCE_OPTIONS.map((o) => (
             <button
               key={o.value || "all"}
