@@ -558,6 +558,49 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
 .r2p-corgi .eye-r { width: 7px; height: 8px; left: 128px; top: 98px; background: #4A3A2C; border-radius: 4px; }
 .r2p-corgi .rim { width: 38px; height: 16px; left: 70px; top: 80px; background: rgba(255, 253, 246, 0.55); transform: rotate(-18deg); }
 
+/* Honest non-Corgi fallback. A failed/unsupported 3D runtime must never turn
+   a cat or another dog into the demo Corgi simply because that illustration
+   already exists. Keep the fallback quiet, species-level and presentation-only. */
+.r2p-species-fallback {
+  position: relative;
+  width: 220px;
+  height: 250px;
+  display: grid;
+  place-items: center;
+  color: #6D7D66;
+}
+.r2p-species-fallback-halo {
+  position: absolute;
+  width: 164px;
+  height: 164px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,253,247,0.92) 0%, rgba(245,233,214,0.48) 58%, rgba(245,233,214,0) 76%);
+}
+.r2p-species-fallback-glyph {
+  position: relative;
+  z-index: 1;
+  width: 118px;
+  height: 118px;
+  border-radius: 42%;
+  display: grid;
+  place-items: center;
+  background: rgba(255,253,248,0.64);
+  box-shadow: 0 18px 40px rgba(88,68,47,0.06);
+}
+.r2p-species-fallback--cat { color: #8A715E; }
+.r2p-species-fallback--dog { color: #687D62; }
+.r2p-species-fallback-label {
+  position: absolute;
+  z-index: 1;
+  bottom: 22px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255,253,248,0.74);
+  color: var(--v4-text-tertiary);
+  font-size: 11px;
+  font-weight: 650;
+}
+
 /* mode bar（Life View） */
 .r2p-modes {
   display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px;
