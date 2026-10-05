@@ -57,6 +57,22 @@ function Read-RuntimeManifestRaw() {
     $raw = (& $Adb -s $Serial shell cat /data/data/$Package/files/pli_manifest.json 2>$null | Out-String).Trim()
     if ($raw.StartsWith("{")) { return $raw }
 
+    # Release-build fallback: the embedded WebView mirrors the manifest into
+    # document.title. UIAutomator exposes that title in the accessibility XML
+    # even when run-as and WebView DevTools are unavailable.
+    try {
+        & $Adb -s $Serial shell uiautomator dump /sdcard/pli_manifest_title.xml | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            $xmlRaw = (& $Adb -s $Serial shell cat /sdcard/pli_manifest_title.xml 2>$null | Out-String)
+            if ($xmlRaw -match 'PLI_MANIFEST:([^"]+)') {
+                $candidate = [System.Net.WebUtility]::HtmlDecode($Matches[1])
+                if ($candidate.StartsWith("{")) { return $candidate }
+            }
+        }
+    } catch {
+        # Continue to DevTools fallback.
+    }
+
     # Release-proof fallback used by the embedded WebView: document.title
     # contains PLI_MANIFEST:<json>. If a devtools socket is available, read it.
     try {
