@@ -1,5 +1,3 @@
-import type { SVGProps } from "react";
-
 /** Web owner-icon set — Stage R.2 (V4 vector icons, 1.5px stroke, round caps).
  *  Functional icons are stroke SVGs; emoji is never used as a functional icon. */
 export type WebIconName =
@@ -215,11 +213,12 @@ export function Icon({
   size = 18,
   className,
   strokeWidth = 1.5,
-  ...rest
-}: { name: WebIconName; size?: number; className?: string; strokeWidth?: number } & Omit<
-  SVGProps<SVGSVGElement>,
-  "children" | "width" | "height"
->) {
+}: {
+  name: WebIconName;
+  size?: number;
+  className?: string;
+  strokeWidth?: number;
+}) {
   return (
     <svg
       className={className}
@@ -233,7 +232,6 @@ export function Icon({
       strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
-      {...rest}
     >
       {PATHS[name] ?? PATHS.paw}
     </svg>
