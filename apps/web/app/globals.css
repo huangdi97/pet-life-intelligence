@@ -201,11 +201,55 @@ label.field > input, label.field > select, label.field > textarea { margin-top: 
 
 /* ---- mobile bottom nav (PWA-like tab bar) ---- */
 @media (max-width: 768px) {
-  .topnav { flex-wrap: wrap; padding: 8px 10px; gap: 8px; }
-  .navlinks { order: 3; width: 100%; justify-content: space-around; border-top: 1px solid var(--pli-line-default, #e8e2d9); padding-top: 6px; }
-  .navlinks a { flex-direction: column; gap: 2px; font-size: 11px; padding: 4px 8px; min-height: 44px; }
+  /* R5.6 final craft: mobile Web now behaves like the canonical five-tab
+     product instead of wrapping the primary IA under the top header. */
+  .topnav {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .navlinks {
+    position: fixed;
+    z-index: 220;
+    left: 8px;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    width: auto;
+    min-height: 64px;
+    justify-content: space-around;
+    gap: 2px;
+    padding: 6px;
+    border: 1px solid rgba(218, 210, 199, 0.82);
+    border-radius: 22px;
+    background: rgba(255, 253, 249, 0.94);
+    box-shadow: 0 14px 38px rgba(55, 45, 35, 0.12);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+  .navlinks a {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 52px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 5px 3px;
+    border-radius: 16px;
+    font-size: 11px;
+  }
+  .navlinks a.active {
+    background: rgba(228, 234, 224, 0.9);
+  }
+  .navlinks .nav-icon { font-size: 14px; }
+  .navlinks .nav-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .navlinks .more-wrap { display: none; }
-  .page { padding: 16px 12px 110px; }
+  .page { padding: 16px 12px calc(104px + env(safe-area-inset-bottom, 0px)); }
   .petswitch .pet-label { display: none; }
   .topnav .brand { font-size: 14px; }
 }
