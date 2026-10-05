@@ -151,6 +151,11 @@ jobs:
           export DATABASE_URL="postgresql+asyncpg://pli:pli_dev_password@localhost:55432/pli"
           cd services/api && alembic upgrade head && python -m app.seed
       - name: Frontend install + build
+        env:
+          # This job runs exclusively against the seeded demo household. Mark
+          # that truth at build time so runtime evidence never presents demo
+          # pets/data as an unlabelled production session.
+          NEXT_PUBLIC_PLI_DEMO_ENV: "1"
         run: |
           pnpm install --frozen-lockfile
           pnpm --dir packages/ui-tokens build
