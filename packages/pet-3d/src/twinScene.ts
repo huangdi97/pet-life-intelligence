@@ -182,18 +182,18 @@ export function createTwinScene(descriptor: TwinDescriptor): TwinScene {
 
   // Soft contact shadow on the ground plane (matches demo stage behavior).
   const shadow = new THREE.Mesh(
-    new THREE.CircleGeometry(0.9, 48),
+    new THREE.CircleGeometry(0.72, 48),
     new THREE.MeshBasicMaterial({
       color: 0x2a2018,
       transparent: true,
-      opacity: 0.32,
+      opacity: 0.085,
       depthWrite: false,
     }),
   );
   shadow.name = "petContactShadow";
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.y = 0.02;
-  shadow.scale.set(1, 1, 1.1 + (morph.body_length - 1) * 0.5);
+  shadow.scale.set(1, 1, 1.04 + (morph.body_length - 1) * 0.28);
 
   const scene: TwinScene = {
     pet,
