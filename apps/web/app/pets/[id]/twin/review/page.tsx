@@ -48,7 +48,7 @@ interface VisualModelRow {
 
 export default function TwinReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const petId = use(params).id;
-  const [version, setVersion] = useState(1);
+  const [version, setVersion] = useState(0);
   const [pet, setPet] = useState<PetRow | null>(null);
   const [model, setModel] = useState<VisualModelRow | null>(null);
   const [modelNote, setModelNote] = useState<string | null>(null);
@@ -59,19 +59,48 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    const v = Number(new URLSearchParams(window.location.search).get("version")) || 1;
-    setVersion(v);
+    let alive = true;
+    const requestedVersion = Number(new URLSearchParams(window.location.search).get("version")) || 0;
+
+    const modelRequest = async (): Promise<VisualModelRow | null> => {
+      try {
+        let resolved = requestedVersion;
+        if (resolved <= 0) {
+          const list = await api.get<{ models: VisualModelRow[] }>(`/pets/${petId}/visual-models`);
+          resolved = Number(list.models?.[0]?.version ?? 0);
+        }
+        if (resolved <= 0) {
+          if (alive) {
+            setVersion(0);
+            setModelNote("还没有已生成的 3D 形象。");
+          }
+          return null;
+        }
+        const value = await api.get<VisualModelRow>(`/pets/${petId}/visual-models/${resolved}`);
+        if (alive) {
+          setVersion(resolved);
+          setModelNote(null);
+        }
+        return value;
+      } catch (e: unknown) {
+        if (alive) setModelNote(mapErrorMessage(e));
+        return null;
+      }
+    };
+
     Promise.all([
       api.get<PetRow>(`/pets/${petId}`).catch(() => null),
-      api.get<VisualModelRow>(`/pets/${petId}/visual-models/${v}`).catch((e: unknown) => {
-        setModelNote(mapErrorMessage(e));
-        return null;
-      }),
+      modelRequest(),
     ]).then(([p, m]) => {
+      if (!alive) return;
       setPet(p);
       setModel(m);
     });
-  }, [petId, version]);
+
+    return () => {
+      alive = false;
+    };
+  }, [petId]);
 
   function chooseReview(option: "like" | "basic_like" | "not_like") {
     setSelected(option);
@@ -131,7 +160,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
       <div className="v5-review-identity" data-testid="pli.twinreview.identity">
         <h1>{pet ? `${pet.name} · 确认 3D 形象` : "确认 3D 形象"}</h1>
         <p className="sub">
-          第 {version} 版 · 从正面、侧面和背面重点看脸、耳朵、毛色、身形与尾巴。只有你确认相似后才会启用。
+          {version > 0 ? `第 ${version} 版 · ` : ""}从正面、侧面和背面重点看脸、耳朵、毛色、身形与尾巴。只有你确认相似后才会启用。
         </p>
         <p className="v4-note" style={{ marginTop: 6 }}>
           {twinSourceMediaCount > 0
