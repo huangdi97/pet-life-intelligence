@@ -109,7 +109,15 @@ export function MonitoringScreen() {
         )}
 
         <Text testID="pli.monitoring.last" style={styles.lastSync}>
-          {state === "CONNECTED" || state === "NO_DEVICE" ? "状态为最近一次同步结果" : "还没有缓存内容"}
+          {state === "CONNECTED"
+            ? "设备状态来自最近一次同步结果"
+            : state === "OFFLINE"
+              ? "设备离线状态来自最近一次同步结果"
+              : state === "NO_DEVICE"
+                ? "尚未发现已连接设备；不会推断当前在线状态"
+                : state === "ERROR"
+                  ? "当前没有可确认的设备状态"
+                  : "正在确认最近一次设备状态"}
         </Text>
 
         <Pressable
