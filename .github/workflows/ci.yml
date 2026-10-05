@@ -92,6 +92,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: ui-tokens build
         run: pnpm --dir packages/ui-tokens build
+      - name: ui-kit typecheck
+        run: pnpm --dir packages/ui-kit typecheck
       - name: pet-3d build
         run: pnpm --dir packages/pet-3d build
       - name: Mobile 3D page build
@@ -222,6 +224,16 @@ jobs:
             artifacts/r5-6-final/turntable/
             artifacts/r5-6-final/contact-sheets-ci/
           if-no-files-found: error
+      - name: Upload R5.6 Web evidence diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r5-6-web-runtime-diagnostics
+          path: |
+            artifacts/r5-6-final/web/
+            artifacts/r5-6-final/turntable/
+            artifacts/r5-6-final/contact-sheets-ci/
+          if-no-files-found: warn
       - name: Upload expected visual baseline drift evidence
         if: ${{ github.event_name == 'pull_request' && github.head_ref == 'feat/r2p3d-r3-render-truth-ui-closure' && inputs.update-visual-baseline != true }}
         uses: actions/upload-artifact@v4
