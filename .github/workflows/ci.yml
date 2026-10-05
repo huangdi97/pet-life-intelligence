@@ -271,3 +271,5 @@ jobs:
         run: pytest tests/blind_ui --confcutdir tests/blind_ui -q
       - name: Owner content purity (source scan)
         run: python -c "from pathlib import Path; import sys; sys.path.insert(0,'scripts/blind-ui'); from anti_patterns import scan_hardcoded_pet_names, scan_text_terms; hits=scan_hardcoded_pet_names(Path('.')); print('hardcoded pet names (non-tool, non-seed):', hits); assert hits==[], 'hardcoded pet names must be 0 in production sources'"
+      - name: Current product Twin structural QA (no vision model)
+        run: python scripts/twin/product_twin_qa.py
