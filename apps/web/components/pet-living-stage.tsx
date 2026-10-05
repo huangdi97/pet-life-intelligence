@@ -90,8 +90,9 @@ export function PetLivingStage({
     .filter(Boolean)
     .join(" ");
 
-  const corgi = (
-    <div className="r2p-corgi" role="img" aria-label={`${name}的 2.5D 形象：奶油色柯基，额头白色花纹，竖立圆耳`}>
+  const isCorgiLike = species === "dog" && /corgi|柯基/i.test(breed ?? "");
+  const fallbackVisual = isCorgiLike ? (
+    <div className="r2p-corgi" role="img" aria-label={`${name}的 2.5D 柯基形象：奶油色、额头白色花纹、竖立圆耳`}>
       <span className="part shadow" aria-hidden="true" />
       <span className="part ear-l" aria-hidden="true" />
       <span className="part ear-r" aria-hidden="true" />
@@ -108,6 +109,20 @@ export function PetLivingStage({
       <span className="part eye-l" aria-hidden="true" />
       <span className="part eye-r" aria-hidden="true" />
       <span className="part rim" aria-hidden="true" />
+    </div>
+  ) : (
+    <div
+      className={`r2p-species-fallback r2p-species-fallback--${species === "cat" ? "cat" : species === "dog" ? "dog" : "pet"}`}
+      role="img"
+      aria-label={`${name}的轻量${species === "cat" ? "猫" : species === "dog" ? "犬" : "宠物"}形象；高保真 3D 当前不可用`}
+    >
+      <span className="r2p-species-fallback-halo" aria-hidden="true" />
+      <span className="r2p-species-fallback-glyph" aria-hidden="true">
+        <Icon name="paw" size={76} strokeWidth={1.15} />
+      </span>
+      <span className="r2p-species-fallback-label">
+        {species === "cat" ? "猫" : species === "dog" ? "犬" : "宠物"}
+      </span>
     </div>
   );
 
@@ -149,7 +164,7 @@ export function PetLivingStage({
               realityField={field}
               onStatus={setPet3d}
             />
-          ) : corgi}
+          ) : fallbackVisual}
         </Link>
       ) : (
         <span
@@ -170,7 +185,7 @@ export function PetLivingStage({
               realityField={field}
               onStatus={setPet3d}
             />
-          ) : corgi}
+          ) : fallbackVisual}
         </span>
       )}
       {anchors.slice(0, 4).map((a, i) =>
