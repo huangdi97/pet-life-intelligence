@@ -81,6 +81,8 @@ def require_product_manifest(path: Path, *, expected_pet_id: str | None = None) 
         raise ValueError(f"manifest is not runtime-origin: {path}")
     if manifest.get("representation") != "high-fidelity-glb-twin":
         raise ValueError(f"manifest is not high-fidelity GLB: {path}")
+    if manifest.get("generic") is True:
+        raise ValueError(f"manifest is generic rather than an individual/demo Twin: {path}")
     if manifest.get("fallbackUsed") is True:
         raise ValueError(f"fallback was used on required product evidence: {path}")
     if expected_pet_id and manifest.get("petId") != expected_pet_id:
