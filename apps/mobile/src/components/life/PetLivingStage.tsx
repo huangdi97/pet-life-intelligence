@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   pressPet: { position: "absolute", left: 0, right: 0, bottom: 30, alignItems: "center" },
   petSlot: { position: "absolute", left: 0, right: 0, bottom: 30, alignItems: "center" },
-  petSlotLife: { bottom: 74 },
+  petSlotLife: { bottom: 92 },
   slot: { position: "absolute" },
   head: {
     position: "absolute",
