@@ -15,8 +15,10 @@ export interface ActiveTwin {
   descriptor: TwinDescriptor;
   coverageRatio: number;
   observedRegions: string[];
-  /** "DEMO_SYNTHETIC" | "OWNER_REPORTED" | "NOT_YET_OBSERVED" */
+  /** "DEMO_TEMPLATE" | "DEMO_SYNTHETIC" | "OWNER_REPORTED" | "NOT_YET_OBSERVED" */
   mediaProvenance: string;
+  /** Bundled product-demo Twin, never a real-pet identity claim. */
+  demoFixture: boolean;
   activatedAt: string | null;
 }
 
@@ -45,14 +47,19 @@ export function usePetTwin(petId: string | null): {
         const artifactMap = (active.artifact_map ?? {}) as {
           twin_descriptor?: TwinDescriptor;
         };
-        const opts = (active.metadata_json ?? {}) as { opts?: { media_provenance?: string } };
+        const meta = (active.metadata_json ?? {}) as {
+          demo_fixture?: boolean;
+          media_provenance?: string;
+          opts?: { media_provenance?: string };
+        };
         const surface = (artifactMap.twin_descriptor as { surface?: { coverage_ratio?: number; observed_regions?: string[] } } | undefined)?.surface;
         setTwin({
           version: Number(active.version ?? 0),
           descriptor: artifactMap.twin_descriptor ?? { family: "standard-dog" },
           coverageRatio: surface?.coverage_ratio ?? 0,
           observedRegions: surface?.observed_regions ?? [],
-          mediaProvenance: opts.opts?.media_provenance ?? "NOT_YET_OBSERVED",
+          mediaProvenance: meta.media_provenance ?? meta.opts?.media_provenance ?? "NOT_YET_OBSERVED",
+          demoFixture: meta.demo_fixture === true,
           activatedAt: (active.activated_at as string | null) ?? null,
         });
       })
