@@ -2,7 +2,7 @@
 // Usage:
 //   node scripts/r5-6/capture-web-turntables-final.mjs //     --primary-pet-id <uuid> --secondary-pet-id <uuid> [--base-url http://localhost:3100]
 import { chromium } from "@playwright/test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -22,6 +22,25 @@ if (!primaryPetId || !secondaryPetId) {
 }
 
 const outRoot = resolve(root, "artifacts/r5-6-final/turntable");
+function sourceIdentity() {
+  if (process.env.PLI_SOURCE_HEAD) {
+    return {
+      head: process.env.PLI_SOURCE_HEAD,
+      branch: process.env.PLI_SOURCE_BRANCH || "",
+    };
+  }
+  const eventPath = process.env.GITHUB_EVENT_PATH;
+  if (eventPath && existsSync(eventPath)) {
+    try {
+      const event = JSON.parse(readFileSync(eventPath, "utf8"));
+      const head = event?.pull_request?.head?.sha;
+      const branch = event?.pull_request?.head?.ref;
+      if (head) return { head: String(head), branch: String(branch || "") };
+    } catch {}
+  }
+  return { head: git("rev-parse", "HEAD"), branch: git("branch", "--show-current") };
+}
+
 const git = (...gitArgs) => {
   const r = spawnSync("git", gitArgs, { cwd: root, encoding: "utf8" });
   if (r.status !== 0) throw new Error(`git ${gitArgs.join(" ")} failed: ${r.stderr || r.stdout}`);
@@ -105,13 +124,14 @@ try {
 } finally {
   await browser.close();
 }
+const source = sourceIdentity();
 writeFileSync(
   resolve(outRoot, "capture-manifest.json"),
   JSON.stringify(
     {
       captured_at: new Date().toISOString(),
-      source_head: process.env.PLI_SOURCE_HEAD || git("rev-parse", "HEAD"),
-      source_branch: process.env.PLI_SOURCE_BRANCH || git("branch", "--show-current"),
+      source_head: source.head,
+      source_branch: source.branch,
       checkout_head: git("rev-parse", "HEAD"),
       base_url: baseUrl,
       vision_model_used: false,
