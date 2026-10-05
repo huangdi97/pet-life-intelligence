@@ -1395,19 +1395,103 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
   }
 }
 
-/* R5.6 Timeline density: filters are tools around the life stream, never a
-   multi-row dashboard of equal-weight chips. */
+/* R5.6 Timeline final craft — the filter surface reads in three clear layers:
+   life domain, fast find tools, then precision source/type filters. */
+.v5-timeline-filter-shell {
+  padding-top: 10px;
+  padding-bottom: 12px;
+}
+.v5-timeline-filter-group,
+.v5-timeline-source-block {
+  display: grid;
+  gap: 6px;
+}
+.v5-timeline-filter-label,
+.v5-timeline-field > span {
+  color: var(--v4-text-tertiary, #7c7369);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
 .v5-timeline-filter-rail {
   gap: 6px;
-  margin-bottom: 8px;
+  margin: 0;
   flex-wrap: wrap;
 }
-.v5-timeline-tools {
+.v5-timeline-filter-rail .v4-chip {
+  min-height: 36px;
+  padding: 7px 13px;
+  cursor: pointer;
+}
+.v5-timeline-primary-tools {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.6fr) minmax(150px, 0.9fr) auto auto auto;
   gap: 8px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
+  align-items: end;
+  margin-top: 12px;
 }
+.v5-timeline-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.v5-timeline-field input,
+.v5-timeline-field select {
+  min-height: 42px;
+  border-radius: 14px;
+  border: 1px solid var(--v4-divider);
+  background: rgba(255,255,255,0.78);
+}
+.v5-media-toggle {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid rgba(222,212,198,0.76);
+  border-radius: 14px;
+  background: rgba(255,253,249,0.78);
+  color: var(--v4-text-secondary, #5c554c);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.v5-media-toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--v4-brand-primary, #4e6349);
+}
+.v5-media-toggle--active {
+  border-color: rgba(78,99,73,0.26);
+  background: rgba(228,234,224,0.82);
+  color: var(--v4-brand-primary, #4e6349);
+}
+.v5-timeline-utility-btn {
+  min-height: 42px;
+  padding: 8px 12px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.v5-timeline-precision {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: end;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(226,218,206,0.56);
+}
+.v5-timeline-source-rail {
+  margin-bottom: 0;
+}
+
 @media (max-width: 768px) {
+  .v5-timeline-filter-shell {
+    margin-top: 6px;
+    padding: 10px 0 12px;
+  }
   .v5-timeline-filter-rail {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -1420,21 +1504,33 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
   .v5-timeline-filter-rail::-webkit-scrollbar { display: none; }
   .v5-timeline-filter-rail .v4-chip {
     flex: 0 0 auto;
-    min-height: 44px !important;
+    min-height: 44px;
     padding-inline: 14px;
   }
-  .v5-timeline-tools {
+  .v5-timeline-primary-tools {
+    grid-template-columns: minmax(0, 1fr) minmax(138px, 0.82fr);
+    gap: 8px;
     align-items: stretch;
   }
-  .v5-timeline-source-rail {
-    flex: 1 1 100%;
-    order: 5;
-    margin-bottom: 0;
+  .v5-timeline-search {
+    grid-column: 1 / -1;
   }
-  .v5-timeline-tools > select,
-  .v5-timeline-tools > input[type="text"],
-  .v5-timeline-tools > input[type="date"] {
+  .v5-timeline-field input,
+  .v5-timeline-field select,
+  .v5-media-toggle,
+  .v5-timeline-utility-btn {
     min-height: 44px;
   }
+  .v5-media-toggle,
+  .v5-timeline-utility-btn {
+    width: 100%;
+  }
+  .v5-timeline-precision {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .v5-timeline-source-rail {
+    margin-right: -12px;
+  }
 }
-
