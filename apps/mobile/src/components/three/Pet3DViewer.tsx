@@ -35,6 +35,8 @@ export interface Pet3DViewerHandle {
 
 interface Props {
   identity: Pet3DIdentity;
+  /** Owner-visible pet name; demo asset labels are never pet identity. */
+  displayName?: string;
   /** Individual twin descriptor from the backend pipeline (family/morph/texture). */
   twin?: TwinDescriptor | null;
   /** Active motion clip name (persisted across remounts). */
@@ -55,7 +57,7 @@ interface Props {
   onStatus?: (status: Pet3DStatus) => void;
   onOrientation?: (yaw: number) => void;
 }
-export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DViewer({ identity, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, frameTarget = 0, view = "front", stageTheme = "living", onStatus, onOrientation }, ref) {
+export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DViewer({ identity, displayName, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, frameTarget = 0, view = "front", stageTheme = "living", onStatus, onOrientation }, ref) {
   const [status, setStatus] = useState<Pet3DStatus>("boot");
   const webRef = useRef<WebView>(null);
   // Imperative camera controls drive the embedded page's REAL handlers
@@ -156,9 +158,10 @@ export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DVi
   } true;`;
 
   const meta = PET_3D_ASSETS[identity];
+  const ownerName = displayName?.trim() || "宠物";
   const label = twin
-    ? `${meta.name}的 3D 形象（由照片/模板生成）。`
-    : `${meta.name}的 3D 形象（演示）。${meta.description}`;
+    ? `${ownerName}的 3D 形象（由照片/模板生成）。`
+    : `${ownerName}的 3D 形象（演示）。${meta.description}`;
 
   return (
     <View
