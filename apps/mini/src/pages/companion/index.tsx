@@ -33,23 +33,31 @@ export default function Companion() {
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
   const [devices, setDevices] = useState<DeviceRow[]>([]);
   const [events, setEvents] = useState<LifeEvent[]>([]);
-  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [deviceState, setDeviceState] = useState<"loading" | "ready" | "error">("loading");
+  const [eventsState, setEventsState] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     if (!petId) return;
-    setState("loading");
+    setDeviceState("loading");
+    setEventsState("loading");
     Promise.allSettled([
       api.get<DeviceRow[]>(`/pets/${petId}/devices`),
       api.get<{ events: LifeEvent[] }>(`/pets/${petId}/events?limit=5`),
     ]).then(([d, e]) => {
-      if (d.status === "fulfilled") setDevices(d.value);
-      else setDevices([]);
+      if (d.status === "fulfilled") {
+        setDevices(d.value);
+        setDeviceState("ready");
+      } else {
+        setDevices([]);
+        setDeviceState("error");
+      }
       if (e.status === "fulfilled") {
         setEvents(e.value.events.filter((row) => row.event_type !== "today.viewed").slice(0, 4));
+        setEventsState("ready");
       } else {
         setEvents([]);
+        setEventsState("error");
       }
-      setState(d.status === "rejected" && e.status === "rejected" ? "error" : "ready");
     });
   }, [petId]);
 
@@ -87,8 +95,10 @@ export default function Companion() {
           设备
           <Text className="section-caption" onClick={() => Taro.navigateTo({ url: "/pages/monitoring/index" })}>管理设备</Text>
         </View>
-        {state === "loading" ? (
+        {deviceState === "loading" ? (
           <View className="state">正在读取设备状态……</View>
+        ) : deviceState === "error" ? (
+          <View className="state state-error">设备状态暂时没有加载成功；不会把未知状态显示成未连接。</View>
         ) : devices.length === 0 ? (
           <View className="empty-state">
             <View className="empty-state-title">尚未连接设备</View>
@@ -113,7 +123,11 @@ export default function Companion() {
           最近发生
           <Text className="section-caption" onClick={() => Taro.switchTab({ url: "/pages/timeline/index" })}>完整时间线</Text>
         </View>
-        {events.length ? events.map((event) => (
+        {eventsState === "loading" ? (
+          <View className="state">正在读取最近记录……</View>
+        ) : eventsState === "error" ? (
+          <View className="state state-error">最近记录暂时没有加载成功；不会把加载失败显示成“没有活动”。</View>
+        ) : events.length ? events.map((event) => (
           <View className="life-row" key={event.event_id}>
             <View className="life-dot" />
             <View className="life-row-body">
@@ -127,10 +141,6 @@ export default function Companion() {
           <View className="life-empty-note">还没有可展示的最近活动。继续记录日常，陪伴模式会逐渐获得真实上下文。</View>
         )}
       </View>
-
-      {state === "error" ? (
-        <View className="life-row-source">暂时连接不上；不会用模拟设备状态代替真实结果。</View>
-      ) : null}
 
       <View className="muted" style={{ textAlign: "center", marginTop: 24 }}>
         陪伴模式不用于医疗判断；当前小程序不会伪装成实时画面，互动节奏始终由你控制。
