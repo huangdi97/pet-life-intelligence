@@ -112,13 +112,6 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         demo={isDemoTwin || process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1"}
         anchors={anchors}
         caption={mode === "now" ? nowLine : undefined}
-        note={
-          twinDescriptor
-            ? isDemoTwin
-              ? "示例 3D 形象 · 演示模板 · 不代表真实宠物扫描或已验证个体外观"
-              : `第 ${twinVersion ?? 1} 版 3D 形象 · 已通过你的确认`
-            : "暂时使用简化形象，连接照片后会生成更像它的 3D 形象"
-        }
         frameTarget={0.39}
         twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
         sourceMediaCount={observedRegions || undefined}
