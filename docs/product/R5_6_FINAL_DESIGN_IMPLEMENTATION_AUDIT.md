@@ -210,3 +210,15 @@ A final Pet-first source pass was applied after this audit:
 
 These are final source-craft corrections under R5.6. They invalidate any older “final” screenshots; fresh runtime evidence must be captured from the new branch HEAD before Human Visual Acceptance.
 
+
+
+## 2026-10-05 post-bake runtime gate
+
+The native-Corgi demo asset was re-baked after direct inspection of fresh Web runtime evidence. The pass deliberately changed only presentation/template identity details (coat readability and Living Field composition) and does **not** change the product truth boundary:
+
+- `REAL_PET_IDENTITY_VALIDATION = NOT_YET_OBSERVED`;
+- `NO_VISION_MODEL_USED = TRUE`;
+- `HUMAN_VISUAL_ACCEPTANCE = PENDING`;
+- approved visual baselines remain frozen until explicit owner review.
+
+Fresh CI/Web/Android runtime evidence after the baked-asset commit is required before any visual PASS claim.
