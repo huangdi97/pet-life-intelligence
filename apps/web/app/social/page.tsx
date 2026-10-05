@@ -86,16 +86,6 @@ export default function SocialPage() {
         <InteractionsPanel events={events} friendName={friendName} />
       </div>
 
-      {/* 社交偏好（来自真实档案，不猜测） */}
-      <section className="v4-sec" data-testid="pli.social.preferences">
-        <h2 className="v4-sec-title">社交偏好</h2>
-        <p className="muted" style={{ margin: 0 }}>
-          {profile.data?.profile
-            ? "与犬/猫/孩子/陌生人的相处情况记录在档案中，这里会汇总它自己的偏好。"
-            : "还没有偏好记录。在记录互动后，这里会呈现它自己的相处倾向。"}
-        </p>
-      </section>
-
       {/* 记录互动 */}
       <div data-testid="pli.social.action">
         <RecordInteractionPanel
