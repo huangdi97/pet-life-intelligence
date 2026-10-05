@@ -16,7 +16,8 @@ param(
     [string]$Serial = "emulator-5554",
     [string]$Package = "com.pli.mobile",
     [string]$LoginEmail = "owner@pli.demo",
-    [string]$SecondaryPetLabel = ""
+    [string]$SecondaryPetLabel = "",
+    [string]$Cdp = "http://localhost:9222/json"
 )
 
 $ErrorActionPreference = "Stop"
@@ -43,14 +44,52 @@ function UiDump([string]$Dir) {
     Invoke-Adb @("pull", "/sdcard/pli_final_ui.xml", (Join-Path $Dir "ui.xml"))
 }
 
+function Read-RuntimeManifestRaw() {
+    # Preferred channel for demo/debug APKs: app-private file via run-as.
+    $raw = (& $Adb -s $Serial shell run-as $Package cat files/pli_manifest.json 2>$null | Out-String).Trim()
+    if ($raw.StartsWith("{")) { return $raw }
+
+    # Compatibility fallback for emulator images that expose /data/data.
+    $raw = (& $Adb -s $Serial shell cat /data/data/$Package/files/pli_manifest.json 2>$null | Out-String).Trim()
+    if ($raw.StartsWith("{")) { return $raw }
+
+    # Release-proof fallback used by the embedded WebView: document.title
+    # contains PLI_MANIFEST:<json>. If a devtools socket is available, read it.
+    try {
+        $targets = Invoke-RestMethod -Uri $Cdp -TimeoutSec 4
+        foreach ($target in @($targets)) {
+            if ($target.title -like "PLI_MANIFEST:*") {
+                return [System.Net.WebUtility]::HtmlDecode($target.title.Substring(13))
+            }
+        }
+    } catch {
+        # Retry loop in Manifest() handles transient absence.
+    }
+    return ""
+}
+
 function Manifest([string]$Dir) {
     $dest = Join-Path $Dir "3d.json"
-    $raw = (& $Adb -s $Serial shell cat /data/data/$Package/files/pli_manifest.json 2>$null | Out-String).Trim()
-    if ($raw.StartsWith("{")) {
-        [System.IO.File]::WriteAllText($dest, $raw, [System.Text.UTF8Encoding]::new($false))
-    } else {
-        [System.IO.File]::WriteAllText($dest, "{}", [System.Text.UTF8Encoding]::new($false))
+    for ($attempt = 0; $attempt -lt 8; $attempt++) {
+        $raw = Read-RuntimeManifestRaw
+        if ($raw.StartsWith("{")) {
+            try {
+                $m = $raw | ConvertFrom-Json
+                $isRuntime = $m.manifestOrigin -eq "RUNTIME"
+                $isReady = $m.ready -eq $true
+                $isProductTwin = $m.representation -eq "high-fidelity-glb-twin"
+                $isFallback = $m.fallbackUsed -eq $true
+                if ($isRuntime -and $isReady -and $isProductTwin -and -not $isFallback) {
+                    [System.IO.File]::WriteAllText($dest, $raw, [System.Text.UTF8Encoding]::new($false))
+                    return
+                }
+            } catch {
+                # Invalid/transient JSON; retry.
+            }
+        }
+        Start-Sleep -Seconds 2
     }
+    throw "required high-fidelity RUNTIME 3D manifest unavailable or invalid: $dest"
 }
 
 
@@ -80,6 +119,10 @@ function Capture-Surface([string]$Screen, [bool]$NeedsManifest = $false) {
         if ($LASTEXITCODE -ne 0) { throw "android_extract failed: $Screen" }
     }
     Write-Host "captured $Screen"
+}
+
+if ([string]::IsNullOrWhiteSpace($SecondaryPetLabel)) {
+    throw "SecondaryPetLabel is required for the final R5.6 evidence package."
 }
 
 New-Item -ItemType Directory -Force -Path $out | Out-Null
