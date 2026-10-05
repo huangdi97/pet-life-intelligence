@@ -1395,3 +1395,46 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
   }
 }
 
+/* R5.6 Timeline density: filters are tools around the life stream, never a
+   multi-row dashboard of equal-weight chips. */
+.v5-timeline-filter-rail {
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.v5-timeline-tools {
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+@media (max-width: 768px) {
+  .v5-timeline-filter-rail {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    margin-right: -12px;
+    padding-right: 12px;
+    padding-bottom: 2px;
+  }
+  .v5-timeline-filter-rail::-webkit-scrollbar { display: none; }
+  .v5-timeline-filter-rail .v4-chip {
+    flex: 0 0 auto;
+    min-height: 44px !important;
+    padding-inline: 14px;
+  }
+  .v5-timeline-tools {
+    align-items: stretch;
+  }
+  .v5-timeline-source-rail {
+    flex: 1 1 100%;
+    order: 5;
+    margin-bottom: 0;
+  }
+  .v5-timeline-tools > select,
+  .v5-timeline-tools > input[type="text"],
+  .v5-timeline-tools > input[type="date"] {
+    min-height: 44px;
+  }
+}
+
