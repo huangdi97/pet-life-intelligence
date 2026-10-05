@@ -5,6 +5,13 @@ import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
 import { fmtTime } from "../../utils/format";
 
+function statusLabel(status: string): string {
+  if (status === "ACTIVE" || status === "OPEN") return "进行中";
+  if (status === "ACHIEVED") return "已达成";
+  if (status === "PAUSED") return "已暂停";
+  return "状态已记录";
+}
+
 interface TrainingGoal {
   id: string;
   title: string;
@@ -48,17 +55,7 @@ export default function Training() {
   return (
     <View className="page">
       <View className="h1">训练</View>
-      <View className="sub">目标 → 计划 → 训练 → 进展</View>
-
-      <View className="card">
-        <View className="field">
-          <Text>新训练目标</Text>
-          <Input className="input" value={title} onInput={(e) => setTitle(e.detail.value)} placeholder="如：学会“坐下”" />
-        </View>
-        <Button className="btn btn-primary" onClick={create} disabled={!title.trim()}>
-          添加目标
-        </Button>
-      </View>
+      <View className="sub">先看当前目标与进展，再记录下一步；坚持奖励式正向强化。</View>
 
       {state === "loading" && <View className="state">加载中……</View>}
       {state === "error" && (
@@ -72,11 +69,23 @@ export default function Training() {
         <View className="card" key={g.id}>
           <View className="row" style={{ justifyContent: "space-between" }}>
             <Text style={{ fontWeight: 600 }}>{g.title}</Text>
-            <Text className="badge">{g.status}</Text>
+            <Text className="badge">{statusLabel(g.status)}</Text>
           </View>
           <View className="muted">{fmtTime(g.created_at)}</View>
         </View>
       ))}
+
+      <View className="open-section">
+        <View className="section-title">新训练目标</View>
+        <View className="field">
+          <Text>目标名称</Text>
+          <Input className="input" value={title} onInput={(e) => setTitle(e.detail.value)} placeholder="例如：安静应对门铃" />
+        </View>
+        <View className="life-row-source">先看已有目标与进展，再添加下一步；训练坚持奖励式正向强化。</View>
+        <Button className="btn btn-primary" onClick={create} disabled={!title.trim()}>
+          添加目标
+        </Button>
+      </View>
     </View>
   );
 }
