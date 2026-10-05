@@ -39,7 +39,7 @@ function triageColors(level: string | null): { color: string; bg: string } {
 function statusLabel(status: string): string {
   if (status === "OPEN") return "进行中";
   if (status === "CLOSED") return "已结束";
-  return status;
+  return "状态已记录";
 }
 
 function isHighRisk(level: string | null): boolean {
@@ -107,6 +107,7 @@ export function HealthScreen() {
   }
 
   const latest = rows[0] ?? null;
+  const recordsUnavailable = error && rows.length === 0;
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
@@ -127,17 +128,19 @@ export function HealthScreen() {
               <View style={styles.statusRow}>
                 <Text style={styles.statusLabel}>最近一次</Text>
                 <Text style={styles.statusValue}>
-                  {latest ? riskLabel(latest.latest_triage_level) : "还没有健康记录"}
+                  {recordsUnavailable ? "暂时无法确认" : latest ? riskLabel(latest.latest_triage_level) : "还没有健康记录"}
                 </Text>
               </View>
               <View style={styles.statusRow} testID="pli.health.status">
                 <Text style={styles.statusLabel}>最近 7 天</Text>
-                <Text style={styles.statusValue}>{rows.length} 条记录</Text>
+                <Text style={styles.statusValue}>{recordsUnavailable ? "暂时无法读取" : `${rows.length} 条记录`}</Text>
               </View>
             </OpenSection>
 
             <OpenSection title="最近变化" testID="pli.health.changes">
-              {latest ? (
+              {recordsUnavailable ? (
+                <Text style={styles.emptyText}>健康记录暂时没有加载成功；不会把未知状态显示成“没有变化”。</Text>
+              ) : latest ? (
                 <View style={[styles.changeCard, isHighRisk(latest.latest_triage_level) && styles.changeCardDanger]}>
                   <View style={styles.changeHead}>
                     <Text style={[styles.changeType, isHighRisk(latest.latest_triage_level) && styles.changeTypeDanger]}>
@@ -155,7 +158,9 @@ export function HealthScreen() {
             </OpenSection>
 
             <OpenSection title="健康记录" testID="pli.health.records">
-              {rows.length === 0 ? (
+              {recordsUnavailable ? (
+                <Text style={styles.emptyText}>健康记录暂时没有加载成功，请稍后重试。</Text>
+              ) : rows.length === 0 ? (
                 <EmptyState
                   title="还没有健康记录"
                   body="记录健康事件后，分级与变化会出现在这里。"
@@ -189,7 +194,7 @@ export function HealthScreen() {
 
             <OpenSection title="预防与用药">
               <View testID="pli.health.prevent" style={styles.recordRow}>
-                <Text style={styles.recordMeta}>疫苗与驱虫：暂无记录</Text>
+                <Text style={styles.recordMeta}>疫苗与驱虫：当前页面未汇总</Text>
               </View>
               <Pressable
                 testID="pli.health.medication"
@@ -202,7 +207,7 @@ export function HealthScreen() {
                 <Text style={styles.recordMeta}>›</Text>
               </Pressable>
               <View testID="pli.health.vet" style={styles.recordRow}>
-                <Text style={styles.recordMeta}>就医记录：暂无</Text>
+                <Text style={styles.recordMeta}>就医记录：当前页面未汇总</Text>
               </View>
             </OpenSection>
             {createdLevel ? (
