@@ -55,6 +55,7 @@ const required = [
   "attention",
   "offline",
   "notfound",
+  "permission",
 ];
 for (const surface of required) {
   const shot = resolve(out, surface, "screenshot.png");
