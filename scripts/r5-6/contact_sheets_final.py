@@ -227,13 +227,13 @@ def main() -> None:
             )
         )
 
-    special_states = ("empty", "attention", "offline", "notfound")
+    special_states = ("empty", "attention", "offline", "notfound", "permission")
     generated.append(
         sheet(
             "PLI R5.6 — representative product states",
             [(state, WEB / state / "screenshot.png") for state in special_states],
             OUT / "PLI_R5_6_STATES.png",
-            cols=4,
+            cols=5,
         )
     )
 
