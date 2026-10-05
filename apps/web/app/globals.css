@@ -1534,3 +1534,82 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
     margin-right: -12px;
   }
 }
+
+/* R5.6 monitoring craft — device context is supporting life evidence, not an
+   IoT admin dashboard. */
+.v5-device-list {
+  display: grid;
+  margin-top: 4px;
+}
+.v5-device-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 2px;
+  border-bottom: 1px solid rgba(226,218,206,0.56);
+}
+.v5-device-row:last-child { border-bottom: 0; }
+.v5-device-main {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.v5-device-main strong {
+  color: var(--v4-text-primary, #2b2723);
+  font-size: 14px;
+}
+.v5-device-main span {
+  color: var(--v4-text-tertiary, #7c7369);
+  font-size: 12px;
+}
+.v5-device-state {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(237,243,238,0.88);
+  color: var(--v4-brand-primary, #4e6349);
+  font-size: 12px;
+  font-weight: 650;
+}
+.v5-last-seen {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 6px 0 2px;
+}
+.v5-last-seen strong {
+  color: var(--v4-text-primary, #2b2723);
+  font-size: 15px;
+}
+.v5-last-seen span {
+  color: var(--v4-text-tertiary, #7c7369);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.v5-monitoring-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 8px;
+}
+
+@media (min-width: 1024px) {
+  /* On wide screens the Living Pet field should still feel pet-first rather
+     than becoming a very wide empty banner around a small Twin. */
+  .r2p-stage--3d:not(.r2p-stage--life) {
+    max-width: 1040px;
+    margin-left: auto;
+    margin-right: auto;
+    min-height: 458px;
+  }
+  .r2p-stage--3d:not(.r2p-stage--life) .r2p-stage-pet--3d {
+    width: 470px;
+    height: 448px;
+  }
+  .r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d {
+    width: 450px;
+    height: 430px;
+  }
+}
+
