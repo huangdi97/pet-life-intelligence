@@ -139,7 +139,7 @@ class Android:
             return None
         return None
 
-    def read_runtime_manifest(self, retries: int = 10) -> dict:
+    def read_runtime_manifest(self, retries: int = 10, expected_pet_id: str | None = None) -> dict:
         for _ in range(retries):
             candidates: list[str] = []
             # Debug/demo builds: run-as is the most reliable app-private path.
@@ -169,14 +169,21 @@ class Android:
                     manifest = json.loads(raw)
                 except json.JSONDecodeError:
                     continue
-                if self._is_product_manifest(manifest):
+                if self._is_product_manifest(manifest) and (
+                    expected_pet_id is None or str(manifest.get("petId") or "") == expected_pet_id
+                ):
                     return manifest
 
             xml_manifest = self._manifest_from_xml()
-            if xml_manifest is not None and self._is_product_manifest(xml_manifest):
+            if (
+                xml_manifest is not None
+                and self._is_product_manifest(xml_manifest)
+                and (expected_pet_id is None or str(xml_manifest.get("petId") or "") == expected_pet_id)
+            ):
                 return xml_manifest
             time.sleep(2)
-        raise CaptureError("required high-fidelity RUNTIME 3D manifest unavailable")
+        suffix = f" for pet {expected_pet_id}" if expected_pet_id else ""
+        raise CaptureError(f"required high-fidelity RUNTIME 3D manifest unavailable{suffix}")
 
     @staticmethod
     def _is_product_manifest(manifest: dict) -> bool:
@@ -196,7 +203,7 @@ def api_json(url: str, *, method: str = "GET", body: dict | None = None, headers
         return json.loads(response.read().decode("utf-8"))
 
 
-def resolve_secondary_pet_label(api_url: str, login_email: str) -> str:
+def resolve_demo_pets(api_url: str, login_email: str) -> tuple[dict, dict]:
     auth = api_json(
         f"{api_url.rstrip('/')}/api/v1/auth/dev/login",
         method="POST",
@@ -209,10 +216,14 @@ def resolve_secondary_pet_label(api_url: str, login_email: str) -> str:
         f"{api_url.rstrip('/')}/api/v1/pets",
         headers={"X-Dev-User-Id": str(user_id)},
     )
+    dogs = [p for p in pets if str(p.get("species", "")).lower() == "dog"]
     cats = [p for p in pets if str(p.get("species", "")).lower() == "cat"]
-    if len(cats) != 1 or not cats[0].get("name"):
-        raise CaptureError("final Android evidence requires exactly one seeded cat secondary pet")
-    return str(cats[0]["name"])
+    if len(dogs) != 1 or len(cats) != 1:
+        raise CaptureError("final Android evidence requires exactly one seeded dog and one seeded cat")
+    for pet in (dogs[0], cats[0]):
+        if not pet.get("id") or not pet.get("name"):
+            raise CaptureError("seeded evidence pet is missing id/name")
+    return dogs[0], cats[0]
 
 
 def git(*args: str) -> str:
@@ -223,7 +234,13 @@ def save_manifest(path: Path, manifest: dict) -> None:
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def capture_surface(android: Android, out: Path, screen: str, needs_manifest: bool) -> None:
+def capture_surface(
+    android: Android,
+    out: Path,
+    screen: str,
+    needs_manifest: bool,
+    expected_pet_id: str | None = None,
+) -> None:
     directory = out / screen
     directory.mkdir(parents=True, exist_ok=True)
     android.start_link(f"pli-demo://nav?screen={screen}")
@@ -231,12 +248,20 @@ def capture_surface(android: Android, out: Path, screen: str, needs_manifest: bo
     android.dump_xml(directory / "ui.xml")
     android.screenshot(directory / f"{screen}.png")
     if needs_manifest:
-        save_manifest(directory / "3d.json", android.read_runtime_manifest())
+        save_manifest(
+            directory / "3d.json",
+            android.read_runtime_manifest(expected_pet_id=expected_pet_id),
+        )
     extractor = ROOT / "scripts" / "blind-ui" / "android_extract.py"
     run([os.environ.get("PYTHON", "python3"), str(extractor), str(directory)])
 
 
-def capture_review_views(android: Android, directory: Path, prefix: str) -> None:
+def capture_review_views(
+    android: Android,
+    directory: Path,
+    prefix: str,
+    expected_pet_id: str,
+) -> None:
     android.start_link("pli-demo://nav?screen=twinreview")
     time.sleep(5)
     xml = android.dump_xml(directory / "ui.xml")
@@ -244,7 +269,7 @@ def capture_review_views(android: Android, directory: Path, prefix: str) -> None
     for view, yaw in expected.items():
         android.tap(xml, f"pli.twinreview.view.{view}", "id")
         time.sleep(2)
-        manifest = android.read_runtime_manifest()
+        manifest = android.read_runtime_manifest(expected_pet_id=expected_pet_id)
         actual = float((manifest.get("camera") or {}).get("yaw", 999.0))
         wrapped_error = abs(__import__("math").atan2(__import__("math").sin(actual - yaw), __import__("math").cos(actual - yaw)))
         if wrapped_error > 0.08:
@@ -273,16 +298,36 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
 
     android = Android(args.adb, args.serial, args.package)
-    secondary_label = resolve_secondary_pet_label(args.api_url, args.login_email)
+    primary_pet, secondary_pet = resolve_demo_pets(args.api_url, args.login_email)
+    primary_id = str(primary_pet["id"])
+    secondary_id = str(secondary_pet["id"])
 
     android.start_link(f"pli-demo://login?email={args.login_email}")
     time.sleep(6)
 
+    # Explicitly select the primary dog through the real owner control. Fresh
+    # installs normally start there anyway, but evidence must never depend on
+    # seed ordering or stale persisted selection.
+    android.start_link("pli-demo://nav?screen=today")
+    time.sleep(4)
+    primary_select_dir = out / "_primary-select"
+    primary_select_dir.mkdir(parents=True, exist_ok=True)
+    xml = android.dump_xml(primary_select_dir / "ui.xml")
+    try:
+        android.tap(xml, str(primary_pet["name"]), "text")
+        time.sleep(5)
+    except CaptureError:
+        # The active pet chip can be represented by a non-clickable text node
+        # on some RN/Android combinations; the manifest below is the authority.
+        pass
+    primary_manifest = android.read_runtime_manifest(expected_pet_id=primary_id)
+    save_manifest(primary_select_dir / "3d.json", primary_manifest)
+
     for screen, manifest in SURFACES:
-        capture_surface(android, out, screen, manifest)
+        capture_surface(android, out, screen, manifest, primary_id if manifest else None)
 
     review_dir = out / "twinreview"
-    capture_review_views(android, review_dir, "twin")
+    capture_review_views(android, review_dir, "twin", primary_id)
 
     # Switch through the real Today multi-pet control; no pet name is baked
     # into source. The API resolves the current seeded cat display label.
@@ -291,11 +336,11 @@ def main() -> None:
     android.start_link("pli-demo://nav?screen=today")
     time.sleep(4)
     xml = android.dump_xml(secondary_today / "ui.xml")
-    android.tap(xml, secondary_label, "text")
+    android.tap(xml, str(secondary_pet["name"]), "text")
     time.sleep(6)
     android.dump_xml(secondary_today / "ui.xml")
     android.screenshot(secondary_today / "secondary_today.png")
-    secondary_manifest = android.read_runtime_manifest()
+    secondary_manifest = android.read_runtime_manifest(expected_pet_id=secondary_id)
     save_manifest(secondary_today / "3d.json", secondary_manifest)
 
     secondary_review = out / "secondary-review"
@@ -304,8 +349,11 @@ def main() -> None:
     time.sleep(5)
     android.dump_xml(secondary_review / "ui.xml")
     android.screenshot(secondary_review / "secondary_twinreview.png")
-    save_manifest(secondary_review / "3d.json", android.read_runtime_manifest())
-    capture_review_views(android, secondary_review, "secondary")
+    save_manifest(
+        secondary_review / "3d.json",
+        android.read_runtime_manifest(expected_pet_id=secondary_id),
+    )
+    capture_review_views(android, secondary_review, "secondary", secondary_id)
 
     capture_manifest = {
         "captured_at": datetime.now(timezone.utc).isoformat(),
@@ -316,6 +364,8 @@ def main() -> None:
         "build_kind": "DEMO_EVIDENCE_BUILD",
         "vision_model_used": False,
         "required_secondary_pet": True,
+        "primary_pet_id": primary_id,
+        "secondary_pet_id": secondary_id,
     }
     save_manifest(out / "capture-manifest.json", capture_manifest)
     print(f"R5.6 Android final evidence complete -> {out}")
