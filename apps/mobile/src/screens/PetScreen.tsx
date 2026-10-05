@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
-import { api, type BehaviorEventRow, type HealthEventRow, type LifeEvent, type TrainingGoalRow, type WelfareEvidence } from "../api";
+import { api, type BehaviorEventRow, type HealthEventRow, type LifeEvent, type PetFriend, type TrainingGoalRow, type WelfareEvidence } from "../api";
 import { usePets } from "../context";
 import { petAgeText, sexLabel } from "../format";
 import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
@@ -54,13 +54,13 @@ export function PetScreen() {
   const [lastBehavior, setLastBehavior] = useState<BehaviorEventRow | null>(null);
   const [goal, setGoal] = useState<TrainingGoalRow | null>(null);
   const [welfare, setWelfare] = useState<WelfareEvidence | null>(null);
+  const [friends, setFriends] = useState<PetFriend[]>([]);
   const [loading, setLoading] = useState(true);
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
   // Individual Twin (R2P3D-R3 D): same canonical per-pet asset as Today/Life
   // View, so Pet World shows the ACTIVE twin (generic demo only without one).
   const { twin } = usePetTwin(pet?.id ?? null);
-  const otherPets = (pets ?? []).filter((p) => p.id !== pet?.id);
 
   useEffect(() => {
     if (!pet?.id) return;
@@ -73,7 +73,8 @@ export function PetScreen() {
       api.get<BehaviorEventRow[]>(`/pets/${pet.id}/behavior-events`),
       api.get<TrainingGoalRow[]>(`/pets/${pet.id}/training-goals`),
       api.get<WelfareEvidence>(`/pets/${pet.id}/welfare-evidence`),
-    ]).then(([t, h, he, be, tg, wv]) => {
+      api.get<PetFriend[]>(`/pets/${pet.id}/friends`),
+    ]).then(([t, h, he, be, tg, wv, fr]) => {
       if (!alive) return;
       if (t.status === "fulfilled") setToday(t.value);
       if (h.status === "fulfilled") setHint(h.value);
@@ -81,6 +82,7 @@ export function PetScreen() {
       if (be.status === "fulfilled") setLastBehavior(be.value[0] ?? null);
       if (tg.status === "fulfilled") setGoal(tg.value[0] ?? null);
       if (wv.status === "fulfilled") setWelfare(wv.value);
+      if (fr.status === "fulfilled") setFriends(fr.value);
       setLoading(false);
     });
     return () => {
@@ -94,6 +96,13 @@ export function PetScreen() {
   const stable = hint !== null && !abnormal;
 
   const healthCount = health?.length ?? null;
+  const visibleRelationships = friends.filter((f) => f.status === "ACTIVE" || f.status === "ACCEPTED" || f.status === "PENDING");
+  const petNameById = (id: string) => (pets ?? []).find((candidate) => candidate.id === id)?.name ?? "宠物朋友";
+  const relationshipText = (friend: PetFriend) => {
+    const name = petNameById(friend.friend_pet_id);
+    if (friend.status === "PENDING") return `与${name}的关系待确认`;
+    return `和${name}已连接`;
+  };
   const rows = useMemo<DomainRow[]>(() => {
     const healthMeaning =
       healthCount === null || healthCount === 0
@@ -220,25 +229,22 @@ export function PetScreen() {
             </OpenSection>
 
             <View testID="pli.pet.friends">
-              <OpenSection title="它的朋友">
-                {otherPets.length > 0 ? (
-                  otherPets.slice(0, 2).map((o) => (
-                    <View key={o.id} style={styles.friendRow}>
-                      <Text style={styles.friendText}>和{o.name}是朋友</Text>
+              <OpenSection title="它的关系">
+                {visibleRelationships.length > 0 ? (
+                  visibleRelationships.slice(0, 2).map((friend) => (
+                    <View key={friend.request_id} style={styles.friendRow}>
+                      <Text style={styles.friendText}>{relationshipText(friend)}</Text>
                     </View>
                   ))
                 ) : (
-                  <Text style={styles.emptyText}>还没有宠物朋友，社交记录会出现在这里。</Text>
+                  <Text style={styles.emptyText}>还没有已连接或待确认的宠物关系；真实互动会从「社交」页开始积累。</Text>
                 )}
               </OpenSection>
             </View>
 
             <View testID="pli.pet.caregivers">
               <OpenSection title="照护它的人">
-                <View style={styles.friendRow}>
-                  <Text style={styles.friendText}>你 · 主人</Text>
-                </View>
-                <Text style={styles.caregiverNote}>家庭成员与临时照护人加入后会显示在这里。</Text>
+                <Text style={styles.caregiverNote}>查看谁可以照护、能做什么，以及临时权限何时到期；未读取到的成员关系不会在这里猜测。</Text>
                 <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Care")} style={styles.entryRow}>
                   <Ionicons name="people-outline" size={18} color={COLORS.brandPrimaryDeep} />
                   <Text style={styles.entryText}>管理照护交接与限时权限</Text>
