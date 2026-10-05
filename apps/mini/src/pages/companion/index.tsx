@@ -3,6 +3,7 @@ import { Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api, type LifeEvent } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { PetContextGate } from "../../components/feedback/Feedback";
 import { eventTypeLabel } from "../../utils/labels";
 import { fmtTime } from "../../utils/format";
 
@@ -29,7 +30,7 @@ function deviceStateLabel(status: string): string {
 }
 
 export default function Companion() {
-  const { pets, petId } = usePets();
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
   const [devices, setDevices] = useState<DeviceRow[]>([]);
   const [events, setEvents] = useState<LifeEvent[]>([]);
@@ -60,6 +61,15 @@ export default function Companion() {
       }
     });
   }, [petId]);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">陪伴模式</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   return (
     <View className="page">
