@@ -99,11 +99,12 @@ function Manifest([string]$Dir, [string]$ExpectedPetId = "", [string]$ForbiddenP
                 $isRuntime = $m.manifestOrigin -eq "RUNTIME"
                 $isReady = $m.ready -eq $true
                 $isProductTwin = $m.representation -eq "high-fidelity-glb-twin"
+                $isIndividualTwin = $m.generic -ne $true
                 $isFallback = $m.fallbackUsed -eq $true
                 $petId = [string]$m.petId
                 $expectedOk = [string]::IsNullOrWhiteSpace($ExpectedPetId) -or $petId -eq $ExpectedPetId
                 $forbiddenOk = [string]::IsNullOrWhiteSpace($ForbiddenPetId) -or $petId -ne $ForbiddenPetId
-                if ($isRuntime -and $isReady -and $isProductTwin -and -not $isFallback -and $expectedOk -and $forbiddenOk) {
+                if ($isRuntime -and $isReady -and $isProductTwin -and $isIndividualTwin -and -not $isFallback -and $expectedOk -and $forbiddenOk) {
                     [System.IO.File]::WriteAllText($dest, $raw, [System.Text.UTF8Encoding]::new($false))
                     return
                 }
