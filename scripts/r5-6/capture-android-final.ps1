@@ -17,6 +17,7 @@ param(
     [string]$Package = "com.pli.mobile",
     [string]$LoginEmail = "owner@pli.demo",
     [string]$SecondaryPetLabel = "",
+    [string]$SecondaryPetId = "",
     [string]$Cdp = "http://localhost:9222/json"
 )
 
@@ -88,7 +89,7 @@ function Read-RuntimeManifestRaw() {
     return ""
 }
 
-function Manifest([string]$Dir) {
+function Manifest([string]$Dir, [string]$ExpectedPetId = "", [string]$ForbiddenPetId = "") {
     $dest = Join-Path $Dir "3d.json"
     for ($attempt = 0; $attempt -lt 8; $attempt++) {
         $raw = Read-RuntimeManifestRaw
@@ -99,7 +100,10 @@ function Manifest([string]$Dir) {
                 $isReady = $m.ready -eq $true
                 $isProductTwin = $m.representation -eq "high-fidelity-glb-twin"
                 $isFallback = $m.fallbackUsed -eq $true
-                if ($isRuntime -and $isReady -and $isProductTwin -and -not $isFallback) {
+                $petId = [string]$m.petId
+                $expectedOk = [string]::IsNullOrWhiteSpace($ExpectedPetId) -or $petId -eq $ExpectedPetId
+                $forbiddenOk = [string]::IsNullOrWhiteSpace($ForbiddenPetId) -or $petId -ne $ForbiddenPetId
+                if ($isRuntime -and $isReady -and $isProductTwin -and -not $isFallback -and $expectedOk -and $forbiddenOk) {
                     [System.IO.File]::WriteAllText($dest, $raw, [System.Text.UTF8Encoding]::new($false))
                     return
                 }
@@ -121,18 +125,26 @@ function Tap-ByText([string]$Text, [string]$Dir) {
     if ($LASTEXITCODE -ne 0) { throw "failed to tap text target: $Text" }
 }
 
+function Tap-ById([string]$Id, [string]$Dir) {
+    if ([string]::IsNullOrWhiteSpace($Id)) { throw "id target is required" }
+    UiDump $Dir
+    $tapScript = Join-Path $repo "scripts\\blind-ui\\android_tap.py"
+    & $py $tapScript (Join-Path $Dir "ui.xml") $Id "id" $Adb $Serial | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "failed to tap id target: $Id" }
+}
+
 function Nav([string]$Screen) {
     Invoke-Adb @("shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", "pli-demo://nav?screen=$Screen", "$Package/.MainActivity")
     Start-Sleep -Seconds 7
 }
 
-function Capture-Surface([string]$Screen, [bool]$NeedsManifest = $false) {
+function Capture-Surface([string]$Screen, [bool]$NeedsManifest = $false, [string]$ExpectedPetId = "") {
     $dir = Join-Path $out $Screen
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
     Nav $Screen
     UiDump $dir
     Shot $Screen $dir
-    if ($NeedsManifest) { Manifest $dir }
+    if ($NeedsManifest) { Manifest $dir $ExpectedPetId }
 
     if (Test-Path $py) {
         & $py (Join-Path $repo "scripts\blind-ui\android_extract.py") $dir | Out-Null
@@ -141,8 +153,8 @@ function Capture-Surface([string]$Screen, [bool]$NeedsManifest = $false) {
     Write-Host "captured $Screen"
 }
 
-if ([string]::IsNullOrWhiteSpace($SecondaryPetLabel)) {
-    throw "SecondaryPetLabel is required for the final R5.6 evidence package."
+if ([string]::IsNullOrWhiteSpace($SecondaryPetLabel) -and [string]::IsNullOrWhiteSpace($SecondaryPetId)) {
+    throw "SecondaryPetLabel or SecondaryPetId is required for the final R5.6 evidence package."
 }
 
 if (Test-Path $out) {
@@ -154,8 +166,16 @@ New-Item -ItemType Directory -Force -Path $out | Out-Null
 Invoke-Adb @("shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", "pli-demo://login?email=$LoginEmail", "$Package/.MainActivity")
 Start-Sleep -Seconds 8
 
+# Capture Today first and bind the rest of the primary-pet evidence to the
+# exact runtime Pet ID observed there.
+Capture-Surface "today" $true
+$primaryRuntime = Get-Content (Join-Path $out "today\3d.json") -Raw | ConvertFrom-Json
+$PrimaryPetId = [string]$primaryRuntime.petId
+if ([string]::IsNullOrWhiteSpace($PrimaryPetId)) {
+    throw "primary runtime manifest did not expose petId"
+}
+
 $surfacePlan = @(
-    @{ name = "today"; manifest = $true },
     @{ name = "timeline"; manifest = $false },
     @{ name = "pet"; manifest = $true },
     @{ name = "lifeview"; manifest = $true },
@@ -166,7 +186,7 @@ $surfacePlan = @(
 )
 
 foreach ($surface in $surfacePlan) {
-    Capture-Surface $surface.name $surface.manifest
+    Capture-Surface $surface.name $surface.manifest ($(if ($surface.manifest) { $PrimaryPetId } else { "" }))
 }
 
 # Twin Review camera truth: these controls already drive the real embedded
@@ -179,7 +199,7 @@ foreach ($view in @("front", "side", "back")) {
     & $py $tapScript (Join-Path $reviewDir "ui.xml") "pli.twinreview.view.$view" "id" $Adb $Serial | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "failed to tap twin review view: $view" }
     Start-Sleep -Seconds 3
-    Manifest $reviewDir
+    Manifest $reviewDir $PrimaryPetId
     Copy-Item (Join-Path $reviewDir "3d.json") (Join-Path $reviewDir "3d_view_$view.json") -Force
     Shot "twin_$view" $reviewDir
     UiDump $reviewDir
@@ -189,28 +209,37 @@ foreach ($view in @("front", "side", "back")) {
 # Secondary-pet sanity/review is mandatory when a label is supplied.
 # The script intentionally does not hard-code an owner pet name; pass the
 # current demo label from the runtime fixture, e.g. -SecondaryPetLabel <label>.
-if (-not [string]::IsNullOrWhiteSpace($SecondaryPetLabel)) {
+if (-not [string]::IsNullOrWhiteSpace($SecondaryPetLabel) -or -not [string]::IsNullOrWhiteSpace($SecondaryPetId)) {
     $sanityDir = Join-Path $out "secondary-sanity"
     New-Item -ItemType Directory -Force -Path $sanityDir | Out-Null
     Nav "today"
-    Tap-ByText $SecondaryPetLabel $sanityDir
+    if (-not [string]::IsNullOrWhiteSpace($SecondaryPetId)) {
+        Tap-ById "pli.multipet.switch.$SecondaryPetId" $sanityDir
+    } else {
+        Tap-ByText $SecondaryPetLabel $sanityDir
+    }
     Start-Sleep -Seconds 8
     UiDump $sanityDir
     Shot "secondary_today" $sanityDir
-    Manifest $sanityDir
+    Manifest $sanityDir $SecondaryPetId $PrimaryPetId
+    $secondaryRuntime = Get-Content (Join-Path $sanityDir "3d.json") -Raw | ConvertFrom-Json
+    $SecondaryRuntimePetId = [string]$secondaryRuntime.petId
+    if ([string]::IsNullOrWhiteSpace($SecondaryRuntimePetId) -or $SecondaryRuntimePetId -eq $PrimaryPetId) {
+        throw "secondary runtime evidence did not switch to a distinct pet"
+    }
 
     $secondaryReviewDir = Join-Path $out "secondary-review"
     New-Item -ItemType Directory -Force -Path $secondaryReviewDir | Out-Null
     Nav "twinreview"
     UiDump $secondaryReviewDir
     Shot "secondary_twinreview" $secondaryReviewDir
-    Manifest $secondaryReviewDir
+    Manifest $secondaryReviewDir $SecondaryRuntimePetId
     foreach ($view in @("front", "side", "back")) {
         $tapScript = Join-Path $repo "scripts\\blind-ui\\android_tap.py"
         & $py $tapScript (Join-Path $secondaryReviewDir "ui.xml") "pli.twinreview.view.$view" "id" $Adb $Serial | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "failed secondary review view: $view" }
         Start-Sleep -Seconds 3
-        Manifest $secondaryReviewDir
+        Manifest $secondaryReviewDir $SecondaryRuntimePetId
         Copy-Item (Join-Path $secondaryReviewDir "3d.json") (Join-Path $secondaryReviewDir "3d_view_$view.json") -Force
         Shot "secondary_$view" $secondaryReviewDir
         UiDump $secondaryReviewDir
@@ -225,6 +254,8 @@ $captureManifest = [ordered]@{
     package = $Package
     vision_model_used = $false
     required_secondary_pet = $true
+    primary_pet_id = $PrimaryPetId
+    secondary_pet_id = $SecondaryRuntimePetId
 }
 $captureManifestJson = $captureManifest | ConvertTo-Json -Depth 4
 [System.IO.File]::WriteAllText(
