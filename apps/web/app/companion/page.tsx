@@ -88,6 +88,17 @@ export default function CompanionPage() {
 
           {devices.state === "loading" ? (
             <div className="v4-loading">正在读取设备状态…</div>
+          ) : devices.state === "error" || devices.state === "denied" ? (
+            <div className="v4-calm" data-testid="pli.companion.device-error">
+              <div>
+                <p className="v4-calm-title">{devices.state === "denied" ? "没有读取设备状态的权限" : "设备状态暂时没有加载成功"}</p>
+                <p className="v4-calm-body">
+                  {devices.state === "denied"
+                    ? "需要相应权限后才能查看；这里不会把未知状态显示成未连接。"
+                    : "可以稍后重试；这里不会把加载失败显示成未连接。"}
+                </p>
+              </div>
+            </div>
           ) : devices.data && devices.data.length === 0 ? (
             <div className="v4-calm" data-testid="pli.companion.device-empty">
               <div>
@@ -124,6 +135,13 @@ export default function CompanionPage() {
 
           {recent.state === "loading" ? (
             <div className="v4-loading">正在读取最近记录…</div>
+          ) : recent.state === "error" || recent.state === "denied" ? (
+            <div className="v4-calm">
+              <div>
+                <p className="v4-calm-title">{recent.state === "denied" ? "没有读取最近记录的权限" : "最近记录暂时没有加载成功"}</p>
+                <p className="v4-calm-body">不会把未知或加载失败显示成“没有活动”。</p>
+              </div>
+            </div>
           ) : visibleEvents.length > 0 ? (
             <ul className="v4-ls">
               {visibleEvents.map((e) => (
@@ -160,7 +178,7 @@ export default function CompanionPage() {
       </div>
 
       <p className="v4-note" style={{ marginTop: 16 }}>
-        陪伴模式不用于医疗判断；当前演示不会伪装成实时画面，互动节奏始终由你控制。
+        陪伴模式不用于医疗判断；没有可确认的实时来源时不会显示成实时画面，互动节奏始终由你控制。
       </p>
     </main>
   );
