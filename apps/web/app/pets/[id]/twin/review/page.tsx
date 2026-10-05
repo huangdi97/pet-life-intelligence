@@ -164,6 +164,10 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
       </div>
       {modelNote && <p className="muted" style={{ marginTop: 6 }}>还没有可确认的 3D 形象 · {modelNote}</p>}
 
+      <div className="v5-review-tools">
+        <h2>观察角度</h2>
+        <p className="v5-review-hint">先从不同角度看清脸、耳朵、身形与尾巴，再判断是否像它。</p>
+      </div>
       <div className="v5-segmented" aria-label="查看角度">
         {(
           [
