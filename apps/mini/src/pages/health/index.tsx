@@ -3,6 +3,7 @@ import { Button, Input, Text, Textarea, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { PetContextGate } from "../../components/feedback/Feedback";
 import { fmtTime, riskLabel } from "../../utils/format";
 
 interface HealthEventRow {
@@ -25,7 +26,7 @@ function highRisk(level: string | null): boolean {
 }
 
 export default function Health() {
-  const { pets, petId } = usePets();
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
   const [rows, setRows] = useState<HealthEventRow[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -47,6 +48,15 @@ export default function Health() {
   useEffect(() => {
     if (petId) load(petId);
   }, [petId, load]);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">健康</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   async function openEvent() {
     if (!complaint.trim() || !petId || busy) return;
