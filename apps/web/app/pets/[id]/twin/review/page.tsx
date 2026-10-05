@@ -44,6 +44,11 @@ interface VisualModelRow {
   created_at: string;
   artifact_map: Record<string, string>;
   identity_qc: Record<string, unknown>;
+  metadata_json?: {
+    demo_fixture?: boolean;
+    media_provenance?: string;
+    opts?: { observed_photo_count?: number; media_provenance?: string };
+  };
 }
 
 export default function TwinReviewPage({ params }: { params: Promise<{ id: string }> }) {
@@ -138,6 +143,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
   const show3d = identity !== null && modelDescriptor != null;
   const modelSurface = (modelDescriptor as { surface?: { observed_regions?: string[] } } | undefined)?.surface?.observed_regions;
   const twinSourceMediaCount = modelSurface?.length ?? 0;
+  const modelDemoFixture = model?.metadata_json?.demo_fixture === true;
   // INVARIANT: pass a STABLE twin object. The spread below is intentionally
   // memoized — a fresh object per render would remount the 3D scene (the
   // viewer keys its effect on `twin`), resetting the camera and defeating the
@@ -168,9 +174,11 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
           {version > 0 ? `第 ${version} 版 · ` : ""}从正面、侧面和背面重点看脸、耳朵、毛色、身形与尾巴。只有你确认相似后才会启用。
         </p>
         <p className="v4-note" style={{ marginTop: 6 }}>
-          {twinSourceMediaCount > 0
-            ? `已关联 ${twinSourceMediaCount} 处素材区域；未观察到的部分仍可能来自模板推断。`
-            : `当前外观来自演示/模板，不代表${pet?.name ?? "宠物"}的真实扫描或已验证个体外观。`}
+          {modelDemoFixture
+            ? `当前为示例 3D 形象，来自演示模板，不代表${pet?.name ?? "宠物"}的真实扫描或已验证个体外观。`
+            : twinSourceMediaCount > 0
+              ? `已关联 ${twinSourceMediaCount} 处素材区域；未观察到的部分仍可能来自模板推断。`
+              : `当前候选尚无可确认的素材区域；不会把模板部分描述为真实观察。`}
         </p>
       </div>
 
@@ -180,6 +188,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
             <Pet3DViewer
               identity={identity}
               displayName={pet?.name}
+              demoTwin={modelDemoFixture}
               variant="life"
               interactive
               petId={petId}
