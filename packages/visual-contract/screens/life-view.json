@@ -22,7 +22,7 @@
     { "id": "life.projected.bounds", "dimension": "visualComposition", "points": 4, "description": "真实模型投影 bbox 占视口 0.18–0.36", "check": { "kind": "manifest", "field": "projectedAreaRatio", "in": [0.18, 0.36] } },
     { "id": "life.stage.field", "dimension": "visualComposition", "points": 3, "description": "Life View 允许稍暗 warm digital field，非纯黑", "check": { "kind": "pixel-style", "surface": "lifeview" } },
     { "id": "life.mode.now", "dimension": "informationHierarchy", "points": 4, "description": "模式「此刻」可用", "check": { "kind": "element", "idPrefix": "pli.lifeview.mode.now" } },
-    { "id": "life.modes", "dimension": "informationHierarchy", "points": 4, "description": "模式切换器存在（此刻/趋势/时间线/外观）", "check": { "kind": "element", "idPrefix": "pli.lifeview.mode.*", "count": [4, 4] } },
+    { "id": "life.modes", "dimension": "informationHierarchy", "points": 4, "description": "模式切换器存在（此刻/趋势/外观；时间线保持一级导航）", "check": { "kind": "element", "idPrefix": "pli.lifeview.mode.*", "count": [3, 3] } },
     { "id": "life.panel", "dimension": "informationHierarchy", "points": 4, "description": "事实面板存在", "check": { "kind": "element", "idPrefix": "pli.lifeview.panel" } },
     { "id": "life.context", "dimension": "informationHierarchy", "points": 3, "description": "当前状态 context 存在（与 twin 关联）", "check": { "kind": "element", "idPrefix": "pli.lifeview.anchor.*", "count": [2, 4] } },
     { "id": "life.surface.cards", "dimension": "surfaceGovernance", "points": 5, "description": "Above-fold 大 CARD ≤1", "check": { "kind": "surface", "max": 1, "minArea": 20000, "aboveFold": true, "surfaceType": "CARD" } },
@@ -31,7 +31,7 @@
     { "id": "life.camera.rotate", "dimension": "interactionTruth", "points": 4, "description": "真实旋转：yaw A/B 差值实测", "check": { "kind": "camera", "event": "rotate", "field": "yaw", "minDelta": 0.03 } },
     { "id": "life.camera.zoom", "dimension": "interactionTruth", "points": 3, "description": "真实缩放：distance A/B 差值实测", "check": { "kind": "camera", "event": "zoom", "field": "distance", "minDelta": 0.05 } },
     { "id": "life.camera.reset", "dimension": "interactionTruth", "points": 3, "description": "重置后 camera ≈ canonical", "check": { "kind": "camera", "event": "reset", "field": "yaw", "maxDeviation": 0.05 } },
-    { "id": "life.mode.a11y", "dimension": "accessibility", "points": 5, "description": "模式按钮可访问（tab/button）", "check": { "kind": "count", "filter": { "role": "tab", "idPrefix": "pli.lifeview.mode." }, "range": [4, 4] } },
+    { "id": "life.mode.a11y", "dimension": "accessibility", "points": 5, "description": "三个模式按钮可访问（此刻/趋势/外观）", "check": { "kind": "count", "filter": { "role": "tab", "idPrefix": "pli.lifeview.mode." }, "range": [3, 3] } },
     { "id": "life.style.truth", "dimension": "pixelStyleTruth", "points": 3, "description": "Stage computed bg 非纯黑（luma≥0.08）", "check": { "kind": "style-truth", "idPrefix": "pli.lifeview.stage", "notDarkBg": true } },
     { "id": "life.warm.pixels", "dimension": "pixelStyleTruth", "points": 2, "description": "数字空间但非 debug：cool accent 占比受限", "check": { "kind": "pixel-style", "surface": "lifeview" } }
   ]
