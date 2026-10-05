@@ -41,6 +41,16 @@ function demoNavFromUrl(url: string | null): string | null {
   }
 }
 
+function demoPetFromUrl(url: string | null): string | null {
+  if (!url || !url.startsWith("pli-demo://")) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.searchParams.get("pet");
+  } catch {
+    return null;
+  }
+}
+
 function applyDemoNav(screen: string | null): void {
   if (!screen) return;
   // navigation may not be ready right after mount; retry briefly
@@ -51,7 +61,7 @@ function applyDemoNav(screen: string | null): void {
 
 /** Demo-only bootstrap: ensure a dev session (deep link or default account). */
 function DemoSession() {
-  const { reload } = usePets();
+  const { reload, choose } = usePets();
   useEffect(() => {
     if (!DEMO_ENV) return;
     let alive = true;
@@ -65,21 +75,28 @@ function DemoSession() {
         await devLogin(email);
         reload();
       }
+      const pet = demoPetFromUrl(url);
+      if (pet) await choose(pet);
       applyDemoNav(demoNavFromUrl(url));
     }
     void boot();
     const sub = Linking.addEventListener("url", ({ url }) => {
-      const email = demoEmailFromUrl(url);
-      if (email) {
-        void devLogin(email).then(reload);
-      }
-      applyDemoNav(demoNavFromUrl(url));
+      void (async () => {
+        const email = demoEmailFromUrl(url);
+        if (email) {
+          await devLogin(email);
+          reload();
+        }
+        const pet = demoPetFromUrl(url);
+        if (pet) await choose(pet);
+        applyDemoNav(demoNavFromUrl(url));
+      })();
     });
     return () => {
       alive = false;
       sub.remove();
     };
-  }, [reload]);
+  }, [choose, reload]);
   return null;
 }
 
