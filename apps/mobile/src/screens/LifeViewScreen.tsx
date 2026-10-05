@@ -132,13 +132,6 @@ export function LifeViewScreen() {
             anchors={anchors}
             headline={mode === "now" ? `${pet?.name ?? "宠物"} · 此刻` : undefined}
             caption={mode === "now" ? nowLine : undefined}
-            note={
-              twin
-                ? twin.demoFixture
-                  ? "示例 3D 形象 · 演示模板 · 不代表真实宠物扫描或已验证个体外观"
-                  : `第 ${twin.version} 版 3D 形象 · 已通过你的确认 · 外观来自${twin.mediaProvenance === "OWNER_REPORTED" ? "你的照片" : "已记录素材"}`
-                : "暂时使用简化形象，连接照片后会生成更像它的 3D 形象"
-            }
             demo={DEMO_ENV || twin?.demoFixture === true}
             interactive
             twin={twin?.descriptor ?? null}
