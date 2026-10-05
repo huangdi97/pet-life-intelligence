@@ -117,18 +117,28 @@ test.describe("blind-ui harness (web)", () => {
     expect(Math.abs(yawB - yawA)).toBeGreaterThan(0.05);
   });
 
-  test("multi-pet switch changes pet context, not only the title", async ({ page }) => {
+  test("multi-pet switch changes identity + Twin without stale cross-pet carryover", async ({ page }) => {
     await seedPet(page, "");
     const petIds = await allPetIds(page);
     expect(petIds.length).toBeGreaterThanOrEqual(2);
     await page.goto("/");
     const nameA = await page.getByTestId("pli.today.identity").innerText();
+    await expect.poll(async () => {
+      return page.evaluate(() => (window as any).__PLI_3D_MANIFEST__?.petId ?? null);
+    }).toBe(petIds[0]);
+
     await page.evaluate((id) => {
       localStorage.setItem("pli_current_pet", id);
       window.dispatchEvent(new Event("pli-pet-changed"));
     }, petIds[1]);
-    await page.reload();
+
+    // Do not reload: the product must cross the identity boundary correctly in
+    // the live session. The old pet's Twin may never remain attached to the
+    // new pet while its model request is resolving.
     await expect(page.getByTestId("pli.today.identity")).not.toHaveText(nameA);
+    await expect.poll(async () => {
+      return page.evaluate(() => (window as any).__PLI_3D_MANIFEST__?.petId ?? null);
+    }).toBe(petIds[1]);
   });
 
   test("twin review: 不像 disables activation", async ({ page }) => {
