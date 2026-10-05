@@ -56,8 +56,8 @@ export default function TwinVersionPage({ params }: { params: Promise<{ id: stri
       .catch((e: unknown) => setNote(mapErrorMessage(e)));
   }, [petId]);
 
-  const current = models[0] ?? null;
-  const history = models.slice(1);
+  const current = models.find((m) => m.status === "ACTIVE") ?? models[0] ?? null;
+  const history = current ? models.filter((m) => m.model_id !== current.model_id) : [];
   const currentIsDemo = current?.metadata_json?.demo_fixture === true;
   const currentPhotoCount = Number(current?.metadata_json?.opts?.observed_photo_count ?? 0);
   const currentObservedCount = Object.keys(current?.observed_surface_manifest ?? {}).length;
