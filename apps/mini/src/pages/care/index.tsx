@@ -47,21 +47,32 @@ export default function Care() {
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
   const [grants, setGrants] = useState<Grant[]>([]);
   const [handoffs, setHandoffs] = useState<Handoff[]>([]);
-  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [grantsState, setGrantsState] = useState<"loading" | "ready" | "error">("loading");
+  const [handoffsState, setHandoffsState] = useState<"loading" | "ready" | "error">("loading");
   const [caregiver, setCaregiver] = useState("");
   const [hours, setHours] = useState("48");
   const [card, setCard] = useState<CareCard | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback((pid: string) => {
-    setState("loading");
+    setGrantsState("loading");
+    setHandoffsState("loading");
     Promise.allSettled([
       api.get<Grant[]>(`/pets/${pid}/grants`),
       api.get<Handoff[]>(`/pets/${pid}/handoffs`),
     ]).then(([g, h]) => {
-      if (g.status === "fulfilled") setGrants(g.value);
-      if (h.status === "fulfilled") setHandoffs(h.value);
-      setState(g.status === "rejected" && h.status === "rejected" ? "error" : "ready");
+      if (g.status === "fulfilled") {
+        setGrants(g.value);
+        setGrantsState("ready");
+      } else {
+        setGrantsState("error");
+      }
+      if (h.status === "fulfilled") {
+        setHandoffs(h.value);
+        setHandoffsState("ready");
+      } else {
+        setHandoffsState("error");
+      }
     });
   }, []);
 
@@ -123,22 +134,21 @@ export default function Care() {
       <View className="h1">{current ? `${current.name}的照护网络` : "照护网络"}</View>
       <View className="sub">家庭成员、临时交接与照护卡。权限按人、用途与时间清楚管理。</View>
 
-      {state === "loading" && <View className="state">加载中……</View>}
-      {state === "error" && (
-        <View className="state state-error">
-          暂时连接不上
-          <Button className="btn" onClick={() => petId && load(petId)}>重试</Button>
-        </View>
-      )}
-
       <View className="open-section">
         <View className="section-title">正在进行的交接</View>
-        {handoffs.length ? handoffs.map((handoff) => (
+        {handoffsState === "loading" ? (
+          <View className="state">正在读取照护交接……</View>
+        ) : handoffsState === "error" ? (
+          <View className="state state-error">
+            照护交接暂时没有加载成功；不会把未知状态显示成“没有交接”。
+            <Button className="btn" onClick={() => petId && load(petId)}>重试</Button>
+          </View>
+        ) : handoffs.length ? handoffs.map((handoff) => (
           <View className="life-row" key={handoff.handoff_id}>
             <View className="life-dot" />
             <View className="life-row-body">
               <View className="life-row-head">
-                <Text className="life-row-type">照护人 {handoff.caregiver_user_id.slice(0, 8)}…</Text>
+                <Text className="life-row-type">临时照护人</Text>
                 <Text className="life-row-time">{statusLabel(handoff.status)}</Text>
               </View>
               <View className="life-row-detail">
@@ -186,15 +196,19 @@ export default function Care() {
 
       <View className="open-section">
         <View className="section-title">权限记录</View>
-        {grants.length ? grants.map((grant) => (
+        {grantsState === "loading" ? (
+          <View className="state">正在读取权限记录……</View>
+        ) : grantsState === "error" ? (
+          <View className="state state-error">权限记录暂时没有加载成功；不会把未知状态显示成“没有授权”。</View>
+        ) : grants.length ? grants.map((grant) => (
           <View className="life-row" key={grant.grant_id ?? grant.id ?? grant.user_id}>
             <View className="life-row-body">
               <View className="life-row-head">
-                <Text className="life-row-type">{grant.user_id.slice(0, 8)}…</Text>
+                <Text className="life-row-type">已授权成员</Text>
                 <Text className="life-row-time">{statusLabel(grant.status)}</Text>
               </View>
               <View className="life-row-detail">{grant.scopes.map((scope) => SCOPE_LABELS[scope] ?? "限定权限").join(" · ")}</View>
-              <View className="life-row-source">{grant.expires_at ? `到期 ${fmtTime(grant.expires_at)}` : "长期有效"}</View>
+              <View className="life-row-source">{grant.expires_at ? `到期 ${fmtTime(grant.expires_at)}` : "未设置到期时间"}</View>
             </View>
           </View>
         )) : <View className="life-empty-note">还没有授权记录。</View>}
