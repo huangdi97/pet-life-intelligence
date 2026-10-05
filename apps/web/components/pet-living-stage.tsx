@@ -155,6 +155,7 @@ export function PetLivingStage({
           {show3d ? (
             <Pet3DViewer
               identity={identity}
+              displayName={name}
               twin={twin}
               variant="stage"
               frameTarget={frameTarget}
@@ -175,6 +176,7 @@ export function PetLivingStage({
           {show3d ? (
             <Pet3DViewer
               identity={identity}
+              displayName={name}
               twin={twin}
               variant={variant === "life" ? "life" : "stage"}
               interactive={variant === "life"}
