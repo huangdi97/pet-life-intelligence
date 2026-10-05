@@ -119,7 +119,7 @@ export function PetLivingStage({
       <View style={[styles.fieldBase, reviewStudio ? styles.fieldBaseReview : styles.fieldBaseLiving]} />
       {reviewStudio ? (
         <>
-          <View style={styles.reviewHalo} />
+          <View style={styles.reviewLightWell} />
           <View style={styles.reviewFloor} />
         </>
       ) : (
@@ -250,15 +250,18 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.stageWarmHorizon,
     opacity: 0.42,
   },
-  reviewHalo: {
+  // R5.6 final craft: Review is a neutral identity studio, not a pet placed
+  // in front of another decorative circle. A broad light well improves face /
+  // coat readability while staying visually subordinate to the Twin.
+  reviewLightWell: {
     position: "absolute",
-    width: 188,
-    height: 188,
-    borderRadius: 94,
+    left: 34,
+    right: 34,
+    height: 236,
+    top: 54,
+    borderRadius: 72,
     backgroundColor: COLORS.stageReviewGlow,
-    top: 76,
-    alignSelf: "center",
-    opacity: 0.24,
+    opacity: 0.28,
   },
   reviewFloor: {
     position: "absolute",
