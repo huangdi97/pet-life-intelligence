@@ -91,7 +91,10 @@ export default function Timeline() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [petId]);
 
-  const visible = events ?? [];
+  // Keep internal page-view telemetry out of the owner's life memory.
+  // Web and Android use the same rule: "today.viewed" is product telemetry,
+  // not something that happened to the pet.
+  const visible = (events ?? []).filter((e) => e.event_type !== "today.viewed");
   const days: LifeStreamDay[] = [];
   visible.forEach((e) => {
     const key = dayKeyOf(e.occurred_at);
