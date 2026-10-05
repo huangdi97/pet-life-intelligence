@@ -3,6 +3,7 @@ import { Button, Picker, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api, type LifeEvent } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { PetContextGate } from "../../components/feedback/Feedback";
 import { eventTypeLabel } from "../../utils/labels";
 import { fmtTime } from "../../utils/format";
 
@@ -51,7 +52,7 @@ function ownerValue(value: unknown): string {
 }
 
 export default function Welfare() {
-  const { pets, petId } = usePets();
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
   const [profile, setProfile] = useState<WelfareProfile | null>(null);
   const [evidence, setEvidence] = useState<WelfareEvidence | null>(null);
@@ -93,6 +94,15 @@ export default function Welfare() {
       }
     });
   }, [petId, version]);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">生活与福祉</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   async function record() {
     if (!petId || busy) return;
