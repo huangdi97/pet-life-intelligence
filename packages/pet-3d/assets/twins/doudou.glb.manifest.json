@@ -47,7 +47,7 @@
   },
   "nativeBreedSource": true,
   "sourceGeometryClass": "native-corgi",
-  "atlasObservedRatio": 0.4417860507965088,
+  "atlasObservedRatio": 0.441784143447876,
   "landmarks": {
     "eye_center": [
       0.0,
@@ -80,8 +80,8 @@
     "Stretch"
   ],
   "pbrMaterial": true,
-  "fingerprint": "bd42b0408a92f54c",
-  "fileSizeBytes": 3363708,
+  "fingerprint": "41b3cd7060aa495f",
+  "fileSizeBytes": 3341132,
   "poseTruth": {
     "Idle": "AMBIENT",
     "Stand": "AMBIENT",
