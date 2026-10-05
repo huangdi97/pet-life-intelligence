@@ -2,9 +2,10 @@
 // Usage:
 //   node scripts/r5-6/capture-web-turntables-final.mjs //     --primary-pet-id <uuid> --secondary-pet-id <uuid> [--base-url http://localhost:3100]
 import { chromium } from "@playwright/test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..", "..");
@@ -21,6 +22,12 @@ if (!primaryPetId || !secondaryPetId) {
 }
 
 const outRoot = resolve(root, "artifacts/r5-6-final/turntable");
+const git = (...gitArgs) => {
+  const r = spawnSync("git", gitArgs, { cwd: root, encoding: "utf8" });
+  if (r.status !== 0) throw new Error(`git ${gitArgs.join(" ")} failed: ${r.stderr || r.stdout}`);
+  return r.stdout.trim();
+};
+rmSync(outRoot, { recursive: true, force: true });
 const viewport = { width: 390, height: 844 };
 const views = [
   ["front", 0],
@@ -97,4 +104,23 @@ try {
 } finally {
   await browser.close();
 }
+writeFileSync(
+  resolve(outRoot, "capture-manifest.json"),
+  JSON.stringify(
+    {
+      captured_at: new Date().toISOString(),
+      source_head: git("rev-parse", "HEAD"),
+      source_branch: git("branch", "--show-current"),
+      base_url: baseUrl,
+      vision_model_used: false,
+      primary_pet_id: primaryPetId,
+      secondary_pet_id: secondaryPetId,
+      primary_views: ["front", "front-left", "side", "rear", "front-right"],
+      secondary_views: ["front", "front-left", "side", "rear"],
+    },
+    null,
+    2,
+  ) + "\n",
+  "utf8",
+);
 console.log("R5.6 final runtime turntables captured ->", outRoot);
