@@ -16,6 +16,25 @@ const baseUrl = pick("--base-url", "http://localhost:3100");
 const petId = pick("--pet-id", "");
 const out = resolve(root, "artifacts/r5-6-final/web");
 
+function sourceIdentity() {
+  if (process.env.PLI_SOURCE_HEAD) {
+    return {
+      head: process.env.PLI_SOURCE_HEAD,
+      branch: process.env.PLI_SOURCE_BRANCH || "",
+    };
+  }
+  const eventPath = process.env.GITHUB_EVENT_PATH;
+  if (eventPath && existsSync(eventPath)) {
+    try {
+      const event = JSON.parse(readFileSync(eventPath, "utf8"));
+      const head = event?.pull_request?.head?.sha;
+      const branch = event?.pull_request?.head?.ref;
+      if (head) return { head: String(head), branch: String(branch || "") };
+    } catch {}
+  }
+  return { head: git("rev-parse", "HEAD"), branch: git("branch", "--show-current") };
+}
+
 const git = (...gitArgs) => {
   const r = spawnSync("git", gitArgs, { cwd: root, encoding: "utf8" });
   if (r.status !== 0) throw new Error(`git ${gitArgs.join(" ")} failed: ${r.stderr || r.stdout}`);
@@ -85,10 +104,11 @@ for (const surface of ["today", "pet", "lifeview", "twinreview"]) {
   }
 }
 
+const source = sourceIdentity();
 const provenance = {
   captured_at: new Date().toISOString(),
-  source_head: process.env.PLI_SOURCE_HEAD || git("rev-parse", "HEAD"),
-  source_branch: process.env.PLI_SOURCE_BRANCH || git("branch", "--show-current"),
+  source_head: source.head,
+  source_branch: source.branch,
   checkout_head: git("rev-parse", "HEAD"),
   base_url: baseUrl,
   primary_pet_id: petId || null,
