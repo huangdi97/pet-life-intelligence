@@ -362,8 +362,9 @@ def main() -> None:
 
     capture_manifest = {
         "captured_at": datetime.now(timezone.utc).isoformat(),
-        "source_head": git("rev-parse", "HEAD"),
-        "source_branch": git("branch", "--show-current"),
+        "source_head": os.environ.get("PLI_SOURCE_HEAD") or git("rev-parse", "HEAD"),
+        "source_branch": os.environ.get("PLI_SOURCE_BRANCH") or git("branch", "--show-current"),
+        "checkout_head": git("rev-parse", "HEAD"),
         "serial": args.serial,
         "package": args.package,
         "build_kind": "DEMO_EVIDENCE_BUILD",
