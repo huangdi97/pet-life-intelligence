@@ -7,6 +7,7 @@
 import React from "react";
 import { View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { navigationRef } from "./demoNav";
@@ -95,6 +96,7 @@ const TAB_A11Y_LABELS: Record<keyof TabParamList, string> = {
 
 function Tabs() {
   const { pets, petId } = usePets();
+  const insets = useSafeAreaInsets();
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
   return (
@@ -104,9 +106,11 @@ function Tabs() {
         tabBarActiveTintColor: COLORS.brandPrimaryDeep,
         tabBarInactiveTintColor: COLORS.textTertiary,
         tabBarStyle: {
-          height: 68,
+          // R5.6 final craft: include the home-indicator area in the navigation
+          // surface so visual rhythm and touch targets stay stable on real devices.
+          height: 60 + Math.max(insets.bottom, 8),
           paddingTop: 7,
-          paddingBottom: 8,
+          paddingBottom: Math.max(insets.bottom, 8),
           backgroundColor: COLORS.surfaceOverlay,
           borderTopWidth: 0,
           shadowColor: COLORS.textPrimary,
@@ -116,7 +120,7 @@ function Tabs() {
           elevation: 10,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
-        tabBarItemStyle: { borderRadius: 16, marginHorizontal: 2 },
+        tabBarItemStyle: { minHeight: 44, borderRadius: 16, marginHorizontal: 2 },
         tabBarTestID: TAB_TEST_IDS[route.name as keyof TabParamList],
         tabBarAccessibilityLabel: TAB_A11Y_LABELS[route.name as keyof TabParamList],
         tabBarHideOnKeyboard: true,
