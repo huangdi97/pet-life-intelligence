@@ -134,12 +134,23 @@ def test_retry_guarded_until_failed(client, seeded):
 def test_cross_pet_isolation(client, seeded):
     owner, coco, mimi = seeded["owner_id"], seeded["coco_id"], seeded["mimi_id"]
     headers = auth(owner)
+
+    # Demo pets may already have their canonical DEMO_TEMPLATE Twin. Isolation
+    # means creating a new Coco candidate changes only Coco's history; it does
+    # not require either pet to start with an empty model table.
+    before_coco = client.get(f"/api/v1/pets/{coco}/visual-models", headers=headers).json()["models"]
+    before_mimi = client.get(f"/api/v1/pets/{mimi}/visual-models", headers=headers).json()["models"]
+
     cap = _create_capture(client, coco, headers, n=4)
-    _create_model(client, coco, headers, capture_id=cap["capture_id"])
+    created = _create_model(client, coco, headers, capture_id=cap["capture_id"])
     lst_coco = client.get(f"/api/v1/pets/{coco}/visual-models", headers=headers).json()["models"]
     lst_mimi = client.get(f"/api/v1/pets/{mimi}/visual-models", headers=headers).json()["models"]
-    assert len(lst_coco) == 1
-    assert len(lst_mimi) == 0
+
+    assert len(lst_coco) == len(before_coco) + 1
+    assert len(lst_mimi) == len(before_mimi)
+    assert created["pet_id"] == coco
+    assert all(m["pet_id"] == coco for m in lst_coco)
+    assert all(m["pet_id"] == mimi for m in lst_mimi)
 
 
 def test_version_upgrade_surface_manifest_and_provenance(client, seeded):
