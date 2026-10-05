@@ -83,6 +83,26 @@ export default function BehaviorPage() {
         <p className="muted" style={{ margin: 0 }}>前因、环境与触发条件会从每条行为记录中汇总到这里。</p>
       </section>
 
+      <section className="v4-sec" data-testid="pli.behavior.recent">
+        <h2 className="v4-sec-title">最近记录</h2>
+        <State state={list.state} error={list.error} onRetry={list.reload} empty="还没有行为记录。">
+          <ul className="tl" data-testid="pli.behavior.observations">
+            {list.data?.map((b) => (
+              <li key={b.behavior_event_id}>
+                <div className="tl-head">
+                  <span className="tl-type">{b.behavior}</span>
+                  {b.intensity && <span className="badge">{b.intensity === "MILD" ? "轻度" : b.intensity === "MODERATE" ? "中度" : b.intensity === "SEVERE" ? "重度" : b.intensity}（主人记录）</span>}
+                  <span className="tl-time" data-testid="pli.behavior.source">{fmtTime(b.occurred_at)}</span>
+                </div>
+                <div className="tl-body">
+                  之前：{b.antecedent || "—"} · 之后：{b.consequence || "—"} · 环境：{b.environment || "—"}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </State>
+      </section>
+
       <div className="v5-form-surface">
         <h2>记录一次行为事件</h2>
         <label className="field">
@@ -131,25 +151,6 @@ export default function BehaviorPage() {
         </button>
       </div>
 
-      <section className="v4-sec" data-testid="pli.behavior.recent">
-        <h2 className="v4-sec-title">最近记录</h2>
-        <State state={list.state} error={list.error} onRetry={list.reload} empty="还没有行为记录。">
-          <ul className="tl" data-testid="pli.behavior.observations">
-            {list.data?.map((b) => (
-              <li key={b.behavior_event_id}>
-                <div className="tl-head">
-                  <span className="tl-type">{b.behavior}</span>
-                  {b.intensity && <span className="badge">{b.intensity === "MILD" ? "轻度" : b.intensity === "MODERATE" ? "中度" : b.intensity === "SEVERE" ? "重度" : b.intensity}（主人记录）</span>}
-                  <span className="tl-time" data-testid="pli.behavior.source">{fmtTime(b.occurred_at)}</span>
-                </div>
-                <div className="tl-body">
-                  之前：{b.antecedent || "—"} · 之后：{b.consequence || "—"} · 环境：{b.environment || "—"}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </State>
-      </section>
     </main>
   );
 }
