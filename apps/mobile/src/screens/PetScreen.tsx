@@ -108,7 +108,7 @@ export function PetScreen() {
         ? `近期观察 ${Object.values(welfare.observation_counts).reduce((a, b) => a + b, 0)} 条`
         : "最近没有新增观察";
     return [
-      { key: "life", icon: "planet-outline", meaning: "此刻、趋势与生命记忆都在这里", route: "LifeView" },
+      { key: "life", icon: "planet-outline", meaning: "此刻、趋势与外观都在这里", route: "LifeView" },
       { key: "health", icon: "medkit-outline", meaning: healthMeaning, route: "Health" },
       { key: "behavior", icon: "paw-outline", meaning: behaviorMeaning, route: "Behavior" },
       { key: "training", icon: "ribbon-outline", meaning: trainingMeaning, route: "Training" },
@@ -256,7 +256,7 @@ export function PetScreen() {
                 style={({ pressed }) => [styles.entryRow, pressed && styles.entryRowPressed]}
               >
                 <Ionicons name="planet-outline" size={18} color={COLORS.brandPrimaryDeep} />
-                <Text style={styles.entryText}>生命视图 · {pet?.name ?? "宠物"}的此刻与生活轨迹</Text>
+                <Text style={styles.entryText}>生命视图 · {pet?.name ?? "宠物"}的此刻、趋势与外观</Text>
                 <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
               </Pressable>
               <Pressable
