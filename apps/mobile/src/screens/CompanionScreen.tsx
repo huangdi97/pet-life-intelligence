@@ -32,25 +32,41 @@ export function CompanionScreen() {
   const navigation = useNavigation<StackNav>();
   const [devices, setDevices] = useState<DeviceRow[]>([]);
   const [events, setEvents] = useState<LifeEvent[]>([]);
+  const [deviceState, setDeviceState] = useState<"loading" | "ready" | "error">("loading");
+  const [eventsState, setEventsState] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     if (!petId) return;
     let alive = true;
+    setDeviceState("loading");
+    setEventsState("loading");
     api
       .get<DeviceRow[]>(`/pets/${petId}/devices`)
       .then((rows) => {
-        if (alive) setDevices(rows);
+        if (alive) {
+          setDevices(rows);
+          setDeviceState("ready");
+        }
       })
       .catch(() => {
-        if (alive) setDevices([]);
+        if (alive) {
+          setDevices([]);
+          setDeviceState("error");
+        }
       });
     api
       .get<{ events: LifeEvent[]; count: number }>(`/pets/${petId}/events?limit=5`)
       .then((r) => {
-        if (alive) setEvents(r.events.filter((e) => e.event_type !== "today.viewed").slice(0, 4));
+        if (alive) {
+          setEvents(r.events.filter((e) => e.event_type !== "today.viewed").slice(0, 4));
+          setEventsState("ready");
+        }
       })
       .catch(() => {
-        if (alive) setEvents([]);
+        if (alive) {
+          setEvents([]);
+          setEventsState("error");
+        }
       });
     return () => {
       alive = false;
@@ -86,7 +102,14 @@ export function CompanionScreen() {
 
         <OpenSection title="设备">
           <View testID="pli.companion.device-status" accessible accessibilityLabel="设备状态">
-            {devices.length === 0 ? (
+            {deviceState === "loading" ? (
+              <Text style={styles.deviceEmptyText}>正在读取设备状态……</Text>
+            ) : deviceState === "error" ? (
+              <View style={styles.deviceEmpty} testID="pli.companion.device-error">
+                <Ionicons name="cloud-offline-outline" size={20} color={COLORS.textTertiary} />
+                <Text style={styles.deviceEmptyText}>设备状态暂时没有加载成功；不会把未知状态显示成未连接。</Text>
+              </View>
+            ) : devices.length === 0 ? (
               <View style={styles.deviceEmpty} testID="pli.companion.device-empty">
                 <Ionicons name="hardware-chip-outline" size={20} color={COLORS.textTertiary} />
                 <Text style={styles.deviceEmptyText}>尚未连接设备</Text>
@@ -105,7 +128,11 @@ export function CompanionScreen() {
         </OpenSection>
 
         <OpenSection title="最近" testID="pli.companion.recent">
-          {events.length > 0 ? (
+          {eventsState === "loading" ? (
+            <Text style={styles.deviceEmptyText}>正在读取最近记录……</Text>
+          ) : eventsState === "error" ? (
+            <Text style={styles.deviceEmptyText}>最近记录暂时没有加载成功；这里不会把加载失败显示成“没有活动”。</Text>
+          ) : events.length > 0 ? (
             events.map((e) => (
               <View key={e.event_id} style={styles.eventRow}>
                 <Text style={styles.eventType}>{eventTypeLabel(e.event_type)}</Text>
