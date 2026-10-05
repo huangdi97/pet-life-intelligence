@@ -78,7 +78,12 @@ export function TimelineScreen() {
           <Text style={styles.sub}>记录每一天真实发生的事情</Text>
         </View>
 
-        <View style={styles.chipRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+          accessibilityLabel="时间线筛选"
+        >
           {TIMELINE_FILTERS.map((f, i) => (
             <Pressable
               key={f.key}
@@ -92,7 +97,7 @@ export function TimelineScreen() {
               <Text style={[styles.chipText, (f.key === "all" ? selected.length === 0 : selected.includes(f.key)) && styles.chipActiveText]}>{f.zh}</Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
         {error ? <InlineError message="暂时连接不上，已展示已有内容" /> : null}
 
         {loading ? (
@@ -121,7 +126,7 @@ const styles = StyleSheet.create({
   head: { paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3 },
   title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3 },
+  chipRow: { flexDirection: "row", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3, paddingRight: SPACE.s6 },
   chip: { minHeight: 44, paddingHorizontal: SPACE.s3, paddingVertical: 6, alignItems: "center", justifyContent: "center", borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
   chipActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
   chipText: { fontSize: TYPE.sm, color: COLORS.textTertiary },
