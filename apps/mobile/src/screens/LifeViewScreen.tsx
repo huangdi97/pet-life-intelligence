@@ -141,7 +141,7 @@ export function LifeViewScreen() {
             interactive
             twin={twin?.descriptor ?? null}
             sourceMediaCount={twin?.observedRegions.length ?? 0}
-            frameTarget={0.30}
+            frameTarget={0.34}
             viewerRef={viewerRef}
             pose={twin ? representativePose : null}
           />
