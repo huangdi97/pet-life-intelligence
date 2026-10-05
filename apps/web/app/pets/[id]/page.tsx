@@ -80,6 +80,8 @@ export default function PetProfilePage() {
     ? ((activeTwin.artifact_map as Record<string, unknown>)?.twin_descriptor as
         import("@pli/pet-3d").TwinDescriptor | undefined) ?? null
     : null;
+  const twinMeta = (activeTwin?.metadata_json as Record<string, unknown> | undefined) ?? {};
+  const demoTwin = twinMeta.demo_fixture === true;
 
   if (!id || pet.state === "denied") {
     return (
@@ -164,6 +166,7 @@ export default function PetProfilePage() {
             variant="pet"
             stageRole="pet"
             realityField="warm-living"
+            demo={demoTwin || process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1"}
             twin={twinDescriptor}
             frameTarget={0.28}
             anchors={anchors.length ? anchors : undefined}
