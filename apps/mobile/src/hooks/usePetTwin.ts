@@ -36,6 +36,9 @@ export function usePetTwin(petId: string | null): {
     if (!petId) return;
     setLoading(true);
     setError(false);
+    // Pet identity is a hard boundary. Never keep the previous pet's Twin on
+    // screen while the newly selected pet is loading or if its request fails.
+    setTwin(null);
     api
       .get<{ models: Array<Record<string, unknown>> }>(`/pets/${petId}/visual-models`)
       .then((r) => {
@@ -71,7 +74,10 @@ export function usePetTwin(petId: string | null): {
           activatedAt: (active.activated_at as string | null) ?? null,
         });
       })
-      .catch(() => setError(true))
+      .catch(() => {
+        setTwin(null);
+        setError(true);
+      })
       .finally(() => setLoading(false));
   }, [petId]);
 
