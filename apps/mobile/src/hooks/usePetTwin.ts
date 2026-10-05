@@ -52,10 +52,18 @@ export function usePetTwin(petId: string | null): {
           media_provenance?: string;
           opts?: { media_provenance?: string };
         };
-        const surface = (artifactMap.twin_descriptor as { surface?: { coverage_ratio?: number; observed_regions?: string[] } } | undefined)?.surface;
+        const descriptor = artifactMap.twin_descriptor;
+        // An ACTIVE row without a Twin descriptor is a legacy/incomplete
+        // record, not permission to synthesize a generic dog and present it
+        // as this pet. Fall back to the honest photo/2.5D path instead.
+        if (!descriptor) {
+          setTwin(null);
+          return;
+        }
+        const surface = (descriptor as { surface?: { coverage_ratio?: number; observed_regions?: string[] } }).surface;
         setTwin({
           version: Number(active.version ?? 0),
-          descriptor: artifactMap.twin_descriptor ?? { family: "standard-dog" },
+          descriptor,
           coverageRatio: surface?.coverage_ratio ?? 0,
           observedRegions: surface?.observed_regions ?? [],
           mediaProvenance: meta.media_provenance ?? meta.opts?.media_provenance ?? "NOT_YET_OBSERVED",
