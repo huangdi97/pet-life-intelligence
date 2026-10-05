@@ -29,7 +29,19 @@
     ],
     "typeRoots": [
       "./node_modules/@types"
-    ]
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "react": [
+        "./node_modules/react"
+      ],
+      "react/jsx-runtime": [
+        "./node_modules/react/jsx-runtime"
+      ],
+      "react/jsx-dev-runtime": [
+        "./node_modules/react/jsx-dev-runtime"
+      ]
+    }
   },
   "include": [
     "next-env.d.ts",
