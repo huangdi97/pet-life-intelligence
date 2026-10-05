@@ -1,13 +1,12 @@
 "use client";
 
-/** LivingModeSwitcher — Life View mode bar (R2-P §7.3). 此刻 default. */
+/** LivingModeSwitcher — Life View: 此刻 / 趋势 / 外观. Timeline stays first-level. */
 
-export type LivingMode = "now" | "trend" | "timeline" | "appearance";
+export type LivingMode = "now" | "trend" | "appearance";
 
 const MODES: Array<{ id: LivingMode; label: string }> = [
   { id: "now", label: "此刻" },
   { id: "trend", label: "趋势" },
-  { id: "timeline", label: "时间线" },
   { id: "appearance", label: "外观" },
 ];
 
