@@ -86,32 +86,40 @@ export default function Health() {
 
       <View className="soft-hero">
         <View className="section-title">近期状态</View>
-        <View className="metric-row">
-          <View className="metric-cell">
-            <View className="metric-value">{latest ? riskLabel(latest.latest_triage_level) : "暂无"}</View>
-            <View className="metric-label">最近一次分级</View>
-          </View>
-          <View className="metric-cell">
-            <View className="metric-value">{recentSevenDays.length}</View>
-            <View className="metric-label">近 7 天记录</View>
-          </View>
-        </View>
-        {latest ? (
-          <View className={highRisk(latest.latest_triage_level) ? "attention-panel attention-danger" : "attention-panel attention-calm"}>
-            <View>
-              <View className="attention-title">{riskLabel(latest.latest_triage_level)}</View>
-              <View className="attention-body">{latest.chief_complaint}</View>
-              <View className="attention-footer">{statusLabel(latest.status)} · {fmtTime(latest.opened_at)}</View>
-            </View>
-          </View>
+        {state === "error" ? (
+          <View className="life-empty-note">健康记录暂时没有加载成功；不会把未知状态显示成“暂无”或“正常”。</View>
         ) : (
-          <View className="life-empty-note">还没有健康变化记录。</View>
+          <>
+            <View className="metric-row">
+              <View className="metric-cell">
+                <View className="metric-value">{state === "loading" ? "…" : latest ? riskLabel(latest.latest_triage_level) : "暂无"}</View>
+                <View className="metric-label">最近一次分级</View>
+              </View>
+              <View className="metric-cell">
+                <View className="metric-value">{state === "loading" ? "…" : recentSevenDays.length}</View>
+                <View className="metric-label">近 7 天记录</View>
+              </View>
+            </View>
+            {state === "ready" && latest ? (
+              <View className={highRisk(latest.latest_triage_level) ? "attention-panel attention-danger" : "attention-panel attention-calm"}>
+                <View>
+                  <View className="attention-title">{riskLabel(latest.latest_triage_level)}</View>
+                  <View className="attention-body">{latest.chief_complaint}</View>
+                  <View className="attention-footer">{statusLabel(latest.status)} · {fmtTime(latest.opened_at)}</View>
+                </View>
+              </View>
+            ) : state === "ready" ? (
+              <View className="life-empty-note">还没有健康变化记录。</View>
+            ) : null}
+          </>
         )}
       </View>
 
       <View className="open-section">
         <View className="section-title">健康记录</View>
-        {rows.length ? rows.map((row) => (
+        {state === "error" ? (
+          <View className="life-empty-note">健康记录暂时不可用，请重试。</View>
+        ) : state === "ready" && rows.length ? rows.map((row) => (
           <View className="life-row" key={row.health_event_id} onClick={() => Taro.navigateTo({ url: `/pages/health/detail/index?id=${row.health_event_id}` })}>
             <View className={highRisk(row.latest_triage_level) ? "life-dot life-dot-danger" : "life-dot"} />
             <View className="life-row-body">
@@ -122,9 +130,9 @@ export default function Health() {
               <View className="life-row-detail">{statusLabel(row.status)} · {fmtTime(row.opened_at)} · 查看详情 ›</View>
             </View>
           </View>
-        )) : (
+        )) : state === "ready" ? (
           <View className="life-empty-note">从一次真实观察开始，分级与后续变化会留在这里。</View>
-        )}
+        ) : null}
       </View>
 
       <View className="open-section">
@@ -141,7 +149,7 @@ export default function Health() {
         <View className="life-row">
           <View className="life-row-body">
             <View className="life-row-head"><Text className="life-row-type">疫苗与驱虫</Text></View>
-            <View className="life-row-detail">暂无记录；不会因为缺少数据显示“正常”。</View>
+            <View className="life-row-detail">当前页面未汇总疫苗与驱虫记录；缺少数据不会显示成“正常”。</View>
           </View>
         </View>
       </View>
