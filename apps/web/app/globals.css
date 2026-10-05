@@ -1279,3 +1279,36 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+
+
+/* R5.6 final living-craft closure: touch targets + quiet field. */
+/* The owner Hero should read as one calm living field. The older decorative
+   pseudo-plant rendered as a soft green/brown blob at small sizes; the window
+   beam + grounded floor already provide enough environmental depth. */
+.r2p-stage--3d::after {
+  display: none;
+}
+
+/* R5.5 accessibility contract: interactive owner controls on phone-width Web
+   must expose a >=44px target. Keep data bubbles visually light while giving
+   their linked variants a reliable hit area. */
+.r2p-stage--3d .r2p-anchor {
+  min-height: 44px;
+  padding: 6px 11px;
+}
+.pet3d-btn {
+  width: 44px;
+  height: 44px;
+}
+
+/* Twin Review angle controls are primary identity-inspection controls, not
+   compact desktop chips on mobile. */
+@media (max-width: 768px) {
+  .btn,
+  .v5-segmented .btn {
+    min-height: 44px;
+  }
+  .petswitch .btn {
+    min-height: 44px;
+  }
+}
