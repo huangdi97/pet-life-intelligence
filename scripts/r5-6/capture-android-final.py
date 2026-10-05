@@ -248,12 +248,16 @@ def capture_surface(
     android.start_link(f"pli-demo://nav?screen={screen}")
     time.sleep(5)
     android.dump_xml(directory / "ui.xml")
-    android.screenshot(directory / f"{screen}.png")
     if needs_manifest:
+        # Prove the high-fidelity runtime is ready before freezing the visual
+        # frame. This prevents a screenshot of an earlier procedural/loading
+        # state from being paired with a later successful manifest.
         save_manifest(
             directory / "3d.json",
             android.read_runtime_manifest(expected_pet_id=expected_pet_id),
         )
+        time.sleep(1)
+    android.screenshot(directory / f"{screen}.png")
     extractor = ROOT / "scripts" / "blind-ui" / "android_extract.py"
     run([os.environ.get("PYTHON", "python3"), str(extractor), str(directory)])
 
@@ -341,20 +345,22 @@ def main() -> None:
     android.tap(xml, f"pli.multipet.switch.{secondary_id}", "id")
     time.sleep(6)
     android.dump_xml(secondary_today / "ui.xml")
-    android.screenshot(secondary_today / "secondary_today.png")
     secondary_manifest = android.read_runtime_manifest(expected_pet_id=secondary_id)
     save_manifest(secondary_today / "3d.json", secondary_manifest)
+    time.sleep(1)
+    android.screenshot(secondary_today / "secondary_today.png")
 
     secondary_review = out / "secondary-review"
     secondary_review.mkdir(parents=True, exist_ok=True)
     android.start_link("pli-demo://nav?screen=twinreview")
     time.sleep(5)
     android.dump_xml(secondary_review / "ui.xml")
-    android.screenshot(secondary_review / "secondary_twinreview.png")
     save_manifest(
         secondary_review / "3d.json",
         android.read_runtime_manifest(expected_pet_id=secondary_id),
     )
+    time.sleep(1)
+    android.screenshot(secondary_review / "secondary_twinreview.png")
     capture_review_views(android, secondary_review, "secondary", secondary_id)
 
     capture_manifest = {
