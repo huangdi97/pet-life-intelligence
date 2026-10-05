@@ -3,10 +3,11 @@ import { View, Text, Button } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api, type NotificationItem } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { PetContextGate } from "../../components/feedback/Feedback";
 import { fmtTime } from "../../utils/format";
 
 export default function Notifications() {
-  const { pets } = usePets();
+  const { pets, state: petContextState, refresh: refreshPets } = usePets();
   const [rows, setRows] = useState<NotificationItem[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [householdId, setHouseholdId] = useState<string | null>(null);
@@ -29,6 +30,15 @@ export default function Notifications() {
   useEffect(() => {
     if (householdId) load(householdId);
   }, [householdId, load]);
+
+  if (petContextState !== "ready" || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">通知</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   return (
     <View className="page">
