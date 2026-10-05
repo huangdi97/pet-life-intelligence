@@ -4,8 +4,9 @@
  * Full 3D Living Stage: the shared demo pet asset is interactive here
  * (drag rotate, pinch zoom, reset). State anchors are clickable and open a
  * detail sheet with facts / self-comparison / source / updated-at / evidence —
- * all real API data, never invented scores. Modes: 此刻 (complete) /
- * 趋势 / 时间线 / 外观 (minimal but real). Provider/model/raw keys never
+ * all real API data, never invented scores. Modes: 此刻 / 趋势 / 外观.
+ * Timeline remains the canonical first-level destination instead of being
+ * duplicated inside this inspection space. Provider/model/raw keys never
  * appear on the owner surface.
  */
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -18,7 +19,6 @@ import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
 import { PetLivingStage } from "../components/life/PetLivingStage";
 import type { Pet3DViewerHandle } from "../components/three/Pet3DViewer";
 import { LivingModeSwitcher, type LivingMode } from "../components/life/LivingModeSwitcher";
-import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../components/timeline/LifeStream";
 import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { eventTypeLabel, sourceLabel } from "./ui_labels";
 import { usePetTwin } from "../hooks/usePetTwin";
@@ -104,18 +104,6 @@ export function LifeViewScreen() {
     ];
     return list;
   }, [petEvents]);
-
-  const streamRows: LifeStreamRow[] = petEvents.slice(0, 4).map((e) => ({
-    id: e.event_id,
-    time: new Date(e.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }),
-    typeLabel: eventTypeLabel(e.event_type),
-    sourceLabel: sourceLabel(e.source_type),
-    icon: "ellipse-outline" as const,
-    mediaUri: null,
-  }));
-  const streamDays: LifeStreamDay[] = streamRows.length
-    ? [{ id: "now", label: "此刻", isToday: true, rows: streamRows }]
-    : [];
 
   const nowLine = error
     ? "暂时连接不上，稍后自动恢复。"
@@ -212,16 +200,6 @@ export function LifeViewScreen() {
               </View>
             ) : (
               <Text style={styles.panelText}>数据积累后，这里会展示它自己的趋势。</Text>
-            )
-          ) : null}
-
-          {mode === "timeline" ? (
-            streamDays.length ? (
-              <LifeStream days={streamDays} />
-            ) : (
-              <Text style={styles.panelText}>
-                {error ? "暂时连接不上。" : "从第一次喂食、散步或健康记录开始，生命轨迹会慢慢成形。"}
-              </Text>
             )
           ) : null}
 
