@@ -59,6 +59,8 @@ interface Props {
   frameTarget?: number;
   stageRole?: string;
   realityField?: string;
+  /** Declarative Review camera preset. Product state must not depend on a test/debug global. */
+  view?: "front" | "side" | "back";
   onStatus?: (status: Pet3DStatus) => void;
 }
 
@@ -73,6 +75,7 @@ export function Pet3DViewer({
   frameTarget = 0,
   stageRole = "life",
   realityField = "",
+  view = "front",
   onStatus,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -145,11 +148,19 @@ export function Pet3DViewer({
     // loads (or when it fails). Manifest reclassifies accordingly.
     let petRoot: THREE.Object3D = stage.pet;
     let hdTwin: LoadedTwin | null = null;
+    // Truth invariant: the procedural twin may temporarily bridge GLB loading,
+    // but if the product GLB cannot load the runtime must report a fallback.
+    let hdLoadFailed = false;
     if (twin && identity) {
       setTwinAssetResolver(null);
       loadTwinGLB(identity)
         .then((twin3d) => {
-          if (!alive || !twin3d || !scene || !camera) return undefined;
+          if (!alive) return undefined;
+          if (!twin3d || !scene || !camera) {
+            hdLoadFailed = true;
+            syncOrientation();
+            return undefined;
+          }
           scene.remove(stage.pet);
           scene.add(twin3d.group);
           petRoot = twin3d.group;
@@ -174,7 +185,10 @@ export function Pet3DViewer({
         })
         .catch((err) => {
           // PROVIDER: GLB load failures must never take down the hero; the
-          // procedural twin stays as the engineering fallback. Log for QA.
+          // procedural twin stays as the engineering fallback, but that
+          // fallback is explicit in runtime evidence.
+          hdLoadFailed = true;
+          syncOrientation();
           if (typeof console !== "undefined") console.error("R4_TWIN_GLB_LOAD_FAIL", err);
           return undefined;
         });
@@ -252,14 +266,14 @@ export function Pet3DViewer({
         petId: petId ?? null,
         sourceMediaCount,
         assetVersion: twin?.version ?? "demo-v1",
-        fallbackUsed: false,
+        fallbackUsed: hdLoadFailed,
         wireframe: false,
         meshCount,
         skinnedMeshCount,
         skeleton: !!twin,
         animationClips: clips,
         materialMode: "pbr",
-        baseColorTexture: true,
+        baseColorTexture: hdTwin !== null,
         camera: {
           fov: camera?.fov ?? 38,
           distance: orbit.radius,
@@ -433,7 +447,21 @@ export function Pet3DViewer({
     }
   };
 
+  // Twin Review is controlled declaratively by React state. The global
+  // __PLI_SET_VIEW bridge remains below only for blind/runtime harnesses.
+  useEffect(() => {
+    if (status !== "ready") return;
+    const yaw = view === "side" ? Math.PI / 2 : view === "back" ? Math.PI : 0;
+    orbitRef.current.yaw = yaw;
+    orbitRef.current.pitch = DEFAULT_ORBIT.pitch;
+    if (wrapRef.current) wrapRef.current.dataset.orientation = yaw.toFixed(2);
+    publishNow();
+  }, [view, status]);
+
   const meta = PET_3D_ASSETS[identity];
+  const accessibleLabel = twin
+    ? `${meta.name}的 3D 形象。外观由素材与模板生成，不代表真实扫描。`
+    : `${meta.name}的 3D 形象（演示）。${meta.description}`;
 
   return (
     <div
@@ -443,7 +471,7 @@ export function Pet3DViewer({
       data-orientation={DEFAULT_ORBIT.yaw.toFixed(2)}
       data-variant={variant}
       role="img"
-      aria-label={`${meta.name}的 3D 形象（演示）。${meta.description}`}
+      aria-label={accessibleLabel}
       className="pet3d-wrap"
       style={{ touchAction: "none" }}
     >
