@@ -213,15 +213,18 @@ export function Icon({
   size = 18,
   className,
   strokeWidth = 1.5,
+  style,
 }: {
   name: WebIconName;
   size?: number;
   className?: string;
   strokeWidth?: number;
+  style?: { color?: string; marginLeft?: number | string };
 }) {
   return (
     <svg
       className={className}
+      style={style}
       width={size}
       height={size}
       viewBox="0 0 24 24"
