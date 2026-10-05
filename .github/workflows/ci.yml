@@ -156,7 +156,7 @@ jobs:
           echo "REDIS_URL=redis://localhost:${{ job.services.redis.ports[6379] }}/0" >> "$GITHUB_ENV"
       - name: Backend install + seed
         run: |
-          pip install -e "services/api[dev]" -e "packages/rules" -e "services/ai-gateway"
+          pip install -e "services/api[dev]" -e "packages/rules" -e "services/ai-gateway" pillow
           cd services/api && alembic upgrade head && python -m app.seed
       - name: Frontend install + build
         env:
@@ -212,6 +212,7 @@ jobs:
       - name: R5.6 Web final runtime evidence
         run: |
           node scripts/r5-6/capture-web-final-bundle.mjs --base-url http://localhost:3100 --api-url http://localhost:8800
+          python scripts/r5-6/contact_sheets_ci.py --platform web
       - name: Upload R5.6 Web runtime evidence
         uses: actions/upload-artifact@v4
         with:
@@ -219,6 +220,7 @@ jobs:
           path: |
             artifacts/r5-6-final/web/
             artifacts/r5-6-final/turntable/
+            artifacts/r5-6-final/contact-sheets-ci/
           if-no-files-found: error
       - name: Upload expected visual baseline drift evidence
         if: ${{ github.event_name == 'pull_request' && github.head_ref == 'feat/r2p3d-r3-render-truth-ui-closure' && inputs.update-visual-baseline != true }}
