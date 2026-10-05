@@ -52,16 +52,19 @@ export default function MonitoringPage() {
   const stateKey =
     devices.state === "loading"
       ? "LOADING"
-      : devices.state === "error"
-        ? "ERROR"
-        : !devices.data || devices.data.length === 0
-          ? "NO_DEVICE"
-          : devices.data.some((d) => d.status === "offline")
-            ? "OFFLINE"
-            : "CONNECTED";
+      : devices.state === "denied"
+        ? "PERMISSION_REQUIRED"
+        : devices.state === "error"
+          ? "ERROR"
+          : !devices.data || devices.data.length === 0
+            ? "NO_DEVICE"
+            : devices.data.some((d) => d.status === "offline")
+              ? "OFFLINE"
+              : "CONNECTED";
   const stateText: Record<string, string> = {
     LOADING: "正在读取设备状态",
     ERROR: "设备状态读取失败",
+    PERMISSION_REQUIRED: "需要设备查看权限",
     NO_DEVICE: "还没有连接设备",
     OFFLINE: "有设备离线",
     CONNECTED: "设备在线",
@@ -92,7 +95,9 @@ export default function MonitoringPage() {
                     ? "离线期间不会生成伪实时状态；恢复连接后再继续同步。"
                     : stateKey === "ERROR"
                       ? "当前无法读取设备状态，可以稍后刷新。"
-                      : "正在读取最近一次设备状态。"}
+                      : stateKey === "PERMISSION_REQUIRED"
+                        ? "获得相应权限后才能查看设备状态；当前不会推断在线或离线。"
+                        : "正在读取最近一次设备状态。"}
             </p>
           </div>
         </div>
