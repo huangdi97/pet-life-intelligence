@@ -2,6 +2,7 @@
   pages: [
     "pages/index/index",
     "pages/timeline/index",
+    "pages/search/index",
     "pages/health/index",
     "pages/health/detail/index",
     "pages/agent/index",
