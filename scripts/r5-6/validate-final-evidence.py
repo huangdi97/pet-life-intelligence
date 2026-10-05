@@ -25,7 +25,7 @@ TURNTABLE = FINAL / "turntable"
 SHEETS = FINAL / "contact-sheets"
 
 WEB_SURFACES = ("today", "timeline", "pet", "lifeview", "twinreview", "health", "assistant", "me")
-WEB_STATES = ("empty", "attention", "offline", "notfound")
+WEB_STATES = ("empty", "attention", "offline", "notfound", "permission")
 ANDROID_SURFACES = WEB_SURFACES
 MINI_SURFACES = ("today", "timeline", "pet", "health", "assistant", "me")
 WEB_TWIN_SURFACES = ("today", "pet", "lifeview", "twinreview")
