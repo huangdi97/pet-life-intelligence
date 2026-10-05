@@ -198,3 +198,15 @@ PR_2 = OPEN
 MERGE = BLOCKED_UNTIL_HUMAN_APPROVAL
 STABLE_RELEASE = BLOCKED_UNTIL_HUMAN_APPROVAL
 ```
+
+## 11. Pet-presence finalization pass
+
+A final Pet-first source pass was applied after this audit:
+
+1. Mobile Today / Pet / Life View / Twin Review framing targets were increased and the Living Stage tightened so the Twin carries more visual mass without reintroducing a viewer-card composition.
+2. Web Today / Pet / Life View / Twin Review framing targets were increased modestly for parity with the final mobile hierarchy.
+3. Twin Review now has an explicit inspection sequence on both clients: **观察角度 → 像不像 → confirm/feedback**. This prevents the verification action from visually competing with the inspection task.
+4. The neutral Review Studio, real camera controls, not-like activation block, high-fidelity runtime contract and all release-governance boundaries remain unchanged.
+
+These are final source-craft corrections under R5.6. They invalidate any older “final” screenshots; fresh runtime evidence must be captured from the new branch HEAD before Human Visual Acceptance.
+
