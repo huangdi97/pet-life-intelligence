@@ -21,6 +21,7 @@ import json
 import math
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import time
@@ -69,6 +70,10 @@ class Android:
         return self.cmd("shell", *args, check=check).stdout.strip()
 
     def start_link(self, uri: str) -> None:
+        # adb shell concatenates remote command arguments and lets /system/bin/sh
+        # parse them. Query separators such as '&' would otherwise background
+        # the am command and turn the Activity component into a second shell
+        # command. Quote both values for the remote shell.
         self.cmd(
             "shell",
             "am",
@@ -77,8 +82,8 @@ class Android:
             "-a",
             "android.intent.action.VIEW",
             "-d",
-            uri,
-            f"{self.package}/.MainActivity",
+            shlex.quote(uri),
+            shlex.quote(f"{self.package}/.MainActivity"),
         )
 
     def screenshot(self, path: Path) -> None:
