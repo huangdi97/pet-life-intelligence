@@ -191,7 +191,7 @@ export function TodayScreen() {
           }
           headline={loading ? undefined : headline}
           caption={loading ? undefined : recentContext(todayEvents) ?? timeContextText()}
-          demo={DEMO_ENV}
+          demo={DEMO_ENV || twin?.demoFixture === true}
           onPressPet={pet ? () => stackNav.navigate("LifeView") : undefined}
           twin={twin?.descriptor ?? null}
           sourceMediaCount={twin?.observedRegions.length ?? 0}
