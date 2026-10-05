@@ -229,10 +229,10 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
           {selected === null
             ? "还未确认"
             : selected === "not_like"
-              ? "不像：需补充素材后重新生成"
+              ? "不像：可提交反馈，不会启用"
               : selected === "basic_like"
-                ? "基本像：已记录确认"
-                : "很像：已记录确认"}
+                ? "基本像：确认提交后才会启用"
+                : "很像：确认提交后才会启用"}
         </h2>
         {selected === "not_like" ? (
           <button
