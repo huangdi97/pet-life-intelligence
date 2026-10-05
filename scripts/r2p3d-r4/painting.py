@@ -86,13 +86,13 @@ def make_dog_painter(landmarks: dict) -> PaintFn:
     markings are claims about a real pet.
     """
 
-    sable = np.array([0.73, 0.43, 0.20])
-    sable_light = np.array([0.84, 0.57, 0.29])
-    sable_deep = np.array([0.47, 0.25, 0.12])
-    cream = np.array([0.96, 0.91, 0.80])
-    white = np.array([0.985, 0.965, 0.91])
+    sable = np.array([0.64, 0.31, 0.12])
+    sable_light = np.array([0.78, 0.43, 0.16])
+    sable_deep = np.array([0.34, 0.16, 0.07])
+    cream = np.array([0.95, 0.87, 0.72])
+    white = np.array([0.99, 0.96, 0.88])
     ear_inner = np.array([0.76, 0.48, 0.36])
-    eye_dark = np.array([0.055, 0.035, 0.022])
+    eye_dark = np.array([0.12, 0.075, 0.045])
 
     def paint(pos: np.ndarray, nrm: np.ndarray, prior: np.ndarray) -> tuple[np.ndarray, bool]:
         obs = _view_observed(pos, nrm, landmarks)
@@ -122,7 +122,7 @@ def make_dog_painter(landmarks: dict) -> PaintFn:
         # half so it cannot paint a white stripe down the back.
         head_front = _smooth(mz - 0.58, mz - 0.10, z)
         head_height = _smooth(ey - 0.05, ey + 0.20, y)
-        center = 1.0 - _smooth(0.045, 0.155, ax)
+        center = 1.0 - _smooth(0.035, 0.105, ax)
         blaze = head_front * head_height * center
         base = _blend(base, white, min(1.0, blaze * 1.08))
 
@@ -143,7 +143,7 @@ def make_dog_painter(landmarks: dict) -> PaintFn:
         chest_center = 1.0 - _smooth(0.16, 0.38, ax)
         ruff_y = _smooth(0.54, 0.72, y) * (1.0 - _smooth(0.82, 0.98, y))
         lower_chest_y = _smooth(cy - 0.30, cy - 0.06, y) * (1.0 - _smooth(cy + 0.22, cy + 0.38, y))
-        chest = chest_front * chest_center * max(ruff_y, lower_chest_y)
+        front_surface = _smooth(0.05, 0.55, float(nrm[2]))\n        chest = chest_front * chest_center * max(ruff_y, lower_chest_y) * front_surface
         base = _blend(base, cream, min(1.0, chest * 0.96))
 
         # Belly/underside cream is low and central. It helps side/rear views
