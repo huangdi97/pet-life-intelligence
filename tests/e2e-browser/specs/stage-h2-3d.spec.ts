@@ -83,15 +83,20 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     await expect(page.getByText("回到那一天 · 2026-01-01")).toHaveCount(0);
   });
 
-  test("companion declares GENERATED_3D is not LIVE (no fake video)", async ({
+  test("companion keeps device state honest (no fake LIVE / no fake online)", async ({
     page,
     request,
   }) => {
     await loginAsEmail(page, request, "owner@pli.demo");
     await page.goto("/companion");
     await expect(page).toHaveURL(urlRe("/companion"));
-    await expect(page.getByText(/当前演示不会伪装成实时画面/).first()).toBeVisible();
     await expect(page.getByText("尚未连接设备").first()).toBeVisible();
+    await expect(
+      page.getByText(/没有设备时不会模拟在线|没有可确认的实时来源时不会显示成实时画面/).first(),
+    ).toBeVisible();
+    const main = (await page.textContent("main")) ?? "";
+    expect(main).not.toContain("LIVE");
+    expect(main).not.toContain("GENERATED_3D");
   });
   test("today living canvas shows pet life-view entry (no fatal)", async ({ page, request }) => {
     await loginAsEmail(page, request, "owner@pli.demo");
