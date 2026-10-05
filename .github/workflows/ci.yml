@@ -198,6 +198,17 @@ jobs:
           # visual-regression-v2 diffs approved baseline vs current (explicit
           # refresh only via PLI_UPDATE_VISUAL_BASELINE=1).
           pnpm exec playwright test --config=tests/e2e-browser/playwright.config.ts --grep "STAGE-V-VISUAL|VISUAL-V2|VISUAL-V3"
+      - name: R5.6 Web final runtime evidence
+        run: |
+          node scripts/r5-6/capture-web-final-bundle.mjs --base-url http://localhost:3100 --api-url http://localhost:8800
+      - name: Upload R5.6 Web runtime evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: r5-6-web-runtime-evidence
+          path: |
+            artifacts/r5-6-final/web/
+            artifacts/r5-6-final/turntable/
+          if-no-files-found: error
       - name: Upload expected visual baseline drift evidence
         if: ${{ github.event_name == 'pull_request' && github.head_ref == 'feat/r2p3d-r3-render-truth-ui-closure' && inputs.update-visual-baseline != true }}
         uses: actions/upload-artifact@v4
