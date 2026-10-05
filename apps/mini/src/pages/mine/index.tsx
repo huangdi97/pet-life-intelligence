@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { View, Text, Button } from "@tarojs/components";
+import { View, Text, Button, Textarea } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { getPlatform } from "../../platform/index";
+import { api } from "../../services/api";
 
 /**
  * 我的（MIN-005）— R5.5 owner utility surface.
@@ -20,6 +21,15 @@ const UTILITY_ENTRIES: Array<{ label: string; detail: string; url: string }> = [
   { label: "通知", detail: "查看需要处理的提醒", url: "/pages/notifications/index" },
   { label: "在家与设备", detail: "查看真实连接与最近同步状态", url: "/pages/monitoring/index" },
 ];
+
+const FEEDBACK_CATEGORIES = [
+  { key: "bug", label: "出错" },
+  { key: "confusing", label: "看不懂" },
+  { key: "missing", label: "缺少内容" },
+  { key: "feature_request", label: "功能建议" },
+  { key: "privacy", label: "隐私担忧" },
+  { key: "other", label: "其他" },
+] as const;
 
 function EntryList({ items }: { items: Array<{ label: string; detail: string; url: string }> }) {
   return (
@@ -46,6 +56,10 @@ function EntryList({ items }: { items: Array<{ label: string; detail: string; ur
 export default function Mine() {
   const platform = getPlatform();
   const [accountOpen, setAccountOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackCategory, setFeedbackCategory] = useState<(typeof FEEDBACK_CATEGORIES)[number]["key"]>("confusing");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
 
   async function handleLogin() {
     if (!platform.auth.available) {
@@ -69,6 +83,28 @@ export default function Mine() {
   }
 
   const loggedIn = platform.auth.isLoggedIn();
+
+  async function sendFeedback() {
+    const message = feedbackMessage.trim();
+    if (!message || feedbackBusy || !loggedIn) return;
+    setFeedbackBusy(true);
+    try {
+      await api.post("/pilot/feedback", {
+        category: feedbackCategory,
+        message,
+        page_url: "mini://mine",
+        client: "mini",
+        extra: { surface: "me" },
+      });
+      setFeedbackMessage("");
+      setFeedbackOpen(false);
+      Taro.showToast({ title: "反馈已提交", icon: "success" });
+    } catch {
+      Taro.showToast({ title: "暂时无法提交，请稍后重试", icon: "none" });
+    } finally {
+      setFeedbackBusy(false);
+    }
+  }
 
   return (
     <View className="page">
@@ -123,6 +159,47 @@ export default function Mine() {
             <View className="life-row-detail">记录会保留来源与时间；支持的导出、分享和撤销能力会明确说明范围。</View>
           </View>
         </View>
+      </View>
+
+      <View className="open-section" data-testid="pli.mini.me.feedback">
+        <View
+          className="section-title"
+          onClick={() => setFeedbackOpen((value) => !value)}
+        >
+          试点反馈
+          <Text className="section-caption">{feedbackOpen ? "收起" : "反馈问题或建议"}</Text>
+        </View>
+        <View className="life-empty-note">请不要填写病历全文或联系方式。反馈会进入真实试点反馈队列。</View>
+        {feedbackOpen ? (
+          <View className="soft-panel">
+            <View className="chips">
+              {FEEDBACK_CATEGORIES.map((category) => (
+                <View
+                  key={category.key}
+                  className={`chip${feedbackCategory === category.key ? " chip-active" : ""}`}
+                  onClick={() => setFeedbackCategory(category.key)}
+                >
+                  {category.label}
+                </View>
+              ))}
+            </View>
+            <Textarea
+              className="input"
+              value={feedbackMessage}
+              maxlength={4000}
+              onInput={(event) => setFeedbackMessage(event.detail.value)}
+              placeholder="描述你遇到的问题或建议"
+              autoHeight
+            />
+            <Button
+              className="btn btn-primary"
+              disabled={feedbackBusy || !feedbackMessage.trim() || !loggedIn}
+              onClick={sendFeedback}
+            >
+              {feedbackBusy ? "提交中…" : loggedIn ? "提交反馈" : "登录后可提交"}
+            </Button>
+          </View>
+        ) : null}
       </View>
 
       <View className="open-section">
