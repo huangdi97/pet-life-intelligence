@@ -107,7 +107,11 @@ export function PetTwinVersionScreen() {
                       </Text>
                     </View>
                     <View style={styles.badgeRow}>
-                      <Text testID="pli.twinversion.source" style={styles.badgeText}>来源素材 · {Object.keys(active.observed_surface_manifest ?? {}).length} 项</Text>
+                      <Text testID="pli.twinversion.source" style={styles.badgeText}>
+                        {activeIsDemo
+                          ? "来源 · 示例模板"
+                          : `来源素材 · ${Object.keys(active.observed_surface_manifest ?? {}).length} 项`}
+                      </Text>
                       <Text testID="pli.twinversion.verify" style={styles.badgeText}>
                         {activeIsDemo ? "示例体验 · 非真实宠物身份确认" : active.owner_verified ? "已通过主人确认" : "待主人确认"}
                       </Text>
