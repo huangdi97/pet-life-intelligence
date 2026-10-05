@@ -31,21 +31,21 @@ export interface Pet3DAssetMeta {
 export const PET_3D_ASSETS: Record<Pet3DIdentity, Pet3DAssetMeta> = {
   doudou: {
     identity: "doudou",
-    name: "豆豆",
+    name: "柯基示例模板",
     species: "dog",
     version: "r5-1.0.0",
     provenance: "DEMO_TEMPLATE",
     devOnly: true,
-    description: "豆豆的演示 3D 形象：基于 CC0 柯基模板的暖色个体形象，需主人确认后才代表它",
+    description: "基于 CC0 柯基模板的演示 3D 形象；只有经过真实宠物素材与主人确认后才可代表个体。",
   },
   mimi: {
     identity: "mimi",
-    name: "咪咪",
+    name: "猫示例模板",
     species: "cat",
     version: "r4-1.0.0",
     provenance: "DEMO_TEMPLATE",
     devOnly: true,
-    description: "咪咪的演示 3D 形象：基于 CC0 猫模板的短毛猫形象，需主人确认后才代表它",
+    description: "基于 CC0 猫模板的演示 3D 形象；只有经过真实宠物素材与主人确认后才可代表个体。",
   },
 };
 
@@ -61,12 +61,11 @@ export function resolvePet3DIdentity(input: {
   species?: string | null;
   breed?: string | null;
 }): Pet3DIdentity | null {
-  const name = input.name?.trim();
-  if (name === "豆豆") return "doudou";
-  if (name === "咪咪") return "mimi";
-  const species = input.species ?? "";
-  const breed = input.breed ?? "";
-  if (species === "dog" && breed.includes("柯基")) return "doudou";
+  const species = (input.species ?? "").trim().toLowerCase();
+  const breed = (input.breed ?? "").trim();
+  // Demo-template routing is based on species/breed capability, never on an
+  // owner's mutable pet display name.
+  if (species === "dog" && /corgi|柯基/i.test(breed)) return "doudou";
   if (species === "cat") return "mimi";
   return null;
 }
