@@ -31,6 +31,13 @@ export function DevicesPanel({ devices }: DevicesPanelProps) {
 
       {devices.state === "loading" ? (
         <div className="v4-loading">正在读取设备状态…</div>
+      ) : devices.state === "denied" ? (
+        <div className="v4-calm">
+          <div>
+            <p className="v4-calm-title">没有读取设备状态的权限</p>
+            <p className="v4-calm-body">获得相应权限后才能查看；这里不会把未知状态显示成未连接。</p>
+          </div>
+        </div>
       ) : devices.state === "error" ? (
         <div className="v4-calm">
           <div>
