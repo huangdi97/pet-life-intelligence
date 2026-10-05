@@ -144,7 +144,7 @@ export function PetLivingStage({
           {petLayer}
         </Pressable>
       ) : (
-        <View testID={twinTestId} accessible accessibilityLabel={`${pet?.name ?? "宠物"}的 3D 形象`} style={[styles.petSlot, variant === "life" && styles.petSlotLife]}>
+        <View testID={twinTestId} style={[styles.petSlot, variant === "life" && styles.petSlotLife]}>
           {petLayer}
         </View>
       )}
