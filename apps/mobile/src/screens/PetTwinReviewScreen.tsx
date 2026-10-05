@@ -34,6 +34,11 @@ export interface TwinModel {
   inferred_surface_manifest: Record<string, string>;
   provenance_kind: string;
   artifact_map?: { twin_descriptor?: TwinDescriptor };
+  metadata_json?: {
+    demo_fixture?: boolean;
+    media_provenance?: string;
+    opts?: { observed_photo_count?: number; media_provenance?: string };
+  };
 }
 
 const ISSUES = ["脸", "耳朵", "毛色", "花纹", "体型", "尾巴", "四肢", "其他"];
