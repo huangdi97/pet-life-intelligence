@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { api, ApiError, type Pet } from "@pli/api-client";
 import { fmtDate, useAsync } from "../../../lib/hooks";
 import { mapErrorMessage, t } from "../../../lib/i18n";
+import { consentPurposeLabel } from "../../../lib/ownerLabels";
 import { State } from "../../../components/ui";
 import { PetLivingStage } from "../../../components/pet-living-stage";
 import { Icon, type WebIconName } from "../../../components/icons";
@@ -237,22 +238,19 @@ export default function PetProfilePage() {
 
         <div className="v4-rail">
           <div className="v4-sec" style={{ paddingTop: 18 }}>
-            <h2 className="v4-sec-title">此刻</h2>
-            {countEntries.length > 0 ? (
-              <div className="v4-metrics">
-                {countEntries
-                  .filter(([et]) => et !== "today.viewed")
-                  .slice(0, 6)
-                  .map(([et, n]) => (
-                    <div key={et} className="v4-metric">
-                      <span className="v4-metric-value">{n}</span>
-                      <span className="v4-metric-label">{EVENT_LABELS[et] ?? "状态"}</span>
-                    </div>
-                  ))}
+            <h2 className="v4-sec-title">今天</h2>
+            <div className="v5-observation-list" style={{ marginTop: 6 }}>
+              <div className="v5-observation-row">
+                <span className="v5-observation-label">生活记录</span>
+                <span className="v5-observation-value">
+                  {meaningfulTodayCount > 0 ? `${meaningfulTodayCount} 条` : "还没有"}
+                </span>
               </div>
-            ) : (
-              <p className="v4-sec-sub">今天还没有记录。</p>
-            )}
+              <div className="v5-observation-row">
+                <span className="v5-observation-label">完整轨迹</span>
+                <Link href="/timeline" className="v4-sec-link">查看时间线</Link>
+              </div>
+            </div>
           </div>
 
           <div className="v4-sec">
@@ -289,7 +287,7 @@ export default function PetProfilePage() {
               <div className="v4-statsline" style={{ marginTop: 6 }}>
                 {consents.data?.map((c) => (
                   <span key={c.purpose} className={`v4-chip${c.granted ? " v4-chip--success" : ""}`}>
-                    {c.purpose}: {c.granted ? "已同意" : "未同意"}
+                    {consentPurposeLabel(c.purpose)} · {c.granted ? "已同意" : "未同意"}
                   </span>
                 ))}
               </div>
