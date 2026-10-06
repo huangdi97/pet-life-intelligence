@@ -10,7 +10,7 @@ interface DeletionRequestCardProps {
 /** PLI-216 数据删除请求：只登记请求并审计，实际删除需人工确认后离线执行。 */
 export function DeletionRequestCard({ pid, value, onValueChange, onRequest }: DeletionRequestCardProps) {
   return (
-    <div className="card">
+    <section className="v5-me-section">
       <h2>数据删除请求</h2>
       <p className="muted">
         v0.1 只登记请求并审计；实际删除是高风险动作，需要显式人工确认后离线执行（不会自动删除）。
@@ -22,6 +22,6 @@ export function DeletionRequestCard({ pid, value, onValueChange, onRequest }: De
       <button className="btn danger" onClick={onRequest} disabled={!pid}>
         登记删除请求
       </button>
-    </div>
+    </section>
   );
 }
