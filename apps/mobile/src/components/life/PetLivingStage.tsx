@@ -73,7 +73,7 @@ export function PetLivingStage({
   sourceMediaCount = 0,
   pose = null,
   viewerRef,
-  view = "front",
+  view,
   frameTarget = 0,
   onPressPet,
 }: Props) {
