@@ -315,10 +315,6 @@ function frame(t: number): void {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-post({ type: "status", status: "ready" });
-post({ type: "manifest", manifest: buildManifest() });
-// Blind harness: keep the manifest fresh on the [plimanifest] logcat channel.
-setInterval(() => post({ type: "manifest", manifest: buildManifest() }), 2000);
 // --- touch / pointer interaction (interactive only) ---
 let pointers = new Map<number, { x: number; y: number }>();
 let lastPinch = 0;
@@ -399,3 +395,11 @@ const controls = document.getElementById("controls") as HTMLElement;
 // Product owner pages use the native React Native controls so there is one
 // interaction layer, not duplicated WebView + native +/-/reset buttons.
 if (interactive && stageTheme === "engineering") controls.classList.add("show");
+
+// Host-ready means both renderer AND imperative camera controls exist. Posting
+// ready earlier allowed the React Native host to issue the initial Review
+// preset before __PLI_SET_VIEW had been installed.
+post({ type: "status", status: "ready" });
+post({ type: "manifest", manifest: buildManifest(), force: true });
+// Blind harness: keep the persisted runtime truth fresh.
+setInterval(() => post({ type: "manifest", manifest: buildManifest() }), 2000);
