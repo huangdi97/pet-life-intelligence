@@ -1,15 +1,25 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactElement } from "react";
 import Link from "next/link";
 import { Icon } from "./icons";
 
+type StableHeroCopy = string | number | ReactElement | null;
+
 interface PetHeroProps {
   name: string;
-  /** Heading rendered inside the hero (an h1). Defaults to the pet name. */
-  title?: ReactNode;
+  /**
+   * Heading rendered inside the hero (an h1). Defaults to the pet name.
+   *
+   * Keep these owner-copy slots deliberately narrower than ReactNode. React 19
+   * adds bigint / async-node members that are not assignable to the React 18
+   * node shape still carried by parts of Next's build toolchain; the hero only
+   * needs synchronous display copy/elements, so accepting those members was
+   * both unnecessary and the source of a dual-ambient type failure in E2E.
+   */
+  title?: StableHeroCopy;
   /** Identity / status line under the title (e.g. "3岁2个月 · 柯基 · 雌性"). */
-  line?: ReactNode;
+  line?: StableHeroCopy;
   /** Optional pet id — the visual becomes a link to that pet's Life View. */
   petId?: string;
   /** "warm" canvas hero (Today/Pet) or "dark" immersive stage (Life View). */
