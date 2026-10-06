@@ -186,11 +186,22 @@ export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DVi
       testID="pet3d-stage-mobile"
     >
       <WebView
-        // The twin descriptor arrives asynchronously after mount; keying the
-        // WebView on twinVersion+petId forces a clean reload so
-        // injectedJavaScriptBeforeContentLoaded carries the real individual
-        // twin (demo stage must not win when the twin loads late).
-        key={`${petId ?? "no-pet"}:${twin ? String(twin.version ?? "") : "demo"}`}
+        // Every value below is bootstrap-only: pet-stage-entry reads it before
+        // the bundled renderer starts. Reuse across owner surfaces would keep
+        // stale stageRole/theme/frameTarget/interaction semantics even when
+        // React props changed. Key the WebView by the complete bootstrap
+        // contract so Today/Pet/Life/Review runtime evidence always belongs to
+        // the surface that is actually on screen.
+        key={[
+          identity,
+          petId ?? "no-pet",
+          twin ? String(twin.version ?? "") : "demo",
+          stageRole ?? "implicit",
+          stageTheme,
+          interactive ? "interactive" : "static",
+          String(Number(frameTarget) || 0),
+          String(Number(sourceMediaCount) || 0),
+        ].join(":")}
         ref={webRef}
         source={{ html: PET_STAGE_HTML, baseUrl: "file:///android_asset/" }}
         style={styles.web}
