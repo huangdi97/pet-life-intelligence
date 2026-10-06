@@ -7,9 +7,16 @@ on:
     paths:
       - "artifacts/r2p3d-r5/twin-sources/doudou-gobkit-corgi/**"
       - "scripts/r2p3d-r4/bake_twin.py"
+      - "scripts/r2p3d-r4/build_twins.py"
+      - "scripts/r2p3d-r4/glbwriter.py"
+      - "scripts/r2p3d-r4/skinweights.py"
+      - "scripts/r2p3d-r4/motion_py.py"
+      - "scripts/r2p3d-r4/objio.py"
+      - "scripts/r2p3d-r4/corgi_morph.py"
       - "scripts/r2p3d-r4/unwrap.py"
       - "scripts/r2p3d-r4/painting.py"
       - "scripts/r2p3d-r4/meshops.py"
+      - "scripts/r2p3d-r4/asset_qa.py"
       - ".github/workflows/r5-twin-bake.yml"
 
 concurrency:
