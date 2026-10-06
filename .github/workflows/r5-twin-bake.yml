@@ -51,12 +51,14 @@ jobs:
           python scripts/r2p3d-r4/build_twins.py --identity cat
           python scripts/r2p3d-r4/asset_qa.py
 
-      - name: Synchronize web product twins
+      - name: Synchronize web product twin assets
         run: |
           mkdir -p apps/web/public/assets/twins
           for pet in doudou mimi; do
-            cp "packages/pet-3d/assets/twins/${pet}.glb" "apps/web/public/assets/twins/${pet}.glb"
-            cmp "packages/pet-3d/assets/twins/${pet}.glb" "apps/web/public/assets/twins/${pet}.glb"
+            for asset in "${pet}.glb" "${pet}_baseColor.png" "${pet}_observed.png" "${pet}_inferred.png"; do
+              cp "packages/pet-3d/assets/twins/${asset}" "apps/web/public/assets/twins/${asset}"
+              cmp "packages/pet-3d/assets/twins/${asset}" "apps/web/public/assets/twins/${asset}"
+            done
           done
 
       - name: Verify source provenance
@@ -81,7 +83,7 @@ jobs:
         run: |
           git config user.name "pli-r5-bake-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add packages/pet-3d/assets/twins/doudou* packages/pet-3d/assets/twins/mimi* apps/web/public/assets/twins/doudou.glb apps/web/public/assets/twins/mimi.glb reports/r2p3d-r4/ASSET_QA_R4.json
+          git add packages/pet-3d/assets/twins/doudou* packages/pet-3d/assets/twins/mimi* apps/web/public/assets/twins/doudou* apps/web/public/assets/twins/mimi* reports/r2p3d-r4/ASSET_QA_R4.json
           if git diff --cached --quiet; then
             echo "No generated changes"
             exit 0
