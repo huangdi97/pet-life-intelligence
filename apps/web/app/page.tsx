@@ -169,7 +169,7 @@ export default function TodayPage() {
         <div>
           <NowCard lastEvent={lastEvent} counts={counts} />
           <AttentionCard hints={hints} />
-          <ActionCard quickTypes={QUICK_TYPES} onQuickLog={quickLog} onMore={() => setSheetOpen(true)} />
+          <ActionCard petId={current.id} onMore={() => setSheetOpen(true)} />
           <p className="v4-note" data-testid="pli.today.health-summary" style={{ margin: "10px 0 0" }}>
             {hints.length > 0 ? `健康：${hints.length} 项需要留意` : "当前没有规则标记的健康变化"}
           </p>
