@@ -235,6 +235,11 @@ def build_glb(
             channels.append({"sampler": len(samplers) - 1, "target": {"node": joint_nodes[name], "path": "rotation"}})
             p = np.asarray(pos_off[name], dtype=np.float32).reshape(-1, 3)
             if np.abs(p).max() > 1e-9:
+                # motion_py positions are offsets from bind pose. glTF
+                # translation tracks replace (not add to) node.translation, so
+                # bake bind-local translation + offset into every keyed frame.
+                bind_local = np.asarray(JOINT_POS[name], dtype=np.float32) * bone_scale
+                p = p + bind_local.reshape(1, 3)
                 p_off = w.add(np.ascontiguousarray(p).tobytes())
                 p_view = w.view(p_off, p.nbytes, target=34963)
                 p_acc = w.accessor(int(p.shape[0]), "VEC3", 5126, p_view, 0)
