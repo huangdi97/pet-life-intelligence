@@ -93,6 +93,20 @@ export function eventTypeLabel(eventType: string): string {
   return EVENT_TYPE_LABELS[eventType] ?? EVENT_TYPE_FALLBACK;
 }
 
+
+/** Consent purpose enums -> owner language. Unknown purposes stay generic. */
+export function consentPurposeLabel(purpose: string | null | undefined): string {
+  const value = (purpose ?? "").trim().toUpperCase();
+  if (value === "SERVICE_ESSENTIAL") return "提供核心服务";
+  if (value.includes("HEALTH")) return "健康相关数据";
+  if (value.includes("AI") || value.includes("MODEL")) return "智能功能";
+  if (value.includes("RESEARCH")) return "研究与产品改进";
+  if (value.includes("SHARE") || value.includes("CARE")) return "照护协作与共享";
+  if (value.includes("DEVICE") || value.includes("MONITOR")) return "设备与在家观察";
+  if (value.includes("NOTIF")) return "通知与提醒";
+  return "其他数据用途";
+}
+
 /** provenance_level / source_type enums → owner copy. */
 const PROVENANCE_LABELS: Record<string, string> = {
   OWNER_REPORTED: "主人记录",
