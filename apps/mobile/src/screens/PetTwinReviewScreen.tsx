@@ -199,7 +199,10 @@ export function PetTwinReviewScreen() {
                 testID={`pli.twinreview.view.${v.key}`}
                 accessibilityRole="button"
                 accessibilityState={{ selected: view === v.key }}
-                onPress={() => setView(v.key)}
+                onPress={() => {
+                  setView(v.key);
+                  viewerRef.current?.setView(v.key);
+                }}
                 style={[styles.viewChip, view === v.key && styles.viewChipSel]}
               >
                 <Text style={[styles.viewChipText, view === v.key && styles.viewChipTextSel]}>{v.label}</Text>
