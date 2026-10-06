@@ -4,6 +4,14 @@ set -euo pipefail
 ADB="${ADB:-adb}"
 APK="apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk"
 SERIAL="${ANDROID_SERIAL:-emulator-5554}"
+PACKAGE="${PLI_ANDROID_PACKAGE:-com.pli.mobile}"
+
+capture_diagnostics() {
+  "$ADB" -s "$SERIAL" logcat -d > /tmp/pli-android-logcat.txt 2>/dev/null || true
+  "$ADB" -s "$SERIAL" shell run-as "$PACKAGE" cat files/pli_diag.json > /tmp/pli-diag.json 2>/dev/null || true
+  "$ADB" -s "$SERIAL" shell run-as "$PACKAGE" cat files/pli_manifest.json > /tmp/pli-runtime-manifest.json 2>/dev/null || true
+}
+trap capture_diagnostics EXIT
 
 "$ADB" -s "$SERIAL" wait-for-device
 
