@@ -193,7 +193,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
-            set -euo pipefail
+            set -eu
             adb wait-for-device
             ready=0
             for i in $(seq 1 60); do
