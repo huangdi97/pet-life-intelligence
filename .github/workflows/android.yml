@@ -192,40 +192,7 @@ jobs:
           profile: pixel_5
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: |
-            set -eu
-            adb wait-for-device
-            ready=0
-            for i in $(seq 1 60); do
-              if adb shell service check package 2>/dev/null | grep -q "found"; then
-                ready=1
-                break
-              fi
-              sleep 2
-            done
-            if [ "$ready" -ne 1 ]; then
-              echo "Android package service never became ready"
-              adb shell getprop || true
-              exit 1
-            fi
-
-            installed=0
-            for i in 1 2 3; do
-              if adb install -r apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk; then
-                installed=1
-                break
-              fi
-              echo "APK install attempt $i failed; restarting adb and retrying"
-              adb kill-server || true
-              adb start-server
-              adb wait-for-device
-              sleep 10
-            done
-            test "$installed" -eq 1
-
-            adb shell wm size 1080x2340
-            adb shell wm density 440
-            python scripts/r5-6/capture-android-final.py --serial emulator-5554 --api-url http://localhost:8800
+          script: bash scripts/r5-6/run-android-emulator-evidence.sh
       - name: Build Android human-gate contact sheets
         run: python scripts/r5-6/contact_sheets_ci.py --platform android
       - name: Upload R5.6 Android runtime evidence
