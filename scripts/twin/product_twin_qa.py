@@ -16,6 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TWIN_DIR = ROOT / "packages" / "pet-3d" / "assets" / "twins"
+WEB_TWIN_DIR = ROOT / "apps" / "web" / "public" / "assets" / "twins"
 REPORT = ROOT / "artifacts" / "r2p3d-r5" / "product-twin-qa.json"
 PETS = ("doudou", "mimi")
 EXPECTED_CLIPS = {
@@ -137,6 +138,23 @@ def qa_pet(pet: str) -> dict:
         value = manifest.get(key)
         if not value or not (TWIN_DIR / str(value)).exists():
             errors.append(f"manifest reference missing: {key}={value!r}")
+
+    # Web must ship the exact same generated Twin and texture evidence as the
+    # canonical package. A stale loose PNG can make manual inspection disagree
+    # with the GLB embedded texture even when structural QA is green.
+    for filename in (
+        f"{pet}.glb",
+        f"{pet}_baseColor.png",
+        f"{pet}_observed.png",
+        f"{pet}_inferred.png",
+    ):
+        package_asset = TWIN_DIR / filename
+        web_asset = WEB_TWIN_DIR / filename
+        if not web_asset.exists():
+            errors.append(f"Web twin asset missing: {filename}")
+            continue
+        if package_asset.read_bytes() != web_asset.read_bytes():
+            errors.append(f"Web twin asset drift: {filename}")
 
     clips = manifest.get("animationClips")
     if set(clips or []) != EXPECTED_CLIPS:
