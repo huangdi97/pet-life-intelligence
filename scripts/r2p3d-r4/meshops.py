@@ -40,6 +40,65 @@ def vertex_normals(v: np.ndarray, f: np.ndarray, vcount: int) -> np.ndarray:
     return np.divide(norm, lens, out=norm, where=lens > 1e-12)
 
 
+def linear_subdivide(
+    v: np.ndarray, f: np.ndarray, colors: np.ndarray | None
+) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+    """Boundary-preserving 1-to-4 triangle split.
+
+    Unlike Loop subdivision, existing vertices are NEVER repositioned.
+    Every unique edge receives one midpoint and each triangle is split into
+    four. This is required for native low-poly assets composed of multiple
+    touching/disconnected shells (such as the Gobkit Corgi): Loop's even-
+    vertex smoothing shrinks every open boundary independently and visibly
+    explodes seams between head/body/leg pieces.
+
+    Colors are linearly interpolated at edge midpoints. Repeating this
+    operation raises triangle density while preserving the authored silhouette
+    and every original boundary exactly.
+    """
+    V = int(v.shape[0])
+    edge_mid: dict[tuple[int, int], int] = {}
+    new_v: list[np.ndarray] = [row.copy() for row in v]
+    new_c: list[np.ndarray] | None = [row.copy() for row in colors] if colors is not None else None
+
+    def midpoint(a: int, b: int) -> int:
+        key = (min(a, b), max(a, b))
+        if key in edge_mid:
+            return edge_mid[key]
+        idx = len(new_v)
+        new_v.append((v[a] + v[b]) * 0.5)
+        if new_c is not None and colors is not None:
+            new_c.append((colors[a] + colors[b]) * 0.5)
+        edge_mid[key] = idx
+        return idx
+
+    new_f: list[tuple[int, int, int]] = []
+    for a0, b0, c0 in f:
+        a, b, c = int(a0), int(b0), int(c0)
+        ab = midpoint(a, b)
+        bc = midpoint(b, c)
+        ca = midpoint(c, a)
+        new_f.extend([
+            (a, ab, ca),
+            (ab, b, bc),
+            (ca, bc, c),
+            (ab, bc, ca),
+        ])
+
+    v_out = np.asarray(new_v, dtype=np.float64).reshape(-1, 3)
+    f_out = np.asarray(new_f, dtype=np.int64).reshape(-1, 3)
+    c_out = (
+        np.asarray(new_c, dtype=np.float64).reshape(-1, colors.shape[1])
+        if new_c is not None and colors is not None
+        else None
+    )
+    # Contract: original vertices are retained byte-for-byte (within numpy
+    # dtype conversion) as the prefix of the refined mesh.
+    if not np.allclose(v_out[:V], v, rtol=0.0, atol=1e-12):
+        raise AssertionError("linear subdivision moved authored vertices")
+    return v_out, f_out, c_out
+
+
 def loop_subdivide(
     v: np.ndarray, f: np.ndarray, colors: np.ndarray | None
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
