@@ -100,7 +100,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="v4-main v5-domain-page v5-utility-page">
+    <main className="v4-main v5-domain-page v5-utility-page v5-me-page">
       <div className="v4-topline v5-page-lede" data-testid="pli.me.owner">
         <h1>我的</h1>
         <p className="sub">家庭、通知、设备、隐私与数据设置。</p>
@@ -108,7 +108,7 @@ export default function SettingsPage() {
       {flash && <div className="alert info">{flash}</div>}
       <ErrorNote message={error} />
 
-      <div className="v5-utility-surface" data-testid="pli.me.pets">
+      <div className="v5-me-section" data-testid="pli.me.pets">
         <h2>我的宠物</h2>
         {current ? (
           <p className="muted" style={{ margin: 0 }}>
@@ -124,7 +124,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="v5-utility-surface" data-testid="pli.me.care-network">
+      <div className="v5-me-section" data-testid="pli.me.care-network">
         <h2>家庭与照护网络</h2>
         <p className="muted" style={{ margin: 0 }}>与家人、照护者共享记录与任务，授权逐项管理。</p>
         <div className="row" style={{ marginTop: 8 }}>
@@ -134,7 +134,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="v5-utility-surface" data-testid="pli.me.notifications">
+      <div className="v5-me-section" data-testid="pli.me.notifications">
         <h2>通知</h2>
         <p className="muted" style={{ margin: 0 }}>任务提醒、用药提醒与异常提醒。</p>
         <div className="row" style={{ marginTop: 8 }}>
@@ -144,7 +144,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="v5-utility-surface" data-testid="pli.me.devices">
+      <div className="v5-me-section" data-testid="pli.me.devices">
         <h2>在家与设备</h2>
         <p className="muted" style={{ margin: 0 }}>查看真实设备连接、离线状态与最近一次同步；没有设备时不会伪装在线。</p>
         <div className="row" style={{ marginTop: 8 }}>
@@ -178,7 +178,7 @@ export default function SettingsPage() {
           onSendFeedback={sendFeedback}
           fbDone={fbDone}
         />
-        <div className="v5-utility-surface">
+        <div className="v5-me-section">
           <h2>帮助</h2>
           <p className="muted" style={{ margin: 0 }}>
             使用问题可查看「助手」页的解释入口，或通过上方反馈告诉我们。
