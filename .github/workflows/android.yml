@@ -206,7 +206,7 @@ jobs:
           arch: x86_64
           profile: pixel_5
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot-save -camera-back none
           script: bash scripts/r5-6/run-android-emulator-evidence.sh
       - name: Build Android human-gate contact sheets
         run: python scripts/r5-6/contact_sheets_ci.py --platform android
