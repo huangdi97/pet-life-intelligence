@@ -13,7 +13,7 @@ export function DeletionRequestCard({ pid, value, onValueChange, onRequest }: De
     <section className="v5-me-section">
       <h2>数据删除请求</h2>
       <p className="muted">
-        v0.1 只登记请求并审计；实际删除是高风险动作，需要显式人工确认后离线执行（不会自动删除）。
+        提交后会先登记请求并保留审计记录；数据不会立即自动删除，需要再次确认后才会处理。
       </p>
       <label className="field">
         原因（可选）
