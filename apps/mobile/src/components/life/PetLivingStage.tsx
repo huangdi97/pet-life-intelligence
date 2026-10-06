@@ -108,7 +108,7 @@ export function PetLivingStage({
         : `pli.${variant}.pet-twin`;
   const petLayer = use3d ? (
     <View style={{ width: petWidth, height: Math.round(petWidth * 1.12) }}>
-      <Pet3DViewer ref={viewerRef} identity={identity} displayName={pet?.name ?? undefined} demoTwin={demo} twin={twin} pose={pose} interactive={interactive} frameTarget={frameTarget} view={view} stageTheme={stageTheme} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={setPet3d} />
+      <Pet3DViewer ref={viewerRef} identity={identity} displayName={pet?.name ?? undefined} demoTwin={demo} twin={twin} pose={pose} interactive={interactive} frameTarget={frameTarget} view={view} stageRole={variant} stageTheme={stageTheme} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={setPet3d} />
     </View>
   ) : (
     <View pointerEvents={onPressPet ? "none" : undefined}>
