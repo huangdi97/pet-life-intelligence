@@ -237,11 +237,19 @@ def paint_atlas(
         inside = ((e0 >= 0) & (e1 >= 0) & (e2 >= 0)) | ((e0 <= 0) & (e1 <= 0) & (e2 <= 0))
         if not inside.any():
             continue
-        # barycentric weights (signed) for the inside pixels only
+        # Barycentric weights (signed) for the inside pixels only.
+        # e1/e2/e0 are the edge functions opposite a/b/c respectively.
+        # The previous implementation accidentally used
+        #   w2 = denom - w0 - w1
+        # mixing area units with normalized weights. That pushed interpolated
+        # positions/normals far outside the triangle and flattened/corrupted
+        # the painted coat atlas. All three weights must be normalized by the
+        # same signed triangle area.
         denom = e0 + e1 + e2  # 2x signed area
-        w0 = e1 / np.where(np.abs(denom) < 1e-12, 1.0, denom)
-        w1 = e2 / np.where(np.abs(denom) < 1e-12, 1.0, denom)
-        w2 = np.where(np.abs(denom) < 1e-12, 1.0, denom) - w0 - w1
+        safe_denom = np.where(np.abs(denom) < 1e-12, 1.0, denom)
+        w0 = e1 / safe_denom
+        w1 = e2 / safe_denom
+        w2 = e0 / safe_denom
         mask = inside & (np.abs(denom) > 1e-12)
         if not mask.any():
             continue
