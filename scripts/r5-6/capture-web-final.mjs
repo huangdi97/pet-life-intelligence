@@ -102,6 +102,15 @@ for (const surface of ["today", "pet", "lifeview", "twinreview"]) {
   ) {
     throw new Error(`non-product Twin runtime on final Web surface: ${surface}`);
   }
+  if (surface === "twinreview") {
+    const yaw = Number(manifest.camera?.yaw);
+    const error = Math.abs(Math.atan2(Math.sin(yaw), Math.cos(yaw)));
+    if (!Number.isFinite(yaw) || error > 0.08) {
+      throw new Error(
+        `Twin Review selected front but runtime camera is not front: yaw=${manifest.camera?.yaw}`,
+      );
+    }
+  }
 }
 
 const source = sourceIdentity();
