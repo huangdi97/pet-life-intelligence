@@ -9,33 +9,34 @@ interface NowCardProps {
   counts: Record<string, number>;
 }
 
-/** OWN-001 Now — 此刻（真实事实，不编造）。 */
+/** OWN-001 Now — factual, one-dimensional life summary; never a dashboard grid. */
 export function NowCard({ lastEvent, counts }: NowCardProps) {
-  const entries = Object.entries(counts);
+  const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
+  const lastLabel = lastEvent ? EVENT_LABELS[lastEvent.event_type] ?? "生活记录" : null;
+
   return (
-    <div className="v4-sec" data-pli-type="card">
+    <section className="v4-sec" data-pli-type="section" data-testid="pli.today.now">
       <div className="v4-sec-head">
         <h2 className="v4-sec-title v4-sec-title--accent">此刻</h2>
-        {lastEvent && (
-          <span className="v4-chip">
-            <span className="v4-chip-icon">最近记录 {fmtTime(lastEvent.occurred_at)}</span>
-          </span>
-        )}
       </div>
-      {entries.length > 0 ? (
-        <div className="v4-metrics">
-          {entries.map(([et, n]) => (
-            <div key={et} className="v4-metric">
-              <span className="v4-metric-value">{n}</span>
-              <span className="v4-metric-label">{EVENT_LABELS[et] ?? "其他记录"}</span>
-            </div>
-          ))}
+      {lastEvent ? (
+        <div className="v5-observation-list">
+          <div className="v5-observation-row">
+            <span className="v5-observation-label">最近发生</span>
+            <span className="v5-observation-value">
+              {lastLabel} · {fmtTime(lastEvent.occurred_at)}
+            </span>
+          </div>
+          <div className="v5-observation-row">
+            <span className="v5-observation-label">今天已记录</span>
+            <span className="v5-observation-value">{total} 件生活片段</span>
+          </div>
         </div>
       ) : (
         <p className="v4-sec-sub" style={{ marginTop: 0 }}>
-          今天还没有足够记录。记录第一条喂食、饮水或散步后会出现在这里。
+          今天还没有新的生活记录。第一次喂食、饮水或散步会从这里开始。
         </p>
       )}
-    </div>
+    </section>
   );
 }
