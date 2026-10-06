@@ -35,7 +35,7 @@ export function EmergencyProfileCard({ profile, form, onFieldChange, onSave }: E
                 />
               </label>
               <label className="field">
-                首选医院（文字，非地图）
+                首选医院
                 <input
                   value={form?.vet_clinic_name ?? profile.data?.vet_clinic_name ?? ""}
                   onChange={(e) => onFieldChange("vet_clinic_name", e.target.value)}
@@ -50,7 +50,7 @@ export function EmergencyProfileCard({ profile, form, onFieldChange, onSave }: E
               </label>
             </div>
             <label className="field">
-              医院地址（文字）
+              医院地址
               <textarea
                 rows={2}
                 value={form?.vet_clinic_address_text ?? profile.data?.vet_clinic_address_text ?? ""}
