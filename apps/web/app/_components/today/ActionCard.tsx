@@ -1,58 +1,44 @@
 "use client";
 
-import type { WebIconName } from "../../../components/icons";
+import Link from "next/link";
 import { Icon } from "../../../components/icons";
-import type { QuickLogItem } from "./constants";
 
 interface ActionCardProps {
-  quickTypes: QuickLogItem[];
-  onQuickLog: (q: QuickLogItem) => void;
+  petId: string;
   onMore: () => void;
 }
 
-const QUICK_ICONS: Record<string, WebIconName> = {
-  "daily.meal": "food",
-  "daily.drink": "water",
-  "daily.elimination": "toilet",
-  "daily.walk": "walk",
-  "daily.play": "play",
-  "daily.weight": "weight",
-};
-
-/** Blind-UI tile keys for the primary quick-log actions (meal→feed, drink→water). */
-const TILE_KEY: Record<string, string> = {
-  "daily.meal": "feed",
-  "daily.drink": "water",
-  "daily.elimination": "elimination",
-  "daily.walk": "walk",
-};
-
-/** OWN-001 Action — 下一步能做什么（快速记录按钮保留 E2E 契约：喂食等）。 */
-export function ActionCard({ quickTypes, onQuickLog, onMore }: ActionCardProps) {
+/** OWN-001 Action — one primary action, two lightweight peer secondary actions. */
+export function ActionCard({ petId, onMore }: ActionCardProps) {
   return (
-    <div className="v4-sec" data-pli-type="card">
+    <section className="v4-sec" data-pli-type="section" data-testid="pli.today.action">
       <div className="v4-sec-head">
-        <h2 className="v4-sec-title">快速记录</h2>
-        <button type="button" className="v4-sec-link" onClick={onMore} aria-haspopup="dialog" data-testid="pli.today.primary-action">
-          快速记录
-        </button>
+        <div>
+          <h2 className="v4-sec-title">下一步</h2>
+          <p className="v4-sec-sub">先记录事实；需要时再查看生命视图或询问助手。</p>
+        </div>
       </div>
-      <div className="v4-quick">
-        {quickTypes.map((q) => (
-          <button
-            key={q.type}
-            type="button"
-            onClick={() => onQuickLog(q)}
-            data-testid={`pli.quicklog.tile.${TILE_KEY[q.type] ?? q.type}`}
-          >
-            <span className="v4-quick-icon">
-              <Icon name={QUICK_ICONS[q.type] ?? "note"} size={22} />
-            </span>
-            {q.label}
-          </button>
-        ))}
+      <button
+        type="button"
+        className="v4-action v4-action--primary v5-today-primary"
+        onClick={onMore}
+        aria-haspopup="dialog"
+        data-testid="pli.today.primary-action"
+      >
+        <span className="v4-action-icon"><Icon name="note" size={17} /></span>
+        快速记录
+      </button>
+      <div className="v4-linkrow v5-today-secondary">
+        <Link href={`/pets/${petId}/life-view`} className="v4-action v4-action--secondary">
+          <span className="v4-action-icon"><Icon name="eye" size={16} /></span>
+          看看它
+        </Link>
+        <Link href="/agent" className="v4-action v4-action--secondary">
+          <span className="v4-action-icon"><Icon name="chat" size={16} /></span>
+          问助手
+        </Link>
       </div>
-      <p className="v4-sec-foot">每条记录都会保存记录人与来源，方便之后追溯。</p>
-    </div>
+      <p className="v4-sec-foot">记录会保留来源与时间，方便之后追溯。</p>
+    </section>
   );
 }
