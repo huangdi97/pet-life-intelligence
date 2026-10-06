@@ -114,12 +114,69 @@ class Android:
             raise CaptureError(f"invalid Android screenshot: {path}")
         path.write_bytes(data)
 
+    @staticmethod
+    def _bounds_center(node: ET.Element) -> tuple[int, int] | None:
+        match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib.get("bounds", ""))
+        if not match:
+            return None
+        x1, y1, x2, y2 = map(int, match.groups())
+        return ((x1 + x2) // 2, (y1 + y2) // 2)
+
+    def _dismiss_host_system_dialog(self, raw: str) -> bool:
+        """Dismiss emulator-host launcher/SystemUI ANRs, never PLI app crashes.
+
+        GitHub-hosted Pixel emulators can surface a launcher ANR over an
+        otherwise healthy foreground app. That overlay hides all React Native
+        accessibility ids and used to make the final evidence job fail with
+        a misleading "target not found". Only known host-shell dialogs are
+        auto-dismissed; a PLI crash/ANR remains visible and therefore fails.
+        """
+        try:
+            root = ET.fromstring(raw)
+        except ET.ParseError:
+            return False
+
+        text_blob = " ".join(
+            node.attrib.get("text", "")
+            for node in root.iter("node")
+            if node.attrib.get("text")
+        )
+        host_dialog = (
+            "Pixel Launcher isn't responding" in text_blob
+            or "System UI isn't responding" in text_blob
+            or "Process system isn't responding" in text_blob
+        )
+        if not host_dialog:
+            return False
+
+        # Prefer "Wait" so the host shell can recover without changing app
+        # state. Fall back to Back if this emulator image exposes no button id.
+        for node in root.iter("node"):
+            if node.attrib.get("resource-id") == "android:id/aerr_wait":
+                center = self._bounds_center(node)
+                if center:
+                    self.shell("input", "tap", str(center[0]), str(center[1]), check=False)
+                    time.sleep(1)
+                    return True
+        self.shell("input", "keyevent", "4", check=False)
+        time.sleep(1)
+        return True
+
     def dump_xml(self, path: Path) -> str:
         remote = "/sdcard/pli_final_ui.xml"
-        self.shell("uiautomator", "dump", remote)
-        raw = self.shell("cat", remote)
-        path.write_text(raw, encoding="utf-8")
-        return raw
+        last_raw = ""
+        for _ in range(4):
+            self.shell("uiautomator", "dump", remote, check=False)
+            raw = self.shell("cat", remote, check=False)
+            last_raw = raw
+            if raw and self._dismiss_host_system_dialog(raw):
+                continue
+            if raw:
+                path.write_text(raw, encoding="utf-8")
+                return raw
+            time.sleep(1)
+        path.write_text(last_raw, encoding="utf-8")
+        raise CaptureError(f"unable to obtain unobscured UIAutomator XML: {path}")
 
     def tap(self, xml: str, needle: str, attr: str) -> None:
         try:
@@ -133,11 +190,10 @@ class Android:
             value = node.attrib.get(key, "")
             if needle not in value:
                 continue
-            match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib.get("bounds", ""))
-            if not match:
+            center = self._bounds_center(node)
+            if not center:
                 continue
-            x1, y1, x2, y2 = map(int, match.groups())
-            self.shell("input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
+            self.shell("input", "tap", str(center[0]), str(center[1]))
             return
         raise CaptureError(f"UI target not found: {needle} ({attr})")
 
