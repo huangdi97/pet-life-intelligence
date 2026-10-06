@@ -100,6 +100,11 @@ async function capture(browser, userId, petId, folder, requiredViews) {
     ) {
       throw new Error(`non-product runtime representation for ${folder}/${name}`);
     }
+    if (manifest.stageRole !== "life") {
+      throw new Error(
+        `turntable must be captured from Life View: ${folder}/${name}; stageRole=${manifest.stageRole}`,
+      );
+    }
     const actualYaw = Number(manifest.camera?.yaw);
     if (!Number.isFinite(actualYaw)) {
       throw new Error(`runtime camera yaw missing for ${folder}/${name}`);
