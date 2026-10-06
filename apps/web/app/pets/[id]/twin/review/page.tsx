@@ -60,6 +60,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
   const [selected, setSelected] = useState<"like" | "basic_like" | "not_like" | null>(null);
   const [issueKeys, setIssueKeys] = useState<string[]>([]);
   const [view, setView] = useState<"front" | "side" | "back">("front");
+  const [viewRevision, setViewRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -74,6 +75,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
     setSelected(null);
     setIssueKeys([]);
     setView("front");
+    setViewRevision(0);
     setMsg(null);
     const requestedVersion = Number(new URLSearchParams(window.location.search).get("version")) || 0;
 
@@ -208,6 +210,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
               sourceMediaCount={twinSourceMediaCount}
               twin={viewerTwin}
               view={view}
+              viewRevision={viewRevision}
             />
           ) : (
             <div className="page-center" style={{ minHeight: 240 }}>
@@ -234,7 +237,10 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
             key={v.id}
             type="button"
             className={`btn${view === v.id ? " primary" : ""}`}
-            onClick={() => setView(v.id)}
+            onClick={() => {
+              setView(v.id);
+              setViewRevision((n) => n + 1);
+            }}
             aria-pressed={view === v.id}
             data-testid={`pli.twinreview.view.${v.id}`}
           >
