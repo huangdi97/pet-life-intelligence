@@ -91,12 +91,9 @@ export async function loadTwinGLB(identity: Pet3DIdentity): Promise<LoadedTwin |
   });
 
   const root = gltf.scene ?? new THREE.Group();
-  // The baked cat source uses the opposite model-forward convention from the
-  // product camera contract. Keep camera semantics canonical (front=0,
-  // side=pi/2, rear=pi) and normalize only the model root.
-  if (identity === "mimi") {
-    root.rotation.y += Math.PI;
-  }
+  // Both baked product assets are normalized into the product camera
+  // convention during bake. Keep the runtime root untouched so
+  // front=0 / side=pi/2 / rear=pi stays identical across Web and Android.
   let skinned = 0;
   let triangles = 0;
   let vertices = 0;
