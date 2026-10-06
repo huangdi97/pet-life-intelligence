@@ -35,6 +35,15 @@ const stageTheme: StageTheme =
   window.__PLI_STAGE_THEME === "review" || window.__PLI_STAGE_THEME === "engineering"
     ? (window.__PLI_STAGE_THEME as StageTheme)
     : "living";
+const injectedStageRole =
+  window.__PLI_STAGE_ROLE === "today" ||
+  window.__PLI_STAGE_ROLE === "pet" ||
+  window.__PLI_STAGE_ROLE === "life" ||
+  window.__PLI_STAGE_ROLE === "review"
+    ? String(window.__PLI_STAGE_ROLE)
+    : stageTheme === "review"
+      ? "review"
+      : "life";
 const twinDescriptor = window.__PLI_TWIN ?? null;
 // Injected by Pet3DViewer for the V2 identity gate (pet id + media count).
 const injectedPetId: string | null = window.__PLI_PET_ID ?? null;
@@ -253,7 +262,7 @@ function buildManifest(): Record<string, unknown> {
     texturePresent: hdTwin !== null,
     baseColorTextureResolution: hdTwin ? 2048 : 0,
     canonicalPose: activePose ?? "Stand",
-    stageRole: stageTheme,
+    stageRole: injectedStageRole,
     surfaceVariant:
       stageTheme === "review"
         ? ("neutral-identity-studio" as const)
