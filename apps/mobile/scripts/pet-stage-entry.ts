@@ -146,6 +146,9 @@ if (stageTheme !== "engineering") {
 
 const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 40);
 const orbit = { ...DEFAULT_ORBIT };
+// Review surfaces own an explicit canonical yaw. Normal Living surfaces leave
+// this null and keep the warm 3/4 DEFAULT_ORBIT framing.
+let reviewPresetYaw: number | null = null;
 // Zoom clamp is re-derived from the fitted baseline when auto-framing.
 const zoomBounds = { min: 2.6, max: 7 };
 
@@ -180,7 +183,11 @@ function applyFit(): void {
   const fit = fitOrbitRadius(
     petRoot,
     camera,
-    { yaw: DEFAULT_ORBIT.yaw, pitch: DEFAULT_ORBIT.pitch, radius: DEFAULT_ORBIT.radius },
+    {
+      yaw: reviewPresetYaw ?? orbit.yaw,
+      pitch: orbit.pitch,
+      radius: DEFAULT_ORBIT.radius,
+    },
     frameTarget,
     Math.max(1, Math.round(window.innerWidth || 1)),
     Math.max(1, Math.round(window.innerHeight || 1)),
@@ -363,19 +370,29 @@ function pinchDist(e: TouchEvent): number {
 // --- buttons ---
 window.zoom = (inward: boolean) => {
   Object.assign(orbit, orbitZoom(orbit, inward ? 1.2 : 1 / 1.2, zoomBounds));
+  applyOrbit(camera, STAGE_TARGET, orbit);
+  post({ type: "manifest", manifest: buildManifest(), force: true });
 };
 window.resetView = () => {
-  // Reset restores the canonical framing — re-fitted so the zoom/reset camera
-  // evidence always compares against the SAME fitted baseline.
-  Object.assign(orbit, { ...DEFAULT_ORBIT });
+  // Reset restores the canonical framing while preserving an explicit Review
+  // angle. A selected "正面/侧面/背面" chip must never disagree with camera yaw.
+  Object.assign(orbit, {
+    ...DEFAULT_ORBIT,
+    yaw: reviewPresetYaw ?? DEFAULT_ORBIT.yaw,
+  });
   applyFit();
+  applyOrbit(camera, STAGE_TARGET, orbit);
+  post({ type: "manifest", manifest: buildManifest(), force: true });
 };
 // R4.1 (Phase C): Twin Review view presets must drive the real camera —
 // front = 0, side = π/2, back = π (mirrors the web Twin Review + pixel
 // contract). The yaw is applied in the page so the manifest camera evidence
 // (3d.json yaw) proves the view switch is a true camera move.
 window.__PLI_SET_VIEW = (yaw: number) => {
+  reviewPresetYaw = yaw;
   Object.assign(orbit, { yaw, pitch: DEFAULT_ORBIT.pitch });
+  applyOrbit(camera, STAGE_TARGET, orbit);
+  post({ type: "manifest", manifest: buildManifest(), force: true });
 };
 
 const controls = document.getElementById("controls") as HTMLElement;
