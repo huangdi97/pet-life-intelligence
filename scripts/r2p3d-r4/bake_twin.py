@@ -270,7 +270,13 @@ def bake(identity: str, write_sums: bool = False) -> None:
         "normalize": m,
         "morphology": morph_meta,
         "nativeBreedSource": bool(cfg.get("native_breed_source", False)),
-        "sourceGeometryClass": "native-corgi" if cfg.get("native_breed_source", False) else "template-morphed",
+        "sourceGeometryClass": (
+            "native-corgi"
+            if cfg.get("native_breed_source", False)
+            else "template-cat"
+            if identity == "cat"
+            else "template-morphed"
+        ),
         "subdivisionMode": subdivision_mode,
         "atlasObservedRatio": float(observed.mean()),
         "landmarks": {k: (list(v) if isinstance(v, tuple) else v) for k, v in landmarks.items()},
