@@ -63,8 +63,10 @@ interface Props {
   frameTarget?: number;
   stageRole?: string;
   realityField?: string;
-  /** Declarative Review camera preset. Product state must not depend on a test/debug global. */
+  /** Declarative Review camera preset. Undefined on normal Living surfaces. */
   view?: "front" | "side" | "back";
+  /** Re-applies the same preset when the owner taps an already-selected angle. */
+  viewRevision?: number;
   onStatus?: (status: Pet3DStatus) => void;
 }
 
@@ -81,7 +83,8 @@ export function Pet3DViewer({
   frameTarget = 0,
   stageRole = "life",
   realityField = "",
-  view = "front",
+  view,
+  viewRevision = 0,
   onStatus,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -176,7 +179,11 @@ export function Pet3DViewer({
             const fit = fitOrbitRadius(
               twin3d.group,
               camera,
-              { yaw: DEFAULT_ORBIT.yaw, pitch: DEFAULT_ORBIT.pitch, radius: DEFAULT_ORBIT.radius },
+              {
+                yaw: orbitRef.current.yaw,
+                pitch: orbitRef.current.pitch,
+                radius: DEFAULT_ORBIT.radius,
+              },
               frameTarget,
               Math.max(1, Math.round(window.innerWidth)),
               Math.max(1, Math.round(window.innerHeight)),
@@ -220,7 +227,11 @@ export function Pet3DViewer({
             const fit = fitOrbitRadius(
               petRoot,
               camera,
-              { yaw: DEFAULT_ORBIT.yaw, pitch: DEFAULT_ORBIT.pitch, radius: DEFAULT_ORBIT.radius },
+              {
+                yaw: orbitRef.current.yaw,
+                pitch: orbitRef.current.pitch,
+                radius: DEFAULT_ORBIT.radius,
+              },
               frameTarget,
               Math.max(1, Math.round(window.innerWidth)),
               Math.max(1, Math.round(window.innerHeight)),
@@ -426,6 +437,7 @@ export function Pet3DViewer({
     win.__PLI_RESET_VIEW = () => reset();
     win.__PLI_SET_VIEW = (yawDeg: number) => {
       orbitRef.current.yaw = yawDeg;
+      canonicalFitRef.current = { ...canonicalFitRef.current, yaw: yawDeg };
       if (wrapRef.current) wrapRef.current.dataset.orientation = yawDeg.toFixed(2);
       publishNow();
     };
@@ -456,13 +468,18 @@ export function Pet3DViewer({
   // Twin Review is controlled declaratively by React state. The global
   // __PLI_SET_VIEW bridge remains below only for blind/runtime harnesses.
   useEffect(() => {
-    if (status !== "ready") return;
+    if (status !== "ready" || !view) return;
     const yaw = view === "side" ? Math.PI / 2 : view === "back" ? Math.PI : 0;
     orbitRef.current.yaw = yaw;
     orbitRef.current.pitch = DEFAULT_ORBIT.pitch;
+    canonicalFitRef.current = {
+      ...canonicalFitRef.current,
+      yaw,
+      pitch: DEFAULT_ORBIT.pitch,
+    };
     if (wrapRef.current) wrapRef.current.dataset.orientation = yaw.toFixed(2);
     publishNow();
-  }, [view, status]);
+  }, [view, viewRevision, status]);
 
   const meta = PET_3D_ASSETS[identity];
   const ownerName = displayName?.trim() || "宠物";
