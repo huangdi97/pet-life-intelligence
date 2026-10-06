@@ -51,8 +51,8 @@ export function AuditAndFeedbackSection({
   fbDone,
 }: AuditAndFeedbackSectionProps) {
   return (
-    <div className="v5-utility-stack">
-      <section className="v5-utility-surface">
+    <div className="v5-me-sections">
+      <section className="v5-me-section">
         <h2>访问记录</h2>
         <p className="muted" style={{ marginTop: 0 }}>
           查看最近谁对宠物数据执行过操作。这里使用用户语言，不展示内部资源编号或系统枚举。
@@ -73,7 +73,7 @@ export function AuditAndFeedbackSection({
         </State>
       </section>
 
-      <section className="v5-utility-surface v5-utility-surface--soft">
+      <section className="v5-me-section v5-me-section--soft">
         <h2>试点反馈</h2>
         <p className="muted">
           告诉我们哪里出错、难懂或缺少内容。安全与隐私问题会单独归类；请不要填写病历全文或联系方式。
