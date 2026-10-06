@@ -3,23 +3,13 @@
 import type { Consent } from "@pli/api-client";
 import { State } from "../../../components/ui";
 import { fmtTime, type Async } from "../../../lib/hooks";
+import { consentPurposeLabel } from "../../../lib/ownerLabels";
 
 interface ConsentsCardProps {
   consents: Async<Consent[]>;
   onToggle: (purpose: string, granted: boolean) => void;
 }
 
-function purposeLabel(purpose: string): string {
-  const value = purpose.toUpperCase();
-  if (value === "SERVICE_ESSENTIAL") return "提供核心服务";
-  if (value.includes("HEALTH")) return "健康相关数据";
-  if (value.includes("AI") || value.includes("MODEL")) return "智能功能";
-  if (value.includes("RESEARCH")) return "研究与产品改进";
-  if (value.includes("SHARE") || value.includes("CARE")) return "照护协作与共享";
-  if (value.includes("DEVICE") || value.includes("MONITOR")) return "设备与在家观察";
-  if (value.includes("NOTIF")) return "通知与提醒";
-  return "其他数据用途";
-}
 
 /** PLI-016/215 数据同意：逐项同意/撤回，owner copy never leaks raw enums. */
 export function ConsentsCard({ consents, onToggle }: ConsentsCardProps) {
@@ -36,7 +26,7 @@ export function ConsentsCard({ consents, onToggle }: ConsentsCardProps) {
             return (
               <div className="v5-me-row" key={c.purpose}>
                 <div className="v5-me-row-main">
-                  <strong>{purposeLabel(c.purpose)}</strong>
+                  <strong>{consentPurposeLabel(c.purpose)}</strong>
                   <span>最近更新 {fmtTime(c.updated_at)}</span>
                 </div>
                 <span className={`v4-chip ${c.granted ? "v4-chip--success" : ""}`}>
@@ -45,7 +35,7 @@ export function ConsentsCard({ consents, onToggle }: ConsentsCardProps) {
                 <button
                   className="btn"
                   disabled={essential}
-                  aria-label={essential ? "核心服务所需数据不可单独撤回" : `${c.granted ? "撤回" : "同意"}：${purposeLabel(c.purpose)}`}
+                  aria-label={essential ? "核心服务所需数据不可单独撤回" : `${c.granted ? "撤回" : "同意"}：${consentPurposeLabel(c.purpose)}`}
                   onClick={() => onToggle(c.purpose, !c.granted)}
                 >
                   {essential ? "服务必需" : c.granted ? "撤回" : "同意"}
