@@ -1,7 +1,8 @@
 """skinweights — bind the R4 twin meshes to the PLI rig.
 
-The PLI rig (packages/pet-3d/src/rig.ts) defines 16 joint nodes whose world
-positions are absolute in twin unit space. Each mesh vertex receives weights
+The PLI rig (packages/pet-3d/src/rig.ts) defines 16 hierarchical joint nodes
+whose translations are LOCAL to their parents. We first accumulate those
+translations into world-space bind positions. Each mesh vertex receives weights
 for the 3 nearest bone SEGMENTS (parent->joint), computed from point-to-
 segment distance, so the torso stays on the spine, thighs with the hip, etc.
 A small root tie weights everything to the ground so no vertex can detach.
@@ -37,16 +38,31 @@ JOINT_SPECS: list[tuple[str, str, list[float]]] = [
 ]
 
 JOINT_NAMES: list[str] = [s[0] for s in JOINT_SPECS]
-# Bone segment endpoints (parent->joint) as used by the closest-point calc.
+JOINT_PARENT: dict[str, str | None] = {name: parent for name, parent, _ in JOINT_SPECS}
+JOINT_LOCAL: dict[str, np.ndarray] = {
+    name: np.asarray(pos, dtype=np.float64) for name, _parent, pos in JOINT_SPECS
+}
+
+# Accumulate hierarchical local translations into the same world-space bind
+# positions that glbwriter.py uses for inverse bind matrices. The previous
+# implementation compared parent/child LOCAL translations as if both were
+# absolute coordinates; for Doudou that incorrectly classified essentially
+# the entire front/head region as "neck", causing visible component tearing.
+JOINT_WORLD: dict[str, np.ndarray] = {}
+for name in JOINT_NAMES:
+    parent = JOINT_PARENT[name]
+    local = JOINT_LOCAL[name]
+    JOINT_WORLD[name] = local.copy() if parent is None else JOINT_WORLD[parent] + local
+
+# Bone segment endpoints (parent world -> child world).
 _SEGMENTS: list[tuple[int, int, np.ndarray, np.ndarray]] = []
-for i, (_name, parent, pos) in enumerate(JOINT_SPECS):
-    p = np.asarray(pos, dtype=np.float64)
+for i, (name, parent, _pos) in enumerate(JOINT_SPECS):
+    p = JOINT_WORLD[name]
     if parent is None:
         _SEGMENTS.append((i, i, p, p))  # root: point, not segment
     else:
         pid = JOINT_NAMES.index(parent)
-        pp = np.asarray(JOINT_SPECS[pid][2], dtype=np.float64)
-        _SEGMENTS.append((i, pid, pp, p))
+        _SEGMENTS.append((i, pid, JOINT_WORLD[parent], p))
 
 
 def _closest_point_on_segment(p: np.ndarray, a: np.ndarray, b: np.ndarray) -> np.ndarray:
