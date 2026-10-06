@@ -91,10 +91,20 @@ export async function loadTwinGLB(identity: Pet3DIdentity): Promise<LoadedTwin |
   });
 
   const root = gltf.scene ?? new THREE.Group();
+  // The baked cat source uses the opposite model-forward convention from the
+  // product camera contract. Keep camera semantics canonical (front=0,
+  // side=pi/2, rear=pi) and normalize only the model root.
+  if (identity === "mimi") {
+    root.rotation.y += Math.PI;
+  }
   let skinned = 0;
   let triangles = 0;
   let vertices = 0;
   const bones = new Map<string, THREE.Bone>();
+  const bindPose = new Map<
+    string,
+    { position: THREE.Vector3; quaternion: THREE.Quaternion; scale: THREE.Vector3 }
+  >();
   root.updateMatrixWorld(true);
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
@@ -134,7 +144,13 @@ export async function loadTwinGLB(identity: Pet3DIdentity): Promise<LoadedTwin |
       }
     }
     if ((o as THREE.Bone).isBone) {
-      bones.set(o.name, o as THREE.Bone);
+      const bone = o as THREE.Bone;
+      bones.set(o.name, bone);
+      bindPose.set(o.name, {
+        position: bone.position.clone(),
+        quaternion: bone.quaternion.clone(),
+        scale: bone.scale.clone(),
+      });
     }
   });
   if (skinned === 0) {
@@ -149,15 +165,45 @@ export async function loadTwinGLB(identity: Pet3DIdentity): Promise<LoadedTwin |
     triangleCount: triangles,
     vertexCount: vertices,
     setPose(pose: PoseName, t: number) {
+      // POSE_FN values are deltas from the authored bind pose. Reset every
+      // joint first so switching Sit -> Idle (or any sparse pose pair) cannot
+      // leak transforms from the previous frame/pose.
+      for (const [boneName, bone] of bones) {
+        const bind = bindPose.get(boneName);
+        if (!bind) continue;
+        bone.position.copy(bind.position);
+        bone.quaternion.copy(bind.quaternion);
+        bone.scale.copy(bind.scale);
+      }
+
       const fn = POSE_FN[pose] ?? POSE_FN.Idle;
       const frame = fn(t);
+      const deltaQuat = new THREE.Quaternion();
+      const deltaEuler = new THREE.Euler();
       for (const [name, x] of Object.entries(frame)) {
-        const bone = bones.get(`joint_${name}`);
-        if (!bone) continue;
-        if (x.rot) bone.rotation.set(x.rot[0], x.rot[1], x.rot[2]);
-        if (x.pos) bone.position.set(x.pos[0], x.pos[1], x.pos[2]);
-        if (x.scale) bone.scale.set(x.scale[0], x.scale[1], x.scale[2]);
+        const boneName = `joint_${name}`;
+        const bone = bones.get(boneName);
+        const bind = bindPose.get(boneName);
+        if (!bone || !bind) continue;
+        if (x.rot) {
+          deltaEuler.set(x.rot[0], x.rot[1], x.rot[2], "XYZ");
+          deltaQuat.setFromEuler(deltaEuler);
+          bone.quaternion.copy(bind.quaternion).multiply(deltaQuat);
+        }
+        if (x.pos) {
+          bone.position.copy(bind.position).add(
+            new THREE.Vector3(x.pos[0], x.pos[1], x.pos[2]),
+          );
+        }
+        if (x.scale) {
+          bone.scale.set(
+            bind.scale.x * x.scale[0],
+            bind.scale.y * x.scale[1],
+            bind.scale.z * x.scale[2],
+          );
+        }
       }
+      root.updateMatrixWorld(true);
     },
   };
 }
