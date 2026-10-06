@@ -183,12 +183,6 @@ export default function TodayPage() {
           )}
           <TasksCard hasPet={hasPet} tasks={tasks} />
 
-          {/* AI Summary — supporting utility; memory remains the final layer. */}
-          <div className="v4-sec">
-            <h2 className="v4-sec-title">AI 摘要</h2>
-            <p className="v4-note" style={{ margin: "6px 0 0" }}>服务暂未开放。回答会基于真实记录生成，并保留不确定性说明。</p>
-          </div>
-
           <RecentCard hasPet={hasPet} today={today} />
         </div>
       </div>
