@@ -56,12 +56,14 @@ interface Props {
   /** Twin Review view preset (front/side/back) → real camera yaw (Phase C).
    *  Undefined on normal Living surfaces so their canonical 3/4 camera stays intact. */
   view?: "front" | "side" | "back";
+  /** Semantic owner surface; distinct from visual stage theme. */
+  stageRole?: "today" | "pet" | "life" | "review";
   /** R4.2 stage theme: warm living field / neutral identity studio / engineering debug. */
   stageTheme?: "living" | "review" | "engineering";
   onStatus?: (status: Pet3DStatus) => void;
   onOrientation?: (yaw: number) => void;
 }
-export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DViewer({ identity, displayName, demoTwin = false, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, frameTarget = 0, view, stageTheme = "living", onStatus, onOrientation }, ref) {
+export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DViewer({ identity, displayName, demoTwin = false, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, frameTarget = 0, view, stageRole, stageTheme = "living", onStatus, onOrientation }, ref) {
   const [status, setStatus] = useState<Pet3DStatus>("boot");
   const webRef = useRef<WebView>(null);
   // Imperative camera controls drive the embedded page's REAL handlers
@@ -164,7 +166,7 @@ export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DVi
   }, [view, status]);
 
   const twinJson = twin ? JSON.stringify(twin).replace(/\\/g, "\\\\").replace(/'/g, "\\'") : "";
-  const injected = `window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; window.__PLI_FRAME_TARGET = ${Number(frameTarget) || 0}; window.__PLI_PET_ID = ${petId ? JSON.stringify(petId) : "null"}; window.__PLI_SOURCE_MEDIA_COUNT = ${Number(sourceMediaCount) || 0}; window.__PLI_STAGE_THEME = ${JSON.stringify(stageTheme)}; ${
+  const injected = `window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; window.__PLI_FRAME_TARGET = ${Number(frameTarget) || 0}; window.__PLI_PET_ID = ${petId ? JSON.stringify(petId) : "null"}; window.__PLI_SOURCE_MEDIA_COUNT = ${Number(sourceMediaCount) || 0}; window.__PLI_STAGE_ROLE = ${JSON.stringify(stageRole ?? (stageTheme === "review" ? "review" : "life"))}; window.__PLI_STAGE_THEME = ${JSON.stringify(stageTheme)}; ${
     twin ? `window.__PLI_TWIN = JSON.parse('${twinJson}');` : ""
   } true;`;
 
