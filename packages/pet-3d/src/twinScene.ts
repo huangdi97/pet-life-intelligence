@@ -73,10 +73,23 @@ function part(
   return m;
 }
 
-/** Region color with observed priority, then template default, then palette. */
+function validHexColor(value: string | undefined): value is string {
+  return typeof value === "string" && /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value);
+}
+
+/** Region color with observed priority, then inferred hex, then palette.
+ *
+ * Backend metadata-only descriptors deliberately use provenance tokens such
+ * as "template_default" in inferred regions. Those tokens are NOT colors and
+ * must never be passed to THREE.Color (which otherwise logs warnings and can
+ * yield misleading fallback materials). Surface provenance is carried by the
+ * descriptor's separate surface/inferred_regions fields.
+ */
 function colorFor(regions: TwinTextureRegions | undefined, name: string, fallback: string): string {
-  if (regions?.observed && regions.observed[name]) return regions.observed[name]!;
-  if (regions?.inferred && regions.inferred[name]) return regions.inferred[name]!;
+  const observed = regions?.observed?.[name];
+  if (validHexColor(observed)) return observed;
+  const inferred = regions?.inferred?.[name];
+  if (validHexColor(inferred)) return inferred;
   return REGION_DEFAULT[name] ?? fallback;
 }
 
