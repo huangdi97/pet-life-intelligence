@@ -55,6 +55,8 @@
     "head_max_z": 0.6325041238783207,
     "head_min_y": 0.55
   },
+  "provenanceMode": "DEMO_TEMPLATE",
+  "sourceGeometryClass": "template-cat",
   "skinnedMeshCount": 1,
   "jointCount": 16,
   "materialCount": 1,
@@ -73,7 +75,7 @@
     "Stretch"
   ],
   "pbrMaterial": true,
-  "fingerprint": "274b2dc1f341c333",
+  "fingerprint": "f8f019ff8abf3e81",
   "fileSizeBytes": 3216560,
   "poseTruth": {
     "Idle": "AMBIENT",
@@ -88,7 +90,5 @@
     "Play": "REPRESENTATIVE",
     "Sniff": "OBSERVED",
     "Stretch": "OBSERVED"
-  },
-  "provenanceMode": "DEMO_TEMPLATE",
-  "sourceGeometryClass": "template-cat"
+  }
 }
