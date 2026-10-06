@@ -162,10 +162,8 @@ jobs:
           pnpm --dir packages/pet-3d build
           pnpm --dir apps/mobile build:3d-page
           pnpm --dir apps/mobile exec expo prebuild --platform android --non-interactive
-          node scripts/r5-6/prepare-android-evidence-build.mjs
           cd apps/mobile/android
           ./gradlew assembleDebug --no-daemon
-          unzip -l app/build/outputs/apk/debug/app-debug.apk | grep -q "assets/index.android.bundle"
       - name: Start API
         run: |
           (cd services/api && nohup python -m uvicorn app.main:app --host 0.0.0.0 --port 8800 > /tmp/pli-api.log 2>&1 &)
@@ -176,6 +174,21 @@ jobs:
             sleep 1
           done
           cat /tmp/pli-api.log
+          exit 1
+      - name: Start Metro for demo-evidence debug APK
+        env:
+          CI: "1"
+          EXPO_PUBLIC_PLI_API_URL: http://10.0.2.2:8800
+          EXPO_PUBLIC_PLI_DEMO_ENV: "1"
+        run: |
+          (cd apps/mobile && nohup pnpm exec expo start --port 8081 > /tmp/pli-metro.log 2>&1 &)
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:8081/status | grep -q "packager-status:running"; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/pli-metro.log
           exit 1
       - name: Enable hosted-runner KVM access
         run: |
@@ -212,6 +225,7 @@ jobs:
           name: r5-6-android-runtime-diagnostics
           path: |
             /tmp/pli-api.log
+            /tmp/pli-metro.log
             /tmp/pli-android-logcat.txt
             /tmp/pli-diag.json
             /tmp/pli-runtime-manifest.json
