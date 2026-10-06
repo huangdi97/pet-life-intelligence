@@ -1,9 +1,24 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactElement, ReactPortal } from "react";
 import { provenanceLabel, triageLabel } from "../lib/ownerLabels";
 import { mapErrorMessage } from "../lib/i18n";
 import type { LoadState } from "../lib/hooks";
+
+/**
+ * Synchronous renderable node subset shared safely across the React 18/19
+ * ambient boundary still present in parts of the Next.js build toolchain.
+ * Owner UI state slots never accept bigint or async/promise children.
+ */
+type StableReactNode =
+  | ReactElement
+  | ReactPortal
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | readonly StableReactNode[];
 
 /** Render a user-facing message from a string or an Error/ApiError. */
 function humanize(error: string | Error | null | undefined): string | null {
@@ -21,9 +36,9 @@ export function State({
 }: {
   state: LoadState;
   error?: string | Error | null;
-  empty?: ReactNode;
+  empty?: StableReactNode;
   onRetry?: () => void;
-  children: ReactNode;
+  children: StableReactNode;
 }) {
   const msg = humanize(error);
   if (state === "loading")
