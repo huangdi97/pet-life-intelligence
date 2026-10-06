@@ -14,6 +14,10 @@ capture_diagnostics() {
 trap capture_diagnostics EXIT
 
 "$ADB" -s "$SERIAL" wait-for-device
+# React Native debug APKs load their JS from Metro. Reverse the device's
+# localhost:8081 to the hosted runner so the evidence APK gets the real app
+# bundle instead of a blank native shell.
+"$ADB" -s "$SERIAL" reverse tcp:8081 tcp:8081
 
 ready=0
 for _ in $(seq 1 60); do
