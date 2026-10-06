@@ -87,6 +87,12 @@ for (const surface of required) {
   if (/\bERROR:/i.test(reportText)) throw new Error(`final Web capture reported an error: ${surface}`);
 }
 
+const expectedTwinStageRole = {
+  today: "today",
+  pet: "pet",
+  lifeview: "life",
+  twinreview: "review",
+};
 for (const surface of ["today", "pet", "lifeview", "twinreview"]) {
   const visualPath = resolve(out, surface, "visual.json");
   if (!existsSync(visualPath)) throw new Error(`required final Web visual manifest missing: ${surface}`);
@@ -101,6 +107,16 @@ for (const surface of ["today", "pet", "lifeview", "twinreview"]) {
     manifest.fallbackUsed === true
   ) {
     throw new Error(`non-product Twin runtime on final Web surface: ${surface}`);
+  }
+  if (manifest.petId !== petId) {
+    throw new Error(
+      `Twin runtime pet mismatch on final Web surface: ${surface}; expected=${petId} actual=${manifest.petId}`,
+    );
+  }
+  if (manifest.stageRole !== expectedTwinStageRole[surface]) {
+    throw new Error(
+      `Twin runtime stage mismatch on final Web surface: ${surface}; expected=${expectedTwinStageRole[surface]} actual=${manifest.stageRole}`,
+    );
   }
   if (surface === "twinreview") {
     const yaw = Number(manifest.camera?.yaw);
