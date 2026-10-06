@@ -65,6 +65,45 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     await expect(page.getByRole("link", { name: "查看时间线" })).toBeVisible();
   });
 
+  test("Twin Review selected angle matches the real runtime camera", async ({ page, request }) => {
+    await loginAsEmail(page, request, "owner@pli.demo");
+    const petId = await demoPetId(request);
+    await page.goto(`/pets/${petId}/twin/review`);
+    await expectNoFatalState(page);
+
+    const waitForYaw = async (expected: number) => {
+      await page.waitForFunction(
+        (target) => {
+          const m = (window as any).__PLI_3D_MANIFEST__;
+          const yaw = Number(m?.camera?.yaw);
+          if (
+            !m ||
+            m.representation !== "high-fidelity-glb-twin" ||
+            m.stageRole !== "review" ||
+            !Number.isFinite(yaw)
+          ) {
+            return false;
+          }
+          return Math.abs(Math.atan2(Math.sin(yaw - target), Math.cos(yaw - target))) <= 0.08;
+        },
+        expected,
+        { timeout: 15_000 },
+      );
+    };
+
+    // The initial selected chip is 正面; async GLB fitting must not silently
+    // restore the generic 3/4 yaw after React already selected front.
+    await expect(page.getByTestId("pli.twinreview.view.front")).toHaveAttribute("aria-pressed", "true");
+    await waitForYaw(0);
+
+    await page.getByTestId("pli.twinreview.view.side").click();
+    await waitForYaw(Math.PI / 2);
+    await page.getByTestId("pli.twinreview.view.back").click();
+    await waitForYaw(Math.PI);
+    await page.getByTestId("pli.twinreview.view.front").click();
+    await waitForYaw(0);
+  });
+
   test("capture wizard renders 6-angle guide + privacy checks", async ({ page, request }) => {
     await loginAsEmail(page, request, "owner@pli.demo");
     const petId = await demoPetId(request);
