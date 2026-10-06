@@ -145,7 +145,13 @@ class Android:
             return None
         return None
 
-    def read_runtime_manifest(self, retries: int = 10, expected_pet_id: str | None = None) -> dict:
+    def read_runtime_manifest(
+        self,
+        retries: int = 10,
+        expected_pet_id: str | None = None,
+        expected_yaw: float | None = None,
+        expected_stage_role: str | None = None,
+    ) -> dict:
         for _ in range(retries):
             candidates: list[str] = []
             # Debug/demo builds: run-as is the most reliable app-private path.
@@ -175,21 +181,57 @@ class Android:
                     manifest = json.loads(raw)
                 except json.JSONDecodeError:
                     continue
-                if self._is_product_manifest(manifest) and (
-                    expected_pet_id is None or str(manifest.get("petId") or "") == expected_pet_id
+                if self._manifest_matches(
+                    manifest,
+                    expected_pet_id=expected_pet_id,
+                    expected_yaw=expected_yaw,
+                    expected_stage_role=expected_stage_role,
                 ):
                     return manifest
 
             xml_manifest = self._manifest_from_xml()
             if (
                 xml_manifest is not None
-                and self._is_product_manifest(xml_manifest)
-                and (expected_pet_id is None or str(xml_manifest.get("petId") or "") == expected_pet_id)
+                and self._manifest_matches(
+                    xml_manifest,
+                    expected_pet_id=expected_pet_id,
+                    expected_yaw=expected_yaw,
+                    expected_stage_role=expected_stage_role,
+                )
             ):
                 return xml_manifest
             time.sleep(2)
         suffix = f" for pet {expected_pet_id}" if expected_pet_id else ""
+        if expected_yaw is not None:
+            suffix += f", yaw≈{expected_yaw:.3f}"
+        if expected_stage_role is not None:
+            suffix += f", stageRole={expected_stage_role}"
         raise CaptureError(f"required high-fidelity RUNTIME 3D manifest unavailable{suffix}")
+
+    @classmethod
+    def _manifest_matches(
+        cls,
+        manifest: dict,
+        *,
+        expected_pet_id: str | None,
+        expected_yaw: float | None,
+        expected_stage_role: str | None,
+    ) -> bool:
+        if not cls._is_product_manifest(manifest):
+            return False
+        if expected_pet_id is not None and str(manifest.get("petId") or "") != expected_pet_id:
+            return False
+        if expected_stage_role is not None and str(manifest.get("stageRole") or "") != expected_stage_role:
+            return False
+        if expected_yaw is not None:
+            try:
+                actual = float((manifest.get("camera") or {}).get("yaw"))
+            except (TypeError, ValueError):
+                return False
+            error = abs(math.atan2(math.sin(actual - expected_yaw), math.cos(actual - expected_yaw)))
+            if error > 0.08:
+                return False
+        return True
 
     @staticmethod
     def _is_product_manifest(manifest: dict) -> bool:
@@ -298,12 +340,15 @@ def capture_review_views(
     expected = {"front": 0.0, "side": 1.5707963267948966, "back": 3.141592653589793}
     for view, yaw in expected.items():
         android.tap(xml, f"pli.twinreview.view.{view}", "id")
-        time.sleep(2)
-        manifest = android.read_runtime_manifest(expected_pet_id=expected_pet_id)
-        actual = float((manifest.get("camera") or {}).get("yaw", 999.0))
-        wrapped_error = abs(math.atan2(math.sin(actual - yaw), math.cos(actual - yaw)))
-        if wrapped_error > 0.08:
-            raise CaptureError(f"Android review camera mismatch: {view}, expected={yaw}, actual={actual}")
+        # Do not freeze a fixed sleep + first readable manifest: the RN bridge
+        # is asynchronous and the previous camera manifest can still be on
+        # disk. Poll until the SAME pet, Review stage, and commanded yaw agree.
+        manifest = android.read_runtime_manifest(
+            retries=15,
+            expected_pet_id=expected_pet_id,
+            expected_yaw=yaw,
+            expected_stage_role="review",
+        )
         save_manifest(directory / f"3d_view_{view}.json", manifest)
         android.screenshot(directory / f"{prefix}_{view}.png")
         xml = android.dump_xml(directory / "ui.xml")
