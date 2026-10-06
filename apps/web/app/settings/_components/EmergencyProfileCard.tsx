@@ -14,7 +14,7 @@ interface EmergencyProfileCardProps {
 /** PLI-014 紧急联系卡：可编辑的主人/医院联系方式与关键照护备注。 */
 export function EmergencyProfileCard({ profile, form, onFieldChange, onSave }: EmergencyProfileCardProps) {
   return (
-    <div className="card">
+    <section className="v5-me-section">
       <h2>紧急联系卡</h2>
       <State state={profile.state} error={profile.error} onRetry={profile.reload}>
         {(form ?? profile.data) && (
@@ -71,6 +71,6 @@ export function EmergencyProfileCard({ profile, form, onFieldChange, onSave }: E
           </>
         )}
       </State>
-    </div>
+    </section>
   );
 }
