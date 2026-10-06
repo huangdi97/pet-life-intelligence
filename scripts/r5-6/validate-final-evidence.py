@@ -73,7 +73,12 @@ def require_image(path: Path) -> None:
             raise ValueError(f"invalid screenshot dimensions: {path} -> {image.size}")
 
 
-def require_product_manifest(path: Path, *, expected_pet_id: str | None = None) -> dict:
+def require_product_manifest(
+    path: Path,
+    *,
+    expected_pet_id: str | None = None,
+    expected_stage_role: str | None = None,
+) -> dict:
     manifest = load_json(path)
     if manifest.get("ready") is not True:
         raise ValueError(f"runtime manifest is not ready: {path}")
@@ -87,6 +92,11 @@ def require_product_manifest(path: Path, *, expected_pet_id: str | None = None) 
         raise ValueError(f"fallback was used on required product evidence: {path}")
     if expected_pet_id and manifest.get("petId") != expected_pet_id:
         raise ValueError(f"pet identity mismatch: {path}")
+    if expected_stage_role and manifest.get("stageRole") != expected_stage_role:
+        raise ValueError(
+            f"runtime stage role mismatch: {path}; "
+            f"expected={expected_stage_role} actual={manifest.get('stageRole')}"
+        )
     return manifest
 
 
@@ -146,6 +156,12 @@ def main() -> None:
         require_image(WEB / surface / "screenshot.png")
     for state in WEB_STATES:
         require_image(WEB / state / "screenshot.png")
+    expected_web_stage_role = {
+        "today": "today",
+        "pet": "pet",
+        "lifeview": "life",
+        "twinreview": "review",
+    }
     for surface in WEB_TWIN_SURFACES:
         visual = load_json(WEB / surface / "visual.json")
         manifest = visual.get("manifest")
@@ -154,7 +170,11 @@ def main() -> None:
         temp = WEB / surface / ".runtime-manifest-validation.json"
         temp.write_text(json.dumps(manifest), encoding="utf-8")
         try:
-            require_product_manifest(temp, expected_pet_id=web_primary_pet_id)
+            require_product_manifest(
+                temp,
+                expected_pet_id=web_primary_pet_id,
+                expected_stage_role=expected_web_stage_role[surface],
+            )
         finally:
             temp.unlink(missing_ok=True)
 
@@ -169,21 +189,30 @@ def main() -> None:
 
     for surface in ANDROID_SURFACES:
         require_image(ANDROID / surface / f"{surface}.png")
+    expected_android_stage_role = {
+        "today": "today",
+        "pet": "pet",
+        "lifeview": "life",
+        "twinreview": "review",
+    }
     for surface in ANDROID_TWIN_SURFACES:
         require_product_manifest(
             ANDROID / surface / "3d.json",
             expected_pet_id=android_primary_pet_id,
+            expected_stage_role=expected_android_stage_role[surface],
         )
 
     require_image(ANDROID / "secondary-sanity" / "secondary_today.png")
     secondary_today = require_product_manifest(
         ANDROID / "secondary-sanity" / "3d.json",
         expected_pet_id=android_secondary_pet_id,
+        expected_stage_role="today",
     )
     require_image(ANDROID / "secondary-review" / "secondary_twinreview.png")
     secondary_review = require_product_manifest(
         ANDROID / "secondary-review" / "3d.json",
         expected_pet_id=android_secondary_pet_id,
+        expected_stage_role="review",
     )
     if secondary_today.get("petId") != secondary_review.get("petId"):
         raise ValueError("secondary-pet Today/Review manifests refer to different pets")
@@ -192,6 +221,7 @@ def main() -> None:
         manifest = require_product_manifest(
             ANDROID / "twinreview" / f"3d_view_{view}.json",
             expected_pet_id=android_primary_pet_id,
+            expected_stage_role="review",
         )
         actual = float((manifest.get("camera") or {}).get("yaw"))
         if yaw_error(actual, expected) > 0.08:
@@ -201,6 +231,7 @@ def main() -> None:
         secondary = require_product_manifest(
             ANDROID / "secondary-review" / f"3d_view_{view}.json",
             expected_pet_id=android_secondary_pet_id,
+            expected_stage_role="review",
         )
         actual_secondary = float((secondary.get("camera") or {}).get("yaw"))
         if yaw_error(actual_secondary, expected) > 0.08:
@@ -220,6 +251,7 @@ def main() -> None:
         manifest = require_product_manifest(
             TURNTABLE / "primary" / f"{angle}.json",
             expected_pet_id=primary_pet_id,
+            expected_stage_role="life",
         )
         actual = float((manifest.get("camera") or {}).get("yaw"))
         if yaw_error(actual, expected) > 0.08:
@@ -230,6 +262,7 @@ def main() -> None:
         manifest = require_product_manifest(
             TURNTABLE / "secondary" / f"{angle}.json",
             expected_pet_id=secondary_pet_id,
+            expected_stage_role="life",
         )
         actual = float((manifest.get("camera") or {}).get("yaw"))
         if yaw_error(actual, expected) > 0.08:
