@@ -4,6 +4,7 @@
   "family": "standard-cat",
   "representation": "high-fidelity-glb-twin",
   "legacyRepresentation": "procedural-twin",
+  "provenanceMode": "DEMO_TEMPLATE",
   "representationQuality": "HIGH_FIDELITY_SKINNED",
   "productCandidate": true,
   "triangleCount": 51648,
@@ -38,13 +39,16 @@
   "normalize": {
     "scale": 0.2237338037511929,
     "translate_y_min": -0.05321439252746105,
-    "height": 1,
-    "rotate_y_deg": -90
+    "height": 1.0,
+    "rotate_y_deg": -90.0
   },
   "morphology": {
     "applied": false
   },
-  "atlasObservedRatio": 0.21371912956237793,
+  "nativeBreedSource": false,
+  "sourceGeometryClass": "template-morphed",
+  "subdivisionMode": "loop-smooth",
+  "atlasObservedRatio": 0.18619179725646973,
   "landmarks": {
     "eye_y": 0.74,
     "eye_dx": 0.13,
@@ -54,7 +58,5 @@
     "head_min_z": -0.6325041238783207,
     "head_max_z": 0.6325041238783207,
     "head_min_y": 0.55
-  },
-  "provenanceMode": "DEMO_TEMPLATE",
-  "sourceGeometryClass": "template-cat"
+  }
 }
