@@ -14,6 +14,15 @@ capture_diagnostics() {
 trap capture_diagnostics EXIT
 
 "$ADB" -s "$SERIAL" wait-for-device
+
+# Hosted Pixel images occasionally surface Launcher/SystemUI ANR dialogs over
+# the foreground app even though PLI itself is healthy. Suppress host-shell
+# error UI at the platform level; capture-android-final.py still refuses to
+# dismiss PLI's own crash/ANR dialogs.
+"$ADB" -s "$SERIAL" shell settings put global hide_error_dialogs 1 || true
+"$ADB" -s "$SERIAL" shell settings put global anr_show_background 0 || true
+"$ADB" -s "$SERIAL" shell am force-stop com.google.android.apps.nexuslauncher || true
+
 # React Native debug APKs load their JS from Metro. Reverse the device's
 # localhost:8081 to the hosted runner so the evidence APK gets the real app
 # bundle instead of a blank native shell.
