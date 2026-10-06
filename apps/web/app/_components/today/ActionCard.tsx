@@ -34,7 +34,7 @@ export function ActionCard({ petId, onMore }: ActionCardProps) {
           看看它
         </Link>
         <Link href="/agent" className="v4-action v4-action--secondary">
-          <span className="v4-action-icon"><Icon name="chat" size={16} /></span>
+          <span className="v4-action-icon"><Icon name="sparkles" size={16} /></span>
           问助手
         </Link>
       </div>
