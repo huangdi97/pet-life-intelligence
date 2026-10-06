@@ -104,6 +104,16 @@ def qa_pet(pet: str) -> dict:
             errors.append("doudou must use the native breed source")
         if manifest.get("sourceGeometryClass") != "native-corgi":
             errors.append("doudou sourceGeometryClass must be native-corgi")
+        # The native Gobkit Corgi is authored as multiple touching/open shells.
+        # Loop smoothing shrinks each shell boundary independently and visibly
+        # explodes the animal into head/body/leg pieces. Product Doudou must
+        # therefore use the deterministic linear 1-to-4 refinement that raises
+        # triangle density without moving any authored boundary vertex.
+        if manifest.get("subdivisionMode") != "linear-boundary-preserving":
+            errors.append(
+                "doudou subdivisionMode must be linear-boundary-preserving "
+                "(native open-shell silhouette contract)"
+            )
     if pet == "mimi" and manifest.get("sourceGeometryClass") != "template-cat":
         errors.append("mimi sourceGeometryClass must be template-cat")
 
