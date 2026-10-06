@@ -55,7 +55,7 @@ export function AuditAndFeedbackSection({
       <section className="v5-me-section">
         <h2>访问记录</h2>
         <p className="muted" style={{ marginTop: 0 }}>
-          查看最近谁对宠物数据执行过操作。这里使用用户语言，不展示内部资源编号或系统枚举。
+          查看最近谁对宠物数据执行过操作，方便追溯共享、修改与授权变化。
         </p>
         <State state={audit.state} error={audit.error} onRetry={audit.reload} empty="暂无访问记录。">
           <ul className="tl">
