@@ -1641,3 +1641,111 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
   }
 }
 
+
+
+/* R5.6 final owner-flow craft -------------------------------------------------
+   Today keeps one dominant action instead of a six-tile dashboard. Me uses
+   open settings sections, matching the native client and the Living system. */
+.v5-today-primary {
+  width: min(100%, 320px);
+  justify-content: center;
+}
+.v5-today-secondary {
+  margin-top: 8px;
+}
+.v5-today-secondary .v4-action {
+  box-shadow: none;
+}
+
+.v5-me-page {
+  max-width: 920px;
+}
+.v5-me-page .v5-page-lede {
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(226, 218, 206, 0.72);
+}
+.v5-me-section {
+  padding: 20px 2px;
+  border: 0;
+  border-bottom: 1px solid rgba(226, 218, 206, 0.68);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.v5-me-section:last-child {
+  border-bottom-color: transparent;
+}
+.v5-me-section--soft {
+  margin: 8px -14px 0;
+  padding: 18px 16px;
+  border-radius: 20px;
+  border-bottom: 0;
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(242,247,239,0.72), rgba(242,247,239,0) 62%),
+    rgba(255,253,249,0.52);
+}
+.v5-me-section h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+.v5-me-section h3 {
+  margin-top: 18px;
+}
+.v5-me-sections {
+  display: grid;
+  gap: 0;
+}
+.v5-me-list {
+  display: grid;
+}
+.v5-me-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 56px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(226,218,206,0.55);
+}
+.v5-me-row:last-child {
+  border-bottom: 0;
+}
+.v5-me-row-main {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.v5-me-row-main strong {
+  color: var(--v4-text-primary);
+  font-size: 14px;
+}
+.v5-me-row-main span {
+  color: var(--v4-text-tertiary);
+  font-size: 12px;
+}
+@media (max-width: 640px) {
+  .v5-today-primary { width: 100%; }
+  .v5-today-secondary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .v5-today-secondary .v4-action {
+    width: 100%;
+    padding-inline: 12px;
+  }
+  .v5-me-section {
+    padding: 18px 0;
+  }
+  .v5-me-section--soft {
+    margin-inline: -8px;
+    padding-inline: 12px;
+  }
+  .v5-me-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .v5-me-row > .btn {
+    grid-column: 1 / -1;
+    justify-self: start;
+    min-height: 44px;
+  }
+}
