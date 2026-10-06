@@ -8,7 +8,7 @@
   "representationQuality": "HIGH_FIDELITY_SKINNED",
   "productCandidate": true,
   "triangleCount": 32512,
-  "vertexCount": 18554,
+  "vertexCount": 19342,
   "uvPresent": true,
   "texturePresent": true,
   "baseColorTextureResolution": 2048,
@@ -37,8 +37,8 @@
   ],
   "sourceProvenance": "github.com/Ariescar/gobkit-free-assets animal/Corgi.glb (Gobkit, CC0 1.0)",
   "normalize": {
-    "scale": 0.0033854136604306393,
-    "translate_y_min": -3.616771444067511,
+    "scale": 0.003338503055837978,
+    "translate_y_min": -4.751849174,
     "height": 1.35,
     "rotate_y_deg": 0.0
   },
@@ -47,19 +47,20 @@
   },
   "nativeBreedSource": true,
   "sourceGeometryClass": "native-corgi",
-  "atlasObservedRatio": 0.441784143447876,
+  "subdivisionMode": "linear-boundary-preserving",
+  "atlasObservedRatio": 0.47696876525878906,
   "landmarks": {
     "eye_center": [
       0.0,
       1.026,
-      0.26266621961057324
+      0.2634761920230791
     ],
-    "eye_dx": 0.19337585420001532,
-    "muzzle_z": 0.4317177162893509,
-    "chest_z": 0.49498134674695643,
-    "chest_y": 0.4938190200608009,
-    "head_min_z": -0.7425030479507453,
-    "head_max_z": 0.4559197044163514,
+    "eye_dx": 0.18755416005920464,
+    "muzzle_z": 0.42948002060512136,
+    "chest_z": 0.49179954946227683,
+    "chest_y": 0.4929837054356444,
+    "head_min_z": -0.7367333160374481,
+    "head_max_z": 0.4495293205774578,
     "head_min_y": 0.7425000000000002
   },
   "skinnedMeshCount": 1,
@@ -80,8 +81,8 @@
     "Stretch"
   ],
   "pbrMaterial": true,
-  "fingerprint": "e0c420e283c08f15",
-  "fileSizeBytes": 3341132,
+  "fingerprint": "36ca430fa86dc848",
+  "fileSizeBytes": 3677068,
   "poseTruth": {
     "Idle": "AMBIENT",
     "Stand": "AMBIENT",
