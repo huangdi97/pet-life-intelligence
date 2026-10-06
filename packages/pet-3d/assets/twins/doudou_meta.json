@@ -48,7 +48,7 @@
   "nativeBreedSource": true,
   "sourceGeometryClass": "native-corgi",
   "subdivisionMode": "linear-boundary-preserving",
-  "atlasObservedRatio": 0.47365856170654297,
+  "atlasObservedRatio": 0.4736471176147461,
   "landmarks": {
     "eye_center": [
       0.0,
