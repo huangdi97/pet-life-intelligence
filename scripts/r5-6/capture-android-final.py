@@ -33,14 +33,14 @@ from xml.etree import ElementTree as ET
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUT = ROOT / "artifacts" / "r5-6-final" / "android"
 SURFACES = (
-    ("today", True),
-    ("timeline", False),
-    ("pet", True),
-    ("lifeview", True),
-    ("twinreview", True),
-    ("health", False),
-    ("assistant", False),
-    ("me", False),
+    ("today", True, "today"),
+    ("timeline", False, None),
+    ("pet", True, "pet"),
+    ("lifeview", True, "life"),
+    ("twinreview", True, "review"),
+    ("health", False, None),
+    ("assistant", False, None),
+    ("me", False, None),
 )
 
 
@@ -84,6 +84,27 @@ class Android:
             "-d",
             shlex.quote(uri),
             shlex.quote(f"{self.package}/.MainActivity"),
+        )
+
+    def clear_runtime_manifest(self) -> None:
+        # A persisted manifest belongs to the WebView instance that wrote it.
+        # Delete it before every 3D navigation/camera command so a successful
+        # previous surface can never certify a still-loading current surface.
+        self.cmd(
+            "shell",
+            "run-as",
+            self.package,
+            "rm",
+            "-f",
+            "files/pli_manifest.json",
+            check=False,
+        )
+        self.cmd(
+            "shell",
+            "rm",
+            "-f",
+            f"/data/data/{self.package}/files/pli_manifest.json",
+            check=False,
         )
 
     def screenshot(self, path: Path) -> None:
@@ -307,10 +328,13 @@ def capture_surface(
     out: Path,
     screen: str,
     needs_manifest: bool,
+    expected_stage_role: str | None,
     expected_pet_id: str | None = None,
 ) -> None:
     directory = out / screen
     directory.mkdir(parents=True, exist_ok=True)
+    if needs_manifest:
+        android.clear_runtime_manifest()
     android.start_link(f"pli-demo://nav?screen={screen}")
     time.sleep(5)
     android.dump_xml(directory / "ui.xml")
@@ -320,7 +344,10 @@ def capture_surface(
         # state from being paired with a later successful manifest.
         save_manifest(
             directory / "3d.json",
-            android.read_runtime_manifest(expected_pet_id=expected_pet_id),
+            android.read_runtime_manifest(
+                expected_pet_id=expected_pet_id,
+                expected_stage_role=expected_stage_role,
+            ),
         )
         time.sleep(1)
     android.screenshot(directory / f"{screen}.png")
@@ -334,11 +361,13 @@ def capture_review_views(
     prefix: str,
     expected_pet_id: str,
 ) -> None:
+    android.clear_runtime_manifest()
     android.start_link("pli-demo://nav?screen=twinreview")
     time.sleep(5)
     xml = android.dump_xml(directory / "ui.xml")
     expected = {"front": 0.0, "side": 1.5707963267948966, "back": 3.141592653589793}
     for view, yaw in expected.items():
+        android.clear_runtime_manifest()
         android.tap(xml, f"pli.twinreview.view.{view}", "id")
         # Do not freeze a fixed sleep + first readable manifest: the RN bridge
         # is asynchronous and the previous camera manifest can still be on
@@ -384,16 +413,27 @@ def main() -> None:
     # avoids depending on UIAutomator exposing React Native testID as a
     # resource-id on every emulator image while still exercising the real
     # PetsContext selection + persisted current-pet state.
+    android.clear_runtime_manifest()
     android.start_link(f"pli-demo://nav?screen=today&pet={primary_id}")
     time.sleep(6)
     primary_select_dir = out / "_primary-select"
     primary_select_dir.mkdir(parents=True, exist_ok=True)
     android.dump_xml(primary_select_dir / "ui.xml")
-    primary_manifest = android.read_runtime_manifest(expected_pet_id=primary_id)
+    primary_manifest = android.read_runtime_manifest(
+        expected_pet_id=primary_id,
+        expected_stage_role="today",
+    )
     save_manifest(primary_select_dir / "3d.json", primary_manifest)
 
-    for screen, manifest in SURFACES:
-        capture_surface(android, out, screen, manifest, primary_id if manifest else None)
+    for screen, manifest, stage_role in SURFACES:
+        capture_surface(
+            android,
+            out,
+            screen,
+            manifest,
+            stage_role,
+            primary_id if manifest else None,
+        )
 
     review_dir = out / "twinreview"
     capture_review_views(android, review_dir, "twin", primary_id)
@@ -403,22 +443,30 @@ def main() -> None:
     # owner pet display name is hard-coded in production source.
     secondary_today = out / "secondary-sanity"
     secondary_today.mkdir(parents=True, exist_ok=True)
+    android.clear_runtime_manifest()
     android.start_link(f"pli-demo://nav?screen=today&pet={secondary_id}")
     time.sleep(6)
     android.dump_xml(secondary_today / "ui.xml")
-    secondary_manifest = android.read_runtime_manifest(expected_pet_id=secondary_id)
+    secondary_manifest = android.read_runtime_manifest(
+        expected_pet_id=secondary_id,
+        expected_stage_role="today",
+    )
     save_manifest(secondary_today / "3d.json", secondary_manifest)
     time.sleep(1)
     android.screenshot(secondary_today / "secondary_today.png")
 
     secondary_review = out / "secondary-review"
     secondary_review.mkdir(parents=True, exist_ok=True)
+    android.clear_runtime_manifest()
     android.start_link("pli-demo://nav?screen=twinreview")
     time.sleep(5)
     android.dump_xml(secondary_review / "ui.xml")
     save_manifest(
         secondary_review / "3d.json",
-        android.read_runtime_manifest(expected_pet_id=secondary_id),
+        android.read_runtime_manifest(
+            expected_pet_id=secondary_id,
+            expected_stage_role="review",
+        ),
     )
     time.sleep(1)
     android.screenshot(secondary_review / "secondary_twinreview.png")
