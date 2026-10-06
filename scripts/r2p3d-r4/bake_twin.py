@@ -27,6 +27,7 @@ import numpy as np
 from corgi_morph import MorphParams, corgi_morph, measure_metrics, metrics_delta
 from meshops import (
     face_normals,
+    linear_subdivide,
     loop_subdivide,
     material_region_centroids,
     normalize_mesh,
@@ -132,6 +133,7 @@ CONFIG = {
         "src_obj": R5_SRC / "doudou-gobkit-corgi/Corgi.obj",
         "src_mtl": R5_SRC / "doudou-gobkit-corgi/Corgi.mtl",
         "subdiv": 3,
+        "subdivision_mode": "linear-boundary-preserving",
         "native_breed_source": True,
         "apply_corgi_morph": False,
         "rotate_y_deg": 0.0,
@@ -147,6 +149,7 @@ CONFIG = {
         "src_obj": SRC / "mimi-quaternius-cat/cat_quaternius_v2.obj",
         "src_mtl": SRC / "mimi-quaternius-cat/cat_quaternius_v2.mtl",
         "subdiv": 3,
+        "subdivision_mode": "loop-smooth",
         "rotate_y_deg": -90.0,
         "height": 1.0,
         "proc_height": 1.15,
@@ -181,8 +184,10 @@ def bake(identity: str, write_sums: bool = False) -> None:
         FM = np.maximum(FM, 0)
 
     colors = _vertex_colors(F, FM, MC, V, V.shape[0])
+    subdivision_mode = str(cfg.get("subdivision_mode", "loop-smooth"))
+    subdivide = linear_subdivide if subdivision_mode == "linear-boundary-preserving" else loop_subdivide
     for _ in range(cfg["subdiv"]):
-        V, F, colors = loop_subdivide(V, F, colors)
+        V, F, colors = subdivide(V, F, colors)
     V, m = normalize_mesh(V, cfg["height"], rotate_y_deg=cfg["rotate_y_deg"])
     # R4.1: deterministic Corgi-like morphology for the demo dog twin.
     # Positions-only transform (topology / UV / rig are regenerated downstream);
@@ -266,6 +271,7 @@ def bake(identity: str, write_sums: bool = False) -> None:
         "morphology": morph_meta,
         "nativeBreedSource": bool(cfg.get("native_breed_source", False)),
         "sourceGeometryClass": "native-corgi" if cfg.get("native_breed_source", False) else "template-morphed",
+        "subdivisionMode": subdivision_mode,
         "atlasObservedRatio": float(observed.mean()),
         "landmarks": {k: (list(v) if isinstance(v, tuple) else v) for k, v in landmarks.items()},
     }
