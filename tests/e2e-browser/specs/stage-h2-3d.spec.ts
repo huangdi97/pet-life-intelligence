@@ -36,13 +36,19 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     await page.goto(`/pets/${petId}/life-view`);
     await expect(page).toHaveURL(urlRe(`/pets/${petId}/life-view`));
     await expectNoFatalState(page);
-    // R2P3D-R3: the honest state is either the ACTIVE confirmed twin
-    // ("第 N 版 3D 形象 · 已通过你的确认") or the graceful simplified-stage
-    // fallback — never a fake LIVE and never raw internal terms.
-    await expect(page.getByText(/第 \d+ 版 3D 形象|暂时使用简化形象/).first()).toBeVisible();
-    await expect(page.getByText(/已通过你的确认|连接照片后/).first()).toBeVisible();
+    // Honest states are: the explicitly disclosed seeded demo Twin,
+    // an owner-confirmed real candidate, or the simplified fallback. None may
+    // masquerade as LIVE or leak raw internal/provider terminology.
+    await expect(
+      page.getByText(/示例 3D 形象|演示 3D 形象|第 \d+ 版 3D 形象|简化形象/).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/不把示例模板当作真实宠物身份|已通过你的确认|连接照片后|连接真实服务后/).first(),
+    ).toBeVisible();
     await page.getByRole("tab", { name: "外观" }).click();
-    await expect(page.getByText(/已通过你的确认|经过你确认后/).first()).toBeVisible();
+    await expect(
+      page.getByText(/不代表真实宠物扫描|已通过你的确认|经过你确认后/).first(),
+    ).toBeVisible();
     // user-facing copy must NOT contain 数字孪生
     expect(await page.textContent("main")).not.toContain("数字孪生");
   });
