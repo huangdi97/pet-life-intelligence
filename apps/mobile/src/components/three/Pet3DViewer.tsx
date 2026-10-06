@@ -31,6 +31,7 @@ export interface Pet3DViewerHandle {
   zoomIn: () => void;
   zoomOut: () => void;
   resetView: () => void;
+  setView: (view: "front" | "side" | "back") => void;
 }
 
 interface Props {
@@ -52,23 +53,32 @@ interface Props {
    * auto-framed twin; >0 enables aspect-aware camera fitting, 0 = demo frame.
    */
   frameTarget?: number;
-  /** Twin Review view preset (front/side/back) → real camera yaw (Phase C). */
+  /** Twin Review view preset (front/side/back) → real camera yaw (Phase C).
+   *  Undefined on normal Living surfaces so their canonical 3/4 camera stays intact. */
   view?: "front" | "side" | "back";
   /** R4.2 stage theme: warm living field / neutral identity studio / engineering debug. */
   stageTheme?: "living" | "review" | "engineering";
   onStatus?: (status: Pet3DStatus) => void;
   onOrientation?: (yaw: number) => void;
 }
-export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DViewer({ identity, displayName, demoTwin = false, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, frameTarget = 0, view = "front", stageTheme = "living", onStatus, onOrientation }, ref) {
+export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DViewer({ identity, displayName, demoTwin = false, twin = null, pose = null, interactive = false, petId = null, sourceMediaCount = 0, frameTarget = 0, view, stageTheme = "living", onStatus, onOrientation }, ref) {
   const [status, setStatus] = useState<Pet3DStatus>("boot");
   const webRef = useRef<WebView>(null);
   // Imperative camera controls drive the embedded page's REAL handlers
   // (window.zoom / window.resetView → orbit radius/yaw), so Life View zoom
   // and reset produce genuine camera evidence for the blind contract.
+  const injectView = (nextView: "front" | "side" | "back") => {
+    const yaw = nextView === "side" ? Math.PI / 2 : nextView === "back" ? Math.PI : 0;
+    webRef.current?.injectJavaScript(
+      `window.__PLI_SET_VIEW && window.__PLI_SET_VIEW(${yaw}); true;`,
+    );
+  };
+
   useImperativeHandle(ref, () => ({
     zoomIn: () => webRef.current?.injectJavaScript("window.zoom && window.zoom(true); true;"),
     zoomOut: () => webRef.current?.injectJavaScript("window.zoom && window.zoom(false); true;"),
     resetView: () => webRef.current?.injectJavaScript("window.resetView && window.resetView(); true;"),
+    setView: injectView,
   }));
   const lastPose = useRef<string | undefined>(undefined);
   const lastPersist = useRef(0);
@@ -76,9 +86,9 @@ export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DVi
   // Persist the latest runtime manifest to app storage (release-proof channel
   // for the blind harness; Hermes strips console.log in release builds so the
   // old [plimanifest] logcat path never fires).
-  const persistManifest = (manifest: Record<string, unknown>) => {
+  const persistManifest = (manifest: Record<string, unknown>, force = false) => {
     const now = Date.now();
-    if (now - lastPersist.current < 1500) return;
+    if (!force && now - lastPersist.current < 1500) return;
     lastPersist.current = now;
     FileSystem.writeAsStringAsync(
       FileSystem.documentDirectory + "pli_manifest.json",
@@ -132,7 +142,7 @@ export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DVi
         // Blind harness channel: persist the runtime manifest so the Android
         // extractor can read it even in release builds (Hermes strips
         // console.log, so [plimanifest] logcat never fires). Throttled.
-        persistManifest(msg.manifest as Record<string, unknown>);
+        persistManifest(msg.manifest as Record<string, unknown>, msg.force === true);
       }
     } catch {
       // ignore malformed bridge messages
@@ -149,9 +159,8 @@ export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DVi
   // the page's __PLI_SET_VIEW mutates its orbit and the manifest camera field
   // (3d.json yaw) proves the switch is an actual camera movement, not a label.
   useEffect(() => {
-    if (status !== "ready") return;
-    const yaw = view === "side" ? Math.PI / 2 : view === "back" ? Math.PI : 0;
-    webRef.current?.injectJavaScript(`window.__PLI_SET_VIEW && window.__PLI_SET_VIEW(${yaw}); true;`);
+    if (status !== "ready" || !view) return;
+    injectView(view);
   }, [view, status]);
 
   const twinJson = twin ? JSON.stringify(twin).replace(/\\/g, "\\\\").replace(/'/g, "\\'") : "";
