@@ -35,6 +35,7 @@ export function BehaviorScreen() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
+  const [filter, setFilter] = useState<"all" | "MILD" | "MODERATE" | "SEVERE" | "UNLABELED">("all");
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
@@ -96,6 +97,11 @@ export function BehaviorScreen() {
   }
 
   const latest = rows[0] ?? null;
+  const visibleRows = rows.filter((row) => {
+    if (filter === "all") return true;
+    if (filter === "UNLABELED") return !row.intensity;
+    return row.intensity === filter;
+  });
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
@@ -113,6 +119,24 @@ export function BehaviorScreen() {
         ) : (
           <>
             <OpenSection title="最近观察" testID="pli.behavior.observations">
+              {rows.length > 0 ? (
+                <View style={styles.filterWrap} accessibilityLabel="行为记录筛选">
+                  {[
+                    ["all", "全部"],
+                    ["MILD", "轻度"],
+                    ["MODERATE", "中度"],
+                    ["SEVERE", "重度"],
+                    ["UNLABELED", "未标注"],
+                  ].map(([value, label]) => (
+                    <ChipPressable
+                      key={value}
+                      label={label}
+                      active={filter === value}
+                      onPress={() => setFilter(value as typeof filter)}
+                    />
+                  ))}
+                </View>
+              ) : null}
               {rows.length === 0 ? (
                 <EmptyState
                   title="还没有行为观察"
@@ -120,7 +144,10 @@ export function BehaviorScreen() {
                 />
               ) : (
                 <View testID="pli.behavior.recent">
-                  {rows.map((b, i) => (
+                  {visibleRows.length === 0 ? (
+                    <Text style={styles.hintText}>当前筛选下没有行为记录。</Text>
+                  ) : null}
+                  {visibleRows.map((b, i) => (
                     <View key={b.behavior_event_id} style={[styles.obsRow, i > 0 && styles.obsDivider]}>
                       <Text style={styles.obsText}>{b.behavior}</Text>
                       <View style={styles.obsMetaRow}>
@@ -236,6 +263,7 @@ const styles = StyleSheet.create({
   title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  filterWrap: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, paddingBottom: SPACE.s2 },
   obsRow: { paddingVertical: 10 },
   obsDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
   obsText: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "500" },
