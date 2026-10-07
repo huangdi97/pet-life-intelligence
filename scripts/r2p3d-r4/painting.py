@@ -198,60 +198,123 @@ def make_dog_painter(landmarks: dict) -> PaintFn:
 
 
 def make_cat_painter(landmarks: dict) -> PaintFn:
-    """Cat painter — soft grey shorthair with tabby stripes, white muzzle/chest/belly."""
+    """Cat painter — neutral grey shorthair with readable tabby face details.
+
+    This remains a DEMO_TEMPLATE painter. The goal is product readability at
+    owner-Hero scale, not a claim about an individual real cat. Face marks are
+    geometry-anchored and front-surface gated so they cannot leak onto the
+    back of the head.
+    """
+
+    coat_mid = np.array([0.62, 0.64, 0.66])
+    coat_dark = np.array([0.34, 0.36, 0.39])
+    coat_light = np.array([0.78, 0.79, 0.79])
+    white = np.array([0.94, 0.93, 0.90])
+    ear_inner = np.array([0.78, 0.62, 0.62])
+    iris = np.array([0.43, 0.56, 0.36])
+    pupil = np.array([0.075, 0.070, 0.065])
+    nose_color = np.array([0.57, 0.38, 0.40])
 
     def paint(pos: np.ndarray, nrm: np.ndarray, prior: np.ndarray) -> tuple[np.ndarray, bool]:
         lum = float(np.dot(prior, np.array([0.299, 0.587, 0.114])))
-        # Slightly cool neutral grey so the warm Living Stage does not
-        # shift the whole cat into a muddy brown mass. Keep enough luminance
-        # headroom for face/chest markings to remain readable at phone scale.
-        base = np.array([0.69, 0.715, 0.735]) * (0.92 + 0.20 * lum)
+        # Keep the coat genuinely neutral under the warm stage. The previous
+        # beige base became dark brown after lighting/tone mapping.
+        base = coat_mid * (0.93 + 0.12 * lum)
         obs = _view_observed(pos, nrm, landmarks)
         y = float(pos[1])
         z = float(pos[2])
         x = float(pos[0])
-        # Tabby stripes on the upper-body (back/flanks), smooth-edged.
+
+        ey = float(landmarks.get("eye_y", 1e9))
+        eye_dx = float(landmarks.get("eye_dx", 0.13))
+        mz = float(landmarks.get("muzzle_z", 1e9))
+
+        # Soft tabby stripes across the top/flanks. Keep their contrast modest:
+        # the face/silhouette, not a noisy procedural pattern, should dominate.
         phi = ((x * 1.9 + z * 2.6) * math.pi) / (1.0 + float(nrm[1]) * 0.6)
         stripe = math.sin(phi * 2.0) * 0.5 + 0.5
-        upper = max(0.0, float(nrm[1])) * _smooth(0.0, 0.18, y - landmarks.get("belly_y", 0.18))
-        t = _smooth(0.28, 0.62, stripe) * upper
-        base = _blend(base, np.array([0.40, 0.425, 0.45]), t * 0.48)
-        # Muzzle + chest white: front band below the eyes.
-        ey = landmarks.get("eye_y", 1e9)
-        mz = landmarks.get("muzzle_z", 1e9)
+        upper = max(0.0, float(nrm[1])) * _smooth(
+            0.0, 0.18, y - float(landmarks.get("belly_y", 0.18))
+        )
+        stripe_mask = _smooth(0.34, 0.72, stripe) * upper
+        base = _blend(base, coat_dark, stripe_mask * 0.46)
+
+        # Slightly lighter cheek/face plane so the front remains readable after
+        # downsampling on Today/Pet cards.
+        if mz < 1e8:
+            face_front = _smooth(mz - 0.34, mz - 0.06, z) * _smooth(0.02, 0.55, float(nrm[2]))
+            face_height = _smooth(ey - 0.20, ey + 0.04, y) * (
+                1.0 - _smooth(ey + 0.18, ey + 0.30, y)
+            )
+            face_center = 1.0 - _smooth(eye_dx * 1.25, eye_dx * 2.1, abs(x))
+            base = _blend(base, coat_light, face_front * face_height * face_center * 0.36)
+
+            # White muzzle/chin: front-only, centred below the eyes.
+            muzzle_center = 1.0 - _smooth(eye_dx * 0.82, eye_dx * 1.60, abs(x))
+            muzzle_low = _smooth(ey - 0.28, ey - 0.15, y)
+            muzzle_high = 1.0 - _smooth(ey - 0.01, ey + 0.10, y)
+            muzzle = face_front * muzzle_center * muzzle_low * muzzle_high
+            base = _blend(base, white, muzzle * 0.88)
+
+        # Chest + belly white remain broad enough to survive phone framing.
+        front_surface = _smooth(0.04, 0.55, float(nrm[2]))
+        chest = (
+            (1.0 - _smooth(0.18, 0.42, abs(x)))
+            * _smooth(0.22, 0.58, y)
+            * (1.0 - _smooth(0.70, 0.90, y))
+            * front_surface
+        )
+        base = _blend(base, white, chest * 0.60)
+        belly = (
+            (1.0 - _smooth(0.24, 0.48, y))
+            * (1.0 - _smooth(0.28, 0.65, abs(x)))
+            * (1.0 - _smooth(0.55, 0.92, abs(z)))
+        )
+        base = _blend(base, white, belly * 0.62)
+
+        # Inner ears: a centred fill rather than the old annulus mask.
+        ear_y = float(landmarks.get("ear_y", ey + 0.18))
+        ear_dx = float(landmarks.get("ear_dx", max(0.14, eye_dx * 1.25)))
+        for sx in (-1.0, 1.0):
+            dx = (x - sx * ear_dx) / 0.11
+            dy = (y - ear_y) / 0.13
+            d2 = dx * dx + dy * dy
+            ear = (1.0 - _smooth(0.34, 1.45, d2)) * _smooth(0.0, 0.6, float(nrm[2]))
+            base = _blend(base, ear_inner, ear * 0.72)
+
+        # Eyes: iris and a narrower pupil, restricted to the camera-facing
+        # head surface. The previous increasing*smooth mask was zero at the
+        # eye centre and painted rings instead of eyes.
         if ey < 1e8 and mz < 1e8:
-            front = _smooth(-1.0, 1.0, z - mz + 0.10)
-            low = _smooth(-1.0, 1.0, -(y - ey - 0.12)) * 0.5 + 0.5
-            t = front * low * _smooth(0.2, 0.85, 1.0 - (x / 0.20) ** 2)
-            base = _blend(base, np.array([0.96, 0.93, 0.87]), t * 0.9)
-        # Belly white (underside is mostly INFERRED in the mask but painted).
-        t = _smooth(0.0, 0.45, landmarks.get("belly_y", 0.2) - y) * _smooth(0.0, 0.8, 1.0 - (z / 0.6) ** 2)
-        base = _blend(base, np.array([0.94, 0.90, 0.84]), t * 0.75)
-        # Pink inner ears.
-        for sx in (-1.0, 1.0):
-            dx = (x - sx * landmarks.get("ear_dx", 0.15)) / 0.10
-            dy = (y - landmarks.get("ear_y", 0.0)) / 0.10
-            d2 = dx * dx + dy * dy
-            t = _smooth(0.15, 0.75, d2) * _smooth(1.5, 3.0, d2)
-            base = _blend(base, np.array([0.85, 0.72, 0.69]), t * 0.8)
-        # Eyes: soft green.
-        for sx in (-1.0, 1.0):
-            dx = (x - sx * landmarks.get("eye_dx", 0.12)) / 0.045
-            dy = (y - ey) / 0.045
-            d2 = dx * dx + dy * dy
-            dot = _smooth(0.0, 0.6, d2) * _smooth(1.2, 2.4, d2)
-            base = _blend(base, np.array([0.30, 0.40, 0.30]), dot * 0.95)
-        # Nose: small warm-brown at the muzzle front.
-        nz = landmarks.get("nose_z", 1e9)
-        ny = landmarks.get("nose_y", 1e9)
+            eye_front = _smooth(mz - 0.30, mz - 0.04, z) * _smooth(0.02, 0.55, float(nrm[2]))
+            for sx in (-1.0, 1.0):
+                dx = (x - sx * eye_dx) / 0.058
+                dy = (y - ey) / 0.052
+                d2 = dx * dx + dy * dy
+                iris_mask = (1.0 - _smooth(0.36, 1.30, d2)) * eye_front
+                base = _blend(base, iris, iris_mask * 0.94)
+
+                pdx = (x - sx * eye_dx) / 0.020
+                pdy = (y - ey) / 0.041
+                pupil_d2 = pdx * pdx + pdy * pdy
+                pupil_mask = (1.0 - _smooth(0.28, 1.10, pupil_d2)) * eye_front
+                base = _blend(base, pupil, pupil_mask * 0.98)
+
+        # Nose: a compact centred mask at the true front of the muzzle.
+        nz = float(landmarks.get("nose_z", 1e9))
+        ny = float(landmarks.get("nose_y", 1e9))
         if nz < 1e8 and ny < 1e8:
-            d2 = ((x / 0.05) ** 2 + ((y - ny) / 0.05) ** 2 + ((z - nz) / 0.05) ** 2)
-            t = _smooth(0.0, 0.7, d2) * _smooth(1.6, 3.2, d2)
-            base = _blend(base, np.array([0.52, 0.40, 0.37]), t * 0.9)
-        # Paw tips: white socks.
-        t = _smooth(0.55, 0.95, 1.0 - y / 0.09)
-        base = _blend(base, np.array([0.93, 0.89, 0.83]), t * 0.55)
-        g = (_grain(pos) - 0.5) * 0.04
+            d2 = (x / 0.050) ** 2 + ((y - ny) / 0.042) ** 2 + ((z - nz) / 0.055) ** 2
+            nose = 1.0 - _smooth(0.28, 1.25, d2)
+            base = _blend(base, nose_color, nose * 0.96)
+
+        # White paw tips.
+        socks = 1.0 - _smooth(0.07, 0.16, y)
+        base = _blend(base, white, socks * 0.62)
+
+        # Very subtle deterministic grain; avoid the muddy brown noise that the
+        # earlier palette produced under warm lighting.
+        g = (_grain(pos * 1.4) - 0.5) * 0.018
         base = base + g
         return np.clip(base, 0.0, 1.0), obs
 
