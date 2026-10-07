@@ -55,9 +55,11 @@ test("R2P-CORE-02 interaction smoke: quick log flash + life-view modes", async (
   const petId = await demoDoudouId(request);
   await useCurrentPet(page, petId);
 
-  // Quick log: feed action produces the .alert.info flash (E2E contract).
+  // Quick log is progressive disclosure in R5: open the single primary
+  // "快速记录" action, then choose the concrete fact to record.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
+  await page.getByRole("button", { name: "快速记录", exact: true }).click();
   await page.getByRole("button", { name: "喂食", exact: true }).click();
   await expect(page.locator(".alert.info").first()).toBeVisible();
 
@@ -66,5 +68,5 @@ test("R2P-CORE-02 interaction smoke: quick log flash + life-view modes", async (
   await page.getByRole("tab", { name: "趋势" }).click();
   await expect(page.getByText(/数据积累后|饮水|进食|活动|睡眠/).first()).toBeVisible();
   await page.getByRole("tab", { name: "外观" }).click();
-  await expect(page.getByText(/示例 3D 形象|第 \\d+ 版 3D 形象|简化形象/).first()).toBeVisible();
+  await expect(page.getByText(/示例 3D 形象|演示 3D 形象|第 \d+ 版 3D 形象|简化形象/).first()).toBeVisible();
 });
