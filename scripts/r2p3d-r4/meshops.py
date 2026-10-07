@@ -4,9 +4,10 @@ Pure numpy implementations (no vtk/pyvista dependency — the repo venv must
 stay lean):
 
   - face_normals / vertex_normals (area-weighted, smooth)
-  - loop_subdivide: Loop subdivision with (r,g,b) per-vertex color
-    attribute carried through the same weighting rules, so coat markings
-    survive every refinement step
+  - weld_exact_vertices: deterministic exact-position weld for converted
+    source shells that duplicate seam vertices
+  - loop_subdivide: boundary-aware Loop subdivision with optional authored-
+    boundary preservation and carried (r,g,b) attributes
   - smooth_vertices: 1-2 umbrella relaxation passes (gentle)
   - normalize_mesh: align body axis, ground at y=0, center, scale height
   - material_region_centroids: mesh-space landmark anchors from per-vertex
@@ -38,6 +39,73 @@ def vertex_normals(v: np.ndarray, f: np.ndarray, vcount: int) -> np.ndarray:
         np.add.at(norm, f[:, k], fn)
     lens = np.linalg.norm(norm, axis=1, keepdims=True)
     return np.divide(norm, lens, out=norm, where=lens > 1e-12)
+
+
+def weld_exact_vertices(
+    v: np.ndarray,
+    f: np.ndarray,
+    colors: np.ndarray | None = None,
+    decimals: int = 9,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+    """Weld source vertices that occupy the same authored position.
+
+    Converted low-poly assets can contain many disconnected shells whose seam
+    vertices are byte-for-byte coincident. Treating those duplicates as
+    separate boundaries makes any smoothing pass shrink the shells away from
+    each other. This weld keeps first-seen vertex order deterministic, remaps
+    faces without changing face count, and averages carried colors across an
+    exact-position group.
+
+    The function refuses to create a degenerate triangle: if a source face
+    collapses after welding, the source is not safe for this product path.
+    """
+    if v.ndim != 2 or v.shape[1] != 3:
+        raise ValueError("vertices must be shaped (N, 3)")
+    if f.ndim != 2 or f.shape[1] != 3:
+        raise ValueError("faces must be shaped (M, 3)")
+
+    rounded = np.round(v.astype(np.float64, copy=False), decimals=decimals)
+    key_to_new: dict[tuple[float, float, float], int] = {}
+    old_to_new = np.empty(v.shape[0], dtype=np.int64)
+    new_v: list[np.ndarray] = []
+    color_sum: list[np.ndarray] | None = [] if colors is not None else None
+    color_count: list[int] | None = [] if colors is not None else None
+
+    for i in range(v.shape[0]):
+        key = tuple(float(x) for x in rounded[i])
+        mapped = key_to_new.get(key)
+        if mapped is None:
+            mapped = len(new_v)
+            key_to_new[key] = mapped
+            new_v.append(v[i].astype(np.float64, copy=True))
+            if colors is not None and color_sum is not None and color_count is not None:
+                color_sum.append(colors[i].astype(np.float64, copy=True))
+                color_count.append(1)
+        elif colors is not None and color_sum is not None and color_count is not None:
+            color_sum[mapped] += colors[i]
+            color_count[mapped] += 1
+        old_to_new[i] = mapped
+
+    new_f = old_to_new[f]
+    if np.any(
+        (new_f[:, 0] == new_f[:, 1])
+        | (new_f[:, 1] == new_f[:, 2])
+        | (new_f[:, 2] == new_f[:, 0])
+    ):
+        raise ValueError("exact vertex weld would create a degenerate triangle")
+
+    new_colors: np.ndarray | None = None
+    if colors is not None and color_sum is not None and color_count is not None:
+        new_colors = np.asarray(
+            [color_sum[i] / max(1, color_count[i]) for i in range(len(color_sum))],
+            dtype=np.float64,
+        )
+
+    return (
+        np.asarray(new_v, dtype=np.float64).reshape(-1, 3),
+        np.asarray(new_f, dtype=np.int64).reshape(-1, 3),
+        new_colors,
+    )
 
 
 def linear_subdivide(
@@ -100,14 +168,19 @@ def linear_subdivide(
 
 
 def loop_subdivide(
-    v: np.ndarray, f: np.ndarray, colors: np.ndarray | None
+    v: np.ndarray,
+    f: np.ndarray,
+    colors: np.ndarray | None,
+    preserve_boundary_vertices: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
     """Loop subdivision (positions + optional per-vertex colors).
 
     Returns (v', f', colors') with the same face count x4. Interior rules:
       odd : 3/8(a+b) + 1/8(c+d)  (colors: 0.5 mix of the shared edge ends)
       even: (1-bn)·v + bn·mean(neighbors), bn of Loop's beta-n formula
-    Boundary rules: 3/4 + 1/4 and 1/2(a+b) respectively.
+    Boundary odd vertices use 1/2(a+b). Boundary even vertices use the
+    standard 3/4 + 1/8 + 1/8 rule unless preserve_boundary_vertices=True,
+    in which case authored boundary vertices remain byte-for-byte in place.
     """
     V = v.shape[0]
     Ftot = f.shape[0]
@@ -123,20 +196,28 @@ def loop_subdivide(
             key = (min(a, b), max(a, b))
             edges.setdefault(key, []).append(i)
 
-    # Vertex -> neighbor edges (for even-vertex weighting).
+    # Vertex -> neighbors and explicit open-boundary neighbors.
     vnei: dict[int, list[int]] = {}
-    for (a, b) in edges:
+    boundary_nei: dict[int, list[int]] = {}
+    for (a, b), incident_faces in edges.items():
         vnei.setdefault(a, []).append(b)
         vnei.setdefault(b, []).append(a)
+        if len(incident_faces) == 1:
+            boundary_nei.setdefault(a, []).append(b)
+            boundary_nei.setdefault(b, []).append(a)
 
     def even_pos(idx: int) -> np.ndarray:
-        nb = vnei.get(idx, [])
-        nb = [n for n in nb if n != idx]
+        nb = [n for n in vnei.get(idx, []) if n != idx]
         if not nb:
             return v[idx].copy()
-        # boundary: valence-2 on an open boundary uses the 3/4,1/4 rule
-        # (we cannot distinguish open edges cheaply; interior-only meshes
-        # dominate, so use the interior beta formula for everyone).
+        bnb = sorted(set(boundary_nei.get(idx, [])))
+        if bnb:
+            if preserve_boundary_vertices:
+                return v[idx].copy()
+            # Standard Loop boundary-even rule. For a rare non-manifold
+            # boundary fan with >2 boundary neighbours, keep the same 3/4 +
+            # 1/4 total weighting across all boundary neighbours.
+            return 0.75 * v[idx] + 0.25 * np.mean(v[bnb], axis=0)
         n = len(nb)
         beta = (1.0 / n) * (5.0 / 8.0 - (3.0 / 8.0 + (1.0 / 4.0) * np.cos(2 * np.pi / n)) ** 2)
         return (1.0 - beta) * v[idx] + beta * np.mean(v[nb], axis=0)
@@ -158,10 +239,14 @@ def loop_subdivide(
     def even_col(idx: int) -> np.ndarray | None:
         if colors is None:
             return None
-        nb = vnei.get(idx, [])
-        nb = [n for n in nb if n != idx]
+        nb = [n for n in vnei.get(idx, []) if n != idx]
         if not nb:
             return colors[idx].copy()
+        bnb = sorted(set(boundary_nei.get(idx, [])))
+        if bnb:
+            if preserve_boundary_vertices:
+                return colors[idx].copy()
+            return 0.75 * colors[idx] + 0.25 * np.mean(colors[bnb], axis=0)
         return 0.5 * colors[idx] + 0.5 * np.mean(colors[nb], axis=0)
 
     def odd_col(a: int, b: int) -> np.ndarray | None:
