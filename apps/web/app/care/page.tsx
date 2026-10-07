@@ -6,6 +6,13 @@ import { useState } from "react";
 import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State } from "../../components/ui";
 
+interface HandoffChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+  done_by?: string | null;
+  done_at?: string | null;
+}
 interface Handoff {
   handoff_id: string;
   caregiver_user_id: string;
@@ -15,6 +22,7 @@ interface Handoff {
   end_at: string | null;
   status: string;
   notes: string;
+  checklist: HandoffChecklistItem[];
 }
 
 interface PetCareContext {
@@ -43,6 +51,14 @@ const SCOPE_LABELS: Record<string, string> = {
   "medical:write": "记录健康信息",
   "card:read": "查看照护卡",
 };
+
+function handoffChecklist(scopes: string[]): string[] {
+  const items = ["喂食与日常安排已确认", "紧急联系人与就医方式已确认"];
+  if (scopes.some((scope) => scope.startsWith("medical:"))) {
+    items.splice(1, 0, "健康与用药注意事项已确认");
+  }
+  return items;
+}
 
 function careStatusLabel(status: string): string {
   if (status === "ACTIVE") return "生效中";
@@ -127,10 +143,21 @@ export default function CarePage() {
         scopes,
         end_at: new Date(Date.now() + Number(hours) * 3600_000).toISOString(),
         reason: "care handoff",
+        checklist: handoffChecklist(scopes),
       });
       setCaregiver("");
       handoffs.reload();
       grants.reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function completeChecklist(handoffId: string, itemId: string) {
+    setError(null);
+    try {
+      await api.post(`/handoffs/${handoffId}/checklist/${itemId}/complete`, {});
+      handoffs.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -330,6 +357,21 @@ export default function CarePage() {
                   <span className="badge">{h.scope.map((scope) => SCOPE_LABELS[scope] ?? "限定权限").join(" · ")}</span>
                   <span className="tl-time">至 {fmtTime(h.end_at)}</span>
                 </div>
+                {h.checklist?.length ? (
+                  <div style={{ marginTop: 8 }}>
+                    <div className="muted">交接确认</div>
+                    {h.checklist.map((item) => (
+                      <div key={item.id} className="row" style={{ marginTop: 4, alignItems: "center" }}>
+                        <span>{item.done ? "✓" : "○"} {item.text}</span>
+                        {!item.done && h.status === "ACTIVE" ? (
+                          <button className="btn" onClick={() => completeChecklist(h.handoff_id, item.id)}>
+                            确认完成
+                          </button>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
                 {h.status === "ACTIVE" && (
                   <button className="btn danger" onClick={() => endHandoff(h.handoff_id)}>
                     提前结束
