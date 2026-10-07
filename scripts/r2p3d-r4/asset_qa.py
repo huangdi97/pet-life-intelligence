@@ -19,6 +19,7 @@ import json
 import struct
 from pathlib import Path
 
+import numpy as np
 from PIL import Image
 
 OUT = Path("packages/pet-3d/assets/twins")
@@ -79,23 +80,30 @@ def _doudou_source_vertex_retention() -> float:
     source = Path("artifacts/r2p3d-r5/twin-sources/doudou-gobkit-corgi/Corgi.obj")
     baked = OUT / "doudou_base.obj"
     # Exact weld semantics: duplicate authored positions collapse but the
-    # position itself is never moved.
+    # position itself is never moved. The baked OBJ serializes vertices to six
+    # decimals, so compare against that representation with a <=1e-6 absolute
+    # coordinate tolerance instead of re-rounding both sides to 5 decimals.
+    # Re-rounding can flip a 5th-decimal bucket after a legitimate 6-decimal
+    # serialization (e.g. x.xxxxx46 -> x.xxxxx), falsely reporting ~10% loss.
     unique_source = list(
         dict.fromkeys(
             tuple(round(v, 9) for v in p)
             for p in _obj_referenced_positions(source)
         )
     )
-    normalized = _normalize_positions(unique_source, 1.35)
-    baked_set = {
-        tuple(round(v, 5) for v in p)
-        for p in _obj_positions(baked)
-    }
-    retained = sum(
-        tuple(round(v, 5) for v in p) in baked_set
-        for p in normalized
-    )
-    return retained / max(1, len(normalized))
+    normalized = np.asarray(_normalize_positions(unique_source, 1.35), dtype=np.float64)
+    baked_points = np.asarray(_obj_positions(baked), dtype=np.float64)
+    if normalized.size == 0 or baked_points.size == 0:
+        return 0.0
+
+    tolerance = 1.0e-6
+    retained = 0
+    for point in normalized:
+        # Chebyshev distance matches the per-coordinate serialization contract.
+        error = np.max(np.abs(baked_points - point), axis=1)
+        if float(error.min()) <= tolerance:
+            retained += 1
+    return retained / len(normalized)
 
 
 def _parse_glb(path: Path) -> tuple[dict, int]:
