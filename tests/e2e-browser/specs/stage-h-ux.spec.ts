@@ -35,14 +35,24 @@ test.describe("Stage H UX — new domain routes", () => {
     await expect(page.getByTestId(/pli\.monitoring\.state\./)).toContainText(/设备|读取/);
   });
 
-  test("agent renders 5 assistant tabs (navigation)", async ({ page, request }) => {
+  test("assistant keeps Ask primary and other jobs contextual", async ({ page, request }) => {
     await loginAsEmail(page, request, "owner@pli.demo");
     await page.goto("/agent");
     await expect(page).toHaveURL(urlRe("/agent"));
     await expectNoFatalState(page);
-    for (const tab of ["问", "摘要", "找", "计划", "解释"]) {
-      await expect(page.getByRole("tab", { name: tab })).toBeVisible();
+
+    // R5.6 final hierarchy: Ask is the dominant Assistant job. Brief / Find /
+    // Plan / Explain remain available as contextual tools instead of five
+    // equal primary tabs competing for attention.
+    await expect(page.getByRole("region", { name: "提问" })).toBeVisible();
+    await expect(page.getByText(/先问一件和.*有关的事/).first()).toBeVisible();
+    for (const tool of ["摘要", "找记录", "计划", "解释"]) {
+      await expect(page.getByRole("button", { name: tool })).toBeVisible();
     }
+
+    // Contextual jobs must still open and provide a clear route back to Ask.
+    await page.getByRole("button", { name: "摘要" }).click();
+    await expect(page.getByRole("button", { name: "← 回到提问" })).toBeVisible();
   });
 
   test("companion renders graceful empty state (honest preview, no fake hardware)", async ({ page, request }) => {
