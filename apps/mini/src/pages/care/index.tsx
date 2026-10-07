@@ -37,6 +37,7 @@ interface CareCard {
   expires_at: string;
 }
 
+const HANDOFF_SCOPES = ["daily:read", "daily:write", "medical:read", "medical:write", "card:read"] as const;
 const SCOPE_LABELS: Record<string, string> = {
   "daily:read": "查看日常记录",
   "daily:write": "记录日常照护",
@@ -69,6 +70,7 @@ export default function Care() {
   const [grantsState, setGrantsState] = useState<"loading" | "ready" | "error">("loading");
   const [handoffsState, setHandoffsState] = useState<"loading" | "ready" | "error">("loading");
   const [caregiver, setCaregiver] = useState("");
+  const [scopes, setScopes] = useState<string[]>(["daily:read", "daily:write"]);
   const [hours, setHours] = useState("48");
   const [card, setCard] = useState<CareCard | null>(null);
   const [busy, setBusy] = useState(false);
@@ -121,12 +123,12 @@ export default function Care() {
   }
 
   async function createHandoff() {
-    if (!petId || !caregiver.trim() || busy) return;
+    if (!petId || !caregiver.trim() || scopes.length === 0 || busy) return;
     setBusy(true);
     try {
       await api.post(`/pets/${petId}/handoffs`, {
         caregiver_user_id: caregiver.trim(),
-        scopes: ["daily:read", "daily:write"],
+        scopes,
         end_at: new Date(Date.now() + Math.max(1, Number(hours) || 48) * 3600_000).toISOString(),
         reason: "care handoff",
       });
@@ -255,10 +257,32 @@ export default function Care() {
           )}
         </View>
         <View className="field">
+          <Text>授权范围</Text>
+          <View className="row" style={{ flexWrap: "wrap", gap: 6 }}>
+            {HANDOFF_SCOPES.map((scope) => {
+              const selected = scopes.includes(scope);
+              return (
+                <Button
+                  key={scope}
+                  className={`btn${selected ? " btn-accent" : ""}`}
+                  size="mini"
+                  onClick={() =>
+                    setScopes((old) =>
+                      selected ? old.filter((value) => value !== scope) : [...old, scope],
+                    )
+                  }
+                >
+                  {SCOPE_LABELS[scope]}
+                </Button>
+              );
+            })}
+          </View>
+        </View>
+        <View className="field">
           <Text>有效时长（小时）</Text>
           <Input className="input" type="number" value={hours} onInput={(e) => setHours(e.detail.value)} />
         </View>
-        <Button className="btn btn-primary" onClick={createHandoff} disabled={busy || !caregiver.trim()}>
+        <Button className="btn btn-primary" onClick={createHandoff} disabled={busy || !caregiver.trim() || scopes.length === 0}>
           {busy ? "处理中…" : "创建交接"}
         </Button>
       </View>
