@@ -4,7 +4,7 @@
  * 数据流不变：/ask、/search、/health-events、/tasks。
  */
 import { useCallback, useEffect, useState } from "react";
-import { Text, View } from "@tarojs/components";
+import { ScrollView, Text, View } from "@tarojs/components";
 import { api, type Task } from "../../services/api";
 import { usePets } from "../../utils/usePets";
 import { PetContextGate } from "../../components/feedback/Feedback";
@@ -157,17 +157,19 @@ export default function Agent() {
 
       <View className="agent-tool-section">
         <View className="agent-tool-label">更多帮助</View>
-        <View className="agent-tool-row">
-          {assistantTools.map((tool) => (
-            <View
-              key={tool.key}
-              className={`agent-tool${tab === tool.key ? " agent-tool-active" : ""}`}
-              onClick={() => setTab(tool.key)}
-            >
-              {tool.label}
-            </View>
-          ))}
-        </View>
+        <ScrollView scrollX showScrollbar={false} className="agent-tool-scroll">
+          <View className="agent-tool-row">
+            {assistantTools.map((tool) => (
+              <View
+                key={tool.key}
+                className={`agent-tool${tab === tool.key ? " agent-tool-active" : ""}`}
+                onClick={() => setTab(tool.key)}
+              >
+                {tool.label}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       </View>
 
       {askState === "blocked" && (
