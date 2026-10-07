@@ -15,6 +15,17 @@ import { EmptyState } from "../../components/feedback/Feedback";
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 
+interface DietProfileResponse {
+  pet_id: string;
+  profile: {
+    current_food: string;
+    allergies: string[];
+    feeding_rules: string;
+    vet_advised: boolean;
+    source_type: string;
+  } | null;
+}
+
 interface IdentifierRow {
   identifier_id: string;
   identifier_type: "CHIP" | "PASSPORT" | "TATTOO";
@@ -85,6 +96,14 @@ export default function Pets() {
   const [lifecycleStatus, setLifecycleStatus] = useState("ACTIVE");
   const [lifecycleNote, setLifecycleNote] = useState("");
   const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  const [diet, setDiet] = useState({
+    current_food: "",
+    allergies: "",
+    feeding_rules: "",
+    vet_advised: false,
+  });
+  const [dietState, setDietState] = useState<"loading" | "ready" | "error">("loading");
+  const [dietBusy, setDietBusy] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
     breed: "",
@@ -122,6 +141,21 @@ export default function Pets() {
       })
       .catch(() => {
         if (alive) setIdentifiers([]);
+      });
+    setDietState("loading");
+    api.get<DietProfileResponse>(`/pets/${current.id}/diet-profile`)
+      .then((row) => {
+        if (!alive) return;
+        setDiet({
+          current_food: row.profile?.current_food ?? "",
+          allergies: row.profile?.allergies?.join("、") ?? "",
+          feeding_rules: row.profile?.feeding_rules ?? "",
+          vet_advised: row.profile?.vet_advised === true,
+        });
+        setDietState("ready");
+      })
+      .catch(() => {
+        if (alive) setDietState("error");
       });
     return () => {
       alive = false;
@@ -289,6 +323,27 @@ export default function Pets() {
     }
   }
 
+  async function saveDietProfile() {
+    if (!current?.id || dietBusy) return;
+    setDietBusy(true);
+    try {
+      await api.put(`/pets/${current.id}/diet-profile`, {
+        current_food: diet.current_food.trim(),
+        allergies: diet.allergies.split(/[、,，]/).map((item) => item.trim()).filter(Boolean),
+        feeding_rules: diet.feeding_rules.trim(),
+        vet_advised: diet.vet_advised,
+        source_type: "OWNER_REPORTED",
+      });
+      setDietState("ready");
+      Taro.showToast({ title: "饮食档案已保存", icon: "success" });
+    } catch {
+      setDietState("error");
+      Taro.showToast({ title: "暂时无法保存饮食档案", icon: "none" });
+    } finally {
+      setDietBusy(false);
+    }
+  }
+
   async function saveLifecycle() {
     if (!current?.id || lifecycleBusy || lifecycleStatus === current.lifecycle_status) return;
     setLifecycleBusy(true);
@@ -433,6 +488,38 @@ export default function Pets() {
             </View>
             <Button className="btn" disabled={identifierBusy || !identifierValue.trim()} onClick={() => void addIdentifier()}>
               {identifierBusy ? "记录中…" : "记录标识"}
+            </Button>
+          </View>
+
+          <View className="open-section" data-testid="pli.mini.pet.diet">
+            <View className="section-title">
+              饮食档案
+              <Text className="section-caption">主人维护</Text>
+            </View>
+            <View className="life-empty-note">记录实际主食、已知过敏和家庭喂养规则；不会把主人填写的内容显示成专业确认。</View>
+            {dietState === "loading" ? <View className="state">正在读取饮食档案……</View> : null}
+            {dietState === "error" ? <View className="state state-error">饮食档案暂时没有加载成功；不会用默认饮食替代真实记录。</View> : null}
+            <View className="field">
+              <Text>当前主食</Text>
+              <Input className="input" value={diet.current_food} onInput={(event) => setDiet({ ...diet, current_food: event.detail.value })} placeholder="例如：鸡肉配方犬粮" />
+            </View>
+            <View className="field">
+              <Text>已知过敏/不耐受</Text>
+              <Input className="input" value={diet.allergies} onInput={(event) => setDiet({ ...diet, allergies: event.detail.value })} placeholder="多项用逗号分隔；没有确认过就留空" />
+            </View>
+            <View className="field">
+              <Text>喂养规则</Text>
+              <Input className="input" value={diet.feeding_rules} onInput={(event) => setDiet({ ...diet, feeding_rules: event.detail.value })} placeholder="只记录当前真实执行方式" />
+            </View>
+            <View
+              className={`chip${diet.vet_advised ? " chip-active" : ""}`}
+              onClick={() => setDiet({ ...diet, vet_advised: !diet.vet_advised })}
+            >
+              {diet.vet_advised ? "✓ " : ""}主人记录：按兽医建议执行
+            </View>
+            <View className="life-row-source">此标记是主人记录，不等于平台已经获得兽医专业确认。</View>
+            <Button className="btn" disabled={dietBusy || dietState === "loading"} onClick={() => void saveDietProfile()}>
+              {dietBusy ? "保存中…" : "保存饮食档案"}
             </Button>
           </View>
 
