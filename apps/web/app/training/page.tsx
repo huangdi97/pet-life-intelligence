@@ -15,6 +15,24 @@ interface Goal {
   created_at?: string;
 }
 
+interface TrainingSession {
+  session_id: string;
+  goal_id: string | null;
+  session_at: string;
+  duration_minutes: number;
+  focus: string;
+  notes: string;
+  pet_response: string;
+  rewards_used: string[];
+}
+
+function responseLabel(response: string): string {
+  if (response === "GREAT") return "表现很好";
+  if (response === "GOOD") return "表现好";
+  if (response === "POOR") return "遇到困难";
+  return "已记录";
+}
+
 
 /** 目标状态 → 用户语言（绝不把 raw OPEN/PAUSED/ACTIVE 展示给主人）。 */
 function goalStatusZh(status: string): string {
@@ -35,6 +53,13 @@ export default function TrainingPage() {
     () =>
       petId
         ? api.get<Goal[]>(`/pets/${petId}/training-goals`)
+        : Promise.reject(new Error("no pet")),
+    [petId],
+  );
+  const sessions = useAsync<TrainingSession[]>(
+    () =>
+      petId
+        ? api.get<TrainingSession[]>(`/pets/${petId}/training-sessions?limit=8`)
         : Promise.reject(new Error("no pet")),
     [petId],
   );
@@ -66,6 +91,7 @@ export default function TrainingPage() {
       rewards_used: ["零食"],
     });
     goals.reload();
+    sessions.reload();
   }
 
   const activeGoals = (goals.data ?? []).filter((g) => g.status === "OPEN" || g.status === "ACTIVE");
@@ -93,8 +119,36 @@ export default function TrainingPage() {
           )}
 
           <div className="v5-progress-surface" data-testid="pli.training.recent">
-            <h2>最近训练</h2>
-            <p className="muted" style={{ margin: 0 }}>每次记录训练会话后，这里会显示最近几次训练的表现。</p>
+            <h2>最近会话与结果</h2>
+            <State
+              state={sessions.state}
+              error={sessions.error}
+              onRetry={sessions.reload}
+              empty="还没有记录过训练会话。"
+            >
+              <ul className="tl" style={{ marginTop: 8 }}>
+                {(sessions.data ?? []).slice(0, 5).map((session) => {
+                  const goal = (goals.data ?? []).find((item) => item.goal_id === session.goal_id);
+                  return (
+                    <li key={session.session_id}>
+                      <div className="tl-head">
+                        <span className="tl-type">{goal?.title ?? "训练会话"}</span>
+                        <span className="badge">结果：{responseLabel(session.pet_response)}</span>
+                        <span className="tl-time">{fmtTime(session.session_at)}</span>
+                      </div>
+                      <div className="muted">
+                        {session.duration_minutes} 分钟
+                        {session.focus ? ` · ${session.focus}` : ""}
+                        {session.rewards_used?.length ? ` · 奖励：${session.rewards_used.join("、")}` : ""}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </State>
+            <p className="muted" style={{ marginTop: 8, marginBottom: 0 }}>
+              掌握度只由已经提交的训练会话更新；不会根据猜测或一次表现自动判定“学会了”。
+            </p>
           </div>
           {goals.data?.map((g) => (
             <div className="v5-goal-card" key={g.goal_id}>
