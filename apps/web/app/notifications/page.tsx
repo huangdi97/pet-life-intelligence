@@ -14,6 +14,7 @@ interface NotificationRow {
   pet_id: string | null;
   created_at: string;
   read_at: string | null;
+  target_role: string | null;
   data: Record<string, unknown>;
 }
 
@@ -24,6 +25,20 @@ function notificationTypeLabel(type: string): string {
   if (type.includes("GRANT") || type.includes("HANDOFF") || type.includes("PERMISSION")) return "照护权限";
   if (type.includes("TASK")) return "照护任务";
   return "生活提醒";
+}
+
+function roleAudienceLabel(role: string | null): string | null {
+  if (!role || role === "ALL") return null;
+  const labels: Record<string, string> = {
+    OWNER: "仅家庭主人",
+    CO_OWNER: "仅共同主人",
+    FAMILY: "仅家人",
+    SITTER: "仅临时照护",
+    VET: "仅兽医",
+    TRAINER: "仅训练师",
+    GROOMER: "仅美容师",
+  };
+  return labels[role] ?? "仅指定家庭角色";
 }
 
 function notificationTone(type: string): string {
@@ -163,6 +178,7 @@ export default function NotificationsPage() {
                         {n.title}
                         {!n.read_at ? <span className="v4-chip v4-chip--brand">未读</span> : null}
                         <span className={notificationTone(n.type)}>{notificationTypeLabel(n.type)}</span>
+                        {roleAudienceLabel(n.target_role) ? <span className="v4-chip v4-chip--info">{roleAudienceLabel(n.target_role)}</span> : null}
                       </div>
                       <div className="ls-summary">{n.body}</div>
                       {!n.read_at ? (
