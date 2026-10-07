@@ -365,3 +365,19 @@ def test_household_invitation_flow_exists_across_owner_clients() -> None:
         assert "主人角色不能通过邀请转移" in source
         assert "accept_token" in source
         assert "内部用户 ID" not in source
+
+
+def test_household_invitation_acceptance_exists_in_me() -> None:
+    web = read("apps/web/app/settings/page.tsx")
+    mobile = read("apps/mobile/src/screens/MeScreen.tsx")
+    mini = read("apps/mini/src/pages/mine/index.tsx")
+    route = read("services/api/app/api/routes/care_members.py")
+
+    for source in (web, mobile, mini):
+        assert '"/invitations/accept"' in source
+        assert "接受家庭邀请" in source
+        assert "输入邀请码" in source
+        assert "不会授予超出邀请角色的权限" in source
+
+    assert '@router.post("/invitations/accept")' in route
+    assert "Invitation was issued to a different account." in route
