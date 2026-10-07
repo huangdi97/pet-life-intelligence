@@ -69,7 +69,7 @@ class TestCareHandoff:
         assert first["done_at"]
 
     def test_handoff_checklist_rejects_unrelated_user(self, client, seeded):
-        data = self._start(client, seeded)
+        self._start(client, seeded)
         outsider = create_user(email="handoff-outsider@pli.test")
         listed = client.get(
             f"/api/v1/pets/{seeded['coco_id']}/handoffs",
