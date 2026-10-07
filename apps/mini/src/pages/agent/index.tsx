@@ -110,10 +110,9 @@ export default function Agent() {
     }
   }
 
-  const modes: Array<{ key: AgentTab; label: string }> = [
-    { key: "ask", label: "问" },
+  const assistantTools: Array<{ key: Exclude<AgentTab, "ask">; label: string }> = [
     { key: "brief", label: "摘要" },
-    { key: "find", label: "找" },
+    { key: "find", label: "找记录" },
     { key: "plan", label: "计划" },
     { key: "explain", label: "解释" },
   ];
@@ -126,44 +125,50 @@ export default function Agent() {
         sub="回答引用真实记录；风险判断以独立规则引擎为准"
       />
 
-      <View className="mode-row">
-        {modes.map((m) => (
-          <View
-            key={m.key}
-            className={`mode-pill${tab === m.key ? " mode-pill-active" : ""}${m.key === "ask" ? " mode-pill-primary" : ""}`}
-            onClick={() => setTab(m.key)}
-          >
-            {m.label}
-          </View>
-        ))}
+      {tab === "ask" ? (
+        <>
+          <View className="agent-primary-lead">先问一件和{current?.name ?? "这只宠物"}有关的事</View>
+          <AskPanel
+            petName={current?.name}
+            question={question}
+            askState={askState}
+            result={result}
+            onQuestionChange={setQuestion}
+            onAsk={ask}
+          />
+        </>
+      ) : (
+        <View className="agent-context-panel">
+          <View className="agent-back-to-ask" onClick={() => setTab("ask")}>← 回到提问</View>
+          {tab === "brief" && <BriefPanel healthRows={healthRows} />}
+          {tab === "find" && (
+            <FindPanel
+              query={query}
+              findState={findState}
+              hits={hits}
+              onQueryChange={setQuery}
+              onSearch={runSearch}
+            />
+          )}
+          {tab === "plan" && <PlanPanel tasks={tasks} onComplete={completeTask} />}
+          {tab === "explain" && <ExplainPanel />}
+        </View>
+      )}
+
+      <View className="agent-tool-section">
+        <View className="agent-tool-label">更多帮助</View>
+        <View className="agent-tool-row">
+          {assistantTools.map((tool) => (
+            <View
+              key={tool.key}
+              className={`agent-tool${tab === tool.key ? " agent-tool-active" : ""}`}
+              onClick={() => setTab(tool.key)}
+            >
+              {tool.label}
+            </View>
+          ))}
+        </View>
       </View>
-
-      {tab === "ask" && (
-        <AskPanel
-          petName={current?.name}
-          question={question}
-          askState={askState}
-          result={result}
-          onQuestionChange={setQuestion}
-          onAsk={ask}
-        />
-      )}
-
-      {tab === "brief" && <BriefPanel healthRows={healthRows} />}
-
-      {tab === "find" && (
-        <FindPanel
-          query={query}
-          findState={findState}
-          hits={hits}
-          onQueryChange={setQuery}
-          onSearch={runSearch}
-        />
-      )}
-
-      {tab === "plan" && <PlanPanel tasks={tasks} onComplete={completeTask} />}
-
-      {tab === "explain" && <ExplainPanel />}
 
       {askState === "blocked" && (
         <Text className="life-empty-note" style={{ display: "block", marginTop: 12 }}>
