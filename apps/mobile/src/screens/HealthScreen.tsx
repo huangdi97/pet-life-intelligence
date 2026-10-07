@@ -6,6 +6,7 @@
  */
 import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -14,7 +15,7 @@ import { api, humanizeError, type HealthEventRow } from "../api";
 import { fmtDate, riskLabel } from "../format";
 import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
 import { OpenSection } from "../components/feedback/OpenSection";
-import { EmptyState, InlineError, Skeleton } from "../components/feedback/Feedback";
+import { InlineError, Skeleton } from "../components/feedback/Feedback";
 import type { StackParamList } from "../navigation";
 
 type StackNav = NativeStackNavigationProp<StackParamList>;
@@ -124,18 +125,24 @@ export function HealthScreen() {
           </View>
         ) : (
           <>
-            <OpenSection title="近期状态" testID="pli.health.overview">
-              <View style={styles.statusRow}>
-                <Text style={styles.statusLabel}>最近一次</Text>
-                <Text style={styles.statusValue}>
+            <View style={styles.overviewWrap} testID="pli.health.overview">
+              <View style={styles.overviewIcon}>
+                <Ionicons name="heart-outline" size={20} color={COLORS.brandPrimaryDeep} />
+              </View>
+              <View style={styles.overviewText}>
+                <Text style={styles.overviewEyebrow}>近期状态</Text>
+                <Text style={styles.overviewValue}>
                   {recordsUnavailable ? "暂时无法确认" : latest ? riskLabel(latest.latest_triage_level) : "还没有健康记录"}
                 </Text>
+                <Text style={styles.overviewMeta} testID="pli.health.status">
+                  {recordsUnavailable
+                    ? "记录暂时无法读取"
+                    : rows.length > 0
+                      ? `最近 7 天 · ${rows.length} 条记录`
+                      : "先记录事实，再判断变化；这里不会把未知状态显示成“正常”。"}
+                </Text>
               </View>
-              <View style={styles.statusRow} testID="pli.health.status">
-                <Text style={styles.statusLabel}>最近 7 天</Text>
-                <Text style={styles.statusValue}>{recordsUnavailable ? "暂时无法读取" : `${rows.length} 条记录`}</Text>
-              </View>
-            </OpenSection>
+            </View>
 
             <OpenSection title="最近变化" testID="pli.health.changes">
               {recordsUnavailable ? (
@@ -161,10 +168,23 @@ export function HealthScreen() {
               {recordsUnavailable ? (
                 <Text style={styles.emptyText}>健康记录暂时没有加载成功，请稍后重试。</Text>
               ) : rows.length === 0 ? (
-                <EmptyState
-                  title="还没有健康记录"
-                  body="记录健康事件后，分级与变化会出现在这里。"
-                />
+                <View style={styles.recordsEmpty}>
+                  <View style={styles.recordsEmptyIcon}>
+                    <Ionicons name="document-text-outline" size={20} color={COLORS.brandSecondary} />
+                  </View>
+                  <View style={styles.recordsEmptyText}>
+                    <Text style={styles.recordsEmptyTitle}>从第一条事实开始</Text>
+                    <Text style={styles.recordsEmptyBody}>记录症状、时间和已经发生的情况；分级只来自规则，不替代诊断。</Text>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="记录第一条健康事件"
+                    onPress={() => setFormOpen(true)}
+                    style={styles.recordsEmptyAction}
+                  >
+                    <Text style={styles.recordsEmptyActionText}>开始记录</Text>
+                  </Pressable>
+                </View>
               ) : (
                 rows.map((r, i) => {
                   const colors = triageColors(r.latest_triage_level);
@@ -270,9 +290,33 @@ const styles = StyleSheet.create({
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
   emptyText: { fontSize: TYPE.body, color: COLORS.textTertiary, lineHeight: 22 },
-  statusRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6 },
-  statusLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary },
-  statusValue: { fontSize: TYPE.meta, color: COLORS.textPrimary, fontWeight: "600" },
+  overviewWrap: {
+    marginHorizontal: SPACE.s4,
+    marginTop: SPACE.s5,
+    padding: SPACE.s4,
+    borderRadius: RADIUS.xl,
+    backgroundColor: COLORS.brandSoftGreen,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: SPACE.s3,
+  },
+  overviewIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.surfaceOverlay },
+  overviewText: { flex: 1 },
+  overviewEyebrow: { fontSize: TYPE.caption, color: COLORS.textTertiary, fontWeight: "600" },
+  overviewValue: { fontSize: TYPE.metric, color: COLORS.textPrimary, fontWeight: "700", marginTop: 2 },
+  overviewMeta: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20, marginTop: SPACE.s1 },
+  recordsEmpty: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACE.s3,
+    paddingVertical: SPACE.s2,
+  },
+  recordsEmptyIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.brandSoftAmber },
+  recordsEmptyText: { flex: 1 },
+  recordsEmptyTitle: { fontSize: TYPE.bodyStrong, fontWeight: "700", color: COLORS.textPrimary },
+  recordsEmptyBody: { fontSize: TYPE.sm, color: COLORS.textTertiary, lineHeight: 20, marginTop: 2 },
+  recordsEmptyAction: { minHeight: 44, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.brandSoftGreen },
+  recordsEmptyActionText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "700" },
   changeCard: {
     // V4 §5 SoftPanel (§7 Border Budget): warm soft surface, borders removed —
     // the white bordered box reads as admin/CRUD, not a living pet surface.
