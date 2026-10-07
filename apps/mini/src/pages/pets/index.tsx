@@ -38,8 +38,30 @@ export default function Pets() {
     weight_note: "",
   });
   const [busy, setBusy] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editBusy, setEditBusy] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    breed: "",
+    sex: "UNKNOWN",
+    birth_date: "",
+    neutered: "unknown",
+    weight_note: "",
+  });
 
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
+
+  useEffect(() => {
+    if (!current) return;
+    setEditForm({
+      name: current.name ?? "",
+      breed: current.breed ?? "",
+      sex: current.sex ?? "UNKNOWN",
+      birth_date: current.birth_date ?? "",
+      neutered: current.neutered == null ? "unknown" : current.neutered ? "yes" : "no",
+      weight_note: current.weight_note ?? "",
+    });
+  }, [current?.id]);
 
   useEffect(() => {
     if (!petId) return;
@@ -154,6 +176,28 @@ export default function Pets() {
     }
   }
 
+  async function saveEdit() {
+    if (!current?.id || !editForm.name.trim() || editBusy) return;
+    setEditBusy(true);
+    try {
+      await api.patch(`/pets/${current.id}`, {
+        name: editForm.name.trim(),
+        breed: editForm.breed.trim(),
+        sex: editForm.sex,
+        birth_date: editForm.birth_date || null,
+        neutered: editForm.neutered === "unknown" ? null : editForm.neutered === "yes",
+        weight_note: editForm.weight_note.trim(),
+      });
+      refresh();
+      setShowEdit(false);
+      Taro.showToast({ title: "档案已保存", icon: "success" });
+    } catch {
+      Taro.showToast({ title: "暂时无法保存，请稍后重试", icon: "none" });
+    } finally {
+      setEditBusy(false);
+    }
+  }
+
   return (
     <View className="page">
       {pets && pets.length > 1 && (
@@ -180,6 +224,49 @@ export default function Pets() {
       ) : (
         <>
           <PetHero pet={current} headline="它的生活，从这里看见" identity={identityLine(current)} />
+
+          <View className="open-section" data-testid="pli.mini.pet.profile">
+            <View className="section-title" onClick={() => setShowEdit((value) => !value)}>
+              宠物档案
+              <Text className="section-caption">{showEdit ? "收起" : "编辑档案"}</Text>
+            </View>
+            <View className="life-row-detail">物种：{speciesLabel(current.species)} · 创建后不在这里修改动物种类。</View>
+            {showEdit ? (
+              <View className="soft-panel">
+                <View className="field">
+                  <Text>名字 *</Text>
+                  <Input className="input" value={editForm.name} onInput={(event) => setEditForm({ ...editForm, name: event.detail.value })} placeholder="宠物名字" />
+                </View>
+                <View className="field">
+                  <Text>品种</Text>
+                  <Input className="input" value={editForm.breed} onInput={(event) => setEditForm({ ...editForm, breed: event.detail.value })} placeholder="如 柯基" />
+                </View>
+                <View className="field">
+                  <Text>性别</Text>
+                  <Picker mode="selector" range={["雌性", "雄性", "未知"]} onChange={(event) => setEditForm({ ...editForm, sex: ["FEMALE", "MALE", "UNKNOWN"][Number(event.detail.value)] })}>
+                    <View className="input">{sexLabelZh(editForm.sex) || "未知"}</View>
+                  </Picker>
+                </View>
+                <View className="field">
+                  <Text>生日</Text>
+                  <Input className="input" value={editForm.birth_date} onInput={(event) => setEditForm({ ...editForm, birth_date: event.detail.value })} placeholder="YYYY-MM-DD" />
+                </View>
+                <View className="field">
+                  <Text>已绝育</Text>
+                  <Picker mode="selector" range={["未知", "是", "否"]} onChange={(event) => setEditForm({ ...editForm, neutered: ["unknown", "yes", "no"][Number(event.detail.value)] })}>
+                    <View className="input">{editForm.neutered === "yes" ? "是" : editForm.neutered === "no" ? "否" : "未知"}</View>
+                  </Picker>
+                </View>
+                <View className="field">
+                  <Text>体重备注</Text>
+                  <Input className="input" value={editForm.weight_note} onInput={(event) => setEditForm({ ...editForm, weight_note: event.detail.value })} placeholder="如 12kg" />
+                </View>
+                <Button className="btn btn-primary" disabled={editBusy || !editForm.name.trim()} onClick={() => void saveEdit()}>
+                  {editBusy ? "保存中…" : "保存档案"}
+                </Button>
+              </View>
+            ) : null}
+          </View>
 
           <View className="soft-panel" data-testid="pli.mini.pet.twin-status">
             <View className="section-title">
