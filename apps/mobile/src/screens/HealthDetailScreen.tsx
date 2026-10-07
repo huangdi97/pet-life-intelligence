@@ -32,6 +32,20 @@ interface VetBriefContent {
   red_flags: string[];
 }
 
+const OUTCOME_OPTIONS = [
+  ["RECOVERED", "已恢复"],
+  ["IMPROVED", "有改善"],
+  ["UNCHANGED", "暂无变化"],
+  ["WORSENED", "变差"],
+  ["RELAPSED", "再次出现"],
+  ["REFERRED", "已转诊 / 就医"],
+  ["UNRESOLVED", "仍未解决"],
+] as const;
+
+function outcomeLabel(value: string): string {
+  return OUTCOME_OPTIONS.find(([key]) => key === value)?.[1] ?? "已记录";
+}
+
 function riskLabel(level: string | null): string {
   if (level === "NORMAL") return "未见明显风险";
   if (level === "NOTICE") return "需要留意";
@@ -50,6 +64,7 @@ export function HealthDetailScreen() {
   const [answer, setAnswer] = useState("");
   const [obs, setObs] = useState("");
   const [outcome, setOutcome] = useState("");
+  const [outcomeNotes, setOutcomeNotes] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,8 +119,10 @@ export function HealthDetailScreen() {
     if (!outcome.trim() || busy) return;
     setBusy(true); setError(null);
     try {
-      await api.post(`/health-events/${id}/outcomes`, { outcome: outcome.trim(), notes: "" });
-      setOutcome(""); setVersion((v) => v + 1);
+      await api.post(`/health-events/${id}/outcomes`, { outcome, notes: outcomeNotes.trim() });
+      setOutcome("");
+      setOutcomeNotes("");
+      setVersion((v) => v + 1);
     } catch (e: unknown) { setError(humanizeError(e)); }
     finally { setBusy(false); }
   }
@@ -173,12 +190,37 @@ export function HealthDetailScreen() {
             <OpenSection title="结局">
               {detail.outcomes.length ? detail.outcomes.map((row, index) => (
                 <View key={`${row.recorded_at}-${index}`} style={styles.item}>
-                  <Text style={styles.itemTitle}>{row.outcome}</Text>
+                  <Text style={styles.itemTitle}>{outcomeLabel(row.outcome)}</Text>
                   {row.notes ? <Text style={styles.itemBody}>{row.notes}</Text> : null}
                 </View>
               )) : <Text style={styles.empty}>还没有结局记录。</Text>}
-              <TextInput style={styles.input} value={outcome} onChangeText={setOutcome} placeholder="例如：改善、已就诊、继续观察" placeholderTextColor={COLORS.textTertiary} />
-              <Action label="记录结局" disabled={busy || !outcome.trim()} onPress={recordOutcome} />
+              <Text style={styles.note}>请选择实际结果。记录后会关闭本次健康事件；如又出现新情况，请新建健康事件。</Text>
+              <View style={styles.outcomeChoices}>
+                {OUTCOME_OPTIONS.map(([value, label]) => {
+                  const selected = outcome === value;
+                  return (
+                    <Pressable
+                      key={value}
+                      accessibilityRole="button"
+                      accessibilityLabel={`结局：${label}`}
+                      accessibilityState={{ selected, disabled: busy }}
+                      disabled={busy}
+                      onPress={() => setOutcome(value)}
+                      style={[styles.outcomeChoice, selected && styles.outcomeChoiceSelected]}
+                    >
+                      <Text style={[styles.outcomeChoiceText, selected && styles.outcomeChoiceTextSelected]}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <TextInput
+                style={styles.input}
+                value={outcomeNotes}
+                onChangeText={setOutcomeNotes}
+                placeholder="补充说明（可选）"
+                placeholderTextColor={COLORS.textTertiary}
+              />
+              <Action label="记录结局" disabled={busy || !outcome} onPress={recordOutcome} />
             </OpenSection>
           </>
         ) : null}
@@ -213,6 +255,11 @@ const styles = StyleSheet.create({
   itemBody: { marginTop: 3, fontSize: TYPE.body, color: COLORS.textSecondary, lineHeight: 20 },
   empty: { fontSize: TYPE.body, color: COLORS.textTertiary, paddingVertical: 8 },
   form: { marginTop: SPACE.s2 },
+  outcomeChoices: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, marginTop: SPACE.s2 },
+  outcomeChoice: { minHeight: 40, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.dividerSubtle, backgroundColor: COLORS.surface },
+  outcomeChoiceSelected: { borderColor: COLORS.brandPrimary, backgroundColor: COLORS.brandSoftGreen },
+  outcomeChoiceText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
+  outcomeChoiceTextSelected: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   input: { marginTop: SPACE.s2, borderWidth: 1, borderColor: COLORS.dividerStrong, borderRadius: RADIUS.md, backgroundColor: COLORS.surface, paddingHorizontal: SPACE.s3, paddingVertical: 10, fontSize: TYPE.body, color: COLORS.textPrimary },
   action: { minHeight: 48, justifyContent: "center", marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: RADIUS.pill, paddingVertical: 11, alignItems: "center" },
   actionText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
