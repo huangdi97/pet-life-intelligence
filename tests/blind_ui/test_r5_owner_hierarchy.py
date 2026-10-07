@@ -671,3 +671,62 @@ def test_preferences_and_rewards_are_real_cross_client_owner_flows() -> None:
     assert '@router.get("/pets/{pet_id}/preferences")' in backend
     assert 'pattern="^(LIKE|DISLIKE|ALLERGY_CAUTION|REWARD)$"' in backend
     assert 'await write_audit(db, action="preference.add"' in backend
+
+
+def test_role_targeted_notifications_are_membership_scoped_and_owner_visible() -> None:
+    care_account = read("services/api/app/api/routes/care_account.py")
+    role_feed = read("services/api/app/api/routes/v02_care_health_care.py")
+    web = read("apps/web/app/notifications/page.tsx")
+    mobile = read("apps/mobile/src/screens/NotificationsScreen.tsx")
+    mini = read("apps/mini/src/pages/notifications/index.tsx")
+
+    # Household notification reads must respect both explicit recipients and
+    # the caller's ACTIVE household role. A generic household membership alone
+    # is not sufficient to read another role/member's notification.
+    assert "Notification.recipient_user_id.is_(None)" in care_account
+    assert "Notification.recipient_user_id == user.id" in care_account
+    assert "Notification.target_role == membership.role" in care_account
+    assert 'row.target_role not in (None, "", "ALL", membership.role)' in care_account
+    assert "Notification is addressed to another household role." in care_account
+
+    # The legacy role-specific route is now bound to the caller's membership,
+    # not an arbitrary role path supplied by the client.
+    assert "HouseholdMember.role == role" in role_feed
+    assert "membership.role != role" in role_feed
+    assert "Cannot read notifications targeted to another household role." in role_feed
+
+    for source in (web, mobile, mini):
+        assert "roleAudienceLabel" in source
+        assert "仅家庭主人" in source
+        assert "仅指定家庭角色" in source
+
+
+def test_behavior_video_binding_uses_real_artifacts_across_owner_clients() -> None:
+    artifacts = read("services/api/app/api/routes/artifacts.py")
+    behavior_api = read("services/api/app/api/routes/behavior.py")
+    web = read("apps/web/app/behavior/page.tsx")
+    mobile = read("apps/mobile/src/screens/BehaviorScreen.tsx")
+    mini = read("apps/mini/src/pages/behavior/index.tsx")
+    mini_upload = read("apps/mini/src/platform/upload.ts")
+    mobile_api = read("apps/mobile/src/api.ts")
+
+    assert '"video/mp4": ("VIDEO", None)' in artifacts
+    assert '"video/webm": ("VIDEO"' in artifacts
+    assert '@router.post("/pets/{pet_id}/artifacts"' in artifacts
+    assert "artifact_ids: list[uuid.UUID]" in behavior_api
+    assert "artifact_ids=[str(a) for a in body.artifact_ids]" in behavior_api
+    assert "artifact_ids=body.artifact_ids" in behavior_api
+
+    for source in (web, mobile, mini):
+        assert "artifact_ids: artifactIds" in source
+        assert "关联行为视频" in source
+        assert "原始证据" in source
+        assert "不会仅凭视频自动推断性格、情绪或诊断" in source
+
+    assert "api.upload" in web
+    assert "ImagePicker.MediaTypeOptions.Videos" in mobile
+    assert "api.upload" in mobile
+    assert "media.chooseVideo()" in mini
+    assert "uploader.uploadVideo" in mini
+    assert "uploadVideo" in mini_upload
+    assert "async function uploadArtifact" in mobile_api
