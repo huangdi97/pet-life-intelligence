@@ -212,3 +212,50 @@ def test_training_clients_read_real_sessions_for_progress_and_outcome() -> None:
     assert "fmtTime(session.session_at)" in web
     assert "sessionTimeLabel(session.session_at)" in mobile
     assert "fmtTime(session.session_at)" in mini
+
+
+def test_care_owner_copy_and_roles_stay_human_readable_across_clients() -> None:
+    web = read("apps/web/app/care/page.tsx")
+    mobile = read("apps/mobile/src/screens/CareScreen.tsx")
+    mini = read("apps/mini/src/pages/care/index.tsx")
+    for source in (web, mobile, mini):
+        assert "内部用户 ID" not in source
+        assert 'role === "SITTER"' in source
+        for label in ("临时照护人", "兽医", "训练师", "美容护理"):
+            assert label in source
+    assert '<option value="">选择照护人</option>' in web
+
+
+def test_training_status_language_is_truthful_and_cross_client() -> None:
+    web = read("apps/web/app/training/page.tsx")
+    mobile = read("apps/mobile/src/screens/TrainingScreen.tsx")
+    mini = read("apps/mini/src/pages/training/index.tsx")
+    for source in (web, mobile, mini):
+        assert "COMPLETED" in source
+        assert "ACHIEVED" in source
+        assert "ARCHIVED" in source
+        assert "状态已记录" in source
+        assert "已归档" in source
+
+
+def test_monitoring_does_not_collapse_degraded_or_unknown_into_online() -> None:
+    web = read("apps/web/app/monitoring/page.tsx")
+    mobile = read("apps/mobile/src/screens/MonitoringScreen.tsx")
+    companion = read("apps/mobile/src/screens/CompanionScreen.tsx")
+    for source in (web, mobile):
+        assert 'status === "permission_required"' in source
+        assert 'status === "degraded"' in source
+        assert "连接不稳定" in source
+        assert "状态待确认" in source
+    for source in (mobile, companion):
+        assert 'normalized === "connected" || normalized === "online"' in source
+        assert 'normalized === "permission_required"' in source
+
+
+def test_social_declined_state_is_localized_across_clients() -> None:
+    web = read("apps/web/app/social/_components/FriendsPanel.tsx")
+    mobile = read("apps/mobile/src/screens/SocialScreen.tsx")
+    mini = read("apps/mini/src/pages/social/index.tsx")
+    for source in (web, mobile, mini):
+        assert "DECLINED" in source
+        assert "已拒绝" in source
