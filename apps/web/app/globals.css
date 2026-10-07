@@ -40,18 +40,6 @@ img { max-width: 100%; }
 .navlinks a.active { background: var(--pli-primary-100, #e4eae0); color: var(--pli-primary-800, #2f3d2d); font-weight: 600; }
 .nav-icon { font-size: 13px; opacity: 0.75; }
 
-.more-wrap { position: relative; }
-.more-btn { font-size: 14px; min-height: 36px; }
-.more-btn.active { background: var(--pli-primary-100, #e4eae0); }
-.more-menu {
-  position: absolute; right: 0; top: calc(100% + 6px);
-  background: #fff; border: 1px solid var(--pli-line-default, #e8e2d9);
-  border-radius: 12px; box-shadow: var(--pli-elev-lg, 0 8px 24px rgba(43,39,35,0.1));
-  padding: 6px; min-width: 150px; display: flex; flex-direction: column; gap: 2px;
-}
-.more-menu a { padding: 9px 12px; border-radius: 8px; font-size: 14px; color: var(--pli-ink-primary, #2b2723); text-decoration: none; }
-.more-menu a:hover { background: var(--pli-primary-50, #f3f6f2); }
-
 .petswitch { display: flex; align-items: center; gap: 8px; margin-left: auto; white-space: nowrap; }
 .pet-label { font-size: 13px; color: var(--pli-ink-muted, #7c7369); display: inline-flex; align-items: center; gap: 6px; }
 .pet-label select { font: inherit; font-size: 13px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--pli-line-default, #e8e2d9); background: #fff; }
@@ -248,7 +236,6 @@ label.field > input, label.field > select, label.field > textarea { margin-top: 
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .navlinks .more-wrap { display: none; }
   .page { padding: 16px 12px calc(104px + env(safe-area-inset-bottom, 0px)); }
   .petswitch .pet-label { display: none; }
   .topnav .brand { font-size: 14px; }
@@ -903,7 +890,6 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
     white-space: nowrap;
     text-overflow: ellipsis;
   }
-  .navlinks .more-wrap { display: none; }
   .page {
     padding: 14px 12px calc(94px + env(safe-area-inset-bottom));
   }
