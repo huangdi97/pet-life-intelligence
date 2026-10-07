@@ -39,6 +39,14 @@ interface ConsentRow {
   updated_at: string;
 }
 
+interface DeletionRequestRow {
+  request_id: string;
+  status: string;
+  reason: string;
+  created_at: string;
+  resolved_at: string | null;
+}
+
 interface EmergencyProfile {
   owner_contact: string;
   backup_contact: string;
@@ -78,6 +86,8 @@ export function MeScreen() {
   const [emergencyBusy, setEmergencyBusy] = useState(false);
   const [deletionReason, setDeletionReason] = useState("");
   const [deletionBusy, setDeletionBusy] = useState(false);
+  const [deletionRequests, setDeletionRequests] = useState<DeletionRequestRow[]>([]);
+  const [deletionState, setDeletionState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [inviteCode, setInviteCode] = useState("");
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteStatus, setInviteStatus] = useState<string | null>(null);
@@ -106,16 +116,20 @@ export function MeScreen() {
       setConsentState("idle");
       setEmergency(EMPTY_EMERGENCY_PROFILE);
       setEmergencyState("idle");
+      setDeletionRequests([]);
+      setDeletionState("idle");
       return;
     }
     let alive = true;
     setConsentState("loading");
     setEmergencyState("loading");
+    setDeletionState("loading");
     setDataStatus(null);
     Promise.allSettled([
       api.get<ConsentRow[]>(`/pets/${pid}/consents`),
       api.get<EmergencyProfile>(`/pets/${pid}/emergency-profile`),
-    ]).then(([consentResult, emergencyResult]) => {
+      api.get<DeletionRequestRow[]>(`/pets/${pid}/deletion-requests`),
+    ]).then(([consentResult, emergencyResult, deletionResult]) => {
       if (!alive) return;
       if (consentResult.status === "fulfilled") {
         setConsents(consentResult.value);
@@ -129,6 +143,13 @@ export function MeScreen() {
       } else {
         setEmergency(EMPTY_EMERGENCY_PROFILE);
         setEmergencyState("error");
+      }
+      if (deletionResult.status === "fulfilled") {
+        setDeletionRequests(deletionResult.value);
+        setDeletionState("ready");
+      } else {
+        setDeletionRequests([]);
+        setDeletionState("error");
       }
     });
     return () => {
@@ -199,6 +220,9 @@ export function MeScreen() {
       await api.post(`/pets/${current.id}/deletion-requests`, { reason: deletionReason.trim() });
       setDeletionReason("");
       setDataStatus("删除请求已登记；不会立即自动删除，后续仍需确认。");
+      const rows = await api.get<DeletionRequestRow[]>(`/pets/${current.id}/deletion-requests`);
+      setDeletionRequests(rows);
+      setDeletionState("ready");
     } catch (error: unknown) {
       setDataStatus(humanizeError(error));
     } finally {
@@ -245,6 +269,8 @@ export function MeScreen() {
       setFeedbackBusy(false);
     }
   }
+
+  const pendingDeletion = deletionRequests.find((row) => row.status === "PENDING") ?? null;
 
   return (
     <SafeAreaView style={styles.page} edges={["top"]}>
@@ -386,11 +412,29 @@ export function MeScreen() {
           <View testID="pli.me.data" style={styles.dataBlock}>
             <Text style={styles.dataTitle}>数据删除请求</Text>
             <Text style={styles.stateText}>提交后先登记并保留审计记录；不会立即自动删除。</Text>
+            {deletionState === "loading" ? <Text style={styles.stateText}>正在读取删除请求状态…</Text> : null}
+            {deletionState === "error" ? (
+              <Text style={styles.errorText}>删除请求状态暂时没有加载成功；不会因此假定“没有待处理请求”。</Text>
+            ) : null}
+            {pendingDeletion ? (
+              <View style={styles.pendingDeletion}>
+                <Text style={styles.rowLabel}>当前有请求等待人工确认</Text>
+                <Text style={styles.stateText}>{new Date(pendingDeletion.created_at).toLocaleString()}</Text>
+                {pendingDeletion.reason ? <Text style={styles.stateText}>原因：{pendingDeletion.reason}</Text> : null}
+              </View>
+            ) : null}
+            {deletionRequests.slice(0, 3).map((row) => (
+              <View key={row.request_id} style={styles.row}>
+                <Text style={styles.rowLabel}>{row.status === "PENDING" ? "等待人工确认" : "状态已记录"}</Text>
+                <Text style={styles.rowValue}>{new Date(row.created_at).toLocaleDateString()}</Text>
+              </View>
+            ))}
             <TextInput
               style={styles.input}
               value={deletionReason}
               onChangeText={setDeletionReason}
               maxLength={240}
+              editable={!pendingDeletion}
               placeholder="原因（可选）"
               placeholderTextColor={COLORS.textTertiary}
             />
@@ -398,12 +442,14 @@ export function MeScreen() {
               testID="pli.me.data.delete-request"
               accessibilityRole="button"
               accessibilityLabel="登记宠物数据删除请求"
-              accessibilityState={{ disabled: deletionBusy || !current }}
-              disabled={deletionBusy || !current}
+              accessibilityState={{ disabled: deletionBusy || !current || Boolean(pendingDeletion) || deletionState === "loading" }}
+              disabled={deletionBusy || !current || Boolean(pendingDeletion) || deletionState === "loading"}
               onPress={() => void requestPetDeletion()}
-              style={[styles.dangerButton, (deletionBusy || !current) && styles.controlDisabled]}
+              style={[styles.dangerButton, (deletionBusy || !current || Boolean(pendingDeletion) || deletionState === "loading") && styles.controlDisabled]}
             >
-              <Text style={styles.dangerButtonText}>{deletionBusy ? "登记中…" : "登记删除请求"}</Text>
+              <Text style={styles.dangerButtonText}>
+                {deletionBusy ? "登记中…" : pendingDeletion ? "已有待处理请求" : "登记删除请求"}
+              </Text>
             </Pressable>
           </View>
           {dataStatus ? <Text style={styles.feedbackStatus} accessibilityLiveRegion="polite">{dataStatus}</Text> : null}
@@ -564,6 +610,7 @@ const styles = StyleSheet.create({
   smallButtonText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   smallButtonTextActive: { color: COLORS.brandPrimaryDeep },
   dataBlock: { marginTop: SPACE.s4, gap: SPACE.s2 },
+  pendingDeletion: { padding: SPACE.s3, borderRadius: RADIUS.lg, backgroundColor: COLORS.surfaceRaised, gap: 4 },
   dataTitle: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "600" },
   dangerButton: { minHeight: 46, alignItems: "center", justifyContent: "center", borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.danger, backgroundColor: COLORS.surface },
   dangerButtonText: { fontSize: TYPE.button, color: COLORS.danger, fontWeight: "600" },
