@@ -49,7 +49,7 @@ export function VetBriefCard({
           </div>
           {share && (
             <div className="alert info">
-              <div>分享链接：{`/api/v1/vet-briefs/shared/${share.token}`}（至 {fmtTime(share.expires_at)}）</div>
+              <div>分享链接：<a href={`/share/vet-brief/${share.token}`}>{`/share/vet-brief/${share.token}`}</a>（至 {fmtTime(share.expires_at)}）</div>
               <button className="btn" style={{ marginTop: 8 }} onClick={onRevokeShare}>
                 撤销分享链接
               </button>
