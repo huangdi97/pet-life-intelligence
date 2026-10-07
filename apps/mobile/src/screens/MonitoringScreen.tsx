@@ -11,7 +11,7 @@ import { api, type DeviceRow } from "../api";
 import { usePets } from "../context";
 import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
 
-type MonitorState = "LOADING" | "CONNECTED" | "NO_DEVICE" | "OFFLINE" | "ERROR" | "CACHED" | "PERMISSION_REQUIRED";
+type MonitorState = "LOADING" | "CONNECTED" | "NO_DEVICE" | "OFFLINE" | "DEGRADED" | "UNKNOWN" | "ERROR" | "CACHED" | "PERMISSION_REQUIRED";
 
 export function MonitoringScreen() {
   const { pets, petId } = usePets();
@@ -48,17 +48,23 @@ export function MonitoringScreen() {
 
   // State machine: exactly one state element is rendered at a time.
   let state: MonitorState;
+  const normalizedDeviceStates = devices.map((d) => String(d.status).toLowerCase());
   if (loading) state = "LOADING";
   else if (error) state = "ERROR";
-  else if (devices.length === 0) state = "NO_DEVICE";
-  else if (devices.some((d) => String(d.status).toLowerCase() === "offline")) state = "OFFLINE";
-  else state = "CONNECTED";
+  else if (normalizedDeviceStates.length === 0) state = "NO_DEVICE";
+  else if (normalizedDeviceStates.some((status) => status === "permission_required")) state = "PERMISSION_REQUIRED";
+  else if (normalizedDeviceStates.some((status) => status === "offline")) state = "OFFLINE";
+  else if (normalizedDeviceStates.some((status) => status === "degraded")) state = "DEGRADED";
+  else if (normalizedDeviceStates.every((status) => status === "connected" || status === "online")) state = "CONNECTED";
+  else state = "UNKNOWN";
 
   const stateText: Record<MonitorState, string> = {
     LOADING: "正在读取设备状态",
     CONNECTED: "已连接设备",
     NO_DEVICE: "尚未连接设备",
     OFFLINE: "设备离线",
+    DEGRADED: "设备连接不稳定",
+    UNKNOWN: "设备状态待确认",
     ERROR: "暂时连接不上",
     CACHED: "使用缓存内容",
     PERMISSION_REQUIRED: "需要设备权限",
@@ -113,11 +119,17 @@ export function MonitoringScreen() {
             ? "设备状态来自最近一次同步结果"
             : state === "OFFLINE"
               ? "设备离线状态来自最近一次同步结果"
-              : state === "NO_DEVICE"
-                ? "尚未发现已连接设备；不会推断当前在线状态"
-                : state === "ERROR"
-                  ? "当前没有可确认的设备状态"
-                  : "正在确认最近一次设备状态"}
+              : state === "DEGRADED"
+                ? "最近一次同步显示连接不稳定；不会标成在线"
+                : state === "PERMISSION_REQUIRED"
+                  ? "当前没有权限确认设备状态"
+                  : state === "UNKNOWN"
+                    ? "设备状态待确认；不会推断在线或离线"
+                    : state === "NO_DEVICE"
+                      ? "尚未发现已连接设备；不会推断当前在线状态"
+                      : state === "ERROR"
+                        ? "当前没有可确认的设备状态"
+                        : "正在确认最近一次设备状态"}
         </Text>
 
         <Pressable
@@ -135,10 +147,12 @@ export function MonitoringScreen() {
 }
 
 function deviceStateLabel(status: string): string {
-  if (status === "connected") return "在线";
-  if (status === "offline") return "离线";
-  if (status === "degraded") return "降级";
-  return "状态未知";
+  const normalized = status.toLowerCase();
+  if (normalized === "connected" || normalized === "online") return "在线";
+  if (normalized === "offline") return "离线";
+  if (normalized === "degraded") return "连接不稳定";
+  if (normalized === "permission_required") return "需要授权";
+  return "状态待确认";
 }
 
 const styles = StyleSheet.create({

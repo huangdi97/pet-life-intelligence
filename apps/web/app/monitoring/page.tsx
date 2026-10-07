@@ -49,6 +49,7 @@ export default function MonitoringPage() {
   }
 
   // 设备状态机：只呈现一个明确状态，绝不一直“连接中”。
+  const normalizedDeviceStates = (devices.data ?? []).map((d) => String(d.status).toLowerCase());
   const stateKey =
     devices.state === "loading"
       ? "LOADING"
@@ -56,18 +57,26 @@ export default function MonitoringPage() {
         ? "PERMISSION_REQUIRED"
         : devices.state === "error"
           ? "ERROR"
-          : !devices.data || devices.data.length === 0
+          : normalizedDeviceStates.length === 0
             ? "NO_DEVICE"
-            : devices.data.some((d) => d.status === "offline")
-              ? "OFFLINE"
-              : "CONNECTED";
+            : normalizedDeviceStates.some((status) => status === "permission_required")
+              ? "PERMISSION_REQUIRED"
+              : normalizedDeviceStates.some((status) => status === "offline")
+                ? "OFFLINE"
+                : normalizedDeviceStates.some((status) => status === "degraded")
+                  ? "DEGRADED"
+                  : normalizedDeviceStates.every((status) => status === "connected" || status === "online")
+                    ? "CONNECTED"
+                    : "UNKNOWN";
   const stateText: Record<string, string> = {
     LOADING: "正在读取设备状态",
     ERROR: "设备状态读取失败",
     PERMISSION_REQUIRED: "需要设备查看权限",
     NO_DEVICE: "还没有连接设备",
     OFFLINE: "有设备离线",
+    DEGRADED: "设备连接不稳定",
     CONNECTED: "设备在线",
+    UNKNOWN: "设备状态待确认",
   };
 
   return (
@@ -93,11 +102,15 @@ export default function MonitoringPage() {
                   ? "没有设备也不影响记录、健康、行为和时间线。"
                   : stateKey === "OFFLINE"
                     ? "离线期间不会生成伪实时状态；恢复连接后再继续同步。"
-                    : stateKey === "ERROR"
-                      ? "当前无法读取设备状态，可以稍后刷新。"
-                      : stateKey === "PERMISSION_REQUIRED"
-                        ? "获得相应权限后才能查看设备状态；当前不会推断在线或离线。"
-                        : "正在读取最近一次设备状态。"}
+                    : stateKey === "DEGRADED"
+                      ? "最近一次同步显示连接不稳定；不会把它标成在线。"
+                      : stateKey === "ERROR"
+                        ? "当前无法读取设备状态，可以稍后刷新。"
+                        : stateKey === "PERMISSION_REQUIRED"
+                          ? "获得相应权限后才能查看设备状态；当前不会推断在线或离线。"
+                          : stateKey === "UNKNOWN"
+                            ? "设备返回了尚未识别的状态；这里保持待确认，不推断在线或离线。"
+                            : "正在读取最近一次设备状态。"}
             </p>
           </div>
         </div>

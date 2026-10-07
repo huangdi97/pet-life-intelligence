@@ -155,10 +155,12 @@ export function CompanionScreen() {
 }
 
 function deviceStateLabel(status: string): string {
-  if (status === "connected") return "在线";
-  if (status === "offline") return "离线";
-  if (status === "degraded") return "降级";
-  return "状态未知";
+  const normalized = status.toLowerCase();
+  if (normalized === "connected" || normalized === "online") return "在线";
+  if (normalized === "offline") return "离线";
+  if (normalized === "degraded") return "连接不稳定";
+  if (normalized === "permission_required") return "需要授权";
+  return "状态待确认";
 }
 
 const styles = StyleSheet.create({

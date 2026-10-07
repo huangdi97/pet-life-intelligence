@@ -13,7 +13,7 @@ interface FriendsPanelProps {
 
 /** 伙伴关系状态 → 用户语言（绝不泄漏 raw 枚举）。 */
 function statusZh(status: string): string {
-  if (status === "ACTIVE") return t("social.familiar");
+  if (status === "ACTIVE" || status === "ACCEPTED") return t("social.familiar");
   if (status === "PENDING") return "待确认";
   if (status === "BLOCKED") return "已屏蔽";
   if (status === "DECLINED") return "已拒绝";

@@ -43,6 +43,7 @@ function friendStatusLabel(status: string): string {
   if (status === "ACTIVE" || status === "ACCEPTED") return "已添加";
   if (status === "PENDING") return "待确认";
   if (status === "BLOCKED") return "已屏蔽";
+  if (status === "DECLINED") return "已拒绝";
   return "已记录";
 }
 
