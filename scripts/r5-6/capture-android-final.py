@@ -228,6 +228,7 @@ class Android:
         expected_pet_id: str | None = None,
         expected_yaw: float | None = None,
         expected_stage_role: str | None = None,
+        expected_pose: str | None = None,
     ) -> dict:
         for _ in range(retries):
             candidates: list[str] = []
@@ -263,6 +264,7 @@ class Android:
                     expected_pet_id=expected_pet_id,
                     expected_yaw=expected_yaw,
                     expected_stage_role=expected_stage_role,
+                    expected_pose=expected_pose,
                 ):
                     return manifest
 
@@ -274,6 +276,7 @@ class Android:
                     expected_pet_id=expected_pet_id,
                     expected_yaw=expected_yaw,
                     expected_stage_role=expected_stage_role,
+                    expected_pose=expected_pose,
                 )
             ):
                 return xml_manifest
@@ -283,6 +286,8 @@ class Android:
             suffix += f", yaw≈{expected_yaw:.3f}"
         if expected_stage_role is not None:
             suffix += f", stageRole={expected_stage_role}"
+        if expected_pose is not None:
+            suffix += f", pose={expected_pose}"
         raise CaptureError(f"required high-fidelity RUNTIME 3D manifest unavailable{suffix}")
 
     @classmethod
@@ -293,6 +298,7 @@ class Android:
         expected_pet_id: str | None,
         expected_yaw: float | None,
         expected_stage_role: str | None,
+        expected_pose: str | None,
     ) -> bool:
         if not cls._is_product_manifest(manifest):
             return False
@@ -300,6 +306,11 @@ class Android:
             return False
         if expected_stage_role is not None and str(manifest.get("stageRole") or "") != expected_stage_role:
             return False
+        if expected_pose is not None:
+            if str(manifest.get("pose") or "") != expected_pose:
+                return False
+            if str(manifest.get("canonicalPose") or "") != expected_pose:
+                return False
         if expected_yaw is not None:
             try:
                 actual = float((manifest.get("camera") or {}).get("yaw"))
@@ -403,6 +414,7 @@ def capture_surface(
             android.read_runtime_manifest(
                 expected_pet_id=expected_pet_id,
                 expected_stage_role=expected_stage_role,
+                expected_pose="Stand" if expected_stage_role == "review" else None,
             ),
         )
         time.sleep(1)
@@ -433,6 +445,7 @@ def capture_review_views(
             expected_pet_id=expected_pet_id,
             expected_yaw=yaw,
             expected_stage_role="review",
+            expected_pose="Stand",
         )
         save_manifest(directory / f"3d_view_{view}.json", manifest)
         android.screenshot(directory / f"{prefix}_{view}.png")
@@ -522,6 +535,7 @@ def main() -> None:
         android.read_runtime_manifest(
             expected_pet_id=secondary_id,
             expected_stage_role="review",
+            expected_pose="Stand",
         ),
     )
     time.sleep(1)
