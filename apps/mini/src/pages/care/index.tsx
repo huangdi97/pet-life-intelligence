@@ -283,7 +283,7 @@ export default function Care() {
           ) : (
             <View className="life-empty-note">还没有可选择的照护人；请先完成家庭邀请。</View>
           )}
-          <View className="life-row-source">新照护人通过家庭邀请进入；这里不会要求输入内部用户 ID。</View>
+          <View className="life-row-source">新照护人请先完成家庭邀请，再从这里选择。</View>
         </View>
         <View className="field">
           <Text>授权范围</Text>

@@ -275,7 +275,7 @@ export function CareScreen() {
           ) : (
             <Text style={styles.emptyLine}>还没有可选择的照护人；请先完成家庭邀请。</Text>
           )}
-          <Text style={styles.memberHint}>新照护人通过家庭邀请进入；这里不会要求输入内部用户 ID。</Text>
+          <Text style={styles.memberHint}>新照护人请先完成家庭邀请，再从这里选择。</Text>
           <Text style={styles.scopeTitle}>允许临时照护人做什么</Text>
           <View style={styles.scopeWrap}>
             {HANDOFF_SCOPES.map((scope) => {

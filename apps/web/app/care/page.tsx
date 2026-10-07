@@ -204,7 +204,7 @@ export default function CarePage() {
               ))}
             </select>
             {members.state === "error" ? <span className="v4-note">家庭成员暂时无法读取；仍可选择此前已有照护记录的人。</span> : null}
-            <span className="v4-note">新照护人请先完成家庭邀请；这里不会要求输入内部用户 ID。</span>
+            <span className="v4-note">新照护人请先完成家庭邀请，再从这里选择。</span>
           </label>
           <label className="field">
             有效时长（小时）

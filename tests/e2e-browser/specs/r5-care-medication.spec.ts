@@ -67,6 +67,7 @@ test.describe("R5 owner contracts — Care + Medication", () => {
     expect(ownerText).not.toContain(caregiver!.user_id);
     expect(ownerText).not.toContain(createdBody.handoff_id);
     expect(ownerText).not.toContain(createdBody.grant_id);
+    expect(ownerText).not.toContain("内部用户 ID");
   });
 
   test("Medication distinguishes pending / skipped and performs a real skip", async ({ page, request }) => {
