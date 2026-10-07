@@ -147,6 +147,37 @@ export default function CarePage() {
     }
   }
 
+  const carePeople = new Map<string, { user_id: string; label: string; role: string }>();
+  for (const member of members.data ?? []) {
+    if (member.status !== "ACTIVE") continue;
+    carePeople.set(member.user_id, {
+      user_id: member.user_id,
+      label: member.display_name || member.email || "家庭成员",
+      role: memberRoleLabel(member.role),
+    });
+  }
+  for (const grant of grants.data ?? []) {
+    if (!grant.user_id) continue;
+    if (!carePeople.has(grant.user_id)) {
+      carePeople.set(grant.user_id, {
+        user_id: grant.user_id,
+        label: grant.user_label || "曾授权照护人",
+        role: "曾授权照护人",
+      });
+    }
+  }
+  for (const handoff of handoffs.data ?? []) {
+    if (!handoff.caregiver_user_id) continue;
+    if (!carePeople.has(handoff.caregiver_user_id)) {
+      carePeople.set(handoff.caregiver_user_id, {
+        user_id: handoff.caregiver_user_id,
+        label: handoff.caregiver_label || "曾参与照护的人",
+        role: "曾参与照护",
+      });
+    }
+  }
+  const caregiverOptions = [...carePeople.values()];
+
   return (
     <main className="v4-main v5-domain-page v5-utility-page">
       <div className="v4-topline v5-page-lede">
@@ -165,15 +196,14 @@ export default function CarePage() {
             临时照护人
             <select value={caregiver} onChange={(e) => setCaregiver(e.target.value)}>
               <option value="">选择家庭成员</option>
-              {(members.data ?? [])
-                .filter((member) => member.status === "ACTIVE")
-                .map((member) => (
-                  <option key={member.user_id} value={member.user_id}>
-                    {member.display_name || member.email || "家庭成员"} · {memberRoleLabel(member.role)}
-                  </option>
-                ))}
+              {caregiverOptions.map((person) => (
+                <option key={person.user_id} value={person.user_id}>
+                  {person.label} · {person.role}
+                </option>
+              ))}
             </select>
-            {members.state === "error" ? <span className="v4-note">家庭成员暂时无法读取，请稍后重试。</span> : null}
+            {members.state === "error" ? <span className="v4-note">家庭成员暂时无法读取；仍可选择此前已有照护记录的人。</span> : null}
+            <span className="v4-note">新照护人请先完成家庭邀请；这里不会要求输入内部用户 ID。</span>
           </label>
           <label className="field">
             有效时长（小时）
