@@ -152,7 +152,7 @@ CONFIG = {
         "src_mtl": SRC / "mimi-quaternius-cat/cat_quaternius_v2.mtl",
         "subdiv": 3,
         "subdivision_mode": "loop-smooth",
-        "rotate_y_deg": -90.0,
+        "rotate_y_deg": 90.0,
         "height": 1.0,
         "proc_height": 1.15,
         "pet_id": "mimi",
