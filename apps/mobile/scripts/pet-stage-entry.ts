@@ -17,6 +17,7 @@ import {
   orbitFromDrag,
   orbitZoom,
   POSE_NAMES,
+  POSE_META,
   projectPetBounds,
   setTwinAssetResolver,
   STAGE_THEMES,
@@ -218,6 +219,8 @@ function buildManifest(): Record<string, unknown> {
     Math.max(1, Math.round(window.innerWidth || 1)),
     Math.max(1, Math.round(window.innerHeight || 1)),
   );
+  const manifestPose = (activePose ?? "Idle") as PoseName;
+  const poseTruth = POSE_META[manifestPose]?.truth ?? "AMBIENT";
   const m = buildManifestV2({
     ready: true,
     // Phase E: canonical representation names the asset that is REALLY on
@@ -245,14 +248,14 @@ function buildManifest(): Record<string, unknown> {
     baseColorTexture: hdTwin !== null,
     camera: { fov: camera.fov, distance: orbit.radius, yaw: orbit.yaw, pitch: orbit.pitch, radius: orbit.radius },
     screenBounds: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-    activeClip: activePose ?? "Idle",
+    activeClip: manifestPose,
     availableClips: clips,
     playbackState: "playing",
     reducedMotion:
       typeof window.matchMedia === "function" ? window.matchMedia("(prefers-reduced-motion: reduce)").matches : false,
-    pose: activePose ?? "Idle",
-    poseSource: twinDescriptor ? ("REPRESENTATIVE" as const) : ("AMBIENT" as const),
-    poseConfidence: twinDescriptor ? 0.9 : 0.3,
+    pose: manifestPose,
+    poseSource: poseTruth,
+    poseConfidence: poseTruth === "OBSERVED" ? 1.0 : poseTruth === "REPRESENTATIVE" ? 0.9 : 0.3,
     projected: projected ?? null,
     // --- Blind Contract V3 (§51) — additive; V2 fields above stay intact ---
     representationQuality: hdTwin ? "HIGH_FIDELITY_SKINNED" : "engineering",
@@ -261,7 +264,7 @@ function buildManifest(): Record<string, unknown> {
     uvPresent: hdTwin !== null,
     texturePresent: hdTwin !== null,
     baseColorTextureResolution: hdTwin ? 2048 : 0,
-    canonicalPose: activePose ?? "Stand",
+    canonicalPose: manifestPose,
     stageRole: injectedStageRole,
     surfaceVariant:
       stageTheme === "review"
