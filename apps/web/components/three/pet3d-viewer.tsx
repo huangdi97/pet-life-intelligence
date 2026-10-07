@@ -30,6 +30,7 @@ import {
   orbitFromDrag,
   orbitZoom,
   POSE_NAMES,
+  POSE_META,
   PET_3D_ASSETS,
   projectPetBounds,
   STAGE_FOG,
@@ -267,6 +268,8 @@ export function Pet3DViewer({
         Math.max(1, Math.round(window.innerHeight)),
       );
       const orbit = orbitRef.current;
+      const manifestPose = (poseRef.current ?? "Idle") as PoseName;
+      const poseTruth = POSE_META[manifestPose]?.truth ?? "AMBIENT";
       (window as any).__PLI_3D_MANIFEST__ = buildManifestV2({
         ready: true,
         // Phase E: canonical representation names the asset REALLY on screen
@@ -299,13 +302,13 @@ export function Pet3DViewer({
           radius: orbit.radius,
         },
         screenBounds: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-        activeClip: poseRef.current ?? "Idle",
+        activeClip: manifestPose,
         availableClips: clips,
         playbackState: "playing",
         reducedMotion,
-        pose: poseRef.current ?? "Idle",
-        poseSource: twin ? "REPRESENTATIVE" : "AMBIENT",
-        poseConfidence: twin ? 0.9 : 0.3,
+        pose: manifestPose,
+        poseSource: poseTruth,
+        poseConfidence: poseTruth === "OBSERVED" ? 1.0 : poseTruth === "REPRESENTATIVE" ? 0.9 : 0.3,
         projected: projected ?? null,
       });
       const v3 = {
@@ -315,7 +318,7 @@ export function Pet3DViewer({
         uvPresent: hdTwin !== null,
         texturePresent: hdTwin !== null,
         baseColorTextureResolution: hdTwin ? 2048 : 0,
-        canonicalPose: poseRef.current ?? "Stand",
+        canonicalPose: manifestPose,
         stageRole,
         realityField: realityField || "warm-living",
       } as const;
