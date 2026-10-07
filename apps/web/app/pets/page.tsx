@@ -23,15 +23,18 @@ interface FriendRow {
   friend_pet_id: string;
   status: string;
 }
+interface HealthRow { id: string }
+interface BehaviorRow { behavior: string }
+interface TrainingGoalRow { title: string }
+interface WelfareEvidence { observation_counts?: Record<string, number> }
 
-/** 六域：每个入口都带当前含义摘要，而不是纯功能宫格。 */
-const DOMAIN_ROWS: Array<{ id: string; label: string; href: string; icon: "sun" | "heart" | "eye" | "target" | "shield" | "users"; meaning: (count: number) => string }> = [
-  { id: "life", label: "生活", href: "/timeline", icon: "sun", meaning: (c) => (c > 0 ? `最近有 ${c} 条关于它的记录` : "今天还没有记录，从快速记录开始") },
-  { id: "health", label: "健康", href: "/health", icon: "heart", meaning: () => "近期健康记录与变化会汇总在这里" },
-  { id: "behavior", label: "行为", href: "/behavior", icon: "eye", meaning: () => "最近的观察与行为模式会汇总在这里" },
-  { id: "training", label: "训练", href: "/training", icon: "target", meaning: () => "当前目标与最近练习会汇总在这里" },
-  { id: "welfare", label: "福祉", href: "/welfare", icon: "shield", meaning: () => "舒适、活动与恢复的观察会汇总在这里" },
-  { id: "social", label: "社交", href: "/social", icon: "users", meaning: () => "它和朋友的互动会汇总在这里" },
+const DOMAIN_META: Array<{ id: string; label: string; href: string; icon: "sun" | "heart" | "eye" | "target" | "shield" | "users" }> = [
+  { id: "life", label: "生活", href: "/timeline", icon: "sun" },
+  { id: "health", label: "健康", href: "/health", icon: "heart" },
+  { id: "behavior", label: "行为", href: "/behavior", icon: "eye" },
+  { id: "training", label: "训练", href: "/training", icon: "target" },
+  { id: "welfare", label: "福祉", href: "/welfare", icon: "shield" },
+  { id: "social", label: "社交", href: "/social", icon: "users" },
 ];
 
 /** OWN-002 Pets Hub — 宠物世界（当前宠物优先 + 六域含义入口，非功能宫格）。 */
@@ -45,6 +48,22 @@ export default function PetsHubPage() {
   );
   const friends = useAsync<FriendRow[]>(
     () => (current?.id ? api.get(`/pets/${current.id}/friends`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [current?.id],
+  );
+  const health = useAsync<HealthRow[]>(
+    () => (current?.id ? api.get(`/pets/${current.id}/health-events`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [current?.id],
+  );
+  const behavior = useAsync<BehaviorRow[]>(
+    () => (current?.id ? api.get(`/pets/${current.id}/behavior-events`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [current?.id],
+  );
+  const training = useAsync<TrainingGoalRow[]>(
+    () => (current?.id ? api.get(`/pets/${current.id}/training-goals`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [current?.id],
+  );
+  const welfare = useAsync<WelfareEvidence>(
+    () => (current?.id ? api.get(`/pets/${current.id}/welfare-evidence`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [current?.id],
   );
   const changeHint = useAsync<{ hints: string[]; rule: string }>(
@@ -70,8 +89,44 @@ export default function PetsHubPage() {
 
   const counts = today.data?.event_counts ?? {};
   const totalToday = Object.values(counts).reduce((a, b) => a + b, 0);
+  const lastMeaningfulEvent = (today.data?.events ?? []).find((event) => event.event_type !== "today.viewed") ?? null;
   const identityParts = [breedLabel(current?.breed), speciesLabel(current?.species ?? "")].filter(Boolean).join(" · ");
   const abnormalHint = changeHint.data?.hints?.find((item) => !item.includes("无明显异常")) ?? null;
+  const welfareCount = Object.values(welfare.data?.observation_counts ?? {}).reduce((sum, value) => sum + value, 0);
+  const activeFriends = (friends.data ?? []).filter((friend) => friend.status === "ACTIVE" || friend.status === "ACCEPTED" || friend.status === "PENDING");
+  const domainMeaning: Record<string, string> = {
+    life: totalToday > 0 ? `今天已经留下 ${totalToday} 条生活记录` : "今天还没有记录，从快速记录开始",
+    health:
+      health.state === "ready"
+        ? (health.data?.length ?? 0) > 0
+          ? `已有 ${health.data?.length ?? 0} 条健康记录可回看`
+          : "还没有健康记录"
+        : "健康记录暂时没有可确认结果",
+    behavior:
+      behavior.state === "ready"
+        ? behavior.data?.[0]?.behavior
+          ? `最近一次：${behavior.data[0].behavior.slice(0, 26)}${behavior.data[0].behavior.length > 26 ? "…" : ""}`
+          : "还没有行为观察"
+        : "行为记录暂时没有可确认结果",
+    training:
+      training.state === "ready"
+        ? training.data?.[0]?.title
+          ? `当前目标：${training.data[0].title}`
+          : "还没有训练目标"
+        : "训练目标暂时没有可确认结果",
+    welfare:
+      welfare.state === "ready"
+        ? welfareCount > 0
+          ? `近期已有 ${welfareCount} 条福祉观察`
+          : "还没有福祉观察"
+        : "福祉观察暂时没有可确认结果",
+    social:
+      friends.state === "ready"
+        ? activeFriends.length > 0
+          ? `已有 ${activeFriends.length} 个已连接或待确认的关系`
+          : "还没有宠物关系记录"
+        : "关系记录暂时没有可确认结果",
+  };
 
   return (
     <main className="v4-main">
@@ -90,10 +145,10 @@ export default function PetsHubPage() {
                 species={current.species}
                 breed={current.breed}
                 variant="pet"
-                headline={current.name}
+                headline={lastMeaningfulEvent ? "今天已经留下新的生活记录" : "今天还没有新的生活记录"}
                 caption={identityParts || undefined}
                 twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
-                frameTarget={0.24}
+                frameTarget={0.33}
                 sourceMediaCount={observedRegions || undefined}
                 stageTestId="pli.pet.hero-stage"
                 twinTestId="pli.pet.pet-twin"
@@ -106,7 +161,7 @@ export default function PetsHubPage() {
               <h2 className="v4-sec-title">它的生活</h2>
               <Link href="/pets/new" className="v4-sec-link">新建宠物</Link>
             </div>
-            {DOMAIN_ROWS.map((row) => (
+            {DOMAIN_META.map((row) => (
               <div key={row.id} className="v4-domain">
                 <Link href={row.href} className="v4-domain-main" role="button" data-testid={`pli.pet.domain.${row.id}`}>
                   <span className="v4-domain-icon">
@@ -114,7 +169,7 @@ export default function PetsHubPage() {
                   </span>
                   <div>
                     <div className="v4-domain-name">{row.label}</div>
-                    <div className="v4-domain-desc">{row.id === "life" ? row.meaning(totalToday) : row.meaning(0)}</div>
+                    <div className="v4-domain-desc">{domainMeaning[row.id]}</div>
                   </div>
                 </Link>
                 <Icon name="chevron" size={16} style={{ color: "var(--v4-text-tertiary)" }} />
