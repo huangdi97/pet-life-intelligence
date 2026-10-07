@@ -6,6 +6,20 @@ import { usePets } from "../../utils/usePets";
 import { PetContextGate } from "../../components/feedback/Feedback";
 import { fmtTime } from "../../utils/format";
 
+interface PreferenceRow {
+  preference_id: string;
+  kind: "LIKE" | "DISLIKE" | "ALLERGY_CAUTION" | "REWARD";
+  subject: string;
+  note: string;
+  source_type: string;
+}
+const PREF_LABEL: Record<PreferenceRow["kind"], string> = {
+  LIKE: "喜欢",
+  DISLIKE: "回避",
+  ALLERGY_CAUTION: "过敏/谨慎",
+  REWARD: "奖励",
+};
+
 interface BehaviorRow {
   behavior_event_id: string;
   occurred_at: string;
@@ -22,6 +36,12 @@ export default function Behavior() {
   const [showCreate, setShowCreate] = useState(false);
   const [filter, setFilter] = useState<"all" | "MILD" | "MODERATE" | "SEVERE" | "UNLABELED">("all");
   const [form, setForm] = useState({ antecedent: "", behavior: "", consequence: "", environment: "", intensity: "" });
+  const [preferences, setPreferences] = useState<PreferenceRow[]>([]);
+  const [preferenceState, setPreferenceState] = useState<"loading" | "ready" | "error">("loading");
+  const [preferenceKind, setPreferenceKind] = useState<"LIKE" | "DISLIKE" | "ALLERGY_CAUTION">("LIKE");
+  const [preferenceSubject, setPreferenceSubject] = useState("");
+  const [preferenceNote, setPreferenceNote] = useState("");
+  const [preferenceBusy, setPreferenceBusy] = useState(false);
 
   const load = useCallback((pid: string) => {
     setState("loading");
@@ -34,9 +54,25 @@ export default function Behavior() {
       .catch(() => setState("error"));
   }, []);
 
+  const loadPreferences = useCallback((pid: string) => {
+    setPreferenceState("loading");
+    api.get<PreferenceRow[]>(`/pets/${pid}/preferences`)
+      .then((items) => {
+        setPreferences(items);
+        setPreferenceState("ready");
+      })
+      .catch(() => {
+        setPreferences([]);
+        setPreferenceState("error");
+      });
+  }, []);
+
   useEffect(() => {
-    if (petId) load(petId);
-  }, [petId, load]);
+    if (petId) {
+      load(petId);
+      loadPreferences(petId);
+    }
+  }, [petId, load, loadPreferences]);
 
   if (petContextState !== "ready" || !petId || !pets?.length) {
     return (
@@ -45,6 +81,28 @@ export default function Behavior() {
         <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
       </View>
     );
+  }
+
+  async function addPreference() {
+    if (!petId || !preferenceSubject.trim() || preferenceBusy) return;
+    setPreferenceBusy(true);
+    try {
+      await api.post(`/pets/${petId}/preferences`, {
+        kind: preferenceKind,
+        subject: preferenceSubject.trim(),
+        note: preferenceNote.trim(),
+        source_type: "OWNER_REPORTED",
+      });
+      setPreferenceSubject("");
+      setPreferenceNote("");
+      loadPreferences(petId);
+      Taro.showToast({ title: "偏好已记录", icon: "success" });
+    } catch {
+      setPreferenceState("error");
+      Taro.showToast({ title: "暂时无法记录偏好", icon: "none" });
+    } finally {
+      setPreferenceBusy(false);
+    }
   }
 
   async function save() {
@@ -117,6 +175,40 @@ export default function Behavior() {
           {b.consequence && <View className="muted" style={{ marginTop: 6 }}>发生之后：{b.consequence}</View>}
         </View>
       ))}
+
+      <View className="open-section" data-testid="pli.mini.behavior.preferences">
+        <View className="section-title">偏好与回避</View>
+        <View className="life-row-source">只保存主人明确观察到的喜欢、回避或过敏谨慎项；不会从单次行为自动推断偏好。</View>
+        {preferenceState === "loading" ? (
+          <View className="state">正在读取偏好记录……</View>
+        ) : preferenceState === "error" ? (
+          <View className="state state-error">偏好记录暂时没有加载成功；不会用默认偏好补齐。</View>
+        ) : preferences.filter((row) => row.kind !== "REWARD").length ? (
+          preferences.filter((row) => row.kind !== "REWARD").map((row) => (
+            <View className="life-row" key={row.preference_id}>
+              <View className="life-row-body">
+                <View className="life-row-head">
+                  <Text className="life-row-type">{row.subject}</Text>
+                  <Text className="life-row-time">{PREF_LABEL[row.kind]} · 主人记录</Text>
+                </View>
+                {row.note ? <View className="life-row-detail">{row.note}</View> : null}
+              </View>
+            </View>
+          ))
+        ) : <View className="life-empty-note">还没有偏好记录。</View>}
+        <View className="chips">
+          {(["LIKE", "DISLIKE", "ALLERGY_CAUTION"] as const).map((kind) => (
+            <View key={kind} className={`chip${preferenceKind === kind ? " chip-active" : ""}`} onClick={() => setPreferenceKind(kind)}>
+              {PREF_LABEL[kind]}
+            </View>
+          ))}
+        </View>
+        <Input className="input" value={preferenceSubject} onInput={(event) => setPreferenceSubject(event.detail.value)} placeholder="例如：冻干鸡肉 / 吹风机声音" />
+        <Input className="input" value={preferenceNote} onInput={(event) => setPreferenceNote(event.detail.value)} placeholder="补充实际观察（可选）" />
+        <Button className="btn" disabled={preferenceBusy || !preferenceSubject.trim()} onClick={() => void addPreference()}>
+          {preferenceBusy ? "保存中…" : "记录偏好"}
+        </Button>
+      </View>
 
       <View className="open-section">
         <View className="section-title" onClick={() => setShowCreate((v) => !v)}>
