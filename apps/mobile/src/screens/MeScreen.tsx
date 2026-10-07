@@ -18,6 +18,7 @@ import type { StackParamList } from "../navigation";
 import { OpenSection } from "../components/feedback/OpenSection";
 import { PetAvatar } from "../components/media/PetAvatar";
 import { resolvePetMediaUri } from "../components/media/demoPetVisual";
+import { consentPurposeLabel } from "./ui_labels";
 
 type StackNav = NativeStackNavigationProp<StackParamList>;
 
@@ -32,6 +33,31 @@ const FEEDBACK_CATEGORIES = [
   { key: "other", label: "其他" },
 ] as const;
 
+interface ConsentRow {
+  purpose: string;
+  granted: boolean;
+  updated_at: string;
+}
+
+interface EmergencyProfile {
+  owner_contact: string;
+  backup_contact: string;
+  vet_clinic_name: string;
+  vet_clinic_phone: string;
+  vet_clinic_address_text: string;
+  critical_care_notes: string;
+  updated_at?: string;
+}
+
+const EMPTY_EMERGENCY_PROFILE: EmergencyProfile = {
+  owner_contact: "",
+  backup_contact: "",
+  vet_clinic_name: "",
+  vet_clinic_phone: "",
+  vet_clinic_address_text: "",
+  critical_care_notes: "",
+};
+
 export function MeScreen() {
   const { pets, petId, choose, reload, reset } = usePets();
   const navigation = useNavigation<StackNav>();
@@ -44,6 +70,15 @@ export function MeScreen() {
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackBusy, setFeedbackBusy] = useState(false);
   const [feedbackStatus, setFeedbackStatus] = useState<string | null>(null);
+  const [consents, setConsents] = useState<ConsentRow[]>([]);
+  const [consentState, setConsentState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [consentBusy, setConsentBusy] = useState<string | null>(null);
+  const [emergency, setEmergency] = useState<EmergencyProfile>(EMPTY_EMERGENCY_PROFILE);
+  const [emergencyState, setEmergencyState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [emergencyBusy, setEmergencyBusy] = useState(false);
+  const [deletionReason, setDeletionReason] = useState("");
+  const [deletionBusy, setDeletionBusy] = useState(false);
+  const [dataStatus, setDataStatus] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -60,6 +95,43 @@ export function MeScreen() {
 
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   const hasSession = sessionKind === "dev" || sessionKind === "token";
+
+  useEffect(() => {
+    const pid = current?.id;
+    if (!pid || !hasSession) {
+      setConsents([]);
+      setConsentState("idle");
+      setEmergency(EMPTY_EMERGENCY_PROFILE);
+      setEmergencyState("idle");
+      return;
+    }
+    let alive = true;
+    setConsentState("loading");
+    setEmergencyState("loading");
+    setDataStatus(null);
+    Promise.allSettled([
+      api.get<ConsentRow[]>(`/pets/${pid}/consents`),
+      api.get<EmergencyProfile>(`/pets/${pid}/emergency-profile`),
+    ]).then(([consentResult, emergencyResult]) => {
+      if (!alive) return;
+      if (consentResult.status === "fulfilled") {
+        setConsents(consentResult.value);
+        setConsentState("ready");
+      } else {
+        setConsentState("error");
+      }
+      if (emergencyResult.status === "fulfilled") {
+        setEmergency({ ...EMPTY_EMERGENCY_PROFILE, ...emergencyResult.value });
+        setEmergencyState("ready");
+      } else {
+        setEmergency(EMPTY_EMERGENCY_PROFILE);
+        setEmergencyState("error");
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [current?.id, hasSession]);
 
   async function login() {
     const e = email.trim();
@@ -82,6 +154,53 @@ export function MeScreen() {
     await setDevUserId(null);
     setSessionKind("none");
     reset();
+  }
+
+  async function toggleConsent(row: ConsentRow) {
+    if (!current?.id || consentBusy || row.purpose === "SERVICE_ESSENTIAL") return;
+    setConsentBusy(row.purpose);
+    setDataStatus(null);
+    try {
+      await api.put(`/pets/${current.id}/consents/${row.purpose}`, { granted: !row.granted });
+      setConsents((items) =>
+        items.map((item) => (item.purpose === row.purpose ? { ...item, granted: !item.granted } : item)),
+      );
+      setDataStatus(`${consentPurposeLabel(row.purpose)}已${row.granted ? "撤回" : "同意"}。`);
+    } catch (error: unknown) {
+      setDataStatus(humanizeError(error));
+    } finally {
+      setConsentBusy(null);
+    }
+  }
+
+  async function saveEmergencyProfile() {
+    if (!current?.id || emergencyBusy) return;
+    setEmergencyBusy(true);
+    setDataStatus(null);
+    try {
+      await api.put(`/pets/${current.id}/emergency-profile`, emergency);
+      setEmergencyState("ready");
+      setDataStatus("紧急联系卡已保存。");
+    } catch (error: unknown) {
+      setDataStatus(humanizeError(error));
+    } finally {
+      setEmergencyBusy(false);
+    }
+  }
+
+  async function requestPetDeletion() {
+    if (!current?.id || deletionBusy) return;
+    setDeletionBusy(true);
+    setDataStatus(null);
+    try {
+      await api.post(`/pets/${current.id}/deletion-requests`, { reason: deletionReason.trim() });
+      setDeletionReason("");
+      setDataStatus("删除请求已登记；不会立即自动删除，后续仍需确认。");
+    } catch (error: unknown) {
+      setDataStatus(humanizeError(error));
+    } finally {
+      setDeletionBusy(false);
+    }
   }
 
   async function sendFeedback() {
@@ -160,8 +279,96 @@ export function MeScreen() {
         </OpenSection>
 
         <OpenSection title="隐私与数据" testID="pli.me.privacy">
-          <Row label="隐私" value="仅向你展示必要信息" />
-          <View testID="pli.me.data"><Row label="数据" value="由你记录，可随时导出" /></View>
+          <Text style={styles.sectionLead}>逐项管理数据用途。核心服务所需数据不可单独撤回，其余用途由你决定。</Text>
+          {!current ? (
+            <Text style={styles.stateText}>选择宠物后可查看数据用途设置。</Text>
+          ) : consentState === "loading" ? (
+            <Text style={styles.stateText}>正在读取数据用途设置…</Text>
+          ) : consentState === "error" ? (
+            <Text style={styles.errorText}>数据用途设置暂时没有加载成功；不会用默认值代替真实状态。</Text>
+          ) : (
+            consents.map((row, index) => {
+              const essential = row.purpose === "SERVICE_ESSENTIAL";
+              const busy = consentBusy === row.purpose;
+              return (
+                <View key={row.purpose} style={[styles.consentRow, index > 0 && styles.rowDivider]}>
+                  <View style={styles.consentCopy}>
+                    <Text style={styles.rowLabel}>{consentPurposeLabel(row.purpose)}</Text>
+                    <Text style={styles.consentMeta}>{row.granted ? "已同意" : "未同意"}{essential ? " · 服务必需" : ""}</Text>
+                  </View>
+                  <Pressable
+                    testID={`pli.me.consent.${row.purpose}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={essential ? "核心服务所需数据不可单独撤回" : `${row.granted ? "撤回" : "同意"}${consentPurposeLabel(row.purpose)}`}
+                    accessibilityState={{ disabled: essential || busy }}
+                    disabled={essential || busy}
+                    onPress={() => void toggleConsent(row)}
+                    style={[styles.smallButton, row.granted && styles.smallButtonActive, (essential || busy) && styles.controlDisabled]}
+                  >
+                    <Text style={[styles.smallButtonText, row.granted && styles.smallButtonTextActive]}>
+                      {essential ? "服务必需" : busy ? "处理中…" : row.granted ? "撤回" : "同意"}
+                    </Text>
+                  </Pressable>
+                </View>
+              );
+            })
+          )}
+          <View testID="pli.me.data" style={styles.dataBlock}>
+            <Text style={styles.dataTitle}>数据删除请求</Text>
+            <Text style={styles.stateText}>提交后先登记并保留审计记录；不会立即自动删除。</Text>
+            <TextInput
+              style={styles.input}
+              value={deletionReason}
+              onChangeText={setDeletionReason}
+              maxLength={240}
+              placeholder="原因（可选）"
+              placeholderTextColor={COLORS.textTertiary}
+            />
+            <Pressable
+              testID="pli.me.data.delete-request"
+              accessibilityRole="button"
+              accessibilityLabel="登记宠物数据删除请求"
+              accessibilityState={{ disabled: deletionBusy || !current }}
+              disabled={deletionBusy || !current}
+              onPress={() => void requestPetDeletion()}
+              style={[styles.dangerButton, (deletionBusy || !current) && styles.controlDisabled]}
+            >
+              <Text style={styles.dangerButtonText}>{deletionBusy ? "登记中…" : "登记删除请求"}</Text>
+            </Pressable>
+          </View>
+          {dataStatus ? <Text style={styles.feedbackStatus} accessibilityLiveRegion="polite">{dataStatus}</Text> : null}
+        </OpenSection>
+
+        <OpenSection title="紧急联系卡" testID="pli.me.emergency-profile">
+          <Text style={styles.sectionLead}>保存主人、备用联系人、首选医院与关键照护备注，供紧急照护场景使用。</Text>
+          {!current ? (
+            <Text style={styles.stateText}>选择宠物后可编辑紧急联系卡。</Text>
+          ) : emergencyState === "loading" ? (
+            <Text style={styles.stateText}>正在读取紧急联系卡…</Text>
+          ) : (
+            <>
+              {emergencyState === "error" ? (
+                <Text style={styles.errorText}>紧急联系卡暂时没有加载成功；你仍可重新填写并保存。</Text>
+              ) : null}
+              <TextInput style={styles.input} value={emergency.owner_contact} onChangeText={(value) => setEmergency((v) => ({ ...v, owner_contact: value }))} placeholder="主人联系方式" placeholderTextColor={COLORS.textTertiary} />
+              <TextInput style={styles.input} value={emergency.backup_contact} onChangeText={(value) => setEmergency((v) => ({ ...v, backup_contact: value }))} placeholder="备用联系人" placeholderTextColor={COLORS.textTertiary} />
+              <TextInput style={styles.input} value={emergency.vet_clinic_name} onChangeText={(value) => setEmergency((v) => ({ ...v, vet_clinic_name: value }))} placeholder="首选医院" placeholderTextColor={COLORS.textTertiary} />
+              <TextInput style={styles.input} value={emergency.vet_clinic_phone} onChangeText={(value) => setEmergency((v) => ({ ...v, vet_clinic_phone: value }))} keyboardType="phone-pad" placeholder="医院电话" placeholderTextColor={COLORS.textTertiary} />
+              <TextInput style={styles.input} value={emergency.vet_clinic_address_text} onChangeText={(value) => setEmergency((v) => ({ ...v, vet_clinic_address_text: value }))} placeholder="医院地址" placeholderTextColor={COLORS.textTertiary} />
+              <TextInput style={[styles.input, styles.multilineInput]} value={emergency.critical_care_notes} onChangeText={(value) => setEmergency((v) => ({ ...v, critical_care_notes: value }))} multiline textAlignVertical="top" placeholder="关键照护备注 / 行为禁忌" placeholderTextColor={COLORS.textTertiary} />
+              <Pressable
+                testID="pli.me.emergency-profile.save"
+                accessibilityRole="button"
+                accessibilityLabel="保存紧急联系卡"
+                accessibilityState={{ disabled: emergencyBusy }}
+                disabled={emergencyBusy}
+                onPress={() => void saveEmergencyProfile()}
+                style={[styles.feedbackSubmit, emergencyBusy && styles.controlDisabled]}
+              >
+                <Text style={styles.feedbackSubmitText}>{emergencyBusy ? "保存中…" : "保存紧急联系卡"}</Text>
+              </Pressable>
+            </>
+          )}
         </OpenSection>
 
         <OpenSection title="试点反馈" testID="pli.me.feedback">
@@ -276,6 +483,20 @@ const styles = StyleSheet.create({
   petMeta: { fontSize: TYPE.meta, color: COLORS.textTertiary, marginLeft: "auto" },
   linkRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: 12 },
   linkText: { fontSize: TYPE.body, color: COLORS.textPrimary, flex: 1 },
+  sectionLead: { fontSize: TYPE.sm, color: COLORS.textTertiary, lineHeight: 20, marginBottom: SPACE.s2 },
+  stateText: { fontSize: TYPE.sm, color: COLORS.textTertiary, lineHeight: 20 },
+  consentRow: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: SPACE.s2 },
+  consentCopy: { flex: 1 },
+  consentMeta: { marginTop: 2, fontSize: TYPE.caption, color: COLORS.textTertiary },
+  smallButton: { minHeight: 40, minWidth: 72, alignItems: "center", justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.dividerStrong, backgroundColor: COLORS.surface },
+  smallButtonActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
+  smallButtonText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
+  smallButtonTextActive: { color: COLORS.brandPrimaryDeep },
+  dataBlock: { marginTop: SPACE.s4, gap: SPACE.s2 },
+  dataTitle: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "600" },
+  dangerButton: { minHeight: 46, alignItems: "center", justifyContent: "center", borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.danger, backgroundColor: COLORS.surface },
+  dangerButtonText: { fontSize: TYPE.button, color: COLORS.danger, fontWeight: "600" },
+  multilineInput: { minHeight: 82 },
   devForm: { marginTop: SPACE.s2, gap: SPACE.s2 },
   input: {
     borderWidth: 1,
