@@ -309,3 +309,19 @@ def test_notifications_are_actionable_and_never_leak_raw_type_enums() -> None:
     assert "{n.type}" not in mini
     assert '@router.post("/notifications/{notification_id}/read")' in api_route
     assert '@router.post("/households/{household_id}/notifications/read-all")' in api_route
+
+
+def test_pet_profile_create_edit_is_real_across_owner_clients() -> None:
+    web_edit = read("apps/web/app/pets/[id]/edit/page.tsx")
+    web_detail = read("apps/web/app/pets/[id]/page.tsx")
+    mobile_profile = read("apps/mobile/src/screens/PetProfileScreen.tsx")
+    mobile_nav = read("apps/mobile/src/navigation.tsx")
+    mini = read("apps/mini/src/pages/pets/index.tsx")
+
+    assert 'api.patch(`/pets/${id}`' in web_edit
+    assert "编辑档案" in web_detail
+    assert 'api.post<Pet>("/pets"' in mobile_profile
+    assert 'api.patch<Pet>(`/pets/${current!.id}`' in mobile_profile
+    assert 'PetProfile: { mode: "create" | "edit" }' in mobile_nav
+    assert 'api.patch(`/pets/${current.id}`' in mini
+    assert "保存档案" in mini
