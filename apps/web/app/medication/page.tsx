@@ -15,6 +15,7 @@ function sourceLabel(source: string): string {
 function doseStatusLabel(status: string): string {
   if (status === "GIVEN") return "已给药";
   if (status === "MISSED") return "已遗漏";
+  if (status === "SKIPPED") return "已跳过";
   if (status === "PENDING") return "待给药";
   if (status === "CANCELLED") return "已取消";
   return "计划中";
@@ -91,6 +92,28 @@ export default function MedicationPage() {
     }
   }
 
+  async function skip(planId: string, doseId: string) {
+    setConflict(null);
+    setError(null);
+    try {
+      await api.post(`/medication-plans/${planId}/skip`, {
+        planned_dose_id: doseId,
+        note: "主人记录为本次跳过",
+      });
+      setFlash("已记录本次跳过；没有修改用药计划或剂量。");
+      plans.reload();
+      setTimeout(() => setFlash(null), 2600);
+    } catch (e) {
+      const err = e as { code?: string; message?: string };
+      if (err.code === "MEDICATION_CONFLICT") {
+        setConflict("该剂量已有给药记录，不能改为跳过；原记录保持不变。");
+      } else {
+        setError(err.message ?? String(e));
+      }
+      plans.reload();
+    }
+  }
+
   return (
     <main className="v4-main v5-domain-page v5-utility-page">
       <div className="v4-topline v5-page-lede">
@@ -137,9 +160,14 @@ export default function MedicationPage() {
                       due_at: d.planned_at,
                     }}
                   />
-                  <button className="btn" onClick={() => give(p.plan_id, d.dose_id)}>
-                    记录给药 {fmtTime(d.planned_at)}
-                  </button>
+                  <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                    <button className="btn" onClick={() => give(p.plan_id, d.dose_id)}>
+                      记录给药 {fmtTime(d.planned_at)}
+                    </button>
+                    <button className="btn" onClick={() => skip(p.plan_id, d.dose_id)}>
+                      标记本次跳过
+                    </button>
+                  </div>
                 </div>
               ))}
               <h3>时间表（近 10 条）</h3>
