@@ -110,6 +110,77 @@ class AcceptInvitation(BaseModel):
     token: str
 
 
+async def _accept_invitation(inv: Invitation, db: DBSession, user: CurrentUser) -> dict:
+    if inv.status != "PENDING":
+        raise NotFound("Invitation not found or already used.")
+    if inv.expires_at <= datetime.now(UTC):
+        inv.status = "EXPIRED"
+        await db.flush()
+        await db.commit()
+        raise ValidationFailed("Invitation expired.")
+    if inv.email.lower() != user.email.lower():
+        raise PermissionDenied("Invitation was issued to a different account.")
+
+    existing = (
+        await db.execute(
+            select(HouseholdMember).where(
+                HouseholdMember.household_id == inv.household_id,
+                HouseholdMember.user_id == user.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise ConflictError("Already a member of this household.")
+
+    db.add(
+        HouseholdMember(
+            household_id=inv.household_id,
+            user_id=user.id,
+            role=inv.role,
+            status="ACTIVE",
+            invited_by_user_id=inv.invited_by_user_id,
+        )
+    )
+    inv.status = "ACCEPTED"
+    inv.accepted_by_user_id = user.id
+    await db.flush()
+    await write_audit(
+        db,
+        action="member.join",
+        actor_user_id=user.id,
+        household_id=inv.household_id,
+        resource_type="HouseholdMember",
+        detail={"role": inv.role},
+    )
+    await db.commit()
+    return {
+        "household_id": str(inv.household_id),
+        "role": inv.role,
+        "user_id": str(user.id),
+    }
+
+
+@router.post("/invitations/accept")
+async def accept_invitation_by_token(
+    body: AcceptInvitation, db: DBSession, user: CurrentUser
+) -> dict:
+    """Accept a household invitation without exposing a household UUID.
+
+    The invitation token is a bearer secret but is also bound to the invited
+    account email, so forwarding a code cannot silently add another account.
+    """
+    from app.core.security import hash_share_token
+
+    inv = (
+        await db.execute(
+            select(Invitation).where(Invitation.token_hash == hash_share_token(body.token))
+        )
+    ).scalar_one_or_none()
+    if inv is None:
+        raise NotFound("Invitation not found or already used.")
+    return await _accept_invitation(inv, db, user)
+
+
 @router.post("/households/{household_id}/invitations/accept")
 async def accept_invitation(
     household_id: uuid.UUID, body: AcceptInvitation, db: DBSession, user: CurrentUser
@@ -124,35 +195,6 @@ async def accept_invitation(
             )
         )
     ).scalar_one_or_none()
-    if inv is None or inv.status != "PENDING":
+    if inv is None:
         raise NotFound("Invitation not found or already used.")
-    if inv.expires_at <= datetime.now(UTC):
-        inv.status = "EXPIRED"
-        await db.flush()
-        await db.commit()
-        raise ValidationFailed("Invitation expired.")
-    existing = (
-        await db.execute(
-            select(HouseholdMember).where(
-                HouseholdMember.household_id == household_id,
-                HouseholdMember.user_id == user.id,
-            )
-        )
-    ).scalar_one_or_none()
-    if existing is not None:
-        raise ConflictError("Already a member of this household.")
-    db.add(
-        HouseholdMember(
-            household_id=household_id, user_id=user.id, role=inv.role,
-            status="ACTIVE", invited_by_user_id=inv.invited_by_user_id,
-        )
-    )
-    inv.status = "ACCEPTED"
-    inv.accepted_by_user_id = user.id
-    await db.flush()
-    await write_audit(db, action="member.join", actor_user_id=user.id,
-                      household_id=household_id, resource_type="HouseholdMember",
-                      detail={"role": inv.role})
-    await db.commit()
-    return {"household_id": str(household_id), "role": inv.role,
-            "user_id": str(user.id)}
+    return await _accept_invitation(inv, db, user)
