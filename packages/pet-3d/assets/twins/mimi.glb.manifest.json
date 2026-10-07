@@ -8,7 +8,7 @@
   "representationQuality": "HIGH_FIDELITY_SKINNED",
   "productCandidate": true,
   "triangleCount": 51648,
-  "vertexCount": 26601,
+  "vertexCount": 26612,
   "uvPresent": true,
   "texturePresent": true,
   "baseColorTextureResolution": 2048,
@@ -40,7 +40,7 @@
     "scale": 0.2237338037511929,
     "translate_y_min": -0.05321439252746105,
     "height": 1.0,
-    "rotate_y_deg": -90.0
+    "rotate_y_deg": 90.0
   },
   "morphology": {
     "applied": false
@@ -48,15 +48,16 @@
   "nativeBreedSource": false,
   "sourceGeometryClass": "template-cat",
   "subdivisionMode": "loop-smooth",
-  "atlasObservedRatio": 0.18619179725646973,
+  "weldExactVertices": false,
+  "atlasObservedRatio": 0.1853959560394287,
   "landmarks": {
     "eye_y": 0.74,
     "eye_dx": 0.13,
-    "muzzle_z": 0.6325041238783207,
+    "muzzle_z": 0.6324282723822485,
     "nose_y": 0.6,
-    "nose_z": 0.6525041238783207,
-    "head_min_z": -0.6325041238783207,
-    "head_max_z": 0.6325041238783207,
+    "nose_z": 0.6524282723822485,
+    "head_min_z": -0.6324282723822485,
+    "head_max_z": 0.6324282723822485,
     "head_min_y": 0.55
   },
   "skinnedMeshCount": 1,
@@ -77,8 +78,8 @@
     "Stretch"
   ],
   "pbrMaterial": true,
-  "fingerprint": "2e20b171bf58306e",
-  "fileSizeBytes": 3090296,
+  "fingerprint": "cf1cb5b446347644",
+  "fileSizeBytes": 3074336,
   "poseTruth": {
     "Idle": "AMBIENT",
     "Stand": "AMBIENT",
