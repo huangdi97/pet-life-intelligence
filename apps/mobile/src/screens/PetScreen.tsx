@@ -226,6 +226,9 @@ export function PetScreen() {
                   onPress={() => navigateDomain(r.route)}
                   style={[styles.domainRow, i > 0 && styles.domainDivider]}
                 >
+                  <View style={styles.domainIcon}>
+                    <Ionicons name={r.icon} size={18} color={COLORS.brandPrimaryDeep} />
+                  </View>
                   <View style={styles.domainText}>
                     <Text style={styles.domainLabel}>{DOMAIN_LABELS[r.key] ?? r.key}</Text>
                     <Text style={styles.domainMeaning}>{r.meaning}</Text>
@@ -304,6 +307,7 @@ const styles = StyleSheet.create({
   pulseText: { fontSize: TYPE.body, color: COLORS.textPrimary, flex: 1, lineHeight: 20 },
   domainRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACE.s3, paddingVertical: 12 },
   domainDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
+  domainIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.brandSoftGreen },
   domainText: { flex: 1 },
   domainLabel: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary },
   domainMeaning: { fontSize: TYPE.body, color: COLORS.textSecondary, lineHeight: 21, marginTop: 2 },
