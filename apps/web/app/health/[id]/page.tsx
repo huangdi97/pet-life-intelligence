@@ -9,6 +9,7 @@ import { IntakeCard } from "../../_components/health/IntakeCard";
 import { ObservationCard } from "../../_components/health/ObservationCard";
 import { OutcomeCard } from "../../_components/health/OutcomeCard";
 import { OverviewCard } from "../../_components/health/OverviewCard";
+import { RecoveryCard } from "../../_components/health/RecoveryCard";
 import { VetBriefCard } from "../../_components/health/VetBriefCard";
 
 /** OWN-005 Health 详情（Stage H §20-22）：发现异常→Intake→Evidence→Triage→Vet Brief→Outcome。
@@ -166,6 +167,8 @@ export default function HealthEventDetailPage({
               onShareBrief={shareBrief}
               onRevokeShare={revokeShare}
             />
+
+            <RecoveryCard healthEventId={id} />
 
             <OutcomeCard
               outcome={outcome}
