@@ -254,7 +254,12 @@ export default function PetProfilePage() {
           </div>
 
           <div className="v4-sec">
-            <h2 className="v4-sec-title">基本信息</h2>
+            <div className="v4-sec-head">
+              <h2 className="v4-sec-title">基本信息</h2>
+              <Link href={`/pets/${id}/edit`} className="v4-sec-link" data-testid="pli.pet.profile.edit-link">
+                编辑档案
+              </Link>
+            </div>
             <div className="v4-statsline" style={{ marginTop: 6 }}>
               <span className="v4-chip">种类：{p?.species === "dog" ? "犬" : p?.species === "cat" ? "猫" : p?.species || "—"}</span>
               <span className="v4-chip">品种：{breedLabel(p?.breed) || "—"}</span>
