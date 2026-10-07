@@ -171,12 +171,17 @@ class TestHealthFlow:
                             json={"expires_in_hours": 1}, headers=auth(owner))
         assert share.status_code == 201
         token = share.json()["share_token"]
+        token_id = share.json()["token_id"]
         # anonymous access works
         view = client.get(f"/api/v1/vet-briefs/shared/{token}")
         assert view.status_code == 200
         assert view.json()["vet_brief_id"] == brief_id
         # invalid token rejected
         assert client.get("/api/v1/vet-briefs/shared/bogus").status_code == 404
+        # owner can revoke the share; the public link immediately becomes dead.
+        revoked = client.delete(f"/api/v1/share-tokens/{token_id}", headers=auth(owner))
+        assert revoked.status_code == 200, revoked.text
+        assert client.get(f"/api/v1/vet-briefs/shared/{token}").status_code == 404
 
     def test_medication_duplicate_administration_conflict(self, client, seeded):
         owner, plan = seeded["owner_id"], seeded["medication_plan_id"]
