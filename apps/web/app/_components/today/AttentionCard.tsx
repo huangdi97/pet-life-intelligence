@@ -5,18 +5,29 @@ import { Icon } from "../../../components/icons";
 
 interface AttentionCardProps {
   hints: Array<Record<string, string>>;
+  evidenceState?: "ready" | "unknown";
 }
 
 /** OWN-001 Attention — 一屏一个 Attention 或 Calm 状态（Stage R.2 §24）。
  *  普通数据不用红色；只有 deterministic safety rule 才使用强 danger 视觉。 */
-export function AttentionCard({ hints }: AttentionCardProps) {
+export function AttentionCard({ hints, evidenceState = "ready" }: AttentionCardProps) {
   const visible = hints.slice(0, 1);
   return (
     <div className="v4-sec" data-testid="pli.attention.panel" data-pli-type="card">
       <div className="v4-sec-head">
         <h2 className="v4-sec-title">值得注意</h2>
       </div>
-      {visible.length > 0 ? (
+      {evidenceState !== "ready" ? (
+        <div className="v4-calm">
+          <span className="v4-calm-icon">
+            <Icon name="clock" size={18} />
+          </span>
+          <div>
+            <p className="v4-calm-title">关注状态暂时无法确认</p>
+            <p className="v4-calm-body">健康与基线信息没有完整读取到，不会把未知状态显示成“没有变化”。</p>
+          </div>
+        </div>
+      ) : visible.length > 0 ? (
         visible.map((h, i) => {
           const msg = h.message || h.hint || h.detail || "今天有 1 件事值得关注";
           return (
