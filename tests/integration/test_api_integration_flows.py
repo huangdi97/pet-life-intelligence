@@ -4,7 +4,7 @@ conflicts, notifications, deletion requests, media access control."""
 import io
 from datetime import datetime, timedelta, timezone
 
-from tests.conftest import auth
+from tests.conftest import auth, create_user
 
 NOW = datetime.now(timezone.utc)
 
@@ -31,6 +31,51 @@ class TestCareHandoff:
         r = client.post(f"/api/v1/pets/{seeded['coco_id']}/health-events",
                         json={"chief_complaint": "x"}, headers=auth(sitter))
         assert r.status_code == 403
+
+    def test_handoff_checklist_is_actionable_for_caregiver(self, client, seeded):
+        owner, sitter = seeded["owner_id"], seeded["sitter_id"]
+        created = client.post(
+            f"/api/v1/pets/{seeded['coco_id']}/handoffs",
+            json={
+                "caregiver_user_id": sitter,
+                "scopes": ["daily:read", "daily:write"],
+                "end_at": (NOW + timedelta(hours=2)).isoformat(),
+                "reason": "weekend care",
+                "checklist": ["确认喂食安排", "确认紧急联系人"],
+            },
+            headers=auth(owner),
+        )
+        assert created.status_code == 201, created.text
+        checklist = created.json()["checklist"]
+        assert [item["text"] for item in checklist] == ["确认喂食安排", "确认紧急联系人"]
+        assert all(item["done"] is False for item in checklist)
+
+        visible = client.get(
+            f"/api/v1/pets/{seeded['coco_id']}/handoffs",
+            headers=auth(sitter),
+        )
+        assert visible.status_code == 200, visible.text
+        assert [row["handoff_id"] for row in visible.json()] == [created.json()["handoff_id"]]
+
+        completed = client.post(
+            f"/api/v1/handoffs/{created.json()['handoff_id']}/checklist/{checklist[0]['id']}/complete",
+            json={},
+            headers=auth(sitter),
+        )
+        assert completed.status_code == 200, completed.text
+        first = completed.json()["checklist"][0]
+        assert first["done"] is True
+        assert first["done_by"] == sitter
+        assert first["done_at"]
+
+    def test_handoff_checklist_rejects_unrelated_user(self, client, seeded):
+        data = self._start(client, seeded)
+        outsider = create_user(email="handoff-outsider@pli.test")
+        listed = client.get(
+            f"/api/v1/pets/{seeded['coco_id']}/handoffs",
+            headers=auth(outsider),
+        )
+        assert listed.status_code == 403
 
     def test_end_handoff_revokes(self, client, seeded):
         data = self._start(client, seeded)
