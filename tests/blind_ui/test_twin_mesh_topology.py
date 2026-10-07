@@ -100,9 +100,21 @@ def test_native_corgi_weld_removes_conversion_duplicates_before_smoothing() -> N
     assert after_vertices < before_vertices * 0.30
 
 
-def test_doudou_bake_uses_v3_density_boundary_safe_loop() -> None:
+def test_doudou_bake_preserves_native_corgi_silhouette_at_v3_density() -> None:
     source = (ROOT / "scripts" / "r2p3d-r4" / "bake_twin.py").read_text(encoding="utf-8")
     dog_block = source.split('"dog": {', 1)[1].split('"cat": {', 1)[0]
     assert '"subdiv": 3' in dog_block
-    assert '"subdivision_mode": "loop-boundary-preserving"' in dog_block
+    # Fresh R5.6 runtime contact sheets showed that even boundary-preserving
+    # Loop moved enough interior vertices to round the native Corgi into a
+    # faceted blob. Exact welding repairs conversion seams; linear refinement
+    # then raises density without changing the authored silhouette.
+    assert '"subdivision_mode": "linear-boundary-preserving"' in dog_block
     assert '"weld_exact_vertices": True' in dog_block
+
+
+def test_mimi_bake_faces_the_canonical_front_camera() -> None:
+    source = (ROOT / "scripts" / "r2p3d-r4" / "bake_twin.py").read_text(encoding="utf-8")
+    cat_block = source.split('"cat": {', 1)[1].split("}", 1)[0]
+    # Product camera yaw=0 observes from +Z. The Quaternius source needs -90°
+    # normalization so Review front/back are not reversed in runtime evidence.
+    assert '"rotate_y_deg": -90.0' in cat_block
