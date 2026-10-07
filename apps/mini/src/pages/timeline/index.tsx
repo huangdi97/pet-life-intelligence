@@ -4,7 +4,7 @@
  * 筛选与数据流保持与后端 GET /pets/{id}/events 一致。
  */
 import { useCallback, useEffect, useState } from "react";
-import { Text, View } from "@tarojs/components";
+import { Button, Text, Textarea, View } from "@tarojs/components";
 import Taro, { useDidShow } from "@tarojs/taro";
 import { api, type LifeEvent } from "../../services/api";
 import { usePets } from "../../utils/usePets";
@@ -12,6 +12,13 @@ import { eventPayloadText, eventTypeLabel, sourceLabel } from "../../utils/label
 import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../../components/timeline/LifeStream";
 import { EmptyState, InlineError, PetContextGate } from "../../components/feedback/Feedback";
 import { PetContextHeader } from "../../components/pet_visual";
+
+interface DiaryRow {
+  diary_id: string;
+  entry_at: string;
+  text: string;
+  has_audio: boolean;
+}
 
 const FILTERS: Array<{ label: string; types: string[] | null }> = [
   { label: "全部", types: null },
@@ -66,6 +73,10 @@ export default function Timeline() {
   const [events, setEvents] = useState<LifeEvent[] | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [filter, setFilter] = useState(0);
+  const [diary, setDiary] = useState<DiaryRow[]>([]);
+  const [diaryState, setDiaryState] = useState<"loading" | "ready" | "error">("loading");
+  const [diaryText, setDiaryText] = useState("");
+  const [diaryBusy, setDiaryBusy] = useState(false);
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
 
   const load = useCallback((pid: string, f: number) => {
@@ -82,12 +93,49 @@ export default function Timeline() {
       .catch(() => setState("error"));
   }, []);
 
+  const loadDiary = useCallback((pid: string) => {
+    setDiaryState("loading");
+    api.get<DiaryRow[]>(`/pets/${pid}/diary?limit=5`)
+      .then((rows) => {
+        setDiary(rows);
+        setDiaryState("ready");
+      })
+      .catch(() => {
+        setDiary([]);
+        setDiaryState("error");
+      });
+  }, []);
+
+  async function addDiary() {
+    const text = diaryText.trim();
+    if (!petId || !text || diaryBusy) return;
+    setDiaryBusy(true);
+    try {
+      await api.post(`/pets/${petId}/diary`, { text });
+      setDiaryText("");
+      loadDiary(petId);
+      load(petId, filter);
+      Taro.showToast({ title: "日记已保存", icon: "success" });
+    } catch {
+      setDiaryState("error");
+      Taro.showToast({ title: "暂时无法保存", icon: "none" });
+    } finally {
+      setDiaryBusy(false);
+    }
+  }
+
   useDidShow(() => {
-    if (petId) load(petId, filter);
+    if (petId) {
+      load(petId, filter);
+      loadDiary(petId);
+    }
   });
 
   useEffect(() => {
-    if (petId) load(petId, filter);
+    if (petId) {
+      load(petId, filter);
+      loadDiary(petId);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [petId]);
 
@@ -115,6 +163,40 @@ export default function Timeline() {
   return (
     <View className="page">
       <PetContextHeader pet={current ?? null} title="时间线" sub="记录每一天真实发生的事情" />
+
+      <View className="open-section" data-testid="pli.mini.timeline.diary">
+        <View className="section-title">
+          今天想记下什么
+          <Text className="section-caption">生活日记</Text>
+        </View>
+        <View className="life-empty-note">写下真实发生的事情。文字会作为主人记录保存，并在时间线留下来源明确的日记事件。</View>
+        <Textarea
+          className="input"
+          value={diaryText}
+          maxlength={5000}
+          autoHeight
+          onInput={(event) => setDiaryText(event.detail.value)}
+          placeholder="例如：今天散步时第一次主动去闻路边的花。"
+        />
+        <Button className="btn btn-primary" disabled={diaryBusy || !diaryText.trim()} onClick={() => void addDiary()}>
+          {diaryBusy ? "保存中…" : "保存日记"}
+        </Button>
+        {diaryState === "ready" && diary.length ? (
+          <View className="soft-panel">
+            <View className="section-title">最近日记</View>
+            {diary.slice(0, 3).map((entry) => (
+              <View className="life-row" key={entry.diary_id}>
+                <View className="life-row-body">
+                  <View className="life-row-detail">{entry.text}</View>
+                  <View className="life-row-source">{new Date(entry.entry_at).toLocaleString()}</View>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : diaryState === "error" ? (
+          <View className="state state-error">最近日记暂时没有加载成功；不会把未知状态显示成空。</View>
+        ) : null}
+      </View>
 
       <View
         className="secondary-action"
