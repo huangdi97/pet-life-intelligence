@@ -14,6 +14,7 @@ export interface Pet {
   weight_note: string;
   timezone: string;
   avatar_artifact_id: string | null;
+  lifecycle_status: string;
   created_at: string;
 }
 
