@@ -52,7 +52,10 @@ function roleLabel(role: string): string {
   if (role === "OWNER") return "主人";
   if (role === "CO_OWNER") return "共同主人";
   if (role === "FAMILY") return "家庭成员";
-  if (role === "CAREGIVER") return "照护人";
+  if (role === "SITTER" || role === "CAREGIVER") return "临时照护人";
+  if (role === "VET") return "兽医";
+  if (role === "TRAINER") return "训练师";
+  if (role === "GROOMER") return "美容护理";
   return "成员";
 }
 function timeLabel(value: string | null): string {

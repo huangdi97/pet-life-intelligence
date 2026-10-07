@@ -50,7 +50,10 @@ function memberRoleLabel(role: string): string {
   if (role === "OWNER") return "主人";
   if (role === "CO_OWNER") return "共同主人";
   if (role === "FAMILY") return "家庭成员";
-  if (role === "CAREGIVER") return "照护人";
+  if (role === "SITTER" || role === "CAREGIVER") return "临时照护人";
+  if (role === "VET") return "兽医";
+  if (role === "TRAINER") return "训练师";
+  if (role === "GROOMER") return "美容护理";
   return "成员";
 }
 
@@ -196,7 +199,7 @@ export default function CarePage() {
           <label className="field">
             临时照护人
             <select value={caregiver} onChange={(e) => setCaregiver(e.target.value)}>
-              <option value="">选择家庭成员</option>
+              <option value="">选择照护人</option>
               {caregiverOptions.map((person) => (
                 <option key={person.user_id} value={person.user_id}>
                   {person.label} · {person.role}

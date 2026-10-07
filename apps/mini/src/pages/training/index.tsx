@@ -8,8 +8,9 @@ import { PetContextGate } from "../../components/feedback/Feedback";
 
 function statusLabel(status: string): string {
   if (status === "ACTIVE" || status === "OPEN") return "进行中";
-  if (status === "ACHIEVED") return "已达成";
+  if (status === "ACHIEVED" || status === "COMPLETED") return "已完成";
   if (status === "PAUSED") return "已暂停";
+  if (status === "ARCHIVED") return "已归档";
   return "状态已记录";
 }
 

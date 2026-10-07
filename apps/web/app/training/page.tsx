@@ -39,9 +39,9 @@ function goalStatusZh(status: string): string {
   if (status === "OPEN") return "进行中";
   if (status === "ACTIVE") return "进行中";
   if (status === "PAUSED") return "已暂停";
-  if (status === "COMPLETED") return "已完成";
+  if (status === "COMPLETED" || status === "ACHIEVED") return "已完成";
   if (status === "ARCHIVED") return "已归档";
-  return "进行中";
+  return "状态已记录";
 }
 
 /** v0.2 surface: Training (PLI-085..088/091/092) — reward-based only. */
