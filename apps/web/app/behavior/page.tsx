@@ -5,10 +5,32 @@ import { api, type BehaviorEvent } from "@pli/api-client";
 import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State } from "../../components/ui";
 
+interface PreferenceRow {
+  preference_id: string;
+  kind: "LIKE" | "DISLIKE" | "ALLERGY_CAUTION" | "REWARD";
+  subject: string;
+  note: string;
+  source_type: string;
+}
+
+const PREF_LABEL: Record<PreferenceRow["kind"], string> = {
+  LIKE: "喜欢",
+  DISLIKE: "回避",
+  ALLERGY_CAUTION: "过敏/谨慎",
+  REWARD: "奖励",
+};
+
 /** Surface 8: Behavior Event (PLI-069, E2E-07) — ABC records, observable
  *  facts only; the app never auto-converts observations into diagnoses. */
 export default function BehaviorPage() {
   const { petId } = useCurrentPet();
+  const preferences = useAsync<PreferenceRow[]>(
+    () =>
+      petId
+        ? api.get<PreferenceRow[]>(`/pets/${petId}/preferences`)
+        : Promise.reject(new Error("no pet")),
+    [petId],
+  );
   const list = useAsync<BehaviorEvent[]>(
     () =>
       petId
@@ -31,9 +53,34 @@ export default function BehaviorPage() {
   const [error, setError] = useState<string | null>(null);
   const [validation, setValidation] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "MILD" | "MODERATE" | "SEVERE" | "UNLABELED">("all");
+  const [preferenceKind, setPreferenceKind] = useState<"LIKE" | "DISLIKE" | "ALLERGY_CAUTION">("LIKE");
+  const [preferenceSubject, setPreferenceSubject] = useState("");
+  const [preferenceNote, setPreferenceNote] = useState("");
+  const [preferenceBusy, setPreferenceBusy] = useState(false);
 
   function set(k: keyof typeof form, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  async function addPreference() {
+    if (!petId || !preferenceSubject.trim() || preferenceBusy) return;
+    setPreferenceBusy(true);
+    setError(null);
+    try {
+      await api.post(`/pets/${petId}/preferences`, {
+        kind: preferenceKind,
+        subject: preferenceSubject.trim(),
+        note: preferenceNote.trim(),
+        source_type: "OWNER_REPORTED",
+      });
+      setPreferenceSubject("");
+      setPreferenceNote("");
+      preferences.reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPreferenceBusy(false);
+    }
   }
 
   async function submit() {
@@ -88,6 +135,48 @@ export default function BehaviorPage() {
       <section className="v4-sec" data-testid="pli.behavior.context">
         <h2 className="v4-sec-title">情境与触发</h2>
         <p className="muted" style={{ margin: 0 }}>前因、环境与触发条件会从每条行为记录中汇总到这里。</p>
+      </section>
+
+      <section className="v4-sec" data-testid="pli.behavior.preferences">
+        <div className="v4-sec-head">
+          <div>
+            <h2 className="v4-sec-title">偏好与回避</h2>
+            <p className="v4-sec-sub">只保存主人明确观察到的喜欢、回避或过敏谨慎项；不会从单次行为自动推断偏好。</p>
+          </div>
+        </div>
+        <State state={preferences.state} error={preferences.error} onRetry={preferences.reload} empty="还没有偏好记录。">
+          <div className="v4-list">
+            {(preferences.data ?? []).filter((row) => row.kind !== "REWARD").map((row) => (
+              <div className="v4-list-row" key={row.preference_id}>
+                <div>
+                  <strong>{row.subject}</strong>
+                  <div className="v4-note">{row.note || "没有补充说明"}</div>
+                </div>
+                <span className="v4-badge">{PREF_LABEL[row.kind]} · 主人记录</span>
+              </div>
+            ))}
+          </div>
+        </State>
+        <div className="v4-filter-row" style={{ marginTop: 12 }}>
+          {(["LIKE", "DISLIKE", "ALLERGY_CAUTION"] as const).map((kind) => (
+            <button key={kind} type="button" className={`v4-chip ${preferenceKind === kind ? "v4-chip--brand" : ""}`} onClick={() => setPreferenceKind(kind)}>
+              {PREF_LABEL[kind]}
+            </button>
+          ))}
+        </div>
+        <div className="grid2" style={{ marginTop: 10 }}>
+          <label className="field">
+            对象
+            <input value={preferenceSubject} onChange={(e) => setPreferenceSubject(e.target.value)} placeholder="例如：冻干鸡肉 / 吹风机声音" />
+          </label>
+          <label className="field">
+            补充事实（可选）
+            <input value={preferenceNote} onChange={(e) => setPreferenceNote(e.target.value)} placeholder="只写你实际观察到的情况" />
+          </label>
+        </div>
+        <button className="btn" onClick={() => void addPreference()} disabled={preferenceBusy || !preferenceSubject.trim()}>
+          {preferenceBusy ? "保存中…" : "记录偏好"}
+        </button>
       </section>
 
       <section className="v4-sec" data-testid="pli.behavior.recent">
