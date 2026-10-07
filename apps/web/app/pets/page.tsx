@@ -27,6 +27,20 @@ interface HealthRow { id: string }
 interface BehaviorRow { behavior: string }
 interface TrainingGoalRow { title: string }
 interface WelfareEvidence { observation_counts?: Record<string, number> }
+interface BaselineRow {
+  metric: string;
+  value: string;
+  sample_count: number;
+  window_days: number;
+  algorithm: string;
+  computed_at: string;
+}
+
+const BASELINE_LABELS: Record<string, { label: string; suffix: string }> = {
+  meal_count_per_day: { label: "每日进食次数", suffix: " 次/天" },
+  walk_minutes_per_day: { label: "每日散步", suffix: " 分钟/天" },
+  sleep_minutes_per_day: { label: "每日睡眠", suffix: " 分钟/天" },
+};
 
 const DOMAIN_META: Array<{ id: string; label: string; href: string; icon: "sun" | "heart" | "eye" | "target" | "shield" | "users" }> = [
   { id: "life", label: "生活", href: "/timeline", icon: "sun" },
@@ -73,6 +87,19 @@ export default function PetsHubPage() {
         : Promise.reject(new Error("NO_PET_SELECTED")),
     [current?.id],
   );
+  const baseline = useAsync<BaselineRow[]>(
+    () =>
+      current?.id
+        ? api.get<BaselineRow[]>(`/pets/${current.id}/baseline`)
+        : Promise.reject(new Error("NO_PET_SELECTED")),
+    [current?.id],
+  );
+  async function recomputeBaseline() {
+    if (!current?.id) return;
+    await api.post(`/pets/${current.id}/baseline/recompute?window_days=14`, {});
+    baseline.reload();
+  }
+
   // Individual Twin (R2P3D-R3 D): same canonical per-pet asset as Today/Life View.
   const twin = useAsync<{ models: Array<Record<string, unknown>> }>(
     () => (current?.id ? api.get(`/pets/${current.id}/visual-models`) : Promise.reject(new Error("NO_PET_SELECTED"))),
@@ -197,6 +224,37 @@ export default function PetsHubPage() {
               <p className="v4-note" style={{ margin: "6px 0 0" }}>
                 今天有 {totalToday} 条记录；与自身基线的变化判断暂时没有可确认结果。
               </p>
+            )}
+          </div>
+
+          <div className="v4-sec" data-testid="pli.pet.baseline">
+            <div className="v4-sec-head">
+              <h2 className="v4-sec-title">它的常态</h2>
+              <button type="button" className="v4-sec-link" onClick={() => void recomputeBaseline()}>
+                重新计算
+              </button>
+            </div>
+            <p className="v4-note" style={{ margin: "6px 0 10px" }}>
+              用最近 14 天真实生活记录形成可解释基线，只和它自己比较；没有足够记录时不会猜测。
+            </p>
+            {baseline.state === "ready" && baseline.data?.length ? (
+              baseline.data.map((row) => {
+                const meta = BASELINE_LABELS[row.metric] ?? { label: "生活基线", suffix: "" };
+                return (
+                  <div className="v4-domain" key={row.metric}>
+                    <span className="v4-domain-label">{meta.label}</span>
+                    <span className="v4-domain-value">
+                      {row.value}{meta.suffix} · {row.sample_count} 天样本
+                    </span>
+                  </div>
+                );
+              })
+            ) : baseline.state === "ready" ? (
+              <p className="v4-note">还没有足够的生活记录形成常态。继续真实记录后再计算。</p>
+            ) : baseline.state === "error" ? (
+              <p className="v4-note">常态暂时没有加载成功；不会把未知显示成正常。</p>
+            ) : (
+              <p className="v4-note">正在读取常态…</p>
             )}
           </div>
 
