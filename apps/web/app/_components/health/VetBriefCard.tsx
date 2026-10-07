@@ -5,11 +5,12 @@ import { fmtTime } from "../../../lib/hooks";
 
 interface VetBriefCardProps {
   brief: { id: string; content: VetBriefContent } | null;
-  share: { token: string; expires_at: string } | null;
+  share: { token_id: string; token: string; expires_at: string } | null;
   briefCount: number;
   hasBriefs: boolean;
   onMakeBrief: () => void;
   onShareBrief: (briefId: string) => void;
+  onRevokeShare: () => void;
 }
 
 /** OWN-005 Vet Brief（就诊前摘要）：信息整理，不是兽医诊断；只读分享链接 72 小时可撤销。 */
@@ -20,6 +21,7 @@ export function VetBriefCard({
   hasBriefs,
   onMakeBrief,
   onShareBrief,
+  onRevokeShare,
 }: VetBriefCardProps) {
   return (
     <div className="card">
@@ -47,7 +49,10 @@ export function VetBriefCard({
           </div>
           {share && (
             <div className="alert info">
-              分享链接：{`/api/v1/vet-briefs/shared/${share.token}`}（至 {fmtTime(share.expires_at)}）
+              <div>分享链接：{`/api/v1/vet-briefs/shared/${share.token}`}（至 {fmtTime(share.expires_at)}）</div>
+              <button className="btn" style={{ marginTop: 8 }} onClick={onRevokeShare}>
+                撤销分享链接
+              </button>
             </div>
           )}
         </div>
