@@ -61,6 +61,7 @@ export function HealthDetailScreen() {
   const id = route.params.id;
   const [detail, setDetail] = useState<HealthEventDetail | null>(null);
   const [brief, setBrief] = useState<{ id: string; content: VetBriefContent } | null>(null);
+  const [briefShare, setBriefShare] = useState<{ token_id: string; token: string; expires_at: string } | null>(null);
   const [answer, setAnswer] = useState("");
   const [obs, setObs] = useState("");
   const [outcome, setOutcome] = useState("");
@@ -112,6 +113,31 @@ export function HealthDetailScreen() {
       const result = await api.post<{ vet_brief_id: string; content: VetBriefContent }>(`/health-events/${id}/vet-brief`, {});
       setBrief({ id: result.vet_brief_id, content: result.content });
       setVersion((v) => v + 1);
+    } catch (e: unknown) { setError(humanizeError(e)); }
+    finally { setBusy(false); }
+  }
+  async function shareBrief() {
+    if (!brief || busy) return;
+    setBusy(true); setError(null);
+    try {
+      const result = await api.post<{ token_id: string; share_token: string; expires_at: string }>(
+        `/vet-briefs/${brief.id}/share`,
+        { expires_in_hours: 72 },
+      );
+      setBriefShare({
+        token_id: result.token_id,
+        token: result.share_token,
+        expires_at: result.expires_at,
+      });
+    } catch (e: unknown) { setError(humanizeError(e)); }
+    finally { setBusy(false); }
+  }
+  async function revokeBriefShare() {
+    if (!briefShare || busy) return;
+    setBusy(true); setError(null);
+    try {
+      await api.del(`/share-tokens/${briefShare.token_id}`);
+      setBriefShare(null);
     } catch (e: unknown) { setError(humanizeError(e)); }
     finally { setBusy(false); }
   }
@@ -183,6 +209,16 @@ export function HealthDetailScreen() {
                     <Text key={`${finding.kind}-${index}`} style={styles.itemBody}>• {finding.text}</Text>
                   ))}
                   <Text style={styles.note}>{brief.content.ai_disclaimer || brief.content.notice}</Text>
+                  {!briefShare ? (
+                    <Action label="生成 72 小时只读分享链接" disabled={busy} onPress={shareBrief} />
+                  ) : (
+                    <View style={styles.shareBox}>
+                      <Text style={styles.itemTitle}>只读分享已创建</Text>
+                      <Text selectable style={styles.itemBody}>{`/api/v1/vet-briefs/shared/${briefShare.token}`}</Text>
+                      <Text style={styles.note}>有效至 {new Date(briefShare.expires_at).toLocaleString()}；可随时撤销。</Text>
+                      <Action label="撤销分享链接" disabled={busy} onPress={revokeBriefShare} />
+                    </View>
+                  )}
                 </View>
               ) : null}
             </OpenSection>
@@ -265,5 +301,6 @@ const styles = StyleSheet.create({
   actionText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   disabled: { opacity: 0.5 },
   brief: { marginTop: SPACE.s3, borderRadius: RADIUS.xl, backgroundColor: COLORS.surfaceRaised, padding: SPACE.s3 },
+  shareBox: { marginTop: SPACE.s3, padding: SPACE.s3, borderRadius: RADIUS.lg, backgroundColor: COLORS.surface, gap: 4 },
   redFlag: { marginTop: 4, fontSize: TYPE.sm, color: COLORS.danger, fontWeight: "600" },
 });
