@@ -78,6 +78,8 @@ def require_product_manifest(
     *,
     expected_pet_id: str | None = None,
     expected_stage_role: str | None = None,
+    expected_pose: str | None = None,
+    expected_pose_source: str | None = None,
 ) -> dict:
     manifest = load_json(path)
     if manifest.get("ready") is not True:
@@ -96,6 +98,18 @@ def require_product_manifest(
         raise ValueError(
             f"runtime stage role mismatch: {path}; "
             f"expected={expected_stage_role} actual={manifest.get('stageRole')}"
+        )
+    if expected_pose and (
+        manifest.get("pose") != expected_pose or manifest.get("canonicalPose") != expected_pose
+    ):
+        raise ValueError(
+            f"runtime pose mismatch: {path}; expected pose/canonicalPose={expected_pose}, "
+            f"actual={manifest.get('pose')}/{manifest.get('canonicalPose')}"
+        )
+    if expected_pose_source and manifest.get("poseSource") != expected_pose_source:
+        raise ValueError(
+            f"runtime pose source mismatch: {path}; expected={expected_pose_source} "
+            f"actual={manifest.get('poseSource')}"
         )
     return manifest
 
@@ -174,6 +188,8 @@ def main() -> None:
                 temp,
                 expected_pet_id=web_primary_pet_id,
                 expected_stage_role=expected_web_stage_role[surface],
+                expected_pose="Stand" if surface == "twinreview" else None,
+                expected_pose_source="AMBIENT" if surface == "twinreview" else None,
             )
         finally:
             temp.unlink(missing_ok=True)
@@ -200,6 +216,8 @@ def main() -> None:
             ANDROID / surface / "3d.json",
             expected_pet_id=android_primary_pet_id,
             expected_stage_role=expected_android_stage_role[surface],
+            expected_pose="Stand" if surface == "twinreview" else None,
+            expected_pose_source="AMBIENT" if surface == "twinreview" else None,
         )
 
     require_image(ANDROID / "secondary-sanity" / "secondary_today.png")
@@ -213,6 +231,8 @@ def main() -> None:
         ANDROID / "secondary-review" / "3d.json",
         expected_pet_id=android_secondary_pet_id,
         expected_stage_role="review",
+        expected_pose="Stand",
+        expected_pose_source="AMBIENT",
     )
     if secondary_today.get("petId") != secondary_review.get("petId"):
         raise ValueError("secondary-pet Today/Review manifests refer to different pets")
@@ -222,6 +242,8 @@ def main() -> None:
             ANDROID / "twinreview" / f"3d_view_{view}.json",
             expected_pet_id=android_primary_pet_id,
             expected_stage_role="review",
+            expected_pose="Stand",
+            expected_pose_source="AMBIENT",
         )
         actual = float((manifest.get("camera") or {}).get("yaw"))
         if yaw_error(actual, expected) > 0.08:
@@ -232,6 +254,8 @@ def main() -> None:
             ANDROID / "secondary-review" / f"3d_view_{view}.json",
             expected_pet_id=android_secondary_pet_id,
             expected_stage_role="review",
+            expected_pose="Stand",
+            expected_pose_source="AMBIENT",
         )
         actual_secondary = float((secondary.get("camera") or {}).get("yaw"))
         if yaw_error(actual_secondary, expected) > 0.08:
