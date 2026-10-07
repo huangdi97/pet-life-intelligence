@@ -490,3 +490,22 @@ def test_text_diary_is_real_and_available_across_owner_clients() -> None:
     assert '@router.get("/pets/{pet_id}/diary")' in route
     assert 'event_type="diary.created"' in route
     assert "SourceType.OWNER_REPORTED" in route
+
+
+def test_daily_review_is_ai_labeled_and_source_grounded_across_owner_clients() -> None:
+    web = read("apps/web/app/timeline/page.tsx")
+    mobile = read("apps/mobile/src/screens/TimelineScreen.tsx")
+    mini = read("apps/mini/src/pages/timeline/index.tsx")
+    route = read("services/api/app/api/routes/v02_identity_daily_diary.py")
+
+    for source in (web, mobile, mini):
+        assert "/daily-summary" in source
+        assert "/daily-summaries" in source
+        assert "今日回顾" in source
+        assert "AI 自动整理" in source
+        assert "只整理已经记录的事实" in source
+        assert "不会替代原始时间线" in source
+
+    assert 'event_type="summary.generated"' in route
+    assert "SourceType.AI_DERIVED" in route
+    assert '@router.get("/pets/{pet_id}/daily-summaries")' in route
