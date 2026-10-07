@@ -52,6 +52,7 @@ test.describe("R5 owner contracts — Care + Medication", () => {
       },
     });
     expect(created.ok()).toBeTruthy();
+    const createdBody = (await created.json()) as { handoff_id: string; grant_id: string };
 
     await loginAsEmail(page, request, OWNER_EMAIL);
     await page.goto("/care");
@@ -64,7 +65,8 @@ test.describe("R5 owner contracts — Care + Medication", () => {
 
     const ownerText = (await page.locator("main").innerText()) ?? "";
     expect(ownerText).not.toContain(caregiver!.user_id);
-    expect(ownerText).not.toContain(created.json().then ? "" : "__never__");
+    expect(ownerText).not.toContain(createdBody.handoff_id);
+    expect(ownerText).not.toContain(createdBody.grant_id);
   });
 
   test("Medication distinguishes pending / skipped and performs a real skip", async ({ page, request }) => {
