@@ -6,6 +6,20 @@ import { usePets } from "../../utils/usePets";
 import { PetContextGate } from "../../components/feedback/Feedback";
 import { fmtTime } from "../../utils/format";
 
+function roleAudienceLabel(role?: string | null): string | null {
+  if (!role || role === "ALL") return null;
+  const labels: Record<string, string> = {
+    OWNER: "仅家庭主人",
+    CO_OWNER: "仅共同主人",
+    FAMILY: "仅家人",
+    SITTER: "仅临时照护",
+    VET: "仅兽医",
+    TRAINER: "仅训练师",
+    GROOMER: "仅美容师",
+  };
+  return labels[role] ?? "仅指定家庭角色";
+}
+
 type NotificationFilter = "all" | "attention" | "health" | "care" | "other";
 
 const FILTERS: Array<{ id: NotificationFilter; label: string }> = [
@@ -160,7 +174,9 @@ export default function Notifications() {
                 <Text className="badge">{notificationTypeLabel(n.type)}</Text>
               </View>
               {n.body ? <View className="life-row-detail">{n.body}</View> : null}
-              <View className="life-row-source">{fmtTime(n.created_at)}{n.read_at ? " · 已读" : " · 未读"}</View>
+              <View className="life-row-source">
+                {roleAudienceLabel(n.target_role) ? `${roleAudienceLabel(n.target_role)} · ` : ""}{fmtTime(n.created_at)}{n.read_at ? " · 已读" : " · 未读"}
+              </View>
               {!n.read_at ? (
                 <Button className="btn" size="mini" disabled={busyId !== null} onClick={() => void markRead(n.id)}>
                   {busyId === n.id ? "处理中…" : "标为已读"}
