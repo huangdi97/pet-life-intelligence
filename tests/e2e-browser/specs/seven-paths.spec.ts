@@ -194,7 +194,13 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
   await useCurrentPet(page, coco.id);
 
   await page.goto("/care");
-  await page.getByPlaceholder("输入家庭成员标识").fill(sitterId);
+  // Care is now owner-facing: choose a known caregiver by readable person
+  // control instead of typing an implementation/user identifier into the UI.
+  // The option value remains a transport detail used only by this E2E.
+  const caregiverSelect = page.getByLabel("临时照护人");
+  await expect(caregiverSelect).toBeVisible();
+  await caregiverSelect.selectOption(sitterId);
+  await expect(caregiverSelect.locator("option:checked")).toContainText("Demo Sitter");
   await page.getByRole("button", { name: "创建交接" }).click();
   // Owner UI intentionally no longer exposes raw caregiver/user IDs. Locate
   // the active semantic handoff by its action, then assert the readable state.
