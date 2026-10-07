@@ -398,3 +398,21 @@ def test_handoff_checklist_is_actionable_across_owner_clients() -> None:
 
     assert '@router.post("/handoffs/{handoff_id}/checklist/{item_id}/complete")' in route
     assert "care.handoff_checklist_completed" in route
+
+
+def test_deletion_request_lifecycle_is_visible_across_owner_clients() -> None:
+    web = read("apps/web/app/settings/_components/DeletionRequestCard.tsx")
+    settings = read("apps/web/app/settings/page.tsx")
+    mobile = read("apps/mobile/src/screens/MeScreen.tsx")
+    mini = read("apps/mini/src/pages/mine/index.tsx")
+    route = read("services/api/app/api/routes/care_account.py")
+
+    for source in (settings, mobile, mini):
+        assert "/deletion-requests" in source
+    for source in (web, mobile, mini):
+        assert "等待人工确认" in source
+        assert "已有待处理请求" in source
+        assert "不会因此假定" in source
+
+    assert '@router.get("/pets/{pet_id}/deletion-requests")' in route
+    assert "A deletion request is already pending for this pet." in route
