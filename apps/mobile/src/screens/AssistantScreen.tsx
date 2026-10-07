@@ -27,10 +27,9 @@ const SUGGESTION_ACTIONS: Array<{ key: string; label: string; fill?: string; rou
 
 type Tab = "ask" | "brief" | "find" | "plan" | "explain";
 
-const MODES: Array<{ id: Tab; label: string }> = [
-  { id: "ask", label: "问" },
+const TOOLS: Array<{ id: Exclude<Tab, "ask">; label: string }> = [
   { id: "brief", label: "摘要" },
-  { id: "find", label: "找" },
+  { id: "find", label: "找记录" },
   { id: "plan", label: "计划" },
   { id: "explain", label: "解释" },
 ];
@@ -103,54 +102,16 @@ export function AssistantScreen() {
           )}
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.modeRow}
-          accessibilityRole="tablist"
-          accessibilityLabel="助手模式"
-        >
-          {MODES.map((m) => {
-            const active = tab === m.id;
-            const primary = m.id === "ask";
-            return (
-              <Pressable
-                key={m.id}
-                accessibilityRole="tab"
-                accessibilityLabel={m.label}
-                accessibilityState={{ selected: active }}
-                onPress={() => setTab(m.id)}
-                style={[styles.mode, active && styles.modeActive, primary && styles.modePrimary, active && primary && styles.modePrimaryActive]}
-              >
-                <Text style={[styles.modeText, active && styles.modeTextActive, primary && styles.modePrimaryText, active && primary && styles.modePrimaryTextActive]}>{m.label}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        {tab === "ask" && (
+        {tab === "ask" ? (
           <View style={styles.askWrap} testID="pli.assistant.chat">
-            <View style={styles.suggestionRow}>
-              {SUGGESTION_ACTIONS.map((a) => (
-                <Pressable
-                  key={a.key}
-                  testID={`pli.assistant.suggestion.${a.key}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={a.label}
-                  onPress={() => (a.route === "Timeline" ? tabNav.navigate("Timeline") : setQuestion(a.fill ?? ""))}
-                  style={styles.suggestion}
-                >
-                  <Text style={styles.suggestionText}>{a.label}</Text>
-                </Pressable>
-              ))}
-            </View>
+            <Text style={styles.askLead}>先问一件和{pet?.name ?? "这只宠物"}有关的事</Text>
             <View style={styles.askRow}>
               <TextInput
                 testID="pli.assistant.ask"
                 style={styles.input}
                 value={question}
                 onChangeText={setQuestion}
-                placeholder="问关于这只宠物的问题"
+                placeholder="例如：最近有什么变化？"
                 placeholderTextColor={COLORS.textTertiary}
                 onSubmitEditing={() => void ask(question)}
                 returnKeyType="send"
@@ -167,21 +128,67 @@ export function AssistantScreen() {
                 <Text style={styles.askBtnText}>{asking ? "思考中…" : "提问"}</Text>
               </Pressable>
             </View>
+            <View style={styles.suggestionRow} accessibilityLabel="常用提问">
+              {SUGGESTION_ACTIONS.map((a) => (
+                <Pressable
+                  key={a.key}
+                  testID={`pli.assistant.suggestion.${a.key}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={a.label}
+                  onPress={() => (a.route === "Timeline" ? tabNav.navigate("Timeline") : setQuestion(a.fill ?? ""))}
+                  style={styles.suggestion}
+                >
+                  <Text style={styles.suggestionText}>{a.label}</Text>
+                </Pressable>
+              ))}
+            </View>
             {askErr ? <Text style={styles.errorText}>{askErr}</Text> : null}
             {answer && !askErr ? <AnswerBlock answer={answer} citations={citations} /> : null}
             {!answer && !askErr && !asking ? (
               <View style={styles.emptyState} testID="pli.assistant.context">
-                <Text style={styles.emptyTitle}>我会基于{pet?.name ?? "宠物"}已有的真实记录回答。</Text>
-                <Text style={styles.emptyBody}>你可以问最近变化、任务、训练、健康记录。</Text>
+                <Text style={styles.emptyTitle}>只基于已有记录，不替你猜。</Text>
+                <Text style={styles.emptyBody}>回答会区分事实、推断、来源、不确定性和下一步。</Text>
                 {aiOff ? <Text style={styles.emptyNote}>当前为模拟服务，回答仅为演示。</Text> : null}
               </View>
             ) : null}
           </View>
+        ) : (
+          <View style={styles.toolPanel}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="回到提问"
+              onPress={() => setTab("ask")}
+              style={styles.backToAsk}
+            >
+              <Text style={styles.backToAskText}>← 回到提问</Text>
+            </Pressable>
+            {tab === "brief" && <BriefPanel onOpenHealth={undefined} />}
+            {tab === "find" && <FindPanel />}
+            {tab === "plan" && <PlanPanel />}
+            {tab === "explain" && <ExplainPanel aiStatus={aiStatus} />}
+          </View>
         )}
-        {tab === "brief" && <BriefPanel onOpenHealth={undefined} />}
-        {tab === "find" && <FindPanel />}
-        {tab === "plan" && <PlanPanel />}
-        {tab === "explain" && <ExplainPanel aiStatus={aiStatus} />}
+
+        <View style={styles.toolSection} accessibilityLabel="助手更多能力">
+          <Text style={styles.toolLabel}>更多帮助</Text>
+          <View style={styles.toolRow}>
+            {TOOLS.map((tool) => {
+              const active = tab === tool.id;
+              return (
+                <Pressable
+                  key={tool.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={tool.label}
+                  accessibilityState={{ selected: active }}
+                  onPress={() => setTab(tool.id)}
+                  style={[styles.tool, active && styles.toolActive]}
+                >
+                  <Text style={[styles.toolText, active && styles.toolTextActive]}>{tool.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -235,17 +242,9 @@ const styles = StyleSheet.create({
   petSub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
   title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
-  modeRow: { flexDirection: "row", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s4, paddingRight: SPACE.s6 },
-  mode: { minHeight: 44, paddingHorizontal: SPACE.s4, paddingVertical: 8, alignItems: "center", justifyContent: "center", borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
-  modeActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
-  modePrimary: { backgroundColor: COLORS.brandPrimary, borderColor: COLORS.brandPrimary },
-  modePrimaryActive: { backgroundColor: COLORS.brandPrimaryDeep },
-  modeText: { fontSize: TYPE.sm, color: COLORS.textTertiary },
-  modeTextActive: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
-  modePrimaryText: { color: COLORS.textInverse, fontWeight: "600" },
-  modePrimaryTextActive: { color: COLORS.textInverse },
-  askWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s4 },
-  suggestionRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
+  askWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  askLead: { fontSize: TYPE.section, color: COLORS.textPrimary, fontWeight: "700", marginBottom: SPACE.s2 },
+  suggestionRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, marginTop: SPACE.s3 },
   suggestion: { minHeight: 44, justifyContent: "center", backgroundColor: COLORS.brandSoft, borderRadius: 999, paddingHorizontal: SPACE.s3, paddingVertical: 6 },
   suggestionText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
   askRow: { flexDirection: "row", gap: SPACE.s2, marginTop: SPACE.s3 },
@@ -264,7 +263,17 @@ const styles = StyleSheet.create({
   askBtnDisabled: { opacity: 0.5 },
   askBtnText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   errorText: { fontSize: TYPE.sm, color: COLORS.danger, marginTop: SPACE.s2 },
-  emptyState: { alignItems: "center", paddingVertical: SPACE.s8 },
+  toolPanel: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s4 },
+  backToAsk: { minHeight: 44, alignSelf: "flex-start", justifyContent: "center", marginBottom: SPACE.s2 },
+  backToAskText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  toolSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s6 },
+  toolLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary, marginBottom: SPACE.s2 },
+  toolRow: { flexDirection: "row", gap: SPACE.s2 },
+  tool: { flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised },
+  toolActive: { backgroundColor: COLORS.brandSoftGreen },
+  toolText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "500" },
+  toolTextActive: { color: COLORS.brandPrimaryDeep, fontWeight: "700" },
+  emptyState: { alignItems: "flex-start", paddingVertical: SPACE.s6 },
   emptyTitle: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary, textAlign: "center" },
   emptyBody: { fontSize: TYPE.sm, color: COLORS.textTertiary, textAlign: "center", marginTop: SPACE.s2, lineHeight: 20 },
   emptyNote: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: SPACE.s2 },
