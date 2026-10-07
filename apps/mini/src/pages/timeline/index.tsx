@@ -19,6 +19,18 @@ interface DiaryRow {
   text: string;
   has_audio: boolean;
 }
+interface MilestoneRow {
+  milestone_id: string;
+  title: string;
+  kind: string;
+  occurred_at: string;
+}
+interface MemoryRow {
+  years_ago: number;
+  window: string;
+  events: number;
+  sample: string[];
+}
 interface DailySummaryRow {
   summary_id: string;
   date: string;
@@ -84,6 +96,13 @@ export default function Timeline() {
   const [events, setEvents] = useState<LifeEvent[] | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [filter, setFilter] = useState(0);
+  const [milestones, setMilestones] = useState<MilestoneRow[]>([]);
+  const [milestoneState, setMilestoneState] = useState<"loading" | "ready" | "error">("loading");
+  const [milestoneTitle, setMilestoneTitle] = useState("");
+  const [milestoneDate, setMilestoneDate] = useState("");
+  const [milestoneBusy, setMilestoneBusy] = useState(false);
+  const [memories, setMemories] = useState<MemoryRow[]>([]);
+  const [memoryState, setMemoryState] = useState<"loading" | "ready" | "error">("loading");
   const [diary, setDiary] = useState<DiaryRow[]>([]);
   const [diaryState, setDiaryState] = useState<"loading" | "ready" | "error">("loading");
   const [diaryText, setDiaryText] = useState("");
@@ -105,6 +124,32 @@ export default function Timeline() {
         setState("ready");
       })
       .catch(() => setState("error"));
+  }, []);
+
+  const loadMilestones = useCallback((pid: string) => {
+    setMilestoneState("loading");
+    api.get<MilestoneRow[]>(`/pets/${pid}/milestones`)
+      .then((rows) => {
+        setMilestones(rows);
+        setMilestoneState("ready");
+      })
+      .catch(() => {
+        setMilestones([]);
+        setMilestoneState("error");
+      });
+  }, []);
+
+  const loadMemories = useCallback((pid: string) => {
+    setMemoryState("loading");
+    api.get<MemoryRow[]>(`/pets/${pid}/memories?years_back=10`)
+      .then((rows) => {
+        setMemories(rows);
+        setMemoryState("ready");
+      })
+      .catch(() => {
+        setMemories([]);
+        setMemoryState("error");
+      });
   }, []);
 
   const loadSummaries = useCallback((pid: string) => {
@@ -132,6 +177,31 @@ export default function Timeline() {
         setDiaryState("error");
       });
   }, []);
+
+  async function addMilestone() {
+    const title = milestoneTitle.trim();
+    if (!petId || !title || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate) || milestoneBusy) return;
+    setMilestoneBusy(true);
+    try {
+      await api.post(`/pets/${petId}/milestones`, {
+        title,
+        kind: "OTHER",
+        occurred_at: new Date(`${milestoneDate}T12:00:00`).toISOString(),
+        note: "",
+      });
+      setMilestoneTitle("");
+      setMilestoneDate("");
+      loadMilestones(petId);
+      loadMemories(petId);
+      load(petId, filter);
+      Taro.showToast({ title: "里程碑已记录", icon: "success" });
+    } catch {
+      setMilestoneState("error");
+      Taro.showToast({ title: "暂时无法保存里程碑", icon: "none" });
+    } finally {
+      setMilestoneBusy(false);
+    }
+  }
 
   async function generateDailySummary() {
     if (!petId || summaryBusy) return;
@@ -170,6 +240,8 @@ export default function Timeline() {
   useDidShow(() => {
     if (petId) {
       load(petId, filter);
+      loadMilestones(petId);
+      loadMemories(petId);
       loadDiary(petId);
       loadSummaries(petId);
     }
@@ -178,6 +250,8 @@ export default function Timeline() {
   useEffect(() => {
     if (petId) {
       load(petId, filter);
+      loadMilestones(petId);
+      loadMemories(petId);
       loadDiary(petId);
       loadSummaries(petId);
     }
@@ -208,6 +282,81 @@ export default function Timeline() {
   return (
     <View className="page">
       <PetContextHeader pet={current ?? null} title="时间线" sub="记录每一天真实发生的事情" />
+
+      <View className="open-section" data-testid="pli.mini.timeline.milestones">
+        <View className="section-title">
+          里程碑
+          <Text className="section-caption">主人记录</Text>
+        </View>
+        <View className="life-empty-note">只记录真实发生、值得长期保留的节点；保存后会进入同一条生命时间线。</View>
+        <Input
+          className="input"
+          value={milestoneDate}
+          onInput={(event) => setMilestoneDate(event.detail.value)}
+          placeholder="发生日期 YYYY-MM-DD"
+        />
+        <Input
+          className="input"
+          value={milestoneTitle}
+          maxlength={200}
+          onInput={(event) => setMilestoneTitle(event.detail.value)}
+          placeholder="例如：第一次完成长途徒步"
+        />
+        <Button
+          className="btn"
+          disabled={milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate)}
+          onClick={() => void addMilestone()}
+        >
+          {milestoneBusy ? "保存中…" : "记录里程碑"}
+        </Button>
+        {milestoneState === "ready" && milestones.length ? (
+          <View className="soft-panel">
+            {milestones.slice(0, 3).map((row) => (
+              <View className="life-row" key={row.milestone_id}>
+                <View className="life-row-body">
+                  <View className="life-row-detail">{row.title}</View>
+                  <View className="life-row-source">{new Date(row.occurred_at).toLocaleDateString()}</View>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : milestoneState === "error" ? (
+          <View className="state state-error">里程碑暂时没有加载成功；不会把未知状态显示成空。</View>
+        ) : milestoneState === "ready" ? (
+          <View className="life-empty-note">还没有里程碑记录。</View>
+        ) : (
+          <View className="state">正在读取里程碑……</View>
+        )}
+      </View>
+
+      <View className="open-section" data-testid="pli.mini.timeline.memories">
+        <View className="section-title">
+          往年今日
+          <Text className="section-caption">真实记录回看</Text>
+        </View>
+        <View className="life-empty-note">这里只回看历史上同一日期附近真实存在的事件；没有记录就不生成“回忆”。</View>
+        {memoryState === "ready" && memories.length ? (
+          <View className="soft-panel">
+            {memories.slice(0, 3).map((row) => (
+              <View className="life-row" key={row.years_ago}>
+                <View className="life-row-body">
+                  <View className="life-row-head">
+                    <Text className="life-row-type">{row.years_ago} 年前</Text>
+                    <Text className="life-row-time">{row.events} 条记录</Text>
+                  </View>
+                  <View className="life-row-source">{row.sample.slice(0, 3).map(eventTypeLabel).join(" · ")}</View>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : memoryState === "error" ? (
+          <View className="state state-error">历史回忆暂时没有读取到；不会用生成内容补齐。</View>
+        ) : memoryState === "ready" ? (
+          <View className="life-empty-note">往年今天附近还没有真实记录。</View>
+        ) : (
+          <View className="state">正在读取历史回忆……</View>
+        )}
+      </View>
 
       <View className="open-section" data-testid="pli.mini.timeline.diary">
         <View className="section-title">
