@@ -209,6 +209,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
               realityField="review-studio"
               sourceMediaCount={twinSourceMediaCount}
               twin={viewerTwin}
+              pose="Stand"
               view={view}
               viewRevision={viewRevision}
             />
