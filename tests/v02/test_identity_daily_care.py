@@ -302,7 +302,7 @@ def test_notification_read_flow_is_scoped_and_idempotent(client, seeded):
     assert replay.json()["read_at"] == first.json()["read_at"]
 
     created2 = client.post(
-        f"/api/v1/pets/{coco}/deletion-requests",
+        f"/api/v1/pets/{seeded['mimi_id']}/deletion-requests",
         json={"reason": "notification-read-all-contract"},
         headers=auth(owner),
     )
