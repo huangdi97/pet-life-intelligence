@@ -16,6 +16,17 @@ import type { StackParamList } from "../navigation";
 
 type Props = NativeStackScreenProps<StackParamList, "PetProfile">;
 
+interface DietProfileResponse {
+  pet_id: string;
+  profile: {
+    current_food: string;
+    allergies: string[];
+    feeding_rules: string;
+    vet_advised: boolean;
+    source_type: string;
+  } | null;
+}
+
 interface IdentifierRow {
   identifier_id: string;
   identifier_type: "CHIP" | "PASSPORT" | "TATTOO";
@@ -87,6 +98,14 @@ export function PetProfileScreen({ route, navigation }: Props) {
   const [lifecycleStatus, setLifecycleStatus] = useState<"ACTIVE" | "LOST" | "TRANSFERRED" | "DECEASED">("ACTIVE");
   const [lifecycleNote, setLifecycleNote] = useState("");
   const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  const [diet, setDiet] = useState({
+    current_food: "",
+    allergies: "",
+    feeding_rules: "",
+    vet_advised: false,
+  });
+  const [dietState, setDietState] = useState<"loading" | "ready" | "error">("loading");
+  const [dietBusy, setDietBusy] = useState(false);
 
   useEffect(() => {
     if (mode === "create" || !current) {
@@ -123,6 +142,21 @@ export function PetProfileScreen({ route, navigation }: Props) {
       })
       .catch(() => {
         if (alive) setIdentifiers([]);
+      });
+    setDietState("loading");
+    api.get<DietProfileResponse>(`/pets/${current.id}/diet-profile`)
+      .then((row) => {
+        if (!alive) return;
+        setDiet({
+          current_food: row.profile?.current_food ?? "",
+          allergies: row.profile?.allergies?.join("、") ?? "",
+          feeding_rules: row.profile?.feeding_rules ?? "",
+          vet_advised: row.profile?.vet_advised === true,
+        });
+        setDietState("ready");
+      })
+      .catch(() => {
+        if (alive) setDietState("error");
       });
     return () => {
       alive = false;
@@ -190,6 +224,27 @@ export function PetProfileScreen({ route, navigation }: Props) {
       setError(humanizeError(e));
     } finally {
       setIdentifierBusy(false);
+    }
+  }
+
+  async function saveDietProfile() {
+    if (!current?.id || dietBusy) return;
+    setDietBusy(true);
+    setError(null);
+    try {
+      await api.put(`/pets/${current.id}/diet-profile`, {
+        current_food: diet.current_food.trim(),
+        allergies: diet.allergies.split(/[、,，]/).map((item) => item.trim()).filter(Boolean),
+        feeding_rules: diet.feeding_rules.trim(),
+        vet_advised: diet.vet_advised,
+        source_type: "OWNER_REPORTED",
+      });
+      setDietState("ready");
+    } catch (e: unknown) {
+      setError(humanizeError(e));
+      setDietState("error");
+    } finally {
+      setDietBusy(false);
     }
   }
 
@@ -313,6 +368,54 @@ export function PetProfileScreen({ route, navigation }: Props) {
               </Pressable>
             </View>
 
+            <View style={styles.section} testID="pli.pet.profile.diet">
+              <Text style={styles.sectionTitle}>饮食档案</Text>
+              <Text style={styles.sectionHint}>记录实际主食、已知过敏和家庭喂养规则；不会把主人填写的内容显示成专业确认。</Text>
+              {dietState === "loading" ? <Text style={styles.sectionHint}>正在读取饮食档案……</Text> : null}
+              {dietState === "error" ? <Text style={styles.sectionHint}>饮食档案暂时没有加载成功；不会用默认饮食替代真实记录。</Text> : null}
+              <TextInput
+                style={styles.input}
+                value={diet.current_food}
+                onChangeText={(value) => setDiet({ ...diet, current_food: value })}
+                placeholder="当前主食，例如：鸡肉配方犬粮"
+                placeholderTextColor={COLORS.textTertiary}
+              />
+              <TextInput
+                style={styles.input}
+                value={diet.allergies}
+                onChangeText={(value) => setDiet({ ...diet, allergies: value })}
+                placeholder="已知过敏/不耐受；多项用逗号分隔"
+                placeholderTextColor={COLORS.textTertiary}
+              />
+              <TextInput
+                style={[styles.input, styles.multilineInput]}
+                value={diet.feeding_rules}
+                onChangeText={(value) => setDiet({ ...diet, feeding_rules: value })}
+                multiline
+                placeholder="喂养规则；只记录当前真实执行方式"
+                placeholderTextColor={COLORS.textTertiary}
+              />
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: diet.vet_advised }}
+                onPress={() => setDiet({ ...diet, vet_advised: !diet.vet_advised })}
+                style={[styles.choice, diet.vet_advised && styles.choiceSelected, { alignSelf: "flex-start" }]}
+              >
+                <Text style={[styles.choiceText, diet.vet_advised && styles.choiceTextSelected]}>主人记录：按兽医建议执行</Text>
+              </Pressable>
+              <Text style={styles.sectionHint}>此标记是主人记录，不等于平台已经获得兽医专业确认。</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="保存饮食档案"
+                accessibilityState={{ disabled: dietBusy || dietState === "loading" }}
+                disabled={dietBusy || dietState === "loading"}
+                onPress={() => void saveDietProfile()}
+                style={[styles.secondaryOutlined, (dietBusy || dietState === "loading") && styles.disabled]}
+              >
+                <Text style={styles.secondaryOutlinedText}>{dietBusy ? "保存中…" : "保存饮食档案"}</Text>
+              </Pressable>
+            </View>
+
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>生命状态</Text>
               <Text style={styles.sectionHint}>状态变化会进入时间线并保留审计。“已离世”是终态，请只在确认事实后记录。</Text>
@@ -409,6 +512,7 @@ const styles = StyleSheet.create({
   field: { marginTop: SPACE.s3, gap: SPACE.s1 },
   label: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   input: { minHeight: 48, borderWidth: 1, borderColor: COLORS.dividerStrong, borderRadius: RADIUS.md, backgroundColor: COLORS.surface, paddingHorizontal: SPACE.s3, fontSize: TYPE.body, color: COLORS.textPrimary },
+  multilineInput: { minHeight: 88, paddingTop: SPACE.s3, textAlignVertical: "top" },
   readonly: { minHeight: 48, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceRaised },
   readonlyText: { fontSize: TYPE.body, color: COLORS.textSecondary },
   choices: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
