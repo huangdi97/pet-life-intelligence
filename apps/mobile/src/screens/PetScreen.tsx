@@ -29,6 +29,21 @@ type StackNav = NativeStackNavigationProp<StackParamList>;
 
 type DomainRoute = "LifeView" | "Health" | "Behavior" | "Training" | "Welfare" | "Social";
 
+interface BaselineRow {
+  metric: string;
+  value: string;
+  sample_count: number;
+  window_days: number;
+  algorithm: string;
+  computed_at: string;
+}
+
+const BASELINE_LABELS: Record<string, { label: string; suffix: string }> = {
+  meal_count_per_day: { label: "每日进食次数", suffix: " 次/天" },
+  walk_minutes_per_day: { label: "每日散步", suffix: " 分钟/天" },
+  sleep_minutes_per_day: { label: "每日睡眠", suffix: " 分钟/天" },
+};
+
 interface DomainRow {
   key: string;
   icon: keyof typeof Ionicons.glyphMap;
@@ -56,6 +71,9 @@ export function PetScreen() {
   const [welfare, setWelfare] = useState<WelfareEvidence | null>(null);
   const [friends, setFriends] = useState<PetFriend[]>([]);
   const [friendsState, setFriendsState] = useState<"loading" | "ready" | "error">("loading");
+  const [baseline, setBaseline] = useState<BaselineRow[]>([]);
+  const [baselineState, setBaselineState] = useState<"loading" | "ready" | "error">("loading");
+  const [baselineBusy, setBaselineBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
@@ -68,6 +86,7 @@ export function PetScreen() {
     let alive = true;
     setLoading(true);
     setFriendsState("loading");
+    setBaselineState("loading");
     Promise.allSettled([
       api.get<{ events: LifeEvent[]; event_counts: Record<string, number> }>(`/pets/${pet.id}/today`),
       api.get<{ hints: string[]; rule: string }>(`/pets/${pet.id}/abnormal-day-hint`),
@@ -76,7 +95,8 @@ export function PetScreen() {
       api.get<TrainingGoalRow[]>(`/pets/${pet.id}/training-goals`),
       api.get<WelfareEvidence>(`/pets/${pet.id}/welfare-evidence`),
       api.get<PetFriend[]>(`/pets/${pet.id}/friends`),
-    ]).then(([t, h, he, be, tg, wv, fr]) => {
+      api.get<BaselineRow[]>(`/pets/${pet.id}/baseline`),
+    ]).then(([t, h, he, be, tg, wv, fr, bl]) => {
       if (!alive) return;
       if (t.status === "fulfilled") setToday(t.value);
       if (h.status === "fulfilled") setHint(h.value);
@@ -89,6 +109,13 @@ export function PetScreen() {
         setFriendsState("ready");
       } else {
         setFriendsState("error");
+      }
+      if (bl.status === "fulfilled") {
+        setBaseline(bl.value);
+        setBaselineState("ready");
+      } else {
+        setBaseline([]);
+        setBaselineState("error");
       }
       setLoading(false);
     });
@@ -144,6 +171,21 @@ export function PetScreen() {
   const identityLine = pet
     ? [`${petAgeText(pet.birth_date) ?? ""}`, breedLabel(pet.breed), sexLabel(pet.sex)].filter(Boolean).join(" · ")
     : "";
+
+  async function recomputeBaseline() {
+    if (!pet?.id || baselineBusy) return;
+    setBaselineBusy(true);
+    try {
+      await api.post(`/pets/${pet.id}/baseline/recompute?window_days=14`, {});
+      const rows = await api.get<BaselineRow[]>(`/pets/${pet.id}/baseline`);
+      setBaseline(rows);
+      setBaselineState("ready");
+    } catch {
+      setBaselineState("error");
+    } finally {
+      setBaselineBusy(false);
+    }
+  }
 
   const navigateDomain = (route: DomainRoute) => {
     // React Navigation's generated overloads cannot safely accept
@@ -214,6 +256,36 @@ export function PetScreen() {
                 <Ionicons name="bookmark-outline" size={16} color={COLORS.brandSecondary} />
                 <Text style={styles.pulseText}>{memoryText}</Text>
               </View>
+            </OpenSection>
+
+            <OpenSection title="它的常态" caption="最近 14 天">
+              <Text style={styles.baselineIntro}>用真实生活记录形成可解释基线，只和它自己比较；没有足够记录时不会猜测。</Text>
+              {baselineState === "ready" && baseline.length ? baseline.map((row) => {
+                const meta = BASELINE_LABELS[row.metric] ?? { label: "生活基线", suffix: "" };
+                return (
+                  <View key={row.metric} style={styles.baselineRow}>
+                    <Text style={styles.baselineLabel}>{meta.label}</Text>
+                    <Text style={styles.baselineValue}>{row.value}{meta.suffix} · {row.sample_count} 天样本</Text>
+                  </View>
+                );
+              }) : baselineState === "ready" ? (
+                <Text style={styles.emptyText}>还没有足够的生活记录形成常态。继续真实记录后再计算。</Text>
+              ) : baselineState === "error" ? (
+                <Text style={styles.emptyText}>常态暂时没有加载成功；不会把未知显示成正常。</Text>
+              ) : (
+                <Text style={styles.emptyText}>正在读取常态…</Text>
+              )}
+              <Pressable
+                testID="pli.pet.baseline.recompute"
+                accessibilityRole="button"
+                accessibilityLabel="重新计算宠物生活常态"
+                accessibilityState={{ disabled: baselineBusy }}
+                disabled={baselineBusy}
+                onPress={() => void recomputeBaseline()}
+                style={[styles.baselineAction, baselineBusy && styles.entryRowPressed]}
+              >
+                <Text style={styles.baselineActionText}>{baselineBusy ? "计算中…" : "重新计算常态"}</Text>
+              </Pressable>
             </OpenSection>
 
             <OpenSection title="它的生活" caption="点进去看这一部分">
@@ -319,6 +391,12 @@ const styles = StyleSheet.create({
   pulseRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingVertical: 8 },
   pulseDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle, marginTop: 4 },
   pulseText: { fontSize: TYPE.body, color: COLORS.textPrimary, flex: 1, lineHeight: 20 },
+  baselineIntro: { fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18, marginBottom: SPACE.s2 },
+  baselineRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: SPACE.s3, paddingVertical: 8, borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
+  baselineLabel: { fontSize: TYPE.body, color: COLORS.textPrimary, flex: 1 },
+  baselineValue: { fontSize: TYPE.sm, color: COLORS.textSecondary, textAlign: "right", flex: 1 },
+  baselineAction: { minHeight: 44, marginTop: SPACE.s2, alignSelf: "flex-start", justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: 22, backgroundColor: COLORS.brandSoftGreen },
+  baselineActionText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   domainRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACE.s3, paddingVertical: 12 },
   domainDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
   domainIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.brandSoftGreen },
