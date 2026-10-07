@@ -96,6 +96,8 @@ export default function Mine() {
   const [emergencyBusy, setEmergencyBusy] = useState(false);
   const [deletionReason, setDeletionReason] = useState("");
   const [deletionBusy, setDeletionBusy] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
+  const [inviteBusy, setInviteBusy] = useState(false);
 
   async function handleLogin() {
     if (!platform.auth.available) {
@@ -202,6 +204,25 @@ export default function Mine() {
     }
   }
 
+  async function acceptHouseholdInvitation() {
+    const token = inviteCode.trim();
+    if (!token || inviteBusy || !loggedIn) return;
+    setInviteBusy(true);
+    try {
+      await api.post("/invitations/accept", { token });
+      setInviteCode("");
+      Taro.showModal({
+        title: "已加入家庭",
+        content: "邀请已接受；重新进入宠物与照护页面即可看到你获得的家庭权限。",
+        showCancel: false,
+      });
+    } catch {
+      Taro.showToast({ title: "邀请码无效、已过期或不属于当前账号", icon: "none" });
+    } finally {
+      setInviteBusy(false);
+    }
+  }
+
   async function sendFeedback() {
     const message = feedbackMessage.trim();
     if (!message || feedbackBusy || !loggedIn) return;
@@ -252,6 +273,23 @@ export default function Mine() {
       <View className="open-section">
         <View className="section-title">家庭</View>
         <EntryList items={HOUSEHOLD_ENTRIES} />
+        <View className="soft-panel" data-testid="pli.mini.me.invitation">
+          <View className="section-title">接受家庭邀请</View>
+          <View className="life-empty-note">邀请码只用于加入家庭，不会授予超出邀请角色的权限。</View>
+          <Input
+            className="input"
+            value={inviteCode}
+            onInput={(event) => setInviteCode(event.detail.value)}
+            placeholder="输入邀请码"
+          />
+          <Button
+            className="btn"
+            disabled={inviteBusy || !loggedIn || !inviteCode.trim()}
+            onClick={() => void acceptHouseholdInvitation()}
+          >
+            {inviteBusy ? "处理中…" : loggedIn ? "接受邀请" : "登录后可接受"}
+          </Button>
+        </View>
       </View>
 
       <View className="open-section">
