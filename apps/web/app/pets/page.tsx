@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { api, type Pet } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
+import { breedLabel } from "../../lib/ownerLabels";
 import { State } from "../../components/ui";
 import { Icon } from "../../components/icons";
 import { PetLivingStage } from "../../components/pet-living-stage";
@@ -46,6 +47,13 @@ export default function PetsHubPage() {
     () => (current?.id ? api.get(`/pets/${current.id}/friends`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [current?.id],
   );
+  const changeHint = useAsync<{ hints: string[]; rule: string }>(
+    () =>
+      current?.id
+        ? api.get(`/pets/${current.id}/abnormal-day-hint`)
+        : Promise.reject(new Error("NO_PET_SELECTED")),
+    [current?.id],
+  );
   // Individual Twin (R2P3D-R3 D): same canonical per-pet asset as Today/Life View.
   const twin = useAsync<{ models: Array<Record<string, unknown>> }>(
     () => (current?.id ? api.get(`/pets/${current.id}/visual-models`) : Promise.reject(new Error("NO_PET_SELECTED"))),
@@ -62,7 +70,8 @@ export default function PetsHubPage() {
 
   const counts = today.data?.event_counts ?? {};
   const totalToday = Object.values(counts).reduce((a, b) => a + b, 0);
-  const identityParts = [current?.breed || current?.species, speciesLabel(current?.species ?? "")].filter(Boolean).join(" · ");
+  const identityParts = [breedLabel(current?.breed), speciesLabel(current?.species ?? "")].filter(Boolean).join(" · ");
+  const abnormalHint = changeHint.data?.hints?.find((item) => !item.includes("无明显异常")) ?? null;
 
   return (
     <main className="v4-main">
@@ -117,13 +126,21 @@ export default function PetsHubPage() {
             <div className="v4-sec-head">
               <h2 className="v4-sec-title">最近 · 与它自己相比</h2>
             </div>
-            {totalToday > 0 ? (
+            {totalToday <= 0 ? (
               <p className="v4-note" style={{ margin: "6px 0 0" }}>
-                今天有 {totalToday} 条记录；相比它自己的日常，目前没有明显变化。
+                记下第一件事后，这里会显示它和自己的变化。
+              </p>
+            ) : changeHint.state === "ready" && abnormalHint ? (
+              <p className="v4-note" style={{ margin: "6px 0 0" }}>
+                今天有 {totalToday} 条记录；当前规则标记：{abnormalHint}
+              </p>
+            ) : changeHint.state === "ready" ? (
+              <p className="v4-note" style={{ margin: "6px 0 0" }}>
+                今天有 {totalToday} 条记录；按当前确定性对比，暂未标记需要特别关注的变化。
               </p>
             ) : (
               <p className="v4-note" style={{ margin: "6px 0 0" }}>
-                记下第一件事后，这里会显示它和自己的变化。
+                今天有 {totalToday} 条记录；与自身基线的变化判断暂时没有可确认结果。
               </p>
             )}
           </div>
@@ -180,7 +197,7 @@ export default function PetsHubPage() {
                       </div>
                       <div className="v4-domain-desc">
                         {speciesLabel(p.species)}
-                        {p.breed ? ` · ${p.breed}` : ""}
+                        {breedLabel(p.breed) ? ` · ${breedLabel(p.breed)}` : ""}
                         {p.sex ? ` · ${p.sex === "FEMALE" ? "雌性" : p.sex === "MALE" ? "雄性" : "未知"}` : ""}
                       </div>
                     </div>
