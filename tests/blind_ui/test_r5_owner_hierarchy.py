@@ -61,3 +61,31 @@ def test_life_view_copy_stays_product_facing() -> None:
     source = read("apps/web/app/pets/[id]/life-view/page.tsx")
     for forbidden in ("简化形象（开发环境）", "真实服务接通后", "演示资产（开发环境）"):
         assert forbidden not in source
+
+
+def test_mobile_assistant_keeps_ask_primary() -> None:
+    source = read("apps/mobile/src/screens/AssistantScreen.tsx")
+    # Ask is the dominant owner job; the other four modes are contextual tools,
+    # not a five-way equal-weight tab strip.
+    assert 'const TOOLS:' in source
+    assert '{ id: "ask", label: "问" }' not in source
+    assert "先问一件和" in source
+    assert "更多帮助" in source
+    for label in ("摘要", "找记录", "计划", "解释"):
+        assert label in source
+
+
+def test_mobile_health_empty_state_is_truthful_and_actionable() -> None:
+    source = read("apps/mobile/src/screens/HealthScreen.tsx")
+    assert "先记录事实，再判断变化" in source
+    assert "不会把未知状态显示成“正常”" in source
+    assert "记录第一条健康事件" in source
+    assert "不替代诊断" in source
+
+
+def test_mobile_pet_world_uses_six_narrative_domains() -> None:
+    source = read("apps/mobile/src/screens/PetScreen.tsx")
+    for key in ("life", "health", "behavior", "training", "welfare", "social"):
+        assert f'key: "{key}"' in source
+    assert "domainIcon" in source
+    assert "feature grid" in source.lower()
