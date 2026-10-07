@@ -213,7 +213,15 @@ async def log_session(
                  "duration_minutes": session.duration_minutes},
         actor_id=user.id, source_type=enums.SourceType.OWNER_REPORTED,
     )
+    mastery_after = goal.mastery_level if body.goal_id is not None else None
     await db.commit()
-    return {"session_id": str(session.id),
-            "mastery_level": mastery_before,
-            "policy": "reward-based only"}
+    return {
+        "session_id": str(session.id),
+        "mastery_before": mastery_before,
+        "mastery_after": mastery_after,
+        # Backward-compatible field now means the current value after this
+        # committed session, matching the field name instead of returning the
+        # pre-session value.
+        "mastery_level": mastery_after,
+        "policy": "reward-based only",
+    }
