@@ -17,6 +17,18 @@ interface Handoff {
   notes: string;
 }
 
+interface PetCareContext {
+  household_id: string;
+}
+
+interface HouseholdMember {
+  user_id: string;
+  display_name: string;
+  email: string;
+  role: string;
+  status: string;
+}
+
 const SCOPE_LABELS: Record<string, string> = {
   "daily:read": "查看日常记录",
   "daily:write": "记录日常照护",
@@ -33,9 +45,29 @@ function careStatusLabel(status: string): string {
   return "已记录";
 }
 
+function memberRoleLabel(role: string): string {
+  if (role === "OWNER") return "主人";
+  if (role === "CO_OWNER") return "共同主人";
+  if (role === "FAMILY") return "家庭成员";
+  if (role === "CAREGIVER") return "照护人";
+  return "成员";
+}
+
 /** Surfaces 5 + 7: Care Network / Handoff / Care Card (PLI-035..038, PLI-010/011). */
 export default function CarePage() {
   const { petId } = useCurrentPet();
+  const petContext = useAsync<PetCareContext>(
+    () => (petId ? api.get<PetCareContext>(`/pets/${petId}`) : Promise.reject(new Error("no pet"))),
+    [petId],
+  );
+  const householdId = petContext.data?.household_id ?? "";
+  const members = useAsync<HouseholdMember[]>(
+    () =>
+      householdId
+        ? api.get<HouseholdMember[]>(`/households/${householdId}/members`)
+        : Promise.reject(new Error("no household")),
+    [householdId],
+  );
   const grants = useAsync<Grant[]>(
     () => (petId ? api.get<Grant[]>(`/pets/${petId}/grants`) : Promise.reject(new Error("no pet"))),
     [petId],
@@ -51,7 +83,7 @@ export default function CarePage() {
   const [hours, setHours] = useState("48");
   const [scopes, setScopes] = useState<string[]>(["daily:read", "daily:write"]);
   const [error, setError] = useState<string | null>(null);
-  const [card, setCard] = useState<{ token: string; expires_at: string } | null>(null);
+  const [card, setCard] = useState<{ token_id: string; token: string; expires_at: string } | null>(null);
 
   const ALL_SCOPES = ["daily:read", "daily:write", "medical:read", "medical:write", "card:read"];
 
@@ -79,15 +111,37 @@ export default function CarePage() {
     grants.reload();
   }
 
+  async function revokeGrant(id: string) {
+    setError(null);
+    try {
+      await api.del(`/grants/${id}`);
+      grants.reload();
+      handoffs.reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
   async function issueCard() {
     if (!petId) return;
     setError(null);
     try {
-      const r = await api.post<{ token: string; expires_at: string }>(
+      const r = await api.post<{ token_id: string; token: string; expires_at: string }>(
         `/pets/${petId}/care-cards`,
         { expires_in_hours: 72 },
       );
       setCard(r);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function revokeCard() {
+    if (!card?.token_id) return;
+    setError(null);
+    try {
+      await api.del(`/share-tokens/${card.token_id}`);
+      setCard(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -108,8 +162,18 @@ export default function CarePage() {
         </p>
         <div className="grid2">
           <label className="field">
-            临时照护人成员标识
-            <input value={caregiver} onChange={(e) => setCaregiver(e.target.value)} placeholder="输入家庭成员标识" />
+            临时照护人
+            <select value={caregiver} onChange={(e) => setCaregiver(e.target.value)}>
+              <option value="">选择家庭成员</option>
+              {(members.data ?? [])
+                .filter((member) => member.status === "ACTIVE")
+                .map((member) => (
+                  <option key={member.user_id} value={member.user_id}>
+                    {member.display_name || member.email || "家庭成员"} · {memberRoleLabel(member.role)}
+                  </option>
+                ))}
+            </select>
+            {members.state === "error" ? <span className="v4-note">家庭成员暂时无法读取，请稍后重试。</span> : null}
           </label>
           <label className="field">
             有效时长（小时）
@@ -189,6 +253,9 @@ export default function CarePage() {
                 >
                   打开照护卡
                 </Link>
+                <button type="button" className="btn danger" onClick={revokeCard}>
+                  撤销这个分享链接
+                </button>
               </div>
             </div>
           </div>
@@ -207,6 +274,11 @@ export default function CarePage() {
                   <span className="badge">{g.scopes.map((scope) => SCOPE_LABELS[scope] ?? "限定权限").join(" · ")}</span>
                   <span className="tl-time">{fmtTime(g.starts_at)} → {g.expires_at ? fmtTime(g.expires_at) : "无限期"}</span>
                 </div>
+                {g.status === "ACTIVE" && g.grant_id ? (
+                  <button type="button" className="btn danger" onClick={() => revokeGrant(g.grant_id)}>
+                    撤销权限
+                  </button>
+                ) : null}
               </li>
             ))}
           </ul>
