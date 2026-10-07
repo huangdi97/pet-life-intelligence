@@ -14,6 +14,20 @@ import { OpenSection } from "../components/feedback/OpenSection";
 import { EmptyState, InlineError, Skeleton } from "../components/feedback/Feedback";
 import { INTENSITIES, intensityLabel } from "./behavior_styles";
 
+interface PreferenceRow {
+  preference_id: string;
+  kind: "LIKE" | "DISLIKE" | "ALLERGY_CAUTION" | "REWARD";
+  subject: string;
+  note: string;
+  source_type: string;
+}
+const PREF_LABEL: Record<PreferenceRow["kind"], string> = {
+  LIKE: "喜欢",
+  DISLIKE: "回避",
+  ALLERGY_CAUTION: "过敏/谨慎",
+  REWARD: "奖励",
+};
+
 const EMPTY_FORM = {
   antecedent: "",
   behavior: "",
@@ -36,6 +50,12 @@ export function BehaviorScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const [filter, setFilter] = useState<"all" | "MILD" | "MODERATE" | "SEVERE" | "UNLABELED">("all");
+  const [preferences, setPreferences] = useState<PreferenceRow[]>([]);
+  const [preferenceState, setPreferenceState] = useState<"loading" | "ready" | "error">("loading");
+  const [preferenceKind, setPreferenceKind] = useState<"LIKE" | "DISLIKE" | "ALLERGY_CAUTION">("LIKE");
+  const [preferenceSubject, setPreferenceSubject] = useState("");
+  const [preferenceNote, setPreferenceNote] = useState("");
+  const [preferenceBusy, setPreferenceBusy] = useState(false);
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
@@ -43,6 +63,18 @@ export function BehaviorScreen() {
     if (!petId) return;
     let alive = true;
     setLoading(true);
+    setPreferenceState("loading");
+    api.get<PreferenceRow[]>(`/pets/${petId}/preferences`)
+      .then((items) => {
+        if (!alive) return;
+        setPreferences(items);
+        setPreferenceState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setPreferences([]);
+        setPreferenceState("error");
+      });
     api
       .get<BehaviorEventRow[]>(`/pets/${petId}/behavior-events`)
       .then((r) => {
@@ -64,6 +96,27 @@ export function BehaviorScreen() {
 
   function set<K extends keyof typeof EMPTY_FORM>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function addPreference() {
+    if (!petId || !preferenceSubject.trim() || preferenceBusy) return;
+    setPreferenceBusy(true);
+    setFormError(null);
+    try {
+      await api.post(`/pets/${petId}/preferences`, {
+        kind: preferenceKind,
+        subject: preferenceSubject.trim(),
+        note: preferenceNote.trim(),
+        source_type: "OWNER_REPORTED",
+      });
+      setPreferenceSubject("");
+      setPreferenceNote("");
+      setVersion((v) => v + 1);
+    } catch (e: unknown) {
+      setFormError(humanizeError(e));
+    } finally {
+      setPreferenceBusy(false);
+    }
   }
 
   async function submit() {
@@ -174,6 +227,34 @@ export function BehaviorScreen() {
                 </View>
               </OpenSection>
             ) : null}
+
+            <OpenSection title="偏好与回避" testID="pli.behavior.preferences">
+              <Text style={styles.hintText}>只保存主人明确观察到的喜欢、回避或过敏谨慎项；不会从单次行为自动推断偏好。</Text>
+              {preferenceState === "loading" ? (
+                <Text style={styles.hintText}>正在读取偏好记录……</Text>
+              ) : preferenceState === "error" ? (
+                <Text style={styles.hintText}>偏好记录暂时没有加载成功；不会用默认偏好补齐。</Text>
+              ) : preferences.filter((row) => row.kind !== "REWARD").length ? (
+                preferences.filter((row) => row.kind !== "REWARD").map((row, index) => (
+                  <View key={row.preference_id} style={[styles.obsRow, index > 0 && styles.obsDivider]}>
+                    <Text style={styles.obsText}>{row.subject}</Text>
+                    <Text style={styles.obsMeta}>{PREF_LABEL[row.kind]} · 主人记录{row.note ? ` · ${row.note}` : ""}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.hintText}>还没有偏好记录。</Text>
+              )}
+              <View style={styles.filterWrap}>
+                {(["LIKE", "DISLIKE", "ALLERGY_CAUTION"] as const).map((kind) => (
+                  <ChipPressable key={kind} label={PREF_LABEL[kind]} active={preferenceKind === kind} onPress={() => setPreferenceKind(kind)} />
+                ))}
+              </View>
+              <TextInput style={styles.input} value={preferenceSubject} onChangeText={setPreferenceSubject} placeholder="例如：冻干鸡肉 / 吹风机声音" placeholderTextColor={COLORS.textTertiary} />
+              <TextInput style={styles.input} value={preferenceNote} onChangeText={setPreferenceNote} placeholder="补充实际观察（可选）" placeholderTextColor={COLORS.textTertiary} />
+              <Pressable accessibilityRole="button" accessibilityLabel="记录偏好" disabled={preferenceBusy || !preferenceSubject.trim()} onPress={() => void addPreference()} style={[styles.submitBtn, (preferenceBusy || !preferenceSubject.trim()) && styles.pressed]}>
+                <Text style={styles.submitText}>{preferenceBusy ? "保存中…" : "记录偏好"}</Text>
+              </Pressable>
+            </OpenSection>
 
             <OpenSection title="规律" testID="pli.behavior.patterns">
               <Text style={styles.hintText}>积累更多观察后，这里会呈现与它自己相比的变化。</Text>
