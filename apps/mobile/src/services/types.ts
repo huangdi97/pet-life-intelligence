@@ -59,6 +59,7 @@ export interface NotificationItem {
   pet_id: string | null;
   created_at: string;
   read_at: string | null;
+  target_role?: string | null;
   data: Record<string, unknown>;
 }
 
