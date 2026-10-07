@@ -149,7 +149,7 @@ export function HealthDetailScreen() {
     finally { setBusy(false); }
   }
   async function recordOutcome() {
-    if (!outcome.trim() || busy) return;
+    if (!outcome || busy) return;
     setBusy(true); setError(null);
     try {
       await api.post(`/health-events/${id}/outcomes`, { outcome, notes: outcomeNotes.trim() });
