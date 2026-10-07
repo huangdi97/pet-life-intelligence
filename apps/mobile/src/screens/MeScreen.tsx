@@ -250,6 +250,30 @@ export function MeScreen() {
         </OpenSection>
 
         <OpenSection title="我的宠物" testID="pli.me.pets">
+          <View style={styles.petActions}>
+            <Pressable
+              testID="pli.me.pets.create"
+              accessibilityRole="button"
+              accessibilityLabel="新建宠物档案"
+              onPress={() => navigation.navigate("PetProfile", { mode: "create" })}
+              style={styles.smallButton}
+            >
+              <Ionicons name="add" size={16} color={COLORS.brandPrimaryDeep} />
+              <Text style={styles.smallButtonText}>新建宠物</Text>
+            </Pressable>
+            {current ? (
+              <Pressable
+                testID="pli.me.pets.edit"
+                accessibilityRole="button"
+                accessibilityLabel={`编辑${current.name}的宠物档案`}
+                onPress={() => navigation.navigate("PetProfile", { mode: "edit" })}
+                style={styles.smallButton}
+              >
+                <Ionicons name="create-outline" size={16} color={COLORS.brandPrimaryDeep} />
+                <Text style={styles.smallButtonText}>编辑当前档案</Text>
+              </Pressable>
+            ) : null}
+          </View>
           {(pets ?? []).map((p, i) => (
             <Pressable
               key={p.id}
@@ -478,6 +502,7 @@ const styles = StyleSheet.create({
   rowDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
   rowLabel: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "500" },
   rowValue: { fontSize: TYPE.sm, color: COLORS.textTertiary },
+  petActions: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, paddingBottom: SPACE.s2 },
   petRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: 8 },
   petName: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "600" },
   petMeta: { fontSize: TYPE.meta, color: COLORS.textTertiary, marginLeft: "auto" },
