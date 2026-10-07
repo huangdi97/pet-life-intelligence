@@ -267,6 +267,20 @@ export function PetScreen() {
               </OpenSection>
             </View>
 
+            <OpenSection title="档案">
+              <Pressable
+                testID="pli.pet.profile.edit"
+                accessibilityRole="button"
+                accessibilityLabel={`编辑${pet?.name ?? "宠物"}的档案`}
+                onPress={() => navigation.navigate("PetProfile", { mode: "edit" })}
+                style={({ pressed }) => [styles.entryRow, pressed && styles.entryRowPressed]}
+              >
+                <Ionicons name="create-outline" size={18} color={COLORS.brandPrimaryDeep} />
+                <Text style={styles.entryText}>编辑名字、品种、生日、性别与照护备注</Text>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+              </Pressable>
+            </OpenSection>
+
             <OpenSection title="生命与陪伴">
               <Pressable
                 testID="pli.pet.entry.lifeview"
