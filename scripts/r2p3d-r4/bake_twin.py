@@ -32,6 +32,7 @@ from meshops import (
     material_region_centroids,
     normalize_mesh,
     vertex_normals,
+    weld_exact_vertices,
 )
 from objio import parse_mtl, parse_obj, write_obj
 from painting import make_cat_painter, make_dog_painter
@@ -132,8 +133,9 @@ CONFIG = {
     "dog": {
         "src_obj": R5_SRC / "doudou-gobkit-corgi/Corgi.obj",
         "src_mtl": R5_SRC / "doudou-gobkit-corgi/Corgi.mtl",
-        "subdiv": 2,
-        "subdivision_mode": "loop-smooth",
+        "subdiv": 3,
+        "subdivision_mode": "loop-boundary-preserving",
+        "weld_exact_vertices": True,
         "native_breed_source": True,
         "apply_corgi_morph": False,
         "rotate_y_deg": 0.0,
@@ -184,10 +186,24 @@ def bake(identity: str, write_sums: bool = False) -> None:
         FM = np.maximum(FM, 0)
 
     colors = _vertex_colors(F, FM, MC, V, V.shape[0])
+    if bool(cfg.get("weld_exact_vertices", False)):
+        V, F, colors = weld_exact_vertices(V, F, colors)
+
     subdivision_mode = str(cfg.get("subdivision_mode", "loop-smooth"))
-    subdivide = linear_subdivide if subdivision_mode == "linear-boundary-preserving" else loop_subdivide
     for _ in range(cfg["subdiv"]):
-        V, F, colors = subdivide(V, F, colors)
+        if subdivision_mode == "linear-boundary-preserving":
+            V, F, colors = linear_subdivide(V, F, colors)
+        elif subdivision_mode == "loop-boundary-preserving":
+            V, F, colors = loop_subdivide(
+                V,
+                F,
+                colors,
+                preserve_boundary_vertices=True,
+            )
+        elif subdivision_mode == "loop-smooth":
+            V, F, colors = loop_subdivide(V, F, colors)
+        else:
+            raise ValueError(f"unsupported subdivision mode: {subdivision_mode}")
     V, m = normalize_mesh(V, cfg["height"], rotate_y_deg=cfg["rotate_y_deg"])
     # R4.1: deterministic Corgi-like morphology for the demo dog twin.
     # Positions-only transform (topology / UV / rig are regenerated downstream);
@@ -278,6 +294,7 @@ def bake(identity: str, write_sums: bool = False) -> None:
             else "template-morphed"
         ),
         "subdivisionMode": subdivision_mode,
+        "weldExactVertices": bool(cfg.get("weld_exact_vertices", False)),
         "atlasObservedRatio": float(observed.mean()),
         "landmarks": {k: (list(v) if isinstance(v, tuple) else v) for k, v in landmarks.items()},
     }
