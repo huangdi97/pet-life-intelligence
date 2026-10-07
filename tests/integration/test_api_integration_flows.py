@@ -183,6 +183,61 @@ class TestHealthFlow:
         assert revoked.status_code == 200, revoked.text
         assert client.get(f"/api/v1/vet-briefs/shared/{token}").status_code == 404
 
+    def test_recovery_plan_persists_updates_and_has_deterministic_trend(self, client, seeded):
+        owner = seeded["owner_id"]
+        he = seeded["health_event_non_emergency_id"]
+
+        created = client.post(
+            f"/api/v1/health-events/{he}/recovery-plan",
+            json={"items": [{"description": "按已确认安排复查", "due_at": None}]},
+            headers=auth(owner),
+        )
+        assert created.status_code == 201, created.text
+        plan_id = created.json()["plan_id"]
+        assert created.json()["items"][0]["status"] == "PENDING"
+
+        listed = client.get(
+            f"/api/v1/health-events/{he}/recovery-plans",
+            headers=auth(owner),
+        )
+        assert listed.status_code == 200, listed.text
+        assert listed.json()[0]["plan_id"] == plan_id
+        assert listed.json()[0]["items"][0]["description"] == "按已确认安排复查"
+
+        updated = client.patch(
+            f"/api/v1/recovery-plans/{plan_id}/items/0",
+            json={"status": "DONE"},
+            headers=auth(owner),
+        )
+        assert updated.status_code == 200, updated.text
+        assert updated.json()["items"][0]["status"] == "DONE"
+
+        refreshed = client.get(
+            f"/api/v1/health-events/{he}/recovery-plans",
+            headers=auth(owner),
+        )
+        assert refreshed.json()[0]["items"][0]["status"] == "DONE"
+
+        trend = client.get(
+            f"/api/v1/health-events/{he}/trend",
+            headers=auth(owner),
+        )
+        assert trend.status_code == 200, trend.text
+        assert trend.json()["health_event_id"] == he
+        assert "非医学判断" in trend.json()["notice"]
+
+        events = client.get(
+            f"/api/v1/pets/{seeded['coco_id']}/events?event_type=recovery_plan.updated",
+            headers=auth(owner),
+        )
+        assert events.status_code == 200, events.text
+        matching = [
+            row for row in events.json()["events"]
+            if row["payload"].get("plan_id") == plan_id
+        ]
+        assert len(matching) >= 2
+        assert all(row["provenance_level"] == "OWNER_REPORTED" for row in matching)
+
     def test_medication_duplicate_administration_conflict(self, client, seeded):
         owner, plan = seeded["owner_id"], seeded["medication_plan_id"]
         plans = client.get(f"/api/v1/pets/{seeded['coco_id']}/medication-plans",
