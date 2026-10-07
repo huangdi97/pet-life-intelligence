@@ -19,6 +19,18 @@ interface DiaryRow {
   text: string;
   has_audio: boolean;
 }
+interface MilestoneRow {
+  milestone_id: string;
+  title: string;
+  kind: string;
+  occurred_at: string;
+}
+interface MemoryRow {
+  years_ago: number;
+  window: string;
+  events: number;
+  sample: string[];
+}
 interface DailySummaryRow {
   summary_id: string;
   date: string;
@@ -46,6 +58,24 @@ export default function TimelinePage() {
   const [diaryError, setDiaryError] = useState<string | null>(null);
   const [summaryBusy, setSummaryBusy] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [milestoneTitle, setMilestoneTitle] = useState("");
+  const [milestoneDate, setMilestoneDate] = useState("");
+  const [milestoneBusy, setMilestoneBusy] = useState(false);
+  const [milestoneError, setMilestoneError] = useState<string | null>(null);
+  const milestones = useAsync<MilestoneRow[]>(
+    () =>
+      petId
+        ? api.get<MilestoneRow[]>(`/pets/${petId}/milestones`)
+        : Promise.reject(new Error("NO_PET_SELECTED")),
+    [petId],
+  );
+  const memories = useAsync<MemoryRow[]>(
+    () =>
+      petId
+        ? api.get<MemoryRow[]>(`/pets/${petId}/memories?years_back=10`)
+        : Promise.reject(new Error("NO_PET_SELECTED")),
+    [petId],
+  );
   const diary = useAsync<DiaryRow[]>(
     () =>
       petId
@@ -107,6 +137,29 @@ export default function TimelinePage() {
     // 不把「今日查看」这类系统噪音当作生活记录展示（blind-UI 契约）。
     return rows.filter((e) => e.event_type !== "today.viewed");
   }, [timeline.data, domain, source, mediaOnly, search, day]);
+
+  async function addMilestone() {
+    if (!petId || !milestoneTitle.trim() || !milestoneDate || milestoneBusy) return;
+    setMilestoneBusy(true);
+    setMilestoneError(null);
+    try {
+      await api.post(`/pets/${petId}/milestones`, {
+        title: milestoneTitle.trim(),
+        kind: "OTHER",
+        occurred_at: new Date(`${milestoneDate}T12:00:00`).toISOString(),
+        note: "",
+      });
+      setMilestoneTitle("");
+      setMilestoneDate("");
+      milestones.reload();
+      timeline.reload();
+      memories.reload();
+    } catch (e) {
+      setMilestoneError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setMilestoneBusy(false);
+    }
+  }
 
   async function generateDailySummary() {
     if (!petId || summaryBusy) return;
@@ -201,6 +254,66 @@ export default function TimelinePage() {
             </div>
           )}
           {day && <DayBackCard day={day} models={visual.data?.models ?? []} />}
+          <div className="v4-sec" data-testid="pli.timeline.milestones">
+            <div className="v4-sec-head">
+              <h2 className="v4-sec-title">里程碑</h2>
+              <span className="v4-sec-link">主人记录</span>
+            </div>
+            <p className="v4-note" style={{ margin: "6px 0 8px" }}>
+              只记录真实发生、值得长期保留的节点；保存后会进入同一条生命时间线。
+            </p>
+            <div className="grid2">
+              <label className="field">
+                发生日期
+                <input type="date" value={milestoneDate} onChange={(e) => setMilestoneDate(e.target.value)} />
+              </label>
+              <label className="field">
+                里程碑
+                <input value={milestoneTitle} onChange={(e) => setMilestoneTitle(e.target.value)} placeholder="例如：第一次完成长途徒步" />
+              </label>
+            </div>
+            <button className="btn" disabled={milestoneBusy || !milestoneDate || !milestoneTitle.trim()} onClick={() => void addMilestone()}>
+              {milestoneBusy ? "保存中…" : "记录里程碑"}
+            </button>
+            {milestoneError ? <p className="v4-note">暂时没有保存成功：{milestoneError}</p> : null}
+            {milestones.state === "ready" && milestones.data?.length ? (
+              <div style={{ marginTop: 10 }}>
+                {milestones.data.slice(0, 3).map((row) => (
+                  <div className="v4-domain" key={row.milestone_id}>
+                    <div>
+                      <div className="v4-domain-name">{row.title}</div>
+                      <div className="v4-domain-desc">{new Date(row.occurred_at).toLocaleDateString("zh-CN")}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : milestones.state === "error" ? (
+              <p className="v4-note">里程碑暂时没有加载成功；不会把未知状态显示成空。</p>
+            ) : null}
+          </div>
+
+          <div className="v4-sec" data-testid="pli.timeline.memories">
+            <div className="v4-sec-head">
+              <h2 className="v4-sec-title">往年今日</h2>
+              <span className="v4-sec-link">真实记录回看</span>
+            </div>
+            <p className="v4-note" style={{ margin: "6px 0 8px" }}>
+              这里只回看历史上同一日期附近真实存在的事件；没有记录就不生成“回忆”。
+            </p>
+            {memories.state === "ready" && memories.data?.length ? memories.data.slice(0, 3).map((row) => (
+              <div className="v4-calm" key={row.years_ago} style={{ marginTop: 8 }}>
+                <div>
+                  <p className="v4-calm-title">{row.years_ago} 年前 · {row.events} 条记录</p>
+                  <p className="v4-calm-body">{row.sample.slice(0, 3).join(" · ")}</p>
+                </div>
+              </div>
+            )) : memories.state === "error" ? (
+              <p className="v4-note">历史回忆暂时没有读取到；不会用生成内容补齐。</p>
+            ) : (
+              <p className="v4-note">往年今天附近还没有真实记录。</p>
+            )}
+          </div>
+
           <div className="v4-sec" data-testid="pli.timeline.diary">
             <div className="v4-sec-head">
               <h2 className="v4-sec-title">今天想记下什么</h2>
