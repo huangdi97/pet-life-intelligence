@@ -32,6 +32,7 @@ interface Handoff {
   end_at: string | null;
   status: string;
 }
+const HANDOFF_SCOPES = ["daily:read", "daily:write", "medical:read", "medical:write", "card:read"] as const;
 const SCOPE_LABELS: Record<string, string> = {
   "daily:read": "查看日常",
   "daily:write": "记录日常",
@@ -66,6 +67,7 @@ export function CareScreen() {
   const [grantsState, setGrantsState] = useState<"loading" | "ready" | "error">("loading");
   const [handoffsState, setHandoffsState] = useState<"loading" | "ready" | "error">("loading");
   const [caregiver, setCaregiver] = useState("");
+  const [scopes, setScopes] = useState<string[]>(["daily:read", "daily:write"]);
   const [hours, setHours] = useState("48");
   const [card, setCard] = useState<{ token_id: string; token: string; expires_at: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,12 +113,12 @@ export function CareScreen() {
   }, [petId, pet?.household_id, version]);
 
   async function createHandoff() {
-    if (!petId || !caregiver.trim() || busy) return;
+    if (!petId || !caregiver.trim() || scopes.length === 0 || busy) return;
     setBusy(true); setError(null);
     try {
       await api.post(`/pets/${petId}/handoffs`, {
         caregiver_user_id: caregiver.trim(),
-        scopes: ["daily:read", "daily:write"],
+        scopes,
         end_at: new Date(Date.now() + Math.max(1, Number(hours) || 48) * 3600_000).toISOString(),
         reason: "care handoff",
       });
@@ -244,8 +246,32 @@ export function CareScreen() {
           ) : (
             <Text style={styles.emptyLine}>还没有可选择的家庭成员；请先在家庭设置中添加成员。</Text>
           )}
+          <Text style={styles.scopeTitle}>允许临时照护人做什么</Text>
+          <View style={styles.scopeWrap}>
+            {HANDOFF_SCOPES.map((scope) => {
+              const selected = scopes.includes(scope);
+              return (
+                <Pressable
+                  key={scope}
+                  accessibilityRole="button"
+                  accessibilityLabel={SCOPE_LABELS[scope]}
+                  accessibilityState={{ selected }}
+                  onPress={() =>
+                    setScopes((old) =>
+                      selected ? old.filter((value) => value !== scope) : [...old, scope],
+                    )
+                  }
+                  style={[styles.scopeChoice, selected && styles.scopeChoiceActive]}
+                >
+                  <Text style={[styles.scopeChoiceText, selected && styles.scopeChoiceTextActive]}>
+                    {SCOPE_LABELS[scope]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
           <TextInput style={styles.input} value={hours} onChangeText={setHours} keyboardType="number-pad" placeholder="有效小时数" placeholderTextColor={COLORS.textTertiary} />
-          <Pressable accessibilityRole="button" accessibilityLabel="创建临时照护交接" accessibilityState={{ disabled: busy || !caregiver.trim() }} disabled={busy || !caregiver.trim()} onPress={() => void createHandoff()} style={[styles.primary, (busy || !caregiver.trim()) && styles.disabled]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="创建临时照护交接" accessibilityState={{ disabled: busy || !caregiver.trim() || scopes.length === 0 }} disabled={busy || !caregiver.trim() || scopes.length === 0} onPress={() => void createHandoff()} style={[styles.primary, (busy || !caregiver.trim() || scopes.length === 0) && styles.disabled]}>
             <Text style={styles.primaryText}>{busy ? "处理中…" : "创建交接"}</Text>
           </Pressable>
         </OpenSection>
@@ -292,6 +318,12 @@ const styles = StyleSheet.create({
   memberChoiceName: { fontSize: TYPE.sm, color: COLORS.textPrimary, fontWeight: "600" },
   memberChoiceNameActive: { color: COLORS.brandPrimaryDeep },
   memberChoiceRole: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: 2 },
+  scopeTitle: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600", marginTop: SPACE.s3 },
+  scopeWrap: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, marginTop: SPACE.s2 },
+  scopeChoice: { minHeight: 44, justifyContent: "center", borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2 },
+  scopeChoiceActive: { backgroundColor: COLORS.brandSoftGreen },
+  scopeChoiceText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "500" },
+  scopeChoiceTextActive: { color: COLORS.brandPrimaryDeep, fontWeight: "700" },
   emptyLine: { fontSize: TYPE.body, color: COLORS.textTertiary, paddingVertical: 8 },
   note: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20, marginBottom: SPACE.s2 },
   input: { marginTop: SPACE.s2, borderWidth: 1, borderColor: COLORS.dividerStrong, borderRadius: RADIUS.md, backgroundColor: COLORS.surface, paddingHorizontal: SPACE.s3, paddingVertical: 10, fontSize: TYPE.body, color: COLORS.textPrimary },
