@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Text, Button, Textarea, Input } from "@tarojs/components";
+import { View, Text, Button, Textarea, Input, Picker } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
@@ -12,6 +12,7 @@ interface BehaviorRow {
   antecedent: string;
   behavior: string;
   consequence: string;
+  intensity: string;
 }
 
 export default function Behavior() {
@@ -19,7 +20,8 @@ export default function Behavior() {
   const [rows, setRows] = useState<BehaviorRow[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ antecedent: "", behavior: "", consequence: "", environment: "" });
+  const [filter, setFilter] = useState<"all" | "MILD" | "MODERATE" | "SEVERE" | "UNLABELED">("all");
+  const [form, setForm] = useState({ antecedent: "", behavior: "", consequence: "", environment: "", intensity: "" });
 
   const load = useCallback((pid: string) => {
     setState("loading");
@@ -54,15 +56,24 @@ export default function Behavior() {
         behavior: form.behavior.trim(),
         consequence: form.consequence.trim(),
         environment: form.environment.trim(),
+        intensity: form.intensity,
       });
       setShowCreate(false);
-      setForm({ antecedent: "", behavior: "", consequence: "", environment: "" });
+      setForm({ antecedent: "", behavior: "", consequence: "", environment: "", intensity: "" });
       load(petId);
       Taro.showToast({ title: "已记录", icon: "success" });
     } catch {
       Taro.showToast({ title: "记录失败", icon: "none" });
     }
   }
+
+  const visibleRows = rows.filter((row) => {
+    if (filter === "all") return true;
+    if (filter === "UNLABELED") return !row.intensity;
+    return row.intensity === filter;
+  });
+  const intensityOptions = ["未标注", "轻度", "中度", "重度"];
+  const intensityValues = ["", "MILD", "MODERATE", "SEVERE"];
 
   return (
     <View className="page">
@@ -77,11 +88,32 @@ export default function Behavior() {
         </View>
       )}
       {state === "ready" && rows.length === 0 && <View className="state">还没有行为记录。</View>}
-      {rows.map((b) => (
+      {state === "ready" && rows.length > 0 ? (
+        <View className="chips" aria-label="行为记录筛选">
+          {[
+            ["all", "全部"],
+            ["MILD", "轻度"],
+            ["MODERATE", "中度"],
+            ["SEVERE", "重度"],
+            ["UNLABELED", "未标注"],
+          ].map(([value, label]) => (
+            <View
+              key={value}
+              className={`chip${filter === value ? " chip-active" : ""}`}
+              onClick={() => setFilter(value as typeof filter)}
+            >
+              {label}
+            </View>
+          ))}
+        </View>
+      ) : null}
+      {state === "ready" && rows.length > 0 && visibleRows.length === 0 ? <View className="state">当前筛选下没有行为记录。</View> : null}
+      {visibleRows.map((b) => (
         <View className="card" key={b.behavior_event_id}>
           <View className="tl-time">{fmtTime(b.occurred_at)}</View>
           {b.antecedent && <View className="muted" style={{ marginTop: 6 }}>发生之前：{b.antecedent}</View>}
           <View style={{ marginTop: 6 }}>具体行为：{b.behavior}</View>
+          {b.intensity ? <View className="badge" style={{ marginTop: 6 }}>{b.intensity === "MILD" ? "轻度" : b.intensity === "MODERATE" ? "中度" : b.intensity === "SEVERE" ? "重度" : "主人标注"}</View> : null}
           {b.consequence && <View className="muted" style={{ marginTop: 6 }}>发生之后：{b.consequence}</View>}
         </View>
       ))}
@@ -108,6 +140,17 @@ export default function Behavior() {
             <View className="field">
               <Text>环境</Text>
               <Input className="input" value={form.environment} onInput={(e) => setForm({ ...form, environment: e.detail.value })} placeholder="地点 / 环境" />
+            </View>
+            <View className="field">
+              <Text>强度（主人主观标注，可选）</Text>
+              <Picker
+                mode="selector"
+                range={intensityOptions}
+                value={Math.max(0, intensityValues.indexOf(form.intensity))}
+                onChange={(e) => setForm({ ...form, intensity: intensityValues[Number(e.detail.value)] ?? "" })}
+              >
+                <View className="input">{intensityOptions[Math.max(0, intensityValues.indexOf(form.intensity))]}</View>
+              </Picker>
             </View>
             <View className="life-row-source">只记录可观察到的事实，不从一次行为推断性格或情绪。</View>
             <Button className="btn btn-primary" onClick={save} disabled={!form.behavior.trim()}>
