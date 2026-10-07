@@ -44,7 +44,8 @@ interface VetBriefContent {
 export default function HealthDetail() {
   const id = String(Taro.getCurrentInstance().router?.params?.id ?? "");
   const [detail, setDetail] = useState<HealthEventDetail | null>(null);
-  const [brief, setBrief] = useState<VetBriefContent | null>(null);
+  const [brief, setBrief] = useState<{ id: string; content: VetBriefContent } | null>(null);
+  const [briefShare, setBriefShare] = useState<{ token_id: string; token: string; expires_at: string } | null>(null);
   const [answer, setAnswer] = useState("");
   const [observation, setObservation] = useState("");
   const [outcome, setOutcome] = useState("");
@@ -94,11 +95,47 @@ export default function HealthDetail() {
     setBusy(true);
     try {
       const result = await api.post<{ vet_brief_id: string; content: VetBriefContent }>(`/health-events/${id}/vet-brief`, {});
-      setBrief(result.content);
+      setBrief({ id: result.vet_brief_id, content: result.content });
+      setBriefShare(null);
       setVersion((v) => v + 1);
       Taro.showToast({ title: "摘要已生成", icon: "success" });
     } catch {
       Taro.showToast({ title: "生成失败", icon: "none" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function shareBrief() {
+    if (!brief || busy) return;
+    setBusy(true);
+    try {
+      const result = await api.post<{ token_id: string; share_token: string; expires_at: string }>(
+        `/vet-briefs/${brief.id}/share`,
+        { expires_in_hours: 72 },
+      );
+      setBriefShare({
+        token_id: result.token_id,
+        token: result.share_token,
+        expires_at: result.expires_at,
+      });
+      Taro.showToast({ title: "分享已创建", icon: "success" });
+    } catch {
+      Taro.showToast({ title: "暂时无法创建分享", icon: "none" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function revokeBriefShare() {
+    if (!briefShare || busy) return;
+    setBusy(true);
+    try {
+      await api.del(`/share-tokens/${briefShare.token_id}`);
+      setBriefShare(null);
+      Taro.showToast({ title: "分享已撤销", icon: "success" });
+    } catch {
+      Taro.showToast({ title: "暂时无法撤销", icon: "none" });
     } finally {
       setBusy(false);
     }
@@ -166,10 +203,22 @@ export default function HealthDetail() {
             <Button className="btn btn-primary" disabled={busy} onClick={makeBrief}>{busy ? "处理中…" : "生成就诊摘要"}</Button>
             {brief ? (
               <View className="soft-panel">
-                <View className="section-title">{brief.chief_complaint}</View>
-                {brief.red_flags?.map((flag) => <View className="life-row-source" key={flag}>• {flag}</View>)}
-                {brief.key_findings?.slice(0, 5).map((finding, index) => <View className="life-row-detail" key={`${finding.kind}-${index}`}>• {finding.text}</View>)}
-                <View className="life-row-source">{brief.ai_disclaimer || brief.notice}</View>
+                <View className="section-title">{brief.content.chief_complaint}</View>
+                {brief.content.red_flags?.map((flag) => <View className="life-row-source" key={flag}>• {flag}</View>)}
+                {brief.content.key_findings?.slice(0, 5).map((finding, index) => <View className="life-row-detail" key={`${finding.kind}-${index}`}>• {finding.text}</View>)}
+                <View className="life-row-source">{brief.content.ai_disclaimer || brief.content.notice}</View>
+                {!briefShare ? (
+                  <Button className="btn" disabled={busy} onClick={() => void shareBrief()}>
+                    生成 72 小时只读分享链接
+                  </Button>
+                ) : (
+                  <View className="soft-panel">
+                    <View className="section-title">只读分享已创建</View>
+                    <View className="life-row-detail" selectable>{`/api/v1/vet-briefs/shared/${briefShare.token}`}</View>
+                    <View className="life-row-source">有效至 {new Date(briefShare.expires_at).toLocaleString()}；可随时撤销。</View>
+                    <Button className="btn" disabled={busy} onClick={() => void revokeBriefShare()}>撤销分享链接</Button>
+                  </View>
+                )}
               </View>
             ) : detail.vet_briefs.length ? <View className="life-row-source">已有 {detail.vet_briefs.length} 份历史摘要。</View> : null}
           </View>
