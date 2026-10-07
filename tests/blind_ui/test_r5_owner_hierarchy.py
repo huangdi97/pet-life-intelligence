@@ -259,3 +259,36 @@ def test_social_declined_state_is_localized_across_clients() -> None:
     for source in (web, mobile, mini):
         assert "DECLINED" in source
         assert "已拒绝" in source
+
+
+def test_me_privacy_and_emergency_are_real_cross_client_controls() -> None:
+    mobile = read("apps/mobile/src/screens/MeScreen.tsx")
+    mini = read("apps/mini/src/pages/mine/index.tsx")
+    mobile_api = read("apps/mobile/src/api.ts")
+
+    # PLI-215: consent state is read from the API and non-essential purposes
+    # can be changed; owner copy never hard-codes a fake privacy summary.
+    for source in (mobile, mini):
+        assert "/consents" in source
+        assert "/emergency-profile" in source
+        assert "/deletion-requests" in source
+        assert "SERVICE_ESSENTIAL" in source
+        assert "不会用默认值代替真实状态" in source
+        assert "可随时导出" not in source
+    assert "put: <T>" in mobile_api
+
+
+def test_web_pet_world_uses_pet_specific_domain_narratives() -> None:
+    source = read("apps/web/app/pets/page.tsx")
+    assert "DOMAIN_META" in source
+    for endpoint in (
+        "/health-events",
+        "/behavior-events",
+        "/training-goals",
+        "/welfare-evidence",
+        "/friends",
+    ):
+        assert endpoint in source
+    assert "headline={current.name}" not in source
+    assert 'frameTarget={0.33}' in source
+    assert "domainMeaning[row.id]" in source
