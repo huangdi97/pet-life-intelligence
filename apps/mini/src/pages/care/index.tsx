@@ -22,6 +22,13 @@ interface HouseholdMember {
   role: string;
   status: string;
 }
+interface HandoffChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+  done_by?: string | null;
+  done_at?: string | null;
+}
 interface Handoff {
   handoff_id: string;
   caregiver_user_id: string;
@@ -30,6 +37,7 @@ interface Handoff {
   start_at: string;
   end_at: string | null;
   status: string;
+  checklist: HandoffChecklistItem[];
 }
 interface CareCard {
   token_id: string;
@@ -53,6 +61,13 @@ const SCOPE_LABELS: Record<string, string> = {
   "card:read": "查看照护卡",
 };
 
+function handoffChecklist(scopes: string[]): string[] {
+  const items = ["喂食与日常安排已确认", "紧急联系人与就医方式已确认"];
+  if (scopes.some((scope) => scope.startsWith("medical:"))) {
+    items.splice(1, 0, "健康与用药注意事项已确认");
+  }
+  return items;
+}
 function statusLabel(status: string): string {
   if (status === "ACTIVE") return "生效中";
   if (status === "PENDING") return "待确认";
@@ -166,12 +181,27 @@ export default function Care() {
         scopes,
         end_at: new Date(Date.now() + Math.max(1, Number(hours) || 48) * 3600_000).toISOString(),
         reason: "care handoff",
+        checklist: handoffChecklist(scopes),
       });
       setCaregiver("");
       load(petId);
       Taro.showToast({ title: "交接已创建", icon: "success" });
     } catch {
       Taro.showToast({ title: "创建失败", icon: "none" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function completeChecklist(handoffId: string, itemId: string) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await api.post(`/handoffs/${handoffId}/checklist/${itemId}/complete`, {});
+      if (petId) load(petId);
+      Taro.showToast({ title: "已确认", icon: "success" });
+    } catch {
+      Taro.showToast({ title: "操作失败", icon: "none" });
     } finally {
       setBusy(false);
     }
@@ -286,6 +316,23 @@ export default function Care() {
                 {handoff.scope.map((scope) => SCOPE_LABELS[scope] ?? "限定权限").join(" · ")}
               </View>
               <View className="life-row-source">至 {handoff.end_at ? fmtTime(handoff.end_at) : "手动结束"}</View>
+              {handoff.checklist?.length ? (
+                <View className="soft-panel">
+                  <View className="section-title">交接确认</View>
+                  {handoff.checklist.map((item) => (
+                    <View className="life-row" key={item.id}>
+                      <View className="life-row-body">
+                        <View className="life-row-detail">{item.done ? "✓" : "○"} {item.text}</View>
+                        {!item.done && handoff.status === "ACTIVE" ? (
+                          <Button className="btn" size="mini" disabled={busy} onClick={() => void completeChecklist(handoff.handoff_id, item.id)}>
+                            确认完成
+                          </Button>
+                        ) : null}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
               {handoff.status === "ACTIVE" ? (
                 <Button className="btn" size="mini" onClick={() => endHandoff(handoff.handoff_id)}>提前结束</Button>
               ) : null}
