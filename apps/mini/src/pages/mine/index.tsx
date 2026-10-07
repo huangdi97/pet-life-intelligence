@@ -6,6 +6,12 @@ import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
 import { consentPurposeLabel } from "../../utils/labels";
 
+function fmtTime(value: string | null | undefined): string {
+  if (!value) return "时间未记录";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
+
 /**
  * 我的（MIN-005）— R5.5 owner utility surface.
  *
