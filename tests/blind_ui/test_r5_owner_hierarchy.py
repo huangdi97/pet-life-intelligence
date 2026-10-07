@@ -89,3 +89,21 @@ def test_mobile_pet_world_uses_six_narrative_domains() -> None:
         assert f'key: "{key}"' in source
     assert "domainIcon" in source
     assert "feature grid" in source.lower()
+
+
+def test_mini_assistant_keeps_ask_primary() -> None:
+    source = read("apps/mini/src/pages/agent/index.tsx")
+    assert "const assistantTools:" in source
+    assert "mode-row" not in source
+    assert "agent-primary-lead" in source
+    assert "更多帮助" in source
+    for label in ("摘要", "找记录", "计划", "解释"):
+        assert label in source
+
+
+def test_mini_pet_identity_localizes_common_breeds() -> None:
+    source = read("apps/mini/src/pages/pets/index.tsx")
+    formatting = read("apps/mini/src/utils/format.ts")
+    assert "breedLabel(pet.breed)" in source
+    assert 'return "柯基"' in formatting
+    assert 'return "长毛家猫"' in formatting
