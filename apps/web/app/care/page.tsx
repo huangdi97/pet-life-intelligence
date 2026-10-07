@@ -200,7 +200,7 @@ export default function CarePage() {
             ))}
           </div>
         </fieldset>
-        <button className="btn primary" onClick={createHandoff} disabled={!petId}>
+        <button className="btn primary" onClick={createHandoff} disabled={!petId || !caregiver || scopes.length === 0}>
           创建交接
         </button>
       </section>
