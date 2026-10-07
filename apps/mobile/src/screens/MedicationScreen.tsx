@@ -32,6 +32,7 @@ function sourceLabel(source: string): string {
 function doseLabel(status: string): string {
   if (status === "GIVEN") return "已给药";
   if (status === "MISSED") return "已遗漏";
+  if (status === "SKIPPED") return "已跳过";
   if (status === "PENDING") return "待给药";
   if (status === "CANCELLED") return "已取消";
   return "计划中";
@@ -112,6 +113,24 @@ export function MedicationScreen() {
     }
   }
 
+  async function skip(planId: string, doseId: string) {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.post(`/medication-plans/${planId}/skip`, {
+        planned_dose_id: doseId,
+        note: "主人记录为本次跳过",
+      });
+      setVersion((v) => v + 1);
+    } catch (e: unknown) {
+      setError(humanizeError(e));
+      setVersion((v) => v + 1);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -147,9 +166,14 @@ export function MedicationScreen() {
                         <Text style={styles.doseTitle}>{doseLabel(d.status)}</Text>
                         <Text style={styles.meta}>{timeLabel(d.planned_at)}</Text>
                       </View>
-                      <Pressable accessibilityRole="button" accessibilityLabel={`记录给药：${plan.medicine_name}`} accessibilityState={{ disabled: busy }} disabled={busy} onPress={() => void give(plan.plan_id, d.dose_id)} style={[styles.giveBtn, busy && styles.disabled]}>
-                        <Text style={styles.giveText}>记录给药</Text>
-                      </Pressable>
+                      <View style={styles.doseActions}>
+                        <Pressable accessibilityRole="button" accessibilityLabel={`记录给药：${plan.medicine_name}`} accessibilityState={{ disabled: busy }} disabled={busy} onPress={() => void give(plan.plan_id, d.dose_id)} style={[styles.giveBtn, busy && styles.disabled]}>
+                          <Text style={styles.giveText}>记录给药</Text>
+                        </Pressable>
+                        <Pressable accessibilityRole="button" accessibilityLabel={`标记本次跳过：${plan.medicine_name}`} accessibilityState={{ disabled: busy }} disabled={busy} onPress={() => void skip(plan.plan_id, d.dose_id)} style={[styles.skipBtn, busy && styles.disabled]}>
+                          <Text style={styles.skipText}>跳过本次</Text>
+                        </Pressable>
+                      </View>
                     </View>
                   ))}
                   <View style={styles.history}>
@@ -203,8 +227,11 @@ const styles = StyleSheet.create({
   missed: { fontSize: TYPE.caption, color: COLORS.danger, backgroundColor: COLORS.dangerBg, borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 4 },
   doseRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, marginTop: SPACE.s3 },
   doseTitle: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "600" },
+  doseActions: { flexDirection: "row", gap: SPACE.s1, flexWrap: "wrap", justifyContent: "flex-end" },
   giveBtn: { minHeight: 44, justifyContent: "center", backgroundColor: COLORS.brandSoftGreen, borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 8 },
   giveText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  skipBtn: { minHeight: 44, justifyContent: "center", backgroundColor: COLORS.surfaceRaised, borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 8 },
+  skipText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   history: { marginTop: SPACE.s3 },
   historyRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5 },
   historyStatus: { fontSize: TYPE.sm, color: COLORS.textSecondary },
