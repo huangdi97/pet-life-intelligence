@@ -47,7 +47,10 @@ test.describe("Stage H UX — new domain routes", () => {
     await expect(page.getByRole("region", { name: "提问" })).toBeVisible();
     await expect(page.getByText(/先问一件和.*有关的事/).first()).toBeVisible();
     for (const tool of ["摘要", "找记录", "计划", "解释"]) {
-      await expect(page.getByRole("button", { name: tool })).toBeVisible();
+      // Assistant may also surface contextual suggestions such as
+      // "计划下一步". The capability rail itself owns the exact accessible
+      // names, so keep this assertion scoped to the intended control.
+      await expect(page.getByRole("button", { name: tool, exact: true })).toBeVisible();
     }
 
     // Contextual jobs must still open and provide a clear route back to Ask.
