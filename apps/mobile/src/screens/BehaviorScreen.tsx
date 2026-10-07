@@ -4,6 +4,7 @@
  * 首页主体。只保存可观察事实，不构成行为诊断；intensity 记为主人标注。
  */
 import React, { useEffect, useState } from "react";
+import * as ImagePicker from "expo-image-picker";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { usePets } from "../context";
@@ -56,6 +57,9 @@ export function BehaviorScreen() {
   const [preferenceSubject, setPreferenceSubject] = useState("");
   const [preferenceNote, setPreferenceNote] = useState("");
   const [preferenceBusy, setPreferenceBusy] = useState(false);
+  const [artifactIds, setArtifactIds] = useState<string[]>([]);
+  const [artifactNames, setArtifactNames] = useState<string[]>([]);
+  const [videoUploading, setVideoUploading] = useState(false);
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
@@ -98,6 +102,36 @@ export function BehaviorScreen() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  async function attachBehaviorVideo() {
+    if (!petId || videoUploading) return;
+    setVideoUploading(true);
+    setFormError(null);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      const asset = result.assets[0];
+      const mimeType = asset.mimeType && asset.mimeType.startsWith("video/")
+        ? asset.mimeType
+        : "video/mp4";
+      const fileName = asset.fileName || `behavior-${Date.now()}.mp4`;
+      const row = await api.upload<{ artifact_id: string; kind: string }>(
+        `/pets/${petId}/artifacts`,
+        { uri: asset.uri, name: fileName, type: mimeType },
+      );
+      if (row.kind !== "VIDEO") throw new Error("上传内容没有被识别为视频。");
+      setArtifactIds((ids) => [...ids, row.artifact_id].slice(-3));
+      setArtifactNames((names) => [...names, fileName].slice(-3));
+    } catch (e: unknown) {
+      setFormError(humanizeError(e));
+    } finally {
+      setVideoUploading(false);
+    }
+  }
+
   async function addPreference() {
     if (!petId || !preferenceSubject.trim() || preferenceBusy) return;
     setPreferenceBusy(true);
@@ -138,8 +172,11 @@ export function BehaviorScreen() {
         intensity: form.intensity,
         environment: form.environment,
         owner_notes: form.owner_notes,
+        artifact_ids: artifactIds,
       });
       setForm(EMPTY_FORM);
+      setArtifactIds([]);
+      setArtifactNames([]);
       setFormOpen(false);
       setVersion((v) => v + 1);
     } catch (e: unknown) {
@@ -211,6 +248,9 @@ export function BehaviorScreen() {
                           </View>
                         ) : null}
                       </View>
+                      {b.artifact_ids?.length ? (
+                        <Text style={styles.obsMeta}>已关联 {b.artifact_ids.length} 个媒体证据 · 仅作为本次行为记录的原始素材</Text>
+                      ) : null}
                     </View>
                   ))}
                 </View>
@@ -277,6 +317,22 @@ export function BehaviorScreen() {
                   <TextInput style={styles.input} value={form.antecedent} onChangeText={(v) => set("antecedent", v)} placeholder="例如：门铃响 / 陌生狗经过" placeholderTextColor={COLORS.textTertiary} />
                   <Text style={styles.fieldLabel}>观察到的行为 *（写你看到的）</Text>
                   <TextInput style={styles.input} value={form.behavior} onChangeText={(v) => set("behavior", v)} placeholder="例如：连续吠叫约 3 分钟后躲到沙发下" placeholderTextColor={COLORS.textTertiary} />
+                  <Text style={styles.fieldLabel}>关联行为视频（可选，最多保留 3 个）</Text>
+                  <Pressable
+                    testID="pli.behavior.video"
+                    accessibilityRole="button"
+                    accessibilityLabel="选择行为视频"
+                    disabled={videoUploading}
+                    onPress={() => void attachBehaviorVideo()}
+                    style={[styles.videoButton, videoUploading && styles.pressed]}
+                  >
+                    <Text style={styles.videoButtonText}>{videoUploading ? "正在上传视频……" : "从相册选择视频"}</Text>
+                  </Pressable>
+                  <Text style={styles.hintText}>
+                    {artifactNames.length
+                      ? `已关联：${artifactNames.join("、")}`
+                      : "视频只作为这条观察的原始证据；系统不会仅凭视频自动推断性格、情绪或诊断。"}
+                  </Text>
                   <Text style={styles.fieldLabel}>后果（之后发生了什么？）</Text>
                   <TextInput style={styles.input} value={form.consequence} onChangeText={(v) => set("consequence", v)} placeholder="例如：主人安抚后自行出来" placeholderTextColor={COLORS.textTertiary} />
                   <View style={styles.fieldRow}>
@@ -363,6 +419,8 @@ const styles = StyleSheet.create({
   formToggleText: { fontSize: TYPE.button, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   formWrap: { marginTop: SPACE.s3 },
   fieldLabel: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginTop: SPACE.s3, marginBottom: SPACE.s1 },
+  videoButton: { minHeight: 48, justifyContent: "center", alignItems: "center", borderRadius: RADIUS.md, backgroundColor: COLORS.brandSoftGreen, marginBottom: SPACE.s2 },
+  videoButtonText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   input: {
     borderWidth: 1,
     borderColor: COLORS.dividerStrong,
