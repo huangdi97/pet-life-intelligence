@@ -313,7 +313,7 @@ export function HealthScreen() {
                   <Text style={styles.emptyText}>还没有预防提醒。</Text>
                 )}
                 <View style={styles.reminderForm}>
-                  <View style={styles.sessionRow}>
+                  <View style={styles.reminderKinds}>
                     {(["VACCINE", "DEWORMING", "CHECKUP"] as const).map((kind) => (
                       <Pressable
                         key={kind}
@@ -456,6 +456,7 @@ const styles = StyleSheet.create({
   recordRow: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: 10 },
   recordDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
   reminderForm: { marginTop: SPACE.s3, gap: SPACE.s2 },
+  reminderKinds: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
   reminderChip: { minHeight: 40, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised },
   reminderChipSelected: { backgroundColor: COLORS.brandSoftGreen },
   reminderChipText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
