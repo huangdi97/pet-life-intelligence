@@ -12,7 +12,7 @@ interface DeletionRequestCardProps {
   pid: string | undefined;
   value: string;
   rows: DeletionRequestRow[];
-  state: "idle" | "loading" | "ready" | "error";
+  state: "idle" | "loading" | "ready" | "error" | "denied";
   onValueChange: (value: string) => void;
   onRequest: () => void;
 }
@@ -45,6 +45,8 @@ export function DeletionRequestCard({
       {state === "loading" ? <p className="muted">正在读取删除请求状态…</p> : null}
       {state === "error" ? (
         <p className="muted">删除请求状态暂时没有加载成功；不会因此假定“没有待处理请求”。</p>
+      ) : state === "denied" ? (
+        <p className="muted">当前账号没有查看或提交宠物数据删除请求的权限。</p>
       ) : null}
       {pending ? (
         <div className="v4-note" data-testid="pli.me.data.deletion-pending">
@@ -68,7 +70,7 @@ export function DeletionRequestCard({
         原因（可选）
         <input value={value} onChange={(e) => onValueChange(e.target.value)} disabled={Boolean(pending)} />
       </label>
-      <button className="btn danger" onClick={onRequest} disabled={!pid || Boolean(pending) || state === "loading"}>
+      <button className="btn danger" onClick={onRequest} disabled={!pid || Boolean(pending) || state === "loading" || state === "denied"}>
         {pending ? "已有待处理请求" : "登记删除请求"}
       </button>
     </section>
