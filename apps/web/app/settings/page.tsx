@@ -41,7 +41,22 @@ export default function SettingsPage() {
   const [fbCat, setFbCat] = useState("bug");
   const [fbMsg, setFbMsg] = useState("");
   const [delReason, setDelReason] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [fbDone, setFbDone] = useState(false);
+
+  async function acceptHouseholdInvitation() {
+    if (!inviteCode.trim()) return;
+    setError(null);
+    try {
+      await api.post("/invitations/accept", { token: inviteCode.trim() });
+      setInviteCode("");
+      setFlash("家庭邀请已接受。");
+      pets.reload();
+      setTimeout(() => setFlash(null), 2500);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
 
   async function sendFeedback() {
     setError(null);
@@ -132,6 +147,23 @@ export default function SettingsPage() {
           <Link href="/care" className="btn">
             照护协作
           </Link>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <label className="field">
+            接受家庭邀请
+            <input
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              placeholder="输入邀请码"
+              autoComplete="off"
+            />
+          </label>
+          <button className="btn" onClick={acceptHouseholdInvitation} disabled={!inviteCode.trim()}>
+            接受邀请
+          </button>
+          <p className="muted" style={{ margin: "6px 0 0" }}>
+            邀请码只用于加入家庭，不会授予超出邀请角色的权限。
+          </p>
         </div>
       </div>
 
