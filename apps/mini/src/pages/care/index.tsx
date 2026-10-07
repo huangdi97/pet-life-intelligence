@@ -195,8 +195,35 @@ export default function Care() {
     }
   }
 
-  const memberIndex = Math.max(0, members.findIndex((member) => member.user_id === caregiver));
-  const selectedMember = members[memberIndex];
+  const carePeople = new Map<string, { user_id: string; label: string; role: string }>();
+  members.forEach((member) => {
+    carePeople.set(member.user_id, {
+      user_id: member.user_id,
+      label: member.display_name || member.email || "家庭成员",
+      role: roleLabel(member.role),
+    });
+  });
+  grants.forEach((grant) => {
+    if (!carePeople.has(grant.user_id)) {
+      carePeople.set(grant.user_id, {
+        user_id: grant.user_id,
+        label: grant.user_label || "曾授权照护人",
+        role: "曾授权照护人",
+      });
+    }
+  });
+  handoffs.forEach((handoff) => {
+    if (!carePeople.has(handoff.caregiver_user_id)) {
+      carePeople.set(handoff.caregiver_user_id, {
+        user_id: handoff.caregiver_user_id,
+        label: handoff.caregiver_label || "曾参与照护的人",
+        role: "曾参与照护",
+      });
+    }
+  });
+  const caregiverOptions = [...carePeople.values()];
+  const memberIndex = Math.max(0, caregiverOptions.findIndex((person) => person.user_id === caregiver));
+  const selectedMember = caregiverOptions[memberIndex];
 
   return (
     <View className="page">
@@ -239,22 +266,23 @@ export default function Care() {
         <View className="life-row-detail">默认只开放日常查看与记录权限；到期自动失效，临时照护人不能转授管理权限。</View>
         <View className="field">
           <Text>临时照护人</Text>
-          {members.length ? (
+          {caregiverOptions.length ? (
             <Picker
               mode="selector"
-              range={members.map((member) => `${member.display_name || member.email || "家庭成员"} · ${roleLabel(member.role)}`)}
+              range={caregiverOptions.map((person) => `${person.label} · ${person.role}`)}
               value={memberIndex}
-              onChange={(e) => setCaregiver(members[Number(e.detail.value)]?.user_id ?? "")}
+              onChange={(e) => setCaregiver(caregiverOptions[Number(e.detail.value)]?.user_id ?? "")}
             >
               <View className="input">
                 {caregiver && selectedMember
-                  ? `${selectedMember.display_name || selectedMember.email || "家庭成员"} · ${roleLabel(selectedMember.role)}`
-                  : "选择家庭成员"}
+                  ? `${selectedMember.label} · ${selectedMember.role}`
+                  : "选择照护人"}
               </View>
             </Picker>
           ) : (
-            <View className="life-empty-note">还没有可选择的家庭成员；请先在家庭设置中添加成员。</View>
+            <View className="life-empty-note">还没有可选择的照护人；请先完成家庭邀请。</View>
           )}
+          <View className="life-row-source">新照护人通过家庭邀请进入；这里不会要求输入内部用户 ID。</View>
         </View>
         <View className="field">
           <Text>授权范围</Text>
