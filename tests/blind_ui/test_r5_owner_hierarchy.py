@@ -598,3 +598,24 @@ def test_milestones_and_memories_are_real_cross_client_timeline_flows() -> None:
     assert '@router.get("/pets/{pet_id}/milestones")' in backend
     assert '@router.get("/pets/{pet_id}/memories")' in backend
     assert 'source_type=enums.SourceType.OWNER_REPORTED' in backend
+
+
+def test_diet_profile_is_real_and_truthful_across_owner_clients() -> None:
+    web = read("apps/web/app/pets/[id]/edit/page.tsx")
+    mobile = read("apps/mobile/src/screens/PetProfileScreen.tsx")
+    mini = read("apps/mini/src/pages/pets/index.tsx")
+    backend = read("services/api/app/api/routes/v02_social_platform_daily.py")
+
+    for source in (web, mobile, mini):
+        assert "/diet-profile" in source
+        assert "饮食档案" in source
+        assert "当前主食" in source
+        assert "已知过敏" in source
+        assert "喂养规则" in source
+        assert 'source_type: "OWNER_REPORTED"' in source
+        assert "不等于平台" in source
+        assert "专业确认" in source
+
+    assert '@router.put("/pets/{pet_id}/diet-profile")' in backend
+    assert '@router.get("/pets/{pet_id}/diet-profile")' in backend
+    assert "enums.PROVENANCE_LEVELS" in backend
