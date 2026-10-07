@@ -202,7 +202,10 @@ def make_cat_painter(landmarks: dict) -> PaintFn:
 
     def paint(pos: np.ndarray, nrm: np.ndarray, prior: np.ndarray) -> tuple[np.ndarray, bool]:
         lum = float(np.dot(prior, np.array([0.299, 0.587, 0.114])))
-        base = np.array([0.725, 0.695, 0.655]) * (0.86 + 0.28 * lum)
+        # Slightly cool neutral grey so the warm Living Stage does not
+        # shift the whole cat into a muddy brown mass. Keep enough luminance
+        # headroom for face/chest markings to remain readable at phone scale.
+        base = np.array([0.69, 0.715, 0.735]) * (0.92 + 0.20 * lum)
         obs = _view_observed(pos, nrm, landmarks)
         y = float(pos[1])
         z = float(pos[2])
@@ -212,7 +215,7 @@ def make_cat_painter(landmarks: dict) -> PaintFn:
         stripe = math.sin(phi * 2.0) * 0.5 + 0.5
         upper = max(0.0, float(nrm[1])) * _smooth(0.0, 0.18, y - landmarks.get("belly_y", 0.18))
         t = _smooth(0.28, 0.62, stripe) * upper
-        base = _blend(base, np.array([0.48, 0.45, 0.42]), t * 0.55)
+        base = _blend(base, np.array([0.40, 0.425, 0.45]), t * 0.48)
         # Muzzle + chest white: front band below the eyes.
         ey = landmarks.get("eye_y", 1e9)
         mz = landmarks.get("muzzle_z", 1e9)
