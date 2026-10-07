@@ -199,3 +199,16 @@ def test_twin_review_uses_stable_stand_pose_on_capable_clients() -> None:
     assert 'pose="Stand"' in web
     assert 'pose="Stand"' in mobile
     assert 'pose="Idle"' not in mobile.split('variant="review"', 1)[1].split("/>", 1)[0]
+
+
+def test_training_clients_read_real_sessions_for_progress_and_outcome() -> None:
+    web = read("apps/web/app/training/page.tsx")
+    mobile = read("apps/mobile/src/screens/TrainingScreen.tsx")
+    mini = read("apps/mini/src/pages/training/index.tsx")
+    for source in (web, mobile, mini):
+        assert "/training-sessions?limit=8" in source
+        assert "最近会话与结果" in source
+        assert "掌握度只由已经提交的训练会话更新" in source
+    assert "fmtTime(session.session_at)" in web
+    assert "sessionTimeLabel(session.session_at)" in mobile
+    assert "fmtTime(session.session_at)" in mini
