@@ -19,6 +19,17 @@ interface DiaryRow {
   text: string;
   has_audio: boolean;
 }
+interface DailySummaryRow {
+  summary_id: string;
+  date: string;
+  summary: string;
+  fact_count: number;
+  provider: string;
+  model: string;
+  prompt_version: string;
+  source_type: string;
+  disclaimer: string;
+}
 
 /** OWN-003 Timeline — Life Stream（Stage R.2）：Day Group + time spine + 双栏桌面布局。 */
 export default function TimelinePage() {
@@ -33,10 +44,19 @@ export default function TimelinePage() {
   const [diaryText, setDiaryText] = useState("");
   const [diaryBusy, setDiaryBusy] = useState(false);
   const [diaryError, setDiaryError] = useState<string | null>(null);
+  const [summaryBusy, setSummaryBusy] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
   const diary = useAsync<DiaryRow[]>(
     () =>
       petId
         ? api.get<DiaryRow[]>(`/pets/${petId}/diary?limit=5`)
+        : Promise.reject(new Error("NO_PET_SELECTED")),
+    [petId],
+  );
+  const dailySummaries = useAsync<DailySummaryRow[]>(
+    () =>
+      petId
+        ? api.get<DailySummaryRow[]>(`/pets/${petId}/daily-summaries?limit=7`)
         : Promise.reject(new Error("NO_PET_SELECTED")),
     [petId],
   );
@@ -87,6 +107,21 @@ export default function TimelinePage() {
     // 不把「今日查看」这类系统噪音当作生活记录展示（blind-UI 契约）。
     return rows.filter((e) => e.event_type !== "today.viewed");
   }, [timeline.data, domain, source, mediaOnly, search, day]);
+
+  async function generateDailySummary() {
+    if (!petId || summaryBusy) return;
+    setSummaryBusy(true);
+    setSummaryError(null);
+    try {
+      await api.post(`/pets/${petId}/daily-summary`, {});
+      dailySummaries.reload();
+      timeline.reload();
+    } catch (e) {
+      setSummaryError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSummaryBusy(false);
+    }
+  }
 
   async function addDiary() {
     const text = diaryText.trim();
@@ -203,6 +238,32 @@ export default function TimelinePage() {
               <p className="v4-note">最近日记暂时没有加载成功；不会把未知状态显示成空。</p>
             ) : null}
           </div>
+          <div className="v4-sec" data-testid="pli.timeline.daily-summary">
+            <div className="v4-sec-head">
+              <h2 className="v4-sec-title">今日回顾</h2>
+              <button type="button" className="v4-sec-link" onClick={() => void generateDailySummary()} disabled={summaryBusy}>
+                {summaryBusy ? "整理中…" : dailySummaries.data?.[0]?.date === new Date().toISOString().slice(0, 10) ? "重新整理" : "自动整理"}
+              </button>
+            </div>
+            <p className="v4-note" style={{ margin: "6px 0 8px" }}>
+              AI 只整理已经记录的事实；不会把推测写成生活记录，也不会替代原始时间线。
+            </p>
+            {dailySummaries.state === "ready" && dailySummaries.data?.length ? (
+              <div className="v4-calm">
+                <p className="v4-calm-body">{dailySummaries.data[0].summary}</p>
+                <p className="v4-note" style={{ margin: "6px 0 0" }}>
+                  AI 自动整理 · {dailySummaries.data[0].fact_count} 条已记录事实 · {dailySummaries.data[0].date}
+                </p>
+                <p className="v4-note" style={{ margin: "4px 0 0" }}>{dailySummaries.data[0].disclaimer}</p>
+              </div>
+            ) : dailySummaries.state === "error" ? (
+              <p className="v4-note">今日回顾暂时没有加载成功；原始记录仍以时间线为准。</p>
+            ) : (
+              <p className="v4-note">还没有生成今日回顾。</p>
+            )}
+            {summaryError ? <p className="v4-note">暂时无法整理：{summaryError}</p> : null}
+          </div>
+
           <div className="v4-sec">
             <h2 className="v4-sec-title">关于时间线</h2>
             <p className="v4-note" style={{ margin: "6px 0 0" }}>
