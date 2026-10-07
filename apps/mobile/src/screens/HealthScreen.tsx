@@ -20,6 +20,19 @@ import type { StackParamList } from "../navigation";
 
 type StackNav = NativeStackNavigationProp<StackParamList>;
 
+interface ReminderRow {
+  reminder_id: string;
+  kind: "VACCINE" | "DEWORMING" | "CHECKUP";
+  title: string;
+  due_date: string;
+  status: string;
+}
+const REMINDER_KIND_LABEL: Record<ReminderRow["kind"], string> = {
+  VACCINE: "疫苗",
+  DEWORMING: "驱虫",
+  CHECKUP: "体检",
+};
+
 interface HealthEventCreateResp {
   health_event_id: string;
   status: string;
@@ -59,6 +72,12 @@ export function HealthScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [createdLevel, setCreatedLevel] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
+  const [reminders, setReminders] = useState<ReminderRow[]>([]);
+  const [reminderState, setReminderState] = useState<"loading" | "ready" | "error">("loading");
+  const [reminderKind, setReminderKind] = useState<ReminderRow["kind"]>("VACCINE");
+  const [reminderTitle, setReminderTitle] = useState("");
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderBusy, setReminderBusy] = useState<string | null>(null);
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
@@ -84,6 +103,57 @@ export function HealthScreen() {
       alive = false;
     };
   }, [petId, version]);
+
+  useEffect(() => {
+    if (!petId) return;
+    let alive = true;
+    setReminderState("loading");
+    api.get<ReminderRow[]>(`/pets/${petId}/reminders`)
+      .then((items) => {
+        if (!alive) return;
+        setReminders(items);
+        setReminderState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setReminders([]);
+        setReminderState("error");
+      });
+    return () => { alive = false; };
+  }, [petId, version]);
+
+  async function createReminder() {
+    if (!petId || reminderBusy || !reminderTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(reminderDate)) return;
+    setReminderBusy("create");
+    try {
+      await api.post(`/pets/${petId}/reminders`, {
+        kind: reminderKind,
+        title: reminderTitle.trim(),
+        due_date: reminderDate,
+        note: "",
+      });
+      setReminderTitle("");
+      setReminderDate("");
+      setVersion((value) => value + 1);
+    } catch {
+      setReminderState("error");
+    } finally {
+      setReminderBusy(null);
+    }
+  }
+
+  async function completeReminder(reminderId: string) {
+    if (reminderBusy) return;
+    setReminderBusy(reminderId);
+    try {
+      await api.post(`/reminders/${reminderId}/done`, {});
+      setVersion((value) => value + 1);
+    } catch {
+      setReminderState("error");
+    } finally {
+      setReminderBusy(null);
+    }
+  }
 
   async function submit() {
     if (!petId || saving) return;
@@ -213,8 +283,61 @@ export function HealthScreen() {
             </OpenSection>
 
             <OpenSection title="预防与用药">
-              <View testID="pli.health.prevent" style={styles.recordRow}>
-                <Text style={styles.recordMeta}>疫苗与驱虫：当前页面未汇总</Text>
+              <View testID="pli.health.prevent">
+                <Text style={styles.emptyText}>疫苗、驱虫和体检提醒来自主人明确记录；到期不等于异常，也不会自动推断已经完成。</Text>
+                {reminderState === "loading" ? (
+                  <Text style={styles.emptyText}>正在读取预防提醒……</Text>
+                ) : reminderState === "error" ? (
+                  <Text style={styles.emptyText}>预防提醒暂时没有加载成功；不会用默认日期替代真实计划。</Text>
+                ) : reminders.length ? (
+                  reminders.map((row, index) => (
+                    <View key={row.reminder_id} style={[styles.recordRow, index > 0 && styles.recordDivider]}>
+                      <View style={styles.recordText}>
+                        <Text style={styles.recordTitle}>{REMINDER_KIND_LABEL[row.kind]} · {row.title}</Text>
+                        <Text style={styles.recordMeta}>计划日期：{row.due_date} · {row.status === "DONE" ? "已完成" : "待完成"}</Text>
+                      </View>
+                      {row.status !== "DONE" ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`标记完成：${row.title}`}
+                          disabled={reminderBusy !== null}
+                          onPress={() => void completeReminder(row.reminder_id)}
+                          style={styles.recordsEmptyAction}
+                        >
+                          <Text style={styles.recordsEmptyActionText}>{reminderBusy === row.reminder_id ? "保存中…" : "完成"}</Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>还没有预防提醒。</Text>
+                )}
+                <View style={styles.reminderForm}>
+                  <View style={styles.sessionRow}>
+                    {(["VACCINE", "DEWORMING", "CHECKUP"] as const).map((kind) => (
+                      <Pressable
+                        key={kind}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: reminderKind === kind }}
+                        onPress={() => setReminderKind(kind)}
+                        style={[styles.reminderChip, reminderKind === kind && styles.reminderChipSelected]}
+                      >
+                        <Text style={[styles.reminderChipText, reminderKind === kind && styles.reminderChipTextSelected]}>{REMINDER_KIND_LABEL[kind]}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  <TextInput style={styles.input} value={reminderDate} onChangeText={setReminderDate} placeholder="计划日期 YYYY-MM-DD" placeholderTextColor={COLORS.textTertiary} autoCapitalize="none" />
+                  <TextInput style={styles.input} value={reminderTitle} onChangeText={setReminderTitle} placeholder="例如：年度核心疫苗" placeholderTextColor={COLORS.textTertiary} />
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="添加预防提醒"
+                    disabled={reminderBusy !== null || !reminderTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(reminderDate)}
+                    onPress={() => void createReminder()}
+                    style={[styles.recordsEmptyAction, { alignSelf: "flex-start" }]}
+                  >
+                    <Text style={styles.recordsEmptyActionText}>{reminderBusy === "create" ? "保存中…" : "添加提醒"}</Text>
+                  </Pressable>
+                </View>
               </View>
               <Pressable
                 testID="pli.health.medication"
@@ -332,6 +455,11 @@ const styles = StyleSheet.create({
   changeBody: { fontSize: TYPE.body, color: COLORS.textPrimary, marginTop: SPACE.s2, lineHeight: 22 },
   recordRow: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: 10 },
   recordDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
+  reminderForm: { marginTop: SPACE.s3, gap: SPACE.s2 },
+  reminderChip: { minHeight: 40, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised },
+  reminderChipSelected: { backgroundColor: COLORS.brandSoftGreen },
+  reminderChipText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
+  reminderChipTextSelected: { color: COLORS.brandPrimaryDeep, fontWeight: "700" },
   riskPill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   riskPillText: { fontSize: TYPE.caption, fontWeight: "700" },
   recordText: { flex: 1 },
