@@ -11,9 +11,37 @@ import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
 import { OpenSection } from "../components/feedback/OpenSection";
 import { EmptyState, InlineError, Skeleton } from "../components/feedback/Feedback";
 
+interface TrainingSessionRow {
+  session_id: string;
+  goal_id: string | null;
+  session_at: string;
+  duration_minutes: number;
+  focus: string;
+  notes: string;
+  pet_response: string;
+  rewards_used: string[];
+}
+
+function responseLabel(response: string): string {
+  if (response === "GREAT") return "表现很好";
+  if (response === "GOOD") return "表现好";
+  if (response === "POOR") return "遇到困难";
+  return "已记录";
+}
+
+function sessionTimeLabel(value: string): string {
+  try {
+    return new Date(value).toLocaleString("zh-CN", { hour12: false });
+  } catch {
+    return value;
+  }
+}
+
 export function TrainingScreen() {
   const { pets, petId } = usePets();
   const [goals, setGoals] = useState<TrainingGoalRow[]>([]);
+  const [sessions, setSessions] = useState<TrainingSessionRow[]>([]);
+  const [sessionsState, setSessionsState] = useState<"loading" | "ready" | "error">("loading");
   const [tools, setTools] = useState<TrainingTools | null>(null);
   const [toolsState, setToolsState] = useState<"loading" | "ready" | "error">("loading");
   const [loading, setLoading] = useState(true);
@@ -44,6 +72,21 @@ export function TrainingScreen() {
       })
       .finally(() => {
         if (alive) setLoading(false);
+      });
+    setSessionsState("loading");
+    api
+      .get<TrainingSessionRow[]>(`/pets/${petId}/training-sessions?limit=8`)
+      .then((rows) => {
+        if (alive) {
+          setSessions(rows);
+          setSessionsState("ready");
+        }
+      })
+      .catch(() => {
+        if (alive) {
+          setSessions([]);
+          setSessionsState("error");
+        }
       });
     api
       .get<TrainingTools>("/training/tools")
@@ -140,7 +183,7 @@ export function TrainingScreen() {
                     </View>
                   ) : null}
                   <Text testID="pli.training.reward" style={styles.rewardText}>奖励：零食 · 正向强化</Text>
-                  <View testID="pli.training.recent" style={styles.sessionRow}>
+                  <View style={styles.sessionRow}>
                     <SessionChip label="表现好" onPress={() => void logSession(current.goal_id, "GOOD")} disabled={busyGoal !== null} />
                     <SessionChip label="表现很好" onPress={() => void logSession(current.goal_id, "GREAT")} disabled={busyGoal !== null} />
                     <SessionChip label="遇到困难" onPress={() => void logSession(current.goal_id, "POOR")} disabled={busyGoal !== null} />
@@ -159,9 +202,38 @@ export function TrainingScreen() {
 
             {current ? (
               <OpenSection title="进展" testID="pli.training.progress">
-                <Text style={styles.progressNote}>每次会话都会累积到掌握度。与它自己相比，慢慢进步就好。</Text>
+                <Text style={styles.progressNote}>掌握度只由已经提交的训练会话更新；不会根据猜测或一次表现自动判定“学会了”。</Text>
               </OpenSection>
             ) : null}
+
+            <OpenSection title="最近会话与结果" testID="pli.training.recent">
+              {sessionsState === "loading" ? (
+                <Text style={styles.emptyText}>正在读取最近训练会话……</Text>
+              ) : sessionsState === "error" ? (
+                <Text style={styles.emptyText}>最近会话暂时没有加载成功；不会用目标掌握度反推不存在的会话。</Text>
+              ) : sessions.length === 0 ? (
+                <Text style={styles.emptyText}>还没有记录过训练会话。</Text>
+              ) : (
+                sessions.slice(0, 5).map((session, index) => {
+                  const goal = goals.find((item) => item.goal_id === session.goal_id);
+                  return (
+                    <View key={session.session_id} style={[styles.historyRow, index > 0 && styles.rowDivider]}>
+                      <View style={styles.historyHead}>
+                        <Text style={styles.historyGoal}>{goal?.title ?? "训练会话"}</Text>
+                        <Text style={styles.historyOutcome}>结果：{responseLabel(session.pet_response)}</Text>
+                      </View>
+                      <Text style={styles.historyMeta}>
+                        {sessionTimeLabel(session.session_at)} · {session.duration_minutes} 分钟
+                        {session.focus ? ` · ${session.focus}` : ""}
+                      </Text>
+                      {session.rewards_used?.length ? (
+                        <Text style={styles.historyMeta}>奖励：{session.rewards_used.join("、")}</Text>
+                      ) : null}
+                    </View>
+                  );
+                })
+              )}
+            </OpenSection>
 
             <OpenSection title="安全工具" caption={tools?.banned_note ?? undefined}>
               {toolsState === "loading" ? (
@@ -258,6 +330,11 @@ const styles = StyleSheet.create({
   sessionChip: { minHeight: 44, justifyContent: "center", backgroundColor: COLORS.brandSoftGreen, borderRadius: 999, paddingHorizontal: SPACE.s3, paddingVertical: 8 },
   sessionChipText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   progressNote: { fontSize: TYPE.body, color: COLORS.textTertiary, lineHeight: 22 },
+  historyRow: { paddingVertical: 10 },
+  historyHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: SPACE.s2 },
+  historyGoal: { flex: 1, fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "600" },
+  historyOutcome: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  historyMeta: { marginTop: 4, fontSize: TYPE.meta, color: COLORS.textTertiary },
   toolRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.dividerSubtle },
   toolName: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "500" },
   toolUse: { fontSize: TYPE.meta, color: COLORS.textTertiary },
