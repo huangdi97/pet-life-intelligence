@@ -8,6 +8,20 @@ import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State, TriageBadge } from "../../components/ui";
 import { triageLabel } from "../../lib/ownerLabels";
 
+interface ReminderRow {
+  reminder_id: string;
+  kind: "VACCINE" | "DEWORMING" | "CHECKUP";
+  title: string;
+  due_date: string;
+  status: string;
+}
+
+const REMINDER_KIND_LABEL: Record<ReminderRow["kind"], string> = {
+  VACCINE: "疫苗",
+  DEWORMING: "驱虫",
+  CHECKUP: "体检",
+};
+
 interface HealthEventRow {
   health_event_id: string;
   status: string;
@@ -23,6 +37,13 @@ export default function HealthPage() {
   const router = useRouter();
   const pets = useAsync<Pet[]>(() => api.get<Pet[]>("/pets"), []);
   const current = pets.data?.find((p) => p.id === petId) ?? pets.data?.[0];
+  const reminders = useAsync<ReminderRow[]>(
+    () =>
+      petId
+        ? api.get<ReminderRow[]>(`/pets/${petId}/reminders`)
+        : Promise.reject(new Error("no pet")),
+    [petId],
+  );
   const list = useAsync<HealthEventRow[]>(
     () =>
       petId
@@ -35,6 +56,46 @@ export default function HealthPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [reminderKind, setReminderKind] = useState<ReminderRow["kind"]>("VACCINE");
+  const [reminderTitle, setReminderTitle] = useState("");
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderBusy, setReminderBusy] = useState<string | null>(null);
+  const [reminderError, setReminderError] = useState<string | null>(null);
+
+  async function createReminder() {
+    if (!petId || !reminderTitle.trim() || !reminderDate || reminderBusy) return;
+    setReminderBusy("create");
+    setReminderError(null);
+    try {
+      await api.post(`/pets/${petId}/reminders`, {
+        kind: reminderKind,
+        title: reminderTitle.trim(),
+        due_date: reminderDate,
+        note: "",
+      });
+      setReminderTitle("");
+      setReminderDate("");
+      reminders.reload();
+    } catch (e) {
+      setReminderError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setReminderBusy(null);
+    }
+  }
+
+  async function completeReminder(reminderId: string) {
+    if (reminderBusy) return;
+    setReminderBusy(reminderId);
+    setReminderError(null);
+    try {
+      await api.post(`/reminders/${reminderId}/done`, {});
+      reminders.reload();
+    } catch (e) {
+      setReminderError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setReminderBusy(null);
+    }
+  }
 
   async function open() {
     if (!petId || !complaint.trim()) return;
@@ -89,8 +150,56 @@ export default function HealthPage() {
       </section>
 
       <section className="v4-sec" data-testid="pli.health.prevent">
-        <h2 className="v4-sec-title">预防与计划</h2>
-        <p className="muted" style={{ margin: 0 }}>疫苗、驱虫与定期体检记录会集中在这里。还没有相关记录。</p>
+        <div className="v4-sec-head">
+          <div>
+            <h2 className="v4-sec-title">预防与计划</h2>
+            <p className="v4-sec-sub">疫苗、驱虫和体检提醒来自主人明确记录；到期不等于异常，也不会自动推断已经完成。</p>
+          </div>
+        </div>
+        <State
+          state={reminders.state}
+          error={reminders.error}
+          onRetry={reminders.reload}
+          empty="还没有预防提醒。"
+        >
+          <div className="v4-list">
+            {(reminders.data ?? []).map((row) => (
+              <div className="v4-list-row" key={row.reminder_id}>
+                <div>
+                  <strong>{REMINDER_KIND_LABEL[row.kind] ?? "提醒"} · {row.title}</strong>
+                  <div className="v4-note">计划日期：{row.due_date} · {row.status === "DONE" ? "已完成" : "待完成"}</div>
+                </div>
+                {row.status !== "DONE" ? (
+                  <button className="btn" onClick={() => void completeReminder(row.reminder_id)} disabled={reminderBusy !== null}>
+                    {reminderBusy === row.reminder_id ? "保存中…" : "标记完成"}
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </State>
+        <div className="grid2" style={{ marginTop: 12 }}>
+          <label className="field">
+            类型
+            <select value={reminderKind} onChange={(e) => setReminderKind(e.target.value as ReminderRow["kind"])}>
+              <option value="VACCINE">疫苗</option>
+              <option value="DEWORMING">驱虫</option>
+              <option value="CHECKUP">体检</option>
+            </select>
+          </label>
+          <label className="field">
+            计划日期
+            <input type="date" value={reminderDate} onChange={(e) => setReminderDate(e.target.value)} />
+          </label>
+          <label className="field" style={{ gridColumn: "1 / -1" }}>
+            提醒内容
+            <input value={reminderTitle} onChange={(e) => setReminderTitle(e.target.value)} placeholder="例如：年度核心疫苗" />
+          </label>
+        </div>
+        {reminderError ? <p className="v4-note">提醒暂时没有保存成功：{reminderError}</p> : null}
+        <button className="btn" onClick={() => void createReminder()} disabled={reminderBusy !== null || !reminderTitle.trim() || !reminderDate}>
+          {reminderBusy === "create" ? "保存中…" : "添加预防提醒"}
+        </button>
       </section>
 
       <section className="v4-sec" data-testid="pli.health.medication">
