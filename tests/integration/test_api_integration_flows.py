@@ -283,3 +283,26 @@ class TestPlatformFeatures:
         got = client.get(f"/api/v1/artifacts/{artifact_id}/content", headers=auth(owner))
         assert got.status_code == 200
         assert got.content == png
+
+
+
+class TestDiaryFlow:
+    def test_text_diary_creates_owner_reported_life_event(self, client, seeded):
+        owner, pet_id = seeded["owner_id"], seeded["coco_id"]
+        created = client.post(
+            f"/api/v1/pets/{pet_id}/diary",
+            json={"text": "今天散步时第一次主动去闻路边的花。"},
+            headers=auth(owner),
+        )
+        assert created.status_code == 201, created.text
+
+        diary = client.get(f"/api/v1/pets/{pet_id}/diary", headers=auth(owner))
+        assert diary.status_code == 200, diary.text
+        assert diary.json()[0]["text"] == "今天散步时第一次主动去闻路边的花。"
+
+        events = client.get(f"/api/v1/pets/{pet_id}/events?event_type=diary.created", headers=auth(owner))
+        assert events.status_code == 200, events.text
+        rows = events.json()["events"]
+        assert rows
+        assert rows[0]["source_type"] == "OWNER_REPORTED"
+        assert rows[0]["payload"]["diary_id"] == created.json()["diary_id"]
