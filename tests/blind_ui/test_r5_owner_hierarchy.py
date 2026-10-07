@@ -536,3 +536,23 @@ def test_pet_identifiers_and_lifecycle_are_real_across_owner_clients() -> None:
     assert '@router.get("/pets/{pet_id}/identifiers")' in route
     assert '@router.post("/pets/{pet_id}/status"' in route
     assert "DECEASED is terminal" in route
+
+
+def test_today_never_labels_unavailable_attention_evidence_as_calm() -> None:
+    web_page = read("apps/web/app/page.tsx")
+    web_attention = read("apps/web/app/_components/today/AttentionCard.tsx")
+    mobile = read("apps/mobile/src/screens/TodayScreen.tsx")
+    mini = read("apps/mini/src/pages/index/index.tsx")
+
+    assert "attentionEvidenceReady" in web_page
+    assert "关注状态暂时无法确认" in web_attention
+    assert "不会把未知状态显示成“没有变化”" in web_attention
+
+    # Mobile already uses hint=null as an explicit unknown state after a
+    # failed/absent baseline response.
+    assert 'kind: "unknown"' in mobile
+    assert "今天还没有足够信息判断是否有需要关注的变化" in mobile
+
+    assert 'healthState' in mini
+    assert 'kind="unknown"' in mini
+    assert "不会把未知状态显示成“没有变化”" in mini
