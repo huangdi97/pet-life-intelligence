@@ -256,3 +256,67 @@ def test_care_card_share_can_be_revoked_from_owner_surface_contract(client, seed
 
     denied = client.get(f"/api/v1/care-card/{body['token']}")
     assert denied.status_code == 403
+
+
+def test_notification_read_flow_is_scoped_and_idempotent(client, seeded):
+    owner = seeded["owner_id"]
+    outsider = seeded["sitter_id"]
+    coco = seeded["coco_id"]
+    household = seeded["household_id"]
+
+    created = client.post(
+        f"/api/v1/pets/{coco}/deletion-requests",
+        json={"reason": "notification-read-contract"},
+        headers=auth(owner),
+    )
+    assert created.status_code == 201, created.text
+
+    listed = client.get(
+        f"/api/v1/households/{household}/notifications",
+        headers=auth(owner),
+    )
+    assert listed.status_code == 200, listed.text
+    row = next(n for n in listed.json() if n["type"] == "DELETION_REQUESTED" and not n["read_at"])
+
+    denied = client.post(
+        f"/api/v1/notifications/{row['id']}/read",
+        json={},
+        headers=auth(outsider),
+    )
+    assert denied.status_code == 403
+
+    first = client.post(
+        f"/api/v1/notifications/{row['id']}/read",
+        json={},
+        headers=auth(owner),
+    )
+    assert first.status_code == 200, first.text
+    assert first.json()["read_at"]
+
+    replay = client.post(
+        f"/api/v1/notifications/{row['id']}/read",
+        json={},
+        headers=auth(owner),
+    )
+    assert replay.status_code == 200
+    assert replay.json()["read_at"] == first.json()["read_at"]
+
+    created2 = client.post(
+        f"/api/v1/pets/{coco}/deletion-requests",
+        json={"reason": "notification-read-all-contract"},
+        headers=auth(owner),
+    )
+    assert created2.status_code == 201
+    all_read = client.post(
+        f"/api/v1/households/{household}/notifications/read-all",
+        json={},
+        headers=auth(owner),
+    )
+    assert all_read.status_code == 200, all_read.text
+    assert all_read.json()["marked"] >= 1
+
+    final = client.get(
+        f"/api/v1/households/{household}/notifications",
+        headers=auth(owner),
+    ).json()
+    assert all(n["read_at"] is not None for n in final)
