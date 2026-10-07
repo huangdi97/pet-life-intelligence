@@ -163,8 +163,15 @@ async def update_pet(
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.MANAGE_PET)
     changed = []
+    nullable_fields = {"birth_date", "neutered"}
     for field, value in body.model_dump(exclude_unset=True).items():
-        if value is not None and getattr(pet, field) != value:
+        # birth_date/neutered explicitly support clearing back to "unknown".
+        # Other identity strings ignore null rather than erasing required data.
+        if field in nullable_fields:
+            if getattr(pet, field) != value:
+                setattr(pet, field, value)
+                changed.append(field)
+        elif value is not None and getattr(pet, field) != value:
             setattr(pet, field, value)
             changed.append(field)
     await db.flush()
