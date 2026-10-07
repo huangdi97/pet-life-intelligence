@@ -381,3 +381,20 @@ def test_household_invitation_acceptance_exists_in_me() -> None:
 
     assert '@router.post("/invitations/accept")' in route
     assert "Invitation was issued to a different account." in route
+
+
+def test_handoff_checklist_is_actionable_across_owner_clients() -> None:
+    web = read("apps/web/app/care/page.tsx")
+    mobile = read("apps/mobile/src/screens/CareScreen.tsx")
+    mini = read("apps/mini/src/pages/care/index.tsx")
+    route = read("services/api/app/api/routes/care_handoffs.py")
+
+    for source in (web, mobile, mini):
+        assert "handoffChecklist" in source
+        assert "交接确认" in source
+        assert "确认完成" in source
+        assert "/checklist/" in source
+        assert "紧急联系人与就医方式已确认" in source
+
+    assert '@router.post("/handoffs/{handoff_id}/checklist/{item_id}/complete")' in route
+    assert "care.handoff_checklist_completed" in route
