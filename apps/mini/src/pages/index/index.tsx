@@ -29,6 +29,7 @@ export default function Index() {
   const [today, setToday] = useState<TodayData | null>(null);
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [healthRows, setHealthRows] = useState<HealthEventRow[]>([]);
+  const [healthState, setHealthState] = useState<"loading" | "ready" | "error">("loading");
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error" | "denied">("loading");
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -65,10 +66,17 @@ export default function Index() {
   }, []);
 
   const loadAttention = useCallback((pid: string) => {
+    setHealthState("loading");
     api
       .get<HealthEventRow[]>(`/pets/${pid}/health-events`)
-      .then((rows) => setHealthRows(rows))
-      .catch(() => setHealthRows([]));
+      .then((rows) => {
+        setHealthRows(rows);
+        setHealthState("ready");
+      })
+      .catch(() => {
+        setHealthRows([]);
+        setHealthState("error");
+      });
   }, []);
 
   useDidShow(() => {
@@ -217,7 +225,13 @@ export default function Index() {
             emptyNote="今天还没有足够记录"
           />
 
-          {danger ? (
+          {healthState !== "ready" ? (
+            <AttentionPanel
+              kind="unknown"
+              body={healthState === "loading" ? "正在核对需要关注的健康变化。" : "关注状态暂时无法确认。"}
+              footer={healthState === "error" ? "健康信息没有完整读取到，不会把未知状态显示成“没有变化”" : undefined}
+            />
+          ) : danger ? (
             <AttentionPanel
               kind="danger"
               body={danger.chief_complaint || "有一条健康记录需要关注，请查看健康页。"}
@@ -232,7 +246,7 @@ export default function Index() {
               onPress={() => Taro.navigateTo({ url: "/pages/health/index" })}
             />
           ) : (
-            <AttentionPanel kind="calm" body="目前没有需要特别关注的变化。" />
+            <AttentionPanel kind="calm" body="目前没有规则标记的健康变化。" />
           )}
 
           {/* R5.4: ACTION immediately follows Attention; supporting tasks
