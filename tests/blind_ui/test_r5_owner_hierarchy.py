@@ -107,3 +107,19 @@ def test_mini_pet_identity_localizes_common_breeds() -> None:
     assert "breedLabel(pet.breed)" in source
     assert 'return "柯基"' in formatting
     assert 'return "长毛家猫"' in formatting
+
+
+def test_web_assistant_keeps_ask_primary() -> None:
+    source = read("apps/web/app/agent/page.tsx")
+    assert "v4-tabs" not in source
+    assert "v5-assistant-primary-lead" in source
+    assert "先问一件和" in source
+    assert "更多帮助" in source
+    assert "contextualTools" in source
+    assert '"找记录"' in source
+
+
+def test_web_timeline_pet_identity_localizes_catalogue_breed() -> None:
+    source = read("apps/web/app/timeline/page.tsx")
+    assert "breedLabel(current.breed)" in source
+    assert "current.breed || current.species" not in source
