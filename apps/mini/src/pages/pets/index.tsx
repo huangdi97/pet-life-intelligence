@@ -15,6 +15,27 @@ import { EmptyState } from "../../components/feedback/Feedback";
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 
+interface IdentifierRow {
+  identifier_id: string;
+  identifier_type: "CHIP" | "PASSPORT" | "TATTOO";
+  value: string;
+  verified: boolean;
+  source_type: string;
+}
+
+const IDENTIFIER_TYPES = [
+  ["CHIP", "芯片号"],
+  ["PASSPORT", "宠物护照"],
+  ["TATTOO", "纹身标识"],
+] as const;
+
+const LIFECYCLE_OPTIONS = [
+  ["ACTIVE", "正常生活中"],
+  ["LOST", "走失"],
+  ["TRANSFERRED", "已转交"],
+  ["DECEASED", "已离世"],
+] as const;
+
 interface BaselineRow {
   metric: string;
   value: string;
@@ -57,6 +78,13 @@ export default function Pets() {
   const [busy, setBusy] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editBusy, setEditBusy] = useState(false);
+  const [identifiers, setIdentifiers] = useState<IdentifierRow[]>([]);
+  const [identifierType, setIdentifierType] = useState<IdentifierRow["identifier_type"]>("CHIP");
+  const [identifierValue, setIdentifierValue] = useState("");
+  const [identifierBusy, setIdentifierBusy] = useState(false);
+  const [lifecycleStatus, setLifecycleStatus] = useState("ACTIVE");
+  const [lifecycleNote, setLifecycleNote] = useState("");
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
     breed: "",
@@ -79,6 +107,26 @@ export default function Pets() {
       weight_note: current.weight_note ?? "",
     });
   }, [current?.id]);
+
+  useEffect(() => {
+    if (!current?.id) {
+      setIdentifiers([]);
+      setLifecycleStatus("ACTIVE");
+      return;
+    }
+    setLifecycleStatus(current.lifecycle_status ?? "ACTIVE");
+    let alive = true;
+    api.get<IdentifierRow[]>(`/pets/${current.id}/identifiers`)
+      .then((rows) => {
+        if (alive) setIdentifiers(rows);
+      })
+      .catch(() => {
+        if (alive) setIdentifiers([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [current?.id, current?.lifecycle_status]);
 
   useEffect(() => {
     if (!petId) return;
@@ -221,6 +269,45 @@ export default function Pets() {
     }
   }
 
+  async function addIdentifier() {
+    if (!current?.id || !identifierValue.trim() || identifierBusy) return;
+    setIdentifierBusy(true);
+    try {
+      await api.post(`/pets/${current.id}/identifiers`, {
+        identifier_type: identifierType,
+        value: identifierValue.trim(),
+        source_type: "OWNER_REPORTED",
+        verify: false,
+      });
+      setIdentifiers(await api.get<IdentifierRow[]>(`/pets/${current.id}/identifiers`));
+      setIdentifierValue("");
+      Taro.showToast({ title: "标识已记录", icon: "success" });
+    } catch {
+      Taro.showToast({ title: "暂时无法记录标识", icon: "none" });
+    } finally {
+      setIdentifierBusy(false);
+    }
+  }
+
+  async function saveLifecycle() {
+    if (!current?.id || lifecycleBusy || lifecycleStatus === current.lifecycle_status) return;
+    setLifecycleBusy(true);
+    try {
+      await api.post(`/pets/${current.id}/status`, {
+        status: lifecycleStatus,
+        note: lifecycleNote.trim(),
+      });
+      setLifecycleNote("");
+      refresh();
+      Taro.showToast({ title: "生命状态已保存", icon: "success" });
+    } catch {
+      setLifecycleStatus(current.lifecycle_status ?? "ACTIVE");
+      Taro.showToast({ title: "暂时无法保存状态", icon: "none" });
+    } finally {
+      setLifecycleBusy(false);
+    }
+  }
+
   async function saveEdit() {
     if (!current?.id || !editForm.name.trim() || editBusy) return;
     setEditBusy(true);
@@ -311,6 +398,72 @@ export default function Pets() {
                 </Button>
               </View>
             ) : null}
+          </View>
+
+          <View className="open-section" data-testid="pli.mini.pet.identifiers">
+            <View className="section-title">
+              身份标识
+              <Text className="section-caption">主人记录</Text>
+            </View>
+            <View className="life-empty-note">芯片、护照或纹身标识可以帮助确认身份；手工录入不会自动标记为已验证。</View>
+            {identifiers.length ? identifiers.map((row) => (
+              <View className="life-row" key={row.identifier_id}>
+                <View className="life-row-body">
+                  <View className="life-row-head">
+                    <Text className="life-row-type">{IDENTIFIER_TYPES.find(([value]) => value === row.identifier_type)?.[1] ?? "身份标识"}</Text>
+                    <Text className="life-row-time">{row.verified ? "已验证" : "未验证"}</Text>
+                  </View>
+                  <View className="life-row-detail">{row.value}</View>
+                </View>
+              </View>
+            )) : <View className="life-empty-note">还没有记录身份标识。</View>}
+            <View className="field">
+              <Text>标识类型</Text>
+              <Picker
+                mode="selector"
+                range={IDENTIFIER_TYPES.map(([, label]) => label)}
+                onChange={(event) => setIdentifierType(IDENTIFIER_TYPES[Number(event.detail.value)]?.[0] ?? "CHIP")}
+              >
+                <View className="input">{IDENTIFIER_TYPES.find(([value]) => value === identifierType)?.[1] ?? "芯片号"}</View>
+              </Picker>
+            </View>
+            <View className="field">
+              <Text>标识内容</Text>
+              <Input className="input" value={identifierValue} onInput={(event) => setIdentifierValue(event.detail.value)} placeholder="按原件或芯片读取结果填写" />
+            </View>
+            <Button className="btn" disabled={identifierBusy || !identifierValue.trim()} onClick={() => void addIdentifier()}>
+              {identifierBusy ? "记录中…" : "记录标识"}
+            </Button>
+          </View>
+
+          <View className="open-section" data-testid="pli.mini.pet.lifecycle">
+            <View className="section-title">
+              生命状态
+              <Text className="section-caption">会写入时间线</Text>
+            </View>
+            <View className="life-empty-note">状态变化会保留审计；“已离世”为终态，只在确认事实后记录。</View>
+            <Picker
+              mode="selector"
+              disabled={current.lifecycle_status === "DECEASED"}
+              range={LIFECYCLE_OPTIONS.map(([, label]) => label)}
+              onChange={(event) => setLifecycleStatus(LIFECYCLE_OPTIONS[Number(event.detail.value)]?.[0] ?? "ACTIVE")}
+            >
+              <View className="input">{LIFECYCLE_OPTIONS.find(([value]) => value === lifecycleStatus)?.[1] ?? "正常生活中"}</View>
+            </Picker>
+            <Input
+              className="input"
+              disabled={current.lifecycle_status === "DECEASED"}
+              value={lifecycleNote}
+              onInput={(event) => setLifecycleNote(event.detail.value)}
+              placeholder="备注（可选，只写确认过的事实）"
+            />
+            <Button
+              className="btn"
+              disabled={lifecycleBusy || lifecycleStatus === current.lifecycle_status || current.lifecycle_status === "DECEASED"}
+              onClick={() => void saveLifecycle()}
+            >
+              {current.lifecycle_status === "DECEASED" ? "已记录为离世" : lifecycleBusy ? "保存中…" : "保存生命状态"}
+            </Button>
           </View>
 
           <View className="open-section" data-testid="pli.mini.pet.baseline">
