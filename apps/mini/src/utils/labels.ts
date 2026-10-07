@@ -16,6 +16,7 @@ export function eventTypeLabel(eventType: string): string {
     "daily.weight": "体重",
     "daily.sleep": "睡眠",
     "diary.created": "备注",
+    "milestone.recorded": "里程碑",
     "medication.administered": "用药",
     "behavior.observed": "行为",
     "health.event_opened": "健康记录",
