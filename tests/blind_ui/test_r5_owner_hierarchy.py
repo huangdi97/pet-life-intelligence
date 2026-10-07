@@ -325,3 +325,15 @@ def test_pet_profile_create_edit_is_real_across_owner_clients() -> None:
     assert 'PetProfile: { mode: "create" | "edit" }' in mobile_nav
     assert 'api.patch(`/pets/${current.id}`' in mini
     assert "保存档案" in mini
+
+
+def test_web_me_exposes_real_field_privacy_and_export_controls() -> None:
+    settings = read("apps/web/app/settings/page.tsx")
+    controls = read("apps/web/app/settings/_components/DataControlsCard.tsx")
+    route = read("services/api/app/api/routes/v10_platform_identity.py")
+
+    assert "DataControlsCard" in settings
+    assert "/field-privacy" in controls
+    assert "/export" in controls
+    assert "不会用默认设置覆盖真实状态" in controls
+    assert '@router.get("/pets/{pet_id}/field-privacy")' in route
