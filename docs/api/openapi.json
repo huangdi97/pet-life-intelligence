@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Pet Life Intelligence",
-    "version": "1.0"
+    "version": "1.0.0"
   },
   "paths": {
     "/api/v1/health": {
@@ -1274,7 +1274,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 200.0,
+              "maximum": 200,
               "default": 50,
               "title": "Limit"
             }
@@ -3676,8 +3676,8 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 90.0,
-              "minimum": 3.0,
+              "maximum": 90,
+              "minimum": 3,
               "default": 14,
               "title": "Window Days"
             }
@@ -5216,8 +5216,8 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 100.0,
-              "minimum": 1.0,
+              "maximum": 100,
+              "minimum": 1,
               "default": 20,
               "title": "Limit"
             }
@@ -6124,8 +6124,8 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 20.0,
-              "minimum": 1.0,
+              "maximum": 20,
+              "minimum": 1,
               "default": 3,
               "title": "Years Back"
             }
