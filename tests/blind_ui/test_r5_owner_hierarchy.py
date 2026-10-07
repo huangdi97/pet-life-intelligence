@@ -292,3 +292,20 @@ def test_web_pet_world_uses_pet_specific_domain_narratives() -> None:
     assert "headline={current.name}" not in source
     assert 'frameTarget={0.33}' in source
     assert "domainMeaning[row.id]" in source
+
+
+def test_notifications_are_actionable_and_never_leak_raw_type_enums() -> None:
+    web = read("apps/web/app/notifications/page.tsx")
+    mobile = read("apps/mobile/src/screens/NotificationsScreen.tsx")
+    mini = read("apps/mini/src/pages/notifications/index.tsx")
+    api_route = read("services/api/app/api/routes/care_account.py")
+
+    for source in (web, mobile, mini):
+        assert "/notifications/" in source
+        assert "read-all" in source
+        assert "标为已读" in source
+        assert "需要处理" in source
+    assert "return map[type] ?? type" not in mobile
+    assert "{n.type}" not in mini
+    assert '@router.post("/notifications/{notification_id}/read")' in api_route
+    assert '@router.post("/households/{household_id}/notifications/read-all")' in api_route
