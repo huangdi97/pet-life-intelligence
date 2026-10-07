@@ -57,9 +57,32 @@ export default function BehaviorPage() {
   const [preferenceSubject, setPreferenceSubject] = useState("");
   const [preferenceNote, setPreferenceNote] = useState("");
   const [preferenceBusy, setPreferenceBusy] = useState(false);
+  const [artifactIds, setArtifactIds] = useState<string[]>([]);
+  const [artifactNames, setArtifactNames] = useState<string[]>([]);
+  const [videoUploading, setVideoUploading] = useState(false);
 
   function set(k: keyof typeof form, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  async function attachBehaviorVideo(file?: File) {
+    if (!petId || !file || videoUploading) return;
+    if (!["video/mp4", "video/webm"].includes(file.type)) {
+      setError("行为视频仅支持 MP4 或 WebM。");
+      return;
+    }
+    setVideoUploading(true);
+    setError(null);
+    try {
+      const row = await api.upload<{ artifact_id: string; kind: string }>(`/pets/${petId}/artifacts`, file);
+      if (row.kind !== "VIDEO") throw new Error("上传内容没有被识别为视频。");
+      setArtifactIds((ids) => [...ids, row.artifact_id].slice(-3));
+      setArtifactNames((names) => [...names, file.name || "行为视频"].slice(-3));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setVideoUploading(false);
+    }
   }
 
   async function addPreference() {
@@ -100,8 +123,11 @@ export default function BehaviorPage() {
         intensity: form.intensity,
         environment: form.environment,
         owner_notes: form.owner_notes,
+        artifact_ids: artifactIds,
       });
       setForm((f) => ({ ...f, antecedent: "", behavior: "", consequence: "" }));
+      setArtifactIds([]);
+      setArtifactNames([]);
       list.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -216,6 +242,9 @@ export default function BehaviorPage() {
                 <div className="tl-body">
                   之前：{b.antecedent || "—"} · 之后：{b.consequence || "—"} · 环境：{b.environment || "—"}
                 </div>
+                {b.artifact_ids?.length ? (
+                  <div className="muted">已关联 {b.artifact_ids.length} 个媒体证据 · 仅作为本次行为记录的原始素材</div>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -235,6 +264,22 @@ export default function BehaviorPage() {
         <label className="field">
           你观察到的行为 *（写看到的事实，不写结论）
           <input value={form.behavior} onChange={(e) => set("behavior", e.target.value)} placeholder="如：连续吠叫约1分钟后躲到沙发下" />
+        </label>
+        <label className="field" data-testid="pli.behavior.video">
+          关联行为视频（可选，最多保留 3 个）
+          <input
+            type="file"
+            accept="video/mp4,video/webm"
+            disabled={videoUploading}
+            onChange={(e) => void attachBehaviorVideo(e.target.files?.[0])}
+          />
+          <span className="muted">
+            {videoUploading
+              ? "正在上传视频……"
+              : artifactNames.length
+                ? `已关联：${artifactNames.join("、")}`
+                : "视频只作为这条观察的原始证据；系统不会仅凭视频自动推断性格、情绪或诊断。"}
+          </span>
         </label>
         <label className="field">
           发生之后（接着发生了什么？）
