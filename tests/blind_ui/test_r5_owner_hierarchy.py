@@ -471,3 +471,22 @@ def test_self_baseline_is_visible_and_explainable_across_owner_clients() -> None
 
     assert "trimmed_mean_v1" in route
     assert "drop min/max when >=4 samples" in route
+
+
+def test_text_diary_is_real_and_available_across_owner_clients() -> None:
+    web = read("apps/web/app/timeline/page.tsx")
+    mobile = read("apps/mobile/src/screens/TimelineScreen.tsx")
+    mini = read("apps/mini/src/pages/timeline/index.tsx")
+    route = read("services/api/app/api/routes/v02_identity_daily_diary.py")
+
+    for source in (web, mobile, mini):
+        assert "/diary" in source
+        assert "今天想记下什么" in source
+        assert "保存日记" in source
+        assert "最近日记" in source
+        assert "真实发生" in source
+
+    assert '@router.post("/pets/{pet_id}/diary"' in route
+    assert '@router.get("/pets/{pet_id}/diary")' in route
+    assert 'event_type="diary.created"' in route
+    assert "SourceType.OWNER_REPORTED" in route
