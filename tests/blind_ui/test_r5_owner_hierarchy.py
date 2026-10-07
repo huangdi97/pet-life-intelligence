@@ -640,3 +640,34 @@ def test_preventive_reminders_are_real_cross_client_health_flows() -> None:
     assert '@router.post("/reminders/{reminder_id}/done")' in backend
     assert 'event_type="reminder.created"' in backend
     assert 'event_type="reminder.completed"' in backend
+
+
+def test_preferences_and_rewards_are_real_cross_client_owner_flows() -> None:
+    behavior_web = read("apps/web/app/behavior/page.tsx")
+    behavior_mobile = read("apps/mobile/src/screens/BehaviorScreen.tsx")
+    behavior_mini = read("apps/mini/src/pages/behavior/index.tsx")
+    training_web = read("apps/web/app/training/page.tsx")
+    training_mobile = read("apps/mobile/src/screens/TrainingScreen.tsx")
+    training_mini = read("apps/mini/src/pages/training/index.tsx")
+    backend = read("services/api/app/api/routes/v02_behavior_training_training.py")
+
+    for source in (behavior_web, behavior_mobile, behavior_mini):
+        assert "/preferences" in source
+        for label in ("偏好与回避", "喜欢", "回避", "过敏/谨慎", "主人记录"):
+            assert label in source
+        assert 'source_type: "OWNER_REPORTED"' in source
+        assert "不会从单次行为自动推断偏好" in source
+
+    for source in (training_web, training_mobile, training_mini):
+        assert "/preferences" in source
+        assert "奖励偏好" in source
+        assert 'kind: "REWARD"' in source
+        assert 'source_type: "OWNER_REPORTED"' in source
+        assert 'selectedReward ? [selectedReward] : []' in source
+        assert 'rewards_used: ["零食"]' not in source
+        assert "不会自动写" in source
+
+    assert '@router.post("/pets/{pet_id}/preferences"' in backend
+    assert '@router.get("/pets/{pet_id}/preferences")' in backend
+    assert 'pattern="^(LIKE|DISLIKE|ALLERGY_CAUTION|REWARD)$"' in backend
+    assert 'await write_audit(db, action="preference.add"' in backend
