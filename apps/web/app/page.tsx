@@ -98,7 +98,8 @@ export default function TodayPage() {
   }, 0);
   const hints = (hint.data?.hints ?? []).filter((h) => Object.keys(h).length > 0);
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
-  const hasAttention = hints.length > 0;
+  const attentionEvidenceReady = hint.state === "ready";
+  const hasAttention = attentionEvidenceReady && hints.length > 0;
   const anchorValue = (n: number, unit: string) => (n > 0 ? `${n} ${unit}` : "—");
   const anchorsAll: StageAnchor[] = [
     { id: "food", label: "进食", value: anchorValue(counts["daily.meal"] ?? 0, "次"), icon: "food" },
@@ -168,10 +169,14 @@ export default function TodayPage() {
       <div className="v4-grid">
         <div>
           <NowCard lastEvent={lastEvent} counts={counts} />
-          <AttentionCard hints={hints} />
+          <AttentionCard hints={hints} evidenceState={attentionEvidenceReady ? "ready" : "unknown"} />
           <ActionCard petId={current.id} onMore={() => setSheetOpen(true)} />
           <p className="v4-note" data-testid="pli.today.health-summary" style={{ margin: "10px 0 0" }}>
-            {hints.length > 0 ? `健康：${hints.length} 项需要留意` : "当前没有规则标记的健康变化"}
+            {!attentionEvidenceReady
+              ? "健康：当前证据未完整读取，不判断为正常"
+              : hints.length > 0
+                ? `健康：${hints.length} 项需要留意`
+                : "当前没有规则标记的健康变化"}
           </p>
         </div>
         <div className="v4-rail">
