@@ -123,3 +123,18 @@ def test_web_timeline_pet_identity_localizes_catalogue_breed() -> None:
     source = read("apps/web/app/timeline/page.tsx")
     assert "breedLabel(current.breed)" in source
     assert "current.breed || current.species" not in source
+
+
+def test_web_primary_navigation_is_exactly_five_owner_destinations() -> None:
+    source = read("apps/web/components/TopNav.tsx")
+    for test_id in (
+        "pli.nav.today",
+        "pli.nav.timeline",
+        "pli.nav.pet",
+        "pli.nav.assistant",
+        "pli.nav.me",
+    ):
+        assert source.count(test_id) == 1
+    assert "MORE_LINKS" not in source
+    assert "more-menu" not in source
+    assert 'p.species === "dog" ? "犬"' in source
