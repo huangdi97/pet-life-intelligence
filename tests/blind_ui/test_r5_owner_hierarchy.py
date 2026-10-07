@@ -576,3 +576,25 @@ def test_recovery_plan_and_trend_are_real_owner_flows_across_clients() -> None:
         assert "恢复与复盘" in source
         assert "不会自动生成治疗方案" in source
         assert "非医学判断" in (source + backend)
+
+
+def test_milestones_and_memories_are_real_cross_client_timeline_flows() -> None:
+    web = read("apps/web/app/timeline/page.tsx")
+    mobile = read("apps/mobile/src/screens/TimelineScreen.tsx")
+    mini = read("apps/mini/src/pages/timeline/index.tsx")
+    backend = read("services/api/app/api/routes/v02_social_platform_daily.py")
+
+    for source in (web, mobile, mini):
+        assert "/milestones" in source
+        assert "/memories?years_back=10" in source
+        assert "里程碑" in source
+        assert "往年今日" in source
+        assert "不会用生成内容补齐" in source
+        # Memory samples come from canonical LifeEvent.event_type values. They
+        # must be localized before owner presentation, never rendered raw.
+        assert ".map(eventTypeLabel)" in source
+
+    assert '@router.post("/pets/{pet_id}/milestones"' in backend
+    assert '@router.get("/pets/{pet_id}/milestones")' in backend
+    assert '@router.get("/pets/{pet_id}/memories")' in backend
+    assert 'source_type=enums.SourceType.OWNER_REPORTED' in backend
