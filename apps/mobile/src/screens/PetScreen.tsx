@@ -276,7 +276,7 @@ export function PetScreen() {
                 style={({ pressed }) => [styles.entryRow, pressed && styles.entryRowPressed]}
               >
                 <Ionicons name="create-outline" size={18} color={COLORS.brandPrimaryDeep} />
-                <Text style={styles.entryText}>编辑名字、品种、生日、性别与照护备注</Text>
+                <Text style={styles.entryText}>编辑名字、品种、生日、性别与体重备注</Text>
                 <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
               </Pressable>
             </OpenSection>
