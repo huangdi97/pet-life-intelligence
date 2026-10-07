@@ -36,6 +36,13 @@ interface CareCard {
   token: string;
   expires_at: string;
 }
+interface HouseholdInvitation {
+  invitation_id: string;
+  email: string;
+  role: string;
+  expires_at: string;
+  accept_token?: string;
+}
 
 const HANDOFF_SCOPES = ["daily:read", "daily:write", "medical:read", "medical:write", "card:read"] as const;
 const SCOPE_LABELS: Record<string, string> = {
@@ -73,6 +80,9 @@ export default function Care() {
   const [members, setMembers] = useState<HouseholdMember[]>([]);
   const [grantsState, setGrantsState] = useState<"loading" | "ready" | "error">("loading");
   const [handoffsState, setHandoffsState] = useState<"loading" | "ready" | "error">("loading");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("FAMILY");
+  const [invitation, setInvitation] = useState<HouseholdInvitation | null>(null);
   const [caregiver, setCaregiver] = useState("");
   const [scopes, setScopes] = useState<string[]>(["daily:read", "daily:write"]);
   const [hours, setHours] = useState("48");
@@ -124,6 +134,27 @@ export default function Care() {
         <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
       </View>
     );
+  }
+
+  async function inviteMember() {
+    if (!current?.household_id || !inviteEmail.trim() || busy) return;
+    setBusy(true);
+    setInvitation(null);
+    try {
+      const result = await api.post<HouseholdInvitation>(
+        `/households/${current.household_id}/invitations`,
+        { email: inviteEmail.trim().toLowerCase(), role: inviteRole },
+      );
+      setInvitation(result);
+      setInviteEmail("");
+      const rows = await api.get<HouseholdMember[]>(`/households/${current.household_id}/members`);
+      setMembers(rows.filter((member) => member.status === "ACTIVE"));
+      Taro.showToast({ title: "邀请已创建", icon: "success" });
+    } catch {
+      Taro.showToast({ title: "邀请失败", icon: "none" });
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function createHandoff() {
@@ -263,6 +294,61 @@ export default function Care() {
         )) : (
           <View className="life-empty-note">目前没有进行中的照护交接。</View>
         )}
+      </View>
+
+      <View className="open-section">
+        <View className="section-title">家庭成员</View>
+        <View className="life-row-detail">邀请共同照护的人加入家庭；角色决定默认权限。主人角色不能通过邀请转移。</View>
+        {members.length ? members.map((member) => (
+          <View className="life-row" key={member.user_id}>
+            <View className="life-row-body">
+              <View className="life-row-head">
+                <Text className="life-row-type">{member.display_name || member.email || "家庭成员"}</Text>
+                <Text className="life-row-time">{roleLabel(member.role)}</Text>
+              </View>
+            </View>
+          </View>
+        )) : <View className="life-empty-note">家庭成员暂时没有读取到。</View>}
+        <View className="field">
+          <Text>对方邮箱</Text>
+          <Input
+            className="input"
+            type="text"
+            value={inviteEmail}
+            placeholder="name@example.com"
+            onInput={(e) => setInviteEmail(e.detail.value)}
+          />
+        </View>
+        <View className="field">
+          <Text>家庭角色</Text>
+          <Picker
+            mode="selector"
+            range={["家庭成员", "共同主人", "临时照护人", "兽医", "训练师", "美容护理"]}
+            value={Math.max(0, ["FAMILY", "CO_OWNER", "SITTER", "VET", "TRAINER", "GROOMER"].indexOf(inviteRole))}
+            onChange={(e) => {
+              const roles = ["FAMILY", "CO_OWNER", "SITTER", "VET", "TRAINER", "GROOMER"];
+              setInviteRole(roles[Number(e.detail.value)] ?? "FAMILY");
+            }}
+          >
+            <View className="input">{roleLabel(inviteRole)}</View>
+          </Picker>
+        </View>
+        <Button
+          className="btn btn-primary"
+          onClick={inviteMember}
+          disabled={busy || !current?.household_id || !inviteEmail.trim()}
+        >
+          {busy ? "处理中…" : "发送邀请"}
+        </Button>
+        {invitation ? (
+          <View className="soft-panel">
+            <View className="section-title">邀请已创建</View>
+            <View className="life-row-detail">{invitation.email} · 至 {fmtTime(invitation.expires_at)}</View>
+            {invitation.accept_token ? (
+              <View className="life-row-source">当前环境未接入邮件投递；邀请码：{invitation.accept_token}</View>
+            ) : null}
+          </View>
+        ) : null}
       </View>
 
       <View className="open-section">
