@@ -96,6 +96,7 @@ export default function Behavior() {
       const filePath = await media.chooseVideo();
       if (!filePath) return;
       const row = await uploader.uploadVideo(petId, filePath);
+      if (row.kind !== "VIDEO") throw new Error("上传内容没有被识别为视频。");
       setArtifactIds((ids) => [...ids, row.artifact_id].slice(-3));
       const displayName = filePath.split("/").pop() || "行为视频";
       setArtifactNames((names) => [...names, displayName].slice(-3));
