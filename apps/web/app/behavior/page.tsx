@@ -30,6 +30,7 @@ export default function BehaviorPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [validation, setValidation] = useState<string | null>(null);
+  const [filter, setFilter] = useState<"all" | "MILD" | "MODERATE" | "SEVERE" | "UNLABELED">("all");
 
   function set(k: keyof typeof form, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -60,6 +61,12 @@ export default function BehaviorPage() {
     }
   }
 
+  const visibleRows = (list.data ?? []).filter((row) => {
+    if (filter === "all") return true;
+    if (filter === "UNLABELED") return !row.intensity;
+    return row.intensity === filter;
+  });
+
   return (
     <main className="v4-main v5-domain-page">
       <div className="v4-topline v5-page-lede" data-testid="pli.behavior.identity">
@@ -84,10 +91,33 @@ export default function BehaviorPage() {
       </section>
 
       <section className="v4-sec" data-testid="pli.behavior.recent">
-        <h2 className="v4-sec-title">最近记录</h2>
+        <div className="v4-sec-head">
+          <h2 className="v4-sec-title">最近记录</h2>
+          <span className="muted">按主人标注的强度筛选</span>
+        </div>
+        <div className="v4-filter-row" aria-label="行为记录筛选" style={{ marginBottom: 10 }}>
+          {[
+            ["all", "全部"],
+            ["MILD", "轻度"],
+            ["MODERATE", "中度"],
+            ["SEVERE", "重度"],
+            ["UNLABELED", "未标注"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={`v4-chip ${filter === value ? "v4-chip--brand" : ""}`}
+              aria-pressed={filter === value}
+              onClick={() => setFilter(value as typeof filter)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <State state={list.state} error={list.error} onRetry={list.reload} empty="还没有行为记录。">
+          {visibleRows.length === 0 ? <p className="v4-note">当前筛选下没有行为记录。</p> : null}
           <ul className="tl" data-testid="pli.behavior.observations">
-            {list.data?.map((b) => (
+            {visibleRows.map((b) => (
               <li key={b.behavior_event_id}>
                 <div className="tl-head">
                   <span className="tl-type">{b.behavior}</span>
