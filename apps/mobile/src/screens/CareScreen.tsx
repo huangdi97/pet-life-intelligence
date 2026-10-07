@@ -32,6 +32,13 @@ interface Handoff {
   end_at: string | null;
   status: string;
 }
+interface HouseholdInvitation {
+  invitation_id: string;
+  email: string;
+  role: string;
+  expires_at: string;
+  accept_token?: string;
+}
 const HANDOFF_SCOPES = ["daily:read", "daily:write", "medical:read", "medical:write", "card:read"] as const;
 const SCOPE_LABELS: Record<string, string> = {
   "daily:read": "查看日常",
@@ -70,6 +77,9 @@ export function CareScreen() {
   const [members, setMembers] = useState<HouseholdMember[]>([]);
   const [grantsState, setGrantsState] = useState<"loading" | "ready" | "error">("loading");
   const [handoffsState, setHandoffsState] = useState<"loading" | "ready" | "error">("loading");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("FAMILY");
+  const [invitation, setInvitation] = useState<HouseholdInvitation | null>(null);
   const [caregiver, setCaregiver] = useState("");
   const [scopes, setScopes] = useState<string[]>(["daily:read", "daily:write"]);
   const [hours, setHours] = useState("48");
@@ -115,6 +125,21 @@ export function CareScreen() {
     });
     return () => { alive = false; };
   }, [petId, pet?.household_id, version]);
+
+  async function inviteMember() {
+    if (!pet?.household_id || !inviteEmail.trim() || busy) return;
+    setBusy(true); setError(null); setInvitation(null);
+    try {
+      const result = await api.post<HouseholdInvitation>(
+        `/households/${pet.household_id}/invitations`,
+        { email: inviteEmail.trim().toLowerCase(), role: inviteRole },
+      );
+      setInvitation(result);
+      setInviteEmail("");
+      setVersion((v) => v + 1);
+    } catch (e: unknown) { setError(humanizeError(e)); }
+    finally { setBusy(false); }
+  }
 
   async function createHandoff() {
     if (!petId || !caregiver.trim() || scopes.length === 0 || busy) return;
@@ -251,6 +276,70 @@ export function CareScreen() {
             </OpenSection>
           </>
         )}
+
+        <OpenSection title="家庭成员" caption="角色决定默认权限">
+          {members.length ? members.map((member) => (
+            <View key={member.user_id} style={styles.record}>
+              <Text style={styles.rowTitle}>{member.display_name || member.email || "家庭成员"}</Text>
+              <Text style={styles.meta}>{roleLabel(member.role)}</Text>
+            </View>
+          )) : <Text style={styles.emptyLine}>家庭成员暂时没有读取到。</Text>}
+          <Text style={styles.note}>邀请共同照护的人加入家庭。主人角色不能通过邀请转移。</Text>
+          <TextInput
+            style={styles.input}
+            value={inviteEmail}
+            onChangeText={setInviteEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            placeholder="对方邮箱"
+            placeholderTextColor={COLORS.textTertiary}
+          />
+          <Text style={styles.scopeTitle}>家庭角色</Text>
+          <View style={styles.scopeWrap}>
+            {[
+              ["FAMILY", "家庭成员"],
+              ["CO_OWNER", "共同主人"],
+              ["SITTER", "临时照护人"],
+              ["VET", "兽医"],
+              ["TRAINER", "训练师"],
+              ["GROOMER", "美容护理"],
+            ].map(([value, label]) => {
+              const selected = inviteRole === value;
+              return (
+                <Pressable
+                  key={value}
+                  accessibilityRole="button"
+                  accessibilityLabel={`邀请角色：${label}`}
+                  accessibilityState={{ selected, disabled: busy }}
+                  disabled={busy}
+                  onPress={() => setInviteRole(value)}
+                  style={[styles.scopeChoice, selected && styles.scopeChoiceActive]}
+                >
+                  <Text style={[styles.scopeChoiceText, selected && styles.scopeChoiceTextActive]}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="发送家庭邀请"
+            accessibilityState={{ disabled: busy || !pet?.household_id || !inviteEmail.trim() }}
+            disabled={busy || !pet?.household_id || !inviteEmail.trim()}
+            onPress={() => void inviteMember()}
+            style={[styles.primary, (busy || !pet?.household_id || !inviteEmail.trim()) && styles.disabled]}
+          >
+            <Text style={styles.primaryText}>{busy ? "处理中…" : "发送邀请"}</Text>
+          </Pressable>
+          {invitation ? (
+            <View style={styles.cardResult}>
+              <Text style={styles.rowTitle}>邀请已创建</Text>
+              <Text style={styles.rowBody}>{invitation.email} · 至 {timeLabel(invitation.expires_at)}</Text>
+              {invitation.accept_token ? (
+                <Text selectable style={styles.meta}>当前环境未接入邮件投递；邀请码：{invitation.accept_token}</Text>
+              ) : null}
+            </View>
+          ) : null}
+        </OpenSection>
 
         <OpenSection title="发起临时交接" caption="默认仅日常权限">
           <Text style={styles.note}>临时照护人默认只获得日常查看与记录权限；到期自动失效，不能转授管理权限。</Text>
