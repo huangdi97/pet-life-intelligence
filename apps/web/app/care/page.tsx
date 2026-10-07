@@ -28,6 +28,13 @@ interface HouseholdMember {
   role: string;
   status: string;
 }
+interface HouseholdInvitation {
+  invitation_id: string;
+  email: string;
+  role: string;
+  expires_at: string;
+  accept_token?: string;
+}
 
 const SCOPE_LABELS: Record<string, string> = {
   "daily:read": "查看日常记录",
@@ -83,6 +90,9 @@ export default function CarePage() {
         : Promise.reject(new Error("no pet")),
     [petId],
   );
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("FAMILY");
+  const [invitation, setInvitation] = useState<HouseholdInvitation | null>(null);
   const [caregiver, setCaregiver] = useState("");
   const [hours, setHours] = useState("48");
   const [scopes, setScopes] = useState<string[]>(["daily:read", "daily:write"]);
@@ -90,6 +100,23 @@ export default function CarePage() {
   const [card, setCard] = useState<{ token_id: string; token: string; expires_at: string } | null>(null);
 
   const ALL_SCOPES = ["daily:read", "daily:write", "medical:read", "medical:write", "card:read"];
+
+  async function inviteMember() {
+    if (!householdId || !inviteEmail.trim()) return;
+    setError(null);
+    setInvitation(null);
+    try {
+      const result = await api.post<HouseholdInvitation>(
+        `/households/${householdId}/invitations`,
+        { email: inviteEmail.trim().toLowerCase(), role: inviteRole },
+      );
+      setInvitation(result);
+      setInviteEmail("");
+      members.reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
 
   async function createHandoff() {
     if (!petId || !caregiver.trim()) return;
@@ -189,6 +216,58 @@ export default function CarePage() {
         <p className="sub">家庭成员、临时交接与照护卡。权限按人、用途与时间清楚管理。</p>
       </div>
       <ErrorNote message={error} />
+
+      <section className="v5-utility-surface">
+        <h2>家庭成员</h2>
+        <p className="muted">邀请共同照护的人加入家庭；角色决定默认权限。主人角色不能通过邀请转移。</p>
+        <State state={members.state} error={members.error} onRetry={members.reload} empty="家庭成员暂时没有读取到。">
+          <ul className="tl">
+            {members.data?.filter((member) => member.status === "ACTIVE").map((member) => (
+              <li key={member.user_id}>
+                <div className="tl-head">
+                  <span className="tl-type">{member.display_name || member.email || "家庭成员"}</span>
+                  <span className="badge">{memberRoleLabel(member.role)}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </State>
+        <div className="grid2" style={{ marginTop: 12 }}>
+          <label className="field">
+            对方邮箱
+            <input
+              type="email"
+              value={inviteEmail}
+              placeholder="name@example.com"
+              onChange={(e) => setInviteEmail(e.target.value)}
+            />
+          </label>
+          <label className="field">
+            家庭角色
+            <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+              <option value="FAMILY">家庭成员</option>
+              <option value="CO_OWNER">共同主人</option>
+              <option value="SITTER">临时照护人</option>
+              <option value="VET">兽医</option>
+              <option value="TRAINER">训练师</option>
+              <option value="GROOMER">美容护理</option>
+            </select>
+          </label>
+        </div>
+        <button className="btn primary" onClick={inviteMember} disabled={!householdId || !inviteEmail.trim()}>
+          发送邀请
+        </button>
+        {invitation ? (
+          <div className="v4-note" style={{ marginTop: 10 }}>
+            已为 {invitation.email} 创建邀请，有效至 {fmtTime(invitation.expires_at)}。
+            {invitation.accept_token ? (
+              <>
+                {" "}当前环境未接入邮件投递，可将邀请码 <strong>{invitation.accept_token}</strong> 安全地交给对方。
+              </>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
 
       <section className="v5-utility-surface v5-utility-surface--soft">
         <h2>发起照护交接</h2>
