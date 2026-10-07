@@ -29,6 +29,17 @@ interface DiaryRow {
   text: string;
   has_audio: boolean;
 }
+interface DailySummaryRow {
+  summary_id: string;
+  date: string;
+  summary: string;
+  fact_count: number;
+  provider: string;
+  model: string;
+  prompt_version: string;
+  source_type: string;
+  disclaimer: string;
+}
 
 export function TimelineScreen() {
   const { pets, petId } = usePets();
@@ -42,6 +53,9 @@ export function TimelineScreen() {
   const [diaryState, setDiaryState] = useState<"loading" | "ready" | "error">("loading");
   const [diaryText, setDiaryText] = useState("");
   const [diaryBusy, setDiaryBusy] = useState(false);
+  const [summaries, setSummaries] = useState<DailySummaryRow[]>([]);
+  const [summaryState, setSummaryState] = useState<"loading" | "ready" | "error">("loading");
+  const [summaryBusy, setSummaryBusy] = useState(false);
 
   useEffect(() => {
     if (!petId) return;
@@ -87,6 +101,39 @@ export function TimelineScreen() {
       });
     return () => { alive = false; };
   }, [petId]);
+
+  useEffect(() => {
+    if (!petId) return;
+    let alive = true;
+    setSummaryState("loading");
+    api.get<DailySummaryRow[]>(`/pets/${petId}/daily-summaries?limit=7`)
+      .then((rows) => {
+        if (!alive) return;
+        setSummaries(rows);
+        setSummaryState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setSummaries([]);
+        setSummaryState("error");
+      });
+    return () => { alive = false; };
+  }, [petId]);
+
+  async function generateDailySummary() {
+    if (!petId || summaryBusy) return;
+    setSummaryBusy(true);
+    try {
+      await api.post(`/pets/${petId}/daily-summary`, {});
+      const rows = await api.get<DailySummaryRow[]>(`/pets/${petId}/daily-summaries?limit=7`);
+      setSummaries(rows);
+      setSummaryState("ready");
+    } catch {
+      setSummaryState("error");
+    } finally {
+      setSummaryBusy(false);
+    }
+  }
 
   async function addDiary() {
     const text = diaryText.trim();
@@ -197,6 +244,34 @@ export function TimelineScreen() {
           ) : null}
         </View>
 
+        <View style={styles.summarySection} testID="pli.timeline.daily-summary">
+          <View style={styles.summaryHead}>
+            <Text style={styles.diaryTitle}>今日回顾</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="自动整理今日回顾"
+              accessibilityState={{ disabled: summaryBusy }}
+              disabled={summaryBusy}
+              onPress={() => void generateDailySummary()}
+              style={styles.summaryAction}
+            >
+              <Text style={styles.summaryActionText}>{summaryBusy ? "整理中…" : "自动整理"}</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.diaryIntro}>AI 只整理已经记录的事实；不会把推测写成生活记录，也不会替代原始时间线。</Text>
+          {summaryState === "ready" && summaries.length ? (
+            <View style={styles.summaryBody}>
+              <Text style={styles.diaryRowText}>{summaries[0].summary}</Text>
+              <Text style={styles.diaryTime}>AI 自动整理 · {summaries[0].fact_count} 条已记录事实 · {summaries[0].date}</Text>
+              <Text style={styles.diaryTime}>{summaries[0].disclaimer}</Text>
+            </View>
+          ) : summaryState === "error" ? (
+            <Text style={styles.diaryError}>今日回顾暂时没有加载成功；原始记录仍以时间线为准。</Text>
+          ) : (
+            <Text style={styles.diaryTime}>还没有生成今日回顾。</Text>
+          )}
+        </View>
+
         {error ? <InlineError message="暂时连接不上，已展示已有内容" /> : null}
 
         {loading ? (
@@ -246,5 +321,10 @@ const styles = StyleSheet.create({
   diaryRowText: { fontSize: TYPE.body, color: COLORS.textPrimary, lineHeight: 20 },
   diaryTime: { marginTop: 3, fontSize: TYPE.caption, color: COLORS.textTertiary },
   diaryError: { marginTop: SPACE.s3, fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18 },
+  summarySection: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3, padding: SPACE.s4, backgroundColor: COLORS.surface, borderRadius: 22, borderWidth: 1, borderColor: COLORS.dividerSubtle },
+  summaryHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: SPACE.s3 },
+  summaryAction: { minHeight: 40, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: 20, backgroundColor: COLORS.brandSoftGreen },
+  summaryActionText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  summaryBody: { marginTop: SPACE.s3, gap: 4 },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
 });
