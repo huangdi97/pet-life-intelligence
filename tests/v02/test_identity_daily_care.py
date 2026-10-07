@@ -228,3 +228,31 @@ def test_care_reminders_flow(client, seeded):
     assert lst[0]["status"] == "PENDING"
     done = client.post(f"/api/v1/reminders/{rid}/done", json={}, headers=auth(owner))
     assert done.json()["status"] == "DONE"
+
+
+def test_care_card_share_can_be_revoked_from_owner_surface_contract(client, seeded):
+    """Care Card creation returns the revocation handle required by owner UI."""
+    owner, coco = seeded["owner_id"], seeded["coco_id"]
+    created = client.post(
+        f"/api/v1/pets/{coco}/care-cards",
+        json={"expires_in_hours": 2},
+        headers=auth(owner),
+    )
+    assert created.status_code == 201, created.text
+    body = created.json()
+    assert body["token"]
+    assert body["token_id"]
+    assert body["expires_at"]
+
+    opened = client.get(f"/api/v1/care-card/{body['token']}")
+    assert opened.status_code == 200, opened.text
+
+    revoked = client.delete(
+        f"/api/v1/share-tokens/{body['token_id']}",
+        headers=auth(owner),
+    )
+    assert revoked.status_code == 200, revoked.text
+    assert revoked.json()["status"] == "REVOKED"
+
+    denied = client.get(f"/api/v1/care-card/{body['token']}")
+    assert denied.status_code == 403
