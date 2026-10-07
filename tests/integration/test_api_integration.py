@@ -4,7 +4,7 @@ medication conflicts, audit."""
 
 from datetime import datetime, timedelta, timezone
 
-from tests.conftest import auth
+from tests.conftest import auth, create_user
 
 NOW = datetime.now(timezone.utc)
 
@@ -150,6 +150,47 @@ class TestPermissions:
                         json={"email": "x@y.dev", "role": "OWNER"},
                         headers=auth(seeded["owner_id"]))
         assert r.status_code == 403
+
+    def test_household_invitation_acceptance_is_account_bound(self, client, seeded):
+        invitee_email = "invitee-family@pli.test"
+        invitee = create_user(email=invitee_email)
+        invited = client.post(
+            f"/api/v1/households/{seeded['household_id']}/invitations",
+            json={"email": invitee_email, "role": "FAMILY"},
+            headers=auth(seeded["owner_id"]),
+        )
+        assert invited.status_code == 201, invited.text
+        token = invited.json()["accept_token"]
+
+        accepted = client.post(
+            "/api/v1/invitations/accept",
+            json={"token": token},
+            headers=auth(invitee),
+        )
+        assert accepted.status_code == 200, accepted.text
+        assert accepted.json()["household_id"] == seeded["household_id"]
+        assert accepted.json()["role"] == "FAMILY"
+
+        pets = client.get("/api/v1/pets", headers=auth(invitee))
+        assert pets.status_code == 200
+        assert {pet["id"] for pet in pets.json()} >= {seeded["coco_id"], seeded["mimi_id"]}
+
+    def test_household_invitation_rejects_different_account(self, client, seeded):
+        invited_email = "bound-invitee@pli.test"
+        wrong_user = create_user(email="wrong-invitee@pli.test")
+        invited = client.post(
+            f"/api/v1/households/{seeded['household_id']}/invitations",
+            json={"email": invited_email, "role": "FAMILY"},
+            headers=auth(seeded["owner_id"]),
+        )
+        assert invited.status_code == 201, invited.text
+
+        denied = client.post(
+            "/api/v1/invitations/accept",
+            json={"token": invited.json()["accept_token"]},
+            headers=auth(wrong_user),
+        )
+        assert denied.status_code == 403
 
     def test_audit_visible_to_owner(self, client, seeded):
         owner = seeded["owner_id"]
