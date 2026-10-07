@@ -6,6 +6,19 @@ import { usePets } from "../../utils/usePets";
 import { PetContextGate } from "../../components/feedback/Feedback";
 import { fmtTime, riskLabel } from "../../utils/format";
 
+interface ReminderRow {
+  reminder_id: string;
+  kind: "VACCINE" | "DEWORMING" | "CHECKUP";
+  title: string;
+  due_date: string;
+  status: string;
+}
+const REMINDER_KIND_LABEL: Record<ReminderRow["kind"], string> = {
+  VACCINE: "疫苗",
+  DEWORMING: "驱虫",
+  CHECKUP: "体检",
+};
+
 interface HealthEventRow {
   health_event_id: string;
   status: string;
@@ -34,6 +47,12 @@ export default function Health() {
   const [complaint, setComplaint] = useState("");
   const [duration, setDuration] = useState("");
   const [busy, setBusy] = useState(false);
+  const [reminders, setReminders] = useState<ReminderRow[]>([]);
+  const [reminderState, setReminderState] = useState<"loading" | "ready" | "error">("loading");
+  const [reminderKind, setReminderKind] = useState<ReminderRow["kind"]>("VACCINE");
+  const [reminderTitle, setReminderTitle] = useState("");
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderBusy, setReminderBusy] = useState<string | null>(null);
 
   const load = useCallback((pid: string) => {
     setState("loading");
@@ -45,9 +64,25 @@ export default function Health() {
       .catch(() => setState("error"));
   }, []);
 
+  const loadReminders = useCallback((pid: string) => {
+    setReminderState("loading");
+    api.get<ReminderRow[]>(`/pets/${pid}/reminders`)
+      .then((items) => {
+        setReminders(items);
+        setReminderState("ready");
+      })
+      .catch(() => {
+        setReminders([]);
+        setReminderState("error");
+      });
+  }, []);
+
   useEffect(() => {
-    if (petId) load(petId);
-  }, [petId, load]);
+    if (petId) {
+      load(petId);
+      loadReminders(petId);
+    }
+  }, [petId, load, loadReminders]);
 
   if (petContextState !== "ready" || !petId || !pets?.length) {
     return (
@@ -56,6 +91,43 @@ export default function Health() {
         <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
       </View>
     );
+  }
+
+  async function createReminder() {
+    if (!petId || reminderBusy || !reminderTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(reminderDate)) return;
+    setReminderBusy("create");
+    try {
+      await api.post(`/pets/${petId}/reminders`, {
+        kind: reminderKind,
+        title: reminderTitle.trim(),
+        due_date: reminderDate,
+        note: "",
+      });
+      setReminderTitle("");
+      setReminderDate("");
+      loadReminders(petId);
+      load(petId);
+      Taro.showToast({ title: "预防提醒已保存", icon: "success" });
+    } catch {
+      setReminderState("error");
+      Taro.showToast({ title: "暂时无法保存提醒", icon: "none" });
+    } finally {
+      setReminderBusy(null);
+    }
+  }
+
+  async function completeReminder(reminderId: string) {
+    if (!petId || reminderBusy) return;
+    setReminderBusy(reminderId);
+    try {
+      await api.post(`/reminders/${reminderId}/done`, {});
+      loadReminders(petId);
+      load(petId);
+    } catch {
+      setReminderState("error");
+    } finally {
+      setReminderBusy(null);
+    }
   }
 
   async function openEvent() {
@@ -156,11 +228,41 @@ export default function Health() {
             <View className="life-row-detail">剂量以兽医处方为准；这里区分计划、已给、跳过与漏服。</View>
           </View>
         </View>
-        <View className="life-row">
-          <View className="life-row-body">
-            <View className="life-row-head"><Text className="life-row-type">疫苗与驱虫</Text></View>
-            <View className="life-row-detail">当前页面未汇总疫苗与驱虫记录；缺少数据不会显示成“正常”。</View>
+        <View data-testid="pli.mini.health.reminders">
+          <View className="life-row-source">疫苗、驱虫和体检提醒来自主人明确记录；到期不等于异常，也不会自动推断已经完成。</View>
+          {reminderState === "loading" ? (
+            <View className="state">正在读取预防提醒……</View>
+          ) : reminderState === "error" ? (
+            <View className="state state-error">预防提醒暂时没有加载成功；不会用默认日期替代真实计划。</View>
+          ) : reminders.length ? reminders.map((row) => (
+            <View className="life-row" key={row.reminder_id}>
+              <View className="life-row-body">
+                <View className="life-row-head">
+                  <Text className="life-row-type">{REMINDER_KIND_LABEL[row.kind]} · {row.title}</Text>
+                  <Text className="life-row-time">{row.status === "DONE" ? "已完成" : row.due_date}</Text>
+                </View>
+                {row.status !== "DONE" ? (
+                  <View className="secondary-action" onClick={() => void completeReminder(row.reminder_id)}>
+                    {reminderBusy === row.reminder_id ? "保存中…" : "标记完成"}
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          )) : (
+            <View className="life-empty-note">还没有预防提醒。</View>
+          )}
+          <View className="chips">
+            {(["VACCINE", "DEWORMING", "CHECKUP"] as const).map((kind) => (
+              <View key={kind} className={`chip${reminderKind === kind ? " chip-active" : ""}`} onClick={() => setReminderKind(kind)}>
+                {REMINDER_KIND_LABEL[kind]}
+              </View>
+            ))}
           </View>
+          <Input className="input" value={reminderDate} onInput={(event) => setReminderDate(event.detail.value)} placeholder="计划日期 YYYY-MM-DD" />
+          <Input className="input" value={reminderTitle} onInput={(event) => setReminderTitle(event.detail.value)} placeholder="例如：年度核心疫苗" />
+          <Button className="btn" disabled={reminderBusy !== null || !reminderTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(reminderDate)} onClick={() => void createReminder()}>
+            {reminderBusy === "create" ? "保存中…" : "添加预防提醒"}
+          </Button>
         </View>
       </View>
 
