@@ -138,3 +138,12 @@ def test_web_primary_navigation_is_exactly_five_owner_destinations() -> None:
     assert "MORE_LINKS" not in source
     assert "more-menu" not in source
     assert 'p.species === "dog" ? "犬"' in source
+
+
+def test_mini_assistant_preserves_structured_answer_contract() -> None:
+    panel = read("apps/mini/src/pages/agent/_components/ask_panel.tsx")
+    contract = read("apps/mini/src/pages/agent/_lib.ts")
+    for key in ("facts", "inference", "sources", "uncertainty", "action"):
+        assert key in contract
+    for label in ("事实", "推断（非事实）", "来源", "不确定性", "下一步"):
+        assert label in panel
