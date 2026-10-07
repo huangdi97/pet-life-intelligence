@@ -19,6 +19,17 @@ interface DiaryRow {
   text: string;
   has_audio: boolean;
 }
+interface DailySummaryRow {
+  summary_id: string;
+  date: string;
+  summary: string;
+  fact_count: number;
+  provider: string;
+  model: string;
+  prompt_version: string;
+  source_type: string;
+  disclaimer: string;
+}
 
 const FILTERS: Array<{ label: string; types: string[] | null }> = [
   { label: "全部", types: null },
@@ -77,6 +88,9 @@ export default function Timeline() {
   const [diaryState, setDiaryState] = useState<"loading" | "ready" | "error">("loading");
   const [diaryText, setDiaryText] = useState("");
   const [diaryBusy, setDiaryBusy] = useState(false);
+  const [summaries, setSummaries] = useState<DailySummaryRow[]>([]);
+  const [summaryState, setSummaryState] = useState<"loading" | "ready" | "error">("loading");
+  const [summaryBusy, setSummaryBusy] = useState(false);
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
 
   const load = useCallback((pid: string, f: number) => {
@@ -93,6 +107,19 @@ export default function Timeline() {
       .catch(() => setState("error"));
   }, []);
 
+  const loadSummaries = useCallback((pid: string) => {
+    setSummaryState("loading");
+    api.get<DailySummaryRow[]>(`/pets/${pid}/daily-summaries?limit=7`)
+      .then((rows) => {
+        setSummaries(rows);
+        setSummaryState("ready");
+      })
+      .catch(() => {
+        setSummaries([]);
+        setSummaryState("error");
+      });
+  }, []);
+
   const loadDiary = useCallback((pid: string) => {
     setDiaryState("loading");
     api.get<DiaryRow[]>(`/pets/${pid}/diary?limit=5`)
@@ -105,6 +132,22 @@ export default function Timeline() {
         setDiaryState("error");
       });
   }, []);
+
+  async function generateDailySummary() {
+    if (!petId || summaryBusy) return;
+    setSummaryBusy(true);
+    try {
+      await api.post(`/pets/${petId}/daily-summary`, {});
+      loadSummaries(petId);
+      load(petId, filter);
+      Taro.showToast({ title: "今日回顾已整理", icon: "success" });
+    } catch {
+      setSummaryState("error");
+      Taro.showToast({ title: "暂时无法整理", icon: "none" });
+    } finally {
+      setSummaryBusy(false);
+    }
+  }
 
   async function addDiary() {
     const text = diaryText.trim();
@@ -128,6 +171,7 @@ export default function Timeline() {
     if (petId) {
       load(petId, filter);
       loadDiary(petId);
+      loadSummaries(petId);
     }
   });
 
@@ -135,6 +179,7 @@ export default function Timeline() {
     if (petId) {
       load(petId, filter);
       loadDiary(petId);
+      loadSummaries(petId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [petId]);
@@ -196,6 +241,28 @@ export default function Timeline() {
         ) : diaryState === "error" ? (
           <View className="state state-error">最近日记暂时没有加载成功；不会把未知状态显示成空。</View>
         ) : null}
+      </View>
+
+      <View className="open-section" data-testid="pli.mini.timeline.daily-summary">
+        <View className="section-title">
+          今日回顾
+          <Text className="section-caption">AI 自动整理</Text>
+        </View>
+        <View className="life-empty-note">AI 只整理已经记录的事实；不会把推测写成生活记录，也不会替代原始时间线。</View>
+        <Button className="btn" disabled={summaryBusy} onClick={() => void generateDailySummary()}>
+          {summaryBusy ? "整理中…" : "自动整理今日回顾"}
+        </Button>
+        {summaryState === "ready" && summaries.length ? (
+          <View className="soft-panel">
+            <View className="life-row-detail">{summaries[0].summary}</View>
+            <View className="life-row-source">AI 自动整理 · {summaries[0].fact_count} 条已记录事实 · {summaries[0].date}</View>
+            <View className="life-row-source">{summaries[0].disclaimer}</View>
+          </View>
+        ) : summaryState === "error" ? (
+          <View className="state state-error">今日回顾暂时没有加载成功；原始记录仍以时间线为准。</View>
+        ) : (
+          <View className="life-empty-note">还没有生成今日回顾。</View>
+        )}
       </View>
 
       <View
