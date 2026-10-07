@@ -306,3 +306,41 @@ class TestDiaryFlow:
         assert rows
         assert rows[0]["source_type"] == "OWNER_REPORTED"
         assert rows[0]["payload"]["diary_id"] == created.json()["diary_id"]
+
+
+
+class TestDailySummaryFlow:
+    def test_daily_summary_is_idempotent_and_ai_derived(self, client, seeded):
+        owner, pet_id = seeded["owner_id"], seeded["coco_id"]
+        client.post(
+            f"/api/v1/pets/{pet_id}/diary",
+            json={"text": "今天散步很平稳。"},
+            headers=auth(owner),
+        )
+        first = client.post(
+            f"/api/v1/pets/{pet_id}/daily-summary",
+            json={},
+            headers=auth(owner),
+        )
+        assert first.status_code == 201, first.text
+        assert first.json()["source_type"] == "AI_DERIVED"
+        assert first.json()["fact_count"] >= 1
+        assert first.json()["summary"]
+        summary_id = first.json()["summary_id"]
+
+        second = client.post(
+            f"/api/v1/pets/{pet_id}/daily-summary",
+            json={},
+            headers=auth(owner),
+        )
+        assert second.status_code == 201, second.text
+        assert second.json()["summary_id"] == summary_id
+
+        history = client.get(
+            f"/api/v1/pets/{pet_id}/daily-summaries?limit=7",
+            headers=auth(owner),
+        )
+        assert history.status_code == 200, history.text
+        assert history.json()[0]["summary_id"] == summary_id
+        assert history.json()[0]["source_type"] == "AI_DERIVED"
+        assert "不替代原始记录" in history.json()[0]["disclaimer"]
