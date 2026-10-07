@@ -95,19 +95,28 @@ def _landmarks_dog(verts: np.ndarray, colors: np.ndarray, palette: list[np.ndarr
 
 
 def _landmarks_cat(verts: np.ndarray, colors: np.ndarray, palette: list[np.ndarray]) -> dict:
-    lm = {}
-    cents = material_region_centroids(verts, colors, palette)
-    # palette: [0]=grey [1]=pink(ears) [2]=white
-    ear = cents[1]
-    if not math.isnan(ear[0]):
-        sel = np.all(np.abs(colors - palette[1]) < 0.18, axis=1)
-        xs = np.abs(verts[sel, 0])
-        lm["ear_dx"] = float(np.mean(xs)) if xs.size else 0.15
-        lm["ear_y"] = float(ear[1])
-    white = cents[2]
-    if not math.isnan(white[1]):
-        lm["belly_y"] = float(white[1])
+    """Geometry-derived cat landmarks.
+
+    The Quaternius OBJ names Grey/Pink/White materials, but its exported MTL
+    gives all three the same Kd value (0.64, 0.64, 0.64). Color-distance
+    segmentation therefore cannot truthfully distinguish ear/belly regions.
+    Use normalized geometry instead so face/ear paint remains deterministic
+    and source-asset-independent.
+    """
+    del colors, palette
+    lm: dict[str, float] = {}
     h = float(verts[:, 1].max())
+
+    high = verts[verts[:, 1] > 0.82 * h]
+    if high.size:
+        # Ear tips are the high lateral points of the head.
+        lm["ear_dx"] = max(0.10, float(np.percentile(np.abs(high[:, 0]), 68)))
+        lm["ear_y"] = float(np.percentile(high[:, 1], 62))
+    else:
+        lm["ear_dx"] = 0.15
+        lm["ear_y"] = 0.88 * h
+
+    lm["belly_y"] = 0.22 * h
     lm["eye_y"] = 0.74 * h
     lm["eye_dx"] = 0.13 * max(1.0, h)
     front = np.flatnonzero(verts[:, 1] > 0.5 * h)
