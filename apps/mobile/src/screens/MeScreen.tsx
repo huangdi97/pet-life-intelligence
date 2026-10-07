@@ -10,6 +10,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { usePets } from "../context";
+import { breedLabel } from "../format";
 import { api, devLogin, humanizeError } from "../api";
 import { getDevUserId, getToken, setDevUserId, setToken } from "../storage/session";
 import { COLORS, DEMO_ENV, RADIUS, SPACE, TYPE } from "../tokens";
@@ -140,7 +141,7 @@ export function MeScreen() {
             >
               <PetAvatar pet={p} uri={resolvePetMediaUri(p)} size={36} />
               <Text style={styles.petName}>{p.name}</Text>
-              <Text style={styles.petMeta}>{p.breed || "宠物"}</Text>
+              <Text style={styles.petMeta}>{breedLabel(p.breed) || "宠物"}</Text>
             </Pressable>
           ))}
         </OpenSection>
