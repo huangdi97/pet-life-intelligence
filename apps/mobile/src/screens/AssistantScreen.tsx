@@ -171,7 +171,12 @@ export function AssistantScreen() {
 
         <View style={styles.toolSection} accessibilityLabel="助手更多能力">
           <Text style={styles.toolLabel}>更多帮助</Text>
-          <View style={styles.toolRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.toolRow}
+            keyboardShouldPersistTaps="handled"
+          >
             {TOOLS.map((tool) => {
               const active = tab === tool.id;
               return (
@@ -187,7 +192,7 @@ export function AssistantScreen() {
                 </Pressable>
               );
             })}
-          </View>
+          </ScrollView>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -268,8 +273,8 @@ const styles = StyleSheet.create({
   backToAskText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   toolSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s6 },
   toolLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary, marginBottom: SPACE.s2 },
-  toolRow: { flexDirection: "row", gap: SPACE.s2 },
-  tool: { flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised },
+  toolRow: { flexDirection: "row", gap: SPACE.s2, paddingRight: SPACE.s4 },
+  tool: { minWidth: 88, minHeight: 44, paddingHorizontal: SPACE.s3, alignItems: "center", justifyContent: "center", borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised },
   toolActive: { backgroundColor: COLORS.brandSoftGreen },
   toolText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "500" },
   toolTextActive: { color: COLORS.brandPrimaryDeep, fontWeight: "700" },
