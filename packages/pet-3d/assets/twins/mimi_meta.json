@@ -51,6 +51,9 @@
   "weldExactVertices": false,
   "atlasObservedRatio": 0.1853959560394287,
   "landmarks": {
+    "ear_dx": 0.1,
+    "ear_y": 0.9829733351786466,
+    "belly_y": 0.22,
     "eye_y": 0.74,
     "eye_dx": 0.13,
     "muzzle_z": 0.6324282723822485,
