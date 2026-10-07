@@ -147,3 +147,26 @@ def test_mini_assistant_preserves_structured_answer_contract() -> None:
         assert key in contract
     for label in ("事实", "推断（非事实）", "来源", "不确定性", "下一步"):
         assert label in panel
+
+
+def test_mobile_primary_navigation_is_exactly_five_owner_destinations() -> None:
+    source = read("apps/mobile/src/navigation.tsx")
+    assert source.count('<Tab.Screen name=') == 5
+    for name in ("Today", "Timeline", "Pet", "Assistant", "Me"):
+        assert f'<Tab.Screen name="{name}"' in source
+    for label in ("今天", "时间线", "助手", "我的"):
+        assert f'tabBarLabel: "{label}"' in source
+
+
+def test_mini_primary_navigation_is_exactly_five_owner_destinations() -> None:
+    source = read("apps/mini/src/app.config.ts")
+    tab_block = source.split("tabBar:", 1)[1]
+    for page_path in (
+        "pages/index/index",
+        "pages/timeline/index",
+        "pages/pets/index",
+        "pages/agent/index",
+        "pages/mine/index",
+    ):
+        assert tab_block.count(page_path) == 1
+    assert tab_block.count("pagePath:") == 5
