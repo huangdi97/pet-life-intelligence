@@ -86,6 +86,47 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await resp.json()) as T;
 }
 
+async function uploadArtifact<T>(
+  path: string,
+  file: { uri: string; name: string; type: string },
+): Promise<T> {
+  const headers = await buildHeaders();
+  delete headers["Content-Type"];
+  const form = new FormData();
+  form.append(
+    "file",
+    { uri: file.uri, name: file.name, type: file.type } as unknown as Blob,
+  );
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS * 2);
+  let resp: Response;
+  try {
+    resp = await fetch(`${BASE}/api/v1${path}`, {
+      method: "POST",
+      body: form,
+      headers,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!resp.ok) {
+    let body: ApiErrorBody | null = null;
+    try {
+      body = (await resp.json()) as ApiErrorBody;
+    } catch {
+      /* non-JSON error */
+    }
+    if (body?.error) throw new ApiError(resp.status, body.error);
+    throw new ApiError(resp.status, {
+      code: "HTTP_ERROR",
+      message: `请求失败 (${resp.status})`,
+      request_id: "",
+    });
+  }
+  return (await resp.json()) as T;
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown) =>
@@ -95,6 +136,8 @@ export const api = {
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "PATCH", body: body === undefined ? undefined : JSON.stringify(body) }),
   del: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  upload: <T>(path: string, file: { uri: string; name: string; type: string }) =>
+    uploadArtifact<T>(path, file),
 };
 
 /** Dev-mode login (same pattern as apps/web login dev mode): exchange a dev
