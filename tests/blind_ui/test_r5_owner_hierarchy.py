@@ -416,3 +416,26 @@ def test_deletion_request_lifecycle_is_visible_across_owner_clients() -> None:
 
     assert '@router.get("/pets/{pet_id}/deletion-requests")' in route
     assert "A deletion request is already pending for this pet." in route
+
+
+def test_health_outcome_choices_match_validated_domain_values() -> None:
+    web = read("apps/web/app/_components/health/OutcomeCard.tsx")
+    mobile = read("apps/mobile/src/screens/HealthDetailScreen.tsx")
+    mini = read("apps/mini/src/pages/health/detail/index.tsx")
+
+    expected = {
+        "RECOVERED",
+        "IMPROVED",
+        "UNCHANGED",
+        "WORSENED",
+        "RELAPSED",
+        "REFERRED",
+        "UNRESOLVED",
+    }
+    for source in (web, mobile, mini):
+        for value in expected:
+            assert value in source
+        assert "已恢复" in source
+        assert "有改善" in source
+        assert "仍未解决" in source
+        assert "outcome.trim()" not in source
