@@ -80,6 +80,9 @@ def test_training_e2e_goal_session_mastery(client, seeded):
                               "rewards_used": ["冻干鸡肉"]},
                         headers=auth(owner))
         assert s.status_code == 201
+    assert s.json()["mastery_before"] == 2
+    assert s.json()["mastery_after"] == 3
+    assert s.json()["mastery_level"] == 3
     goals = client.get(f"/api/v1/pets/{coco}/training-goals", headers=auth(owner)).json()
     assert goals[0]["mastery_level"] == 3
 
