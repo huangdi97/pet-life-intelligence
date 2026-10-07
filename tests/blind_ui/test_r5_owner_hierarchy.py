@@ -350,3 +350,18 @@ def test_behavior_secondary_filter_exists_across_owner_clients() -> None:
         assert "轻度" in source
         assert "中度" in source
         assert "重度" in source
+
+
+def test_household_invitation_flow_exists_across_owner_clients() -> None:
+    web = read("apps/web/app/care/page.tsx")
+    mobile = read("apps/mobile/src/screens/CareScreen.tsx")
+    mini = read("apps/mini/src/pages/care/index.tsx")
+
+    for source in (web, mobile, mini):
+        assert "/invitations" in source
+        assert "发送邀请" in source
+        assert "家庭角色" in source
+        assert "共同主人" in source
+        assert "主人角色不能通过邀请转移" in source
+        assert "accept_token" in source
+        assert "内部用户 ID" not in source
