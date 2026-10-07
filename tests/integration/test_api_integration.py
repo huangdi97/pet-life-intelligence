@@ -191,3 +191,25 @@ class TestTasks:
                        headers=auth(seeded["owner_id"]))
         events = r.json()["events"]
         assert events and events[0]["actor_name"] == "Demo Family Member"
+
+
+class TestPetProfile:
+    def test_owner_can_edit_and_clear_nullable_profile_fields(self, client, seeded):
+        owner, coco = seeded["owner_id"], seeded["coco_id"]
+        first = client.patch(
+            f"/api/v1/pets/{coco}",
+            json={"birth_date": "2020-05-01", "neutered": True, "weight_note": "12kg"},
+            headers=auth(owner),
+        )
+        assert first.status_code == 200, first.text
+        assert first.json()["birth_date"] == "2020-05-01"
+        assert first.json()["neutered"] is True
+
+        cleared = client.patch(
+            f"/api/v1/pets/{coco}",
+            json={"birth_date": None, "neutered": None},
+            headers=auth(owner),
+        )
+        assert cleared.status_code == 200, cleared.text
+        assert cleared.json()["birth_date"] is None
+        assert cleared.json()["neutered"] is None
