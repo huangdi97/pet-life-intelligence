@@ -6,6 +6,18 @@ import { api, type Pet } from "@pli/api-client";
 import { ErrorNote } from "../../../../components/ui";
 import { breedLabel } from "../../../../lib/ownerLabels";
 
+interface DietProfile {
+  current_food: string;
+  allergies: string[];
+  feeding_rules: string;
+  vet_advised: boolean;
+  source_type: string;
+}
+interface DietProfileResponse {
+  pet_id: string;
+  profile: DietProfile | null;
+}
+
 interface IdentifierRow {
   identifier_id: string;
   identifier_type: "CHIP" | "PASSPORT" | "TATTOO";
@@ -64,6 +76,14 @@ export default function EditPetPage() {
   const [lifecycleStatus, setLifecycleStatus] = useState("ACTIVE");
   const [lifecycleNote, setLifecycleNote] = useState("");
   const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  const [diet, setDiet] = useState({
+    current_food: "",
+    allergies: "",
+    feeding_rules: "",
+    vet_advised: false,
+  });
+  const [dietState, setDietState] = useState<"loading" | "ready" | "error">("loading");
+  const [dietBusy, setDietBusy] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -89,6 +109,30 @@ export default function EditPetPage() {
         if (!alive) return;
         setError(e instanceof Error ? e.message : String(e));
         setState("error");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    setDietState("loading");
+    api.get<DietProfileResponse>(`/pets/${id}/diet-profile`)
+      .then((row) => {
+        if (!alive) return;
+        setDiet({
+          current_food: row.profile?.current_food ?? "",
+          allergies: row.profile?.allergies?.join("、") ?? "",
+          feeding_rules: row.profile?.feeding_rules ?? "",
+          vet_advised: row.profile?.vet_advised === true,
+        });
+        setDietState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setDietState("error");
       });
     return () => {
       alive = false;
@@ -159,6 +203,30 @@ export default function EditPetPage() {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setIdentifierBusy(false);
+    }
+  }
+
+  async function saveDietProfile() {
+    if (!id || dietBusy) return;
+    setDietBusy(true);
+    setError(null);
+    try {
+      await api.put(`/pets/${id}/diet-profile`, {
+        current_food: diet.current_food.trim(),
+        allergies: diet.allergies
+          .split(/[、,，]/)
+          .map((item) => item.trim())
+          .filter(Boolean),
+        feeding_rules: diet.feeding_rules.trim(),
+        vet_advised: diet.vet_advised,
+        source_type: "OWNER_REPORTED",
+      });
+      setDietState("ready");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setDietState("error");
+    } finally {
+      setDietBusy(false);
     }
   }
 
@@ -268,6 +336,39 @@ export default function EditPetPage() {
             </div>
             <button className="btn" onClick={() => void addIdentifier()} disabled={identifierBusy || !identifierValue.trim()}>
               {identifierBusy ? "记录中…" : "记录标识"}
+            </button>
+          </section>
+
+          <section className="v4-card" style={{ marginTop: 20 }} data-testid="pli.pet.profile.diet">
+            <h2>饮食档案</h2>
+            <p className="sub">
+              记录它实际在吃什么、已知过敏和家庭喂养规则。这里是主人维护的事实档案，不做商品推荐，也不会把“按兽医建议执行”冒充专业确认。
+            </p>
+            {dietState === "loading" ? <p className="v4-note">正在读取饮食档案……</p> : null}
+            {dietState === "error" ? <p className="v4-note">饮食档案暂时没有加载成功；不会用默认饮食替代真实记录。</p> : null}
+            <label className="field">
+              当前主食
+              <input value={diet.current_food} onChange={(e) => setDiet({ ...diet, current_food: e.target.value })} placeholder="例如：鸡肉配方犬粮" />
+            </label>
+            <label className="field">
+              已知过敏/不耐受
+              <input value={diet.allergies} onChange={(e) => setDiet({ ...diet, allergies: e.target.value })} placeholder="多项用逗号分隔；没有确认过就留空" />
+            </label>
+            <label className="field">
+              喂养规则
+              <textarea value={diet.feeding_rules} onChange={(e) => setDiet({ ...diet, feeding_rules: e.target.value })} rows={3} placeholder="例如：每日两次；只记录当前真实执行方式" />
+            </label>
+            <label className="v4-check">
+              <input
+                type="checkbox"
+                checked={diet.vet_advised}
+                onChange={(e) => setDiet({ ...diet, vet_advised: e.target.checked })}
+              />
+              <span>主人记录：当前方案是按兽医建议执行</span>
+            </label>
+            <p className="v4-note">勾选只表示主人这样记录，不等于平台已取得兽医专业确认。</p>
+            <button className="btn" onClick={() => void saveDietProfile()} disabled={dietBusy || dietState === "loading"}>
+              {dietBusy ? "保存中…" : "保存饮食档案"}
             </button>
           </section>
 
