@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, type LifeEvent, type Pet } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
 import { mapErrorMessage } from "../../lib/i18n";
+import { breedLabel } from "../../lib/ownerLabels";
 import { State } from "../../components/ui";
 import { PetHero } from "../../components/pet-hero";
 import { Icon } from "../../components/icons";
@@ -119,7 +120,7 @@ export default function TimelinePage() {
                 name={current.name}
                 petId={current.id}
                 compact
-                line={`${current.breed || current.species} · 持续记录中`}
+                line={`${breedLabel(current.breed) || (current.species === "dog" ? "犬" : current.species === "cat" ? "猫" : "宠物")} · 持续记录中`}
               />
             </div>
           ) : (
