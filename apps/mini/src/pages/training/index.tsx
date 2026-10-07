@@ -14,6 +14,14 @@ function statusLabel(status: string): string {
   return "状态已记录";
 }
 
+interface PreferenceRow {
+  preference_id: string;
+  kind: "LIKE" | "DISLIKE" | "ALLERGY_CAUTION" | "REWARD";
+  subject: string;
+  note: string;
+  source_type: string;
+}
+
 interface TrainingGoal {
   goal_id: string;
   title: string;
@@ -58,6 +66,12 @@ export default function Training() {
   const [title, setTitle] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [busyGoal, setBusyGoal] = useState<string | null>(null);
+  const [rewards, setRewards] = useState<PreferenceRow[]>([]);
+  const [rewardState, setRewardState] = useState<"loading" | "ready" | "error">("loading");
+  const [rewardSubject, setRewardSubject] = useState("");
+  const [rewardNote, setRewardNote] = useState("");
+  const [selectedReward, setSelectedReward] = useState("");
+  const [rewardBusy, setRewardBusy] = useState(false);
 
   const load = useCallback((pid: string) => {
     setState("loading");
@@ -69,6 +83,16 @@ export default function Training() {
         setState("ready");
       })
       .catch(() => setState("error"));
+    setRewardState("loading");
+    api.get<PreferenceRow[]>(`/pets/${pid}/preferences`)
+      .then((items) => {
+        setRewards(items.filter((row) => row.kind === "REWARD"));
+        setRewardState("ready");
+      })
+      .catch(() => {
+        setRewards([]);
+        setRewardState("error");
+      });
     api
       .get<TrainingSession[]>(`/pets/${pid}/training-sessions?limit=8`)
       .then((rows) => {
@@ -94,6 +118,29 @@ export default function Training() {
     );
   }
 
+  async function addReward() {
+    if (!petId || !rewardSubject.trim() || rewardBusy) return;
+    setRewardBusy(true);
+    try {
+      const row = await api.post<{ preference_id: string; kind: string; subject: string }>(`/pets/${petId}/preferences`, {
+        kind: "REWARD",
+        subject: rewardSubject.trim(),
+        note: rewardNote.trim(),
+        source_type: "OWNER_REPORTED",
+      });
+      setSelectedReward(row.subject);
+      setRewardSubject("");
+      setRewardNote("");
+      load(petId);
+      Taro.showToast({ title: "奖励偏好已保存", icon: "success" });
+    } catch {
+      setRewardState("error");
+      Taro.showToast({ title: "暂时无法保存奖励偏好", icon: "none" });
+    } finally {
+      setRewardBusy(false);
+    }
+  }
+
   async function create() {
     if (!title.trim() || !petId) return;
     try {
@@ -115,7 +162,7 @@ export default function Training() {
         goal_id: goalId,
         duration_minutes: 5,
         pet_response: response,
-        rewards_used: ["零食"],
+        rewards_used: selectedReward ? [selectedReward] : [],
       });
       load(petId);
       Taro.showToast({ title: "训练会话已记录", icon: "success" });
@@ -186,6 +233,39 @@ export default function Training() {
                 </View>
               </View>
 
+              <View className="open-section" data-testid="pli.mini.training.rewards">
+                <View className="section-title">奖励偏好</View>
+                <View className="life-row-source">只保存主人明确观察到有效、且愿意使用的正向奖励；未选择时不会自动写“零食”。</View>
+                {rewardState === "loading" ? (
+                  <View className="state">正在读取奖励偏好……</View>
+                ) : rewardState === "error" ? (
+                  <View className="state state-error">奖励偏好暂时没有加载成功；不会用默认奖励补齐。</View>
+                ) : rewards.length ? (
+                  <View className="chips">
+                    {rewards.map((row) => (
+                      <View
+                        key={row.preference_id}
+                        className={`chip${selectedReward === row.subject ? " chip-active" : ""}`}
+                        onClick={() => setSelectedReward((value) => value === row.subject ? "" : row.subject)}
+                      >
+                        {row.subject}
+                      </View>
+                    ))}
+                  </View>
+                ) : <View className="life-empty-note">还没有保存奖励偏好。</View>}
+                <View className="field">
+                  <Text>新奖励</Text>
+                  <Input className="input" value={rewardSubject} onInput={(event) => setRewardSubject(event.detail.value)} placeholder="例如：冻干鸡肉 / 拉扯玩具 / 抚摸" />
+                </View>
+                <View className="field">
+                  <Text>补充事实（可选）</Text>
+                  <Input className="input" value={rewardNote} onInput={(event) => setRewardNote(event.detail.value)} placeholder="例如：在安静环境下反应最好" />
+                </View>
+                <Button className="btn" disabled={rewardBusy || !rewardSubject.trim()} onClick={() => void addReward()}>
+                  {rewardBusy ? "保存中…" : "保存奖励偏好"}
+                </Button>
+              </View>
+
               <View className="open-section" data-testid="pli.mini.training.history">
                 <View className="section-title">最近会话与结果</View>
                 {sessionState === "loading" ? (
@@ -218,7 +298,7 @@ export default function Training() {
 
               <View className="open-section" data-testid="pli.mini.training.session">
                 <View className="section-title">记录这次训练</View>
-                <View className="life-empty-note">默认记录 5 分钟、奖励为零食；只记录你实际观察到的反应。</View>
+                <View className="life-empty-note">默认记录 5 分钟；只记录你实际观察到的反应。本次奖励：{selectedReward || "未选择（不会写入奖励）"}。</View>
                 <View className="chips">
                   {([
                     ["GOOD", "表现好"],
