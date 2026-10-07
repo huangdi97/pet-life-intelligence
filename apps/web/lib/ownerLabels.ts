@@ -93,6 +93,17 @@ export function eventTypeLabel(eventType: string): string {
   return EVENT_TYPE_LABELS[eventType] ?? EVENT_TYPE_FALLBACK;
 }
 
+/** Common catalogue/demo breeds -> zh-CN owner copy. Unknown values stay
+ * exactly as owner-entered data; we never infer or rewrite arbitrary breeds. */
+export function breedLabel(breed: string | null | undefined): string {
+  const value = (breed ?? "").trim();
+  if (!value) return "";
+  const key = value.toLowerCase();
+  if (key === "corgi" || key === "welsh corgi" || key === "pembroke welsh corgi") return "柯基";
+  if (key === "dlh" || key === "domestic long hair" || key === "domestic longhair") return "长毛家猫";
+  return value;
+}
+
 
 /** Consent purpose enums -> owner language. Unknown purposes stay generic. */
 export function consentPurposeLabel(purpose: string | null | undefined): string {
