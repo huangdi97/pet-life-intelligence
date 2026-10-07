@@ -14,7 +14,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { api, type BehaviorEventRow, type HealthEventRow, type LifeEvent, type PetFriend, type TrainingGoalRow, type WelfareEvidence } from "../api";
 import { usePets } from "../context";
-import { petAgeText, sexLabel } from "../format";
+import { breedLabel, petAgeText, sexLabel } from "../format";
 import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
 import type { StackParamList } from "../navigation";
 import { usePetTwin } from "../hooks/usePetTwin";
@@ -142,7 +142,7 @@ export function PetScreen() {
     : `${pet?.name ?? "宠物"}的生活轨迹会在这里留下重要的回忆`;
 
   const identityLine = pet
-    ? [`${petAgeText(pet.birth_date) ?? ""}`, pet.breed, sexLabel(pet.sex)].filter(Boolean).join(" · ")
+    ? [`${petAgeText(pet.birth_date) ?? ""}`, breedLabel(pet.breed), sexLabel(pet.sex)].filter(Boolean).join(" · ")
     : "";
 
   const navigateDomain = (route: DomainRoute) => {
