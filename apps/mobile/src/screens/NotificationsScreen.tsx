@@ -27,6 +27,20 @@ function notificationTypeLabel(type: string): string {
   return "生活提醒";
 }
 
+function roleAudienceLabel(role?: string | null): string | null {
+  if (!role || role === "ALL") return null;
+  const labels: Record<string, string> = {
+    OWNER: "仅家庭主人",
+    CO_OWNER: "仅共同主人",
+    FAMILY: "仅家人",
+    SITTER: "仅临时照护",
+    VET: "仅兽医",
+    TRAINER: "仅训练师",
+    GROOMER: "仅美容师",
+  };
+  return labels[role] ?? "仅指定家庭角色";
+}
+
 type NotificationFilter = "all" | "attention" | "health" | "care" | "other";
 
 const FILTERS: Array<{ id: NotificationFilter; label: string }> = [
@@ -185,7 +199,10 @@ export function NotificationsScreen() {
                     color={n.read_at ? COLORS.inkMuted : COLORS.info}
                     bg={n.read_at ? COLORS.bgSurfaceMuted : COLORS.infoBg}
                   />
-                  <Text style={styles.time}>{fmtTime(n.created_at)}</Text>
+                  <View style={styles.notificationMeta}>
+                    {roleAudienceLabel(n.target_role) ? <Text style={styles.audienceText}>{roleAudienceLabel(n.target_role)}</Text> : null}
+                    <Text style={styles.time}>{fmtTime(n.created_at)}</Text>
+                  </View>
                 </View>
                 <Text style={styles.title}>{n.title}</Text>
                 {n.body ? <Text style={styles.body}>{n.body}</Text> : null}
@@ -228,6 +245,8 @@ const styles = StyleSheet.create({
   notifRow: { paddingVertical: SPACE.s3 },
   notifDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
   head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  notificationMeta: { alignItems: "flex-end", gap: 2 },
+  audienceText: { fontSize: TYPE.xs, color: COLORS.info, fontWeight: "600" },
   time: { fontSize: TYPE.xs, color: COLORS.inkMuted },
   title: { fontSize: TYPE.base, fontWeight: TYPE.weightSemibold, color: COLORS.inkPrimary, marginTop: SPACE.s2 },
   body: { fontSize: TYPE.sm, color: COLORS.inkSecondary, marginTop: SPACE.s1 },
