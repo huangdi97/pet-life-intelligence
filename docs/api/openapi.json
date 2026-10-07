@@ -5227,6 +5227,83 @@
             }
           }
         }
+      },
+      "get": {
+        "tags": [
+          "v02-behavior-training",
+          "v02-behavior-training"
+        ],
+        "summary": "List Training Sessions",
+        "description": "Return real recorded training sessions newest-first.\n\nR5.5 Training is Goal -> Session -> Progress -> Outcome. Progress cannot be\ngrounded if owner clients can write sessions but never read them back.\nFiltering remains scoped to the same pet so a goal id can never cross the\nhousehold/pet boundary.",
+        "operationId": "list_training_sessions_api_v1_pets__pet_id__training_sessions_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          },
+          {
+            "name": "goal_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Goal Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Training Sessions Api V1 Pets  Pet Id  Training Sessions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/training/tools": {
@@ -11011,8 +11088,8 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 86400.0,
-                "minimum": 0.0
+                "maximum": 86400,
+                "minimum": 0
               },
               {
                 "type": "null"
@@ -11187,8 +11264,8 @@
         "properties": {
           "expires_in_hours": {
             "type": "integer",
-            "maximum": 720.0,
-            "minimum": 1.0,
+            "maximum": 720,
+            "minimum": 1,
             "title": "Expires In Hours",
             "default": 72
           }
@@ -11233,7 +11310,7 @@
         "properties": {
           "index": {
             "type": "integer",
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Index"
           },
           "done": {
@@ -11453,8 +11530,8 @@
           },
           "hours": {
             "type": "integer",
-            "maximum": 24.0,
-            "minimum": 1.0,
+            "maximum": 24,
+            "minimum": 1,
             "title": "Hours",
             "default": 4
           }
@@ -12126,8 +12203,8 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 1440.0,
-                "minimum": 0.0
+                "maximum": 1440,
+                "minimum": 0
               },
               {
                 "type": "null"
@@ -12190,15 +12267,15 @@
           },
           "max_uses": {
             "type": "integer",
-            "maximum": 100.0,
-            "minimum": 1.0,
+            "maximum": 100,
+            "minimum": 1,
             "title": "Max Uses",
             "default": 1
           },
           "expires_hours": {
             "type": "integer",
-            "maximum": 720.0,
-            "minimum": 1.0,
+            "maximum": 720,
+            "minimum": 1,
             "title": "Expires Hours",
             "default": 168
           },
@@ -12354,8 +12431,8 @@
           },
           "frequency_per_day": {
             "type": "integer",
-            "maximum": 12.0,
-            "minimum": 1.0,
+            "maximum": 12,
+            "minimum": 1,
             "title": "Frequency Per Day",
             "default": 1
           },
@@ -12373,8 +12450,8 @@
           },
           "duration_days": {
             "type": "integer",
-            "maximum": 30.0,
-            "minimum": 1.0,
+            "maximum": 30,
+            "minimum": 1,
             "title": "Duration Days",
             "default": 7
           },
@@ -12577,8 +12654,8 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 100000.0,
-                "minimum": 1.0
+                "maximum": 100000,
+                "minimum": 1
               },
               {
                 "type": "null"
@@ -13257,8 +13334,8 @@
           },
           "duration_minutes": {
             "type": "integer",
-            "maximum": 180.0,
-            "minimum": 1.0,
+            "maximum": 180,
+            "minimum": 1,
             "title": "Duration Minutes",
             "default": 10
           },
@@ -13292,8 +13369,8 @@
         "properties": {
           "expires_in_hours": {
             "type": "integer",
-            "maximum": 336.0,
-            "minimum": 1.0,
+            "maximum": 336,
+            "minimum": 1,
             "title": "Expires In Hours",
             "default": 72
           }
