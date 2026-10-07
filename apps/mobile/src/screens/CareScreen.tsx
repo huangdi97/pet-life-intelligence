@@ -16,6 +16,13 @@ interface Grant {
   expires_at: string | null;
   status: string;
 }
+interface HouseholdMember {
+  user_id: string;
+  display_name: string;
+  email: string;
+  role: string;
+  status: string;
+}
 interface Handoff {
   handoff_id: string;
   caregiver_user_id: string;
@@ -39,6 +46,13 @@ function statusLabel(status: string): string {
   if (status === "ENDED" || status === "REVOKED") return "已结束";
   return "已记录";
 }
+function roleLabel(role: string): string {
+  if (role === "OWNER") return "主人";
+  if (role === "CO_OWNER") return "共同主人";
+  if (role === "FAMILY") return "家庭成员";
+  if (role === "CAREGIVER") return "照护人";
+  return "成员";
+}
 function timeLabel(value: string | null): string {
   return value ? new Date(value).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "手动结束";
 }
@@ -48,11 +62,12 @@ export function CareScreen() {
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   const [grants, setGrants] = useState<Grant[]>([]);
   const [handoffs, setHandoffs] = useState<Handoff[]>([]);
+  const [members, setMembers] = useState<HouseholdMember[]>([]);
   const [grantsState, setGrantsState] = useState<"loading" | "ready" | "error">("loading");
   const [handoffsState, setHandoffsState] = useState<"loading" | "ready" | "error">("loading");
   const [caregiver, setCaregiver] = useState("");
   const [hours, setHours] = useState("48");
-  const [card, setCard] = useState<{ token: string; expires_at: string } | null>(null);
+  const [card, setCard] = useState<{ token_id: string; token: string; expires_at: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +82,10 @@ export function CareScreen() {
     Promise.allSettled([
       api.get<Grant[]>(`/pets/${petId}/grants`),
       api.get<Handoff[]>(`/pets/${petId}/handoffs`),
-    ]).then(([g, h]) => {
+      pet?.household_id
+        ? api.get<HouseholdMember[]>(`/households/${pet.household_id}/members`)
+        : Promise.resolve([] as HouseholdMember[]),
+    ]).then(([g, h, m]) => {
       if (!alive) return;
       if (g.status === "fulfilled") {
         setGrants(g.value);
@@ -81,11 +99,16 @@ export function CareScreen() {
       } else {
         setHandoffsState("error");
       }
+      if (m.status === "fulfilled") {
+        setMembers(m.value.filter((member) => member.status === "ACTIVE"));
+      } else {
+        setMembers([]);
+      }
       setError(g.status === "rejected" && h.status === "rejected" ? "暂时连接不上照护网络。" : null);
       setLoading(false);
     });
     return () => { alive = false; };
-  }, [petId, version]);
+  }, [petId, pet?.household_id, version]);
 
   async function createHandoff() {
     if (!petId || !caregiver.trim() || busy) return;
@@ -110,12 +133,30 @@ export function CareScreen() {
     } catch (e: unknown) { setError(humanizeError(e)); }
     finally { setBusy(false); }
   }
+  async function revokeGrant(id: string) {
+    if (busy) return;
+    setBusy(true); setError(null);
+    try {
+      await api.del(`/grants/${id}`);
+      setVersion((v) => v + 1);
+    } catch (e: unknown) { setError(humanizeError(e)); }
+    finally { setBusy(false); }
+  }
   async function issueCard() {
     if (!petId || busy) return;
     setBusy(true); setError(null);
     try {
-      const result = await api.post<{ token: string; expires_at: string }>(`/pets/${petId}/care-cards`, { expires_in_hours: 72 });
+      const result = await api.post<{ token_id: string; token: string; expires_at: string }>(`/pets/${petId}/care-cards`, { expires_in_hours: 72 });
       setCard(result);
+    } catch (e: unknown) { setError(humanizeError(e)); }
+    finally { setBusy(false); }
+  }
+  async function revokeCard() {
+    if (!card?.token_id || busy) return;
+    setBusy(true); setError(null);
+    try {
+      await api.del(`/share-tokens/${card.token_id}`);
+      setCard(null);
     } catch (e: unknown) { setError(humanizeError(e)); }
     finally { setBusy(false); }
   }
@@ -159,6 +200,18 @@ export function CareScreen() {
                   <Text style={styles.rowTitle}>{grant.user_label || "已授权成员"} · {statusLabel(grant.status)}</Text>
                   <Text style={styles.rowBody}>{grant.scopes.map((s) => SCOPE_LABELS[s] ?? "限定权限").join(" · ")}</Text>
                   <Text style={styles.meta}>{grant.expires_at ? `到期 ${timeLabel(grant.expires_at)}` : "未设置到期时间"}</Text>
+                  {grant.status === "ACTIVE" && (grant.grant_id ?? grant.id) ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`撤销${grant.user_label || "该成员"}的权限`}
+                      accessibilityState={{ disabled: busy }}
+                      disabled={busy}
+                      onPress={() => void revokeGrant(String(grant.grant_id ?? grant.id))}
+                      style={[styles.secondary, styles.revokeInline, busy && styles.disabled]}
+                    >
+                      <Text style={styles.secondaryText}>撤销权限</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
               )) : <Text style={styles.emptyLine}>还没有授权记录。</Text>}
             </OpenSection>
@@ -167,7 +220,30 @@ export function CareScreen() {
 
         <OpenSection title="发起临时交接" caption="默认仅日常权限">
           <Text style={styles.note}>临时照护人默认只获得日常查看与记录权限；到期自动失效，不能转授管理权限。</Text>
-          <TextInput style={styles.input} value={caregiver} onChangeText={setCaregiver} placeholder="临时照护人成员标识" placeholderTextColor={COLORS.textTertiary} />
+          {members.length ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.memberRail}>
+              {members.map((member) => {
+                const selected = caregiver === member.user_id;
+                return (
+                  <Pressable
+                    key={member.user_id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`选择临时照护人：${member.display_name || member.email || "家庭成员"}`}
+                    accessibilityState={{ selected }}
+                    onPress={() => setCaregiver(member.user_id)}
+                    style={[styles.memberChoice, selected && styles.memberChoiceActive]}
+                  >
+                    <Text style={[styles.memberChoiceName, selected && styles.memberChoiceNameActive]}>
+                      {member.display_name || member.email || "家庭成员"}
+                    </Text>
+                    <Text style={styles.memberChoiceRole}>{roleLabel(member.role)}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          ) : (
+            <Text style={styles.emptyLine}>还没有可选择的家庭成员；请先在家庭设置中添加成员。</Text>
+          )}
           <TextInput style={styles.input} value={hours} onChangeText={setHours} keyboardType="number-pad" placeholder="有效小时数" placeholderTextColor={COLORS.textTertiary} />
           <Pressable accessibilityRole="button" accessibilityLabel="创建临时照护交接" accessibilityState={{ disabled: busy || !caregiver.trim() }} disabled={busy || !caregiver.trim()} onPress={() => void createHandoff()} style={[styles.primary, (busy || !caregiver.trim()) && styles.disabled]}>
             <Text style={styles.primaryText}>{busy ? "处理中…" : "创建交接"}</Text>
@@ -183,6 +259,9 @@ export function CareScreen() {
             <View style={styles.cardResult}>
               <Text style={styles.rowTitle}>照护卡已生成</Text>
               <Text style={styles.rowBody}>分享链接已创建；请在支持分享的客户端打开。72 小时后自动失效。</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="撤销当前照护卡分享链接" accessibilityState={{ disabled: busy }} disabled={busy} onPress={() => void revokeCard()} style={[styles.secondary, styles.revokeInline, busy && styles.disabled]}>
+                <Text style={styles.secondaryText}>撤销分享链接</Text>
+              </Pressable>
             </View>
           ) : null}
         </OpenSection>
@@ -205,7 +284,14 @@ const styles = StyleSheet.create({
   meta: { marginTop: 3, fontSize: TYPE.caption, color: COLORS.textTertiary },
   secondary: { minHeight: 44, justifyContent: "center", backgroundColor: COLORS.brandSoft, borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 7 },
   secondaryText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
+  revokeInline: { alignSelf: "flex-start", marginTop: SPACE.s2 },
   record: { paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: COLORS.dividerSubtle },
+  memberRail: { gap: SPACE.s2, paddingVertical: SPACE.s2, paddingRight: SPACE.s4 },
+  memberChoice: { minWidth: 132, minHeight: 58, justifyContent: "center", backgroundColor: COLORS.surfaceRaised, borderRadius: RADIUS.xl, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2 },
+  memberChoiceActive: { backgroundColor: COLORS.brandSoftGreen },
+  memberChoiceName: { fontSize: TYPE.sm, color: COLORS.textPrimary, fontWeight: "600" },
+  memberChoiceNameActive: { color: COLORS.brandPrimaryDeep },
+  memberChoiceRole: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: 2 },
   emptyLine: { fontSize: TYPE.body, color: COLORS.textTertiary, paddingVertical: 8 },
   note: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20, marginBottom: SPACE.s2 },
   input: { marginTop: SPACE.s2, borderWidth: 1, borderColor: COLORS.dividerStrong, borderRadius: RADIUS.md, backgroundColor: COLORS.surface, paddingHorizontal: SPACE.s3, paddingVertical: 10, fontSize: TYPE.body, color: COLORS.textPrimary },
