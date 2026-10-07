@@ -191,3 +191,11 @@ def test_mini_training_follows_goal_session_progress_contract() -> None:
     for label in ("当前目标", "进展", "记录这次训练", "下一步"):
         assert label in source
     assert 'className="card"' not in source
+
+
+def test_twin_review_uses_stable_stand_pose_on_capable_clients() -> None:
+    web = read("apps/web/app/pets/[id]/twin/review/page.tsx")
+    mobile = read("apps/mobile/src/screens/PetTwinReviewScreen.tsx")
+    assert 'pose="Stand"' in web
+    assert 'pose="Stand"' in mobile
+    assert 'pose="Idle"' not in mobile.split('variant="review"', 1)[1].split("/>", 1)[0]
