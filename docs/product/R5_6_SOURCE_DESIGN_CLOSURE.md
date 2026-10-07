@@ -213,3 +213,28 @@ After the direct GitHub source audit, the final R5.6 craft pass tightened the Pe
 
 Fresh runtime evidence is required after these commits. Human Visual Acceptance remains pending; baselines remain frozen.
 
+## 14. 2026-10-07 final truth-alignment pass
+
+The current branch was re-audited against fresh Web/Android runtime evidence and the exhaustive R5.5 contract. This pass closes defects discovered by evidence without creating a new product-design version.
+
+- **Assistant hierarchy:** Ask remains one of the five Assistant capabilities, but is the dominant owner job on Web/Mobile/Mini. Brief / Find / Plan / Explain remain contextual tools. This preserves the canonical five-mode capability model without presenting five equal-weight primary controls.
+- **Doudou topology:** the native Gobkit Corgi source conversion contains many exact duplicate seam vertices. The canonical bake now welds only exact-position conversion duplicates, then uses boundary-preserving Loop refinement at V3 product density. This removes the old choice between visibly faceted linear refinement and seam-tearing naive Loop smoothing.
+- **Mimi orientation:** canonical model-forward normalization is baked at +90° so product camera semantics remain stable across Web/Android: front=0, side=π/2, rear=π. Runtime no longer compensates with a hidden model-root rotation.
+- **Twin Review pose:** capable clients render Review in a stable **Stand** pose. Review is an identity-inspection task, so camera/view changes must not be confounded by ambient tail/head animation. Runtime evidence now requires pose and canonicalPose to agree.
+- **Pose provenance:** runtime manifests report the pose actually rendered and its canonical truth class (AMBIENT / REPRESENTATIVE / OBSERVED) rather than inferring provenance merely from the presence of a Twin descriptor.
+- **Generated asset truth:** deterministic asset QA must pass before generated twins are committed. Canonical package assets and Web public assets remain byte-identical.
+
+These corrections preserve all existing truth boundaries:
+
+```text
+NO_VISION_MODEL_USED = TRUE
+REAL_PET_IDENTITY_VALIDATION = NOT_YET_OBSERVED
+APPROVED_VISUAL_BASELINE = OLD
+HUMAN_VISUAL_ACCEPTANCE = PENDING
+PR_2 = OPEN
+MERGE = BLOCKED_UNTIL_HUMAN_APPROVAL
+STABLE_RELEASE = BLOCKED_UNTIL_HUMAN_APPROVAL
+```
+
+Fresh runtime evidence after the last implementation commit supersedes every older R5.6 screenshot.
+
