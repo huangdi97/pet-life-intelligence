@@ -5,6 +5,7 @@ import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
 import { PetContextGate } from "../../components/feedback/Feedback";
 import { fmtTime } from "../../utils/format";
+import { getPlatform } from "../../platform/index";
 
 interface PreferenceRow {
   preference_id: string;
@@ -27,6 +28,7 @@ interface BehaviorRow {
   behavior: string;
   consequence: string;
   intensity: string;
+  artifact_ids: string[];
 }
 
 export default function Behavior() {
@@ -42,6 +44,9 @@ export default function Behavior() {
   const [preferenceSubject, setPreferenceSubject] = useState("");
   const [preferenceNote, setPreferenceNote] = useState("");
   const [preferenceBusy, setPreferenceBusy] = useState(false);
+  const [artifactIds, setArtifactIds] = useState<string[]>([]);
+  const [artifactNames, setArtifactNames] = useState<string[]>([]);
+  const [videoUploading, setVideoUploading] = useState(false);
 
   const load = useCallback((pid: string) => {
     setState("loading");
@@ -83,6 +88,24 @@ export default function Behavior() {
     );
   }
 
+  async function attachBehaviorVideo() {
+    if (!petId || videoUploading) return;
+    setVideoUploading(true);
+    try {
+      const { media, uploader } = getPlatform();
+      const filePath = await media.chooseVideo();
+      if (!filePath) return;
+      const row = await uploader.uploadVideo(petId, filePath);
+      setArtifactIds((ids) => [...ids, row.artifact_id].slice(-3));
+      const displayName = filePath.split("/").pop() || "行为视频";
+      setArtifactNames((names) => [...names, displayName].slice(-3));
+    } catch {
+      Taro.showToast({ title: "暂时无法上传视频", icon: "none" });
+    } finally {
+      setVideoUploading(false);
+    }
+  }
+
   async function addPreference() {
     if (!petId || !preferenceSubject.trim() || preferenceBusy) return;
     setPreferenceBusy(true);
@@ -115,9 +138,12 @@ export default function Behavior() {
         consequence: form.consequence.trim(),
         environment: form.environment.trim(),
         intensity: form.intensity,
+        artifact_ids: artifactIds,
       });
       setShowCreate(false);
       setForm({ antecedent: "", behavior: "", consequence: "", environment: "", intensity: "" });
+      setArtifactIds([]);
+      setArtifactNames([]);
       load(petId);
       Taro.showToast({ title: "已记录", icon: "success" });
     } catch {
@@ -173,6 +199,9 @@ export default function Behavior() {
           <View style={{ marginTop: 6 }}>具体行为：{b.behavior}</View>
           {b.intensity ? <View className="badge" style={{ marginTop: 6 }}>{b.intensity === "MILD" ? "轻度" : b.intensity === "MODERATE" ? "中度" : b.intensity === "SEVERE" ? "重度" : "主人标注"}</View> : null}
           {b.consequence && <View className="muted" style={{ marginTop: 6 }}>发生之后：{b.consequence}</View>}
+          {b.artifact_ids?.length ? (
+            <View className="life-row-source">已关联 {b.artifact_ids.length} 个媒体证据 · 仅作为本次行为记录的原始素材</View>
+          ) : null}
         </View>
       ))}
 
@@ -224,6 +253,17 @@ export default function Behavior() {
             <View className="field">
               <Text>具体行为 *</Text>
               <Textarea className="input" value={form.behavior} onInput={(e) => setForm({ ...form, behavior: e.detail.value })} placeholder="例如：听到门铃后连续吠叫约 30 秒" autoHeight />
+            </View>
+            <View className="field" data-testid="pli.mini.behavior.video">
+              <Text>关联行为视频（可选，最多保留 3 个）</Text>
+              <Button className="btn" disabled={videoUploading} onClick={() => void attachBehaviorVideo()}>
+                {videoUploading ? "正在上传视频……" : "从相册选择视频"}
+              </Button>
+              <View className="life-row-source">
+                {artifactNames.length
+                  ? `已关联：${artifactNames.join("、")}`
+                  : "视频只作为这条观察的原始证据；系统不会仅凭视频自动推断性格、情绪或诊断。"}
+              </View>
             </View>
             <View className="field">
               <Text>发生之后</Text>
