@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { api, ApiError, type Pet } from "@pli/api-client";
 import { fmtDate, useAsync } from "../../../lib/hooks";
 import { mapErrorMessage, t } from "../../../lib/i18n";
-import { consentPurposeLabel } from "../../../lib/ownerLabels";
+import { breedLabel, consentPurposeLabel } from "../../../lib/ownerLabels";
 import { State } from "../../../components/ui";
 import { PetLivingStage } from "../../../components/pet-living-stage";
 import { Icon, type WebIconName } from "../../../components/icons";
@@ -136,7 +136,7 @@ export default function PetProfilePage() {
 
   const identityLine = [
     p?.birth_date ? ageText(p.birth_date) : "",
-    p?.breed || p?.species,
+    breedLabel(p?.breed) || p?.species,
     p?.sex === "FEMALE" ? "雌性" : p?.sex === "MALE" ? "雄性" : p?.sex === "UNKNOWN" ? "性别未知" : "",
   ]
     .filter(Boolean)
@@ -257,7 +257,7 @@ export default function PetProfilePage() {
             <h2 className="v4-sec-title">基本信息</h2>
             <div className="v4-statsline" style={{ marginTop: 6 }}>
               <span className="v4-chip">种类：{p?.species === "dog" ? "犬" : p?.species === "cat" ? "猫" : p?.species || "—"}</span>
-              <span className="v4-chip">品种：{p?.breed || "—"}</span>
+              <span className="v4-chip">品种：{breedLabel(p?.breed) || "—"}</span>
               <span className="v4-chip">性别：{p?.sex === "FEMALE" ? "雌性" : p?.sex === "MALE" ? "雄性" : p?.sex === "UNKNOWN" ? "未知" : "—"}</span>
               <span className="v4-chip">绝育：{p?.neutered == null ? "—" : p.neutered ? "是" : "否"}</span>
             </div>
