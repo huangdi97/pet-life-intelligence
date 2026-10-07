@@ -8,7 +8,7 @@ import { ErrorNote } from "../../components/ui";
 import { AccountSecurityCard } from "./_components/AccountSecurityCard";
 import { AuditAndFeedbackSection } from "./_components/AuditAndFeedbackSection";
 import { ConsentsCard } from "./_components/ConsentsCard";
-import { DeletionRequestCard } from "./_components/DeletionRequestCard";
+import { DeletionRequestCard, type DeletionRequestRow } from "./_components/DeletionRequestCard";
 import { DataControlsCard } from "./_components/DataControlsCard";
 import { EmergencyProfileCard } from "./_components/EmergencyProfileCard";
 import type { AuditRow, EmergencyProfile } from "./_components/types";
@@ -28,6 +28,13 @@ export default function SettingsPage() {
     () =>
       pid
         ? api.get<EmergencyProfile>(`/pets/${pid}/emergency-profile`)
+        : Promise.reject(new Error("no pet")),
+    [pid],
+  );
+  const deletionRequests = useAsync<DeletionRequestRow[]>(
+    () =>
+      pid
+        ? api.get<DeletionRequestRow[]>(`/pets/${pid}/deletion-requests`)
         : Promise.reject(new Error("no pet")),
     [pid],
   );
@@ -110,6 +117,7 @@ export default function SettingsPage() {
       await api.post(`/pets/${pid}/deletion-requests`, { reason: delReason });
       setFlash("删除请求已登记（不会自动删除；等待人工确认）。");
       setDelReason("");
+      deletionRequests.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -197,6 +205,8 @@ export default function SettingsPage() {
         <DeletionRequestCard
           pid={pid}
           value={delReason}
+          rows={deletionRequests.data ?? []}
+          state={deletionRequests.state}
           onValueChange={setDelReason}
           onRequest={requestDeletion}
         />
