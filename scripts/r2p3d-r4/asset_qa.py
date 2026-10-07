@@ -25,6 +25,56 @@ OUT = Path("packages/pet-3d/assets/twins")
 CLIP_NAMES = ["Idle", "Stand", "Sit", "Lie", "Sleep", "Walk", "Run", "Eat", "Drink", "Play", "Sniff", "Stretch"]
 
 
+def _obj_positions(path: Path) -> list[tuple[float, float, float]]:
+    out: list[tuple[float, float, float]] = []
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        if not raw.startswith("v "):
+            continue
+        x, y, z = (float(v) for v in raw.split()[1:4])
+        out.append((x, y, z))
+    return out
+
+
+def _normalize_positions(
+    points: list[tuple[float, float, float]],
+    target_height: float,
+) -> list[tuple[float, float, float]]:
+    """Mirror normalize_mesh for the Doudou source (rotate_y_deg == 0).
+
+    Linear refinement only inserts edge midpoints, so it cannot change source
+    extrema. Every authored welded source vertex must therefore survive the
+    bake's normalize -> unwrap path at the same position.
+    """
+    xs = [p[0] for p in points]
+    ys = [p[1] for p in points]
+    zs = [p[2] for p in points]
+    ymin = min(ys)
+    height = max(ys) - ymin
+    scale = target_height / height
+    scaled = [(x * scale, (y - ymin) * scale, z * scale) for x, y, z in points]
+    cx = (min(p[0] for p in scaled) + max(p[0] for p in scaled)) / 2.0
+    cz = (min(p[2] for p in scaled) + max(p[2] for p in scaled)) / 2.0
+    return [(x - cx, y, z - cz) for x, y, z in scaled]
+
+
+def _doudou_source_vertex_retention() -> float:
+    source = Path("artifacts/r2p3d-r5/twin-sources/doudou-gobkit-corgi/Corgi.obj")
+    baked = OUT / "doudou_base.obj"
+    # Exact weld semantics: duplicate authored positions collapse but the
+    # position itself is never moved.
+    unique_source = list(dict.fromkeys(tuple(round(v, 9) for v in p) for p in _obj_positions(source)))
+    normalized = _normalize_positions(unique_source, 1.35)
+    baked_set = {
+        tuple(round(v, 5) for v in p)
+        for p in _obj_positions(baked)
+    }
+    retained = sum(
+        tuple(round(v, 5) for v in p) in baked_set
+        for p in normalized
+    )
+    return retained / max(1, len(normalized))
+
+
 def _parse_glb(path: Path) -> tuple[dict, int]:
     raw = path.read_bytes()
     assert len(raw) >= 12, "GLB too short"
@@ -72,6 +122,7 @@ def qa_one(pet: str) -> tuple[bool, dict]:
 
     attrs = j["meshes"][0]["primitives"][0]["attributes"]
     tris = _count_triangles(j)
+    source_vertex_retention = _doudou_source_vertex_retention() if pet == "doudou" else None
     checks = {
         "triangleCountInRange": 20_000 <= tris <= 80_000,
         "uvPresent": "TEXCOORD_0" in attrs,
@@ -86,6 +137,13 @@ def qa_one(pet: str) -> tuple[bool, dict]:
         "sourceProvenance": bool(m.get("sourceProvenance")),
         "representationQuality": m.get("representationQuality"),
         "productCandidate": m.get("productCandidate"),
+        # Geometry continuity gate: structural triangle/skin checks alone once
+        # passed a visibly rounded/blobby Corgi. Doudou must retain the native
+        # source's authored vertices after exact weld + density refinement.
+        "sourceVertexRetention": source_vertex_retention,
+        "sourceVertexRetentionPass": (
+            source_vertex_retention is None or source_vertex_retention >= 0.98
+        ),
     }
     clips_ok = all(c in checks["animationClips"] for c in CLIP_NAMES)
     joints_ok = checks["jointCount"] >= 16
@@ -103,6 +161,7 @@ def qa_one(pet: str) -> tuple[bool, dict]:
         and checks["sourceProvenance"]
         and checks["representationQuality"] == "HIGH_FIDELITY_SKINNED"
         and checks["productCandidate"] is True
+        and checks["sourceVertexRetentionPass"]
     )
     report = {
         "asset": pet,
@@ -124,6 +183,8 @@ def qa_one(pet: str) -> tuple[bool, dict]:
         "fingerprint": m.get("fingerprint"),
         "representationQuality": checks["representationQuality"],
         "productCandidate": checks["productCandidate"],
+        "sourceVertexRetention": checks["sourceVertexRetention"],
+        "sourceVertexRetentionPass": checks["sourceVertexRetentionPass"],
         "clipsOk": clips_ok,
         "jointsOk": joints_ok,
         "V3_PASS": pass_v3,
@@ -138,8 +199,11 @@ def main() -> int:
         ok, rep = qa_one(pet)
         overall &= ok
         reports.append(rep)
+        retention = rep.get("sourceVertexRetention")
+        retention_note = f" sourceRetention={retention:.3f}" if retention is not None else ""
         print(f"[qa:{pet}] V3_PASS={ok} tris={rep['triangleCount']} joints={rep['jointCount']} "
-              f"clips={len(rep['animationClips'])} size={rep['fileSizeKB']:.0f}KB tex={rep['baseColorTextureResolution']}")
+              f"clips={len(rep['animationClips'])} size={rep['fileSizeKB']:.0f}KB tex={rep['baseColorTextureResolution']}"
+              f"{retention_note}")
     # A3: distinct fingerprints
     f0 = reports[0]["fingerprint"]
     f1 = reports[1]["fingerprint"]
