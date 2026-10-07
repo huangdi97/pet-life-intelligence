@@ -24,6 +24,17 @@ export function speciesLabel(species: string): string {
   return species;
 }
 
+/** Common demo/catalogue breed names -> owner-facing zh-CN; unknown breeds
+ * remain exactly as entered by the owner rather than being guessed. */
+export function breedLabel(breed: string | null | undefined): string {
+  const value = (breed ?? "").trim();
+  if (!value) return "";
+  const key = value.toLowerCase();
+  if (key === "corgi" || key === "welsh corgi" || key === "pembroke welsh corgi") return "柯基";
+  if (key === "dlh" || key === "domestic long hair" || key === "domestic longhair") return "长毛家猫";
+  return value;
+}
+
 export function sexLabel(sex: string): string {
   if (sex === "FEMALE") return "雌性";
   if (sex === "MALE") return "雄性";
