@@ -17,8 +17,9 @@ test("E2E-01 创建宠物 → Quick Log → Timeline（刷新后仍存在，后�
   await createPetViaUI(page, name);
   await expect(page.locator(".topnav select")).toContainText(name);
 
-  // 3. Today / Quick Log: add a meal
-  await page.getByRole("button", { name: "喂食" }).click();
+  // 3. Today / Quick Log: R5 uses one primary entry, then the concrete fact.
+  await page.getByRole("button", { name: "快速记录", exact: true }).click();
+  await page.getByRole("button", { name: "喂食", exact: true }).click();
   await expect(page.locator(".alert.info")).toContainText("已记录");
 
   // 4. Timeline shows the event with provenance + actor
