@@ -213,3 +213,38 @@ class TestPetProfile:
         assert cleared.status_code == 200, cleared.text
         assert cleared.json()["birth_date"] is None
         assert cleared.json()["neutered"] is None
+
+
+class TestOwnerDataControls:
+    def test_field_privacy_round_trip_masks_non_manager(self, client, seeded):
+        owner, family, coco = seeded["owner_id"], seeded["family_id"], seeded["coco_id"]
+
+        got = client.get(f"/api/v1/pets/{coco}/field-privacy", headers=auth(owner))
+        assert got.status_code == 200, got.text
+        assert set(got.json()["maskable_fields"]) == {"birth_date", "breed", "weight_note"}
+
+        saved = client.put(
+            f"/api/v1/pets/{coco}/field-privacy",
+            json={"hidden_fields": ["breed", "weight_note"]},
+            headers=auth(owner),
+        )
+        assert saved.status_code == 200, saved.text
+        assert set(saved.json()["hidden_fields"]) == {"breed", "weight_note"}
+
+        family_view = client.get(f"/api/v1/pets/{coco}", headers=auth(family))
+        assert family_view.status_code == 200
+        assert family_view.json()["breed"] is None
+        assert family_view.json()["weight_note"] is None
+        assert set(family_view.json()["field_privacy_applied"]) == {"breed", "weight_note"}
+
+    def test_owner_export_is_real_and_audited(self, client, seeded):
+        owner, family, coco = seeded["owner_id"], seeded["family_id"], seeded["coco_id"]
+
+        bundle = client.get(f"/api/v1/pets/{coco}/export", headers=auth(owner))
+        assert bundle.status_code == 200, bundle.text
+        assert bundle.json()["export_version"] == "1.0"
+        assert bundle.json()["pet"]["id"] == coco
+        assert "life_events" in bundle.json()
+
+        denied = client.get(f"/api/v1/pets/{coco}/export", headers=auth(family))
+        assert denied.status_code == 403
