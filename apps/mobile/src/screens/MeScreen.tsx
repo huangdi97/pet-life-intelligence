@@ -78,6 +78,9 @@ export function MeScreen() {
   const [emergencyBusy, setEmergencyBusy] = useState(false);
   const [deletionReason, setDeletionReason] = useState("");
   const [deletionBusy, setDeletionBusy] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState<string | null>(null);
   const [dataStatus, setDataStatus] = useState<string | null>(null);
 
   useEffect(() => {
@@ -203,6 +206,23 @@ export function MeScreen() {
     }
   }
 
+  async function acceptHouseholdInvitation() {
+    const token = inviteCode.trim();
+    if (!token || inviteBusy || !hasSession) return;
+    setInviteBusy(true);
+    setInviteStatus(null);
+    try {
+      await api.post("/invitations/accept", { token });
+      setInviteCode("");
+      setInviteStatus("家庭邀请已接受。");
+      await reload();
+    } catch (error: unknown) {
+      setInviteStatus(humanizeError(error));
+    } finally {
+      setInviteBusy(false);
+    }
+  }
+
   async function sendFeedback() {
     const message = feedbackMessage.trim();
     if (!message || feedbackBusy || !hasSession) return;
@@ -247,6 +267,32 @@ export function MeScreen() {
             <Text style={styles.linkText}>照护协作</Text>
             <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
           </Pressable>
+          <View style={[styles.inviteAccept, styles.rowDivider]}>
+            <Text style={styles.rowLabel}>接受家庭邀请</Text>
+            <Text style={styles.sectionLead}>邀请码只用于加入家庭，不会授予超出邀请角色的权限。</Text>
+            <TextInput
+              testID="pli.me.invitation.token"
+              style={styles.input}
+              value={inviteCode}
+              onChangeText={setInviteCode}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="输入邀请码"
+              placeholderTextColor={COLORS.textTertiary}
+            />
+            <Pressable
+              testID="pli.me.invitation.accept"
+              accessibilityRole="button"
+              accessibilityLabel="接受家庭邀请"
+              accessibilityState={{ disabled: inviteBusy || !inviteCode.trim() || !hasSession }}
+              disabled={inviteBusy || !inviteCode.trim() || !hasSession}
+              onPress={() => void acceptHouseholdInvitation()}
+              style={[styles.smallButton, styles.inviteButton, (inviteBusy || !inviteCode.trim() || !hasSession) && styles.controlDisabled]}
+            >
+              <Text style={styles.smallButtonText}>{inviteBusy ? "处理中…" : hasSession ? "接受邀请" : "登录后可接受"}</Text>
+            </Pressable>
+            {inviteStatus ? <Text style={styles.stateText}>{inviteStatus}</Text> : null}
+          </View>
         </OpenSection>
 
         <OpenSection title="我的宠物" testID="pli.me.pets">
@@ -550,4 +596,6 @@ const styles = StyleSheet.create({
   logoutBtn: { minHeight: 48, justifyContent: "center", marginHorizontal: SPACE.s4, marginTop: SPACE.s5, paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: COLORS.dividerStrong, alignItems: "center" },
   controlDisabled: { opacity: 0.5 },
   logoutText: { fontSize: TYPE.button, color: COLORS.textSecondary, fontWeight: "600" },
+  inviteAccept: { paddingTop: SPACE.s3, marginTop: SPACE.s2 },
+  inviteButton: { alignSelf: "flex-start", marginTop: SPACE.s2 },
 });
