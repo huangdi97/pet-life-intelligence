@@ -15,7 +15,7 @@ import type { StackParamList } from "../navigation";
 import { LifeStream } from "../components/timeline/LifeStream";
 import { groupEventsByDay } from "../components/timeline/lifeStreamUtils";
 import { EmptyState, InlineError, Skeleton } from "../components/feedback/Feedback";
-import { TIMELINE_FILTERS } from "./ui_labels";
+import { eventTypeLabel, TIMELINE_FILTERS } from "./ui_labels";
 
 type StackNav = NativeStackNavigationProp<StackParamList>;
 
@@ -28,6 +28,18 @@ interface DiaryRow {
   entry_at: string;
   text: string;
   has_audio: boolean;
+}
+interface MilestoneRow {
+  milestone_id: string;
+  title: string;
+  kind: string;
+  occurred_at: string;
+}
+interface MemoryRow {
+  years_ago: number;
+  window: string;
+  events: number;
+  sample: string[];
 }
 interface DailySummaryRow {
   summary_id: string;
@@ -49,6 +61,13 @@ export function TimelineScreen() {
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [milestones, setMilestones] = useState<MilestoneRow[]>([]);
+  const [milestoneState, setMilestoneState] = useState<"loading" | "ready" | "error">("loading");
+  const [milestoneTitle, setMilestoneTitle] = useState("");
+  const [milestoneDate, setMilestoneDate] = useState("");
+  const [milestoneBusy, setMilestoneBusy] = useState(false);
+  const [memories, setMemories] = useState<MemoryRow[]>([]);
+  const [memoryState, setMemoryState] = useState<"loading" | "ready" | "error">("loading");
   const [diary, setDiary] = useState<DiaryRow[]>([]);
   const [diaryState, setDiaryState] = useState<"loading" | "ready" | "error">("loading");
   const [diaryText, setDiaryText] = useState("");
@@ -87,6 +106,36 @@ export function TimelineScreen() {
   useEffect(() => {
     if (!petId) return;
     let alive = true;
+    setMilestoneState("loading");
+    setMemoryState("loading");
+    api.get<MilestoneRow[]>(`/pets/${petId}/milestones`)
+      .then((rows) => {
+        if (!alive) return;
+        setMilestones(rows);
+        setMilestoneState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setMilestones([]);
+        setMilestoneState("error");
+      });
+    api.get<MemoryRow[]>(`/pets/${petId}/memories?years_back=10`)
+      .then((rows) => {
+        if (!alive) return;
+        setMemories(rows);
+        setMemoryState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setMemories([]);
+        setMemoryState("error");
+      });
+    return () => { alive = false; };
+  }, [petId]);
+
+  useEffect(() => {
+    if (!petId) return;
+    let alive = true;
     setDiaryState("loading");
     api.get<DiaryRow[]>(`/pets/${petId}/diary?limit=5`)
       .then((rows) => {
@@ -119,6 +168,34 @@ export function TimelineScreen() {
       });
     return () => { alive = false; };
   }, [petId]);
+
+  async function addMilestone() {
+    const title = milestoneTitle.trim();
+    if (!petId || !title || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate) || milestoneBusy) return;
+    setMilestoneBusy(true);
+    try {
+      await api.post(`/pets/${petId}/milestones`, {
+        title,
+        kind: "OTHER",
+        occurred_at: new Date(`${milestoneDate}T12:00:00`).toISOString(),
+        note: "",
+      });
+      const [milestoneRows, memoryRows] = await Promise.all([
+        api.get<MilestoneRow[]>(`/pets/${petId}/milestones`),
+        api.get<MemoryRow[]>(`/pets/${petId}/memories?years_back=10`),
+      ]);
+      setMilestones(milestoneRows);
+      setMemories(memoryRows);
+      setMilestoneState("ready");
+      setMemoryState("ready");
+      setMilestoneTitle("");
+      setMilestoneDate("");
+    } catch {
+      setMilestoneState("error");
+    } finally {
+      setMilestoneBusy(false);
+    }
+  }
 
   async function generateDailySummary() {
     if (!petId || summaryBusy) return;
@@ -206,6 +283,76 @@ export function TimelineScreen() {
             </Pressable>
           ))}
         </ScrollView>
+
+        <View style={styles.memorySection} testID="pli.timeline.milestones">
+          <Text style={styles.diaryTitle}>里程碑</Text>
+          <Text style={styles.diaryIntro}>只记录真实发生、值得长期保留的节点；保存后会进入同一条生命时间线。</Text>
+          <View style={styles.milestoneForm}>
+            <TextInput
+              style={[styles.diaryInput, styles.milestoneDateInput]}
+              value={milestoneDate}
+              onChangeText={setMilestoneDate}
+              placeholder="发生日期 YYYY-MM-DD"
+              placeholderTextColor={COLORS.textTertiary}
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={[styles.diaryInput, styles.milestoneTitleInput]}
+              value={milestoneTitle}
+              onChangeText={setMilestoneTitle}
+              maxLength={200}
+              placeholder="例如：第一次完成长途徒步"
+              placeholderTextColor={COLORS.textTertiary}
+            />
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="记录里程碑"
+            accessibilityState={{ disabled: milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate) }}
+            disabled={milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate)}
+            onPress={() => void addMilestone()}
+            style={[styles.diaryButton, (milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate)) && styles.diaryButtonDisabled]}
+          >
+            <Text style={styles.diaryButtonText}>{milestoneBusy ? "保存中…" : "记录里程碑"}</Text>
+          </Pressable>
+          {milestoneState === "ready" && milestones.length ? (
+            <View style={styles.diaryRecent}>
+              {milestones.slice(0, 3).map((row) => (
+                <View key={row.milestone_id} style={styles.diaryRow}>
+                  <Text style={styles.diaryRowText}>{row.title}</Text>
+                  <Text style={styles.diaryTime}>{new Date(row.occurred_at).toLocaleDateString("zh-CN")}</Text>
+                </View>
+              ))}
+            </View>
+          ) : milestoneState === "error" ? (
+            <Text style={styles.diaryError}>里程碑暂时没有加载成功；不会把未知状态显示成空。</Text>
+          ) : milestoneState === "ready" ? (
+            <Text style={styles.diaryTime}>还没有里程碑记录。</Text>
+          ) : (
+            <Text style={styles.diaryTime}>正在读取里程碑……</Text>
+          )}
+        </View>
+
+        <View style={styles.memorySection} testID="pli.timeline.memories">
+          <Text style={styles.diaryTitle}>往年今日</Text>
+          <Text style={styles.diaryIntro}>这里只回看历史上同一日期附近真实存在的事件；没有记录就不生成“回忆”。</Text>
+          {memoryState === "ready" && memories.length ? (
+            <View style={styles.diaryRecent}>
+              {memories.slice(0, 3).map((row) => (
+                <View key={row.years_ago} style={styles.diaryRow}>
+                  <Text style={styles.diaryRowText}>{row.years_ago} 年前 · {row.events} 条记录</Text>
+                  <Text style={styles.diaryTime}>{row.sample.slice(0, 3).map(eventTypeLabel).join(" · ")}</Text>
+                </View>
+              ))}
+            </View>
+          ) : memoryState === "error" ? (
+            <Text style={styles.diaryError}>历史回忆暂时没有读取到；不会用生成内容补齐。</Text>
+          ) : memoryState === "ready" ? (
+            <Text style={styles.diaryTime}>往年今天附近还没有真实记录。</Text>
+          ) : (
+            <Text style={styles.diaryTime}>正在读取历史回忆……</Text>
+          )}
+        </View>
 
         <View style={styles.diarySection} testID="pli.timeline.diary">
           <Text style={styles.diaryTitle}>今天想记下什么</Text>
@@ -308,6 +455,10 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
   chipText: { fontSize: TYPE.sm, color: COLORS.textTertiary },
   chipActiveText: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  memorySection: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3, padding: SPACE.s4, backgroundColor: COLORS.surfaceRaised, borderRadius: 22 },
+  milestoneForm: { marginTop: SPACE.s2, gap: SPACE.s2 },
+  milestoneDateInput: { minHeight: 48 },
+  milestoneTitleInput: { minHeight: 48 },
   diarySection: { marginHorizontal: SPACE.s4, marginTop: SPACE.s4, padding: SPACE.s4, backgroundColor: COLORS.surfaceRaised, borderRadius: 22 },
   diaryTitle: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary },
   diaryIntro: { marginTop: 4, fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18 },
