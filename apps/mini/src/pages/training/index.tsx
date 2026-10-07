@@ -3,6 +3,7 @@ import { Button, Input, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { fmtTime } from "../../utils/format";
 import { PetContextGate } from "../../components/feedback/Feedback";
 
 function statusLabel(status: string): string {
@@ -21,6 +22,23 @@ interface TrainingGoal {
   steps: Array<{ description: string; status: string }>;
 }
 
+interface TrainingSession {
+  session_id: string;
+  goal_id: string | null;
+  session_at: string;
+  duration_minutes: number;
+  focus: string;
+  pet_response: string;
+  rewards_used: string[];
+}
+
+function responseLabel(response: string): string {
+  if (response === "GREAT") return "表现很好";
+  if (response === "GOOD") return "表现好";
+  if (response === "POOR") return "遇到困难";
+  return "已记录";
+}
+
 /**
  * Mini Training — semantic parity at lower density.
  *
@@ -33,6 +51,8 @@ export default function Training() {
   const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const currentPet = pets?.find((p) => p.id === petId) ?? pets?.[0];
   const [goals, setGoals] = useState<TrainingGoal[]>([]);
+  const [sessions, setSessions] = useState<TrainingSession[]>([]);
+  const [sessionState, setSessionState] = useState<"loading" | "ready" | "error">("loading");
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [title, setTitle] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -40,6 +60,7 @@ export default function Training() {
 
   const load = useCallback((pid: string) => {
     setState("loading");
+    setSessionState("loading");
     api
       .get<TrainingGoal[]>(`/pets/${pid}/training-goals`)
       .then((rows) => {
@@ -47,6 +68,16 @@ export default function Training() {
         setState("ready");
       })
       .catch(() => setState("error"));
+    api
+      .get<TrainingSession[]>(`/pets/${pid}/training-sessions?limit=8`)
+      .then((rows) => {
+        setSessions(rows);
+        setSessionState("ready");
+      })
+      .catch(() => {
+        setSessions([]);
+        setSessionState("error");
+      });
   }, []);
 
   useEffect(() => {
@@ -152,6 +183,36 @@ export default function Training() {
                     掌握度只由已经提交的训练会话更新，不根据猜测或一次表现自动判定“学会了”。
                   </View>
                 </View>
+              </View>
+
+              <View className="open-section" data-testid="pli.mini.training.history">
+                <View className="section-title">最近会话与结果</View>
+                {sessionState === "loading" ? (
+                  <View className="life-empty-note">正在读取最近训练会话……</View>
+                ) : sessionState === "error" ? (
+                  <View className="life-empty-note">最近会话暂时没有加载成功；不会用掌握度反推不存在的会话。</View>
+                ) : sessions.length === 0 ? (
+                  <View className="life-empty-note">还没有记录过训练会话。</View>
+                ) : (
+                  sessions.slice(0, 4).map((session) => {
+                    const goal = goals.find((item) => item.goal_id === session.goal_id);
+                    return (
+                      <View className="life-row" key={session.session_id}>
+                        <View className="life-row-head">
+                          <Text className="life-row-type">{goal?.title ?? "训练会话"}</Text>
+                          <Text className="life-row-time">结果：{responseLabel(session.pet_response)}</Text>
+                        </View>
+                        <View className="life-row-detail">
+                          {fmtTime(session.session_at)} · {session.duration_minutes} 分钟
+                          {session.focus ? ` · ${session.focus}` : ""}
+                        </View>
+                        {session.rewards_used?.length ? (
+                          <View className="life-row-source">奖励：{session.rewards_used.join("、")}</View>
+                        ) : null}
+                      </View>
+                    );
+                  })
+                )}
               </View>
 
               <View className="open-section" data-testid="pli.mini.training.session">
