@@ -30,7 +30,7 @@ export default function HealthEventDetailPage({
   const [answer, setAnswer] = useState("");
   const [obsText, setObsText] = useState("");
   const [brief, setBrief] = useState<{ id: string; content: VetBriefContent } | null>(null);
-  const [share, setShare] = useState<{ token: string; expires_at: string } | null>(null);
+  const [share, setShare] = useState<{ token_id: string; token: string; expires_at: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState("");
   const [outcomeNotes, setOutcomeNotes] = useState("");
@@ -91,11 +91,22 @@ export default function HealthEventDetailPage({
   async function shareBrief(briefId: string) {
     setError(null);
     try {
-      const r = await api.post<{ share_token: string; expires_at: string }>(
+      const r = await api.post<{ token_id: string; share_token: string; expires_at: string }>(
         `/vet-briefs/${briefId}/share`,
         { expires_in_hours: 72 },
       );
-      setShare({ token: r.share_token, expires_at: r.expires_at });
+      setShare({ token_id: r.token_id, token: r.share_token, expires_at: r.expires_at });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function revokeShare() {
+    if (!share) return;
+    setError(null);
+    try {
+      await api.del(`/share-tokens/${share.token_id}`);
+      setShare(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -153,6 +164,7 @@ export default function HealthEventDetailPage({
               hasBriefs={detail.data.vet_briefs.length > 0}
               onMakeBrief={makeBrief}
               onShareBrief={shareBrief}
+              onRevokeShare={revokeShare}
             />
 
             <OutcomeCard
