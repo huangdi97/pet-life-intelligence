@@ -11,6 +11,14 @@ import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
 import { OpenSection } from "../components/feedback/OpenSection";
 import { EmptyState, InlineError, Skeleton } from "../components/feedback/Feedback";
 
+interface PreferenceRow {
+  preference_id: string;
+  kind: "LIKE" | "DISLIKE" | "ALLERGY_CAUTION" | "REWARD";
+  subject: string;
+  note: string;
+  source_type: string;
+}
+
 interface TrainingSessionRow {
   session_id: string;
   goal_id: string | null;
@@ -51,6 +59,12 @@ export function TrainingScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [busyGoal, setBusyGoal] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
+  const [rewards, setRewards] = useState<PreferenceRow[]>([]);
+  const [rewardState, setRewardState] = useState<"loading" | "ready" | "error">("loading");
+  const [rewardSubject, setRewardSubject] = useState("");
+  const [rewardNote, setRewardNote] = useState("");
+  const [selectedReward, setSelectedReward] = useState("");
+  const [rewardBusy, setRewardBusy] = useState(false);
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
@@ -88,6 +102,18 @@ export function TrainingScreen() {
           setSessionsState("error");
         }
       });
+    setRewardState("loading");
+    api.get<PreferenceRow[]>(`/pets/${petId}/preferences`)
+      .then((items) => {
+        if (!alive) return;
+        setRewards(items.filter((row) => row.kind === "REWARD"));
+        setRewardState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setRewards([]);
+        setRewardState("error");
+      });
     api
       .get<TrainingTools>("/training/tools")
       .then((r) => {
@@ -106,6 +132,28 @@ export function TrainingScreen() {
       alive = false;
     };
   }, [petId, version]);
+
+  async function addReward() {
+    if (!petId || !rewardSubject.trim() || rewardBusy) return;
+    setRewardBusy(true);
+    setFormError(null);
+    try {
+      const row = await api.post<{ preference_id: string; kind: string; subject: string }>(`/pets/${petId}/preferences`, {
+        kind: "REWARD",
+        subject: rewardSubject.trim(),
+        note: rewardNote.trim(),
+        source_type: "OWNER_REPORTED",
+      });
+      setSelectedReward(row.subject);
+      setRewardSubject("");
+      setRewardNote("");
+      setVersion((value) => value + 1);
+    } catch (e: unknown) {
+      setFormError(humanizeError(e));
+    } finally {
+      setRewardBusy(false);
+    }
+  }
 
   async function createGoal() {
     if (!petId || !title.trim()) return;
@@ -129,7 +177,7 @@ export function TrainingScreen() {
         goal_id: goalId,
         duration_minutes: 5,
         pet_response: response,
-        rewards_used: ["零食"],
+        rewards_used: selectedReward ? [selectedReward] : [],
       });
       setVersion((v) => v + 1);
     } catch (e: unknown) {
@@ -182,7 +230,7 @@ export function TrainingScreen() {
                       ))}
                     </View>
                   ) : null}
-                  <Text testID="pli.training.reward" style={styles.rewardText}>奖励：零食 · 正向强化</Text>
+                  <Text testID="pli.training.reward" style={styles.rewardText}>本次奖励：{selectedReward || "未选择"} · 正向强化</Text>
                   <View style={styles.sessionRow}>
                     <SessionChip label="表现好" onPress={() => void logSession(current.goal_id, "GOOD")} disabled={busyGoal !== null} />
                     <SessionChip label="表现很好" onPress={() => void logSession(current.goal_id, "GREAT")} disabled={busyGoal !== null} />
@@ -233,6 +281,43 @@ export function TrainingScreen() {
                   );
                 })
               )}
+            </OpenSection>
+
+            <OpenSection title="奖励偏好" testID="pli.training.rewards">
+              <Text style={styles.emptyText}>只保存主人明确观察到有效、且愿意使用的正向奖励；本次训练未选择奖励时不会自动写“零食”。</Text>
+              {rewardState === "loading" ? (
+                <Text style={styles.emptyText}>正在读取奖励偏好……</Text>
+              ) : rewardState === "error" ? (
+                <Text style={styles.emptyText}>奖励偏好暂时没有加载成功；不会用默认奖励补齐。</Text>
+              ) : rewards.length ? (
+                <View style={styles.sessionRow}>
+                  {rewards.map((row) => (
+                    <Pressable
+                      key={row.preference_id}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: selectedReward === row.subject }}
+                      onPress={() => setSelectedReward((value) => value === row.subject ? "" : row.subject)}
+                      style={[styles.rewardChip, selectedReward === row.subject && styles.rewardChipSelected]}
+                    >
+                      <Text style={[styles.rewardChipText, selectedReward === row.subject && styles.rewardChipTextSelected]}>{row.subject}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.emptyText}>还没有保存奖励偏好。</Text>
+              )}
+              <Text style={styles.historyMeta}>本次会话奖励：{selectedReward || "未选择（不会写入奖励）"}</Text>
+              <TextInput style={styles.input} value={rewardSubject} onChangeText={setRewardSubject} placeholder="例如：冻干鸡肉 / 拉扯玩具 / 抚摸" placeholderTextColor={COLORS.textTertiary} />
+              <TextInput style={styles.input} value={rewardNote} onChangeText={setRewardNote} placeholder="补充实际观察（可选）" placeholderTextColor={COLORS.textTertiary} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="保存奖励偏好"
+                disabled={rewardBusy || !rewardSubject.trim()}
+                onPress={() => void addReward()}
+                style={[styles.submitBtn, (rewardBusy || !rewardSubject.trim()) && styles.pressed]}
+              >
+                <Text style={styles.submitText}>{rewardBusy ? "保存中…" : "保存奖励偏好"}</Text>
+              </Pressable>
             </OpenSection>
 
             <OpenSection title="安全工具" caption={tools?.banned_note ?? undefined}>
@@ -330,6 +415,10 @@ const styles = StyleSheet.create({
   sessionRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, marginTop: SPACE.s3 },
   sessionChip: { minHeight: 44, justifyContent: "center", backgroundColor: COLORS.brandSoftGreen, borderRadius: 999, paddingHorizontal: SPACE.s3, paddingVertical: 8 },
   sessionChipText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  rewardChip: { minHeight: 40, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised },
+  rewardChipSelected: { backgroundColor: COLORS.brandSoftGreen },
+  rewardChipText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
+  rewardChipTextSelected: { color: COLORS.brandPrimaryDeep, fontWeight: "700" },
   progressNote: { fontSize: TYPE.body, color: COLORS.textTertiary, lineHeight: 22 },
   historyRow: { paddingVertical: 10 },
   rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.dividerSubtle },
