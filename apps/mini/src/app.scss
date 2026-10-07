@@ -178,10 +178,13 @@ page {
 }
 .agent-tool-section { margin-top: $space-5; }
 .agent-tool-label { color: $color-text-tertiary; font-size: $font-meta; margin-bottom: $space-2; }
-.agent-tool-row { display: flex; gap: $space-2; }
+.agent-tool-scroll { width: 100%; }
+.agent-tool-row { display: inline-flex; min-width: 100%; gap: $space-2; padding-right: $space-3; box-sizing: border-box; }
 .agent-tool {
-  flex: 1;
+  flex: none;
+  min-width: 88px;
   min-height: 44px;
+  padding: 0 $space-3;
   display: flex;
   align-items: center;
   justify-content: center;
