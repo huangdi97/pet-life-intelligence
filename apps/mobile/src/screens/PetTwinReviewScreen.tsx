@@ -171,7 +171,7 @@ export function PetTwinReviewScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {candidate ? (
-            <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV || candidateDemo} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Idle" interactive frameTarget={0.40} view={view} viewerRef={viewerRef} />
+            <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV || candidateDemo} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Stand" interactive frameTarget={0.40} view={view} viewerRef={viewerRef} />
           ) : (
             <View style={styles.emptyStage} testID="pli.twinreview.empty">
               <Ionicons name="cube-outline" size={28} color={COLORS.textTertiary} />
