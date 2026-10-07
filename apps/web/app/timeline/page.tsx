@@ -13,6 +13,13 @@ import { DayBackCard } from "../_components/timeline/DayBackCard";
 import { EventList } from "../_components/timeline/EventList";
 import { FilterBar } from "../_components/timeline/FilterBar";
 
+interface DiaryRow {
+  diary_id: string;
+  entry_at: string;
+  text: string;
+  has_audio: boolean;
+}
+
 /** OWN-003 Timeline — Life Stream（Stage R.2）：Day Group + time spine + 双栏桌面布局。 */
 export default function TimelinePage() {
   const { petId } = useCurrentPet();
@@ -23,6 +30,16 @@ export default function TimelinePage() {
   const [mediaOnly, setMediaOnly] = useState(false);
   const [search, setSearch] = useState("");
   const [day, setDay] = useState("");
+  const [diaryText, setDiaryText] = useState("");
+  const [diaryBusy, setDiaryBusy] = useState(false);
+  const [diaryError, setDiaryError] = useState<string | null>(null);
+  const diary = useAsync<DiaryRow[]>(
+    () =>
+      petId
+        ? api.get<DiaryRow[]>(`/pets/${petId}/diary?limit=5`)
+        : Promise.reject(new Error("NO_PET_SELECTED")),
+    [petId],
+  );
   const visual = useAsync<{ models: VisualModelRow[] }>(
     () => (petId ? api.get(`/pets/${petId}/visual-models`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [petId],
@@ -70,6 +87,23 @@ export default function TimelinePage() {
     // 不把「今日查看」这类系统噪音当作生活记录展示（blind-UI 契约）。
     return rows.filter((e) => e.event_type !== "today.viewed");
   }, [timeline.data, domain, source, mediaOnly, search, day]);
+
+  async function addDiary() {
+    const text = diaryText.trim();
+    if (!petId || !text || diaryBusy) return;
+    setDiaryBusy(true);
+    setDiaryError(null);
+    try {
+      await api.post(`/pets/${petId}/diary`, { text });
+      setDiaryText("");
+      diary.reload();
+      timeline.reload();
+    } catch (e) {
+      setDiaryError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setDiaryBusy(false);
+    }
+  }
 
   return (
     <main className="v4-main">
@@ -132,6 +166,43 @@ export default function TimelinePage() {
             </div>
           )}
           {day && <DayBackCard day={day} models={visual.data?.models ?? []} />}
+          <div className="v4-sec" data-testid="pli.timeline.diary">
+            <div className="v4-sec-head">
+              <h2 className="v4-sec-title">今天想记下什么</h2>
+              <span className="v4-sec-link">生活日记</span>
+            </div>
+            <p className="v4-note" style={{ margin: "6px 0 8px" }}>
+              写下真实发生的事情。文字会作为主人记录保存，并在时间线留下来源明确的日记事件。
+            </p>
+            <textarea
+              className="input"
+              value={diaryText}
+              onChange={(e) => setDiaryText(e.target.value)}
+              maxLength={5000}
+              rows={4}
+              placeholder="例如：今天散步时第一次主动去闻路边的花。"
+              style={{ width: "100%", resize: "vertical" }}
+            />
+            <button className="btn primary" onClick={() => void addDiary()} disabled={!diaryText.trim() || diaryBusy}>
+              {diaryBusy ? "保存中…" : "保存日记"}
+            </button>
+            {diaryError ? <p className="v4-note">日记暂时没有保存成功：{diaryError}</p> : null}
+            {diary.state === "ready" && diary.data?.length ? (
+              <div style={{ marginTop: 12 }}>
+                <div className="muted">最近日记</div>
+                {diary.data.slice(0, 3).map((entry) => (
+                  <div className="v4-domain" key={entry.diary_id}>
+                    <div>
+                      <div className="v4-domain-name">{entry.text}</div>
+                      <div className="v4-domain-desc">{new Date(entry.entry_at).toLocaleString("zh-CN")}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : diary.state === "error" ? (
+              <p className="v4-note">最近日记暂时没有加载成功；不会把未知状态显示成空。</p>
+            ) : null}
+          </div>
           <div className="v4-sec">
             <h2 className="v4-sec-title">关于时间线</h2>
             <p className="v4-note" style={{ margin: "6px 0 0" }}>
