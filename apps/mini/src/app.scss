@@ -161,6 +161,40 @@ page {
 .inline-error-action { color: $color-warning; font-weight: $font-weight-semibold; flex-shrink: 0; }
 
 // ---- Assistant ------------------------------------------------------------ //
+.agent-primary-lead {
+  margin-top: $space-4;
+  color: $color-text-primary;
+  font-size: $font-section;
+  font-weight: $font-weight-bold;
+}
+.agent-context-panel { margin-top: $space-3; }
+.agent-back-to-ask {
+  display: inline-block;
+  min-height: 44px;
+  line-height: 44px;
+  color: $color-brand-primary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+}
+.agent-tool-section { margin-top: $space-5; }
+.agent-tool-label { color: $color-text-tertiary; font-size: $font-meta; margin-bottom: $space-2; }
+.agent-tool-row { display: flex; gap: $space-2; }
+.agent-tool {
+  flex: 1;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-pill;
+  background: $color-surface-raised;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+}
+.agent-tool-active {
+  background: $color-primary-100;
+  color: $color-primary-800;
+  font-weight: $font-weight-semibold;
+}
 .mode-row { display: flex; gap: $space-2; margin-top: $space-3; }
 .mode-pill {
   flex: 1; text-align: center; padding: $space-2 0; border-radius: $radius-xl;
