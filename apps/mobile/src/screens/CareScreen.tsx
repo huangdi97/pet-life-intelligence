@@ -163,6 +163,34 @@ export function CareScreen() {
     finally { setBusy(false); }
   }
 
+  const carePeople = new Map<string, { user_id: string; label: string; role: string }>();
+  for (const member of members) {
+    carePeople.set(member.user_id, {
+      user_id: member.user_id,
+      label: member.display_name || member.email || "家庭成员",
+      role: roleLabel(member.role),
+    });
+  }
+  for (const grant of grants) {
+    if (!carePeople.has(grant.user_id)) {
+      carePeople.set(grant.user_id, {
+        user_id: grant.user_id,
+        label: grant.user_label || "曾授权照护人",
+        role: "曾授权照护人",
+      });
+    }
+  }
+  for (const handoff of handoffs) {
+    if (!carePeople.has(handoff.caregiver_user_id)) {
+      carePeople.set(handoff.caregiver_user_id, {
+        user_id: handoff.caregiver_user_id,
+        label: handoff.caregiver_label || "曾参与照护的人",
+        role: "曾参与照护",
+      });
+    }
+  }
+  const caregiverOptions = [...carePeople.values()];
+
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -222,30 +250,31 @@ export function CareScreen() {
 
         <OpenSection title="发起临时交接" caption="默认仅日常权限">
           <Text style={styles.note}>临时照护人默认只获得日常查看与记录权限；到期自动失效，不能转授管理权限。</Text>
-          {members.length ? (
+          {caregiverOptions.length ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.memberRail}>
-              {members.map((member) => {
-                const selected = caregiver === member.user_id;
+              {caregiverOptions.map((person) => {
+                const selected = caregiver === person.user_id;
                 return (
                   <Pressable
-                    key={member.user_id}
+                    key={person.user_id}
                     accessibilityRole="button"
-                    accessibilityLabel={`选择临时照护人：${member.display_name || member.email || "家庭成员"}`}
+                    accessibilityLabel={`选择临时照护人：${person.label}`}
                     accessibilityState={{ selected }}
-                    onPress={() => setCaregiver(member.user_id)}
+                    onPress={() => setCaregiver(person.user_id)}
                     style={[styles.memberChoice, selected && styles.memberChoiceActive]}
                   >
                     <Text style={[styles.memberChoiceName, selected && styles.memberChoiceNameActive]}>
-                      {member.display_name || member.email || "家庭成员"}
+                      {person.label}
                     </Text>
-                    <Text style={styles.memberChoiceRole}>{roleLabel(member.role)}</Text>
+                    <Text style={styles.memberChoiceRole}>{person.role}</Text>
                   </Pressable>
                 );
               })}
             </ScrollView>
           ) : (
-            <Text style={styles.emptyLine}>还没有可选择的家庭成员；请先在家庭设置中添加成员。</Text>
+            <Text style={styles.emptyLine}>还没有可选择的照护人；请先完成家庭邀请。</Text>
           )}
+          <Text style={styles.memberHint}>新照护人通过家庭邀请进入；这里不会要求输入内部用户 ID。</Text>
           <Text style={styles.scopeTitle}>允许临时照护人做什么</Text>
           <View style={styles.scopeWrap}>
             {HANDOFF_SCOPES.map((scope) => {
@@ -318,6 +347,7 @@ const styles = StyleSheet.create({
   memberChoiceName: { fontSize: TYPE.sm, color: COLORS.textPrimary, fontWeight: "600" },
   memberChoiceNameActive: { color: COLORS.brandPrimaryDeep },
   memberChoiceRole: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: 2 },
+  memberHint: { fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18, marginTop: SPACE.s1 },
   scopeTitle: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600", marginTop: SPACE.s3 },
   scopeWrap: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, marginTop: SPACE.s2 },
   scopeChoice: { minHeight: 44, justifyContent: "center", borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2 },
