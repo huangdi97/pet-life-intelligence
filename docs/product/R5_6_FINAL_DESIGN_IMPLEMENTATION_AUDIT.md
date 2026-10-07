@@ -222,3 +222,17 @@ The native-Corgi demo asset was re-baked after direct inspection of fresh Web ru
 - approved visual baselines remain frozen until explicit owner review.
 
 Fresh CI/Web/Android runtime evidence after the baked-asset commit is required before any visual PASS claim.
+
+## 12. 2026-10-07 evidence-driven final implementation corrections
+
+Fresh runtime inspection exposed issues that source-only structural checks could not honestly close. They were fixed under the existing R5.6 authority:
+
+1. **Assistant:** Web/Mobile/Mini now consistently use Ask-first hierarchy while preserving Brief / Find / Plan / Explain as contextual capabilities.
+2. **Doudou:** the deterministic bake repairs exact duplicated conversion seams before boundary-preserving smoothing. Final asset contract requires native Corgi provenance, welded seams, boundary-safe Loop refinement, 20k–80k product triangle density, UV/PBR texture, skin, and the canonical motion set.
+3. **Mimi:** final bake carries the corrected +90° forward-axis normalization and the lighter neutral-grey coat treatment; front/side/rear camera meaning is owned by the shared product camera contract, not a runtime root hack.
+4. **Twin Review:** Web and Android use stable Stand for identity inspection. Runtime evidence requires `pose=Stand`, `canonicalPose=Stand`, `poseSource=AMBIENT`, and real camera yaw for each Review preset.
+5. **Runtime evidence:** persisted Android manifests are invalidated before surface/camera transitions so evidence from a previous WebView/surface cannot certify the next screenshot.
+6. **Asset generation:** generated package/Web twin files are synchronized through one deterministic bake workflow and independently checked by product Twin QA.
+
+This is not permission to declare visual likeness PASS. Breed/readability/premium quality still requires fresh user review of the post-fix contact sheets.
+
