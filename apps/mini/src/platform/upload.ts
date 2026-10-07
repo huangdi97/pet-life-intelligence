@@ -4,10 +4,11 @@ import { network } from "./network";
 
 export interface PlatformUploader {
   uploadImage(petId: string, filePath: string): Promise<{ artifact_id: string }>;
+  uploadVideo(petId: string, filePath: string): Promise<{ artifact_id: string }>;
 }
 
 class WechatUploader implements PlatformUploader {
-  async uploadImage(petId: string, filePath: string): Promise<{ artifact_id: string }> {
+  async uploadArtifact(petId: string, filePath: string): Promise<{ artifact_id: string }> {
     const base = process.env.TARO_APP_API_URL ?? "http://localhost:8800";
     const session = Taro.getStorageSync("pli_mini_session") as { token?: string } | undefined;
     const header: Record<string, string> = {};
@@ -20,6 +21,14 @@ class WechatUploader implements PlatformUploader {
     });
     if (resp.status >= 400) throw new Error("UPLOAD_FAILED");
     return resp.data;
+  }
+
+  async uploadImage(petId: string, filePath: string): Promise<{ artifact_id: string }> {
+    return this.uploadArtifact(petId, filePath);
+  }
+
+  async uploadVideo(petId: string, filePath: string): Promise<{ artifact_id: string }> {
+    return this.uploadArtifact(petId, filePath);
   }
 }
 
