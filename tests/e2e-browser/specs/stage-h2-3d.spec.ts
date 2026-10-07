@@ -80,6 +80,9 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
             !m ||
             m.representation !== "high-fidelity-glb-twin" ||
             m.stageRole !== "review" ||
+            m.pose !== "Stand" ||
+            m.canonicalPose !== "Stand" ||
+            m.poseSource !== "AMBIENT" ||
             !Number.isFinite(yaw)
           ) {
             return false;
