@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 
 from app.api.deps import CurrentUser, DBSession
 from app.core.errors import ConflictError, NotFound, PermissionDenied
@@ -36,10 +36,23 @@ async def list_notifications(
         await db.execute(
             select(Notification)
             .where(
-                (Notification.household_id == household_id)
-                | (
-                    Notification.household_id.is_(None)
-                    & (Notification.recipient_user_id == user.id)
+                or_(
+                    and_(
+                        Notification.household_id == household_id,
+                        or_(
+                            Notification.recipient_user_id.is_(None),
+                            Notification.recipient_user_id == user.id,
+                        ),
+                        or_(
+                            Notification.target_role.is_(None),
+                            Notification.target_role == "ALL",
+                            Notification.target_role == membership.role,
+                        ),
+                    ),
+                    and_(
+                        Notification.household_id.is_(None),
+                        Notification.recipient_user_id == user.id,
+                    ),
                 )
             )
             .order_by(Notification.created_at.desc())
@@ -52,6 +65,7 @@ async def list_notifications(
             "pet_id": str(n.pet_id) if n.pet_id else None,
             "created_at": n.created_at.isoformat(),
             "read_at": n.read_at.isoformat() if n.read_at else None,
+            "target_role": n.target_role,
             "data": n.data,
         }
         for n in rows
@@ -82,8 +96,12 @@ async def _notification_for_user(
             )
         )
     ).scalar_one_or_none()
-    if membership is None and row.recipient_user_id != user.id:
+    if membership is None:
         raise PermissionDenied("Notification is not available to this user.")
+    if row.recipient_user_id is not None and row.recipient_user_id != user.id:
+        raise PermissionDenied("Notification is addressed to another household member.")
+    if row.target_role not in (None, "", "ALL", membership.role):
+        raise PermissionDenied("Notification is addressed to another household role.")
     return row
 
 
@@ -131,12 +149,23 @@ async def mark_household_notifications_read(
     rows = (
         await db.execute(
             select(Notification).where(
-                (
-                    (Notification.household_id == household_id)
-                    | (
-                        Notification.household_id.is_(None)
-                        & (Notification.recipient_user_id == user.id)
-                    )
+                or_(
+                    and_(
+                        Notification.household_id == household_id,
+                        or_(
+                            Notification.recipient_user_id.is_(None),
+                            Notification.recipient_user_id == user.id,
+                        ),
+                        or_(
+                            Notification.target_role.is_(None),
+                            Notification.target_role == "ALL",
+                            Notification.target_role == membership.role,
+                        ),
+                    ),
+                    and_(
+                        Notification.household_id.is_(None),
+                        Notification.recipient_user_id == user.id,
+                    ),
                 ),
                 Notification.read_at.is_(None),
             )
