@@ -5,6 +5,14 @@ import { api, type Pet } from "@pli/api-client";
 import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State } from "../../components/ui";
 
+interface PreferenceRow {
+  preference_id: string;
+  kind: "LIKE" | "DISLIKE" | "ALLERGY_CAUTION" | "REWARD";
+  subject: string;
+  note: string;
+  source_type: string;
+}
+
 interface Goal {
   goal_id: string;
   title: string;
@@ -56,6 +64,13 @@ export default function TrainingPage() {
         : Promise.reject(new Error("no pet")),
     [petId],
   );
+  const preferences = useAsync<PreferenceRow[]>(
+    () =>
+      petId
+        ? api.get<PreferenceRow[]>(`/pets/${petId}/preferences`)
+        : Promise.reject(new Error("no pet")),
+    [petId],
+  );
   const sessions = useAsync<TrainingSession[]>(
     () =>
       petId
@@ -69,6 +84,32 @@ export default function TrainingPage() {
   );
   const [title, setTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [rewardSubject, setRewardSubject] = useState("");
+  const [rewardNote, setRewardNote] = useState("");
+  const [selectedReward, setSelectedReward] = useState("");
+  const [rewardBusy, setRewardBusy] = useState(false);
+
+  async function addReward() {
+    if (!petId || !rewardSubject.trim() || rewardBusy) return;
+    setRewardBusy(true);
+    setError(null);
+    try {
+      const row = await api.post<{ preference_id: string; kind: string; subject: string }>(`/pets/${petId}/preferences`, {
+        kind: "REWARD",
+        subject: rewardSubject.trim(),
+        note: rewardNote.trim(),
+        source_type: "OWNER_REPORTED",
+      });
+      setSelectedReward(row.subject);
+      setRewardSubject("");
+      setRewardNote("");
+      preferences.reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRewardBusy(false);
+    }
+  }
 
   async function createGoal() {
     if (!petId || !title.trim()) return;
@@ -88,7 +129,7 @@ export default function TrainingPage() {
       goal_id: goalId,
       duration_minutes: 5,
       pet_response: response,
-      rewards_used: ["零食"],
+      rewards_used: selectedReward ? [selectedReward] : [],
     });
     goals.reload();
     sessions.reload();
@@ -192,8 +233,39 @@ export default function TrainingPage() {
       </section>
 
       <section className="v4-sec" data-testid="pli.training.reward">
-        <h2 className="v4-sec-title">奖励</h2>
-        <p className="muted" style={{ margin: 0 }}>只使用正向强化（零食、玩具、抚摸）。训练工具库仅包含安全工具，不包含惩罚性工具。</p>
+        <h2 className="v4-sec-title">奖励偏好</h2>
+        <p className="muted" style={{ margin: 0 }}>只保存主人明确观察到有效、且愿意使用的正向奖励。本次训练未选择奖励时，记录里不会自动写“零食”。</p>
+        <State state={preferences.state} error={preferences.error} onRetry={preferences.reload} empty="还没有保存奖励偏好。">
+          <div className="v4-filter-row" style={{ marginTop: 10 }}>
+            {(preferences.data ?? []).filter((row) => row.kind === "REWARD").map((row) => (
+              <button
+                key={row.preference_id}
+                type="button"
+                className={`v4-chip ${selectedReward === row.subject ? "v4-chip--brand" : ""}`}
+                aria-pressed={selectedReward === row.subject}
+                onClick={() => setSelectedReward((value) => value === row.subject ? "" : row.subject)}
+              >
+                {row.subject}
+              </button>
+            ))}
+          </div>
+        </State>
+        <p className="v4-note">本次会话奖励：{selectedReward || "未选择（不会写入奖励）"}</p>
+        <div className="grid2" style={{ marginTop: 10 }}>
+          <label className="field">
+            新奖励
+            <input value={rewardSubject} onChange={(e) => setRewardSubject(e.target.value)} placeholder="例如：冻干鸡肉 / 拉扯玩具 / 抚摸" />
+          </label>
+          <label className="field">
+            补充事实（可选）
+            <input value={rewardNote} onChange={(e) => setRewardNote(e.target.value)} placeholder="例如：在安静环境下反应最好" />
+          </label>
+        </div>
+        <button className="btn" onClick={() => void addReward()} disabled={rewardBusy || !rewardSubject.trim()}>
+          {rewardBusy ? "保存中…" : "保存奖励偏好"}
+        </button>
+        <h3 style={{ marginTop: 18 }}>安全工具</h3>
+        <p className="muted">训练工具库只包含奖励式正向强化工具，不包含惩罚性工具。</p>
         <ul className="tl" style={{ marginTop: 8 }}>
           {tools.data?.tools.map((t) => (
             <li key={t.name}>
