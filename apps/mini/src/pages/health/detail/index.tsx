@@ -19,6 +19,20 @@ interface HealthEventDetail {
   vet_briefs: string[];
   outcomes: Array<{ outcome: string; notes: string; recorded_at: string }>;
 }
+const OUTCOME_OPTIONS = [
+  ["RECOVERED", "已恢复"],
+  ["IMPROVED", "有改善"],
+  ["UNCHANGED", "暂无变化"],
+  ["WORSENED", "变差"],
+  ["RELAPSED", "再次出现"],
+  ["REFERRED", "已转诊 / 就医"],
+  ["UNRESOLVED", "仍未解决"],
+] as const;
+
+function outcomeLabel(value: string): string {
+  return OUTCOME_OPTIONS.find(([key]) => key === value)?.[1] ?? "已记录";
+}
+
 interface VetBriefContent {
   chief_complaint: string;
   key_findings: Array<{ kind: string; text: string; observed_at: string }>;
@@ -34,6 +48,7 @@ export default function HealthDetail() {
   const [answer, setAnswer] = useState("");
   const [observation, setObservation] = useState("");
   const [outcome, setOutcome] = useState("");
+  const [outcomeNotes, setOutcomeNotes] = useState("");
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [busy, setBusy] = useState(false);
   const [version, setVersion] = useState(0);
@@ -164,16 +179,29 @@ export default function HealthDetail() {
             {detail.outcomes.length ? detail.outcomes.map((row, index) => (
               <View className="life-row" key={`${row.recorded_at}-${index}`}>
                 <View className="life-row-body">
-                  <Text className="life-row-type">{row.outcome}</Text>
+                  <Text className="life-row-type">{outcomeLabel(row.outcome)}</Text>
                   {row.notes ? <View className="life-row-detail">{row.notes}</View> : null}
                 </View>
               </View>
             )) : <View className="life-empty-note">还没有结局记录。</View>}
+            <View className="life-empty-note">请选择实际结果。记录后会关闭本次健康事件；如又出现新情况，请新建健康事件。</View>
+            <View className="chips">
+              {OUTCOME_OPTIONS.map(([value, label]) => (
+                <View
+                  key={value}
+                  className={`chip${outcome === value ? " chip-active" : ""}`}
+                  onClick={() => !busy && setOutcome(value)}
+                >
+                  {label}
+                </View>
+              ))}
+            </View>
             <View className="field">
-              <Input className="input" value={outcome} onInput={(e) => setOutcome(e.detail.value)} placeholder="例如：改善、已就诊、继续观察" />
-              <Button className="btn" disabled={busy || !outcome.trim()} onClick={async () => {
-                await act(() => api.post(`/health-events/${id}/outcomes`, { outcome: outcome.trim(), notes: "" }), "已记录结局");
+              <Input className="input" value={outcomeNotes} onInput={(e) => setOutcomeNotes(e.detail.value)} placeholder="补充说明（可选）" />
+              <Button className="btn" disabled={busy || !outcome} onClick={async () => {
+                await act(() => api.post(`/health-events/${id}/outcomes`, { outcome, notes: outcomeNotes.trim() }), "已记录结局");
                 setOutcome("");
+                setOutcomeNotes("");
               }}>记录结局</Button>
             </View>
           </View>
