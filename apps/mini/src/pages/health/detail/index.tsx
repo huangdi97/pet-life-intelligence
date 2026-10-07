@@ -219,7 +219,7 @@ export default function HealthDetail() {
                 ) : (
                   <View className="soft-panel">
                     <View className="section-title">只读分享已创建</View>
-                    <View className="life-row-detail" selectable>{`/share/vet-brief/${briefShare.token}`}</View>
+                    <Text className="life-row-detail" selectable>{`/share/vet-brief/${briefShare.token}`}</Text>
                     <View className="life-row-source">有效至 {new Date(briefShare.expires_at).toLocaleString()}；可随时撤销。</View>
                     <Button className="btn" disabled={busy} onClick={() => void copyBriefShare()}>复制只读分享路径</Button>
                     <Button className="btn" disabled={busy} onClick={() => void revokeBriefShare()}>撤销分享链接</Button>
