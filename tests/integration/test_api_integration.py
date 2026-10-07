@@ -182,7 +182,7 @@ class TestTasks:
         r2 = client.get(f"/api/v1/pets/{seeded['coco_id']}/tasks?status=OPEN",
                         headers=auth(owner))
         titles = [t["title"] for t in r2.json()]
-        assert "Evening feeding" in titles
+        assert "晚间喂食" in titles
 
     def test_task_completion_in_timeline(self, client, seeded):
         family, task = seeded["family_id"], seeded["task_id"]
