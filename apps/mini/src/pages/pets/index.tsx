@@ -15,6 +15,20 @@ import { EmptyState } from "../../components/feedback/Feedback";
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 
+interface BaselineRow {
+  metric: string;
+  value: string;
+  sample_count: number;
+  window_days: number;
+  algorithm: string;
+  computed_at: string;
+}
+const BASELINE_LABELS: Record<string, { label: string; suffix: string }> = {
+  meal_count_per_day: { label: "每日进食次数", suffix: " 次/天" },
+  walk_minutes_per_day: { label: "每日散步", suffix: " 分钟/天" },
+  sleep_minutes_per_day: { label: "每日睡眠", suffix: " 分钟/天" },
+};
+
 function identityLine(pet: Pet | undefined): string {
   if (!pet) return "宠物生活智能";
   const parts = [speciesLabel(pet.species), breedLabel(pet.breed), petAgeText(pet.birth_date), sexLabelZh(pet.sex)].filter(Boolean);
@@ -27,6 +41,9 @@ export default function Pets() {
   const [eventsState, setEventsState] = useState<"loading" | "ready" | "error">("loading");
   const [twinModels, setTwinModels] = useState<Array<Record<string, unknown>> | null>(null);
   const [twinState, setTwinState] = useState<"loading" | "ready" | "error">("loading");
+  const [baseline, setBaseline] = useState<BaselineRow[]>([]);
+  const [baselineState, setBaselineState] = useState<"loading" | "ready" | "error">("loading");
+  const [baselineBusy, setBaselineBusy] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -69,6 +86,7 @@ export default function Pets() {
     setTwinModels(null);
     setEventsState("loading");
     setTwinState("loading");
+    setBaselineState("loading");
     api
       .get<{ events: LifeEvent[]; count: number }>(`/pets/${petId}/events`)
       .then((r) => {
@@ -88,6 +106,16 @@ export default function Pets() {
       .catch(() => {
         setTwinModels([]);
         setTwinState("error");
+      });
+    api
+      .get<BaselineRow[]>(`/pets/${petId}/baseline`)
+      .then((rows) => {
+        setBaseline(rows);
+        setBaselineState("ready");
+      })
+      .catch(() => {
+        setBaseline([]);
+        setBaselineState("error");
       });
   }, [petId]);
 
@@ -173,6 +201,23 @@ export default function Pets() {
       Taro.showToast({ title: "创建失败", icon: "none" });
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function recomputeBaseline() {
+    if (!petId || baselineBusy) return;
+    setBaselineBusy(true);
+    try {
+      await api.post(`/pets/${petId}/baseline/recompute?window_days=14`, {});
+      const rows = await api.get<BaselineRow[]>(`/pets/${petId}/baseline`);
+      setBaseline(rows);
+      setBaselineState("ready");
+      Taro.showToast({ title: "常态已更新", icon: "success" });
+    } catch {
+      setBaselineState("error");
+      Taro.showToast({ title: "暂时无法计算", icon: "none" });
+    } finally {
+      setBaselineBusy(false);
     }
   }
 
@@ -266,6 +311,37 @@ export default function Pets() {
                 </Button>
               </View>
             ) : null}
+          </View>
+
+          <View className="open-section" data-testid="pli.mini.pet.baseline">
+            <View className="section-title">
+              它的常态
+              <Text className="section-caption">最近 14 天</Text>
+            </View>
+            <View className="life-empty-note">用真实生活记录形成可解释基线，只和它自己比较；没有足够记录时不会猜测。</View>
+            {baselineState === "ready" && baseline.length ? baseline.map((row) => {
+              const meta = BASELINE_LABELS[row.metric] ?? { label: "生活基线", suffix: "" };
+              return (
+                <View className="life-row" key={row.metric}>
+                  <View className="life-row-body">
+                    <View className="life-row-head">
+                      <Text className="life-row-type">{meta.label}</Text>
+                      <Text className="life-row-time">{row.value}{meta.suffix}</Text>
+                    </View>
+                    <View className="life-row-source">{row.sample_count} 天真实样本 · {row.window_days} 天窗口</View>
+                  </View>
+                </View>
+              );
+            }) : baselineState === "ready" ? (
+              <View className="life-empty-note">还没有足够的生活记录形成常态。继续真实记录后再计算。</View>
+            ) : baselineState === "error" ? (
+              <View className="state state-error">常态暂时没有加载成功；不会把未知显示成正常。</View>
+            ) : (
+              <View className="state">正在读取常态……</View>
+            )}
+            <Button className="btn" disabled={baselineBusy} onClick={() => void recomputeBaseline()}>
+              {baselineBusy ? "计算中…" : "重新计算常态"}
+            </Button>
           </View>
 
           <View className="soft-panel" data-testid="pli.mini.pet.twin-status">
