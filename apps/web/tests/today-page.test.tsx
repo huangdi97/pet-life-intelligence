@@ -40,6 +40,7 @@ const PETS: Pet[] = [
     weight_note: "",
     timezone: "Asia/Shanghai",
     avatar_artifact_id: null,
+    lifecycle_status: "ACTIVE",
     created_at: "2026-01-01T00:00:00Z",
   },
 ];
