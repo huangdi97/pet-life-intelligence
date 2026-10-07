@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { Button, Input, Picker, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api, type LifeEvent, type Pet } from "../../services/api";
-import { speciesLabel } from "../../utils/format";
+import { breedLabel, speciesLabel } from "../../utils/format";
 import { petAgeText, sexLabelZh, eventTypeLabel } from "../../utils/labels";
 import { usePets } from "../../utils/usePets";
 import { PetHero } from "../../components/pet_visual";
@@ -17,7 +17,7 @@ const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 
 function identityLine(pet: Pet | undefined): string {
   if (!pet) return "宠物生活智能";
-  const parts = [speciesLabel(pet.species), pet.breed, petAgeText(pet.birth_date), sexLabelZh(pet.sex)].filter(Boolean);
+  const parts = [speciesLabel(pet.species), breedLabel(pet.breed), petAgeText(pet.birth_date), sexLabelZh(pet.sex)].filter(Boolean);
   return parts.join(" · ");
 }
 
