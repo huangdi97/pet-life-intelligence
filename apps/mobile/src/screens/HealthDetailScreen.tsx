@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRoute, type RouteProp } from "@react-navigation/native";
 import { api, humanizeError } from "../api";
@@ -132,6 +132,13 @@ export function HealthDetailScreen() {
     } catch (e: unknown) { setError(humanizeError(e)); }
     finally { setBusy(false); }
   }
+  async function sharePublicBriefLink() {
+    if (!briefShare) return;
+    await Share.share({
+      message: `/share/vet-brief/${briefShare.token}`,
+      title: "Vet Brief · 就诊摘要",
+    });
+  }
   async function revokeBriefShare() {
     if (!briefShare || busy) return;
     setBusy(true); setError(null);
@@ -214,8 +221,9 @@ export function HealthDetailScreen() {
                   ) : (
                     <View style={styles.shareBox}>
                       <Text style={styles.itemTitle}>只读分享已创建</Text>
-                      <Text selectable style={styles.itemBody}>{`/api/v1/vet-briefs/shared/${briefShare.token}`}</Text>
+                      <Text selectable style={styles.itemBody}>{`/share/vet-brief/${briefShare.token}`}</Text>
                       <Text style={styles.note}>有效至 {new Date(briefShare.expires_at).toLocaleString()}；可随时撤销。</Text>
+                      <Action label="分享只读链接" disabled={busy} onPress={sharePublicBriefLink} />
                       <Action label="撤销分享链接" disabled={busy} onPress={revokeBriefShare} />
                     </View>
                   )}
