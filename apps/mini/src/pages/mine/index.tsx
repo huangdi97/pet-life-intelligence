@@ -39,6 +39,14 @@ interface ConsentRow {
   updated_at: string;
 }
 
+interface DeletionRequestRow {
+  request_id: string;
+  status: string;
+  reason: string;
+  created_at: string;
+  resolved_at: string | null;
+}
+
 interface EmergencyProfile {
   owner_contact: string;
   backup_contact: string;
@@ -96,6 +104,8 @@ export default function Mine() {
   const [emergencyBusy, setEmergencyBusy] = useState(false);
   const [deletionReason, setDeletionReason] = useState("");
   const [deletionBusy, setDeletionBusy] = useState(false);
+  const [deletionRequests, setDeletionRequests] = useState<DeletionRequestRow[]>([]);
+  const [deletionState, setDeletionState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [inviteCode, setInviteCode] = useState("");
   const [inviteBusy, setInviteBusy] = useState(false);
 
@@ -129,15 +139,19 @@ export default function Mine() {
       setConsentState("idle");
       setEmergency(EMPTY_EMERGENCY_PROFILE);
       setEmergencyState("idle");
+      setDeletionRequests([]);
+      setDeletionState("idle");
       return;
     }
     let alive = true;
     setConsentState("loading");
     setEmergencyState("loading");
+    setDeletionState("loading");
     Promise.allSettled([
       api.get<ConsentRow[]>(`/pets/${pid}/consents`),
       api.get<EmergencyProfile>(`/pets/${pid}/emergency-profile`),
-    ]).then(([consentResult, emergencyResult]) => {
+      api.get<DeletionRequestRow[]>(`/pets/${pid}/deletion-requests`),
+    ]).then(([consentResult, emergencyResult, deletionResult]) => {
       if (!alive) return;
       if (consentResult.status === "fulfilled") {
         setConsents(consentResult.value);
@@ -151,6 +165,13 @@ export default function Mine() {
       } else {
         setEmergency(EMPTY_EMERGENCY_PROFILE);
         setEmergencyState("error");
+      }
+      if (deletionResult.status === "fulfilled") {
+        setDeletionRequests(deletionResult.value);
+        setDeletionState("ready");
+      } else {
+        setDeletionRequests([]);
+        setDeletionState("error");
       }
     });
     return () => {
@@ -192,6 +213,9 @@ export default function Mine() {
     try {
       await api.post(`/pets/${current.id}/deletion-requests`, { reason: deletionReason.trim() });
       setDeletionReason("");
+      const rows = await api.get<DeletionRequestRow[]>(`/pets/${current.id}/deletion-requests`);
+      setDeletionRequests(rows);
+      setDeletionState("ready");
       Taro.showModal({
         title: "删除请求已登记",
         content: "数据不会立即自动删除；请求会保留审计记录，并在再次确认后处理。",
@@ -244,6 +268,8 @@ export default function Mine() {
       setFeedbackBusy(false);
     }
   }
+
+  const pendingDeletion = deletionRequests.find((row) => row.status === "PENDING") ?? null;
 
   return (
     <View className="page">
@@ -337,9 +363,43 @@ export default function Mine() {
         <View className="soft-panel" data-testid="pli.mini.me.data">
           <View className="section-title">数据删除请求</View>
           <View className="life-empty-note">提交后先登记并保留审计记录；不会立即自动删除。</View>
-          <Input className="input" value={deletionReason} maxlength={240} onInput={(event) => setDeletionReason(event.detail.value)} placeholder="原因（可选）" />
-          <Button className="btn" disabled={deletionBusy || !current || !loggedIn} onClick={() => void requestDeletion()}>
-            {deletionBusy ? "登记中…" : "登记删除请求"}
+          {deletionState === "loading" ? <View className="state">正在读取删除请求状态……</View> : null}
+          {deletionState === "error" ? (
+            <View className="state state-error">删除请求状态暂时没有加载成功；不会因此假定“没有待处理请求”。</View>
+          ) : null}
+          {pendingDeletion ? (
+            <View className="life-row">
+              <View className="life-row-body">
+                <View className="life-row-type">当前有请求等待人工确认</View>
+                <View className="life-row-detail">{fmtTime(pendingDeletion.created_at)}</View>
+                {pendingDeletion.reason ? <View className="life-row-source">原因：{pendingDeletion.reason}</View> : null}
+              </View>
+            </View>
+          ) : null}
+          {deletionRequests.slice(0, 3).map((row) => (
+            <View className="life-row" key={row.request_id}>
+              <View className="life-row-body">
+                <View className="life-row-head">
+                  <Text className="life-row-type">{row.status === "PENDING" ? "等待人工确认" : "状态已记录"}</Text>
+                  <Text className="life-row-time">{fmtTime(row.created_at)}</Text>
+                </View>
+              </View>
+            </View>
+          ))}
+          <Input
+            className="input"
+            value={deletionReason}
+            maxlength={240}
+            disabled={Boolean(pendingDeletion)}
+            onInput={(event) => setDeletionReason(event.detail.value)}
+            placeholder="原因（可选）"
+          />
+          <Button
+            className="btn"
+            disabled={deletionBusy || !current || !loggedIn || Boolean(pendingDeletion) || deletionState === "loading"}
+            onClick={() => void requestDeletion()}
+          >
+            {deletionBusy ? "登记中…" : pendingDeletion ? "已有待处理请求" : "登记删除请求"}
           </Button>
         </View>
       </View>
