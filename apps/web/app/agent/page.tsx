@@ -89,6 +89,8 @@ export default function AgentPage() {
     return process.env.NEXT_BASE_PATH || "";
   }
 
+  const contextualTools = TABS.filter((item) => item.id !== "ask");
+
   return (
     <main className="v4-main v5-domain-page">
       <div data-testid="pli.assistant.identity">
@@ -107,49 +109,59 @@ export default function AgentPage() {
 
       <div className="v4-grid">
         <div>
-          <div className="v4-tabs" role="tablist" aria-label="助手功能">
-            {TABS.map((x) => (
-              <button
-                key={x.id}
-                role="tab"
-                aria-selected={tab === x.id}
-                className={`v4-tab${tab === x.id ? " v4-tab--active" : ""}`}
-                onClick={() => setTab(x.id)}
-              >
-                <span className="v4-tab-icon">
-                  <Icon name={TAB_ICONS[x.id]} size={16} />
-                </span>
-                {x.label}
+          {tab === "ask" ? (
+            <section className="v5-assistant-primary" aria-label="提问">
+              <p className="v5-assistant-primary-lead">先问一件和{petName || "这只宠物"}有关的事</p>
+              <AskPanel
+                question={question}
+                onQuestionChange={setQuestion}
+                asking={asking}
+                askErr={askErr}
+                answer={answer}
+                citations={citations}
+                aiOff={aiOff}
+                petName={petName}
+                onAsk={ask}
+                onSuggestion={(s) => {
+                  if (s.href) {
+                    window.location.assign(s.href);
+                    return;
+                  }
+                  setQuestion(s.query);
+                  ask(s.query);
+                }}
+                basePath={basePath}
+              />
+            </section>
+          ) : (
+            <section className="v5-assistant-context" aria-label="助手扩展能力">
+              <button type="button" className="v5-assistant-back" onClick={() => setTab("ask")}>
+                ← 回到提问
               </button>
-            ))}
-          </div>
-
-          {tab === "ask" && (
-            <AskPanel
-              question={question}
-              onQuestionChange={setQuestion}
-              asking={asking}
-              askErr={askErr}
-              answer={answer}
-              citations={citations}
-              aiOff={aiOff}
-              petName={petName}
-              onAsk={ask}
-              onSuggestion={(s) => {
-                if (s.href) {
-                  window.location.assign(s.href);
-                  return;
-                }
-                setQuestion(s.query);
-                ask(s.query);
-              }}
-              basePath={basePath}
-            />
+              {tab === "brief" && <BriefPanel />}
+              {tab === "find" && <FindPanel />}
+              {tab === "plan" && <PlanPanel />}
+              {tab === "explain" && <ExplainPanel ctx={ctx} aiStatus={aiStatus} />}
+            </section>
           )}
-          {tab === "brief" && <BriefPanel />}
-          {tab === "find" && <FindPanel />}
-          {tab === "plan" && <PlanPanel />}
-          {tab === "explain" && <ExplainPanel ctx={ctx} aiStatus={aiStatus} />}
+
+          <section className="v5-assistant-tools" aria-label="更多帮助">
+            <p className="v5-assistant-tools-label">更多帮助</p>
+            <div className="v5-assistant-tools-row">
+              {contextualTools.map((tool) => (
+                <button
+                  key={tool.id}
+                  type="button"
+                  aria-pressed={tab === tool.id}
+                  className={`v5-assistant-tool${tab === tool.id ? " v5-assistant-tool--active" : ""}`}
+                  onClick={() => setTab(tool.id)}
+                >
+                  <Icon name={TAB_ICONS[tool.id]} size={15} />
+                  {tool.id === "find" ? "找记录" : tool.label}
+                </button>
+              ))}
+            </div>
+          </section>
         </div>
 
         <div className="v4-rail">
