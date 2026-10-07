@@ -331,6 +331,7 @@ const styles = StyleSheet.create({
   sessionChipText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   progressNote: { fontSize: TYPE.body, color: COLORS.textTertiary, lineHeight: 22 },
   historyRow: { paddingVertical: 10 },
+  rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.dividerSubtle },
   historyHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: SPACE.s2 },
   historyGoal: { flex: 1, fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "600" },
   historyOutcome: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
