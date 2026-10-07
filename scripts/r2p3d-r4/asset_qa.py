@@ -35,6 +35,26 @@ def _obj_positions(path: Path) -> list[tuple[float, float, float]]:
     return out
 
 
+def _obj_referenced_positions(path: Path) -> list[tuple[float, float, float]]:
+    """Return only authored vertices that participate in the rendered surface.
+
+    The Gobkit OBJ declares a small set of unused vertices. They are correctly
+    discarded by unwrap/export and must not count as silhouette loss.
+    """
+    lines = path.read_text(encoding="utf-8").splitlines()
+    positions: list[tuple[float, float, float]] = []
+    refs: set[int] = set()
+    for raw in lines:
+        if raw.startswith("v "):
+            x, y, z = (float(v) for v in raw.split()[1:4])
+            positions.append((x, y, z))
+        elif raw.startswith("f "):
+            for token in raw.split()[1:]:
+                idx = int(token.split("/", 1)[0])
+                refs.add(idx - 1 if idx > 0 else len(positions) + idx)
+    return [positions[i] for i in sorted(refs)]
+
+
 def _normalize_positions(
     points: list[tuple[float, float, float]],
     target_height: float,
@@ -60,7 +80,12 @@ def _doudou_source_vertex_retention() -> float:
     baked = OUT / "doudou_base.obj"
     # Exact weld semantics: duplicate authored positions collapse but the
     # position itself is never moved.
-    unique_source = list(dict.fromkeys(tuple(round(v, 9) for v in p) for p in _obj_positions(source)))
+    unique_source = list(
+        dict.fromkeys(
+            tuple(round(v, 9) for v in p)
+            for p in _obj_referenced_positions(source)
+        )
+    )
     normalized = _normalize_positions(unique_source, 1.35)
     baked_set = {
         tuple(round(v, 5) for v in p)
