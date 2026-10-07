@@ -115,6 +115,7 @@ def test_doudou_bake_preserves_native_corgi_silhouette_at_v3_density() -> None:
 def test_mimi_bake_faces_the_canonical_front_camera() -> None:
     source = (ROOT / "scripts" / "r2p3d-r4" / "bake_twin.py").read_text(encoding="utf-8")
     cat_block = source.split('"cat": {', 1)[1].split("}", 1)[0]
-    # Product camera yaw=0 observes from +Z. The Quaternius source needs -90°
-    # normalization so Review front/back are not reversed in runtime evidence.
-    assert '"rotate_y_deg": -90.0' in cat_block
+    # Product camera yaw=0 observes from +Z. Fresh Android evidence shows the
+    # front view without the tail and the rear view with it; the ambiguity was
+    # missing face paint, not an axis reversal. Keep the verified +90° bake.
+    assert '"rotate_y_deg": 90.0' in cat_block
