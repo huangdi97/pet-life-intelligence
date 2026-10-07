@@ -50,6 +50,7 @@ class PetOut(BaseModel):
     weight_note: str
     timezone: str
     avatar_artifact_id: uuid.UUID | None
+    lifecycle_status: str
     # PLI-GW0 pilot isolation flags (visible in API for dashboards/debug)
     is_demo: bool = False
     is_internal: bool = False
