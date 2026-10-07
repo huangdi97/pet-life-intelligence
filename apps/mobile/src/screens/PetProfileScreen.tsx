@@ -16,6 +16,27 @@ import type { StackParamList } from "../navigation";
 
 type Props = NativeStackScreenProps<StackParamList, "PetProfile">;
 
+interface IdentifierRow {
+  identifier_id: string;
+  identifier_type: "CHIP" | "PASSPORT" | "TATTOO";
+  value: string;
+  verified: boolean;
+  source_type: string;
+}
+
+const IDENTIFIER_TYPES = [
+  { value: "CHIP" as const, label: "芯片号" },
+  { value: "PASSPORT" as const, label: "护照" },
+  { value: "TATTOO" as const, label: "纹身" },
+];
+
+const LIFECYCLE = [
+  { value: "ACTIVE" as const, label: "正常生活中" },
+  { value: "LOST" as const, label: "走失" },
+  { value: "TRANSFERRED" as const, label: "已转交" },
+  { value: "DECEASED" as const, label: "已离世" },
+];
+
 interface FormState {
   name: string;
   species: "dog" | "cat" | "other";
@@ -59,6 +80,13 @@ export function PetProfileScreen({ route, navigation }: Props) {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [identifiers, setIdentifiers] = useState<IdentifierRow[]>([]);
+  const [identifierType, setIdentifierType] = useState<IdentifierRow["identifier_type"]>("CHIP");
+  const [identifierValue, setIdentifierValue] = useState("");
+  const [identifierBusy, setIdentifierBusy] = useState(false);
+  const [lifecycleStatus, setLifecycleStatus] = useState<"ACTIVE" | "LOST" | "TRANSFERRED" | "DECEASED">("ACTIVE");
+  const [lifecycleNote, setLifecycleNote] = useState("");
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
 
   useEffect(() => {
     if (mode === "create" || !current) {
@@ -75,6 +103,31 @@ export function PetProfileScreen({ route, navigation }: Props) {
       weight_note: current.weight_note ?? "",
     });
   }, [mode, current?.id]);
+
+  useEffect(() => {
+    if (mode === "create" || !current?.id) {
+      setIdentifiers([]);
+      return;
+    }
+    setLifecycleStatus(
+      current.lifecycle_status === "LOST" ||
+      current.lifecycle_status === "TRANSFERRED" ||
+      current.lifecycle_status === "DECEASED"
+        ? current.lifecycle_status
+        : "ACTIVE",
+    );
+    let alive = true;
+    api.get<IdentifierRow[]>(`/pets/${current.id}/identifiers`)
+      .then((rows) => {
+        if (alive) setIdentifiers(rows);
+      })
+      .catch(() => {
+        if (alive) setIdentifiers([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [mode, current?.id, current?.lifecycle_status]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((old) => ({ ...old, [key]: value }));
@@ -117,6 +170,51 @@ export function PetProfileScreen({ route, navigation }: Props) {
       setError(humanizeError(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function addIdentifier() {
+    if (!current?.id || !identifierValue.trim() || identifierBusy) return;
+    setIdentifierBusy(true);
+    setError(null);
+    try {
+      await api.post(`/pets/${current.id}/identifiers`, {
+        identifier_type: identifierType,
+        value: identifierValue.trim(),
+        source_type: "OWNER_REPORTED",
+        verify: false,
+      });
+      setIdentifiers(await api.get<IdentifierRow[]>(`/pets/${current.id}/identifiers`));
+      setIdentifierValue("");
+    } catch (e: unknown) {
+      setError(humanizeError(e));
+    } finally {
+      setIdentifierBusy(false);
+    }
+  }
+
+  async function saveLifecycle() {
+    if (!current?.id || lifecycleBusy || lifecycleStatus === current.lifecycle_status) return;
+    setLifecycleBusy(true);
+    setError(null);
+    try {
+      await api.post(`/pets/${current.id}/status`, {
+        status: lifecycleStatus,
+        note: lifecycleNote.trim(),
+      });
+      setLifecycleNote("");
+      reload();
+    } catch (e: unknown) {
+      setError(humanizeError(e));
+      setLifecycleStatus(
+        current.lifecycle_status === "LOST" ||
+        current.lifecycle_status === "TRANSFERRED" ||
+        current.lifecycle_status === "DECEASED"
+          ? current.lifecycle_status
+          : "ACTIVE",
+      );
+    } finally {
+      setLifecycleBusy(false);
     }
   }
 
@@ -181,6 +279,68 @@ export function PetProfileScreen({ route, navigation }: Props) {
         <Field label="体重备注">
           <TextInput style={styles.input} value={form.weight_note} onChangeText={(value) => set("weight_note", value)} placeholder="如 12kg" placeholderTextColor={COLORS.textTertiary} />
         </Field>
+
+        {mode === "edit" && current ? (
+          <>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>身份标识</Text>
+              <Text style={styles.sectionHint}>主人录入不会自动变成“已验证”；验证状态只展示真实来源。</Text>
+              {identifiers.length ? identifiers.map((row) => (
+                <View style={styles.identityRow} key={row.identifier_id}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.identityTitle}>{IDENTIFIER_TYPES.find((item) => item.value === row.identifier_type)?.label ?? "身份标识"}</Text>
+                    <Text style={styles.identityValue}>{row.value}</Text>
+                  </View>
+                  <Text style={styles.identityStatus}>{row.verified ? "已验证" : "未验证"}</Text>
+                </View>
+              )) : <Text style={styles.sectionHint}>还没有记录身份标识。</Text>}
+              <ChoiceRow options={IDENTIFIER_TYPES} value={identifierType} onChange={setIdentifierType} />
+              <TextInput
+                style={styles.input}
+                value={identifierValue}
+                onChangeText={setIdentifierValue}
+                placeholder="按原件或芯片读取结果填写"
+                placeholderTextColor={COLORS.textTertiary}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: identifierBusy || !identifierValue.trim() }}
+                disabled={identifierBusy || !identifierValue.trim()}
+                onPress={() => void addIdentifier()}
+                style={[styles.secondaryOutlined, (identifierBusy || !identifierValue.trim()) && styles.disabled]}
+              >
+                <Text style={styles.secondaryOutlinedText}>{identifierBusy ? "记录中…" : "记录标识"}</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>生命状态</Text>
+              <Text style={styles.sectionHint}>状态变化会进入时间线并保留审计。“已离世”是终态，请只在确认事实后记录。</Text>
+              <ChoiceRow
+                options={LIFECYCLE}
+                value={lifecycleStatus}
+                onChange={setLifecycleStatus}
+              />
+              <TextInput
+                style={styles.input}
+                value={lifecycleNote}
+                onChangeText={setLifecycleNote}
+                editable={current.lifecycle_status !== "DECEASED"}
+                placeholder="备注（可选，只写确认过的事实）"
+                placeholderTextColor={COLORS.textTertiary}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: lifecycleBusy || lifecycleStatus === current.lifecycle_status || current.lifecycle_status === "DECEASED" }}
+                disabled={lifecycleBusy || lifecycleStatus === current.lifecycle_status || current.lifecycle_status === "DECEASED"}
+                onPress={() => void saveLifecycle()}
+                style={[styles.secondaryOutlined, (lifecycleBusy || lifecycleStatus === current.lifecycle_status || current.lifecycle_status === "DECEASED") && styles.disabled]}
+              >
+                <Text style={styles.secondaryOutlinedText}>{current.lifecycle_status === "DECEASED" ? "已记录为离世" : lifecycleBusy ? "保存中…" : "保存生命状态"}</Text>
+              </Pressable>
+            </View>
+          </>
+        ) : null}
 
         {error ? <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text> : null}
 
@@ -256,6 +416,15 @@ const styles = StyleSheet.create({
   choiceSelected: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
   choiceText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
   choiceTextSelected: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  section: { marginTop: SPACE.s5, gap: SPACE.s2, paddingTop: SPACE.s4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.dividerSubtle },
+  sectionTitle: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary },
+  sectionHint: { fontSize: TYPE.sm, lineHeight: 20, color: COLORS.textTertiary },
+  identityRow: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceRaised },
+  identityTitle: { fontSize: TYPE.sm, fontWeight: "600", color: COLORS.textPrimary },
+  identityValue: { marginTop: 2, fontSize: TYPE.sm, color: COLORS.textSecondary },
+  identityStatus: { fontSize: TYPE.caption, color: COLORS.textTertiary },
+  secondaryOutlined: { minHeight: 46, justifyContent: "center", alignItems: "center", borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.dividerStrong, backgroundColor: COLORS.surface },
+  secondaryOutlinedText: { fontSize: TYPE.button, color: COLORS.textSecondary, fontWeight: "600" },
   error: { marginTop: SPACE.s3, fontSize: TYPE.sm, color: COLORS.danger },
   primary: { minHeight: 50, marginTop: SPACE.s5, justifyContent: "center", alignItems: "center", borderRadius: RADIUS.pill, backgroundColor: COLORS.brandPrimary },
   primaryText: { fontSize: TYPE.button, color: COLORS.textInverse, fontWeight: "600" },
