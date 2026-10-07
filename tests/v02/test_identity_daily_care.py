@@ -320,3 +320,56 @@ def test_notification_read_flow_is_scoped_and_idempotent(client, seeded):
         headers=auth(owner),
     ).json()
     assert all(n["read_at"] is not None for n in final)
+
+
+def test_pet_identifier_and_lifecycle_round_trip(client, seeded):
+    owner = seeded["owner_id"]
+    coco = seeded["coco_id"]
+
+    pet = client.get(f"/api/v1/pets/{coco}", headers=auth(owner))
+    assert pet.status_code == 200, pet.text
+    assert pet.json()["lifecycle_status"] == "ACTIVE"
+
+    identifier = client.post(
+        f"/api/v1/pets/{coco}/identifiers",
+        json={
+            "identifier_type": "CHIP",
+            "value": "985141000000001",
+            "source_type": "OWNER_REPORTED",
+            "verify": False,
+        },
+        headers=auth(owner),
+    )
+    assert identifier.status_code == 201, identifier.text
+    assert identifier.json()["verified"] is False
+
+    identifiers = client.get(
+        f"/api/v1/pets/{coco}/identifiers",
+        headers=auth(owner),
+    )
+    assert identifiers.status_code == 200, identifiers.text
+    chip = next(row for row in identifiers.json() if row["identifier_id"] == identifier.json()["identifier_id"])
+    assert chip["identifier_type"] == "CHIP"
+    assert chip["value"] == "985141000000001"
+    assert chip["verified"] is False
+
+    changed = client.post(
+        f"/api/v1/pets/{coco}/status",
+        json={"status": "LOST", "note": "owner-confirmed test state"},
+        headers=auth(owner),
+    )
+    assert changed.status_code == 201, changed.text
+    assert changed.json()["lifecycle_status"] == "LOST"
+    assert changed.json()["previous"] == "ACTIVE"
+
+    refreshed = client.get(f"/api/v1/pets/{coco}", headers=auth(owner))
+    assert refreshed.status_code == 200, refreshed.text
+    assert refreshed.json()["lifecycle_status"] == "LOST"
+
+    timeline = client.get(
+        f"/api/v1/pets/{coco}/events?event_type=pet.status_changed",
+        headers=auth(owner),
+    )
+    assert timeline.status_code == 200, timeline.text
+    assert timeline.json()["events"][0]["payload"]["status"] == "LOST"
+    assert timeline.json()["events"][0]["provenance_level"] == "OWNER_REPORTED"
