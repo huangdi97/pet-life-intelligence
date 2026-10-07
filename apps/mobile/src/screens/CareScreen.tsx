@@ -44,7 +44,8 @@ function statusLabel(status: string): string {
   if (status === "ACTIVE") return "生效中";
   if (status === "PENDING") return "待确认";
   if (status === "EXPIRED") return "已到期";
-  if (status === "ENDED" || status === "REVOKED") return "已结束";
+  if (status === "ENDED") return "已结束";
+  if (status === "REVOKED") return "已撤销";
   return "已记录";
 }
 function roleLabel(role: string): string {
