@@ -105,18 +105,24 @@ def qa_pet(pet: str) -> dict:
             errors.append("doudou must use the native breed source")
         if manifest.get("sourceGeometryClass") != "native-corgi":
             errors.append("doudou sourceGeometryClass must be native-corgi")
-        # The native Gobkit Corgi is authored as multiple touching/open shells.
-        # Loop smoothing shrinks each shell boundary independently and visibly
-        # explodes the animal into head/body/leg pieces. Product Doudou must
-        # therefore use the deterministic linear 1-to-4 refinement that raises
-        # triangle density without moving any authored boundary vertex.
-        if manifest.get("subdivisionMode") != "linear-boundary-preserving":
+        # The converted Gobkit OBJ duplicates many exact seam vertices.
+        # Product Doudou first welds those conversion duplicates, then applies
+        # boundary-preserving Loop smoothing: interior faceting is reduced
+        # without letting authored open boundaries shrink away from each other.
+        if manifest.get("subdivisionMode") != "loop-boundary-preserving":
             errors.append(
-                "doudou subdivisionMode must be linear-boundary-preserving "
-                "(native open-shell silhouette contract)"
+                "doudou subdivisionMode must be loop-boundary-preserving "
+                "(welded native-shell product contract)"
             )
-    if pet == "mimi" and manifest.get("sourceGeometryClass") != "template-cat":
-        errors.append("mimi sourceGeometryClass must be template-cat")
+        if manifest.get("weldExactVertices") is not True:
+            errors.append("doudou must weld exact converted seam vertices before subdivision")
+    if pet == "mimi":
+        if manifest.get("sourceGeometryClass") != "template-cat":
+            errors.append("mimi sourceGeometryClass must be template-cat")
+        normalize_mimi = manifest.get("normalize") or {}
+        rotate_y = normalize_mimi.get("rotate_y_deg")
+        if not isinstance(rotate_y, (int, float)) or not math.isclose(float(rotate_y), 90.0, abs_tol=1e-6):
+            errors.append(f"mimi canonical forward-axis bake must be +90 degrees, got {rotate_y!r}")
 
     ratio = manifest.get("atlasObservedRatio")
     if not isinstance(ratio, (int, float)) or not 0.0 <= float(ratio) <= 1.0:
