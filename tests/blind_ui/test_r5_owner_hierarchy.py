@@ -556,3 +556,23 @@ def test_today_never_labels_unavailable_attention_evidence_as_calm() -> None:
     assert 'healthState' in mini
     assert 'kind="unknown"' in mini
     assert "不会把未知状态显示成“没有变化”" in mini
+
+
+def test_recovery_plan_and_trend_are_real_owner_flows_across_clients() -> None:
+    backend = read("services/api/app/api/routes/v02_care_health_medical.py")
+    web = read("apps/web/app/_components/health/RecoveryCard.tsx")
+    mobile = read("apps/mobile/src/screens/HealthDetailScreen.tsx")
+    mini = read("apps/mini/src/pages/health/detail/index.tsx")
+
+    assert '@router.get("/health-events/{health_event_id}/recovery-plans")' in backend
+    assert '@router.post("/health-events/{health_event_id}/recovery-plan"' in backend
+    assert '@router.patch("/recovery-plans/{plan_id}/items/{index}")' in backend
+    assert '@router.get("/health-events/{health_event_id}/trend")' in backend
+
+    for source in (web, mobile, mini):
+        assert "/recovery-plan" in source
+        assert "/recovery-plans/" in source
+        assert "/trend" in source
+        assert "恢复与复盘" in source
+        assert "不会自动生成治疗方案" in source
+        assert "非医学判断" in (source + backend)
