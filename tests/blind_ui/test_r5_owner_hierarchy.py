@@ -180,3 +180,14 @@ def test_web_pet_change_narrative_is_grounded_and_identity_localized() -> None:
     assert "相比它自己的日常，目前没有明显变化" not in source
     assert "breedLabel(current?.breed)" in source
     assert "breedLabel(p.breed)" in source
+
+
+def test_mini_training_follows_goal_session_progress_contract() -> None:
+    source = read("apps/mini/src/pages/training/index.tsx")
+    assert "goal_id" in source
+    assert "/training-sessions" in source
+    assert "mastery_level" in source
+    assert "掌握度只由已经提交的训练会话更新" in source
+    for label in ("当前目标", "进展", "记录这次训练", "下一步"):
+        assert label in source
+    assert 'className="card"' not in source
