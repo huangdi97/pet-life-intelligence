@@ -82,6 +82,26 @@ def test_training_e2e_goal_session_mastery(client, seeded):
         assert s.status_code == 201
     goals = client.get(f"/api/v1/pets/{coco}/training-goals", headers=auth(owner)).json()
     assert goals[0]["mastery_level"] == 3
+
+    sessions = client.get(
+        f"/api/v1/pets/{coco}/training-sessions",
+        headers=auth(owner),
+    )
+    assert sessions.status_code == 200
+    rows = sessions.json()
+    assert len(rows) == 3
+    assert all(row["goal_id"] == goal_id for row in rows)
+    assert {row["pet_response"] for row in rows} == {"GOOD", "GREAT"}
+    assert all(row["duration_minutes"] == 5 for row in rows)
+    assert all(row["session_at"] for row in rows)
+
+    filtered = client.get(
+        f"/api/v1/pets/{coco}/training-sessions?goal_id={goal_id}&limit=2",
+        headers=auth(owner),
+    )
+    assert filtered.status_code == 200
+    assert len(filtered.json()) == 2
+
     # wrong-pet goal not accessible
     s = client.post(f"/api/v1/pets/{seeded['mimi_id']}/training-sessions",
                     json={"goal_id": goal_id, "duration_minutes": 5},
