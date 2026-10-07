@@ -236,6 +236,25 @@ class TestPlatformFeatures:
         assert r.status_code == 201
         assert client.get(f"/api/v1/pets/{coco}", headers=auth(owner)).status_code == 200
 
+        history = client.get(f"/api/v1/pets/{coco}/deletion-requests", headers=auth(owner))
+        assert history.status_code == 200
+        assert history.json()[0]["request_id"] == r.json()["request_id"]
+        assert history.json()[0]["status"] == "PENDING"
+        assert history.json()[0]["reason"] == "test"
+        assert history.json()[0]["created_at"]
+
+        duplicate = client.post(
+            f"/api/v1/pets/{coco}/deletion-requests",
+            json={"reason": "duplicate"},
+            headers=auth(owner),
+        )
+        assert duplicate.status_code == 409
+        assert duplicate.json()["error"]["details"]["request_id"] == r.json()["request_id"]
+
+        family = seeded["family_id"]
+        denied = client.get(f"/api/v1/pets/{coco}/deletion-requests", headers=auth(family))
+        assert denied.status_code == 403
+
     def test_artifact_upload_and_access_control(self, client, seeded):
         owner, family = seeded["owner_id"], seeded["family_id"]
         png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
