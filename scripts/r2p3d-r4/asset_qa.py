@@ -45,9 +45,7 @@ def _normalize_positions(
     extrema. Every authored welded source vertex must therefore survive the
     bake's normalize -> unwrap path at the same position.
     """
-    xs = [p[0] for p in points]
     ys = [p[1] for p in points]
-    zs = [p[2] for p in points]
     ymin = min(ys)
     height = max(ys) - ymin
     scale = target_height / height
