@@ -439,3 +439,18 @@ def test_health_outcome_choices_match_validated_domain_values() -> None:
         assert "有改善" in source
         assert "仍未解决" in source
         assert "outcome.trim()" not in source
+
+
+def test_vet_brief_sharing_is_revocable_across_owner_clients() -> None:
+    web_page = read("apps/web/app/health/[id]/page.tsx")
+    web_card = read("apps/web/app/_components/health/VetBriefCard.tsx")
+    mobile = read("apps/mobile/src/screens/HealthDetailScreen.tsx")
+    mini = read("apps/mini/src/pages/health/detail/index.tsx")
+    route = read("services/api/app/api/routes/health_vet_brief.py")
+
+    for source in (web_page, mobile, mini):
+        assert "/share-tokens/" in source
+        assert "token_id" in source
+    for source in (web_card, mobile, mini):
+        assert "撤销分享链接" in source
+    assert '"token_id": str(st.id)' in route
