@@ -509,3 +509,30 @@ def test_daily_review_is_ai_labeled_and_source_grounded_across_owner_clients() -
     assert 'event_type="summary.generated"' in route
     assert "SourceType.AI_DERIVED" in route
     assert '@router.get("/pets/{pet_id}/daily-summaries")' in route
+
+
+def test_pet_identifiers_and_lifecycle_are_real_across_owner_clients() -> None:
+    web = read("apps/web/app/pets/[id]/edit/page.tsx")
+    mobile = read("apps/mobile/src/screens/PetProfileScreen.tsx")
+    mini = read("apps/mini/src/pages/pets/index.tsx")
+    route = read("services/api/app/api/routes/v02_identity_daily_identity.py")
+    profile = read("services/api/app/api/routes/pets_profile.py")
+
+    for source in (web, mobile, mini):
+        assert "/identifiers" in source
+        assert "/status" in source
+        for label in ("芯片", "未验证", "生命状态", "已离世"):
+            assert label in source
+        for value in ("ACTIVE", "LOST", "TRANSFERRED", "DECEASED"):
+            assert value in source
+
+    # Owner entry cannot silently self-verify an identifier.
+    for source in (web, mobile, mini):
+        assert "verify: false" in source
+
+    # The canonical pet DTO exposes the lifecycle fact all clients render.
+    assert "lifecycle_status: str" in profile
+    assert '@router.post("/pets/{pet_id}/identifiers"' in route
+    assert '@router.get("/pets/{pet_id}/identifiers")' in route
+    assert '@router.post("/pets/{pet_id}/status"' in route
+    assert "DECEASED is terminal" in route
