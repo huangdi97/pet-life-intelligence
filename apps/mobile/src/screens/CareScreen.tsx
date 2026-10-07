@@ -23,6 +23,13 @@ interface HouseholdMember {
   role: string;
   status: string;
 }
+interface HandoffChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+  done_by?: string | null;
+  done_at?: string | null;
+}
 interface Handoff {
   handoff_id: string;
   caregiver_user_id: string;
@@ -31,6 +38,7 @@ interface Handoff {
   start_at: string;
   end_at: string | null;
   status: string;
+  checklist: HandoffChecklistItem[];
 }
 interface HouseholdInvitation {
   invitation_id: string;
@@ -47,6 +55,13 @@ const SCOPE_LABELS: Record<string, string> = {
   "medical:write": "记录健康",
   "card:read": "查看照护卡",
 };
+function handoffChecklist(scopes: string[]): string[] {
+  const items = ["喂食与日常安排已确认", "紧急联系人与就医方式已确认"];
+  if (scopes.some((scope) => scope.startsWith("medical:"))) {
+    items.splice(1, 0, "健康与用药注意事项已确认");
+  }
+  return items;
+}
 function statusLabel(status: string): string {
   if (status === "ACTIVE") return "生效中";
   if (status === "PENDING") return "待确认";
@@ -150,8 +165,18 @@ export function CareScreen() {
         scopes,
         end_at: new Date(Date.now() + Math.max(1, Number(hours) || 48) * 3600_000).toISOString(),
         reason: "care handoff",
+        checklist: handoffChecklist(scopes),
       });
       setCaregiver("");
+      setVersion((v) => v + 1);
+    } catch (e: unknown) { setError(humanizeError(e)); }
+    finally { setBusy(false); }
+  }
+  async function completeChecklist(handoffId: string, itemId: string) {
+    if (busy) return;
+    setBusy(true); setError(null);
+    try {
+      await api.post(`/handoffs/${handoffId}/checklist/${itemId}/complete`, {});
       setVersion((v) => v + 1);
     } catch (e: unknown) { setError(humanizeError(e)); }
     finally { setBusy(false); }
@@ -241,6 +266,28 @@ export function CareScreen() {
                     <Text style={styles.rowTitle}>{handoff.caregiver_label || "临时照护人"} · {statusLabel(handoff.status)}</Text>
                     <Text style={styles.rowBody}>{handoff.scope.map((s) => SCOPE_LABELS[s] ?? "限定权限").join(" · ")}</Text>
                     <Text style={styles.meta}>至 {timeLabel(handoff.end_at)}</Text>
+                    {handoff.checklist?.length ? (
+                      <View style={styles.checklist}>
+                        <Text style={styles.scopeTitle}>交接确认</Text>
+                        {handoff.checklist.map((item) => (
+                          <View key={item.id} style={styles.checklistRow}>
+                            <Text style={[styles.rowBody, styles.checklistText]}>{item.done ? "✓" : "○"} {item.text}</Text>
+                            {!item.done && handoff.status === "ACTIVE" ? (
+                              <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel={`确认完成：${item.text}`}
+                                accessibilityState={{ disabled: busy }}
+                                disabled={busy}
+                                onPress={() => void completeChecklist(handoff.handoff_id, item.id)}
+                                style={[styles.secondary, busy && styles.disabled]}
+                              >
+                                <Text style={styles.secondaryText}>确认完成</Text>
+                              </Pressable>
+                            ) : null}
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
                   </View>
                   {handoff.status === "ACTIVE" ? (
                     <Pressable accessibilityRole="button" accessibilityLabel={`结束${handoff.caregiver_label || "临时照护人"}的照护交接`} accessibilityState={{ disabled: busy }} disabled={busy} onPress={() => void endHandoff(handoff.handoff_id)} style={[styles.secondary, busy && styles.disabled]}>
@@ -434,6 +481,9 @@ const styles = StyleSheet.create({
   secondaryText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   revokeInline: { alignSelf: "flex-start", marginTop: SPACE.s2 },
   record: { paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: COLORS.dividerSubtle },
+  checklist: { marginTop: SPACE.s2, gap: SPACE.s2 },
+  checklistRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2 },
+  checklistText: { flex: 1 },
   memberRail: { gap: SPACE.s2, paddingVertical: SPACE.s2, paddingRight: SPACE.s4 },
   memberChoice: { minWidth: 132, minHeight: 58, justifyContent: "center", backgroundColor: COLORS.surfaceRaised, borderRadius: RADIUS.xl, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2 },
   memberChoiceActive: { backgroundColor: COLORS.brandSoftGreen },
