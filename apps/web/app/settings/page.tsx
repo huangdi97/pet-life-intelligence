@@ -9,6 +9,7 @@ import { AccountSecurityCard } from "./_components/AccountSecurityCard";
 import { AuditAndFeedbackSection } from "./_components/AuditAndFeedbackSection";
 import { ConsentsCard } from "./_components/ConsentsCard";
 import { DeletionRequestCard } from "./_components/DeletionRequestCard";
+import { DataControlsCard } from "./_components/DataControlsCard";
 import { EmergencyProfileCard } from "./_components/EmergencyProfileCard";
 import type { AuditRow, EmergencyProfile } from "./_components/types";
 
@@ -160,6 +161,7 @@ export default function SettingsPage() {
 
       <div data-testid="pli.me.data">
         <EmergencyProfileCard profile={profile} form={form} onFieldChange={set} onSave={saveProfile} />
+        <DataControlsCard pid={pid} />
         <DeletionRequestCard
           pid={pid}
           value={delReason}
