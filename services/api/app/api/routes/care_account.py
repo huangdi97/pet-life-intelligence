@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
-from app.core.errors import NotFound, PermissionDenied
+from app.core.errors import ConflictError, NotFound, PermissionDenied
 from app.domain import enums
 from app.models import AuditEntry, DeletionRequest, HouseholdMember, Notification
 from app.services import permissions as perm
@@ -185,13 +185,60 @@ class DeletionRequestIn(BaseModel):
     reason: str = ""
 
 
+@router.get("/pets/{pet_id}/deletion-requests")
+async def list_deletion_requests(
+    pet_id: uuid.UUID, db: DBSession, user: CurrentUser
+) -> list[dict]:
+    """Owner-visible deletion request history.
+
+    This is status-only. It never executes deletion; execution remains an
+    explicit, manual, audited high-risk operation outside this automatic path.
+    """
+    pet = await perm.get_pet_or_404(db, pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.MANAGE_PET)
+    rows = (
+        await db.execute(
+            select(DeletionRequest)
+            .where(DeletionRequest.pet_id == pet.id)
+            .order_by(DeletionRequest.created_at.desc())
+        )
+    ).scalars().all()
+    return [
+        {
+            "request_id": str(row.id),
+            "status": row.status,
+            "reason": row.reason,
+            "created_at": row.created_at.isoformat(),
+            "resolved_at": row.resolved_at.isoformat() if row.resolved_at else None,
+        }
+        for row in rows
+    ]
+
+
 @router.post("/pets/{pet_id}/deletion-requests", status_code=201)
 async def request_deletion(
     pet_id: uuid.UUID, body: DeletionRequestIn, db: DBSession, user: CurrentUser
 ) -> dict:
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.MANAGE_PET)
-    dr = DeletionRequest(pet_id=pet.id, requested_by_user_id=user.id, reason=body.reason)
+    pending = (
+        await db.execute(
+            select(DeletionRequest).where(
+                DeletionRequest.pet_id == pet.id,
+                DeletionRequest.status == "PENDING",
+            )
+        )
+    ).scalar_one_or_none()
+    if pending is not None:
+        raise ConflictError(
+            "A deletion request is already pending for this pet.",
+            details={"request_id": str(pending.id)},
+        )
+    dr = DeletionRequest(
+        pet_id=pet.id,
+        requested_by_user_id=user.id,
+        reason=body.reason.strip(),
+    )
     db.add(dr)
     await db.flush()
     await create_life_event(
