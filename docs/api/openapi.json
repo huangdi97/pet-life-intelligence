@@ -2325,6 +2325,100 @@
         }
       }
     },
+    "/api/v1/notifications/{notification_id}/read": {
+      "post": {
+        "tags": [
+          "care",
+          "care"
+        ],
+        "summary": "Mark Notification Read",
+        "description": "Mark one visible notification read.\n\nIdempotent: a second call preserves the original read timestamp.",
+        "operationId": "mark_notification_read_api_v1_notifications__notification_id__read_post",
+        "parameters": [
+          {
+            "name": "notification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Notification Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Mark Notification Read Api V1 Notifications  Notification Id  Read Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/households/{household_id}/notifications/read-all": {
+      "post": {
+        "tags": [
+          "care",
+          "care"
+        ],
+        "summary": "Mark Household Notifications Read",
+        "description": "Mark the current user's visible notifications in one household read.",
+        "operationId": "mark_household_notifications_read_api_v1_households__household_id__notifications_read_all_post",
+        "parameters": [
+          {
+            "name": "household_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Household Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Mark Household Notifications Read Api V1 Households  Household Id  Notifications Read All Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{pet_id}/audit": {
       "get": {
         "tags": [
@@ -7302,6 +7396,50 @@
       }
     },
     "/api/v1/pets/{pet_id}/field-privacy": {
+      "get": {
+        "tags": [
+          "v10-platform",
+          "v10-platform"
+        ],
+        "summary": "Get Field Privacy",
+        "operationId": "get_field_privacy_api_v1_pets__pet_id__field_privacy_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Field Privacy Api V1 Pets  Pet Id  Field Privacy Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "put": {
         "tags": [
           "v10-platform",
