@@ -454,3 +454,20 @@ def test_vet_brief_sharing_is_revocable_across_owner_clients() -> None:
     for source in (web_card, mobile, mini):
         assert "撤销分享链接" in source
     assert '"token_id": str(st.id)' in route
+
+
+def test_self_baseline_is_visible_and_explainable_across_owner_clients() -> None:
+    web = read("apps/web/app/pets/page.tsx")
+    mobile = read("apps/mobile/src/screens/PetScreen.tsx")
+    mini = read("apps/mini/src/pages/pets/index.tsx")
+    route = read("services/api/app/api/routes/v02_identity_daily_baseline.py")
+
+    for source in (web, mobile, mini):
+        assert "/baseline" in source
+        assert "/baseline/recompute?window_days=14" in source
+        assert "它的常态" in source
+        assert "只和它自己比较" in source
+        assert "没有足够" in source
+
+    assert "trimmed_mean_v1" in route
+    assert "drop min/max when >=4 samples" in route
