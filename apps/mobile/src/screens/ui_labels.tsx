@@ -37,6 +37,7 @@ export function eventTypeLabel(eventType: string): string {
     "medication.administered": "用药",
     "behavior.observed": "行为",
     "diary.created": "备注",
+    "milestone.recorded": "里程碑",
     "health.event_opened": "健康",
     "care.task_created": "任务",
     "care.task_completed": "任务完成",
