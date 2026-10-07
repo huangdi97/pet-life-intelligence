@@ -619,3 +619,24 @@ def test_diet_profile_is_real_and_truthful_across_owner_clients() -> None:
     assert '@router.put("/pets/{pet_id}/diet-profile")' in backend
     assert '@router.get("/pets/{pet_id}/diet-profile")' in backend
     assert "enums.PROVENANCE_LEVELS" in backend
+
+
+def test_preventive_reminders_are_real_cross_client_health_flows() -> None:
+    web = read("apps/web/app/health/page.tsx")
+    mobile = read("apps/mobile/src/screens/HealthScreen.tsx")
+    mini = read("apps/mini/src/pages/health/index.tsx")
+    backend = read("services/api/app/api/routes/v02_care_health_care.py")
+
+    for source in (web, mobile, mini):
+        assert "/reminders" in source
+        assert "/done" in source
+        for label in ("疫苗", "驱虫", "体检", "添加预防提醒", "标记完成"):
+            assert label in source
+        assert "到期不等于异常" in source
+        assert "不会自动推断已经完成" in source
+
+    assert '@router.post("/pets/{pet_id}/reminders"' in backend
+    assert '@router.get("/pets/{pet_id}/reminders")' in backend
+    assert '@router.post("/reminders/{reminder_id}/done")' in backend
+    assert 'event_type="reminder.created"' in backend
+    assert 'event_type="reminder.completed"' in backend
