@@ -337,3 +337,16 @@ def test_web_me_exposes_real_field_privacy_and_export_controls() -> None:
     assert "/export" in controls
     assert "不会用默认设置覆盖真实状态" in controls
     assert '@router.get("/pets/{pet_id}/field-privacy")' in route
+
+
+def test_behavior_secondary_filter_exists_across_owner_clients() -> None:
+    web = read("apps/web/app/behavior/page.tsx")
+    mobile = read("apps/mobile/src/screens/BehaviorScreen.tsx")
+    mini = read("apps/mini/src/pages/behavior/index.tsx")
+
+    for source in (web, mobile, mini):
+        assert "UNLABELED" in source
+        assert "当前筛选下没有行为记录" in source
+        assert "轻度" in source
+        assert "中度" in source
+        assert "重度" in source
