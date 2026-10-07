@@ -7,7 +7,7 @@ Split from v02_behavior_training.py; endpoint bodies kept verbatim.
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
@@ -131,6 +131,48 @@ async def list_goals(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -> lis
 
 
 MASTERY_MAX = 5
+
+
+@router.get("/pets/{pet_id}/training-sessions")
+async def list_training_sessions(
+    pet_id: uuid.UUID,
+    db: DBSession,
+    user: CurrentUser,
+    goal_id: uuid.UUID | None = None,
+    limit: int = Query(default=20, ge=1, le=100),
+) -> list[dict]:
+    """Return real recorded training sessions newest-first.
+
+    R5.5 Training is Goal -> Session -> Progress -> Outcome. Progress cannot be
+    grounded if owner clients can write sessions but never read them back.
+    Filtering remains scoped to the same pet so a goal id can never cross the
+    household/pet boundary.
+    """
+    pet = await perm.get_pet_or_404(db, pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+
+    query = select(TrainingSession).where(TrainingSession.pet_id == pet.id)
+    if goal_id is not None:
+        query = query.where(TrainingSession.goal_id == goal_id)
+    rows = (
+        await db.execute(
+            query.order_by(TrainingSession.session_at.desc(), TrainingSession.created_at.desc())
+            .limit(limit)
+        )
+    ).scalars().all()
+    return [
+        {
+            "session_id": str(row.id),
+            "goal_id": str(row.goal_id) if row.goal_id else None,
+            "session_at": row.session_at.isoformat(),
+            "duration_minutes": row.duration_minutes,
+            "focus": row.focus,
+            "notes": row.notes,
+            "pet_response": row.pet_response,
+            "rewards_used": row.rewards_used,
+        }
+        for row in rows
+    ]
 
 
 @router.post("/pets/{pet_id}/training-sessions", status_code=201)
