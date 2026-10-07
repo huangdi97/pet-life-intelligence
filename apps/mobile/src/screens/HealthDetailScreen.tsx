@@ -23,6 +23,24 @@ interface HealthEventDetail {
   vet_briefs: string[];
   outcomes: Array<{ outcome: string; notes: string; recorded_at: string }>;
 }
+interface RecoveryItem {
+  description: string;
+  due_at?: string | null;
+  status: "PENDING" | "DONE" | "SKIPPED";
+}
+interface RecoveryPlan {
+  plan_id: string;
+  health_event_id: string;
+  items: RecoveryItem[];
+  created_at: string;
+  updated_at: string;
+}
+interface HealthTrend {
+  health_event_id: string;
+  observations_per_day: Record<string, number>;
+  triage_timeline: Array<{ level: string | null; at: string }>;
+  notice: string;
+}
 interface VetBriefContent {
   chief_complaint: string;
   key_findings: Array<{ kind: string; text: string; observed_at: string }>;
@@ -66,6 +84,10 @@ export function HealthDetailScreen() {
   const [obs, setObs] = useState("");
   const [outcome, setOutcome] = useState("");
   const [outcomeNotes, setOutcomeNotes] = useState("");
+  const [recoveryPlans, setRecoveryPlans] = useState<RecoveryPlan[]>([]);
+  const [trend, setTrend] = useState<HealthTrend | null>(null);
+  const [recoveryText, setRecoveryText] = useState("");
+  const [recoveryDue, setRecoveryDue] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,10 +96,22 @@ export function HealthDetailScreen() {
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    api.get<HealthEventDetail>(`/health-events/${id}`)
-      .then((row) => { if (alive) { setDetail(row); setError(null); } })
-      .catch((e: unknown) => { if (alive) setError(humanizeError(e)); })
-      .finally(() => { if (alive) setLoading(false); });
+    Promise.allSettled([
+      api.get<HealthEventDetail>(`/health-events/${id}`),
+      api.get<RecoveryPlan[]>(`/health-events/${id}/recovery-plans`),
+      api.get<HealthTrend>(`/health-events/${id}/trend`),
+    ]).then(([detailResult, plansResult, trendResult]) => {
+      if (!alive) return;
+      if (detailResult.status === "fulfilled") {
+        setDetail(detailResult.value);
+        setError(null);
+      } else {
+        setError(humanizeError(detailResult.reason));
+      }
+      setRecoveryPlans(plansResult.status === "fulfilled" ? plansResult.value : []);
+      setTrend(trendResult.status === "fulfilled" ? trendResult.value : null);
+      setLoading(false);
+    });
     return () => { alive = false; };
   }, [id, version]);
 
@@ -145,6 +179,31 @@ export function HealthDetailScreen() {
     try {
       await api.del(`/share-tokens/${briefShare.token_id}`);
       setBriefShare(null);
+    } catch (e: unknown) { setError(humanizeError(e)); }
+    finally { setBusy(false); }
+  }
+  async function createRecoveryPlan() {
+    if (!recoveryText.trim() || busy) return;
+    setBusy(true); setError(null);
+    try {
+      await api.post(`/health-events/${id}/recovery-plan`, {
+        items: [{
+          description: recoveryText.trim(),
+          due_at: recoveryDue ? new Date(recoveryDue).toISOString() : null,
+        }],
+      });
+      setRecoveryText("");
+      setRecoveryDue("");
+      setVersion((v) => v + 1);
+    } catch (e: unknown) { setError(humanizeError(e)); }
+    finally { setBusy(false); }
+  }
+  async function updateRecoveryItem(planId: string, index: number, status: RecoveryItem["status"]) {
+    if (busy) return;
+    setBusy(true); setError(null);
+    try {
+      await api.patch(`/recovery-plans/${planId}/items/${index}`, { status });
+      setVersion((v) => v + 1);
     } catch (e: unknown) { setError(humanizeError(e)); }
     finally { setBusy(false); }
   }
@@ -231,6 +290,37 @@ export function HealthDetailScreen() {
               ) : null}
             </OpenSection>
 
+            <OpenSection title="恢复与复盘" caption={recoveryPlans.length ? "主人记录" : undefined}>
+              <Text style={styles.note}>只记录已经确认的照护安排；趋势来自真实观察计数与规则分级，不会自动生成治疗方案。</Text>
+              {recoveryPlans[0] ? recoveryPlans[0].items.map((item, index) => (
+                <View key={`${recoveryPlans[0].plan_id}-${index}`} style={styles.item}>
+                  <Text style={styles.itemTitle}>{item.description || "未命名事项"}</Text>
+                  <Text style={styles.itemBody}>{item.status === "DONE" ? "已完成" : item.status === "SKIPPED" ? "已跳过" : "待完成"}{item.due_at ? ` · ${new Date(item.due_at).toLocaleString()}` : ""}</Text>
+                  {item.status === "PENDING" ? (
+                    <View style={styles.inlineActions}>
+                      <Action label="标记完成" disabled={busy} onPress={() => updateRecoveryItem(recoveryPlans[0].plan_id, index, "DONE")} />
+                      <Action label="跳过" disabled={busy} onPress={() => updateRecoveryItem(recoveryPlans[0].plan_id, index, "SKIPPED")} />
+                    </View>
+                  ) : null}
+                </View>
+              )) : <Text style={styles.empty}>还没有恢复计划。</Text>}
+              <TextInput style={styles.input} value={recoveryText} onChangeText={setRecoveryText} placeholder="记录已经确认的照护事项" placeholderTextColor={COLORS.textTertiary} />
+              <TextInput style={styles.input} value={recoveryDue} onChangeText={setRecoveryDue} placeholder="计划时间（ISO，可选）" placeholderTextColor={COLORS.textTertiary} />
+              <Action label="记录照护事项" disabled={busy || !recoveryText.trim()} onPress={createRecoveryPlan} />
+              <View style={styles.trendBox}>
+                <Text style={styles.itemTitle}>变化趋势</Text>
+                {trend ? (
+                  <>
+                    {Object.entries(trend.observations_per_day).length
+                      ? Object.entries(trend.observations_per_day).map(([day, count]) => <Text key={day} style={styles.itemBody}>{day} · {count} 条观察</Text>)
+                      : <Text style={styles.empty}>目前还没有可统计的观察。</Text>}
+                    {trend.triage_timeline.length ? <Text style={styles.note}>风险分级记录：{trend.triage_timeline.map((row) => row.level ?? "未分级").join(" → ")}</Text> : null}
+                    <Text style={styles.note}>{trend.notice}</Text>
+                  </>
+                ) : <Text style={styles.empty}>趋势暂时没有读取到，不会用推测补齐。</Text>}
+              </View>
+            </OpenSection>
+
             <OpenSection title="结局">
               {detail.outcomes.length ? detail.outcomes.map((row, index) => (
                 <View key={`${row.recorded_at}-${index}`} style={styles.item}>
@@ -299,6 +389,8 @@ const styles = StyleSheet.create({
   itemBody: { marginTop: 3, fontSize: TYPE.body, color: COLORS.textSecondary, lineHeight: 20 },
   empty: { fontSize: TYPE.body, color: COLORS.textTertiary, paddingVertical: 8 },
   form: { marginTop: SPACE.s2 },
+  inlineActions: { flexDirection: "row", gap: SPACE.s2, flexWrap: "wrap" },
+  trendBox: { marginTop: SPACE.s3, padding: SPACE.s3, borderRadius: RADIUS.lg, backgroundColor: COLORS.surfaceRaised },
   outcomeChoices: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, marginTop: SPACE.s2 },
   outcomeChoice: { minHeight: 40, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.dividerSubtle, backgroundColor: COLORS.surface },
   outcomeChoiceSelected: { borderColor: COLORS.brandPrimary, backgroundColor: COLORS.brandSoftGreen },
