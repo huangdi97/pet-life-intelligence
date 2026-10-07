@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, type LifeEvent, type Pet } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
 import { mapErrorMessage } from "../../lib/i18n";
-import { breedLabel } from "../../lib/ownerLabels";
+import { breedLabel, eventTypeLabel } from "../../lib/ownerLabels";
 import { State } from "../../components/ui";
 import { PetHero } from "../../components/pet-hero";
 import { Icon } from "../../components/icons";
@@ -304,7 +304,7 @@ export default function TimelinePage() {
               <div className="v4-calm" key={row.years_ago} style={{ marginTop: 8 }}>
                 <div>
                   <p className="v4-calm-title">{row.years_ago} 年前 · {row.events} 条记录</p>
-                  <p className="v4-calm-body">{row.sample.slice(0, 3).join(" · ")}</p>
+                  <p className="v4-calm-body">{row.sample.slice(0, 3).map(eventTypeLabel).join(" · ")}</p>
                 </div>
               </div>
             )) : memories.state === "error" ? (
