@@ -4,7 +4,7 @@
  * No per-event white Cards; "back to a day" shows only that day's data.
  */
 import React, { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -23,6 +23,12 @@ interface EventsResp {
   events: LifeEvent[];
   count: number;
 }
+interface DiaryRow {
+  diary_id: string;
+  entry_at: string;
+  text: string;
+  has_audio: boolean;
+}
 
 export function TimelineScreen() {
   const { pets, petId } = usePets();
@@ -32,6 +38,10 @@ export function TimelineScreen() {
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [diary, setDiary] = useState<DiaryRow[]>([]);
+  const [diaryState, setDiaryState] = useState<"loading" | "ready" | "error">("loading");
+  const [diaryText, setDiaryText] = useState("");
+  const [diaryBusy, setDiaryBusy] = useState(false);
 
   useEffect(() => {
     if (!petId) return;
@@ -59,6 +69,46 @@ export function TimelineScreen() {
       alive = false;
     };
   }, [petId, selected]);
+
+  useEffect(() => {
+    if (!petId) return;
+    let alive = true;
+    setDiaryState("loading");
+    api.get<DiaryRow[]>(`/pets/${petId}/diary?limit=5`)
+      .then((rows) => {
+        if (!alive) return;
+        setDiary(rows);
+        setDiaryState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setDiary([]);
+        setDiaryState("error");
+      });
+    return () => { alive = false; };
+  }, [petId]);
+
+  async function addDiary() {
+    const text = diaryText.trim();
+    if (!petId || !text || diaryBusy) return;
+    setDiaryBusy(true);
+    try {
+      await api.post(`/pets/${petId}/diary`, { text });
+      setDiaryText("");
+      const [diaryRows, eventRows] = await Promise.all([
+        api.get<DiaryRow[]>(`/pets/${petId}/diary?limit=5`),
+        api.get<EventsResp>(`/pets/${petId}/events?limit=200`),
+      ]);
+      setDiary(diaryRows);
+      setDiaryState("ready");
+      setEvents(eventRows.events.filter((event) => event.event_type !== "today.viewed"));
+      setError(false);
+    } catch {
+      setDiaryState("error");
+    } finally {
+      setDiaryBusy(false);
+    }
+  }
 
   function toggle(key: string) {
     if (key === "all") {
@@ -109,6 +159,44 @@ export function TimelineScreen() {
             </Pressable>
           ))}
         </ScrollView>
+
+        <View style={styles.diarySection} testID="pli.timeline.diary">
+          <Text style={styles.diaryTitle}>今天想记下什么</Text>
+          <Text style={styles.diaryIntro}>写下真实发生的事情。文字会作为主人记录保存，并在时间线留下来源明确的日记事件。</Text>
+          <TextInput
+            style={styles.diaryInput}
+            value={diaryText}
+            onChangeText={setDiaryText}
+            multiline
+            maxLength={5000}
+            placeholder="例如：今天散步时第一次主动去闻路边的花。"
+            placeholderTextColor={COLORS.textTertiary}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="保存生活日记"
+            accessibilityState={{ disabled: diaryBusy || !diaryText.trim() }}
+            disabled={diaryBusy || !diaryText.trim()}
+            onPress={() => void addDiary()}
+            style={[styles.diaryButton, (diaryBusy || !diaryText.trim()) && styles.diaryButtonDisabled]}
+          >
+            <Text style={styles.diaryButtonText}>{diaryBusy ? "保存中…" : "保存日记"}</Text>
+          </Pressable>
+          {diaryState === "ready" && diary.length ? (
+            <View style={styles.diaryRecent}>
+              <Text style={styles.diaryRecentLabel}>最近日记</Text>
+              {diary.slice(0, 3).map((entry) => (
+                <View key={entry.diary_id} style={styles.diaryRow}>
+                  <Text style={styles.diaryRowText}>{entry.text}</Text>
+                  <Text style={styles.diaryTime}>{new Date(entry.entry_at).toLocaleString("zh-CN")}</Text>
+                </View>
+              ))}
+            </View>
+          ) : diaryState === "error" ? (
+            <Text style={styles.diaryError}>最近日记暂时没有加载成功；不会把未知状态显示成空。</Text>
+          ) : null}
+        </View>
+
         {error ? <InlineError message="暂时连接不上，已展示已有内容" /> : null}
 
         {loading ? (
@@ -145,5 +233,18 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
   chipText: { fontSize: TYPE.sm, color: COLORS.textTertiary },
   chipActiveText: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  diarySection: { marginHorizontal: SPACE.s4, marginTop: SPACE.s4, padding: SPACE.s4, backgroundColor: COLORS.surfaceRaised, borderRadius: 22 },
+  diaryTitle: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary },
+  diaryIntro: { marginTop: 4, fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18 },
+  diaryInput: { minHeight: 96, marginTop: SPACE.s3, borderWidth: 1, borderColor: COLORS.dividerStrong, borderRadius: 14, backgroundColor: COLORS.surface, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s3, textAlignVertical: "top", fontSize: TYPE.body, color: COLORS.textPrimary },
+  diaryButton: { minHeight: 44, marginTop: SPACE.s3, alignSelf: "flex-start", justifyContent: "center", paddingHorizontal: SPACE.s4, borderRadius: 22, backgroundColor: COLORS.brandPrimary },
+  diaryButtonDisabled: { opacity: 0.5 },
+  diaryButtonText: { fontSize: TYPE.sm, color: COLORS.textInverse, fontWeight: "600" },
+  diaryRecent: { marginTop: SPACE.s4, gap: SPACE.s2 },
+  diaryRecentLabel: { fontSize: TYPE.sm, color: COLORS.textTertiary, fontWeight: "600" },
+  diaryRow: { paddingTop: SPACE.s2, borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
+  diaryRowText: { fontSize: TYPE.body, color: COLORS.textPrimary, lineHeight: 20 },
+  diaryTime: { marginTop: 3, fontSize: TYPE.caption, color: COLORS.textTertiary },
+  diaryError: { marginTop: SPACE.s3, fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18 },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
 });
