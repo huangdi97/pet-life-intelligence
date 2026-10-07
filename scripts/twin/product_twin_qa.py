@@ -105,14 +105,17 @@ def qa_pet(pet: str) -> dict:
             errors.append("doudou must use the native breed source")
         if manifest.get("sourceGeometryClass") != "native-corgi":
             errors.append("doudou sourceGeometryClass must be native-corgi")
-        # The converted Gobkit OBJ duplicates many exact seam vertices.
-        # Product Doudou first welds those conversion duplicates, then applies
-        # boundary-preserving Loop smoothing: interior faceting is reduced
-        # without letting authored open boundaries shrink away from each other.
-        if manifest.get("subdivisionMode") != "loop-boundary-preserving":
+        # The converted Gobkit OBJ contains touching/disconnected
+        # native shells. Product Doudou first welds exact conversion duplicates
+        # and then uses linear 1-to-4 refinement: authored vertices/boundaries
+        # remain fixed while density rises for UV/paint/skinning. Loop even-
+        # vertex smoothing can shrink open component boundaries independently
+        # and re-introduce the visible head/body/leg tearing this gate exists
+        # to prevent.
+        if manifest.get("subdivisionMode") != "linear-boundary-preserving":
             errors.append(
-                "doudou subdivisionMode must be loop-boundary-preserving "
-                "(welded native-shell product contract)"
+                "doudou subdivisionMode must be linear-boundary-preserving "
+                "(welded native-shell seam-safe product contract)"
             )
         if manifest.get("weldExactVertices") is not True:
             errors.append("doudou must weld exact converted seam vertices before subdivision")
