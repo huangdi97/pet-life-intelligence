@@ -1,13 +1,14 @@
 """Care network: notifications, audit, deletion requests (PLI-219/046/216)."""
 
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter
 from pydantic import BaseModel
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
-from app.core.errors import PermissionDenied
+from app.core.errors import NotFound, PermissionDenied
 from app.domain import enums
 from app.models import AuditEntry, DeletionRequest, HouseholdMember, Notification
 from app.services import permissions as perm
@@ -36,7 +37,10 @@ async def list_notifications(
             select(Notification)
             .where(
                 (Notification.household_id == household_id)
-                | (Notification.recipient_user_id == user.id)
+                | (
+                    Notification.household_id.is_(None)
+                    & (Notification.recipient_user_id == user.id)
+                )
             )
             .order_by(Notification.created_at.desc())
             .limit(limit)
@@ -52,6 +56,107 @@ async def list_notifications(
         }
         for n in rows
     ]
+
+
+
+async def _notification_for_user(
+    notification_id: uuid.UUID, db: DBSession, user: CurrentUser
+) -> Notification:
+    row = (
+        await db.execute(select(Notification).where(Notification.id == notification_id))
+    ).scalar_one_or_none()
+    if row is None:
+        raise NotFound("Notification not found.")
+
+    if row.recipient_user_id == user.id and row.household_id is None:
+        return row
+    if row.household_id is None:
+        raise PermissionDenied("Notification is not available to this user.")
+
+    membership = (
+        await db.execute(
+            select(HouseholdMember).where(
+                HouseholdMember.household_id == row.household_id,
+                HouseholdMember.user_id == user.id,
+                HouseholdMember.status == "ACTIVE",
+            )
+        )
+    ).scalar_one_or_none()
+    if membership is None and row.recipient_user_id != user.id:
+        raise PermissionDenied("Notification is not available to this user.")
+    return row
+
+
+@router.post("/notifications/{notification_id}/read")
+async def mark_notification_read(
+    notification_id: uuid.UUID, db: DBSession, user: CurrentUser
+) -> dict:
+    """Mark one visible notification read.
+
+    Idempotent: a second call preserves the original read timestamp.
+    """
+    row = await _notification_for_user(notification_id, db, user)
+    if row.read_at is None:
+        row.read_at = datetime.now(UTC)
+        await write_audit(
+            db,
+            action="notification.read",
+            actor_user_id=user.id,
+            household_id=row.household_id,
+            pet_id=row.pet_id,
+            resource_type="Notification",
+            resource_id=str(row.id),
+        )
+        await db.commit()
+    return {"notification_id": str(row.id), "read_at": row.read_at.isoformat() if row.read_at else None}
+
+
+@router.post("/households/{household_id}/notifications/read-all")
+async def mark_household_notifications_read(
+    household_id: uuid.UUID, db: DBSession, user: CurrentUser
+) -> dict:
+    """Mark the current user's visible notifications in one household read."""
+    membership = (
+        await db.execute(
+            select(HouseholdMember).where(
+                HouseholdMember.household_id == household_id,
+                HouseholdMember.user_id == user.id,
+                HouseholdMember.status == "ACTIVE",
+            )
+        )
+    ).scalar_one_or_none()
+    if membership is None:
+        raise PermissionDenied("Not a member of this household.")
+
+    rows = (
+        await db.execute(
+            select(Notification).where(
+                (
+                    (Notification.household_id == household_id)
+                    | (
+                        Notification.household_id.is_(None)
+                        & (Notification.recipient_user_id == user.id)
+                    )
+                ),
+                Notification.read_at.is_(None),
+            )
+        )
+    ).scalars().all()
+    now = datetime.now(UTC)
+    for row in rows:
+        row.read_at = now
+    if rows:
+        await write_audit(
+            db,
+            action="notification.read_all",
+            actor_user_id=user.id,
+            household_id=household_id,
+            resource_type="Notification",
+            resource_id="*",
+            detail={"count": len(rows)},
+        )
+        await db.commit()
+    return {"marked": len(rows), "read_at": now.isoformat() if rows else None}
 
 
 @router.get("/pets/{pet_id}/audit")
