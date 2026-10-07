@@ -170,3 +170,13 @@ def test_mini_primary_navigation_is_exactly_five_owner_destinations() -> None:
     ):
         assert tab_block.count(page_path) == 1
     assert tab_block.count("pagePath:") == 5
+
+
+def test_web_pet_change_narrative_is_grounded_and_identity_localized() -> None:
+    source = read("apps/web/app/pets/page.tsx")
+    assert "abnormal-day-hint" in source
+    assert "按当前确定性对比" in source
+    assert "变化判断暂时没有可确认结果" in source
+    assert "相比它自己的日常，目前没有明显变化" not in source
+    assert "breedLabel(current?.breed)" in source
+    assert "breedLabel(p.breed)" in source
