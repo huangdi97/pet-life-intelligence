@@ -105,16 +105,33 @@ async def generate_daily_summary(
     ]
     result = _GATEWAY.invoke("summarize_timeline", {"facts": facts})
     from pli_ai_gateway import Gateway as _G  # noqa: F401 — metadata only
-    summary = DailySummary(
-        pet_id=pet.id,
-        summary_date=day,
-        summary=result.result["summary"],
-        fact_count=result.result["fact_count"],
-        provider=result.metadata.provider,
-        model=result.metadata.model,
-        prompt_version=result.metadata.prompt_version,
-    )
-    db.add(summary)
+    summary = (
+        await db.execute(
+            select(DailySummary).where(
+                DailySummary.pet_id == pet.id,
+                DailySummary.summary_date == day,
+            )
+        )
+    ).scalar_one_or_none()
+    if summary is None:
+        summary = DailySummary(
+            pet_id=pet.id,
+            summary_date=day,
+            summary=result.result["summary"],
+            fact_count=result.result["fact_count"],
+            provider=result.metadata.provider,
+            model=result.metadata.model,
+            prompt_version=result.metadata.prompt_version,
+        )
+        db.add(summary)
+    else:
+        # Same-day regeneration replaces only the derived summary row. Source
+        # life events stay immutable; the new provenance is written below.
+        summary.summary = result.result["summary"]
+        summary.fact_count = result.result["fact_count"]
+        summary.provider = result.metadata.provider
+        summary.model = result.metadata.model
+        summary.prompt_version = result.metadata.prompt_version
     await db.flush()
     await create_life_event(
         db, pet_id=pet.id, event_type="summary.generated",
@@ -127,7 +144,47 @@ async def generate_daily_summary(
                       household_id=pet.household_id, pet_id=pet.id,
                       resource_type="DailySummary", resource_id=str(summary.id))
     await db.commit()
-    return {"summary_id": str(summary.id), "date": day.isoformat(),
-            "summary": summary.summary, "fact_count": summary.fact_count,
-            "provider": summary.provider, "model": summary.model,
-            "disclaimer": result.result["disclaimer"]}
+    return {
+        "summary_id": str(summary.id),
+        "date": day.isoformat(),
+        "summary": summary.summary,
+        "fact_count": summary.fact_count,
+        "provider": summary.provider,
+        "model": summary.model,
+        "prompt_version": summary.prompt_version,
+        "source_type": enums.SourceType.AI_DERIVED.value,
+        "disclaimer": result.result["disclaimer"],
+    }
+
+
+@router.get("/pets/{pet_id}/daily-summaries")
+async def list_daily_summaries(
+    pet_id: uuid.UUID,
+    db: DBSession,
+    user: CurrentUser,
+    limit: int = Query(default=14, ge=1, le=90),
+) -> list[dict]:
+    pet = await perm.get_pet_or_404(db, pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    rows = (
+        await db.execute(
+            select(DailySummary)
+            .where(DailySummary.pet_id == pet.id)
+            .order_by(DailySummary.summary_date.desc())
+            .limit(limit)
+        )
+    ).scalars().all()
+    return [
+        {
+            "summary_id": str(row.id),
+            "date": row.summary_date.isoformat(),
+            "summary": row.summary,
+            "fact_count": row.fact_count,
+            "provider": row.provider,
+            "model": row.model,
+            "prompt_version": row.prompt_version,
+            "source_type": enums.SourceType.AI_DERIVED.value,
+            "disclaimer": "自动整理基于已记录事实，不替代原始记录。",
+        }
+        for row in rows
+    ]
