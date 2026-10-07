@@ -33,6 +33,24 @@ function outcomeLabel(value: string): string {
   return OUTCOME_OPTIONS.find(([key]) => key === value)?.[1] ?? "已记录";
 }
 
+interface RecoveryItem {
+  description: string;
+  due_at?: string | null;
+  status: "PENDING" | "DONE" | "SKIPPED";
+}
+interface RecoveryPlan {
+  plan_id: string;
+  health_event_id: string;
+  items: RecoveryItem[];
+  created_at: string;
+  updated_at: string;
+}
+interface HealthTrend {
+  health_event_id: string;
+  observations_per_day: Record<string, number>;
+  triage_timeline: Array<{ level: string | null; at: string }>;
+  notice: string;
+}
 interface VetBriefContent {
   chief_complaint: string;
   key_findings: Array<{ kind: string; text: string; observed_at: string }>;
@@ -50,6 +68,10 @@ export default function HealthDetail() {
   const [observation, setObservation] = useState("");
   const [outcome, setOutcome] = useState("");
   const [outcomeNotes, setOutcomeNotes] = useState("");
+  const [recoveryPlans, setRecoveryPlans] = useState<RecoveryPlan[]>([]);
+  const [trend, setTrend] = useState<HealthTrend | null>(null);
+  const [recoveryText, setRecoveryText] = useState("");
+  const [recoveryDue, setRecoveryDue] = useState("");
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [busy, setBusy] = useState(false);
   const [version, setVersion] = useState(0);
@@ -57,12 +79,20 @@ export default function HealthDetail() {
   useEffect(() => {
     if (!id) return;
     setState("loading");
-    api.get<HealthEventDetail>(`/health-events/${id}`)
-      .then((row) => {
-        setDetail(row);
+    Promise.allSettled([
+      api.get<HealthEventDetail>(`/health-events/${id}`),
+      api.get<RecoveryPlan[]>(`/health-events/${id}/recovery-plans`),
+      api.get<HealthTrend>(`/health-events/${id}/trend`),
+    ]).then(([detailResult, plansResult, trendResult]) => {
+      if (detailResult.status === "fulfilled") {
+        setDetail(detailResult.value);
         setState("ready");
-      })
-      .catch(() => setState("error"));
+      } else {
+        setState("error");
+      }
+      setRecoveryPlans(plansResult.status === "fulfilled" ? plansResult.value : []);
+      setTrend(trendResult.status === "fulfilled" ? trendResult.value : null);
+    });
   }, [id, version]);
 
   const openQuestion = detail?.intake_steps.find((step) => !step.answer_text) ?? null;
@@ -88,6 +118,28 @@ export default function HealthDetail() {
       "已补充",
     );
     setAnswer("");
+  }
+
+  async function createRecoveryPlan() {
+    if (!recoveryText.trim()) return;
+    await act(
+      () => api.post(`/health-events/${id}/recovery-plan`, {
+        items: [{
+          description: recoveryText.trim(),
+          due_at: recoveryDue ? new Date(recoveryDue).toISOString() : null,
+        }],
+      }),
+      "照护事项已记录",
+    );
+    setRecoveryText("");
+    setRecoveryDue("");
+  }
+
+  async function updateRecoveryItem(planId: string, index: number, status: RecoveryItem["status"]) {
+    await act(
+      () => api.patch(`/recovery-plans/${planId}/items/${index}`, { status }),
+      "计划已更新",
+    );
   }
 
   async function makeBrief() {
@@ -227,6 +279,45 @@ export default function HealthDetail() {
                 )}
               </View>
             ) : detail.vet_briefs.length ? <View className="life-row-source">已有 {detail.vet_briefs.length} 份历史摘要。</View> : null}
+          </View>
+
+          <View className="open-section" data-testid="pli.mini.health.recovery">
+            <View className="section-title">恢复与复盘</View>
+            <View className="life-row-detail">只记录已经确认的照护安排；趋势来自真实观察计数与规则分级，不会自动生成治疗方案。</View>
+            {recoveryPlans[0] ? recoveryPlans[0].items.map((item, index) => (
+              <View className="life-row" key={`${recoveryPlans[0].plan_id}-${index}`}>
+                <View className="life-row-body">
+                  <View className="life-row-head">
+                    <Text className="life-row-type">{item.description || "未命名事项"}</Text>
+                    <Text className="life-row-time">{item.status === "DONE" ? "已完成" : item.status === "SKIPPED" ? "已跳过" : "待完成"}</Text>
+                  </View>
+                  {item.due_at ? <View className="life-row-source">计划时间 {new Date(item.due_at).toLocaleString()}</View> : null}
+                  {item.status === "PENDING" ? (
+                    <View className="action-row">
+                      <Button className="btn" disabled={busy} onClick={() => void updateRecoveryItem(recoveryPlans[0].plan_id, index, "DONE")}>标记完成</Button>
+                      <Button className="btn" disabled={busy} onClick={() => void updateRecoveryItem(recoveryPlans[0].plan_id, index, "SKIPPED")}>跳过</Button>
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+            )) : <View className="life-empty-note">还没有恢复计划。</View>}
+            <View className="field">
+              <Input className="input" value={recoveryText} onInput={(e) => setRecoveryText(e.detail.value)} placeholder="记录已经确认的照护事项" />
+              <Input className="input" value={recoveryDue} onInput={(e) => setRecoveryDue(e.detail.value)} placeholder="计划时间（ISO，可选）" />
+              <Button className="btn" disabled={busy || !recoveryText.trim()} onClick={() => void createRecoveryPlan()}>记录照护事项</Button>
+            </View>
+            <View className="soft-panel" data-testid="pli.mini.health.trend">
+              <View className="section-title">变化趋势</View>
+              {trend ? (
+                <>
+                  {Object.entries(trend.observations_per_day).length ? Object.entries(trend.observations_per_day).map(([day, count]) => (
+                    <View className="life-row-detail" key={day}>{day} · {count} 条观察</View>
+                  )) : <View className="life-empty-note">目前还没有可统计的观察。</View>}
+                  {trend.triage_timeline.length ? <View className="life-row-source">风险分级记录：{trend.triage_timeline.map((row) => row.level ?? "未分级").join(" → ")}</View> : null}
+                  <View className="life-row-source">{trend.notice}</View>
+                </>
+              ) : <View className="life-empty-note">趋势暂时没有读取到，不会用推测补齐。</View>}
+            </View>
           </View>
 
           <View className="open-section">
