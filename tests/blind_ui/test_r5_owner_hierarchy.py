@@ -773,3 +773,12 @@ def test_review_orbit_controls_are_first_screen_and_mobile_viewports_do_not_over
     assert ".r5-life-stage-shell > .r2p-stage" in css
     assert ".v5-review-page > .v5-segmented" in css
     assert "grid-template-columns:repeat(3,minmax(0,1fr))" in css
+
+
+def test_web_life_view_never_mislabels_unrelated_durations_as_activity() -> None:
+    """Medication/sleep/training durations are not measured physical activity."""
+    life = read("apps/web/app/pets/[id]/life-view/page.tsx")
+    assert 'event.event_type !== "daily.walk" && event.event_type !== "daily.play"' in life
+    assert "Number.isFinite(minutes) && minutes > 0" in life
+    assert 'anchorValue(observedActivityMinutes, "分钟")' in life
+    assert 'events.reduce((s, e) => s + (Number(e.payload?.duration_minutes)' not in life
