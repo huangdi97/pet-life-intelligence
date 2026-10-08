@@ -6,6 +6,7 @@
  * different species identity.
  */
 import React, { useEffect, useState } from "react";
+import * as ImagePicker from "expo-image-picker";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -13,6 +14,7 @@ import { api, humanizeError, type Pet } from "../api";
 import { usePets } from "../context";
 import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
 import type { StackParamList } from "../navigation";
+import { PetAvatar } from "../components/media/PetAvatar";
 
 type Props = NativeStackScreenProps<StackParamList, "PetProfile">;
 
@@ -106,6 +108,7 @@ export function PetProfileScreen({ route, navigation }: Props) {
   });
   const [dietState, setDietState] = useState<"loading" | "ready" | "error">("loading");
   const [dietBusy, setDietBusy] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
 
   useEffect(() => {
     if (mode === "create" || !current) {
@@ -204,6 +207,36 @@ export function PetProfileScreen({ route, navigation }: Props) {
       setError(humanizeError(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function chooseAvatar() {
+    if (!current?.id || avatarBusy) return;
+    setAvatarBusy(true);
+    setError(null);
+    try {
+      const picked = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.82,
+      });
+      if (picked.canceled || !picked.assets?.[0]) return;
+      const asset = picked.assets[0];
+      const uploaded = await api.upload<{ artifact_id: string }>(
+        `/pets/${current.id}/artifacts`,
+        {
+          uri: asset.uri,
+          name: asset.fileName || `avatar-${Date.now()}.jpg`,
+          type: asset.mimeType || "image/jpeg",
+        },
+      );
+      await api.put(`/pets/${current.id}/avatar`, { artifact_id: uploaded.artifact_id });
+      await reload();
+    } catch (e: unknown) {
+      setError(humanizeError(e));
+    } finally {
+      setAvatarBusy(false);
     }
   }
 
@@ -337,6 +370,29 @@ export function PetProfileScreen({ route, navigation }: Props) {
 
         {mode === "edit" && current ? (
           <>
+            <View style={styles.section} testID="pli.pet.profile.avatar">
+              <Text style={styles.sectionTitle}>头像与视觉档案</Text>
+              <Text style={styles.sectionHint}>头像来自你明确选择并上传的图片；它与 3D 形象分开保存，不会被系统自动替换。</Text>
+              <View style={styles.avatarRow}>
+                <PetAvatar pet={current} size={88} />
+                <View style={styles.avatarAction}>
+                  <Text style={styles.sectionHint}>
+                    {current.avatar_artifact_id ? "当前头像已保存在这只宠物的受保护媒体中。" : "还没有设置真实头像。"}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="选择宠物头像"
+                    accessibilityState={{ disabled: avatarBusy }}
+                    disabled={avatarBusy}
+                    onPress={() => void chooseAvatar()}
+                    style={[styles.secondaryOutlined, avatarBusy && styles.disabled]}
+                  >
+                    <Text style={styles.secondaryOutlinedText}>{avatarBusy ? "上传中…" : current.avatar_artifact_id ? "更换头像" : "选择头像"}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>身份标识</Text>
               <Text style={styles.sectionHint}>主人录入不会自动变成“已验证”；验证状态只展示真实来源。</Text>
@@ -523,6 +579,8 @@ const styles = StyleSheet.create({
   section: { marginTop: SPACE.s5, gap: SPACE.s2, paddingTop: SPACE.s4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.dividerSubtle },
   sectionTitle: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary },
   sectionHint: { fontSize: TYPE.sm, lineHeight: 20, color: COLORS.textTertiary },
+  avatarRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s3 },
+  avatarAction: { flex: 1, gap: SPACE.s2 },
   identityRow: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceRaised },
   identityTitle: { fontSize: TYPE.sm, fontWeight: "600", color: COLORS.textPrimary },
   identityValue: { marginTop: 2, fontSize: TYPE.sm, color: COLORS.textSecondary },
