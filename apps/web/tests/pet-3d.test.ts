@@ -106,6 +106,22 @@ describe("orbit math — rotate / zoom / reset are deterministic", () => {
     expect(dist).toBeLessThan(DEFAULT_ORBIT.radius * 1.1);
   });
 });
+describe("projected bounds use the camera pose immediately after orbit changes", () => {
+  it("does not reuse a stale view matrix after imperative rotation", () => {
+    const pet = new THREE.Group();
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1, 2.5));
+    pet.add(mesh);
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 40);
+    applyOrbit(camera, STAGE_TARGET, { yaw: 0, pitch: 0.2, radius: 4.6 });
+    const front = projectPetBounds(pet, camera, 400, 400);
+    applyOrbit(camera, STAGE_TARGET, { yaw: Math.PI / 2, pitch: 0.2, radius: 4.6 });
+    const side = projectPetBounds(pet, camera, 400, 400);
+    expect(front).not.toBeNull();
+    expect(side).not.toBeNull();
+    expect(side!.width).toBeGreaterThan(front!.width);
+  });
+});
+
 describe("portrait twin framing — never crop long bodies across Review angles", () => {
   it("fits a vertically offset, long pet at front, side, and back", () => {
     // Mimics the tall cat failure exposed by HEAD 286574a in actual Android

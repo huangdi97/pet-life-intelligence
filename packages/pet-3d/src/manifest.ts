@@ -86,6 +86,11 @@ export function projectPetBounds(
   worldCenterOverride?: THREE.Vector3,
 ): ProjectedBounds | null {
   if (viewportWidth <= 0 || viewportHeight <= 0) return null;
+  // Projection is read during fitting and immediately after imperative camera
+  // controls, before the next WebGLRenderer.render(). Unlike the renderer,
+  // Vector3.project() does not update a dirty camera world/inverse matrix.
+  // Refresh it here so bounds always reflect the current yaw/pitch/radius.
+  camera.updateMatrixWorld();
   const box = new THREE.Box3().setFromObject(pet);
   if (box.isEmpty()) return null;
   const size = box.getSize(new THREE.Vector3());
