@@ -229,7 +229,7 @@ export default function Pets() {
             ? "已有候选形象，等待你在支持的客户端确认"
             : "还没有启用 3D 形象";
 
-  const eventDataUnavailable = eventsState === "error";
+  const recentPetEvent = (events ?? []).find((event) => event.event_type !== "today.viewed") ?? null;\n  const eventDataUnavailable = eventsState === "error";
   const domains: Array<{ label: string; hint: string; url: string }> = [
     {
       label: "生活",
