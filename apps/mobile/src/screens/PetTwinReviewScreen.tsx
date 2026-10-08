@@ -67,6 +67,10 @@ export function PetTwinReviewScreen() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<TwinDescriptor | null>(null);
+  // Candidate is keyed to the pet whose API response produced it, so a pet
+  // switch cannot paint the previous animal's 3D coat on the new identity.
+  const [candidatePetId, setCandidatePetId] = useState<string | null>(null);
+  const candidateRequestVersion = useRef(0);
   const [candidateDemo, setCandidateDemo] = useState(false);
   const [sourceMediaCount, setSourceMediaCount] = useState(0);
   const [view, setView] = useState<"front" | "side" | "back">("front");
@@ -74,11 +78,12 @@ export function PetTwinReviewScreen() {
   const viewerRef = useRef<Pet3DViewerHandle>(null);
 
   const load = useCallback(() => {
-    if (!petId) return;
+    const requestVersion = ++candidateRequestVersion.current;
     setLoading(true);
     // Pet/version changes are identity boundaries. Never keep a previous
     // candidate visible while the next candidate is resolving or has failed.
     setCandidate(null);
+    setCandidatePetId(null);
     setCandidateDemo(false);
     setSourceMediaCount(0);
     setSelected(null);
@@ -86,6 +91,11 @@ export function PetTwinReviewScreen() {
     setView("front");
     setMessage(null);
     setResolvedVersion(version);
+    if (!petId) {
+      setMessage("请先选择要确认形象的宠物。");
+      setLoading(false);
+      return;
+    }
     // The demo deep-link navigates without a version param; resolve the
     // latest candidate before review so the screen never renders a dead
     // error state just because a URL omitted the version.
@@ -97,21 +107,25 @@ export function PetTwinReviewScreen() {
             .then((r) => r.models[0]?.version ?? 0);
     request
       .then((v) => {
+        if (candidateRequestVersion.current !== requestVersion) return null;
         setResolvedVersion(v);
         return v > 0
           ? api.get<TwinModel>(`/pets/${petId}/visual-models/${v}`)
           : Promise.reject(new Error("NO_MODEL"));
       })
       .then((m) => {
+        if (candidateRequestVersion.current !== requestVersion || !m) return;
         const map = (m as { artifact_map?: { twin_descriptor?: TwinDescriptor } }).artifact_map;
         const desc = map?.twin_descriptor;
         const surface = (desc as { surface?: { observed_regions?: string[] } } | undefined)?.surface;
         setCandidate(desc ?? null);
+        setCandidatePetId(petId);
         setCandidateDemo(m.metadata_json?.demo_fixture === true);
         setSourceMediaCount(surface?.observed_regions?.length ?? 0);
         setMessage(null);
       })
       .catch((e: unknown) => {
+        if (candidateRequestVersion.current !== requestVersion) return;
         // Honest distinct states: no model yet vs real load failure.
         if (e instanceof Error && e.message === "NO_MODEL") {
           setMessage("还没有已生成的 3D 形象。先拍摄素材并生成后再确认。");
@@ -119,18 +133,23 @@ export function PetTwinReviewScreen() {
           setMessage("暂时连接不上，请重试。");
         }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (candidateRequestVersion.current === requestVersion) setLoading(false);
+      });
   }, [petId, version]);
 
   useEffect(() => {
     load();
+    return () => { candidateRequestVersion.current += 1; };
   }, [load]);
+
+  const activeCandidate = candidatePetId === petId ? candidate : null;
 
   const toggleIssue = (it: string) =>
     setPickedIssues((xs) => (xs.includes(it) ? xs.filter((x) => x !== it) : [...xs, it]));
 
   const submit = async () => {
-    if (!petId || resolvedVersion <= 0 || !selected) return;
+    if (!petId || !activeCandidate || resolvedVersion <= 0 || !selected) return;
     setBusy(true);
     setMessage(null);
     try {
@@ -155,7 +174,7 @@ export function PetTwinReviewScreen() {
 
   // SAFETY: 不像 may be submitted as feedback, but the activation CTA itself
   // remains disabled to preserve the canonical not_like → disabled contract.
-  const ctaDisabled = !candidate || !selected || busy || selected === "not_like";
+  const ctaDisabled = !activeCandidate || !selected || busy || selected === "not_like";
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
@@ -194,8 +213,8 @@ export function PetTwinReviewScreen() {
           <Text style={styles.viewNote}>当前视图：{VIEW_LABEL[view] ?? view}</Text>
 
           </View>
-          {candidate ? (
-            <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV || candidateDemo} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Stand" interactive frameTarget={0.40} view={view} viewerRef={viewerRef} />
+          {activeCandidate ? (
+            <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV || candidateDemo} twin={activeCandidate} sourceMediaCount={sourceMediaCount} pose="Stand" interactive frameTarget={0.40} view={view} viewerRef={viewerRef} />
           ) : (
             <View style={styles.emptyStage} testID="pli.twinreview.empty">
               <Ionicons name="cube-outline" size={28} color={COLORS.textTertiary} />
@@ -234,8 +253,8 @@ export function PetTwinReviewScreen() {
           <View style={styles.options}>
             {OPTIONS.map((o) => (
               <Pressable key={o.k} testID={`pli.twinreview.verify.${o.k}`} accessibilityRole="button" accessibilityState={{ selected: selected === o.k }}
-                disabled={!candidate || busy}
-                onPress={() => setSelected(o.k)} style={[styles.opt, selected === o.k && styles.optSel, (!candidate || busy) && styles.ctaDisabled]}>
+                disabled={!activeCandidate || busy}
+                onPress={() => setSelected(o.k)} style={[styles.opt, selected === o.k && styles.optSel, (!activeCandidate || busy) && styles.ctaDisabled]}>
                 <Text style={[styles.optText, selected === o.k && styles.optTextSel]}>{o.label}</Text>
               </Pressable>
             ))}
@@ -263,9 +282,9 @@ export function PetTwinReviewScreen() {
           {selected === "not_like" ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ disabled: busy || !candidate }}
+              accessibilityState={{ disabled: busy || !activeCandidate }}
               testID="pli.twinreview.action.feedback"
-              disabled={busy || !candidate}
+              disabled={busy || !activeCandidate}
               onPress={submit}
               style={[styles.feedbackCta, busy && styles.ctaDisabled]}
             >
