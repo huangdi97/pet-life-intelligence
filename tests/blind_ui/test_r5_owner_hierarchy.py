@@ -928,3 +928,16 @@ def test_shared_pet_scene_uses_soft_grounding_and_dimensional_warm_light() -> No
     # No owner-facing cyberpunk/blue projection light was introduced.
     assert "0x00ffff" not in scene.lower()
     assert "0x00aaff" not in scene.lower()
+
+
+def test_web_pet_stage_releases_gpu_geometry_and_texture_resources() -> None:
+    viewer = read("apps/web/components/three/pet3d-viewer.tsx")
+    for token in (
+        "material.map?.dispose()",
+        "material.alphaMap?.dispose()",
+        "material.normalMap?.dispose()",
+        "material.roughnessMap?.dispose()",
+        "mesh.geometry?.dispose()",
+        "renderer?.dispose()",
+    ):
+        assert token in viewer
