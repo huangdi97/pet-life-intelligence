@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Icon, Text, View } from "@tarojs/components";
 import Taro, { useDidShow } from "@tarojs/taro";
 import { api, ApiError, type Task } from "../../services/api";
+import { getPlatform } from "../../platform";
 import { usePets } from "../../utils/usePets";
 import { LifeStream, type LifeStreamDay } from "../../components/timeline/LifeStream";
 import { PetHero } from "../../components/pet_visual";
@@ -38,6 +39,7 @@ export default function Index() {
   const [sheetType, setSheetType] = useState<(typeof QUICK_TYPES)[number] | null>(null);
   const [sheetForm, setSheetForm] = useState<Record<string, string>>({});
   const [sheetBusy, setSheetBusy] = useState(false);
+  const [sheetMedia, setSheetMedia] = useState<string[]>([]);
 
   // 在家监测（contextual entry；设备未接入时如实显示）
   const [monitorOpen, setMonitorOpen] = useState(false);
@@ -127,7 +129,19 @@ export default function Index() {
     });
     setSheetType(t);
     setSheetForm(form);
+    setSheetMedia([]);
     setSheetOpen(true);
+  }
+
+  async function addSheetMedia() {
+    if (!current?.id || sheetMedia.length >= 3) return;
+    try {
+      const picked = await getPlatform().media.chooseImage(3 - sheetMedia.length);
+      setSheetMedia((old) => [...old, ...picked].slice(0, 3));
+    } catch {
+      setFlash("没有添加照片；仍可以继续保存记录。");
+      setTimeout(() => setFlash(null), 2000);
+    }
   }
 
   async function saveSheet() {
@@ -153,11 +167,22 @@ export default function Index() {
         }
         await api.post(`/pets/${target}/diary`, { text });
       } else {
-        await api.post(`/pets/${target}/events`, { event_type: sheetType.type, payload });
+        const artifactIds: string[] = [];
+        for (const filePath of sheetMedia.slice(0, 3)) {
+          const uploaded = await getPlatform().uploader.uploadImage(target, filePath);
+          artifactIds.push(uploaded.artifact_id);
+        }
+        await api.post(`/pets/${target}/events`, {
+          event_type: sheetType.type,
+          payload,
+          artifact_ids: artifactIds,
+        });
       }
       setSheetOpen(false);
       setSheetType(null);
-      setFlash(`已记录：${DAILY_COUNT_LABELS[sheetType.type] ?? sheetType.type}`);
+      setFlash(
+        `已记录：${DAILY_COUNT_LABELS[sheetType.type] ?? sheetType.type}${sheetType.type !== "diary.created" && sheetMedia.length ? ` · 已绑定 ${sheetMedia.length} 张照片` : ""}`,
+      );
       loadToday(target);
       setTimeout(() => setFlash(null), 2000);
     } catch (e: unknown) {
@@ -322,6 +347,9 @@ export default function Index() {
           onClose={() => setSheetOpen(false)}
           onPickType={openSheet}
           onFormChange={(key, value) => setSheetForm({ ...sheetForm, [key]: value })}
+          mediaCount={sheetMedia.length}
+          onAddMedia={() => void addSheetMedia()}
+          onClearMedia={() => setSheetMedia([])}
           onBack={() => setSheetType(null)}
           onSave={saveSheet}
         />
