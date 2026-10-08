@@ -8,7 +8,7 @@
  * P0 target).
  */
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, View, type DimensionValue } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { Pet } from "../../services/types";
 import { COLORS, RADIUS, SPACE, TYPE } from "../../tokens";
@@ -19,17 +19,10 @@ import { PetStateAnchor, type PetAnchor } from "./PetStateAnchor";
 
 export type StageVariant = "today" | "pet" | "life" | "review";
 
-const HEIGHTS: Record<StageVariant, number> = { today: 370, pet: 394, life: 486, review: 500 };
-const PET_WIDTHS: Record<StageVariant, number> = { today: 286, pet: 304, life: 336, review: 342 };
+const HEIGHTS: Record<StageVariant, number> = { today: 500, pet: 526, life: 608, review: 550 };
+const PET_WIDTHS: Record<StageVariant, number> = { today: 340, pet: 352, life: 378, review: 372 };
 
-// R5.5: a Living Stage may expose at most four ambient life anchors.
- // Extra facts belong below the Hero so the pet remains the dominant subject.
-const SLOTS: Array<{ top?: DimensionValue; bottom?: DimensionValue; left?: number; right?: number }> = [
-  { top: "10%", left: 12 },
-  { top: "10%", right: 12 },
-  { bottom: "22%", left: 12 },
-  { bottom: "22%", right: 12 },
-];
+// Life state facts belong in one quiet ribbon, not four HUD bubbles over the animal.
 
 interface Props {
   pet: Pet | null;
@@ -152,16 +145,23 @@ export function PetLivingStage({
         </View>
       )}
 
-      {/* FOREGROUND: state anchors around the pet (ambient bubbles, low contrast) */}
-      {anchors.slice(0, SLOTS.length).map((a, i) => (
-        <View key={a.id} style={[styles.slot, SLOTS[i]]}>
-          <PetStateAnchor anchor={a} />
+      {/* A single life ribbon leaves the pet visually unobstructed. */}
+      {anchors.length > 0 && !reviewStudio ? (
+        <View style={styles.lifeRibbon} accessibilityLabel="饮食、饮水、活动与休息记录">
+          {anchors.slice(0, 4).map((anchor) => (
+            <View key={anchor.id} style={styles.lifeRibbonItem}>
+              <PetStateAnchor anchor={anchor} />
+            </View>
+          ))}
         </View>
-      ))}
+      ) : null}
 
       {/* identity + now line + honest note */}
       <View style={styles.head}>
-        <Text style={styles.name}>{pet?.name ?? "宠物"}</Text>
+        <View style={styles.identityCopy}>
+          <Text style={styles.eyebrow}>{reviewStudio ? "看看这是不是它" : variant === "life" ? "它的生命空间" : "和它在一起的日子"}</Text>
+          <Text style={styles.name}>{pet?.name ?? "宠物"}</Text>
+        </View>
         {demo ? (
           <View style={styles.demoChip}>
             <Text style={styles.demoChipText}>示例数据</Text>
@@ -183,21 +183,9 @@ export function PetLivingStage({
 }
 
 const styles = StyleSheet.create({
-  stage: {
-    marginHorizontal: SPACE.s4,
-    marginTop: SPACE.s3,
-    borderRadius: RADIUS.hero,
-    overflow: "hidden",
-  },
-  stageLiving: {
-    marginHorizontal: SPACE.s2,
-    backgroundColor: COLORS.stageWarmBase,
-    borderColor: COLORS.stageWarmBorder,
-  },
-  stageReview: {
-    backgroundColor: COLORS.stageReviewBase,
-    borderColor: COLORS.stageReviewBorder,
-  },
+  stage: { marginHorizontal: 0, marginTop: 0, borderRadius: 0, overflow: "hidden" },
+  stageLiving: { backgroundColor: COLORS.stageWarmBase },
+  stageReview: { marginHorizontal: SPACE.s3, borderRadius: RADIUS.hero, backgroundColor: COLORS.stageReviewBase },
   fieldBase: { ...StyleSheet.absoluteFillObject },
   fieldBaseLiving: { backgroundColor: COLORS.stageWarmBase },
   fieldBaseReview: { backgroundColor: COLORS.stageReviewBase },
@@ -275,35 +263,20 @@ const styles = StyleSheet.create({
     borderRadius: 82,
     backgroundColor: COLORS.stageReviewFloor,
   },
-  pressPet: { position: "absolute", left: 0, right: 0, bottom: 30, alignItems: "center" },
-  petSlot: { position: "absolute", left: 0, right: 0, bottom: 30, alignItems: "center" },
-  petSlotLife: { bottom: 92 },
-  slot: { position: "absolute" },
-  head: {
-    position: "absolute",
-    top: SPACE.s3,
-    left: SPACE.s4,
-    right: SPACE.s4,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACE.s2,
-  },
-  name: { flex: 1, fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary, marginRight: SPACE.s2 },
+  pressPet: { position: "absolute", left: 0, right: 0, bottom: 74, alignItems: "center" },
+  petSlot: { position: "absolute", left: 0, right: 0, bottom: 74, alignItems: "center" },
+  petSlotLife: { bottom: 104 },
+  lifeRibbon: { position: "absolute", bottom: 8, left: SPACE.s3, right: SPACE.s3, flexDirection: "row", borderRadius: 18, paddingVertical: 5, backgroundColor: COLORS.surfaceOverlay, borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS.stageWarmBorder },
+  lifeRibbonItem: { flex: 1, minWidth: 0 },
+  head: { position: "absolute", top: SPACE.s6, left: SPACE.s5, right: SPACE.s5, flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2 },
+  identityCopy: { flex: 1 },
+  eyebrow: { fontSize: TYPE.caption, letterSpacing: 1.7, fontWeight: "700", color: COLORS.brandPrimaryDeep, marginBottom: 6 },
+  name: { fontSize: 36, fontWeight: "700", letterSpacing: -0.8, color: COLORS.textPrimary },
   demoChip: { backgroundColor: COLORS.surfaceOverlay, borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 3 },
   demoChipText: { fontSize: TYPE.caption, color: COLORS.textSecondary, fontWeight: "600" },
-  nowBlock: { position: "absolute", left: SPACE.s4, right: SPACE.s4, bottom: SPACE.s3 },
-  nowBlockLife: {
-    left: SPACE.s3,
-    right: SPACE.s3,
-    bottom: SPACE.s2,
-    paddingHorizontal: SPACE.s3,
-    paddingVertical: SPACE.s2,
-    borderRadius: RADIUS.xl,
-    backgroundColor: COLORS.surfaceGlass,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLORS.stageWarmBorder,
-  },
-  headline: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary },
+  nowBlock: { position: "absolute", left: SPACE.s5, right: SPACE.s5, top: 112 },
+  nowBlockLife: { left: SPACE.s5, right: SPACE.s5, top: 114, bottom: undefined, borderWidth: 0, backgroundColor: "transparent" },
+  headline: { fontSize: TYPE.body, fontWeight: "600", color: COLORS.textSecondary },
   caption: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginTop: 2 },
   noteRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   note: { fontSize: TYPE.caption, color: COLORS.textTertiary },
