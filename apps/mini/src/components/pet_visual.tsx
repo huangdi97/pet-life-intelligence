@@ -30,7 +30,7 @@ function usePersistedAvatar(pet: Pet | null): string | null {
       alive = false;
     };
   }, [pet?.id, pet?.avatar_artifact_id]);
-  return avatar?.petId === pet?.id ? avatar.uri : null;
+  return avatar !== null && avatar.petId === pet?.id ? avatar.uri : null;
 }
 
 export interface SpeciesVisual {
