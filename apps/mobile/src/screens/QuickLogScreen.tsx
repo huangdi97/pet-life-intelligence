@@ -112,12 +112,21 @@ export function QuickLogScreen() {
       let payload: Record<string, unknown> = {};
       let path = `/pets/${current.id}/events`;
       if (t.event_type === "daily.meal" || t.event_type === "daily.drink") {
+        if (amount.trim() && !unit.trim()) {
+          setError("填写数量时，请同时填写单位。");
+          return;
+        }
         if (amount.trim()) payload.amount = amount.trim();
         if (unit.trim()) payload.unit = unit.trim();
       } else if (t.event_type === "daily.elimination") {
         if (kind) payload.kind = kind;
       } else if (t.event_type === "daily.walk" || t.event_type === "daily.play" || t.event_type === "daily.sleep") {
-        payload = { duration_minutes: clampMinutes(minutes) };
+        const duration = clampMinutes(minutes);
+        if (!minutes.trim() || duration <= 0) {
+          setError("请填写实际时长（分钟）。");
+          return;
+        }
+        payload = { duration_minutes: duration };
       } else if (t.event_type === "daily.weight") {
         const w = parseFloat(weight);
         if (!Number.isFinite(w) || w <= 0) {
