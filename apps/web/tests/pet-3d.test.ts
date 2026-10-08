@@ -20,13 +20,13 @@ import {
 import * as THREE from "three";
 
 describe("registry — one identity across all screens", () => {
-  it("maps 豆豆 / corgi breed to doudou", () => {
-    expect(resolvePet3DIdentity({ name: "豆豆" })).toBe("doudou");
+  it("maps an explicit Corgi dog to the demo template, never by name alone", () => {
+    expect(resolvePet3DIdentity({ name: "豆豆" })).toBeNull();
     expect(resolvePet3DIdentity({ name: "其他", species: "dog", breed: "柯基" })).toBe("doudou");
   });
 
-  it("maps 咪咪 / cat to mimi", () => {
-    expect(resolvePet3DIdentity({ name: "咪咪" })).toBe("mimi");
+  it("maps a known cat species to its demo asset, not a mutable display name", () => {
+    expect(resolvePet3DIdentity({ name: "咪咪" })).toBeNull();
     expect(resolvePet3DIdentity({ name: "其他", species: "cat" })).toBe("mimi");
   });
 
@@ -35,10 +35,11 @@ describe("registry — one identity across all screens", () => {
     expect(resolvePet3DIdentity({ name: null })).toBeNull();
   });
 
-  it("assets are DEMO/SYNTHETIC dev-only with explicit provenance", () => {
+  it("assets are explicitly CC0-derived DEMO_TEMPLATE, never verified real pets", () => {
     for (const asset of Object.values(PET_3D_ASSETS)) {
-      expect(asset.provenance).toBe("DEMO_SYNTHETIC");
+      expect(asset.provenance).toBe("DEMO_TEMPLATE");
       expect(asset.devOnly).toBe(true);
+      expect(asset.description).toContain("演示");
     }
   });
 });
