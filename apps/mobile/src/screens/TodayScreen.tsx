@@ -38,13 +38,27 @@ export function TodayScreen() {
   const { twin } = usePetTwin(petId);
   const tabNav = useNavigation<TabNav>();
   const stackNav = useNavigation<StackNav>();
-  const [today, setToday] = useState<TodayResp | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [hint, setHint] = useState<{ hints: string[]; rule: string } | null>(null);
-  const [health, setHealth] = useState<HealthEventRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [cachedAt, setCachedAt] = useState<number | null>(null);
+  // API payloads are owned by a pet id. Mask the previous pet's facts during
+  // the FIRST render after switching pets, before useEffect gets a chance to
+  // clear them. Failed requests must not resurrect old owner data.
+  const [loadedPetId, setLoadedPetId] = useState<string | null>(null);
+  const [rawToday, setToday] = useState<TodayResp | null>(null);
+  const [rawTasks, setTasks] = useState<Task[]>([]);
+  const [rawHint, setHint] = useState<{ hints: string[]; rule: string } | null>(null);
+  const [rawHealth, setHealth] = useState<HealthEventRow[]>([]);
+  const [rawError, setError] = useState<string | null>(null);
+  const [rawLoading, setLoading] = useState(true);
+  const [rawCachedAt, setCachedAt] = useState<number | null>(null);
+  const [refreshCounter, setRefreshCounter] = useState(0);
+
+  const isOwnData = petId !== null && loadedPetId === petId;
+  const today = isOwnData ? rawToday : null;
+  const tasks = isOwnData ? rawTasks : [];
+  const hint = isOwnData ? rawHint : null;
+  const health = isOwnData ? rawHealth : [];
+  const error = isOwnData ? rawError : null;
+  const loading = rawLoading || !isOwnData;
+  const cachedAt = isOwnData ? rawCachedAt : null;
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
@@ -52,6 +66,10 @@ export function TodayScreen() {
     if (!petId) return;
     let alive = true;
     setLoading(true);
+    setToday(null);
+    setTasks([]);
+    setError(null);
+    setCachedAt(null);
     setHint(null);
     setHealth([]);
     Promise.allSettled([
@@ -71,12 +89,13 @@ export function TodayScreen() {
       if (tk.status === "fulfilled") setTasks(tk.value);
       if (h.status === "fulfilled") setHint(h.value);
       if (he.status === "fulfilled") setHealth(he.value);
+      setLoadedPetId(petId);
       setLoading(false);
     });
     return () => {
       alive = false;
     };
-  }, [petId]);
+  }, [petId, refreshCounter]);
 
   const attention = useMemo(() => {
     const danger = health.find((r) => r.latest_triage_level === "URGENT" || r.latest_triage_level === "EMERGENCY");
@@ -196,7 +215,7 @@ export function TodayScreen() {
           pose={twin ? representativePose ?? "Idle" : null}
         />
 
-        {error && !loading ? <TodayOffline cachedAt={cachedAt} onRetry={() => setLoading((v) => !v)} /> : null}
+        {error && !loading ? <TodayOffline cachedAt={cachedAt} onRetry={() => setRefreshCounter((v) => v + 1)} /> : null}
 
         {loading ? (
           <View style={styles.loadingWrap}>
