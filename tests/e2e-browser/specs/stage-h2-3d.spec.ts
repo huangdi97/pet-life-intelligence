@@ -131,6 +131,18 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     await expect(page.getByText("回到那一天 · 2026-01-01")).toHaveCount(0);
   });
 
+  test("assistant exposes the medical action hard boundary", async ({ page, request }) => {
+    await loginAsEmail(page, request, "owner@pli.demo");
+    await page.goto("/agent");
+    await expectNoFatalState(page);
+    const boundary = page.getByTestId("pli.assistant.medical-boundary");
+    await expect(boundary).toBeVisible();
+    await expect(boundary).toContainText("不会诊断");
+    await expect(boundary).toContainText("不会");
+    await expect(boundary).toContainText(/开药|改剂量/);
+    await expect(boundary).toContainText("独立风险分级");
+  });
+
   test("companion keeps device state honest (no fake LIVE / no fake online)", async ({
     page,
     request,
