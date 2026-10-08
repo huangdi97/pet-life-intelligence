@@ -116,21 +116,27 @@ export default function TodayPage() {
     ? `最近记录 · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
     : `今天 · ${new Date().toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" })}`;
 
-  async function quickLog(q: (typeof QUICK_TYPES)[number]) {
+  async function quickLog(q: (typeof QUICK_TYPES)[number], artifactIds: string[] = []) {
     const target = current.id;
     try {
-      await api.post(`/pets/${target}/events`, { event_type: q.type, payload: q.payload });
-      setFlash(`已记录：${q.label}`);
+      await api.post(`/pets/${target}/events`, {
+        event_type: q.type,
+        payload: q.payload,
+        artifact_ids: artifactIds,
+      });
+      setFlash(`已记录：${q.label}${artifactIds.length ? ` · 已绑定 ${artifactIds.length} 个媒体` : ""}`);
       today.reload();
       setTimeout(() => setFlash(null), 2500);
     } catch (e) {
-      // Offline UX（§63）：失败时保存草稿，恢复后可在 /offline 重试同步
-      saveDraft("quicklog", { event_type: q.type, payload: q.payload });
+      // Offline UX（§63）：失败时保存草稿，恢复后可在 /offline 重试同步。
+      // Already-uploaded artifact ids are retained in the draft so recovery
+      // does not silently drop evidence.
+      saveDraft("quicklog", { event_type: q.type, payload: q.payload, artifact_ids: artifactIds });
       setFlash(`${mapErrorMessage(e)}（已保存草稿，恢复后可同步）`);
     }
   }
 
-  async function sheetLog(type: string, textValue?: string) {
+  async function sheetLog(type: string, textValue?: string, files: File[] = []) {
     const q = SHEET_TYPES.find((s) => s.type === type);
     if (!q) return;
     if (type === "diary.created") {
@@ -148,7 +154,15 @@ export default function TodayPage() {
       }
       return;
     }
-    await quickLog({ type: q.type, label: q.label, payload: (q.payload as Record<string, string | number>) ?? {} });
+    const artifactIds: string[] = [];
+    for (const file of files.slice(0, 3)) {
+      const uploaded = await api.upload<{ artifact_id: string }>(`/pets/${current.id}/artifacts`, file);
+      artifactIds.push(uploaded.artifact_id);
+    }
+    await quickLog(
+      { type: q.type, label: q.label, payload: (q.payload as Record<string, string | number>) ?? {} },
+      artifactIds,
+    );
     setSheetOpen(false);
   }
 
