@@ -898,3 +898,16 @@ def test_android_embedded_twin_runtime_preserves_companion_stage_role() -> None:
     capture = read("scripts/r5-6/capture-android-final.py")
     assert 'window.__PLI_STAGE_ROLE === "companion"' in entry
     assert '("companion", True, "companion")' in capture
+
+
+def test_mini_pet_world_is_life_first_before_profile_administration() -> None:
+    source = read("apps/mini/src/pages/pets/index.tsx")
+    hero = source.index('headline="它的生活，从这里看见"')
+    recent = source.index('data-testid="pli.mini.pet.recent"')
+    domains = source.index('<View className="section-title">生活</View>')
+    avatar = source.index('data-testid="pli.mini.pet.avatar"')
+    profile = source.index('data-testid="pli.mini.pet.profile"')
+    identifiers = source.index('data-testid="pli.mini.pet.identifiers"')
+
+    assert hero < recent < domains < avatar < profile < identifiers
+    assert "从它真实发生的生活继续往下看。" in source
