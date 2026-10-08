@@ -46,7 +46,7 @@
 | PLI-036 | 03 Care Network | Household | 家庭角色模板 | v0.1 | P0 | FULL_UI | — | FULL_UI | PARTIAL_UI | — | — | FULL_UI | — | Care | OWN-008 | PersonChip | low |  |
 | PLI-037 | 03 Care Network | Handoff | 照护交接模式 | v0.1 | P0 | FULL_UI | — | FULL_UI | PARTIAL_UI | — | — | FULL_UI | — | Care 交接 | OWN-008 | CareTask | med |  |
 | PLI-038 | 03 Care Network | Handoff | 自动生成Care Card | v0.1 | P0 | FULL_UI | — | FULL_UI | PARTIAL_UI | — | — | — | FULL_UI | Care 交接 | OWN-008 | CareTask | med | Care Card share |
-| PLI-039 | 03 Care Network | Handoff | 交接确认清单 | v0.2 | P1 | FULL_UI | MISSING_ACTION | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Care | OWN-008 | CareTask/PersonChip | low | 主体实现（后端）+ 领域页入口 |
+| PLI-039 | 03 Care Network | Handoff | 交接确认清单 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Care | OWN-008 | CareTask/PersonChip | low | Owner 三端创建交接时生成确认清单，并可逐项真实确认；加载失败不冒充空状态 |
 | PLI-040 | 03 Care Network | Handoff | 照护期日报 | v0.2 | P1 | BACKGROUND_ONLY | INTENTIONALLY_BACKGROUND | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Care | OWN-008 | CareTask/PersonChip | low | 主体实现（后端）+ 领域页入口 |
 | PLI-041 | 03 Care Network | Handoff | 照护结束总结 | v0.2 | P1 | BACKGROUND_ONLY | INTENTIONALLY_BACKGROUND | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Care | OWN-008 | CareTask/PersonChip | low | 主体实现（后端）+ 领域页入口 |
 | PLI-042 | 03 Care Network | Responsibility | 任务责任矩阵 | v0.2 | P1 | BACKGROUND_ONLY | INTENTIONALLY_BACKGROUND | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Care | OWN-008 | CareTask/PersonChip | low | 主体实现（后端）+ 领域页入口 |
@@ -69,7 +69,7 @@
 | PLI-059 | 04 Health | Medication | 用药计划 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | — | — | FULL_UI | — | Medication | OWN-007 | CareTask | high | 剂量不可 Agent 改 |
 | PLI-060 | 04 Health | Medication | 给药记录与遗漏提醒 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | — | — | FULL_UI | — | Medication | OWN-007 | CareTask | high | Skipped/Missed/Duplicate |
 | PLI-061 | 04 Health | Recovery | 恢复计划 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | FULL_UI | PARTIAL_UI | — | Health | OWN-005 | RiskBanner/EvidenceCard/VetBriefSection | low | Owner 三端已接真实 recovery plan/status/trend；不自动生成治疗方案 |
-| PLI-062 | 04 Health | Recovery | 症状趋势复盘 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | — | FULL_UI | PARTIAL_UI | — | Health | OWN-005 | RiskBanner/EvidenceCard/VetBriefSection | low | 主体实现（后端）+ 领域页入口 |
+| PLI-062 | 04 Health | Recovery | 症状趋势复盘 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | FULL_UI | PARTIAL_UI | — | Health Detail | OWN-005 | RiskBanner/EvidenceCard/VetBriefSection | low | Owner 三端读取真实 observation/day 与 triage timeline；与恢复计划并列展示，不生成治疗结论 |
 | PLI-063 | 04 Health | Outcome | 结局采集 | v0.1 | P0 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | — | FULL_UI | PARTIAL_UI | — | Health | OWN-005 | RiskBanner/EvidenceCard/VetBriefSection | low | 主体实现（后端）+ 领域页入口 |
 | PLI-064 | 04 Health | Preventive | 疫苗/驱虫/体检提醒 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | FULL_UI | PARTIAL_UI | — | Health | OWN-005 | RiskBanner/EvidenceCard/VetBriefSection | low | Owner 三端真实创建/读取/完成提醒；到期不等于异常，未完成不冒充完成 |
 | PLI-065 | 04 Health | Chronic | 慢病模式 | v1.0 | P2 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | FULL_UI | PARTIAL_UI | — | Health | OWN-005 | RiskBanner/EvidenceCard/VetBriefSection | low | 主体实现（后端）+ 领域页入口 |
