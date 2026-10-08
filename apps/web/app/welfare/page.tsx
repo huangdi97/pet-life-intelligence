@@ -5,6 +5,7 @@ import { useState } from "react";
 import { api, type LifeEvent, type Pet } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
 import { mapErrorMessage } from "../../lib/i18n";
+import { State } from "../../components/ui";
 import {
   WELFARE_EVENT_TYPES,
   type WelfareEvidence,
