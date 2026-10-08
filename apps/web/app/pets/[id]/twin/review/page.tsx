@@ -194,34 +194,8 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
         </p>
       </div>
 
-      <div className="r5-review-studio v5-review-stage" data-testid="pli.twinreview.stage">
-        <div data-testid="pli.twinreview.twin" style={{ position: "absolute", inset: 0 }}>
-          {show3d ? (
-            <Pet3DViewer
-              identity={identity}
-              displayName={pet?.name}
-              demoTwin={modelDemoFixture}
-              variant="life"
-              interactive
-              petId={petId}
-              frameTarget={0.40}
-              stageRole="review"
-              realityField="review-studio"
-              sourceMediaCount={twinSourceMediaCount}
-              twin={viewerTwin}
-              pose="Stand"
-              view={view}
-              viewRevision={viewRevision}
-            />
-          ) : (
-            <div className="page-center" style={{ minHeight: 240 }}>
-              <p className="muted">还没有可展示的 3D 形象。先拍摄素材并生成后再确认。</p>
-            </div>
-          )}
-        </div>
-      </div>
-      {modelNote && <p className="muted" style={{ marginTop: 6 }}>还没有可确认的 3D 形象 · {modelNote}</p>}
-
+      {/* Review is an interactive identity decision: make orbit controls visible
+          BEFORE the tall 3D stage, including on narrow owner phones. */}
       <div className="v5-review-tools">
         <h2>观察角度</h2>
         <p className="v5-review-hint">先从不同角度看清脸、耳朵、身形与尾巴，再判断是否像它。</p>
@@ -249,6 +223,35 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
           </button>
         ))}
       </div>
+
+
+      <div className="r5-review-studio v5-review-stage" data-testid="pli.twinreview.stage">
+        <div data-testid="pli.twinreview.twin" style={{ position: "absolute", inset: 0 }}>
+          {show3d ? (
+            <Pet3DViewer
+              identity={identity}
+              displayName={pet?.name}
+              demoTwin={modelDemoFixture}
+              variant="life"
+              interactive
+              petId={petId}
+              frameTarget={0.40}
+              stageRole="review"
+              realityField="review-studio"
+              sourceMediaCount={twinSourceMediaCount}
+              twin={viewerTwin}
+              pose="Stand"
+              view={view}
+              viewRevision={viewRevision}
+            />
+          ) : (
+            <div className="page-center" style={{ minHeight: 240 }}>
+              <p className="muted">还没有可展示的 3D 形象。先拍摄素材并生成后再确认。</p>
+            </div>
+          )}
+        </div>
+      </div>
+      {modelNote && <p className="muted" style={{ marginTop: 6 }}>还没有可确认的 3D 形象 · {modelNote}</p>}
 
       <div className="v5-review-confirm">
         <h2>它像吗？</h2>
