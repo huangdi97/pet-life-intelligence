@@ -32,6 +32,11 @@ export default function WelfarePage() {
     () => (petId ? api.get(`/pets/${petId}/welfare-evidence`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [petId],
   );
+  const enrichment = useAsync<{
+    activities: Array<{ name: string; domain: string; min_minutes: number }>;
+    version?: string;
+  }>(() => api.get("/welfare/enrichment-activities"), []);
+
   const events = useAsync<{ events: LifeEvent[] }>(
     () =>
       petId
@@ -83,6 +88,22 @@ export default function WelfarePage() {
             ? `最近 ${Math.min(welfareEvents.length, 10)} 条福祉相关记录来自真实观察。`
             : "还没有丰富化观察。记录玩耍、探索与新事物后会出现在这里。"}
         </p>
+        <State
+          state={enrichment.state}
+          error={enrichment.error}
+          onRetry={enrichment.reload}
+          empty="当前没有可用的丰富化活动说明。"
+        >
+          <div className="v5-observation-list" style={{ marginTop: 10 }}>
+            {(enrichment.data?.activities ?? []).map((activity) => (
+              <div className="v5-observation-row" key={activity.name}>
+                <span className="v5-observation-label">{activity.name}</span>
+                <span className="v5-observation-value">{activity.domain} · 至少 {activity.min_minutes} 分钟</span>
+              </div>
+            ))}
+          </div>
+          <p className="v4-note">活动库是通用安全内容，不代表这只宠物已经喜欢或完成过这些活动。</p>
+        </State>
       </div>
 
       <div className="v4-sec" data-testid="pli.welfare.comfort">
