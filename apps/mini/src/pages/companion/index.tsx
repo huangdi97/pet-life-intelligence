@@ -6,6 +6,7 @@ import { usePets } from "../../utils/usePets";
 import { PetContextGate } from "../../components/feedback/Feedback";
 import { eventTypeLabel } from "../../utils/labels";
 import { fmtTime } from "../../utils/format";
+import { PetHero } from "../../components/pet_visual";
 
 interface DeviceRow {
   device_id: string;
@@ -71,38 +72,38 @@ export default function Companion() {
     );
   }
 
+  const onlineCount = devices.filter((device) => {
+    const status = device.status.toLowerCase();
+    return status === "connected" || status === "online";
+  }).length;
+  const lastEvent = events[0] ?? null;
+  const presenceHeadline =
+    deviceState === "error"
+      ? "先从它最近的生活继续了解它"
+      : onlineCount > 0
+        ? `${onlineCount} 个设备在线，可以了解它的此刻`
+        : "不在身边，也能继续看见它的生活";
+
   return (
     <View className="page">
-      <View className="h1">{current ? `${current.name} · 陪伴模式` : "陪伴模式"}</View>
-      <View className="sub">连接支持的设备后，在不打扰它的前提下观察、理解并适度互动。</View>
+      <View className="h1">{current ? `${current.name} · 陪伴` : "陪伴"}</View>
+      <View className="sub">先看见这一只宠物，再决定是否需要设备。</View>
 
-      <View className="soft-hero">
-        <View className="section-title">让陪伴自然发生</View>
-        <View className="life-row-detail">先观察，再理解；只有在合适的时候互动，而且节奏始终由你决定。</View>
-        <View className="action-row">
-          <View className="secondary-action" onClick={() => Taro.navigateTo({ url: "/pages/monitoring/index" })}>查看在家状态</View>
-          <View className="secondary-action" onClick={() => Taro.switchTab({ url: "/pages/timeline/index" })}>最近记录</View>
-        </View>
-      </View>
+      <PetHero
+        pet={current ?? null}
+        headline={presenceHeadline}
+        timeContext={lastEvent ? `最近 · ${eventTypeLabel(lastEvent.event_type)} · ${fmtTime(lastEvent.occurred_at)}` : "暂无新的生活记录"}
+        onPress={() => Taro.navigateTo({ url: "/pages/pets/life-view/index" })}
+      />
 
-      <View className="open-section">
-        <View className="section-title">四种能力</View>
-        {LAYERS.map((layer) => (
-          <View className="life-row" key={layer.key}>
-            <View className="life-dot" />
-            <View className="life-row-body">
-              <View className="life-row-head">
-                <Text className="life-row-type">{layer.zh}</Text>
-              </View>
-              <View className="life-row-detail">{layer.desc}</View>
-            </View>
-          </View>
-        ))}
+      <View className="action-row" style={{ marginTop: 16 }}>
+        <View className="primary-action" onClick={() => Taro.navigateTo({ url: "/pages/pets/life-view/index" })}>看看它</View>
+        <View className="secondary-action" onClick={() => Taro.navigateTo({ url: "/pages/monitoring/index" })}>在家与设备</View>
       </View>
 
       <View className="open-section">
         <View className="section-title">
-          设备
+          真实设备状态
           <Text className="section-caption" onClick={() => Taro.navigateTo({ url: "/pages/monitoring/index" })}>管理设备</Text>
         </View>
         {deviceState === "loading" ? (
@@ -112,7 +113,7 @@ export default function Companion() {
         ) : devices.length === 0 ? (
           <View className="empty-state">
             <View className="empty-state-title">尚未连接设备</View>
-            <View className="empty-state-body">连接支持的摄像头或互动设备后，状态会出现在这里；不会模拟在线。</View>
+            <View className="empty-state-body">没有设备时，仍可通过真实照片、时间线和生活记录继续陪伴与理解它；不会模拟在线。</View>
           </View>
         ) : (
           devices.map((device) => (
@@ -148,13 +149,29 @@ export default function Companion() {
             </View>
           </View>
         )) : (
-          <View className="life-empty-note">还没有可展示的最近活动。继续记录日常，陪伴模式会逐渐获得真实上下文。</View>
+          <View className="life-empty-note">还没有可展示的最近活动。第一次散步、玩耍或生活记录会从这里开始。</View>
         )}
       </View>
 
+      <View className="open-section">
+        <View className="section-title">陪伴方式</View>
+        {LAYERS.map((layer) => (
+          <View className="life-row" key={layer.key} onClick={() => Taro.navigateTo({ url: "/pages/monitoring/index" })}>
+            <View className="life-dot" />
+            <View className="life-row-body">
+              <View className="life-row-head">
+                <Text className="life-row-type">{layer.zh}</Text>
+              </View>
+              <View className="life-row-detail">{layer.desc}</View>
+            </View>
+          </View>
+        ))}
+      </View>
+
       <View className="muted" style={{ textAlign: "center", marginTop: 24 }}>
-        陪伴模式不用于医疗判断；当前小程序不会伪装成实时画面，互动节奏始终由你控制。
+        陪伴模式不用于医疗判断；没有可确认的实时来源时不会显示成实时画面，互动节奏始终由你控制。
       </View>
     </View>
   );
 }
+
