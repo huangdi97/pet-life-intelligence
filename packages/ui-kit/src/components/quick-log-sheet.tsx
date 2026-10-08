@@ -41,7 +41,7 @@ export function QuickLogSheet({
   open: boolean;
   onClose: () => void;
   types: QuickLogType[];
-  onQuickLog: (type: string, textValue?: string) => void | Promise<void>;
+  onQuickLog: (type: string, textValue?: string, files?: File[]) => void | Promise<void>;
   loading?: boolean;
   title?: string;
   hint?: ReactNode;
@@ -50,11 +50,13 @@ export function QuickLogSheet({
 }) {
   const [textType, setTextType] = useState<QuickLogType | null>(null);
   const [textValue, setTextValue] = useState("");
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
 
   useEffect(() => {
     if (!open) {
       setTextType(null);
       setTextValue("");
+      setMediaFiles([]);
     }
   }, [open]);
 
@@ -84,9 +86,10 @@ export function QuickLogSheet({
           if (t.textInput) {
             setTextType(t);
             setTextValue("");
+            setMediaFiles([]);
             return;
           }
-          void onQuickLog(t.type);
+          void Promise.resolve(onQuickLog(t.type, undefined, mediaFiles)).then(() => setMediaFiles([]));
         }}
         data-testid={`pli.quicklog.tile.${tileKey(t.type)}`}
       >
@@ -152,14 +155,41 @@ export function QuickLogSheet({
           </div>
         </div>
       ) : (
-        <div className="pli-quicklog-grid" data-testid="pli.quicklog.form">
+        <>
+          <div className="pli-quicklog-media" data-testid="pli.quicklog.media">
+            <label className="pli-quicklog-media-pick">
+              绑定照片/视频（可选）
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"
+                multiple
+                disabled={loading}
+                onChange={(event) => {
+                  const files = Array.from(event.currentTarget.files ?? []).slice(0, 3);
+                  setMediaFiles(files);
+                  event.currentTarget.value = "";
+                }}
+                data-testid="pli.quicklog.media-input"
+              />
+            </label>
+            <span className="pli-quicklog-hint">
+              {mediaFiles.length ? `已选择 ${mediaFiles.length} 个文件；会和下一条生活记录一起保存。` : "最多 3 个；上传成功后会作为该事件的证据。"}
+            </span>
+            {mediaFiles.length ? (
+              <button type="button" className="pli-quicklog-media-clear" onClick={() => setMediaFiles([])}>
+                清除
+              </button>
+            ) : null}
+          </div>
+          <div className="pli-quicklog-grid" data-testid="pli.quicklog.form">
           {primary.map(actionFor)}
           {more.length > 0 && (
             <div className="pli-quicklog-more" data-testid="pli.quicklog.more">
               {more.map(actionFor)}
             </div>
           )}
-        </div>
+          </div>
+        </>
       )}
       <div className="pli-quicklog-feedback" data-testid="pli.quicklog.feedback" aria-live="polite">
         {loading ? (
