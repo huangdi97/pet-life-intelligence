@@ -57,7 +57,7 @@ interface Props {
    *  Undefined on normal Living surfaces so their canonical 3/4 camera stays intact. */
   view?: "front" | "side" | "back";
   /** Semantic owner surface; distinct from visual stage theme. */
-  stageRole?: "today" | "pet" | "life" | "review";
+  stageRole?: "today" | "pet" | "life" | "review" | "companion";
   /** R4.2 stage theme: warm living field / neutral identity studio / engineering debug. */
   stageTheme?: "living" | "review" | "engineering";
   onStatus?: (status: Pet3DStatus) => void;
