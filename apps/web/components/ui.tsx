@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactElement, ReactPortal } from "react";
+import type { ReactElement } from "react";
 import { provenanceLabel, triageLabel } from "../lib/ownerLabels";
 import { mapErrorMessage } from "../lib/i18n";
 import type { LoadState } from "../lib/hooks";
@@ -8,11 +8,12 @@ import type { LoadState } from "../lib/hooks";
 /**
  * Synchronous renderable node subset shared safely across the React 18/19
  * ambient boundary still present in parts of the Next.js build toolchain.
- * Owner UI state slots never accept bigint or async/promise children.
+ * ReactPortal must NOT be accepted: React 19 portal children can include
+ * bigint, while Next 15's other ambient ReactNode boundary cannot.
+ * Owner UI state slots never accept portals, bigint or async children.
  */
 type StableReactNode =
   | ReactElement
-  | ReactPortal
   | string
   | number
   | boolean
