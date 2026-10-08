@@ -4,8 +4,30 @@
  * circle. The mini data layer has no artifact URL resolver yet, so the
  * species visual is the honest graceful fallback (ACCEPTED_LIMITATION).
  */
+import { useEffect, useState } from "react";
 import { Image, Text, View } from "@tarojs/components";
-import type { Pet } from "../services/api";
+import { api, type Pet } from "../services/api";
+
+function usePersistedAvatar(pet: Pet | null): string | null {
+  const [uri, setUri] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    setUri(null);
+    if (!pet?.id || !pet.avatar_artifact_id) return () => { alive = false; };
+    api
+      .get<{ avatar_artifact_id: string | null; data_url: string | null }>(`/pets/${pet.id}/avatar`)
+      .then((row) => {
+        if (alive) setUri(row.data_url ?? null);
+      })
+      .catch(() => {
+        if (alive) setUri(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [pet?.id, pet?.avatar_artifact_id]);
+  return uri;
+}
 
 export interface SpeciesVisual {
   glyph: string;
@@ -54,14 +76,16 @@ export function PetHero(props: {
   onPress?: () => void;
 }) {
   const { pet, headline = "今天怎么样？", identity, timeContext, demo = false, mediaUri = null, onPress } = props;
+  const protectedAvatar = usePersistedAvatar(pet);
+  const resolvedMediaUri = protectedAvatar ?? mediaUri;
   const idLine =
     identity ?? (pet ? `${pet.breed || "宠物"} · ${pet.name}` : "宠物生活智能");
   const glyphSize = 300;
   return (
     <View className="pet-hero" onClick={onPress}>
-      {mediaUri ? (
+      {resolvedMediaUri ? (
         <Image
-          src={mediaUri}
+          src={resolvedMediaUri}
           mode="aspectFill"
           style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0 }}
         />
@@ -87,11 +111,20 @@ export function PetHero(props: {
 /** PetContextHeader — “为豆豆记录”式宠物上下文条（写入口 / 二级页）。 */
 export function PetContextHeader(props: { pet: Pet | null; title: string; sub?: string }) {
   const { pet, title, sub } = props;
+  const protectedAvatar = usePersistedAvatar(pet);
   return (
     <View className="pet-context">
       {pet ? (
         <View className="pet-context-avatar">
-          <PetSpeciesTile species={pet.species} size={96} round={999} />
+          {protectedAvatar ? (
+            <Image
+              src={protectedAvatar}
+              mode="aspectFill"
+              style={{ width: 96, height: 96, borderRadius: 999 }}
+            />
+          ) : (
+            <PetSpeciesTile species={pet.species} size={96} round={999} />
+          )}
         </View>
       ) : null}
       <View style={{ flex: 1 }}>
