@@ -70,6 +70,8 @@ export default function Training() {
   const [sessionState, setSessionState] = useState<"loading" | "ready" | "error">("loading");
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [title, setTitle] = useState("");
+  const [targetBehavior, setTargetBehavior] = useState("");
+  const [stepsText, setStepsText] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [busyGoal, setBusyGoal] = useState<string | null>(null);
   const [rewards, setRewards] = useState<PreferenceRow[]>([]);
@@ -162,8 +164,18 @@ export default function Training() {
   async function create() {
     if (!title.trim() || !petId) return;
     try {
-      await api.post(`/pets/${petId}/training-goals`, { title: title.trim() });
+      const steps = stepsText
+        .split(/\n|[；;]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+      await api.post(`/pets/${petId}/training-goals`, {
+        title: title.trim(),
+        target_behavior: targetBehavior.trim(),
+        steps,
+      });
       setTitle("");
+      setTargetBehavior("");
+      setStepsText("");
       setFormOpen(false);
       load(petId);
       Taro.showToast({ title: "已创建", icon: "success" });
@@ -376,6 +388,15 @@ export default function Training() {
                   <Text>目标名称</Text>
                   <Input className="input" value={title} onInput={(e) => setTitle(e.detail.value)} placeholder="例如：安静应对门铃" />
                 </View>
+                <View className="field">
+                  <Text>可观察目标行为</Text>
+                  <Input className="input" value={targetBehavior} onInput={(e) => setTargetBehavior(e.detail.value)} placeholder="例如：门铃响后在垫子上停留 5 秒" />
+                </View>
+                <View className="field">
+                  <Text>分解步骤（用分号分隔）</Text>
+                  <Input className="input" value={stepsText} onInput={(e) => setStepsText(e.detail.value)} placeholder="看向垫子；走到垫子；加入门铃" />
+                </View>
+                <View className="life-row-source">步骤由主人明确填写；不会自动把一次表现判定为掌握。</View>
                 <Button className="btn btn-primary" onClick={create} disabled={!title.trim()}>
                   添加目标
                 </Button>
