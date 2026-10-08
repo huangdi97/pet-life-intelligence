@@ -40,6 +40,7 @@ SURFACES = (
     ("twinreview", True, "review"),
     ("health", False, None),
     ("assistant", False, None),
+    ("companion", True, "companion"),
     ("me", False, None),
 )
 
