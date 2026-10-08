@@ -123,6 +123,9 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     await loginAsEmail(page, request, "owner@pli.demo");
     await page.goto("/timeline");
     await expect(page).toHaveURL(urlRe("/timeline"));
+    // Date travel is intentionally secondary to the Life Stream. Reveal the
+    // advanced filter group before interacting with the real date control.
+    await page.locator(".v7-timeline-refine > summary").click();
     await expect(page.getByLabel("回到那一天")).toBeVisible();
     await page.getByLabel("回到那一天").fill("2026-01-01");
     await expect(page.getByText("回到那一天 · 2026-01-01").first()).toBeVisible();
