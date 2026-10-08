@@ -10,7 +10,7 @@
 // --- color V4: canvas / surface / text / brand / semantic ---
 export const COLORS = {
   // canvas & surfaces
-  canvas: "#F6F1E9",
+  canvas: "#FBF7F1",
   surface: "#FFFFFF",
   surfaceRaised: "#FFFDF8",
   surfaceGlass: "#FFFFFFCC",
@@ -53,7 +53,7 @@ export const COLORS = {
   mediaOverlay: "#0000001A",
   // stage warm living (R2P3D-R4.2): warm cream reality field — never a dark
   // viewer on owner hero pages. Dark stays only in the engineering debug theme.
-  stageWarmBase: "#F7E8D1",
+  stageWarmBase: "#F5EADD",
   stageWarmDeep: "#EDDCC0",
   stageWarmGlow: "#FBF4E8",
   stageWarmBeam: "#FFF9EEB8",
@@ -86,7 +86,7 @@ export const COLORS = {
   lineStrong: "#D8D0C4",
   lineFocus: "#6E8B5E",
   // legacy aliases (Stage H) — keep until screens migrate
-  bgCanvas: "#F6F1E9",
+  bgCanvas: "#FBF7F1",
   bgSurface: "#FFFFFF",
   bgSurfaceMuted: "#F0EBE2",
   bgSurfaceStrong: "#E8E0D2",
