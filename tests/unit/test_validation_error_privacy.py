@@ -1,10 +1,9 @@
 """Validation response must be JSON-safe and must not echo private input."""
 
+from app.core.errors import install_error_handlers
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import BaseModel, model_validator
-
-from app.core.errors import install_error_handlers
 
 
 class _DiaryRequest(BaseModel):
