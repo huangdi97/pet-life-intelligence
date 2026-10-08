@@ -20,8 +20,8 @@ import { PetStateAnchor, type PetAnchor } from "./PetStateAnchor";
 
 export type StageVariant = "today" | "pet" | "life" | "review";
 
-const HEIGHTS: Record<StageVariant, number> = { today: 500, pet: 526, life: 608, review: 550 };
-const PET_WIDTHS: Record<StageVariant, number> = { today: 340, pet: 352, life: 378, review: 372 };
+const HEIGHTS: Record<StageVariant, number> = { today: 550, pet: 580, life: 654, review: 550 };
+const PET_WIDTHS: Record<StageVariant, number> = { today: 372, pet: 388, life: 414, review: 372 };
 
 // Life state facts belong in one quiet ribbon, not four HUD bubbles over the animal.
 
@@ -148,6 +148,8 @@ export function PetLivingStage({
           <View style={styles.sunHaze} />
           <View style={styles.floorHaze} />
           <View style={styles.roomHorizon} />
+          <View style={styles.spatialPillar} />
+          <View style={styles.stageAccent} />
         </>
       )}
 
@@ -182,7 +184,7 @@ export function PetLivingStage({
       {/* identity + now line + honest note */}
       <View style={styles.head}>
         <View style={styles.identityCopy}>
-          <Text style={styles.eyebrow}>{reviewStudio ? "看看这是不是它" : variant === "life" ? "它的生命空间" : "和它在一起的日子"}</Text>
+          <Text style={styles.eyebrow}>{reviewStudio ? "看看这是不是它" : variant === "life" ? "它的生命空间" : "今天，和它在一起"}</Text>
           <Text style={styles.name}>{pet?.name ?? "宠物"}</Text>
         </View>
         {demo ? (
@@ -207,11 +209,14 @@ export function PetLivingStage({
 
 const styles = StyleSheet.create({
   stage: { marginHorizontal: 0, marginTop: 0, borderRadius: 0, overflow: "hidden" },
-  stageLiving: { backgroundColor: COLORS.stageWarmBase },
+  stageLiving: { backgroundColor: "#E3EBDF" },
   stageReview: { marginHorizontal: SPACE.s3, borderRadius: RADIUS.hero, backgroundColor: COLORS.stageReviewBase },
   fieldBase: { ...StyleSheet.absoluteFillObject },
-  fieldBaseLiving: { backgroundColor: COLORS.stageWarmBase },
+  fieldBaseLiving: { backgroundColor: "#E3EBDF" },
   fieldBaseReview: { backgroundColor: COLORS.stageReviewBase },
+  // Spatial framing, not a dashboard and not a fake holographic HUD.
+  spatialPillar: { position: "absolute", right: 25, top: 126, bottom: 125, width: 3, borderRadius: 3, backgroundColor: "#FFFFFF80" },
+  stageAccent: { position: "absolute", left: 24, bottom: 100, width: 126, height: 4, borderRadius: 4, backgroundColor: "#79948466" },
   // Asymmetric daylight cues keep the stage spatial without drawing a giant
   // geometric circle behind the pet.
   windowBeamA: {
@@ -221,8 +226,8 @@ const styles = StyleSheet.create({
     left: 24,
     top: -54,
     borderRadius: 46,
-    backgroundColor: COLORS.stageWarmBeam,
-    opacity: 0.52,
+    backgroundColor: "#FFFFFFC8",
+    opacity: 0.24,
     transform: [{ rotate: "7deg" }],
   },
   windowBeamB: {
@@ -232,8 +237,8 @@ const styles = StyleSheet.create({
     left: 116,
     top: -38,
     borderRadius: 24,
-    backgroundColor: COLORS.stageWarmBeamSoft,
-    opacity: 0.42,
+    backgroundColor: "#F5FFF2",
+    opacity: 0.22,
     transform: [{ rotate: "7deg" }],
   },
   sunHaze: {
@@ -243,8 +248,8 @@ const styles = StyleSheet.create({
     borderRadius: 66,
     right: -34,
     top: 34,
-    backgroundColor: COLORS.stageWarmGlow,
-    opacity: 0.22,
+    backgroundColor: "#D8E9D1",
+    opacity: 0.21,
   },
   floorHaze: {
     position: "absolute",
@@ -253,7 +258,7 @@ const styles = StyleSheet.create({
     right: -32,
     bottom: -58,
     borderRadius: 90,
-    backgroundColor: COLORS.stageWarmFloor,
+    backgroundColor: "#D0DDCC",
   },
   roomHorizon: {
     position: "absolute",
@@ -261,8 +266,8 @@ const styles = StyleSheet.create({
     left: 42,
     right: 42,
     bottom: 94,
-    backgroundColor: COLORS.stageWarmHorizon,
-    opacity: 0.42,
+    backgroundColor: "#789B8170",
+    opacity: 0.28,
   },
   // R5.6 final craft: Review is a neutral identity studio, not a pet placed
   // in front of another decorative circle. A broad light well improves face /
@@ -286,21 +291,21 @@ const styles = StyleSheet.create({
     borderRadius: 82,
     backgroundColor: COLORS.stageReviewFloor,
   },
-  pressPet: { position: "absolute", left: 0, right: 0, bottom: 74, alignItems: "center" },
-  petSlot: { position: "absolute", left: 0, right: 0, bottom: 74, alignItems: "center" },
-  petSlotLife: { bottom: 104 },
-  lifeRibbon: { position: "absolute", bottom: 8, left: SPACE.s3, right: SPACE.s3, flexDirection: "row", borderRadius: 18, paddingVertical: 5, backgroundColor: COLORS.surfaceOverlay, borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS.stageWarmBorder },
+  pressPet: { position: "absolute", left: 0, right: 0, bottom: 89, alignItems: "center" },
+  petSlot: { position: "absolute", left: 0, right: 0, bottom: 89, alignItems: "center" },
+  petSlotLife: { bottom: 118 },
+  lifeRibbon: { position: "absolute", bottom: 12, left: SPACE.s4, right: SPACE.s4, flexDirection: "row", borderRadius: 21, paddingVertical: 9, backgroundColor: "#FFFEF6EC", borderWidth: StyleSheet.hairlineWidth, borderColor: "#EAF2E7" },
   lifeRibbonItem: { flex: 1, minWidth: 0 },
-  head: { position: "absolute", top: SPACE.s6, left: SPACE.s5, right: SPACE.s5, flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2 },
+  head: { position: "absolute", top: SPACE.s8, left: SPACE.s6, right: SPACE.s6, flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2 },
   identityCopy: { flex: 1 },
-  eyebrow: { fontSize: TYPE.caption, letterSpacing: 1.7, fontWeight: "700", color: COLORS.brandPrimaryDeep, marginBottom: 6 },
-  name: { fontSize: 36, fontWeight: "700", letterSpacing: -0.8, color: COLORS.textPrimary },
+  eyebrow: { fontSize: 12, letterSpacing: 2, fontWeight: "700", color: "#547563", marginBottom: 6 },
+  name: { fontSize: 43, fontWeight: "800", letterSpacing: -1.3, color: "#294837" },
   demoChip: { backgroundColor: COLORS.surfaceOverlay, borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 3 },
   demoChipText: { fontSize: TYPE.caption, color: COLORS.textSecondary, fontWeight: "600" },
-  nowBlock: { position: "absolute", left: SPACE.s5, right: SPACE.s5, top: 112 },
-  nowBlockLife: { left: SPACE.s5, right: SPACE.s5, top: 114, bottom: undefined, borderWidth: 0, backgroundColor: "transparent" },
-  headline: { fontSize: TYPE.body, fontWeight: "600", color: COLORS.textSecondary },
-  caption: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginTop: 2 },
+  nowBlock: { position: "absolute", left: SPACE.s6, right: SPACE.s6, top: 122 },
+  nowBlockLife: { left: SPACE.s6, right: SPACE.s6, top: 123, bottom: undefined, borderWidth: 0, backgroundColor: "transparent" },
+  headline: { fontSize: 16, fontWeight: "700", color: "#395A44" },
+  caption: { fontSize: 12, color: "#5E7665", marginTop: 5 },
   noteRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   note: { fontSize: TYPE.caption, color: COLORS.textTertiary },
 });
