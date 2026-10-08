@@ -271,7 +271,7 @@ export default function CarePage() {
           </label>
           <label className="field">
             家庭角色
-            <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+            <select aria-label="家庭角色" value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
               <option value="FAMILY">家庭成员</option>
               <option value="CO_OWNER">共同主人</option>
               <option value="SITTER">临时照护人</option>
@@ -304,7 +304,7 @@ export default function CarePage() {
         <div className="grid2">
           <label className="field">
             临时照护人
-            <select value={caregiver} onChange={(e) => setCaregiver(e.target.value)}>
+            <select aria-label="临时照护人" value={caregiver} onChange={(e) => setCaregiver(e.target.value)}>
               <option value="">选择照护人</option>
               {caregiverOptions.map((person) => (
                 <option key={person.user_id} value={person.user_id}>
