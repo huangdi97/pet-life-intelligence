@@ -767,7 +767,7 @@ def test_review_orbit_controls_are_first_screen_and_mobile_viewports_do_not_over
 
     assert 'testID="pli.twinreview.camera-controls"' in android
     assert android.index('testID="pli.twinreview.camera-controls"') < android.index('variant="review"')
-    assert 'testID={`pli.twinreview.view.${v.key}`}' in android or 'testID={`pli.twinreview.view.${v.key}`}' in android
+    assert 'testID={`pli.twinreview.view.${v.key}`}' in android
     assert web.index('data-testid={`pli.twinreview.view.${v.id}`}') < web.index('data-testid="pli.twinreview.stage"')
     assert ".v4-main > .r5-life-stage-shell" in css
     assert ".r5-life-stage-shell > .r2p-stage" in css
