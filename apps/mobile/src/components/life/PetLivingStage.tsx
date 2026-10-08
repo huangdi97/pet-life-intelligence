@@ -99,7 +99,7 @@ export function PetLivingStage({
   // explicitly marked demo. A production pet without a persisted Twin stays
   // on the honest 2.5D/photo fallback instead of borrowing a generic template.
   const canShow3d = identity !== null && (twin !== null || demo) && pet3d !== "failed";
-  const showPhoto = Boolean(photoUri && photoView?.petId === pet?.id && photoView.enabled);
+  const showPhoto = Boolean(photoUri && photoView?.petId === pet?.id && photoView?.enabled === true);
   const use3d = canShow3d && !showPhoto;
   const reviewStudio = variant === "review";
   const stageTheme = reviewStudio ? ("review" as const) : ("living" as const);
