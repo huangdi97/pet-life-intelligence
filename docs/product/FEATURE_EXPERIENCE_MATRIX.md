@@ -10,7 +10,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | PLI-001 | 01 Identity & Permissions | Pet ID | 创建宠物主档 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | FULL_UI | FULL_UI | — | TopNav 宠物 | OWN-004 | PetAvatar/PetSwitcher | low | Pet ID 稳定核心 |
 | PLI-002 | 01 Identity & Permissions | Pet ID | 多宠家庭管理 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | — | — | Pet Profile | OWN-004 | PetSwitcher | low | Owner 三端均可读取多宠、切换当前宠物并进入创建/档案流程；当前宠物上下文贯穿主导航 |
-| PLI-003 | 01 Identity & Permissions | Pet ID | 头像与视觉档案 | v0.1 | P0 | FULL_UI | — | FULL_UI | PARTIAL_UI | — | — | — | — | Pet Profile | OWN-004 | PetAvatar | low |  |
+| PLI-003 | 01 Identity & Permissions | Pet ID | 头像与视觉档案 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | — | — | Pet Profile | OWN-004 | PetAvatar | low | Owner 三端均可选择并上传真实图片 Artifact、显式设为受保护 avatar_artifact_id 并持久显示；头像与 3D 形象分开保存，不自动冒充个体 3D 身份 |
 | PLI-004 | 01 Identity & Permissions | Pet ID | 芯片号记录与验证 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | FULL_UI | — | — | Pet Profile/Settings | OWN-004 | ConsentPanel/PersonChip | low | Owner 三端已接真实 identifiers API；验证状态保持事实语义 |
 | PLI-005 | 01 Identity & Permissions | Pet ID | QR/NFC Care Card | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | FULL_UI | — | — | Care | OWN-004 | ConsentPanel/PersonChip | low | Owner 三端可真实生成 72 小时照护卡、查看/复制分享入口并撤销；分享权限仍由服务端校验 |
 | PLI-006 | 01 Identity & Permissions | Identity | 身份去重与合并 | v1.0 | P2 | BACKGROUND_ONLY | INTENTIONALLY_BACKGROUND | PARTIAL_UI | — | — | FULL_UI | — | — | Pet Profile/Settings | OWN-004 | ConsentPanel/PersonChip | low | 主体实现（后端）+ 领域页入口 |
