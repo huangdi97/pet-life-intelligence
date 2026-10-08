@@ -400,6 +400,59 @@ export default function Timeline() {
     <View className="page">
       <PetContextHeader pet={current ?? null} title="时间线" sub="记录每一天真实发生的事情" />
 
+      <View className="open-section" data-testid="pli.mini.timeline.living-first">
+        <View className="section-title">它的每一天</View>
+        <View className="life-empty-note">先看看已经发生的事。里程碑与日记放在时间线之后，随时可以补充。</View>
+      </View>
+      <View
+        className="secondary-action"
+        data-testid="pli.mini.timeline.search"
+        onClick={() => Taro.navigateTo({ url: "/pages/search/index" })}
+      >
+        搜索已有记录
+      </View>
+
+      {pets && pets.length > 1 && (
+        <View className="chips">
+          {pets.map((p) => (
+            <View
+              key={p.id}
+              className={`chip${p.id === petId ? " chip-active" : ""}`}
+              onClick={() => choose(p.id)}
+            >
+              {p.name}
+            </View>
+          ))}
+        </View>
+      )}
+
+      <View className="chips">
+        {FILTERS.map((f, i) => (
+          <View
+            key={f.label}
+            className={`chip${filter === i ? " chip-active" : ""}`}
+            onClick={() => {
+              setFilter(i);
+              if (petId) load(petId, i);
+            }}
+          >
+            {f.label}
+          </View>
+        ))}
+      </View>
+
+      {state === "error" && <InlineError onRetry={() => petId && load(petId, filter)} />}
+
+      {state === "ready" && events && events.length === 0 && (
+        <EmptyState title={`${current?.name ?? "它"}的时间线还很安静`} body="第一次喂食、散步或健康记录会从这里开始。" />
+      )}
+
+      <LifeStream days={days} onOpenMedia={(artifactIds) => void openMedia(artifactIds)} />
+
+      {state === "loading" && <View className="state">加载中……</View>}
+
+      <View className="open-section"><View className="section-title">留下一段生活</View></View>
+
       <View className="open-section" data-testid="pli.mini.timeline.milestones">
         <View className="section-title">
           里程碑
@@ -549,52 +602,6 @@ export default function Timeline() {
         )}
       </View>
 
-      <View
-        className="secondary-action"
-        data-testid="pli.mini.timeline.search"
-        onClick={() => Taro.navigateTo({ url: "/pages/search/index" })}
-      >
-        搜索已有记录
-      </View>
-
-      {pets && pets.length > 1 && (
-        <View className="chips">
-          {pets.map((p) => (
-            <View
-              key={p.id}
-              className={`chip${p.id === petId ? " chip-active" : ""}`}
-              onClick={() => choose(p.id)}
-            >
-              {p.name}
-            </View>
-          ))}
-        </View>
-      )}
-
-      <View className="chips">
-        {FILTERS.map((f, i) => (
-          <View
-            key={f.label}
-            className={`chip${filter === i ? " chip-active" : ""}`}
-            onClick={() => {
-              setFilter(i);
-              if (petId) load(petId, i);
-            }}
-          >
-            {f.label}
-          </View>
-        ))}
-      </View>
-
-      {state === "error" && <InlineError onRetry={() => petId && load(petId, filter)} />}
-
-      {state === "ready" && events && events.length === 0 && (
-        <EmptyState title={`${current?.name ?? "它"}的时间线还很安静`} body="第一次喂食、散步或健康记录会从这里开始。" />
-      )}
-
-      <LifeStream days={days} onOpenMedia={(artifactIds) => void openMedia(artifactIds)} />
-
-      {state === "loading" && <View className="state">加载中……</View>}
     </View>
   );
 }
