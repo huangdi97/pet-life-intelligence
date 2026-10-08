@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { api, humanizeError } from "../api";
 import { usePets } from "../context";
 import { COLORS, SPACE, TYPE } from "../tokens";
@@ -33,6 +34,7 @@ export function QuickLogScreen() {
   const [diaryText, setDiaryText] = useState("");
   const [kind, setKind] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [mediaFiles, setMediaFiles] = useState<Array<{ uri: string; name: string; type: string }>>([]);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,6 +62,7 @@ export function QuickLogScreen() {
     setBehavior("");
     setDiaryText("");
     setKind(null);
+    setMediaFiles([]);
   }
 
   function resetInputs() {
@@ -70,6 +73,28 @@ export function QuickLogScreen() {
     setBehavior("");
     setDiaryText("");
     setKind(null);
+  }
+
+  async function chooseEvidencePhotos() {
+    if (!current || mediaFiles.length >= 3) return;
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setError("需要相册权限才能添加照片；不授权也可以继续保存记录。");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: 3 - mediaFiles.length,
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    const picked = result.assets.slice(0, 3 - mediaFiles.length).map((asset, index) => ({
+      uri: asset.uri,
+      name: asset.fileName || `quicklog-${Date.now()}-${index + 1}.jpg`,
+      type: asset.mimeType || "image/jpeg",
+    }));
+    setMediaFiles((old) => [...old, ...picked].slice(0, 3));
   }
 
   const fields: QuickLogFields = {
@@ -115,9 +140,23 @@ export function QuickLogScreen() {
       if (t.event_type === "diary.created") {
         await api.post(path, payload);
       } else {
-        await api.post(path, { event_type: t.event_type, payload });
+        const artifactIds: string[] = [];
+        for (const file of mediaFiles.slice(0, 3)) {
+          const uploaded = await api.upload<{ artifact_id: string }>(
+            `/pets/${current.id}/artifacts`,
+            file,
+          );
+          artifactIds.push(uploaded.artifact_id);
+        }
+        await api.post(path, {
+          event_type: t.event_type,
+          payload,
+          artifact_ids: artifactIds,
+        });
       }
-      setSuccess(`已记录${t.zh}。`);
+      setSuccess(
+        `已记录${t.zh}。${t.event_type !== "diary.created" && mediaFiles.length ? ` 已绑定 ${mediaFiles.length} 张照片。` : ""}`,
+      );
       resetInputs();
       setSelected(null);
     } catch (e: unknown) {
@@ -152,7 +191,15 @@ export function QuickLogScreen() {
         ) : null}
 
         {selectedType ? (
-          <QuickLogForm t={selectedType} fields={fields} saving={saving} onSave={() => void save()} />
+          <QuickLogForm
+            t={selectedType}
+            fields={fields}
+            saving={saving}
+            mediaCount={mediaFiles.length}
+            onAddMedia={() => void chooseEvidencePhotos()}
+            onClearMedia={() => setMediaFiles([])}
+            onSave={() => void save()}
+          />
         ) : (
           <QuickLogGrid onPick={pick} onOpenHealth={() => navigation.navigate("Health")} />
         )}
