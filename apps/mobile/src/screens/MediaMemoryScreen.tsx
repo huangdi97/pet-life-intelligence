@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Image, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import { Audio, ResizeMode, Video } from "expo-av";
 import { WebView } from "react-native-webview";
 import { api, authenticatedMediaSource, humanizeError } from "../api";
 import type { StackParamList } from "../navigation";
@@ -39,8 +40,60 @@ export function MediaMemoryScreen() {
   const [source, setSource] = useState<MediaSource | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState("");
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const audioSoundRef = useRef<Audio.Sound | null>(null);
 
   const artifactId = artifactIds[index] ?? null;
+
+  async function toggleAudio() {
+    if (!source || meta?.kind !== "AUDIO") return;
+    const existing = audioSoundRef.current;
+    if (existing) {
+      const status = await existing.getStatusAsync();
+      if (status.isLoaded && status.isPlaying) {
+        await existing.pauseAsync();
+        setAudioPlaying(false);
+      } else {
+        await existing.playAsync();
+        setAudioPlaying(true);
+      }
+      return;
+    }
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: source.uri, headers: source.headers },
+        { shouldPlay: true },
+      );
+      audioSoundRef.current = sound;
+      setAudioPlaying(true);
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (!status.isLoaded) return;
+        setAudioPlaying(status.isPlaying);
+        if (status.didJustFinish) {
+          setAudioPlaying(false);
+          void sound.setPositionAsync(0).catch(() => {});
+        }
+      });
+    } catch {
+      setError("这段原始声音暂时无法播放。");
+    }
+  }
+
+
+  useEffect(() => {
+    return () => {
+      const sound = audioSoundRef.current;
+      audioSoundRef.current = null;
+      if (sound) void sound.unloadAsync().catch(() => {});
+    };
+  }, []);
+
+  useEffect(() => {
+    const sound = audioSoundRef.current;
+    audioSoundRef.current = null;
+    setAudioPlaying(false);
+    if (sound) void sound.unloadAsync().catch(() => {});
+  }, [artifactId]);
 
   useEffect(() => {
     if (!artifactId) {
@@ -101,14 +154,37 @@ export function MediaMemoryScreen() {
         ) : meta && source ? (
           meta.kind === "IMAGE" ? (
             <Image source={source} style={styles.image} resizeMode="contain" accessibilityLabel={meta.original_filename || "宠物生活记录照片"} />
+          ) : meta.kind === "VIDEO" ? (
+            <Video
+              source={source}
+              style={styles.video}
+              useNativeControls
+              resizeMode={ResizeMode.CONTAIN}
+              accessibilityLabel="原始视频回忆"
+            />
+          ) : meta.kind === "AUDIO" ? (
+            <View style={styles.audioStage}>
+              <View style={styles.audioGlyph}>
+                <Ionicons name="musical-notes-outline" size={36} color={COLORS.brandPrimaryDeep} />
+              </View>
+              <Text style={styles.audioTitle}>{meta.original_filename || "原始声音回忆"}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={audioPlaying ? "暂停原始录音" : "播放原始录音"}
+                onPress={() => void toggleAudio()}
+                style={styles.audioButton}
+              >
+                <Ionicons name={audioPlaying ? "pause" : "play"} size={18} color={COLORS.textInverse} />
+                <Text style={styles.audioButtonText}>{audioPlaying ? "暂停" : "播放原始录音"}</Text>
+              </Pressable>
+              {error ? <Text style={styles.hint}>{error}</Text> : null}
+            </View>
           ) : (
             <WebView
               source={source}
               style={styles.webview}
               originWhitelist={["*"]}
-              allowsInlineMediaPlayback
-              mediaPlaybackRequiresUserAction
-              accessibilityLabel={meta.kind === "VIDEO" ? "原始视频回忆" : meta.kind === "AUDIO" ? "原始声音回忆" : "原始文件"}
+              accessibilityLabel="原始文件"
             />
           )
         ) : null}
@@ -161,7 +237,13 @@ const styles = StyleSheet.create({
   counter: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   stage: { flex: 1, marginHorizontal: SPACE.s3, borderRadius: 22, overflow: "hidden", backgroundColor: COLORS.surfaceRaised, alignItems: "stretch", justifyContent: "center" },
   image: { width: "100%", height: "100%" },
+  video: { width: "100%", height: "100%", backgroundColor: COLORS.surfaceRaised },
   webview: { flex: 1, backgroundColor: COLORS.surfaceRaised },
+  audioStage: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: SPACE.s5 },
+  audioGlyph: { width: 76, height: 76, borderRadius: 38, backgroundColor: COLORS.brandSoftGreen, alignItems: "center", justifyContent: "center" },
+  audioTitle: { marginTop: SPACE.s3, fontSize: TYPE.bodyStrong, color: COLORS.textPrimary, textAlign: "center" },
+  audioButton: { marginTop: SPACE.s4, minHeight: 46, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: SPACE.s4, borderRadius: 23, backgroundColor: COLORS.brandPrimary },
+  audioButtonText: { fontSize: TYPE.sm, color: COLORS.textInverse, fontWeight: "600" },
   errorWrap: { alignItems: "center", padding: SPACE.s5, gap: SPACE.s2 },
   stateText: { textAlign: "center", fontSize: TYPE.body, color: COLORS.textSecondary, paddingHorizontal: SPACE.s4 },
   meta: { paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3 },
