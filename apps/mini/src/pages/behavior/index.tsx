@@ -27,8 +27,22 @@ interface BehaviorRow {
   antecedent: string;
   behavior: string;
   consequence: string;
+  environment: string;
   intensity: string;
   artifact_ids: string[];
+}
+
+const BEHAVIOR_TEMPLATES = ["吠叫", "抓挠", "破坏物品", "追逐", "躲避", "反复舔咬"] as const;
+
+function topObserved(values: Array<string | null | undefined>, limit = 3): Array<{ label: string; count: number }> {
+  const counts = new Map<string, number>();
+  values.forEach((raw) => {
+    const label = (raw ?? "").trim();
+    if (label) counts.set(label, (counts.get(label) ?? 0) + 1);
+  });
+  return Array.from(counts, ([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+    .slice(0, limit);
 }
 
 export default function Behavior() {
@@ -157,6 +171,8 @@ export default function Behavior() {
     if (filter === "UNLABELED") return !row.intensity;
     return row.intensity === filter;
   });
+  const topBehaviors = topObserved(rows.map((row) => row.behavior));
+  const topContexts = topObserved(rows.flatMap((row) => [row.antecedent, row.environment]));
   const intensityOptions = ["未标注", "轻度", "中度", "重度"];
   const intensityValues = ["", "MILD", "MODERATE", "SEVERE"];
 
@@ -206,6 +222,36 @@ export default function Behavior() {
         </View>
       ))}
 
+      <View className="open-section" data-testid="pli.mini.behavior.patterns">
+        <View className="section-title">模式与倾向</View>
+        <View className="life-row-source">只按真实记录做频次汇总，不把出现频率解释成性格、情绪或诊断。</View>
+        {topBehaviors.length ? topBehaviors.map((item) => (
+          <View className="life-row" key={`behavior-${item.label}`}>
+            <View className="life-row-body">
+              <View className="life-row-head">
+                <Text className="life-row-type">{item.label}</Text>
+                <Text className="life-row-time">{item.count} 次记录</Text>
+              </View>
+            </View>
+          </View>
+        )) : <View className="life-empty-note">还没有足够记录形成可展示的频次。</View>}
+      </View>
+
+      <View className="open-section" data-testid="pli.mini.behavior.context">
+        <View className="section-title">情境与触发</View>
+        <View className="life-row-source">只展示“发生之前 / 环境”的记录共现，不表示因果关系。</View>
+        {topContexts.length ? topContexts.map((item) => (
+          <View className="life-row" key={`context-${item.label}`}>
+            <View className="life-row-body">
+              <View className="life-row-head">
+                <Text className="life-row-type">{item.label}</Text>
+                <Text className="life-row-time">{item.count} 次记录</Text>
+              </View>
+            </View>
+          </View>
+        )) : <View className="life-empty-note">补充前因或环境后，这里才会出现记录共现。</View>}
+      </View>
+
       <View className="open-section" data-testid="pli.mini.behavior.preferences">
         <View className="section-title">偏好与回避</View>
         <View className="life-row-source">只保存主人明确观察到的喜欢、回避或过敏谨慎项；不会从单次行为自动推断偏好。</View>
@@ -254,6 +300,14 @@ export default function Behavior() {
             <View className="field">
               <Text>具体行为 *</Text>
               <Textarea className="input" value={form.behavior} onInput={(e) => setForm({ ...form, behavior: e.detail.value })} placeholder="例如：听到门铃后连续吠叫约 30 秒" autoHeight />
+              <View className="chips">
+                {BEHAVIOR_TEMPLATES.map((template) => (
+                  <View key={template} className={`chip${form.behavior === template ? " chip-active" : ""}`} onClick={() => setForm({ ...form, behavior: template })}>
+                    {template}
+                  </View>
+                ))}
+              </View>
+              <View className="life-row-source">模板只作为填写起点；请继续补充这次真实看到的细节。</View>
             </View>
             <View className="field" data-testid="pli.mini.behavior.video">
               <Text>关联行为视频（可选，最多保留 3 个）</Text>
