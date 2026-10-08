@@ -30,17 +30,48 @@ export interface StageOptions {
 /** Camera target the pet should be centered on. */
 export const STAGE_TARGET = new THREE.Vector3(0, 0.85, 0);
 
+/** Deterministic radial alpha mask: soft contact, never a solid decal/disc. */
+function createSoftContactAlphaMap(size = 64): THREE.DataTexture {
+  const data = new Uint8Array(size * size * 4);
+  const center = (size - 1) / 2;
+  const radius = size / 2;
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const dx = (x - center) / radius;
+      const dy = (y - center) / radius;
+      const d = Math.min(1, Math.sqrt(dx * dx + dy * dy));
+      // Smooth central contact with a long feathered edge.
+      const falloff = Math.pow(Math.max(0, 1 - d), 1.8);
+      const value = Math.round(255 * falloff);
+      const offset = (y * size + x) * 4;
+      // MeshBasicMaterial alphaMap samples the green channel.
+      data[offset] = value;
+      data[offset + 1] = value;
+      data[offset + 2] = value;
+      data[offset + 3] = 255;
+    }
+  }
+  const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat, THREE.UnsignedByteType);
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return texture;
+}
+
 export function createPetStageScene(identity: Pet3DIdentity, opts: StageOptions = {}): PetStageScene {
   const pet = identity === "doudou" ? buildCorgi() : buildCat();
   const setPose = identity === "doudou" ? applyIdlePose : applyCatIdlePose;
 
   const shadow = new THREE.Mesh(
-    new THREE.CircleGeometry(0.95, 48),
+    new THREE.CircleGeometry(0.98, 64),
     new THREE.MeshBasicMaterial({
       color: GROUND_SHADOW.color,
+      alphaMap: createSoftContactAlphaMap(),
       transparent: true,
       opacity: GROUND_SHADOW.opacity,
       depthWrite: false,
+      depthTest: true,
     }),
   );
   shadow.name = "petContactShadow";
@@ -64,6 +95,16 @@ export function createPetStageScene(identity: Pet3DIdentity, opts: StageOptions 
 export function addStageLights(scene: THREE.Scene): void {
   const ambient = new THREE.AmbientLight(LIGHTS.ambient, LIGHTS.ambientIntensity);
   scene.add(ambient);
+
+  // Hemisphere separation keeps a textured coat dimensional: warm daylight
+  // above, softly grounded beige below. It is intentionally low-saturation.
+  const hemisphere = new THREE.HemisphereLight(
+    LIGHTS.hemisphereSky,
+    LIGHTS.hemisphereGround,
+    LIGHTS.hemisphereIntensity,
+  );
+  hemisphere.position.set(0, 3.2, 0);
+  scene.add(hemisphere);
 
   const key = new THREE.DirectionalLight(LIGHTS.key, LIGHTS.keyIntensity);
   key.position.set(2.2, 3.4, 3.2);
