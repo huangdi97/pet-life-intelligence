@@ -69,8 +69,8 @@ describe("TodayPage (state rendering)", () => {
     render(<TodayPage />);
     // R2-P: the pet stage is the first visual — name + real-data headline.
     await waitFor(() => expect(screen.getByText("豆豆")).toBeTruthy());
-    expect(screen.getByText("今天整体稳定")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "喂食" })).toBeTruthy();
+    expect(screen.getByText("今天记录了 2 件生活片段")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /快速记录/ })).toBeTruthy();
     expect(screen.getByText("最近")).toBeTruthy();
   });
 
@@ -79,6 +79,15 @@ describe("TodayPage (state rendering)", () => {
     render(<TodayPage />);
     await waitFor(() => expect(screen.getByText(/还没有宠物/)).toBeTruthy());
     expect(screen.getByText("创建宠物档案")).toBeTruthy();
+  });
+
+  it("does not misrepresent an API failure as a pet-free household", async () => {
+    apiMock.get.mockRejectedValue(new Error("Failed to fetch"));
+    render(<TodayPage />);
+    await waitFor(() => expect(screen.getByTestId("pli.today.pets-error")).toBeTruthy());
+    expect(screen.queryByTestId("pli.empty.pet")).toBeNull();
+    expect(screen.getByTestId("pli.today.pets-retry")).toBeTruthy();
+    expect(document.body.textContent).not.toContain("Failed to fetch");
   });
 
   it("maps API failure to human language, never raw codes (error)", async () => {

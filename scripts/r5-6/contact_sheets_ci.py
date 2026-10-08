@@ -114,12 +114,76 @@ def build_android() -> list[dict[str, object]]:
     ]
 
 
+def require_uncropped_product_twin(path: Path, label: str) -> None:
+    """Reject real screenshot evidence whose projected Twin leaves its canvas.
+
+    The projected box comes from WebGL's camera and real GLB scene, never a
+    placeholder or synthetic screenshot. This is a geometry gate, not a
+    visual-quality score; Human Visual Acceptance remains PENDING.
+    """
+    value = json.loads(path.read_text(encoding="utf-8-sig"))
+    manifest = value.get("manifest", value)
+    if not isinstance(manifest, dict) or manifest.get("manifestOrigin") != "RUNTIME":
+        raise ValueError(f"missing live 3D manifest for {label}: {path}")
+    bounds = manifest.get("projectedPetBounds")
+    canvas = manifest.get("screenBounds")
+    if not isinstance(bounds, dict) or not isinstance(canvas, dict):
+        raise ValueError(f"missing real projected/canvas bounds for {label}")
+    try:
+        x, y, w, h = (float(bounds[key]) for key in ("x", "y", "width", "height"))
+        cx, cy, cw, ch = (float(canvas[key]) for key in ("x", "y", "width", "height"))
+    except (TypeError, ValueError, KeyError) as exc:
+        raise ValueError(f"invalid runtime bounds for {label}: {exc}") from exc
+    if min(w, h, cw, ch) <= 0:
+        raise ValueError(f"invalid runtime dimensions for {label}")
+    # 1% safety region with 1.5 CSS-px rounding tolerance. Canonical (unzoomed)
+    # screenshot poses should never clip inside the WebView/Canvas itself.
+    pad = 0.01
+    eps = 1.5
+    if (
+        x < cx + cw * pad - eps
+        or y < cy + ch * pad - eps
+        or x + w > cx + cw * (1 - pad) + eps
+        or y + h > cy + ch * (1 - pad) + eps
+    ):
+        raise ValueError(
+            f"cropped 3D Twin {label}: projected={(x, y, w, h)}, canvas={(cx, cy, cw, ch)}"
+        )
+
+
+def validate_ci_twin_bounds(platform: str) -> None:
+    if platform == "web":
+        web, turn = FINAL / "web", FINAL / "turntable"
+        for surface in ("today", "pet", "lifeview", "twinreview"):
+            require_uncropped_product_twin(web / surface / "visual.json", f"web/{surface}")
+        for pet, angles in (
+            ("primary", ("front", "front-left", "side", "rear", "front-right")),
+            ("secondary", ("front", "front-left", "side", "rear")),
+        ):
+            for angle in angles:
+                require_uncropped_product_twin(turn / pet / f"{angle}.json", f"turntable/{pet}/{angle}")
+    else:
+        android = FINAL / "android"
+        for surface in ("today", "pet", "lifeview", "twinreview"):
+            require_uncropped_product_twin(android / surface / "3d.json", f"android/{surface}")
+        require_uncropped_product_twin(android / "secondary-sanity" / "3d.json", "android/secondary-today")
+        require_uncropped_product_twin(android / "secondary-review" / "3d.json", "android/secondary-review")
+        for view in ("front", "side", "back"):
+            require_uncropped_product_twin(
+                android / "twinreview" / f"3d_view_{view}.json", f"android/primary/{view}"
+            )
+            require_uncropped_product_twin(
+                android / "secondary-review" / f"3d_view_{view}.json", f"android/secondary/{view}"
+            )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--platform", required=True, choices=("web", "android"))
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     generated = build_web() if args.platform == "web" else build_android()
+    validate_ci_twin_bounds(args.platform)
     capture_manifest_path = FINAL / args.platform / "capture-manifest.json"
     if not capture_manifest_path.exists():
         raise FileNotFoundError(f"required capture provenance missing: {capture_manifest_path}")
