@@ -11,6 +11,7 @@ import { Icon } from "../../components/icons";
 import { DOMAIN_CHIPS, type VisualModelRow } from "../_components/timeline/constants";
 import { DayBackCard } from "../_components/timeline/DayBackCard";
 import { EventList } from "../_components/timeline/EventList";
+import { ArtifactMemory } from "../_components/timeline/ArtifactMemory";
 import { FilterBar } from "../_components/timeline/FilterBar";
 
 interface DiaryRow {
@@ -18,6 +19,7 @@ interface DiaryRow {
   entry_at: string;
   text: string;
   has_audio: boolean;
+  audio_artifact_id: string | null;
 }
 interface MilestoneRow {
   milestone_id: string;
@@ -54,6 +56,7 @@ export default function TimelinePage() {
   const [search, setSearch] = useState("");
   const [day, setDay] = useState("");
   const [diaryText, setDiaryText] = useState("");
+  const [diaryAudio, setDiaryAudio] = useState<File | null>(null);
   const [diaryBusy, setDiaryBusy] = useState(false);
   const [diaryError, setDiaryError] = useState<string | null>(null);
   const [summaryBusy, setSummaryBusy] = useState(false);
@@ -178,12 +181,27 @@ export default function TimelinePage() {
 
   async function addDiary() {
     const text = diaryText.trim();
-    if (!petId || !text || diaryBusy) return;
+    if (!petId || (!text && !diaryAudio) || diaryBusy) return;
     setDiaryBusy(true);
     setDiaryError(null);
     try {
-      await api.post(`/pets/${petId}/diary`, { text });
+      let audioArtifactId: string | null = null;
+      if (diaryAudio) {
+        const uploaded = await api.upload<{ artifact_id: string; kind: string }>(
+          `/pets/${petId}/artifacts`,
+          diaryAudio,
+        );
+        if (uploaded.kind !== "AUDIO") {
+          throw new Error("上传内容没有被识别为声音文件。");
+        }
+        audioArtifactId = uploaded.artifact_id;
+      }
+      await api.post(`/pets/${petId}/diary`, {
+        text,
+        audio_artifact_id: audioArtifactId,
+      });
       setDiaryText("");
+      setDiaryAudio(null);
       diary.reload();
       timeline.reload();
     } catch (e) {
@@ -320,7 +338,7 @@ export default function TimelinePage() {
               <span className="v4-sec-link">生活日记</span>
             </div>
             <p className="v4-note" style={{ margin: "6px 0 8px" }}>
-              写下真实发生的事情。文字会作为主人记录保存，并在时间线留下来源明确的日记事件。
+              可以写文字，也可以附一段真实录音。声音作为原始媒体保存，并与日记事件一起进入时间线。
             </p>
             <textarea
               className="input"
@@ -331,7 +349,18 @@ export default function TimelinePage() {
               placeholder="例如：今天散步时第一次主动去闻路边的花。"
               style={{ width: "100%", resize: "vertical" }}
             />
-            <button className="btn primary" onClick={() => void addDiary()} disabled={!diaryText.trim() || diaryBusy}>
+            <label className="field" style={{ marginTop: 10 }}>
+              语音日记（可选）
+              <input
+                type="file"
+                accept="audio/mpeg,audio/mp4"
+                onChange={(e) => setDiaryAudio(e.target.files?.[0] ?? null)}
+              />
+              <span className="v4-note">
+                {diaryAudio ? `已选择：${diaryAudio.name}` : "支持 MP3 / M4A；不会自动把录音解释成情绪或健康结论。"}
+              </span>
+            </label>
+            <button className="btn primary" onClick={() => void addDiary()} disabled={(!diaryText.trim() && !diaryAudio) || diaryBusy}>
               {diaryBusy ? "保存中…" : "保存日记"}
             </button>
             {diaryError ? <p className="v4-note">日记暂时没有保存成功：{diaryError}</p> : null}
@@ -341,8 +370,9 @@ export default function TimelinePage() {
                 {diary.data.slice(0, 3).map((entry) => (
                   <div className="v4-domain" key={entry.diary_id}>
                     <div>
-                      <div className="v4-domain-name">{entry.text}</div>
-                      <div className="v4-domain-desc">{new Date(entry.entry_at).toLocaleString("zh-CN")}</div>
+                      <div className="v4-domain-name">{entry.text || "语音日记"}</div>
+                      <div className="v4-domain-desc">{new Date(entry.entry_at).toLocaleString("zh-CN")}{entry.has_audio ? " · 含原始录音" : ""}</div>
+                      {entry.audio_artifact_id ? <ArtifactMemory artifactId={entry.audio_artifact_id} compact /> : null}
                     </div>
                   </div>
                 ))}
