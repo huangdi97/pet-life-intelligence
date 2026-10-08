@@ -10,13 +10,13 @@
 // Stage environment (used by clients for CSS background + fog tint).
 export const STAGE = {
   /** Warm living base — the R4 Reality Field, never a dark viewer. */
-  base: "#F7E8D1",
-  /** Slightly deeper warm for the far layer. */
-  deep: "#EDDCC0",
-  /** Soft warm radial glow behind the pet. */
-  glow: "#FBF4E8",
-  /** Fog / far-layer tint (warm light so pets never vanish into black). */
-  fog: "#EFDCC0",
+  base: "#E4ECE0",
+  /** Far field matches the owner's botanical green living canvas. */
+  deep: "#D4E3D2",
+  /** Daylight diffuses softly through the pet's living space. */
+  glow: "#EFF5E9",
+  /** The transparent 3D canvas and RN/Web host must share the same haze. */
+  fog: "#E3EBDF",
 } as const;
 
 // R4.2 stage themes — the WebView/WebGL surface itself is themed per screen
@@ -26,10 +26,10 @@ export const STAGE = {
 //   engineering -> dark debug stage (engineering manifests only)
 export const STAGE_THEMES = {
   living: {
-    base: "#F7E8D1",
-    deep: "#EDDCC0",
-    glow: "#FBF4E8",
-    fog: "#EFDCC0",
+    base: "#E4ECE0",
+    deep: "#D4E3D2",
+    glow: "#EFF5E9",
+    fog: "#E3EBDF",
   },
   review: {
     base: "#F4F1EA",
