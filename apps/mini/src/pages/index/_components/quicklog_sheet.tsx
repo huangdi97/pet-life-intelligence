@@ -17,10 +17,13 @@ export function QuickLogSheet(props: {
   onClose: () => void;
   onPickType: (t: QuickType) => void;
   onFormChange: (key: string, value: string) => void;
+  mediaCount: number;
+  onAddMedia: () => void;
+  onClearMedia: () => void;
   onBack: () => void;
   onSave: () => void;
 }) {
-  const { pet, type, form, busy, onClose, onPickType, onFormChange, onBack, onSave } = props;
+  const { pet, type, form, busy, onClose, onPickType, onFormChange, mediaCount, onAddMedia, onClearMedia, onBack, onSave } = props;
   return (
     <View className="sheet-mask" onClick={onClose}>
       <View className="sheet" onClick={(e) => e.stopPropagation()}>
@@ -82,6 +85,17 @@ export function QuickLogSheet(props: {
                 />
               </View>
             ))}
+            {type.type !== "diary.created" && (
+              <View className="soft-panel" style={{ marginBottom: 12 }}>
+                <View className="muted">照片证据（可选，最多 3 张）</View>
+                <View className="row" style={{ marginTop: 8 }}>
+                  <Button className="btn" disabled={busy || mediaCount >= 3} onClick={onAddMedia}>
+                    {mediaCount ? `已选 ${mediaCount}/3 张` : "添加照片"}
+                  </Button>
+                  {mediaCount > 0 ? <Button className="btn" onClick={onClearMedia}>清除</Button> : null}
+                </View>
+              </View>
+            )}
             <View className="row" style={{ justifyContent: "space-between" }}>
               <Button className="btn" onClick={onBack}>返回</Button>
               <Button className="btn btn-primary" onClick={onSave} disabled={busy}>
