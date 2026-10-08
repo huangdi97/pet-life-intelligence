@@ -7,12 +7,12 @@ import uuid
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
 from app.domain import enums
-from app.models import DailySummary, DiaryEntry, LifeEvent
+from app.models import Artifact, DailySummary, DiaryEntry, LifeEvent
 from app.services import permissions as perm
 from app.services.ai_gateway import get_gateway
 from app.services.eventlog import create_life_event, write_audit
@@ -23,9 +23,16 @@ _GATEWAY = get_gateway()
 
 
 class DiaryIn(BaseModel):
-    text: str = Field(min_length=1, max_length=5000)
+    text: str = Field(default="", max_length=5000)
     entry_at: datetime | None = None
     audio_artifact_id: uuid.UUID | None = None
+
+    @model_validator(mode="after")
+    def require_text_or_audio(self) -> "DiaryIn":
+        self.text = self.text.strip()
+        if not self.text and self.audio_artifact_id is None:
+            raise ValueError("Diary requires text or an audio artifact.")
+        return self
 
 
 # --- PLI-031: diary -----------------------------------------------------------
@@ -37,6 +44,20 @@ async def add_diary_entry(
 ) -> dict:
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_WRITE)
+    audio_artifact: Artifact | None = None
+    if body.audio_artifact_id is not None:
+        audio_artifact = (
+            await db.execute(
+                select(Artifact).where(
+                    Artifact.id == body.audio_artifact_id,
+                    Artifact.pet_id == pet.id,
+                    Artifact.deleted_at.is_(None),
+                )
+            )
+        ).scalar_one_or_none()
+        if audio_artifact is None or audio_artifact.kind != "AUDIO":
+            from app.core.errors import ValidationFailed
+            raise ValidationFailed("audio_artifact_id must reference an AUDIO artifact for this pet.")
     entry = DiaryEntry(
         pet_id=pet.id,
         entry_at=body.entry_at or datetime.now(timezone.utc),
@@ -48,9 +69,15 @@ async def add_diary_entry(
     await db.flush()
     await create_life_event(
         db, pet_id=pet.id, event_type="diary.created",
-        payload={"diary_id": str(entry.id), "has_audio": bool(body.audio_artifact_id)},
+        payload={
+            "diary_id": str(entry.id),
+            "has_audio": audio_artifact is not None,
+            "text_present": bool(entry.text),
+        },
         actor_id=user.id, source_type=enums.SourceType.OWNER_REPORTED,
-        source_ref=f"diary:{entry.id}", occurred_at=entry.entry_at,
+        source_ref=f"diary:{entry.id}",
+        artifact_ids=[audio_artifact.id] if audio_artifact is not None else [],
+        occurred_at=entry.entry_at,
     )
     await db.commit()
     return {"diary_id": str(entry.id), "entry_at": entry.entry_at.isoformat()}
@@ -69,8 +96,13 @@ async def list_diary(
         )
     ).scalars().all()
     return [
-        {"diary_id": str(r.id), "entry_at": r.entry_at.isoformat(),
-         "text": r.text, "has_audio": r.audio_artifact_id is not None}
+        {
+            "diary_id": str(r.id),
+            "entry_at": r.entry_at.isoformat(),
+            "text": r.text,
+            "has_audio": r.audio_artifact_id is not None,
+            "audio_artifact_id": str(r.audio_artifact_id) if r.audio_artifact_id else None,
+        }
         for r in rows
     ]
 
