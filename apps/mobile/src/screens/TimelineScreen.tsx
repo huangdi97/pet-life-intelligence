@@ -28,6 +28,7 @@ interface DiaryRow {
   entry_at: string;
   text: string;
   has_audio: boolean;
+  audio_artifact_id: string | null;
 }
 interface MilestoneRow {
   milestone_id: string;
@@ -381,8 +382,19 @@ export function TimelineScreen() {
               <Text style={styles.diaryRecentLabel}>最近日记</Text>
               {diary.slice(0, 3).map((entry) => (
                 <View key={entry.diary_id} style={styles.diaryRow}>
-                  <Text style={styles.diaryRowText}>{entry.text}</Text>
-                  <Text style={styles.diaryTime}>{new Date(entry.entry_at).toLocaleString("zh-CN")}</Text>
+                  <Text style={styles.diaryRowText}>{entry.text || "语音日记"}</Text>
+                  <Text style={styles.diaryTime}>{new Date(entry.entry_at).toLocaleString("zh-CN")}{entry.has_audio ? " · 含原始录音" : ""}</Text>
+                  {entry.audio_artifact_id ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="播放这条语音日记"
+                      onPress={() => navigation.navigate("MediaMemory", { artifactIds: [entry.audio_artifact_id!] })}
+                      style={styles.memoryMediaButton}
+                    >
+                      <Ionicons name="play-circle-outline" size={16} color={COLORS.brandPrimaryDeep} />
+                      <Text style={styles.memoryMediaButtonText}>播放原始录音</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
               ))}
             </View>
@@ -426,7 +438,10 @@ export function TimelineScreen() {
             <Skeleton rows={4} />
           </View>
         ) : days.length ? (
-          <LifeStream days={days} />
+          <LifeStream
+            days={days}
+            onOpenMedia={(artifactIds) => navigation.navigate("MediaMemory", { artifactIds })}
+          />
         ) : (
           <EmptyState
             title={`${pet?.name ?? "宠物"}的时间线还很安静`}
@@ -471,6 +486,8 @@ const styles = StyleSheet.create({
   diaryRow: { paddingTop: SPACE.s2, borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
   diaryRowText: { fontSize: TYPE.body, color: COLORS.textPrimary, lineHeight: 20 },
   diaryTime: { marginTop: 3, fontSize: TYPE.caption, color: COLORS.textTertiary },
+  memoryMediaButton: { marginTop: SPACE.s2, minHeight: 38, alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: SPACE.s3, borderRadius: 19, backgroundColor: COLORS.brandSoftGreen },
+  memoryMediaButtonText: { fontSize: TYPE.caption, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   diaryError: { marginTop: SPACE.s3, fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18 },
   summarySection: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3, padding: SPACE.s4, backgroundColor: COLORS.surface, borderRadius: 22, borderWidth: 1, borderColor: COLORS.dividerSubtle },
   summaryHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: SPACE.s3 },
