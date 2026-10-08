@@ -6,7 +6,7 @@
  * for THIS pet right now (narrative first, navigation second). Never a profile
  * card list, never a feature grid.
  */
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -77,6 +77,8 @@ export function PetScreen() {
   const [baselineBusy, setBaselineBusy] = useState(false);
   const [rawLoading, setLoading] = useState(true);
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
+  const activePetRef = useRef<string | null>(null);
+  activePetRef.current = pet?.id ?? null;
   // Hide previously selected pets' API facts before the effect runs, including
   // baseline, social contacts and medical observations.
   const scoped = !!pet?.id && loadedPetId === pet.id;
@@ -198,14 +200,16 @@ export function PetScreen() {
 
   async function recomputeBaseline() {
     if (!pet?.id || baselineBusy) return;
+    const targetPetId = pet.id;
     setBaselineBusy(true);
     try {
-      await api.post(`/pets/${pet.id}/baseline/recompute?window_days=14`, {});
-      const rows = await api.get<BaselineRow[]>(`/pets/${pet.id}/baseline`);
+      await api.post(`/pets/${targetPetId}/baseline/recompute?window_days=14`, {});
+      const rows = await api.get<BaselineRow[]>(`/pets/${targetPetId}/baseline`);
+      if (activePetRef.current !== targetPetId) return;
       setBaseline(rows);
       setBaselineState("ready");
     } catch {
-      setBaselineState("error");
+      if (activePetRef.current === targetPetId) setBaselineState("error");
     } finally {
       setBaselineBusy(false);
     }
