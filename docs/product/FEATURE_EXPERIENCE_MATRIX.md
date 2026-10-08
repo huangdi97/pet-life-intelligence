@@ -211,7 +211,7 @@
 | PLI-201 | 15 Pet Agent & Search | Orchestration | 跨域照护编排 | v1.0 | P2 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | — | — | — | — | Agent/Search | OWN-015 | AIAnswer/CitationChip | low | 主体实现（后端）+ 领域页入口 |
 | PLI-202 | 15 Pet Agent & Search | Actions | 预约类动作确认 | v1.0 | P2 | EXTERNAL_BLOCKED | — | EXTERNAL_BLOCKED | — | — | — | — | — | 无真实 provider | OWN-015 | — | med | 真实外部集成未激活；不得伪装成功 |
 | PLI-203 | 15 Pet Agent & Search | Actions | 购买类动作确认 | Future | Future | FUTURE | — | — | — | — | — | — | — | — | — | — | - | Future 42 冻结，不做 UI |
-| PLI-204 | 15 Pet Agent & Search | Actions | 医疗动作硬边界 | v0.1 | P0 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | — | — | — | — | Agent/Search | OWN-015 | AIAnswer/CitationChip | low | 主体实现（后端）+ 领域页入口 |
+| PLI-204 | 15 Pet Agent & Search | Actions | 医疗动作硬边界 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | — | — | Agent/Search | OWN-015 | AIAnswer/CitationChip | low | Owner 三端显式说明助手不会诊断、开药、改剂量或替代兽医；医疗风险与紧急行动始终服从健康页独立规则引擎 |
 | PLI-205 | 15 Pet Agent & Search | Memory | 结构化长期记忆 | v0.2 | P1 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | — | — | Agent/Search | OWN-015 | AIAnswer/CitationChip | low | 主体实现（后端）+ 领域页入口 |
 | PLI-206 | 15 Pet Agent & Search | Proactive | 事件驱动主动提醒 | v1.0 | P2 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | — | — | Agent/Search | OWN-015 | AIAnswer/CitationChip | low | 主体实现（后端）+ 领域页入口 |
 | PLI-207 | 15 Pet Agent & Search | Proactive | 提醒降噪与合并 | v1.0 | P2 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | — | — | Agent/Search | OWN-015 | AIAnswer/CitationChip | low | 主体实现（后端）+ 领域页入口 |
