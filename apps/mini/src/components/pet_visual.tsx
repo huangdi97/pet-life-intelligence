@@ -90,10 +90,14 @@ export function PetHero(props: {
           style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0 }}
         />
       ) : (
-        <View className="pet-hero-glyph">
-          <PetSpeciesTile species={pet?.species ?? "dog"} size={glyphSize} round={72} />
+        <View className="pet-hero-no-photo" aria-label="尚未设置宠物照片">
+          <View className="pet-hero-glyph">
+            <PetSpeciesTile species={pet?.species ?? "dog"} size={glyphSize} round={120} />
+          </View>
+          <Text className="pet-hero-no-photo-title">添加一张它的照片，让生活画面有自己的主角</Text>
         </View>
       )}
+      <View className="pet-hero-kicker">和它一起生活</View>
       <View className="pet-hero-scrim" />
       {demo ? <View className="pet-hero-demo">示例数据</View> : null}
       <View className="pet-hero-info">
