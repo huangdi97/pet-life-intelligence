@@ -20,6 +20,7 @@ export interface LifeStreamRow {
   outcome?: string | null;
   icon: keyof typeof Ionicons.glyphMap;
   mediaUri?: string | null;
+  mediaCount?: number;
   mediaPet?: Pet | null;
 }
 
@@ -75,6 +76,12 @@ function LifeStreamEvent({ row, last }: { row: LifeStreamRow; last: boolean }) {
         </View>
         {row.meta ? <Text style={styles.meta}>{row.meta}</Text> : null}
         {row.outcome ? <Text style={styles.outcome}>{row.outcome}</Text> : null}
+        {row.mediaCount && row.mediaCount > 0 ? (
+          <View style={styles.mediaMeta} accessibilityLabel={`${row.mediaCount} 个媒体证据`}>
+            <Ionicons name="camera-outline" size={13} color={COLORS.textTertiary} />
+            <Text style={styles.mediaMetaText}>{row.mediaCount} 个媒体证据</Text>
+          </View>
+        ) : null}
         {row.mediaUri ? (
           <View style={styles.thumb}>
             <PetMedia pet={row.mediaPet ?? null} uri={row.mediaUri} variant="timeline" />
@@ -105,5 +112,7 @@ const styles = StyleSheet.create({
   sourceText: { fontSize: TYPE.caption, color: COLORS.textTertiary },
   meta: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginTop: 2 },
   outcome: { fontSize: TYPE.caption, color: COLORS.success, marginTop: 2 },
+  mediaMeta: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+  mediaMetaText: { fontSize: TYPE.caption, color: COLORS.textTertiary },
   thumb: { marginTop: SPACE.s2, width: 64 },
 });
