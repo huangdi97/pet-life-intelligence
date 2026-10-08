@@ -236,3 +236,21 @@ Fresh runtime inspection exposed issues that source-only structural checks could
 
 This is not permission to declare visual likeness PASS. Breed/readability/premium quality still requires fresh user review of the post-fix contact sheets.
 
+
+
+## 13. 2026-10-08 integrated Living Experience closure
+
+The final source pass rechecked the product against the canonical **PET → NOW → CHANGE → ATTENTION → ACTION → SUPPORT → MEMORY** model rather than treating CI success as visual completion.
+
+Corrections completed in this pass:
+
+1. **Living Canvas color authority:** Web, Android and the shared 3D renderer now use a warm cream/beige environment as the room itself. Botanical/sage green is restricted to accents, selected states and low-noise signals. The Living Field no longer reads as a full-screen green dashboard.
+2. **Subtle projection presence:** capable 3D surfaces use a restrained warm grounding footprint and soft floor/contact depth. There is no blue wireframe, neon HUD or decorative ring behind the animal.
+3. **3D dimensionality:** the shared renderer replaces the hard-looking uniform contact disc with a feathered deterministic alpha shadow and adds warm hemisphere separation so textured coats retain volume without turning glossy or self-lit.
+4. **Companion runtime truth:** Companion is a first-class semantic Twin stage across Web/Android evidence. The embedded Android renderer preserves `stageRole=companion` rather than silently collapsing it to Life View.
+5. **Mini Pet World hierarchy:** the Mini Pet screen is reordered to identity → recent meaningful life → six life domains before avatar/profile/identifier/diet administration. System `today.viewed` events cannot become the visible “recent life” lead.
+6. **Twin Review usability:** front/side/rear controls remain visible before the tall 3D inspection stage on owner phones; the camera commands continue to drive real yaw, not decorative tabs.
+7. **Runtime truth remains stronger than visual labels:** demo assets can satisfy the skinned/UV/PBR/motion contract without proving real-pet likeness. `REAL_PET_IDENTITY_VALIDATION` therefore remains `NOT_YET_OBSERVED`.
+
+The implementation is source-complete only when the current branch HEAD also produces fresh Web/Android evidence from the same SHA. Human approval is intentionally a separate gate and cannot be inferred from tests.
+
