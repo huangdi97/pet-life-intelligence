@@ -913,3 +913,18 @@ def test_mini_pet_world_is_life_first_before_profile_administration() -> None:
     assert "从它真实发生的生活继续往下看。" in source
     assert 'event.event_type !== "today.viewed"' in source
     assert "eventTypeLabel(recentPetEvent.event_type)" in source
+
+
+def test_shared_pet_scene_uses_soft_grounding_and_dimensional_warm_light() -> None:
+    scene = read("packages/pet-3d/src/scene.ts")
+    palette = read("packages/pet-3d/src/palette.ts")
+
+    assert "createSoftContactAlphaMap" in scene
+    assert "alphaMap: createSoftContactAlphaMap()" in scene
+    assert "new THREE.HemisphereLight(" in scene
+    assert "LIGHTS.hemisphereSky" in scene
+    assert "LIGHTS.hemisphereGround" in scene
+    assert "hemisphereIntensity: 0.62" in palette
+    # No owner-facing cyberpunk/blue projection light was introduced.
+    assert "0x00ffff" not in scene.lower()
+    assert "0x00aaff" not in scene.lower()
