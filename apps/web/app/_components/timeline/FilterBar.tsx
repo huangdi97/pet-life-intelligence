@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { t } from "../../../lib/i18n";
 import { DOMAIN_CHIPS, FILTERS, TYPE_LABELS } from "./constants";
 
@@ -44,6 +45,7 @@ export function FilterBar({
   setDay,
   onReload,
 }: FilterBarProps) {
+  const [expanded, setExpanded] = useState(Boolean(day || source || filter || mediaOnly));
   return (
     <section className="v4-sec v5-timeline-filter-shell" aria-label="时间线筛选">
       <div className="v5-timeline-filter-group">
@@ -78,9 +80,9 @@ export function FilterBar({
 
       <details
         className="v7-timeline-refine"
-        // An active filter must never become mysteriously hidden on page load.
-        key={day || source || filter || (mediaOnly ? "media" : "all")}
-        defaultOpen={Boolean(day || source || filter || mediaOnly)}
+        // Explicitly controlled for React's DetailsHTMLAttributes type.
+        open={expanded}
+        onToggle={(event) => setExpanded(event.currentTarget.open)}
       >
         <summary className="v7-timeline-refine-summary">
           <span>日期、来源和更多筛选</span>
