@@ -210,7 +210,16 @@ export function fitOrbitRadius(
   targetAreaRatio: number,
   viewportWidth: number,
   viewportHeight: number,
-  options?: { iterations?: number; minRadius?: number; maxRadius?: number; tolerance?: number },
+  options?: {
+    iterations?: number;
+    minRadius?: number;
+    maxRadius?: number;
+    tolerance?: number;
+    /** Keep the complete projected bounds safely inside the real canvas. */
+    paddingRatio?: number;
+    /** Review uses one stable radius that fits front, side, and rear. */
+    fitYaws?: readonly number[];
+  },
 ): OrbitState {
   if (!(targetAreaRatio > 0.0001) || viewportWidth <= 0 || viewportHeight <= 0) return { ...orbit };
   const iterations = options?.iterations ?? 12;
@@ -226,12 +235,55 @@ export function fitOrbitRadius(
     if (!p || p.areaRatio <= 0) break;
     const err = p.areaRatio / targetAreaRatio;
     if (Math.abs(err - 1) <= tolerance) {
-      return { yaw: orbit.yaw, pitch: orbit.pitch, radius: r };
+      radius = r;
+      break;
     }
     // Clamp each step so a single bad measurement cannot blow the radius.
     radius = r * Math.min(2.5, Math.max(0.4, Math.sqrt(err)));
   }
-  return { yaw: orbit.yaw, pitch: orbit.pitch, radius: Math.min(maxRadius, Math.max(minRadius, radius)) };
+  // Area alone does not guarantee containment: a long tail or an offset head
+  // can project outside the screen while the reported area looks acceptable.
+  // Check the *unclamped* 2D bounds for every required Review angle, allowing
+  // the model to shrink below its preferred area rather than cropping it.
+  const padding = Math.min(0.2, Math.max(0, options?.paddingRatio ?? 0.06));
+  const yaws = options?.fitYaws?.length ? options.fitYaws : [orbit.yaw];
+  const inside = (candidateRadius: number): boolean => {
+    for (const yaw of yaws) {
+      applyOrbit(camera, STAGE_TARGET, { ...orbit, yaw, radius: candidateRadius });
+      camera.updateProjectionMatrix();
+      const bounds = projectPetBounds(pet, camera, viewportWidth, viewportHeight);
+      if (
+        !bounds ||
+        bounds.x < viewportWidth * padding ||
+        bounds.y < viewportHeight * padding ||
+        bounds.x + bounds.width > viewportWidth * (1 - padding) ||
+        bounds.y + bounds.height > viewportHeight * (1 - padding)
+      ) return false;
+    }
+    return true;
+  };
+  let fitted = Math.min(maxRadius, Math.max(minRadius, radius));
+  if (!inside(fitted)) {
+    // Bracket the smallest radius that contains all required views, then
+    // bisect. The cap prevents a broken asset from driving the camera away.
+    let low = fitted;
+    let high = fitted;
+    for (let i = 0; i < 24 && high < maxRadius; i += 1) {
+      high = Math.min(maxRadius, high * 1.3 + 0.02);
+      if (inside(high)) break;
+    }
+    if (inside(high)) {
+      for (let i = 0; i < 16; i += 1) {
+        const mid = (low + high) / 2;
+        if (inside(mid)) high = mid;
+        else low = mid;
+      }
+    }
+    fitted = high;
+  }
+  // Restore the caller's selected angle after measuring alternative views.
+  applyOrbit(camera, STAGE_TARGET, { ...orbit, radius: fitted });
+  return { yaw: orbit.yaw, pitch: orbit.pitch, radius: fitted };
 }
 
 /**

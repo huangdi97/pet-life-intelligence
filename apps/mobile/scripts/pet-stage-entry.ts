@@ -201,6 +201,7 @@ function applyFit(): void {
     frameTarget,
     Math.max(1, Math.round(window.innerWidth || 1)),
     Math.max(1, Math.round(window.innerHeight || 1)),
+    { fitYaws: injectedStageRole === "review" ? [0, Math.PI / 2, Math.PI] : undefined },
   );
   Object.assign(orbit, fit);
   zoomBounds.min = fit.radius * 0.5;

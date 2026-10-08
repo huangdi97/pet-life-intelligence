@@ -114,6 +114,37 @@ def require_product_manifest(
     return manifest
 
 
+
+def require_uncropped_twin(manifest: dict, label: str) -> None:
+    """Fail closed on full-frame Twin evidence that clips the actual mesh.
+
+    Bounds are runtime projections, not CSS element rectangles. Intentional
+    user zoom is exempt because this gate covers only canonical evidence views.
+    """
+    bounds = manifest.get("projectedPetBounds")
+    if not isinstance(bounds, dict):
+        raise ValueError(f"missing runtime projected pet bounds: {label}")
+    w = float(bounds.get("viewportWidth") or 0)
+    h = float(bounds.get("viewportHeight") or 0)
+    if w <= 0 or h <= 0:
+        raise ValueError(f"invalid projected viewport: {label}")
+    x = float(bounds.get("x") or 0)
+    y = float(bounds.get("y") or 0)
+    bw = float(bounds.get("width") or 0)
+    bh = float(bounds.get("height") or 0)
+    padding = 0.02
+    if (
+        bw <= 0 or bh <= 0
+        or x < w * padding - 1
+        or y < h * padding - 1
+        or x + bw > w * (1 - padding) + 1
+        or y + bh > h * (1 - padding) + 1
+    ):
+        raise ValueError(
+            f"clipped runtime Twin {label}: bounds=({x}, {y}, {bw}, {bh}) viewport=({w}, {h})"
+        )
+
+
 def yaw_error(actual: float, expected: float) -> float:
     return abs(math.atan2(math.sin(actual - expected), math.cos(actual - expected)))
 
@@ -193,6 +224,7 @@ def main() -> None:
             )
         finally:
             temp.unlink(missing_ok=True)
+        require_uncropped_twin(manifest, f"web/{surface}")
 
     # Human Twin Review frame must stay neutral; the negative path is required
     # as separate machine evidence so it cannot obscure the identity studio.
@@ -212,13 +244,14 @@ def main() -> None:
         "twinreview": "review",
     }
     for surface in ANDROID_TWIN_SURFACES:
-        require_product_manifest(
+        runtime_manifest = require_product_manifest(
             ANDROID / surface / "3d.json",
             expected_pet_id=android_primary_pet_id,
             expected_stage_role=expected_android_stage_role[surface],
             expected_pose="Stand" if surface == "twinreview" else None,
             expected_pose_source="AMBIENT" if surface == "twinreview" else None,
         )
+        require_uncropped_twin(runtime_manifest, f"android/{surface}")
 
     require_image(ANDROID / "secondary-sanity" / "secondary_today.png")
     secondary_today = require_product_manifest(
@@ -236,6 +269,8 @@ def main() -> None:
     )
     if secondary_today.get("petId") != secondary_review.get("petId"):
         raise ValueError("secondary-pet Today/Review manifests refer to different pets")
+    require_uncropped_twin(secondary_today, "android/secondary-sanity")
+    require_uncropped_twin(secondary_review, "android/secondary-review")
 
     for view, expected in {"front": 0.0, "side": math.pi / 2, "back": math.pi}.items():
         manifest = require_product_manifest(
@@ -248,6 +283,7 @@ def main() -> None:
         actual = float((manifest.get("camera") or {}).get("yaw"))
         if yaw_error(actual, expected) > 0.08:
             raise ValueError(f"Android primary review camera mismatch: {view} -> {actual}")
+        require_uncropped_twin(manifest, f"android/primary/{view}")
         require_image(ANDROID / "twinreview" / f"twin_{view}.png")
 
         secondary = require_product_manifest(
@@ -260,6 +296,7 @@ def main() -> None:
         actual_secondary = float((secondary.get("camera") or {}).get("yaw"))
         if yaw_error(actual_secondary, expected) > 0.08:
             raise ValueError(f"Android secondary review camera mismatch: {view} -> {actual_secondary}")
+        require_uncropped_twin(secondary, f"android/secondary/{view}")
         require_image(ANDROID / "secondary-review" / f"secondary_{view}.png")
 
     for surface in MINI_SURFACES:
@@ -280,6 +317,7 @@ def main() -> None:
         actual = float((manifest.get("camera") or {}).get("yaw"))
         if yaw_error(actual, expected) > 0.08:
             raise ValueError(f"primary turntable camera mismatch: {angle} -> {actual}")
+        require_uncropped_twin(manifest, f"turntable/primary/{angle}")
 
     for angle, expected in SECONDARY_ANGLES.items():
         require_image(TURNTABLE / "secondary" / f"{angle}.png")
@@ -291,6 +329,7 @@ def main() -> None:
         actual = float((manifest.get("camera") or {}).get("yaw"))
         if yaw_error(actual, expected) > 0.08:
             raise ValueError(f"secondary turntable camera mismatch: {angle} -> {actual}")
+        require_uncropped_twin(manifest, f"turntable/secondary/{angle}")
 
     sheet_manifest = load_json(SHEETS / "manifest.json")
     if sheet_manifest.get("source_head") != source_head:

@@ -9,6 +9,8 @@ import {
   applyOrbit,
   createPetStageScene,
   DEFAULT_ORBIT,
+  fitOrbitRadius,
+  projectPetBounds,
   orbitFromDrag,
   orbitZoom,
   PET_3D_ASSETS,
@@ -102,5 +104,31 @@ describe("orbit math — rotate / zoom / reset are deterministic", () => {
     // Orbit distance stays near the configured radius (≥ radius, < 1.1× radius).
     expect(dist).toBeGreaterThan(DEFAULT_ORBIT.radius);
     expect(dist).toBeLessThan(DEFAULT_ORBIT.radius * 1.1);
+  });
+});
+describe("portrait twin framing — never crop long bodies across Review angles", () => {
+  it("fits a vertically offset, long pet at front, side, and back", () => {
+    // Mimics the tall cat failure exposed by HEAD 286574a in actual Android
+    // and Web evidence. A matching projected AREA does not mean it fits.
+    const pet = new THREE.Group();
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.8, 2.8));
+    mesh.position.set(0, 0.1, 0);
+    pet.add(mesh);
+    const camera = new THREE.PerspectiveCamera(38, 0.89, 0.1, 40);
+    camera.updateProjectionMatrix();
+    const fit = fitOrbitRadius(pet, camera, DEFAULT_ORBIT, 0.4, 342, 384, {
+      fitYaws: [0, Math.PI / 2, Math.PI],
+      paddingRatio: 0.06,
+    });
+    for (const yaw of [0, Math.PI / 2, Math.PI]) {
+      applyOrbit(camera, STAGE_TARGET, { ...fit, yaw });
+      const p = projectPetBounds(pet, camera, 342, 384);
+      expect(p).not.toBeNull();
+      expect(p!.x).toBeGreaterThanOrEqual(342 * 0.06 - 1);
+      expect(p!.y).toBeGreaterThanOrEqual(384 * 0.06 - 1);
+      expect(p!.x + p!.width).toBeLessThanOrEqual(342 * 0.94 + 1);
+      expect(p!.y + p!.height).toBeLessThanOrEqual(384 * 0.94 + 1);
+    }
+    expect(fit.yaw).toBe(DEFAULT_ORBIT.yaw);
   });
 });
