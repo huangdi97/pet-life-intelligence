@@ -1,10 +1,21 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Sheet } from "./sheet";
 
+export interface QuickLogField {
+  key: string;
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+  inputMode?: "text" | "decimal" | "numeric";
+  options?: Array<{ value: string; label: string }>;
+}
+
 export interface QuickLogType {
   type: string;
   label: string;
   payload?: Record<string, unknown>;
+  /** Optional lightweight owner-confirmed fields. No hidden factual defaults. */
+  fields?: QuickLogField[];
   /** Route instead of writing an event immediately. */
   href?: string;
   /** Owner-authored text must be collected before writing; never fabricate an empty payload. */
@@ -41,7 +52,12 @@ export function QuickLogSheet({
   open: boolean;
   onClose: () => void;
   types: QuickLogType[];
-  onQuickLog: (type: string, textValue?: string, files?: File[]) => void | Promise<void>;
+  onQuickLog: (
+    type: string,
+    textValue?: string,
+    files?: File[],
+    fields?: Record<string, string>,
+  ) => void | Promise<void>;
   loading?: boolean;
   title?: string;
   hint?: ReactNode;
@@ -50,12 +66,14 @@ export function QuickLogSheet({
 }) {
   const [textType, setTextType] = useState<QuickLogType | null>(null);
   const [textValue, setTextValue] = useState("");
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
 
   useEffect(() => {
     if (!open) {
       setTextType(null);
       setTextValue("");
+      setFieldValues({});
       setMediaFiles([]);
     }
   }, [open]);
@@ -83,9 +101,10 @@ export function QuickLogSheet({
         className={`pli-quicklog-btn${TILE_KEY[t.type] ? " pli-quicklog-btn--primary" : ""}`}
         disabled={loading}
         onClick={() => {
-          if (t.textInput) {
+          if (t.textInput || t.fields?.length) {
             setTextType(t);
             setTextValue("");
+            setFieldValues({});
             setMediaFiles([]);
             return;
           }
@@ -99,10 +118,23 @@ export function QuickLogSheet({
   }
 
   async function saveTextEntry() {
-    if (!textType || !textValue.trim() || loading) return;
-    await onQuickLog(textType.type, textValue.trim());
+    if (!textType || loading) return;
+    if (textType.textInput) {
+      if (!textValue.trim()) return;
+      await onQuickLog(textType.type, textValue.trim());
+    } else if (textType.fields?.length) {
+      const requiredMissing = textType.fields.some(
+        (field) => field.required && !String(fieldValues[field.key] ?? "").trim(),
+      );
+      if (requiredMissing) return;
+      await onQuickLog(textType.type, undefined, mediaFiles, fieldValues);
+    } else {
+      return;
+    }
     setTextType(null);
     setTextValue("");
+    setFieldValues({});
+    setMediaFiles([]);
   }
 
   return (
@@ -118,20 +150,78 @@ export function QuickLogSheet({
           <div className="pli-empty-title">暂无可用的记录类型</div>
           <div className="pli-empty-desc">可记录的类型由当前页面配置。</div>
         </div>
-      ) : textType?.textInput ? (
+      ) : textType?.textInput || textType?.fields?.length ? (
         <div className="pli-quicklog-text-form" data-testid="pli.quicklog.text-form">
-          <label className="pli-quicklog-text-label" htmlFor="pli-quicklog-text-input">
-            {textType.textInput.label}
-          </label>
-          <textarea
-            id="pli-quicklog-text-input"
-            className="pli-quicklog-text-input"
-            value={textValue}
-            maxLength={textType.textInput.maxLength ?? 1000}
-            placeholder={textType.textInput.placeholder}
-            onChange={(event) => setTextValue(event.currentTarget.value)}
-            data-testid="pli.quicklog.text-input"
-          />
+          {textType.textInput ? (
+            <>
+              <label className="pli-quicklog-text-label" htmlFor="pli-quicklog-text-input">
+                {textType.textInput.label}
+              </label>
+              <textarea
+                id="pli-quicklog-text-input"
+                className="pli-quicklog-text-input"
+                value={textValue}
+                maxLength={textType.textInput.maxLength ?? 1000}
+                placeholder={textType.textInput.placeholder}
+                onChange={(event) => setTextValue(event.currentTarget.value)}
+                data-testid="pli.quicklog.text-input"
+              />
+            </>
+          ) : (
+            <>
+              <p className="pli-quicklog-hint">只填写你实际知道的内容；留空不会自动补成默认事实。</p>
+              {(textType.fields ?? []).map((field) => (
+                <label key={field.key} className="pli-quicklog-text-label">
+                  {field.label}{field.required ? " *" : ""}
+                  {field.options?.length ? (
+                    <select
+                      className="pli-quicklog-text-input"
+                      value={fieldValues[field.key] ?? ""}
+                      onChange={(event) =>
+                        setFieldValues((old) => ({ ...old, [field.key]: event.currentTarget.value }))
+                      }
+                      data-testid={`pli.quicklog.field.${field.key}`}
+                    >
+                      <option value="">请选择</option>
+                      {field.options.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      className="pli-quicklog-text-input"
+                      inputMode={field.inputMode}
+                      value={fieldValues[field.key] ?? ""}
+                      placeholder={field.placeholder}
+                      onChange={(event) =>
+                        setFieldValues((old) => ({ ...old, [field.key]: event.currentTarget.value }))
+                      }
+                      data-testid={`pli.quicklog.field.${field.key}`}
+                    />
+                  )}
+                </label>
+              ))}
+              <div className="pli-quicklog-media" data-testid="pli.quicklog.media">
+                <label className="pli-quicklog-media-pick">
+                  绑定照片/视频（可选）
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"
+                    multiple
+                    disabled={loading}
+                    onChange={(event) => {
+                      setMediaFiles(Array.from(event.currentTarget.files ?? []).slice(0, 3));
+                      event.currentTarget.value = "";
+                    }}
+                    data-testid="pli.quicklog.media-input"
+                  />
+                </label>
+                <span className="pli-quicklog-hint">
+                  {mediaFiles.length ? `已选择 ${mediaFiles.length} 个文件` : "最多 3 个；作为这条记录的证据。"}
+                </span>
+              </div>
+            </>
+          )}
           <div className="pli-quicklog-text-actions">
             <button
               type="button"
@@ -139,6 +229,8 @@ export function QuickLogSheet({
               onClick={() => {
                 setTextType(null);
                 setTextValue("");
+                setFieldValues({});
+                setMediaFiles([]);
               }}
             >
               返回
@@ -146,11 +238,18 @@ export function QuickLogSheet({
             <button
               type="button"
               className="pli-quicklog-save"
-              disabled={loading || !textValue.trim()}
+              disabled={
+                loading ||
+                (textType.textInput
+                  ? !textValue.trim()
+                  : (textType.fields ?? []).some(
+                      (field) => field.required && !String(fieldValues[field.key] ?? "").trim(),
+                    ))
+              }
               onClick={() => void saveTextEntry()}
               data-testid="pli.quicklog.text-save"
             >
-              {loading ? "保存中……" : "保存备注"}
+              {loading ? "保存中……" : textType.textInput ? "保存备注" : "保存记录"}
             </button>
           </div>
         </div>
