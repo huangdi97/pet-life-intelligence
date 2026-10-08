@@ -101,7 +101,7 @@ export function heroIdentity(pet: { species: string; breed: string; birth_date: 
   return parts.join(" · ");
 }
 
-export function eventRowFromEvent(e: { event_id: string; event_type: string; occurred_at: string; payload: Record<string, unknown>; source_type: string }): LifeStreamRow {
+export function eventRowFromEvent(e: { event_id: string; event_type: string; occurred_at: string; payload: Record<string, unknown>; source_type: string; artifact_ids?: string[] }): LifeStreamRow {
   const t = new Date(e.occurred_at);
   const hh = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
   return {
@@ -110,5 +110,6 @@ export function eventRowFromEvent(e: { event_id: string; event_type: string; occ
     typeLabel: eventTypeLabel(e.event_type),
     detail: eventPayloadText(e.payload),
     source: sourceLabel(e.source_type),
+    mediaCount: e.artifact_ids?.length ?? 0,
   };
 }
