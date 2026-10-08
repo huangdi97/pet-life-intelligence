@@ -5,6 +5,7 @@ import { network } from "./network";
 export interface PlatformUploader {
   uploadImage(petId: string, filePath: string): Promise<{ artifact_id: string; kind: string }>;
   uploadVideo(petId: string, filePath: string): Promise<{ artifact_id: string; kind: string }>;
+  uploadAudio(petId: string, filePath: string): Promise<{ artifact_id: string; kind: string }>;
 }
 
 class WechatUploader implements PlatformUploader {
@@ -28,6 +29,10 @@ class WechatUploader implements PlatformUploader {
   }
 
   async uploadVideo(petId: string, filePath: string): Promise<{ artifact_id: string; kind: string }> {
+    return this.uploadArtifact(petId, filePath);
+  }
+
+  async uploadAudio(petId: string, filePath: string): Promise<{ artifact_id: string; kind: string }> {
     return this.uploadArtifact(petId, filePath);
   }
 }
