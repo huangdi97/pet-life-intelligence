@@ -5,6 +5,13 @@ import { api, type BehaviorEvent } from "@pli/api-client";
 import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State } from "../../components/ui";
 
+interface BehaviorAdviceResponse {
+  advice: string[];
+  filtered_reasons: string[];
+  policy: string;
+  disclaimer: string;
+}
+
 interface PreferenceRow {
   preference_id: string;
   kind: "LIKE" | "DISLIKE" | "ALLERGY_CAUTION" | "REWARD";
@@ -74,6 +81,9 @@ export default function BehaviorPage() {
   const [artifactIds, setArtifactIds] = useState<string[]>([]);
   const [artifactNames, setArtifactNames] = useState<string[]>([]);
   const [videoUploading, setVideoUploading] = useState(false);
+  const [advice, setAdvice] = useState<BehaviorAdviceResponse | null>(null);
+  const [adviceBusy, setAdviceBusy] = useState(false);
+  const [adviceError, setAdviceError] = useState<string | null>(null);
 
   function set(k: keyof typeof form, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -117,6 +127,32 @@ export default function BehaviorPage() {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setPreferenceBusy(false);
+    }
+  }
+
+  async function requestSafeAdvice() {
+    const latest = (list.data ?? [])[0];
+    if (!petId || !latest || adviceBusy) return;
+    setAdviceBusy(true);
+    setAdviceError(null);
+    try {
+      const context = [
+        latest.antecedent ? `发生之前：${latest.antecedent}` : "",
+        `观察到的行为：${latest.behavior}`,
+        latest.consequence ? `发生之后：${latest.consequence}` : "",
+        latest.environment ? `环境：${latest.environment}` : "",
+        latest.intensity ? `主人标注强度：${latest.intensity}` : "",
+      ].filter(Boolean).join("；");
+      const result = await api.post<BehaviorAdviceResponse>(
+        `/pets/${petId}/behavior/advice`,
+        { context },
+      );
+      setAdvice(result);
+    } catch (e) {
+      setAdvice(null);
+      setAdviceError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAdviceBusy(false);
     }
   }
 
@@ -203,6 +239,47 @@ export default function BehaviorPage() {
           </div>
         ) : (
           <p className="muted" style={{ margin: 0 }}>补充前因或环境后，这里才会出现记录共现。</p>
+        )}
+      </section>
+
+      <section className="v4-sec" data-testid="pli.behavior.safe-advice">
+        <div className="v4-sec-head">
+          <div>
+            <h2 className="v4-sec-title">下一步怎么做</h2>
+            <p className="v4-sec-sub">
+              只在你主动请求时，基于最近一条主人观察生成奖励式训练建议；惩罚、厌恶式和危险方法会在网关层再次过滤。
+            </p>
+          </div>
+        </div>
+        {(list.data?.length ?? 0) > 0 ? (
+          <>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => void requestSafeAdvice()}
+              disabled={adviceBusy}
+            >
+              {adviceBusy ? "正在整理安全建议…" : advice ? "重新基于最近记录整理" : "基于最近记录整理"}
+            </button>
+            {adviceError ? <ErrorNote message={adviceError} /> : null}
+            {advice ? (
+              <div className="v4-list" style={{ marginTop: 12 }}>
+                {advice.advice.map((line, index) => (
+                  <div className="v4-list-row" key={`${index}-${line}`}>
+                    <span>{line}</span>
+                    <span className="v4-badge">奖励式</span>
+                  </div>
+                ))}
+                <p className="v4-note" style={{ margin: "8px 0 0" }}>
+                  {advice.policy}
+                  {advice.filtered_reasons.length ? ` · 已拦截 ${advice.filtered_reasons.length} 条不安全候选` : ""}
+                </p>
+                <p className="v4-note" style={{ margin: "4px 0 0" }}>{advice.disclaimer}</p>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className="muted" style={{ margin: 0 }}>先记录一次真实行为观察，再从那条记录出发整理下一步。</p>
         )}
       </section>
 
