@@ -103,7 +103,7 @@ export function PetLivingStage({
   // marked demo session. Production owner surfaces need an actual persisted
   // Twin descriptor; otherwise they fall back to the honest 2.5D/photo path.
   const canShow3d = identity !== null && (twin !== null || demo) && pet3d !== "failed";
-  const showPhoto = Boolean(photoUri && photoView?.petId === petId && photoView.enabled);
+  const showPhoto = Boolean(photoUri && photoView?.petId === petId && photoView?.enabled === true);
   const show3d = canShow3d && !showPhoto;
   const stageClass = [
     "r2p-stage",
