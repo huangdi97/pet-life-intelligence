@@ -147,12 +147,28 @@ export default function Index() {
   async function saveSheet() {
     const target = current?.id;
     if (!target || !sheetType) return;
+    const missingRequired = sheetType.fields.some(
+      (field) => field.required && !(sheetForm[field.key] ?? "").trim(),
+    );
+    if (missingRequired) {
+      setFlash("请先填写带 * 的真实记录。");
+      setTimeout(() => setFlash(null), 2000);
+      return;
+    }
     setSheetBusy(true);
     const payload: Record<string, string | number> = { ...sheetType.defaults };
     sheetType.fields.forEach((f) => {
       const raw = sheetForm[f.key];
       if (raw !== undefined && raw !== "") {
-        payload[f.key] = f.numeric ? Number(raw) : raw;
+        if (f.numeric) {
+          const value = Number(raw);
+          if (!Number.isFinite(value) || value < 0) {
+            throw new Error("INVALID_NUMERIC_QUICKLOG_FIELD");
+          }
+          payload[f.key] = value;
+        } else {
+          payload[f.key] = raw;
+        }
       }
     });
     try {
