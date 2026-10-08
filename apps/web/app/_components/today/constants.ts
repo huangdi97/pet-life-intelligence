@@ -54,13 +54,13 @@ export const QUICK_TYPES: QuickLogType[] = [
   {
     type: "daily.walk",
     label: "散步",
-    fields: [{ key: "duration_minutes", label: "时长（分钟）", placeholder: "如：30", inputMode: "numeric" }],
+    fields: [{ key: "duration_minutes", label: "时长（分钟）", placeholder: "如：30", inputMode: "numeric", required: true }],
   },
   {
     type: "daily.play",
     label: "玩耍",
     fields: [
-      { key: "duration_minutes", label: "时长（分钟）", placeholder: "如：15", inputMode: "numeric" },
+      { key: "duration_minutes", label: "时长（分钟）", placeholder: "如：15", inputMode: "numeric", required: true },
       { key: "activity_type", label: "玩了什么", placeholder: "如：追球" },
     ],
   },
@@ -73,7 +73,7 @@ export const QUICK_TYPES: QuickLogType[] = [
 
 export const SHEET_TYPES: QuickLogType[] = [
   ...QUICK_TYPES,
-  { type: "daily.sleep", label: "睡觉", fields: [{ key: "duration_minutes", label: "时长（分钟）", placeholder: "如：60", inputMode: "numeric" }] },
+  { type: "daily.sleep", label: "睡觉", fields: [{ key: "duration_minutes", label: "时长（分钟）", placeholder: "如：60", inputMode: "numeric", required: true }] },
   // Medication and Behavior require their governed domain forms; Quick Log
   // must not fabricate an empty medication/behavior payload.
   { type: "medication.administered", label: "用药", href: "/medication" },
