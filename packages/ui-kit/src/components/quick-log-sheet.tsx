@@ -7,6 +7,7 @@ export interface QuickLogField {
   placeholder?: string;
   required?: boolean;
   inputMode?: "text" | "decimal" | "numeric";
+  min?: number;
   options?: Array<{ value: string; label: string }>;
 }
 
@@ -36,6 +37,14 @@ const TILE_KEY: Record<string, string> = {
 
 function tileKey(type: string): string {
   return TILE_KEY[type] ?? type;
+}
+
+function fieldInvalid(field: QuickLogField, value: string | undefined): boolean {
+  const raw = String(value ?? "").trim();
+  if (field.required && !raw) return true;
+  if (!raw || field.min == null) return false;
+  const numeric = Number(raw);
+  return !Number.isFinite(numeric) || numeric < field.min;
 }
 
 /** Quick log bottom sheet: grid of configured log types, loading state while writing. */
@@ -127,10 +136,10 @@ export function QuickLogSheet({
       if (!textValue.trim()) return;
       await onQuickLog(textType.type, textValue.trim());
     } else if (textType.fields?.length) {
-      const requiredMissing = textType.fields.some(
-        (field) => field.required && !String(fieldValues[field.key] ?? "").trim(),
+      const invalidField = textType.fields.some(
+        (field) => fieldInvalid(field, fieldValues[field.key]),
       );
-      if (requiredMissing) return;
+      if (invalidField) return;
       await onQuickLog(textType.type, undefined, mediaFiles, fieldValues);
     } else {
       return;
@@ -194,7 +203,9 @@ export function QuickLogSheet({
                   ) : (
                     <input
                       className="pli-quicklog-text-input"
+                      type={field.inputMode === "numeric" || field.inputMode === "decimal" ? "number" : "text"}
                       inputMode={field.inputMode}
+                      min={field.min}
                       value={fieldValues[field.key] ?? ""}
                       placeholder={field.placeholder}
                       onChange={(event) =>
@@ -247,7 +258,7 @@ export function QuickLogSheet({
                 (textType.textInput
                   ? !textValue.trim()
                   : (textType.fields ?? []).some(
-                      (field) => field.required && !String(fieldValues[field.key] ?? "").trim(),
+                      (field) => fieldInvalid(field, fieldValues[field.key]),
                     ))
               }
               onClick={() => void saveTextEntry()}
