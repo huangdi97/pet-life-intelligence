@@ -88,6 +88,7 @@ function rowFromEvent(e: LifeEvent): LifeStreamRow {
     typeLabel: eventTypeLabel(e.event_type),
     detail: eventPayloadText(e.payload),
     source: sourceLabel(e.source_type),
+    mediaCount: e.artifact_ids?.length ?? 0,
   };
 }
 
