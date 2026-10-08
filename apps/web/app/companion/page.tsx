@@ -61,7 +61,7 @@ export default function CompanionPage() {
 
   const activeTwin = visual.data?.models.find((model) => model.status === "ACTIVE") ?? null;
   const twinDescriptor = activeTwin?.artifact_map?.twin_descriptor ?? null;
-  const sourceMediaCount = twinDescriptor?.surface?.observed_regions?.length ?? 0;
+  const sourceMediaCount = ((twinDescriptor as { surface?: { observed_regions?: string[] } } | null)?.surface?.observed_regions ?? []).length;
   const demoTwin = activeTwin?.metadata_json?.demo_fixture === true;
   const name = pet.data?.name ?? "它";
   const onlineCount = (devices.data ?? []).filter((device) => {
