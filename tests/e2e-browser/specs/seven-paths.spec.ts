@@ -172,7 +172,9 @@ test("E2E-04 Medication → 给药 → Outcome → Timeline（重复提交无重
   await expect(page.locator("main select")).toBeVisible();
   await page.locator("main select").selectOption("IMPROVED");
   await page.getByRole("button", { name: "记录结局" }).click();
-  await expect(page.getByText("已记录：IMPROVED")).toBeVisible();
+  // Owner UI must localize the internal outcome enum instead of leaking IMPROVED.
+  await expect(page.getByText("已记录：有改善")).toBeVisible();
+  expect(await page.locator("main").innerText()).not.toContain("IMPROVED");
 
   // timeline links the outcome to the health event
   const tl = await (
@@ -197,7 +199,7 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
   // Care is now owner-facing: choose a known caregiver by readable person
   // control instead of typing an implementation/user identifier into the UI.
   // The option value remains a transport detail used only by this E2E.
-  const caregiverSelect = page.getByLabel("临时照护人");
+  const caregiverSelect = page.getByLabel("临时照护人", { exact: true });
   await expect(caregiverSelect).toBeVisible();
   await caregiverSelect.selectOption(sitterId);
   await expect(caregiverSelect.locator("option:checked")).toContainText("Demo Sitter");
