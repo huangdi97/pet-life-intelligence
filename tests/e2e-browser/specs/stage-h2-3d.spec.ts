@@ -131,6 +131,35 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     await expect(page.getByText("回到那一天 · 2026-01-01")).toHaveCount(0);
   });
 
+  test("pet profile persists a protected owner-selected avatar", async ({ page, request }) => {
+    await loginAsEmail(page, request, "owner@pli.demo");
+    const petId = await demoPetId(request);
+    await page.goto(`/pets/${petId}/edit`);
+    await expectNoFatalState(page);
+
+    const upload = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/pets/${petId}/artifacts`) &&
+        response.request().method() === "POST",
+    );
+    const select = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/pets/${petId}/avatar`) &&
+        response.request().method() === "PUT",
+    );
+    await page.getByTestId("pli.pet.profile.avatar-input").setInputFiles({
+      name: "avatar.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+5Q9QAAAAAElFTkSuQmCC",
+        "base64",
+      ),
+    });
+    expect((await upload).ok()).toBeTruthy();
+    expect((await select).ok()).toBeTruthy();
+    await expect(page.getByTestId("pli.pet.profile.avatar")).toContainText("当前头像已保存在");
+  });
+
   test("assistant exposes the medical action hard boundary", async ({ page, request }) => {
     await loginAsEmail(page, request, "owner@pli.demo");
     await page.goto("/agent");
