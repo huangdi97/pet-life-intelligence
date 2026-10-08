@@ -1904,3 +1904,102 @@ body { background:var(--v4-canvas); }
 @media(max-width:768px) {
   .r6-real-pet-photo { width:min(92vw,340px);height:350px; }
 }
+
+
+/* ==========================================================================
+   PLI R7 / Scene re-composition — human-first living space, pet-first hierarchy.
+   The pet remains an actual 3D runtime/owner media; no static picture posing as 3D.
+   ========================================================================== */
+:root{
+  --v4-canvas:#F6F7F1;--v4-brand-primary:#365F49;
+  --v4-brand-soft:#E5EDE4;--v4-text-primary:#25382D;
+  --v4-text-secondary:#52695A;--v4-divider:#DDE7DB;
+}
+body{background:#F6F7F1}
+.page:has(main.v4-main){max-width:1260px}
+.r2p-stage,.r2p-stage--3d,.r2p-stage--pet.r2p-stage--3d,
+.r2p-stage--life.r2p-stage--3d{
+  isolation:isolate;min-height:570px;border:0;border-radius:32px;
+  box-shadow:none;background:linear-gradient(151deg,#F0F5E9 0%,#E3ECDF 42%,#D2DFD2 100%);
+}
+.r2p-stage--3d::before{
+  content:"";position:absolute;inset:-12% auto auto 12%;width:25%;height:122%;
+  background:linear-gradient(100deg,rgba(255,255,255,.5),rgba(255,255,255,0));
+  transform:skew(-12deg);z-index:0;pointer-events:none;
+}
+.r2p-stage--3d::after{content:none}
+.r2p-stage--3d .r2p-stage-wash{display:block}
+.r2p-stage-wash{
+  width:58%;height:64%;top:-26%;right:-12%;opacity:.34;background:rgba(255,255,255,.16);
+}
+.r2p-stage-glow,.r2p-stage--3d .r2p-stage-glow{
+  left:50%;bottom:75px;width:min(72%,460px);height:64px;opacity:.4;filter:blur(16px);
+  background:radial-gradient(ellipse at center,rgba(47,81,57,.26),rgba(47,81,57,0) 76%);
+}
+.r2p-stage-name{
+  top:27px;left:32px;right:32px;z-index:4;
+  font-size:clamp(34px,4vw,47px);font-weight:780;letter-spacing:-.04em;color:#244330;
+}
+.r2p-stage-demo{background:#FFFFF1BF;color:#4D6D55;border:1px solid #FFFFFFA8;font-size:11px}
+.r2p-stage-now,.r2p-stage--life .r2p-stage-now{
+  left:32px;right:32px;top:92px;bottom:auto;z-index:4;
+  border:0;background:transparent;box-shadow:none;padding:0;backdrop-filter:none;
+}
+.r2p-stage-headline{font-size:16px;font-weight:680;color:#35533E}
+.r2p-stage-caption{font-size:12px;color:#5F7564;margin-top:6px}
+.r2p-stage--3d .r2p-stage-pet--3d,
+.r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d,
+.r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d{
+  left:50%;bottom:88px;width:min(94%,570px);height:440px;
+  transform:translateX(-50%);z-index:2;
+}
+.r2p-stage-pet:not(.r2p-stage-pet--3d){bottom:90px;z-index:2}
+.r2p-anchor,.r2p-stage--3d .r2p-anchor{
+  position:absolute;top:auto;bottom:12px;width:calc((100% - 60px)/4);
+  min-height:64px;display:flex;align-items:center;justify-content:center;
+  text-align:center;flex-direction:column;gap:3px;padding:8px 4px;
+  border-radius:17px;background:#FFFEF6DD;border:1px solid #FFFFFFD9;
+  box-shadow:none;z-index:6;backdrop-filter:blur(12px);
+}
+.r2p-anchor--0{left:16px;right:auto}
+.r2p-anchor--1{left:calc(16px + (100% - 60px)/4 + 8px);right:auto}
+.r2p-anchor--2{left:calc(16px + (100% - 60px)/2 + 16px);right:auto}
+.r2p-anchor--3{left:auto;right:16px}
+.r2p-stage--life .r2p-anchor--2,.r2p-stage--life .r2p-anchor--3{bottom:12px}
+.r2p-anchor-icon{display:none}
+.r2p-anchor-label{font-size:11px;line-height:1.25}
+.r2p-anchor-value{font-size:16px;font-weight:750;line-height:1.3}
+.v4-grid{gap:0 44px}
+.v4-sec{padding:25px 0}
+.v4-sec-title{font-size:17px;color:#294C37}
+.v4-action--primary{background:#365F49;border-color:#365F49;box-shadow:0 8px 18px #365F491B}
+.navlinks a.active{background:#E1EDE3;color:#234F37}
+@media(min-width:1024px){
+ .r2p-stage,.r2p-stage--3d,.r2p-stage--pet.r2p-stage--3d,
+ .r2p-stage--life.r2p-stage--3d{min-height:630px}
+ .r2p-stage--3d .r2p-stage-pet--3d,
+ .r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d,
+ .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d{width:min(70%,610px);height:485px}
+}
+@media(max-width:768px){
+ .page:has(main.v4-main){padding:0 0 calc(96px + env(safe-area-inset-bottom,0px))}
+ .r2p-stage,.r2p-stage--3d,.r2p-stage--pet.r2p-stage--3d,
+ .r2p-stage--life.r2p-stage--3d{min-height:540px;border-radius:0}
+ .r2p-stage-name{top:22px;left:22px;font-size:35px}
+ .r2p-stage-now,.r2p-stage--life .r2p-stage-now{top:79px;left:22px;right:22px}
+ .r2p-stage--3d .r2p-stage-pet--3d,
+ .r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d,
+ .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d{
+   width:min(100%,430px);height:400px;bottom:83px
+ }
+ .r2p-anchor,.r2p-stage--3d .r2p-anchor{bottom:10px;width:calc((100% - 48px)/4);min-height:62px}
+ .r2p-anchor--0{left:8px}
+ .r2p-anchor--1{left:calc(8px + (100% - 48px)/4 + 8px)}
+ .r2p-anchor--2{left:calc(8px + (100% - 48px)/2 + 16px)}
+ .r2p-anchor--3{right:8px}
+ .v4-main .v4-grid{padding:0 18px}
+ .navlinks{background:#FFFEFAF2;border-radius:24px 24px 0 0}
+}
+@media(prefers-reduced-motion:reduce){
+ .r2p-stage-pet,.r2p-stage-wash,.r2p-stage-glow{animation:none!important;transition:none!important}
+}
