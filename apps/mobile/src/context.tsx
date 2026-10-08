@@ -15,12 +15,15 @@ interface PetsContextValue {
 
 const PetsContext = createContext<PetsContextValue | null>(null);
 
-export function PetsProvider({ children }: { children: React.ReactNode }) {
+export function PetsProvider({ children, deferInitialLoad = false }: { children: React.ReactNode; deferInitialLoad?: boolean }) {
   const [pets, setPets] = useState<Pet[] | null>(null);
   const [petId, setPetId] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
+    // Demo evidence must authenticate before any pet requests are issued.
+    // Production still loads on mount. The demo gate calls reload() after login.
+    if (deferInitialLoad && tick === 0) return;
     let alive = true;
     api
       .get<Pet[]>("/pets")
@@ -42,7 +45,7 @@ export function PetsProvider({ children }: { children: React.ReactNode }) {
     return () => {
       alive = false;
     };
-  }, [tick]);
+  }, [tick, deferInitialLoad]);
 
   const choose = useCallback(async (id: string) => {
     setPetId(id);
