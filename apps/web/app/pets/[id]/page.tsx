@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { api, ApiError, type Pet } from "@pli/api-client";
 import { fmtDate, useAsync } from "../../../lib/hooks";
 import { mapErrorMessage, t } from "../../../lib/i18n";
@@ -20,6 +21,21 @@ interface TodayMini {
   event_counts: Record<string, number>;
   date: string;
 }
+
+interface BaselineRow {
+  metric: string;
+  value: string;
+  sample_count: number;
+  window_days: number;
+  algorithm: string;
+  computed_at: string;
+}
+
+const BASELINE_LABELS: Record<string, { label: string; suffix: string }> = {
+  meal_count_per_day: { label: "每日进食次数", suffix: " 次/天" },
+  walk_minutes_per_day: { label: "每日散步", suffix: " 分钟/天" },
+  sleep_minutes_per_day: { label: "每日睡眠", suffix: " 分钟/天" },
+};
 
 /** 年龄 → 用户语言：X岁X个月 / X个月 / 年龄未知。 */
 function ageText(birthDate: string | null): string {
@@ -68,6 +84,26 @@ export default function PetProfilePage() {
     () => (id ? api.get(`/pets/${id}/friends`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [id],
   );
+  const baseline = useAsync<BaselineRow[]>(
+    () => (id ? api.get(`/pets/${id}/baseline`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [id],
+  );
+  const [baselineBusy, setBaselineBusy] = useState(false);
+  const [baselineError, setBaselineError] = useState<string | null>(null);
+
+  async function recomputeBaseline() {
+    if (!id || baselineBusy) return;
+    setBaselineBusy(true);
+    setBaselineError(null);
+    try {
+      await api.post(`/pets/${id}/baseline/recompute?window_days=14`, {});
+      baseline.reload();
+    } catch (error) {
+      setBaselineError(mapErrorMessage(error));
+    } finally {
+      setBaselineBusy(false);
+    }
+  }
   // R4: same canonical individual twin as Today / Life View. Declared with
   // the other hooks BEFORE any early return: a data error below (404/denied)
   // must not change hook count or React will hit the error boundary instead
@@ -250,6 +286,50 @@ export default function PetProfilePage() {
                 <span className="v5-observation-label">完整轨迹</span>
                 <Link href="/timeline" className="v4-sec-link">查看时间线</Link>
               </div>
+            </div>
+          </div>
+
+          <div className="v4-sec" data-testid="pli.pet.baseline">
+            <div className="v4-sec-head">
+              <h2 className="v4-sec-title">它的常态</h2>
+              <span className="v4-sec-link" aria-hidden="true">最近 14 天</span>
+            </div>
+            <p className="v4-note" style={{ marginTop: 6 }}>
+              用真实生活记录形成可解释基线，只和它自己比较；记录不足时不会猜测。
+            </p>
+            <State
+              state={baseline.state}
+              error={baseline.error ? mapErrorMessage(baseline.error) : null}
+              onRetry={baseline.reload}
+              empty="还没有足够的生活记录形成常态。继续真实记录后再计算。"
+            >
+              <div className="v5-observation-list" style={{ marginTop: 8 }}>
+                {(baseline.data ?? []).map((row) => {
+                  const meta = BASELINE_LABELS[row.metric] ?? { label: "生活基线", suffix: "" };
+                  return (
+                    <div className="v5-observation-row" key={row.metric}>
+                      <span className="v5-observation-label">{meta.label}</span>
+                      <span className="v5-observation-value">
+                        {row.value}{meta.suffix}
+                        <small className="v4-note" style={{ display: "block" }}>
+                          {row.sample_count} 天真实样本 · {row.window_days} 天窗口
+                        </small>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </State>
+            {baselineError ? <p className="v4-error" style={{ marginTop: 8 }}>{baselineError}</p> : null}
+            <div className="v4-linkrow" style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                className="v4-action v4-action--secondary"
+                disabled={baselineBusy}
+                onClick={() => void recomputeBaseline()}
+              >
+                {baselineBusy ? "计算中…" : "重新计算常态"}
+              </button>
             </div>
           </div>
 
