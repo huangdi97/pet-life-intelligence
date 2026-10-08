@@ -778,7 +778,9 @@ def test_review_orbit_controls_are_first_screen_and_mobile_viewports_do_not_over
 def test_web_life_view_never_mislabels_unrelated_durations_as_activity() -> None:
     """Medication/sleep/training durations are not measured physical activity."""
     life = read("apps/web/app/pets/[id]/life-view/page.tsx")
-    assert 'event.event_type !== "daily.walk" && event.event_type !== "daily.play"' in life
-    assert "Number.isFinite(minutes) && minutes > 0" in life
-    assert 'anchorValue(observedActivityMinutes, "分钟")' in life
+    activity = read("apps/web/app/_components/today/activity.ts")
+    assert 'import { observedActivityMinutes } from "../../../_components/today/activity"' in life
+    assert 'anchorValue(activityMinutes, "分钟")' in life
+    assert 'new Set(["daily.walk", "daily.play"])' in activity
+    assert "minutes > 24 * 60" in activity
     assert 'events.reduce((s, e) => s + (Number(e.payload?.duration_minutes)' not in life
