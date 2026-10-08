@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
   filterWrap: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, paddingBottom: SPACE.s2 },
-  patternChip: { borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceSoft, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2 },
+  patternChip: { borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2 },
   patternChipText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   obsRow: { paddingVertical: 10 },
   obsDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
