@@ -6,7 +6,7 @@
  * activation. 不像 cannot become active and keeps the prior active/fallback.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRoute, useNavigation, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -76,6 +76,20 @@ export function PetTwinReviewScreen() {
   const [view, setView] = useState<"front" | "side" | "back">("front");
   const [resolvedVersion, setResolvedVersion] = useState(version);
   const viewerRef = useRef<Pet3DViewerHandle>(null);
+  // Real owner media stays keyed to its pet and never becomes model evidence.
+  // A demo/model candidate alone is not proof the generated appearance matches
+  // the real pet. Show its uploaded avatar for side-by-side owner judgment.
+  const [referencePhoto, setReferencePhoto] = useState<{ petId: string; uri: string | null } | null>(null);
+  useEffect(() => {
+    if (!pet?.id || !pet.avatar_artifact_id) return;
+    const id = pet.id;
+    let active = true;
+    api.get<{ data_url: string | null }>(`/pets/${id}/avatar`)
+      .then((result) => { if (active) setReferencePhoto({ petId: id, uri: result.data_url ?? null }); })
+      .catch(() => { if (active) setReferencePhoto({ petId: id, uri: null }); });
+    return () => { active = false; };
+  }, [pet?.id, pet?.avatar_artifact_id]);
+  const ownerPhoto = pet?.id && referencePhoto?.petId === pet.id ? referencePhoto.uri : null;
 
   const load = useCallback(() => {
     const requestVersion = ++candidateRequestVersion.current;
@@ -193,6 +207,17 @@ export function PetTwinReviewScreen() {
               below a tall model and absent from the initial accessibility viewport. */}
           <View style={styles.viewToolbar} testID="pli.twinreview.camera-controls">
           <Text style={styles.toolbarTitle}>观察角度 · 从不同方向确认它的模样</Text>
+          {ownerPhoto ? (
+            <View style={styles.photoReference} testID="pli.twinreview.reference-photo">
+              <Image source={{ uri: ownerPhoto }} style={styles.photoReferenceImage} accessibilityLabel={`${pet?.name ?? "宠物"}的真实上传照片，用于与 3D 形象对照`} />
+              <View style={styles.photoReferenceCopy}>
+                <Text style={styles.photoReferenceTitle}>真实照片对照</Text>
+                <Text style={styles.photoReferenceBody}>照片来自主人上传；3D 形象仍需由你确认是否相似。</Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.referenceMissing}>尚无上传照片可对照；请勿把示例模板当作已验证的个体外观。</Text>
+          )}
           <View style={styles.viewRow} accessibilityLabel="视图选择">
             {VIEWS.map((v) => (
               <Pressable
@@ -354,6 +379,12 @@ const styles = StyleSheet.create({
   caption: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20, marginTop: SPACE.s2 },
   provenanceNote: { fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18, marginTop: SPACE.s1 },
   viewToolbar: { paddingHorizontal: SPACE.s1, paddingVertical: SPACE.s2, marginBottom: SPACE.s3 },
+  photoReference: { flexDirection: "row", alignItems: "center", gap: SPACE.s3, marginTop: SPACE.s2, paddingVertical: SPACE.s2 },
+  photoReferenceImage: { width: 68, height: 68, borderRadius: 14, backgroundColor: COLORS.surfaceRaised },
+  photoReferenceCopy: { flex: 1, minWidth: 0 },
+  photoReferenceTitle: { fontSize: TYPE.sm, fontWeight: "700", color: COLORS.textPrimary },
+  photoReferenceBody: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: 4, lineHeight: 18 },
+  referenceMissing: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: SPACE.s2, lineHeight: 18 },
   toolbarTitle: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "700", lineHeight: 20 },
   viewRow: { flexDirection: "row", gap: SPACE.s2, marginTop: SPACE.s2 },
   viewChip: { flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", paddingVertical: 10, backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.dividerSubtle },
