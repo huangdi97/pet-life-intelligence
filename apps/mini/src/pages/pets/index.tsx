@@ -446,20 +446,20 @@ export default function Pets() {
                   <Text className="life-row-type">
                     {eventsState === "error"
                       ? "最近记录暂时没有加载成功"
-                      : (events ?? []).length
-                        ? eventTypeLabel((events ?? [])[0].event_type)
+                      : recentPetEvent
+                        ? eventTypeLabel(recentPetEvent.event_type)
                         : "还没有生活记录"}
                   </Text>
                   <Text className="life-row-time">
-                    {eventsState === "ready" && (events ?? []).length
-                      ? new Date((events ?? [])[0].occurred_at).toLocaleDateString()
+                    {eventsState === "ready" && recentPetEvent
+                      ? new Date(recentPetEvent.occurred_at).toLocaleDateString()
                       : ""}
                   </Text>
                 </View>
                 <View className="life-row-detail">
                   {eventsState === "error"
                     ? "不会把加载失败显示成“没有变化”。"
-                    : (events ?? []).length
+                    : recentPetEvent
                       ? "从它真实发生的生活继续往下看。"
                       : "第一次进食、散步、健康或互动记录会从这里开始。"}
                 </View>
