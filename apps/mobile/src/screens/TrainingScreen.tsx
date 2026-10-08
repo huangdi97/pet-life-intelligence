@@ -55,6 +55,8 @@ export function TrainingScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [title, setTitle] = useState("");
+  const [targetBehavior, setTargetBehavior] = useState("");
+  const [stepsText, setStepsText] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [busyGoal, setBusyGoal] = useState<string | null>(null);
@@ -159,8 +161,18 @@ export function TrainingScreen() {
     if (!petId || !title.trim()) return;
     setFormError(null);
     try {
-      await api.post(`/pets/${petId}/training-goals`, { title: title.trim() });
+      const steps = stepsText
+        .split(/\n|[；;]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+      await api.post(`/pets/${petId}/training-goals`, {
+        title: title.trim(),
+        target_behavior: targetBehavior.trim(),
+        steps,
+      });
       setTitle("");
+      setTargetBehavior("");
+      setStepsText("");
       setFormOpen(false);
       setVersion((v) => v + 1);
     } catch (e: unknown) {
@@ -352,6 +364,18 @@ export function TrainingScreen() {
                 <View style={styles.formWrap}>
                   <Text style={styles.fieldLabel}>目标名称</Text>
                   <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="例如：安静应对门铃" placeholderTextColor={COLORS.textTertiary} />
+                  <Text style={styles.fieldLabel}>可观察目标行为</Text>
+                  <TextInput style={styles.input} value={targetBehavior} onChangeText={setTargetBehavior} placeholder="例如：门铃响后能在垫子上停留 5 秒" placeholderTextColor={COLORS.textTertiary} />
+                  <Text style={styles.fieldLabel}>分解步骤（每行或分号一项）</Text>
+                  <TextInput
+                    style={[styles.input, { minHeight: 88, textAlignVertical: "top" }]}
+                    value={stepsText}
+                    onChangeText={setStepsText}
+                    placeholder={"先练习看向垫子\n再练习走到垫子\n最后加入门铃声音"}
+                    placeholderTextColor={COLORS.textTertiary}
+                    multiline
+                  />
+                  <Text style={styles.emptyText}>步骤由主人明确填写；不会自动把一次表现判定为掌握。</Text>
                   {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
                   <Pressable
                     accessibilityRole="button"
