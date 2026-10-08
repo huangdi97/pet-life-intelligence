@@ -3791,6 +3791,52 @@
         }
       }
     },
+    "/api/v1/artifacts/{artifact_id}": {
+      "get": {
+        "tags": [
+          "media"
+        ],
+        "summary": "Get Artifact Metadata",
+        "description": "Owner-safe artifact metadata for memory/evidence presentation.\n\nAccess control exactly mirrors content download. The response deliberately\nomits storage keys/backends so clients cannot infer object-store paths.",
+        "operationId": "get_artifact_metadata_api_v1_artifacts__artifact_id__get",
+        "parameters": [
+          {
+            "name": "artifact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Artifact Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Artifact Metadata Api V1 Artifacts  Artifact Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/artifacts/{artifact_id}/content": {
       "get": {
         "tags": [
@@ -11948,8 +11994,8 @@
           "text": {
             "type": "string",
             "maxLength": 5000,
-            "minLength": 1,
-            "title": "Text"
+            "title": "Text",
+            "default": ""
           },
           "entry_at": {
             "anyOf": [
@@ -11977,9 +12023,6 @@
           }
         },
         "type": "object",
-        "required": [
-          "text"
-        ],
         "title": "DiaryIn"
       },
       "DietProfileIn": {
