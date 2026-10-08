@@ -730,3 +730,30 @@ def test_behavior_video_binding_uses_real_artifacts_across_owner_clients() -> No
     assert "uploader.uploadVideo" in mini
     assert "uploadVideo" in mini_upload
     assert "async function uploadArtifact" in mobile_api
+
+
+def test_android_demo_authenticates_before_owner_twin_mount() -> None:
+    """The 401→generic GLB regression must fail blind checks, not be blessed."""
+    app = read("apps/mobile/App.tsx")
+    context = read("apps/mobile/src/context.tsx")
+    twin = read("apps/mobile/src/hooks/usePetTwin.ts")
+
+    assert "<PetsProvider deferInitialLoad={DEMO_ENV}>" in app
+    assert "await devLogin(email)" in app
+    assert "authenticated.current = true" in app
+    assert "return ready ? <AppNavigation /> : null" in app
+    assert "if (deferInitialLoad && tick === 0) return;" in context
+    assert "if (requestVersion.current !== version) return;" in twin
+    assert "result?.petId === petId" in twin
+    # No code change may reclassify a generic demo GLB as a verified individual.
+    runner = read("scripts/r5-6/capture-android-final.py")
+    assert 'manifest.get("generic") is not True' in runner
+
+
+def test_android_activity_does_not_count_sleep_or_medication_duration() -> None:
+    helper = read("apps/mobile/src/screens/today_helpers.ts")
+    today = read("apps/mobile/src/screens/TodayScreen.tsx")
+    assert 'new Set(["daily.walk", "daily.play"])' in helper
+    assert "Number.isFinite(minutes)" in helper
+    assert "observedActivityMinutes(todayEvents)" in today
+    assert "todayEvents.reduce(" not in today
