@@ -227,7 +227,7 @@ export function PetScreen() {
             onPressPet={pet ? () => navigation.navigate("LifeView") : undefined}
             twin={twin?.descriptor ?? null}
             sourceMediaCount={twin?.observedRegions.length ?? 0}
-            frameTarget={0.33}
+            frameTarget={0.56}
           />
         </View>
 
