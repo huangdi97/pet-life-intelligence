@@ -932,6 +932,104 @@
         }
       }
     },
+    "/api/v1/pets/{pet_id}/avatar": {
+      "get": {
+        "tags": [
+          "pets",
+          "pets"
+        ],
+        "summary": "Get Pet Avatar",
+        "description": "Return the persisted avatar through the authenticated pet context.\n\nOwner clients use this compact JSON/data-url representation so the same\nprotected artifact can render on Web, native and Mini without creating a\npublic media URL or bypassing capability checks.",
+        "operationId": "get_pet_avatar_api_v1_pets__pet_id__avatar_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PetAvatarOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "pets",
+          "pets"
+        ],
+        "summary": "Set Pet Avatar",
+        "description": "Choose one already-uploaded image artifact as this pet's avatar.",
+        "operationId": "set_pet_avatar_api_v1_pets__pet_id__avatar_put",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PetAvatarSet"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PetOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{pet_id}/consents": {
       "get": {
         "tags": [
@@ -13114,6 +13212,63 @@
           "outcome"
         ],
         "title": "OutcomeIn"
+      },
+      "PetAvatarOut": {
+        "properties": {
+          "avatar_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Artifact Id"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "data_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "avatar_artifact_id"
+        ],
+        "title": "PetAvatarOut"
+      },
+      "PetAvatarSet": {
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Artifact Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "artifact_id"
+        ],
+        "title": "PetAvatarSet"
       },
       "PetCreate": {
         "properties": {
