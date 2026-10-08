@@ -6,7 +6,7 @@
  *   pli-demo://nav?screen=...   navigate to a screen (presentation runs)
  * Production builds never compile this path (flag off).
  */
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Linking, Pressable, Text } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PetsProvider, usePets } from "./src/context";
@@ -15,7 +15,6 @@ import { ApiConfigErrorScreen } from "./src/screens/ApiConfigErrorScreen";
 import { getApiConfigIssue, type ApiConfigIssue } from "./src/apiConfig";
 import { devLogin } from "./src/api";
 import { DEMO_ENV } from "./src/tokens";
-import { getDevUserId } from "./src/storage/session";
 import { navigateToDemoScreen } from "./src/demoNav";
 
 const DEMO_DEFAULT_EMAIL = "owner@pli.demo";
@@ -69,6 +68,7 @@ function DemoSession() {
   const [ready, setReady] = useState(false);
   const [failure, setFailure] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const authenticated = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -77,10 +77,11 @@ function DemoSession() {
         const url = await Linking.getInitialURL();
         if (!alive) return;
         const email = demoEmailFromUrl(url) ?? DEMO_DEFAULT_EMAIL;
-        if (!(await getDevUserId()) || email !== DEMO_DEFAULT_EMAIL) {
-          await devLogin(email);
-        }
+        // Always exchange the dev email for the current backend user id.
+        // Stale SecureStore ids from an earlier demo backend are not valid.
+        await devLogin(email);
         if (!alive) return;
+        authenticated.current = true;
         // The PetsProvider's first fetch was deliberately deferred; this is
         // its authenticated starting signal, not a race against login.
         reload();
@@ -99,13 +100,19 @@ function DemoSession() {
         try {
           const email = demoEmailFromUrl(url);
           if (email) {
+            authenticated.current = false;
             // Cross-account demo navigation must never expose prior owner
             // content while a new session is being established.
             setReady(false);
             reset();
             await devLogin(email);
             if (!alive) return;
+            authenticated.current = true;
             reload();
+          } else if (!authenticated.current) {
+            // An early navigation link must not unblock owner screens while
+            // the initial authenticated bootstrap is still in flight.
+            return;
           }
           const pet = demoPetFromUrl(url);
           if (pet) await choose(pet);
