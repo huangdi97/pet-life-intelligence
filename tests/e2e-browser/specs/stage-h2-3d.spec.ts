@@ -146,6 +146,36 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     expect(main).not.toContain("LIVE");
     expect(main).not.toContain("GENERATED_3D");
   });
+  test("Quick Log keeps governed actions truthful and persists owner diary text", async ({ page, request }) => {
+    await loginAsEmail(page, request, "owner@pli.demo");
+    await page.goto("/");
+    await expectNoFatalState(page);
+
+    await page.getByTestId("pli.today.primary-action").click();
+    await page.getByTestId("pli.quicklog.tile.medication.administered").click();
+    await expect(page).toHaveURL(urlRe("/medication"));
+
+    await page.goto("/");
+    await page.getByTestId("pli.today.primary-action").click();
+    await page.getByTestId("pli.quicklog.tile.behavior.observed").click();
+    await expect(page).toHaveURL(urlRe("/behavior"));
+
+    await page.goto("/");
+    await page.getByTestId("pli.today.primary-action").click();
+    await page.getByTestId("pli.quicklog.tile.diary.created").click();
+    const diary = page.getByTestId("pli.quicklog.text-input");
+    const save = page.getByTestId("pli.quicklog.text-save");
+    await expect(save).toBeDisabled();
+    await diary.fill("今天傍晚主动靠近门口等待散步。");
+    await expect(save).toBeEnabled();
+    const saved = page.waitForResponse(
+      (response) => response.url().includes("/diary") && response.request().method() === "POST",
+    );
+    await save.click();
+    expect((await saved).ok()).toBeTruthy();
+    await expect(page.getByText("已记录：备注")).toBeVisible();
+  });
+
   test("today living canvas shows pet life-view entry (no fatal)", async ({ page, request }) => {
     await loginAsEmail(page, request, "owner@pli.demo");
     await page.goto("/");
