@@ -116,7 +116,16 @@ export function QuickLogSheet(props: {
               <Button
                 className="btn btn-primary"
                 onClick={onSave}
-                disabled={busy || type.fields.some((field) => field.required && !(form[field.key] ?? "").trim())}
+                disabled={
+                  busy ||
+                  type.fields.some((field) => {
+                    const raw = (form[field.key] ?? "").trim();
+                    if (field.required && !raw) return true;
+                    if (!raw || field.min == null) return false;
+                    const value = Number(raw);
+                    return !Number.isFinite(value) || value < field.min;
+                  })
+                }
               >
                 {busy ? "保存中…" : "保存"}
               </Button>
