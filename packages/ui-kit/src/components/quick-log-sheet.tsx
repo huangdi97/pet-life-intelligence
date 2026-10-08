@@ -190,9 +190,10 @@ export function QuickLogSheet({
                     <select
                       className="pli-quicklog-text-input"
                       value={fieldValues[field.key] ?? ""}
-                      onChange={(event) =>
-                        setFieldValues((old) => ({ ...old, [field.key]: event.currentTarget.value }))
-                      }
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setFieldValues((old) => ({ ...old, [field.key]: value }));
+                      }}
                       data-testid={`pli.quicklog.field.${field.key}`}
                     >
                       <option value="">请选择</option>
@@ -208,9 +209,10 @@ export function QuickLogSheet({
                       min={field.min}
                       value={fieldValues[field.key] ?? ""}
                       placeholder={field.placeholder}
-                      onChange={(event) =>
-                        setFieldValues((old) => ({ ...old, [field.key]: event.currentTarget.value }))
-                      }
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setFieldValues((old) => ({ ...old, [field.key]: value }));
+                      }}
                       data-testid={`pli.quicklog.field.${field.key}`}
                     />
                   )}
