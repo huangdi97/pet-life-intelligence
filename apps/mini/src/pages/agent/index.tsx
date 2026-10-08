@@ -155,6 +155,16 @@ export default function Agent() {
         </View>
       )}
 
+      <View className="attention-panel attention-calm" data-testid="pli.mini.assistant.medical-boundary">
+        <View className="attention-title">医疗动作边界</View>
+        <View className="attention-body">
+          助手可以整理记录和解释规则结果，但不会诊断、开药、改剂量或替代兽医。
+        </View>
+        <View className="attention-footer">
+          需要尽快或立即就医时，以健康页的独立风险分级与行动指引为准。
+        </View>
+      </View>
+
       <View className="agent-tool-section">
         <View className="agent-tool-label">更多帮助</View>
         <ScrollView scrollX showScrollbar={false} className="agent-tool-scroll">
