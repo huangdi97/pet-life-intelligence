@@ -121,12 +121,12 @@ def validate_skinning_data(gltf: dict, binary: bytes) -> tuple[list[str], dict]:
                     continue
                 weight_error = 0.0
                 invalid = 0
-                for js, ws in zip(joint_rows, weight_rows):
+                for js, ws in zip(joint_rows, weight_rows, strict=True):
                     total = sum(float(x) for x in ws)
                     weight_error = max(weight_error, abs(total - 1.0))
                     if any(not math.isfinite(float(w)) or float(w) < -1e-6 for w in ws):
                         invalid += 1
-                    elif any(int(j) >= len(joints) and float(w) > 1e-5 for j, w in zip(js, ws)):
+                    elif any(int(j) >= len(joints) and float(w) > 1e-5 for j, w in zip(js, ws, strict=True)):
                         invalid += 1
                 metrics["checkedVertices"] += len(joint_rows)
                 metrics["maxWeightSumError"] = max(metrics["maxWeightSumError"] or 0.0, weight_error)
@@ -160,10 +160,10 @@ def validate_skinning_data(gltf: dict, binary: bytes) -> tuple[list[str], dict]:
         if len(matrix_rows) != len(joints):
             errors.append("inverse bind matrix count does not match joint count")
         max_ib_error = 0.0
-        for joint_idx, matrix in zip(joints, matrix_rows):
+        for joint_idx, matrix in zip(joints, matrix_rows, strict=True):
             x, y, z = world_position(joint_idx)
             expected = (1.,0.,0.,0., 0.,1.,0.,0., 0.,0.,1.,0., -x,-y,-z,1.)
-            max_ib_error = max(max_ib_error, max(abs(float(a)-b) for a,b in zip(matrix, expected)))
+            max_ib_error = max(max_ib_error, max(abs(float(a)-b) for a,b in zip(matrix, expected, strict=True)))
         metrics["maxInverseBindError"] = max_ib_error
         if max_ib_error > 1e-4:
             errors.append(f"inverse bind matrices inconsistent with world bind pose: {max_ib_error:.6g}")
