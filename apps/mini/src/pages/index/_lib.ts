@@ -28,6 +28,7 @@ export interface QuickField {
   initial: string;
   numeric?: boolean;
   required?: boolean;
+  min?: number;
   options?: Array<{ value: string; label: string }>;
 }
 
@@ -90,7 +91,7 @@ export const QUICK_TYPES: QuickType[] = [
   {
     type: "daily.walk",
     label: "散步",
-    fields: [{ key: "duration_minutes", label: "时长（分钟）", initial: "", numeric: true, required: true }],
+    fields: [{ key: "duration_minutes", label: "时长（分钟）", initial: "", numeric: true, required: true, min: 1 }],
     defaults: {},
   },
   {
