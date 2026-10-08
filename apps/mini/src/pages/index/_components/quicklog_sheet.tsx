@@ -76,13 +76,28 @@ export function QuickLogSheet(props: {
             <View className="muted" style={{ marginBottom: 12 }}>{type.label} · 记录会带来源与记录人进入事件图</View>
             {type.fields.map((f) => (
               <View className="field" key={f.key}>
-                <Text>{f.label}</Text>
-                <Input
-                  className="input"
-                  value={form[f.key] ?? ""}
-                  onInput={(e) => onFormChange(f.key, e.detail.value)}
-                  type={f.numeric ? "digit" : "text"}
-                />
+                <Text>{f.label}{f.required ? " *" : ""}</Text>
+                {f.options?.length ? (
+                  <View className="chips" style={{ marginTop: 6 }}>
+                    {f.options.map((option) => (
+                      <View
+                        key={option.value}
+                        className={`chip${form[f.key] === option.value ? " chip-active" : ""}`}
+                        onClick={() => onFormChange(f.key, option.value)}
+                      >
+                        {option.label}
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Input
+                    className="input"
+                    value={form[f.key] ?? ""}
+                    onInput={(e) => onFormChange(f.key, e.detail.value)}
+                    type={f.numeric ? "digit" : "text"}
+                    placeholder={f.required ? "请填写真实记录" : "不知道可以留空"}
+                  />
+                )}
               </View>
             ))}
             {type.type !== "diary.created" && (
@@ -98,7 +113,11 @@ export function QuickLogSheet(props: {
             )}
             <View className="row" style={{ justifyContent: "space-between" }}>
               <Button className="btn" onClick={onBack}>返回</Button>
-              <Button className="btn btn-primary" onClick={onSave} disabled={busy}>
+              <Button
+                className="btn btn-primary"
+                onClick={onSave}
+                disabled={busy || type.fields.some((field) => field.required && !(form[field.key] ?? "").trim())}
+              >
                 {busy ? "保存中…" : "保存"}
               </Button>
             </View>
