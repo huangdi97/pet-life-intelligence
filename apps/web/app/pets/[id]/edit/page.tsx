@@ -84,6 +84,8 @@ export default function EditPetPage() {
   });
   const [dietState, setDietState] = useState<"loading" | "ready" | "error">("loading");
   const [dietBusy, setDietBusy] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -140,6 +142,25 @@ export default function EditPetPage() {
   }, [id]);
 
   useEffect(() => {
+    if (!id || !pet?.avatar_artifact_id) {
+      setAvatarUri(null);
+      return;
+    }
+    let alive = true;
+    api
+      .get<{ avatar_artifact_id: string | null; data_url: string | null }>(`/pets/${id}/avatar`)
+      .then((row) => {
+        if (alive) setAvatarUri(row.data_url ?? null);
+      })
+      .catch(() => {
+        if (alive) setAvatarUri(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [id, pet?.avatar_artifact_id]);
+
+  useEffect(() => {
     if (!id) return;
     let alive = true;
     api.get<IdentifierRow[]>(`/pets/${id}/identifiers`)
@@ -183,6 +204,28 @@ export default function EditPetPage() {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function setAvatarFile(file: File | null) {
+    if (!id || !file || avatarBusy) return;
+    if (!file.type.startsWith("image/")) {
+      setError("头像必须是图片文件。");
+      return;
+    }
+    setAvatarBusy(true);
+    setError(null);
+    try {
+      const uploaded = await api.upload<{ artifact_id: string }>(`/pets/${id}/artifacts`, file);
+      const updated = await api.put<Pet>(`/pets/${id}/avatar`, { artifact_id: uploaded.artifact_id });
+      setPet(updated);
+      const avatar = await api.get<{ data_url: string | null }>(`/pets/${id}/avatar`);
+      setAvatarUri(avatar.data_url ?? null);
+      window.dispatchEvent(new Event("pli-pet-changed"));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAvatarBusy(false);
     }
   }
 
@@ -304,6 +347,53 @@ export default function EditPetPage() {
               <input value={form.timezone} onChange={(e) => set("timezone", e.target.value)} placeholder="Asia/Shanghai" />
             </label>
           </div>
+          <section className="v4-card" style={{ marginTop: 20 }} data-testid="pli.pet.profile.avatar">
+            <h2>头像与视觉档案</h2>
+            <p className="sub">头像只使用你明确选择并上传的图片；它与 3D 形象分开保存，不会被系统自动替换。</p>
+            <div className="row" style={{ alignItems: "center", gap: 16 }}>
+              <div
+                role="img"
+                aria-label={`${pet.name}的头像`}
+                style={{
+                  width: 88,
+                  height: 88,
+                  borderRadius: 28,
+                  overflow: "hidden",
+                  background: "var(--v4-brand-soft)",
+                  display: "grid",
+                  placeItems: "center",
+                  flex: "0 0 auto",
+                }}
+              >
+                {avatarUri ? (
+                  <img src={avatarUri} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <span className="v4-note">{pet.species === "cat" ? "猫" : pet.species === "dog" ? "犬" : "宠物"}</span>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <p className="v4-note">
+                  {pet.avatar_artifact_id ? "当前头像保存在这只宠物的受保护媒体中。" : "还没有设置真实头像。"}
+                </p>
+                <label className="btn" style={{ display: "inline-flex", cursor: avatarBusy ? "default" : "pointer" }}>
+                  {avatarBusy ? "上传中…" : pet.avatar_artifact_id ? "更换头像" : "选择头像"}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    disabled={avatarBusy}
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0] ?? null;
+                      void setAvatarFile(file);
+                      event.currentTarget.value = "";
+                    }}
+                    style={{ display: "none" }}
+                    data-testid="pli.pet.profile.avatar-input"
+                  />
+                </label>
+              </div>
+            </div>
+          </section>
+
           <section className="v4-card" style={{ marginTop: 20 }} data-testid="pli.pet.profile.identifiers">
             <h2>身份标识</h2>
             <p className="sub">这里记录主人提供的芯片号、护照号或纹身标识；“已验证”只代表已有可信验证来源，不会因为手工录入自动变成已验证。</p>
