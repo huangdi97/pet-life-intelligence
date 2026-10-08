@@ -117,9 +117,9 @@ function Tabs() {
           height: 60 + Math.max(insets.bottom, 8),
           paddingTop: 7,
           paddingBottom: Math.max(insets.bottom, 8),
-          backgroundColor: COLORS.surfaceRaised,
-          borderTopWidth: 1, borderTopColor: COLORS.stageWarmBorder,
-          shadowOpacity: 0, elevation: 0,
+          backgroundColor: "#FFFEFA",
+          borderTopWidth: 1, borderTopColor: "#DFE9DD",
+          shadowColor: "#365F49", shadowOpacity: 0.07, shadowRadius: 14, elevation: 6,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600", marginTop: 1 },
         tabBarItemStyle: { minHeight: 44, borderRadius: 16, marginHorizontal: 2 },
@@ -145,7 +145,11 @@ function Tabs() {
             );
           }
           const [on, off] = TAB_ICONS[route.name as keyof TabParamList];
-          return <Ionicons name={(focused ? on : off) as keyof typeof Ionicons.glyphMap} color={color} size={size} />;
+          return (
+            <View style={{ width: 44, height: 34, borderRadius: 16, backgroundColor: focused ? "#E1ECE3" : "transparent", alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name={(focused ? on : off) as keyof typeof Ionicons.glyphMap} color={focused ? "#365F49" : color} size={size} />
+            </View>
+          );
         },
       })}
     >
