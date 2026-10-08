@@ -294,7 +294,10 @@ test("E2E-06 Behavior ABC（中文+emoji 输入，Timeline 可见，页面不崩
   await expect(page.locator(".tl li", { hasText: `BW-${stamp}` }).first()).toBeVisible();
 
   await page.goto("/timeline");
-  await page.locator("main select").selectOption("behavior.observed");
+  // Timeline keeps advanced filters behind intentional progressive disclosure;
+  // open it like an owner would before selecting a precise event type.
+  await page.locator(".v7-timeline-refine > summary").click();
+  await page.getByLabel("按事件类型过滤").selectOption("behavior.observed");
   await expect(page.locator(".v4-ls .ls-summary", { hasText: `BW-${stamp}` }).first()).toBeVisible();
   await expectNoFatalState(page);
 });
