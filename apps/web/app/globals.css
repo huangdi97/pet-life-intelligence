@@ -2003,3 +2003,38 @@ body{background:#F6F7F1}
 @media(prefers-reduced-motion:reduce){
  .r2p-stage-pet,.r2p-stage-wash,.r2p-stage-glow{animation:none!important;transition:none!important}
 }
+
+/* R7.1 mobile viewport truth. A direct .v4-main child inherits 16px side
+   margins, so width:100% overflows the 390px phone by 32px. Constrain the
+   Life View shell to its available *content* width, never clip the pet on
+   the right or create a phantom horizontal scroll. */
+@media(max-width:768px){
+  .v4-main > .r5-life-stage-shell {
+    width:auto;
+    max-width:none;
+    margin-left:16px;
+    margin-right:16px;
+  }
+  .r5-life-stage-shell > .r2p-stage {
+    width:100%;
+    max-width:100%;
+    box-sizing:border-box;
+    margin-left:0;
+    margin-right:0;
+  }
+  /* The front / side / back selector is a 3-way control, not three
+     independent desktop-sized buttons. Make it fit 320–390px phones. */
+  .v5-review-page > .v5-segmented {
+    box-sizing:border-box;
+    display:grid;
+    width:auto;
+    margin-left:16px;
+    margin-right:16px;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .v5-review-page > .v5-segmented .btn {
+    min-width:0;
+    padding-left:8px;
+    padding-right:8px;
+  }
+}
