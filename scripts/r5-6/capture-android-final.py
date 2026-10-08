@@ -230,6 +230,7 @@ class Android:
         expected_stage_role: str | None = None,
         expected_pose: str | None = None,
     ) -> dict:
+        last_manifest: dict | None = None
         for _ in range(retries):
             candidates: list[str] = []
             # Debug/demo builds: run-as is the most reliable app-private path.
@@ -259,6 +260,7 @@ class Android:
                     manifest = json.loads(raw)
                 except json.JSONDecodeError:
                     continue
+                last_manifest = manifest
                 if self._manifest_matches(
                     manifest,
                     expected_pet_id=expected_pet_id,
@@ -269,6 +271,8 @@ class Android:
                     return manifest
 
             xml_manifest = self._manifest_from_xml()
+            if xml_manifest is not None:
+                last_manifest = xml_manifest
             if (
                 xml_manifest is not None
                 and self._manifest_matches(
@@ -288,7 +292,16 @@ class Android:
             suffix += f", stageRole={expected_stage_role}"
         if expected_pose is not None:
             suffix += f", pose={expected_pose}"
-        raise CaptureError(f"required high-fidelity RUNTIME 3D manifest unavailable{suffix}")
+        # Report only public metadata. Never print owner media or auth tokens.
+        seen = ""
+        if last_manifest is not None:
+            keys = ("ready", "manifestOrigin", "representation", "generic", "fallbackUsed", "petId", "stageRole", "sourceMediaCount")
+            seen = "; observed=" + json.dumps(
+                {key: last_manifest.get(key) for key in keys},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        raise CaptureError(f"required high-fidelity RUNTIME 3D manifest unavailable{suffix}{seen}")
 
     @classmethod
     def _manifest_matches(
