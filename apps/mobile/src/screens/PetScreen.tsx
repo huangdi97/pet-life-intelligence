@@ -258,6 +258,28 @@ export function PetScreen() {
               </View>
             </OpenSection>
 
+            <OpenSection title="它的生活" caption="点进去看这一部分">
+              {rows.map((r, i) => (
+                <Pressable
+                  key={r.key}
+                  testID={`pli.pet.domain.${r.key}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${DOMAIN_LABELS[r.key] ?? r.key}：${r.meaning}，点击查看`}
+                  onPress={() => navigateDomain(r.route)}
+                  style={[styles.domainRow, i > 0 && styles.domainDivider]}
+                >
+                  <View style={styles.domainIcon}>
+                    <Ionicons name={r.icon} size={18} color={COLORS.brandPrimaryDeep} />
+                  </View>
+                  <View style={styles.domainText}>
+                    <Text style={styles.domainLabel}>{DOMAIN_LABELS[r.key] ?? r.key}</Text>
+                    <Text style={styles.domainMeaning}>{r.meaning}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+                </Pressable>
+              ))}
+            </OpenSection>
+
             <OpenSection title="它的常态" caption="最近 14 天">
               <Text style={styles.baselineIntro}>用真实生活记录形成可解释基线，只和它自己比较；没有足够记录时不会猜测。</Text>
               {baselineState === "ready" && baseline.length ? baseline.map((row) => {
@@ -286,28 +308,6 @@ export function PetScreen() {
               >
                 <Text style={styles.baselineActionText}>{baselineBusy ? "计算中…" : "重新计算常态"}</Text>
               </Pressable>
-            </OpenSection>
-
-            <OpenSection title="它的生活" caption="点进去看这一部分">
-              {rows.map((r, i) => (
-                <Pressable
-                  key={r.key}
-                  testID={`pli.pet.domain.${r.key}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${DOMAIN_LABELS[r.key] ?? r.key}：${r.meaning}，点击查看`}
-                  onPress={() => navigateDomain(r.route)}
-                  style={[styles.domainRow, i > 0 && styles.domainDivider]}
-                >
-                  <View style={styles.domainIcon}>
-                    <Ionicons name={r.icon} size={18} color={COLORS.brandPrimaryDeep} />
-                  </View>
-                  <View style={styles.domainText}>
-                    <Text style={styles.domainLabel}>{DOMAIN_LABELS[r.key] ?? r.key}</Text>
-                    <Text style={styles.domainMeaning}>{r.meaning}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-                </Pressable>
-              ))}
             </OpenSection>
 
             <View testID="pli.pet.friends">

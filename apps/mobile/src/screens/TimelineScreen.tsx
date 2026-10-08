@@ -433,6 +433,35 @@ export function TimelineScreen() {
           ))}
         </ScrollView>
 
+        <View style={styles.livingLead}>
+          <Text style={styles.livingLeadTitle}>它的每一天</Text>
+          <Text style={styles.livingLeadSub}>按时间留下真实发生的事情，不需要填写更多表格才能回看。</Text>
+        </View>
+
+        {error ? <InlineError message="暂时连接不上，已展示已有内容" /> : null}
+
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <Skeleton rows={4} />
+          </View>
+        ) : days.length ? (
+          <LifeStream
+            days={days}
+            onOpenMedia={(artifactIds) => navigation.navigate("MediaMemory", { artifactIds })}
+          />
+        ) : (
+          <EmptyState
+            title={`${pet?.name ?? "宠物"}的时间线还很安静`}
+            body="第一次喂食、散步或健康记录会从这里开始。"
+            actionLabel="快速记录"
+            onAction={() => navigation.navigate("QuickLog")}
+          />
+        )}
+
+        <View style={styles.afterStream}>
+          <Text style={styles.afterStreamTitle}>收藏这一段生活</Text>
+          <Text style={styles.afterStreamSub}>回忆、里程碑和原始语音，留给想慢慢记录的时候。</Text>
+        </View>
         <View style={styles.memorySection} testID="pli.timeline.milestones">
           <Text style={styles.diaryTitle}>里程碑</Text>
           <Text style={styles.diaryIntro}>只记录真实发生、值得长期保留的节点；保存后会进入同一条生命时间线。</Text>
@@ -622,31 +651,18 @@ export function TimelineScreen() {
           )}
         </View>
 
-        {error ? <InlineError message="暂时连接不上，已展示已有内容" /> : null}
-
-        {loading ? (
-          <View style={styles.loadingWrap}>
-            <Skeleton rows={4} />
-          </View>
-        ) : days.length ? (
-          <LifeStream
-            days={days}
-            onOpenMedia={(artifactIds) => navigation.navigate("MediaMemory", { artifactIds })}
-          />
-        ) : (
-          <EmptyState
-            title={`${pet?.name ?? "宠物"}的时间线还很安静`}
-            body="第一次喂食、散步或健康记录会从这里开始。"
-            actionLabel="快速记录"
-            onAction={() => navigation.navigate("QuickLog")}
-          />
-        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  livingLead: { paddingHorizontal: SPACE.s5, marginTop: SPACE.s6, marginBottom: SPACE.s2 },
+  livingLeadTitle: { fontSize: 26, fontWeight: "700", letterSpacing: -0.6, color: COLORS.textPrimary },
+  livingLeadSub: { marginTop: 5, fontSize: TYPE.sm, lineHeight: 20, color: COLORS.textTertiary },
+  afterStream: { paddingHorizontal: SPACE.s5, marginTop: SPACE.s8, marginBottom: SPACE.s2 },
+  afterStreamTitle: { fontSize: 22, fontWeight: "700", color: COLORS.textPrimary },
+  afterStreamSub: { marginTop: 5, fontSize: TYPE.sm, lineHeight: 19, color: COLORS.textTertiary },
   page: { flex: 1, backgroundColor: COLORS.canvas },
   flex: { flex: 1 },
   content: { paddingBottom: SPACE.s8 },
