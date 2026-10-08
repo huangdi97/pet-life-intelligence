@@ -1894,3 +1894,13 @@ body { background:var(--v4-canvas); }
 .v4-life-identity-desc { color:#72685e; font-size:13px; line-height:1.5; margin:6px 0 0; }
 @media(max-width:768px) { .v4-life-identity { border-radius:0; } }
 .r2p-stage--life .r2p-anchor--2,.r2p-stage--life .r2p-anchor--3 { bottom:8px; }
+
+/* R6 verified owner media — personal photographs before any generic glyph. */
+.r6-real-pet-photo {
+  width:min(88vw,420px);height:clamp(270px,37vw,445px);
+  display:block;object-fit:contain;object-position:bottom center;
+  border-radius:20px;filter:drop-shadow(0 22px 26px rgba(68,48,28,.13));
+}
+@media(max-width:768px) {
+  .r6-real-pet-photo { width:min(92vw,340px);height:350px; }
+}

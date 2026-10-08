@@ -9,7 +9,8 @@
  * certified 2.5D layer (labeled fallback — never the P0 target).
  */
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "@pli/api-client";
 import { Icon, type WebIconName } from "./icons";
 import { resolvePet3DIdentity } from "@pli/pet-3d";
 import { Pet3DViewer, type Pet3DStatus } from "./three/pet3d-viewer";
@@ -81,6 +82,22 @@ export function PetLivingStage({
   const field = realityField ?? "warm-living";
   const identity = resolvePet3DIdentity({ name, species, breed });
   const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
+  // Use the actual owner's persisted avatar when an individual 3D twin is
+  // absent. Never reuse the previous animal's picture during a pet switch.
+  const [avatar, setAvatar] = useState<{ petId: string; uri: string | null } | null>(null);
+  useEffect(() => {
+    if (!petId || twin || demo) return;
+    let alive = true;
+    api.get<{ avatar_artifact_id: string | null; data_url: string | null }>(`/pets/${petId}/avatar`)
+      .then((row) => {
+        if (alive) setAvatar({ petId, uri: row.data_url ?? null });
+      })
+      .catch(() => {
+        if (alive) setAvatar({ petId, uri: null });
+      });
+    return () => { alive = false; };
+  }, [petId, twin, demo]);
+  const photoUri = petId && avatar?.petId === petId ? avatar.uri : null;
   // A bundled procedural/demo identity is allowed only in an explicitly
   // marked demo session. Production owner surfaces need an actual persisted
   // Twin descriptor; otherwise they fall back to the honest 2.5D/photo path.
@@ -94,7 +111,14 @@ export function PetLivingStage({
     .join(" ");
 
   const isCorgiLike = species === "dog" && /corgi|柯基/i.test(breed ?? "");
-  const fallbackVisual = isCorgiLike ? (
+  const fallbackVisual = photoUri ? (
+    <img
+      src={photoUri}
+      alt={`${name}的照片`}
+      className="r6-real-pet-photo"
+      data-pli-media-provenance="OWNER_UPLOADED"
+    />
+  ) : isCorgiLike ? (
     <div className="r2p-corgi" role="img" aria-label={`${name}的 2.5D 柯基形象：奶油色、额头白色花纹、竖立圆耳`}>
       <span className="part shadow" aria-hidden="true" />
       <span className="part ear-l" aria-hidden="true" />
