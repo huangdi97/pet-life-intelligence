@@ -157,7 +157,9 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     });
     expect((await upload).ok()).toBeTruthy();
     expect((await select).ok()).toBeTruthy();
-    await expect(page.getByTestId("pli.pet.profile.avatar")).toContainText("当前头像已保存在");
+    const avatarPanel = page.getByTestId("pli.pet.profile.avatar");
+    await expect(avatarPanel).toContainText("当前头像保存在这只宠物的受保护媒体中");
+    await expect(avatarPanel.getByRole("img", { name: /的头像$/ })).toBeVisible();
   });
 
   test("assistant exposes the medical action hard boundary", async ({ page, request }) => {
