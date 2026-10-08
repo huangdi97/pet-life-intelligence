@@ -67,6 +67,31 @@ async function allPetIds(page: Page): Promise<string[]> {
 }
 
 test.describe("blind-ui harness (web)", () => {
+
+  test("mobile 5-tab bar is actually at the bottom of the viewport", async ({ page }) => {
+    // A filtered sticky parent can silently re-anchor position:fixed children
+    // at the TOP of the screen, even though computed CSS says bottom:0.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seedPet(page, "");
+    await page.goto("/");
+    const tab = page.getByTestId("pli.nav.today");
+    await expect(tab).toBeVisible();
+    await expect(page.locator(".navlinks")).toHaveCSS("position", "fixed");
+    const bounds = await tab.boundingBox();
+    expect(bounds).not.toBeNull();
+    // Browser viewport geometry is the only reliable bottom-bar assertion.
+    expect(bounds!.y).toBeGreaterThan(700);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844);
+    for (const id of ["pli.nav.today", "pli.nav.timeline", "pli.nav.pet", "pli.nav.assistant", "pli.nav.me"]) {
+      const b = await page.getByTestId(id).boundingBox();
+      expect(b).not.toBeNull();
+      expect(b!.y).toBeGreaterThan(700);
+      expect(b!.x).toBeGreaterThanOrEqual(0);
+      expect(b!.x + b!.width).toBeLessThanOrEqual(390);
+    }
+  });
+
+
   test("today renders four basic anchors + identity + health summary", async ({ page }) => {
     await seedPet(page, "");
     await page.goto("/");
