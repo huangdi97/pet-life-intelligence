@@ -219,6 +219,39 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     await expect(page.getByText("已记录：备注")).toBeVisible();
   });
 
+  test("Quick Log binds uploaded media evidence to the created life event", async ({ page, request }) => {
+    await loginAsEmail(page, request, "owner@pli.demo");
+    await page.goto("/");
+    await expectNoFatalState(page);
+
+    await page.getByTestId("pli.today.primary-action").click();
+    await page.getByTestId("pli.quicklog.media-input").setInputFiles({
+      name: "meal-evidence.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+5Q9QAAAAAElFTkSuQmCC",
+        "base64",
+      ),
+    });
+    await expect(page.getByTestId("pli.quicklog.media")).toContainText("已选择 1 个文件");
+
+    const upload = page.waitForResponse(
+      (response) => response.url().includes("/artifacts") && response.request().method() === "POST",
+    );
+    const createEvent = page.waitForResponse(
+      (response) =>
+        response.url().includes("/events") &&
+        response.request().method() === "POST",
+    );
+    await page.getByTestId("pli.quicklog.tile.feed").click();
+    expect((await upload).ok()).toBeTruthy();
+    const eventResponse = await createEvent;
+    expect(eventResponse.ok()).toBeTruthy();
+    const eventBody = (await eventResponse.json()) as { artifact_ids?: string[] };
+    expect(eventBody.artifact_ids).toHaveLength(1);
+    await expect(page.getByText(/已记录：喂食 · 已绑定 1 个媒体/)).toBeVisible();
+  });
+
   test("today living canvas shows pet life-view entry (no fatal)", async ({ page, request }) => {
     await loginAsEmail(page, request, "owner@pli.demo");
     await page.goto("/");
