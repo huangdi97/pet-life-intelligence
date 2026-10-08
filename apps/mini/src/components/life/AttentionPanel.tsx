@@ -5,7 +5,7 @@
  */
 import { Icon, Text, View } from "@tarojs/components";
 
-export type AttentionKind = "calm" | "focus" | "danger";
+export type AttentionKind = "calm" | "focus" | "danger" | "unknown";
 
 export function AttentionPanel(props: {
   kind: AttentionKind;
@@ -15,11 +15,27 @@ export function AttentionPanel(props: {
   onPress?: () => void;
 }) {
   const { kind, title, body, footer, onPress } = props;
-  const iconType = kind === "danger" ? "warn" : kind === "focus" ? "info" : "success";
-  const iconColor = kind === "danger" ? "#B42318" : kind === "focus" ? "#A97B2C" : "#4E7A5A";
-  const panelClass = kind === "danger" ? "attention-danger" : kind === "focus" ? "attention-focus" : "attention-calm";
-  const titleClass = kind === "danger" ? "attention-title-danger" : kind === "focus" ? "attention-title-focus" : "attention-title-calm";
-  const defaultTitle = kind === "danger" ? "需要关注" : kind === "focus" ? "值得关注" : "一切如常";
+  const iconType = kind === "danger" ? "warn" : kind === "calm" ? "success" : "info";
+  const iconColor =
+    kind === "danger" ? "#B42318" :
+    kind === "focus" ? "#A97B2C" :
+    kind === "unknown" ? "#667085" :
+    "#4E7A5A";
+  const panelClass =
+    kind === "danger" ? "attention-danger" :
+    kind === "focus" ? "attention-focus" :
+    kind === "unknown" ? "attention-unknown" :
+    "attention-calm";
+  const titleClass =
+    kind === "danger" ? "attention-title-danger" :
+    kind === "focus" ? "attention-title-focus" :
+    kind === "unknown" ? "attention-title-unknown" :
+    "attention-title-calm";
+  const defaultTitle =
+    kind === "danger" ? "需要关注" :
+    kind === "focus" ? "值得关注" :
+    kind === "unknown" ? "状态待确认" :
+    "一切如常";
   return (
     <View className={`attention-panel ${panelClass}`} onClick={onPress}>
       <View className="attention-icon">
