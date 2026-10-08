@@ -76,6 +76,7 @@ export function PetLivingStage({
   // individual 3D twin exists. The keyed value makes previous-pet media
   // invisible synchronously on the render that switches active identity.
   const [avatar, setAvatar] = useState<{ petId: string; uri: string | null } | null>(null);
+  const [photoView, setPhotoView] = useState<{ petId: string; enabled: boolean } | null>(null);
   useEffect(() => {
     const id = pet?.id;
     if (!id || !pet.avatar_artifact_id) return;
@@ -97,7 +98,9 @@ export function PetLivingStage({
   // Bundled demo geometry is permitted only in a build/session that is
   // explicitly marked demo. A production pet without a persisted Twin stays
   // on the honest 2.5D/photo fallback instead of borrowing a generic template.
-  const use3d = identity !== null && (twin !== null || demo) && pet3d !== "failed";
+  const canShow3d = identity !== null && (twin !== null || demo) && pet3d !== "failed";
+  const showPhoto = Boolean(photoUri && photoView?.petId === pet?.id && photoView.enabled);
+  const use3d = canShow3d && !showPhoto;
   const reviewStudio = variant === "review";
   const stageTheme = reviewStudio ? ("review" as const) : ("living" as const);
   const height = HEIGHTS[variant];
@@ -181,6 +184,22 @@ export function PetLivingStage({
             </View>
           ))}
         </View>
+      ) : null}
+
+      {/* Personal photo is an opt-in alternative to the bundled demo model.
+          The preference is pet-ID scoped: switching pets never reuses media. */}
+      {photoUri && canShow3d && pet?.id && !reviewStudio ? (
+        <Pressable
+          testID={`pli.${variant}.view-switch`}
+          accessibilityRole="button"
+          accessibilityLabel={showPhoto ? "切换为可旋转的 3D 形象" : "切换为主人上传的真实照片"}
+          accessibilityState={{ selected: showPhoto }}
+          style={styles.photoSwitch}
+          onPress={() => setPhotoView({ petId: pet.id, enabled: !showPhoto })}
+        >
+          <Ionicons name={showPhoto ? "cube-outline" : "images-outline"} size={14} color="#365F49" />
+          <Text style={styles.photoSwitchText}>{showPhoto ? "看 3D 形象" : "看真实照片"}</Text>
+        </Pressable>
       ) : null}
 
       {/* identity + now line + honest note */}
@@ -298,6 +317,8 @@ const styles = StyleSheet.create({
   petSlotLife: { bottom: 118 },
   lifeRibbon: { position: "absolute", bottom: 12, left: SPACE.s4, right: SPACE.s4, flexDirection: "row", borderRadius: 21, paddingVertical: 9, backgroundColor: "#FFFEF6EC", borderWidth: StyleSheet.hairlineWidth, borderColor: "#EAF2E7" },
   lifeRibbonItem: { flex: 1, minWidth: 0 },
+  photoSwitch: { position: "absolute", top: 167, right: SPACE.s4, zIndex: 11, minHeight: 36, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, borderRadius: 18, backgroundColor: "#FFFDF0E8", borderWidth: StyleSheet.hairlineWidth, borderColor: "#DDE7DB" },
+  photoSwitchText: { fontSize: TYPE.caption, color: "#365F49", fontWeight: "700" },
   head: { position: "absolute", top: SPACE.s8, left: SPACE.s6, right: SPACE.s6, flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2 },
   identityCopy: { flex: 1 },
   eyebrow: { fontSize: 12, letterSpacing: 2, fontWeight: "700", color: "#547563", marginBottom: 6 },
