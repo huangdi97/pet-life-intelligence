@@ -12,7 +12,7 @@
 | PLI-002 | 01 Identity & Permissions | Pet ID | 多宠家庭管理 | v0.1 | P0 | FULL_UI | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | FULL_UI | — | — | — | Pet Profile | OWN-004 | PetSwitcher | low | 家庭上下文已展示 |
 | PLI-003 | 01 Identity & Permissions | Pet ID | 头像与视觉档案 | v0.1 | P0 | FULL_UI | — | FULL_UI | PARTIAL_UI | — | — | — | — | Pet Profile | OWN-004 | PetAvatar | low |  |
 | PLI-004 | 01 Identity & Permissions | Pet ID | 芯片号记录与验证 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | FULL_UI | — | — | Pet Profile/Settings | OWN-004 | ConsentPanel/PersonChip | low | Owner 三端已接真实 identifiers API；验证状态保持事实语义 |
-| PLI-005 | 01 Identity & Permissions | Pet ID | QR/NFC Care Card | v0.2 | P1 | FULL_UI | MISSING_ACTION | PARTIAL_UI | — | — | FULL_UI | — | — | Pet Profile/Settings | OWN-004 | ConsentPanel/PersonChip | low | 主体实现（后端）+ 领域页入口 |
+| PLI-005 | 01 Identity & Permissions | Pet ID | QR/NFC Care Card | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | FULL_UI | — | — | Care | OWN-004 | ConsentPanel/PersonChip | low | Owner 三端可真实生成 72 小时照护卡、查看/复制分享入口并撤销；分享权限仍由服务端校验 |
 | PLI-006 | 01 Identity & Permissions | Identity | 身份去重与合并 | v1.0 | P2 | BACKGROUND_ONLY | INTENTIONALLY_BACKGROUND | PARTIAL_UI | — | — | FULL_UI | — | — | Pet Profile/Settings | OWN-004 | ConsentPanel/PersonChip | low | 主体实现（后端）+ 领域页入口 |
 | PLI-007 | 01 Identity & Permissions | Identity | 生物特征辅助识别 | Future | Future | FUTURE | — | — | — | — | — | — | — | — | — | — | - | Future 42 冻结，不做 UI |
 | PLI-008 | 01 Identity & Permissions | Ownership | Owner / Co-owner关系 | v0.1 | P0 | FULL_UI | MISSING_PAGE | PARTIAL_UI | — | FULL_UI | — | — | — | Care | OWN-008 | PersonChip | low |  |
@@ -20,7 +20,7 @@
 | PLI-010 | 01 Identity & Permissions | Permissions | 角色权限模型 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | FULL_UI | — | — | 全局权限 | OWN-005 | State(denied) | med | permission denied 状态全端 |
 | PLI-011 | 01 Identity & Permissions | Permissions | 临时权限与自动到期 | v0.1 | P0 | FULL_UI | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | PARTIAL_UI | — | — | Care 交接/分享 | OWN-008 | CareTask | med | expires_at 可见 |
 | PLI-012 | 01 Identity & Permissions | Permissions | 字段级隐私控制 | v1.0 | P2 | ACCEPTED_UI_LIMITATION | MISSING_API_BINDING | PARTIAL_UI | — | — | FULL_UI | — | — | Pet Profile/Settings | OWN-004 | ConsentPanel/PersonChip | low | 主体实现（后端）+ 领域页入口 |
-| PLI-013 | 01 Identity & Permissions | Identity | 宠物状态生命周期 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | — | — | FULL_UI | — | — | Pet Profile/Settings | OWN-004 | ConsentPanel/PersonChip | low | 主体实现（后端）+ 领域页入口 |
+| PLI-013 | 01 Identity & Permissions | Identity | 宠物状态生命周期 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | FULL_UI | — | — | Pet Profile | OWN-004 | ConsentPanel/PersonChip | med | Owner 三端显式编辑 ACTIVE/LOST/TRANSFERRED/DECEASED，并保留状态事实语义；不会把未知状态自动归为 ACTIVE |
 | PLI-014 | 01 Identity & Permissions | Emergency | 紧急联系人卡 | v0.1 | P0 | FULL_UI | MISSING_STATE | PARTIAL_UI | — | — | — | — | — | Settings/紧急档案 | OWN-017 | ConsentPanel | med | emergency-profile API |
 | PLI-015 | 01 Identity & Permissions | Data Portability | 宠物资料导出包 | v1.0 | P2 | ACCEPTED_UI_LIMITATION | MISSING_ACTION | PARTIAL_UI | — | — | FULL_UI | — | — | Pet Profile/Settings | OWN-004 | ConsentPanel/PersonChip | low | 主体实现（后端）+ 领域页入口 |
 | PLI-016 | 01 Identity & Permissions | Consent | 数据用途与研究同意 | v0.1 | P0 | FULL_UI | — | FULL_UI | PARTIAL_UI | FULL_UI | — | — | — | Settings | OWN-017 | ConsentPanel | med |  |
@@ -77,7 +77,7 @@
 | PLI-067 | 04 Health | Interoperability | 标准术语映射 | v1.0 | P2 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | FULL_UI | PARTIAL_UI | — | Health | OWN-005 | RiskBanner/EvidenceCard/VetBriefSection | low | 主体实现（后端）+ 领域页入口 |
 | PLI-068 | 04 Health | Research | 真实世界证据队列 | Future | Future | FUTURE | — | — | — | — | — | — | — | — | — | — | - | Future 42 冻结，不做 UI |
 | PLI-069 | 05 Behavior | Behavior Event | 行为事件快速记录 | v0.1 | P0 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | 主体实现（后端）+ 领域页入口 |
-| PLI-070 | 05 Behavior | ABC | 前因-行为-后果结构 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | 主体实现（后端）+ 领域页入口 |
+| PLI-070 | 05 Behavior | ABC | 前因-行为-后果结构 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | Owner 三端真实记录 antecedent / observable behavior / consequence；ABC 仅作为记录结构，不把观察自动解释成动机或诊断 |
 | PLI-071 | 05 Behavior | Video | 行为视频绑定 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | med | Owner 三端上传真实 VIDEO Artifact 并把 artifact_ids 绑定到 ABC 行为记录；视频仅作原始证据，不自动推断性格/情绪/诊断 |
 | PLI-072 | 05 Behavior | Observation | 可观察行为抽取 | v1.0 | P2 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | 主体实现（后端）+ 领域页入口 |
 | PLI-073 | 05 Behavior | Triggers | 触发因素图谱 | v0.2 | P1 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | 主体实现（后端）+ 领域页入口 |
