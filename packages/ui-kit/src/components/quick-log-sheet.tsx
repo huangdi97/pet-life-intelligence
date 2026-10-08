@@ -105,7 +105,11 @@ export function QuickLogSheet({
             setTextType(t);
             setTextValue("");
             setFieldValues({});
-            setMediaFiles([]);
+            // Structured life-event forms keep media selected in the sheet so
+            // the evidence is bound to the confirmed event. Diary uses its
+            // separate canonical endpoint and therefore clears unsupported
+            // media instead of silently dropping it on save.
+            if (t.textInput) setMediaFiles([]);
             return;
           }
           void Promise.resolve(onQuickLog(t.type, undefined, mediaFiles)).then(() => setMediaFiles([]));
