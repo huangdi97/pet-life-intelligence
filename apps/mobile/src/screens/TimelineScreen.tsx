@@ -3,12 +3,13 @@
  * spine, semantic event rows with source provenance, filter chips.
  * No per-event white Cards; "back to a day" shows only that day's data.
  */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import { Audio } from "expo-av";
 import { api, type LifeEvent } from "../api";
 import { usePets } from "../context";
 import { COLORS, SPACE, TYPE } from "../tokens";
@@ -73,7 +74,12 @@ export function TimelineScreen() {
   const [diary, setDiary] = useState<DiaryRow[]>([]);
   const [diaryState, setDiaryState] = useState<"loading" | "ready" | "error">("loading");
   const [diaryText, setDiaryText] = useState("");
+  const [diaryAudioUri, setDiaryAudioUri] = useState<string | null>(null);
+  const [diaryRecording, setDiaryRecording] = useState(false);
   const [diaryBusy, setDiaryBusy] = useState(false);
+  const [diaryErrorMessage, setDiaryErrorMessage] = useState("");
+  const diaryRecordingRef = useRef<Audio.Recording | null>(null);
+  const diaryPreviewSoundRef = useRef<Audio.Sound | null>(null);
   const [summaries, setSummaries] = useState<DailySummaryRow[]>([]);
   const [summaryState, setSummaryState] = useState<"loading" | "ready" | "error">("loading");
   const [summaryBusy, setSummaryBusy] = useState(false);
@@ -171,6 +177,18 @@ export function TimelineScreen() {
     return () => { alive = false; };
   }, [petId]);
 
+  useEffect(() => {
+    return () => {
+      const recording = diaryRecordingRef.current;
+      diaryRecordingRef.current = null;
+      if (recording) void recording.stopAndUnloadAsync().catch(() => {});
+      const sound = diaryPreviewSoundRef.current;
+      diaryPreviewSoundRef.current = null;
+      if (sound) void sound.unloadAsync().catch(() => {});
+      void Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
+    };
+  }, []);
+
   async function addMilestone() {
     const title = milestoneTitle.trim();
     if (!petId || !title || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate) || milestoneBusy) return;
@@ -214,13 +232,98 @@ export function TimelineScreen() {
     }
   }
 
+  async function startDiaryRecording() {
+    if (diaryRecording || diaryBusy) return;
+    setDiaryErrorMessage("");
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (!permission.granted) {
+        setDiaryErrorMessage("没有麦克风权限；仍然可以继续写文字日记。");
+        return;
+      }
+      await diaryPreviewSoundRef.current?.unloadAsync().catch(() => {});
+      diaryPreviewSoundRef.current = null;
+      setDiaryAudioUri(null);
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+        staysActiveInBackground: false,
+      });
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+      );
+      diaryRecordingRef.current = recording;
+      setDiaryRecording(true);
+    } catch {
+      diaryRecordingRef.current = null;
+      setDiaryRecording(false);
+      setDiaryErrorMessage("录音没有开始成功；仍然可以继续写文字日记。");
+    }
+  }
+
+  async function stopDiaryRecording() {
+    const recording = diaryRecordingRef.current;
+    if (!recording) return;
+    diaryRecordingRef.current = null;
+    try {
+      await recording.stopAndUnloadAsync();
+      setDiaryAudioUri(recording.getURI());
+    } catch {
+      setDiaryAudioUri(null);
+      setDiaryErrorMessage("这段录音没有保存成功，请重试。");
+    } finally {
+      setDiaryRecording(false);
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
+    }
+  }
+
+  async function previewDiaryRecording() {
+    if (!diaryAudioUri || diaryRecording) return;
+    try {
+      await diaryPreviewSoundRef.current?.unloadAsync().catch(() => {});
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: diaryAudioUri },
+        { shouldPlay: true },
+      );
+      diaryPreviewSoundRef.current = sound;
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          void sound.unloadAsync().catch(() => {});
+          if (diaryPreviewSoundRef.current === sound) diaryPreviewSoundRef.current = null;
+        }
+      });
+    } catch {
+      setDiaryErrorMessage("这段录音暂时无法试听，但可以重新录制。");
+    }
+  }
+
   async function addDiary() {
     const text = diaryText.trim();
-    if (!petId || !text || diaryBusy) return;
+    if (!petId || (!text && !diaryAudioUri) || diaryBusy || diaryRecording) return;
     setDiaryBusy(true);
+    setDiaryErrorMessage("");
     try {
-      await api.post(`/pets/${petId}/diary`, { text });
+      let audioArtifactId: string | null = null;
+      if (diaryAudioUri) {
+        const uploaded = await api.upload<{ artifact_id: string; kind: string }>(
+          `/pets/${petId}/artifacts`,
+          {
+            uri: diaryAudioUri,
+            name: `voice-diary-${Date.now()}.m4a`,
+            type: "audio/mp4",
+          },
+        );
+        if (uploaded.kind !== "AUDIO") throw new Error("NOT_AUDIO");
+        audioArtifactId = uploaded.artifact_id;
+      }
+      await api.post(`/pets/${petId}/diary`, {
+        text,
+        audio_artifact_id: audioArtifactId,
+      });
       setDiaryText("");
+      setDiaryAudioUri(null);
       const [diaryRows, eventRows] = await Promise.all([
         api.get<DiaryRow[]>(`/pets/${petId}/diary?limit=5`),
         api.get<EventsResp>(`/pets/${petId}/events?limit=200`),
@@ -231,6 +334,7 @@ export function TimelineScreen() {
       setError(false);
     } catch {
       setDiaryState("error");
+      setDiaryErrorMessage("这条日记暂时没有保存成功，原始录音不会被伪造成已保存。");
     } finally {
       setDiaryBusy(false);
     }
@@ -358,7 +462,7 @@ export function TimelineScreen() {
 
         <View style={styles.diarySection} testID="pli.timeline.diary">
           <Text style={styles.diaryTitle}>今天想记下什么</Text>
-          <Text style={styles.diaryIntro}>写下真实发生的事情。文字会作为主人记录保存，并在时间线留下来源明确的日记事件。</Text>
+          <Text style={styles.diaryIntro}>可以写文字，也可以录一段真实声音。录音作为原始媒体保存，不会被自动解释成情绪或健康结论。</Text>
           <TextInput
             style={styles.diaryInput}
             value={diaryText}
@@ -368,13 +472,56 @@ export function TimelineScreen() {
             placeholder="例如：今天散步时第一次主动去闻路边的花。"
             placeholderTextColor={COLORS.textTertiary}
           />
+          <View style={styles.diaryAudioControls}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={diaryRecording ? "停止语音日记录音" : "开始语音日记录音"}
+              onPress={() => void (diaryRecording ? stopDiaryRecording() : startDiaryRecording())}
+              disabled={diaryBusy}
+              style={[styles.diaryAudioButton, diaryRecording && styles.diaryAudioButtonActive]}
+            >
+              <Ionicons
+                name={diaryRecording ? "stop-circle-outline" : "mic-outline"}
+                size={17}
+                color={diaryRecording ? COLORS.textInverse : COLORS.brandPrimaryDeep}
+              />
+              <Text style={[styles.diaryAudioButtonText, diaryRecording && styles.diaryAudioButtonTextActive]}>
+                {diaryRecording ? "停止录音" : diaryAudioUri ? "重新录音" : "录一段声音"}
+              </Text>
+            </Pressable>
+            {diaryAudioUri && !diaryRecording ? (
+              <>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="试听语音日记录音"
+                  onPress={() => void previewDiaryRecording()}
+                  style={styles.diaryAudioButton}
+                >
+                  <Ionicons name="play-outline" size={17} color={COLORS.brandPrimaryDeep} />
+                  <Text style={styles.diaryAudioButtonText}>试听</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="移除语音日记录音"
+                  onPress={() => setDiaryAudioUri(null)}
+                  style={styles.diaryAudioButton}
+                >
+                  <Ionicons name="close-outline" size={17} color={COLORS.textSecondary} />
+                  <Text style={styles.diaryAudioRemoveText}>移除</Text>
+                </Pressable>
+              </>
+            ) : null}
+          </View>
+          {diaryRecording ? <Text style={styles.diaryAudioHint}>正在录音……完成后点“停止录音”。</Text> : null}
+          {diaryAudioUri && !diaryRecording ? <Text style={styles.diaryAudioHint}>已准备一段原始录音；保存后会与这条日记一起进入时间线。</Text> : null}
+          {diaryErrorMessage ? <Text style={styles.diaryError}>{diaryErrorMessage}</Text> : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="保存生活日记"
-            accessibilityState={{ disabled: diaryBusy || !diaryText.trim() }}
-            disabled={diaryBusy || !diaryText.trim()}
+            accessibilityState={{ disabled: diaryBusy || diaryRecording || (!diaryText.trim() && !diaryAudioUri) }}
+            disabled={diaryBusy || diaryRecording || (!diaryText.trim() && !diaryAudioUri)}
             onPress={() => void addDiary()}
-            style={[styles.diaryButton, (diaryBusy || !diaryText.trim()) && styles.diaryButtonDisabled]}
+            style={[styles.diaryButton, (diaryBusy || diaryRecording || (!diaryText.trim() && !diaryAudioUri)) && styles.diaryButtonDisabled]}
           >
             <Text style={styles.diaryButtonText}>{diaryBusy ? "保存中…" : "保存日记"}</Text>
           </Pressable>
@@ -479,6 +626,13 @@ const styles = StyleSheet.create({
   diaryTitle: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary },
   diaryIntro: { marginTop: 4, fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18 },
   diaryInput: { minHeight: 96, marginTop: SPACE.s3, borderWidth: 1, borderColor: COLORS.dividerStrong, borderRadius: 14, backgroundColor: COLORS.surface, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s3, textAlignVertical: "top", fontSize: TYPE.body, color: COLORS.textPrimary },
+  diaryAudioControls: { marginTop: SPACE.s3, flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
+  diaryAudioButton: { minHeight: 40, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: SPACE.s3, borderRadius: 20, backgroundColor: COLORS.brandSoftGreen },
+  diaryAudioButtonActive: { backgroundColor: COLORS.brandPrimary },
+  diaryAudioButtonText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  diaryAudioButtonTextActive: { color: COLORS.textInverse },
+  diaryAudioRemoveText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
+  diaryAudioHint: { marginTop: SPACE.s2, fontSize: TYPE.caption, lineHeight: 18, color: COLORS.textTertiary },
   diaryButton: { minHeight: 44, marginTop: SPACE.s3, alignSelf: "flex-start", justifyContent: "center", paddingHorizontal: SPACE.s4, borderRadius: 22, backgroundColor: COLORS.brandPrimary },
   diaryButtonDisabled: { opacity: 0.5 },
   diaryButtonText: { fontSize: TYPE.sm, color: COLORS.textInverse, fontWeight: "600" },
