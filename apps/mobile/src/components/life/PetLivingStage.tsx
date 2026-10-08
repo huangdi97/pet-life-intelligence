@@ -163,6 +163,8 @@ export function PetLivingStage({
           <View style={styles.sunHaze} />
           <View style={styles.floorHaze} />
           <View style={styles.roomHorizon} />
+          <View style={styles.projectionPlane} />
+          <View style={styles.projectionGlow} />
           <View style={styles.spatialPillar} />
           <View style={styles.stageAccent} />
         </>
@@ -207,7 +209,7 @@ export function PetLivingStage({
           style={styles.photoSwitch}
           onPress={() => setPhotoView({ petId: pet.id, enabled: !showPhoto })}
         >
-          <Ionicons name={showPhoto ? "cube-outline" : "images-outline"} size={14} color="#365F49" />
+          <Ionicons name={showPhoto ? "cube-outline" : "images-outline"} size={14} color={COLORS.brandPrimaryDeep} />
           <Text style={styles.photoSwitchText}>{showPhoto ? "看 3D 形象" : "看真实照片"}</Text>
         </Pressable>
       ) : null}
@@ -240,14 +242,14 @@ export function PetLivingStage({
 
 const styles = StyleSheet.create({
   stage: { marginHorizontal: 0, marginTop: 0, borderRadius: 0, overflow: "hidden" },
-  stageLiving: { backgroundColor: "#E3EBDF" },
+  stageLiving: { backgroundColor: COLORS.stageWarmBase },
   stageReview: { marginHorizontal: SPACE.s3, borderRadius: RADIUS.hero, backgroundColor: COLORS.stageReviewBase },
   fieldBase: { ...StyleSheet.absoluteFillObject },
-  fieldBaseLiving: { backgroundColor: "#E3EBDF" },
+  fieldBaseLiving: { backgroundColor: COLORS.stageWarmBase },
   fieldBaseReview: { backgroundColor: COLORS.stageReviewBase },
   // Spatial framing, not a dashboard and not a fake holographic HUD.
-  spatialPillar: { position: "absolute", right: 25, top: 126, bottom: 125, width: 3, borderRadius: 3, backgroundColor: "#FFFFFF80" },
-  stageAccent: { position: "absolute", left: 24, bottom: 100, width: 126, height: 4, borderRadius: 4, backgroundColor: "#79948466" },
+  spatialPillar: { position: "absolute", right: 25, top: 126, bottom: 125, width: 3, borderRadius: 3, backgroundColor: COLORS.stageWarmBeamSoft },
+  stageAccent: { position: "absolute", left: 24, bottom: 100, width: 126, height: 4, borderRadius: 4, backgroundColor: COLORS.stageWarmHorizon },
   // Asymmetric daylight cues keep the stage spatial without drawing a giant
   // geometric circle behind the pet.
   windowBeamA: {
@@ -257,7 +259,7 @@ const styles = StyleSheet.create({
     left: 24,
     top: -54,
     borderRadius: 46,
-    backgroundColor: "#FFFFFFC8",
+    backgroundColor: COLORS.stageWarmBeam,
     opacity: 0.24,
     transform: [{ rotate: "7deg" }],
   },
@@ -268,7 +270,7 @@ const styles = StyleSheet.create({
     left: 116,
     top: -38,
     borderRadius: 24,
-    backgroundColor: "#F5FFF2",
+    backgroundColor: COLORS.stageWarmBeamSoft,
     opacity: 0.22,
     transform: [{ rotate: "7deg" }],
   },
@@ -279,7 +281,7 @@ const styles = StyleSheet.create({
     borderRadius: 66,
     right: -34,
     top: 34,
-    backgroundColor: "#D8E9D1",
+    backgroundColor: COLORS.stageWarmGlow,
     opacity: 0.21,
   },
   floorHaze: {
@@ -289,7 +291,7 @@ const styles = StyleSheet.create({
     right: -32,
     bottom: -58,
     borderRadius: 90,
-    backgroundColor: "#D0DDCC",
+    backgroundColor: COLORS.stageWarmFloor,
   },
   roomHorizon: {
     position: "absolute",
@@ -297,8 +299,32 @@ const styles = StyleSheet.create({
     left: 42,
     right: 42,
     bottom: 94,
-    backgroundColor: "#789B8170",
+    backgroundColor: COLORS.stageWarmHorizon,
     opacity: 0.28,
+  },
+  // A quiet projection footprint supplies the "subtle holographic presence"
+  // from the master without blue neon, grids or a decorative halo behind pet.
+  projectionPlane: {
+    position: "absolute",
+    left: "24%",
+    right: "24%",
+    bottom: 91,
+    height: 25,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#B99A704A",
+    backgroundColor: "#FFF8EB63",
+    opacity: 0.78,
+  },
+  projectionGlow: {
+    position: "absolute",
+    left: "31%",
+    right: "31%",
+    bottom: 86,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: "#F5DFC49A",
+    opacity: 0.38,
   },
   // R5.6 final craft: Review is a neutral identity studio, not a pet placed
   // in front of another decorative circle. A broad light well improves face /
