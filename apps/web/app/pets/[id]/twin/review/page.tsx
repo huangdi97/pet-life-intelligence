@@ -34,6 +34,7 @@ interface PetRow {
   name: string;
   species?: string | null;
   breed?: string | null;
+  avatar_artifact_id?: string | null;
 }
 
 interface VisualModelRow {
@@ -57,6 +58,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
   const [pet, setPet] = useState<PetRow | null>(null);
   const [model, setModel] = useState<VisualModelRow | null>(null);
   const [modelNote, setModelNote] = useState<string | null>(null);
+  const [realPhoto, setRealPhoto] = useState<{ petId: string; uri: string | null } | null>(null);
   const [selected, setSelected] = useState<"like" | "basic_like" | "not_like" | null>(null);
   const [issueKeys, setIssueKeys] = useState<string[]>([]);
   const [view, setView] = useState<"front" | "side" | "back">("front");
@@ -118,6 +120,19 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
       alive = false;
     };
   }, [petId]);
+
+  // The uploaded owner reference is not model-training evidence. Keep it
+  // scoped to this pet; a late response from another pet cannot be displayed.
+  useEffect(() => {
+    if (!pet?.avatar_artifact_id) return;
+    const id = petId;
+    let alive = true;
+    api.get<{ data_url: string | null }>(`/pets/${id}/avatar`)
+      .then((response) => { if (alive) setRealPhoto({ petId: id, uri: response.data_url ?? null }); })
+      .catch(() => { if (alive) setRealPhoto({ petId: id, uri: null }); });
+    return () => { alive = false; };
+  }, [petId, pet?.avatar_artifact_id]);
+  const referencePhoto = realPhoto?.petId === petId ? realPhoto.uri : null;
 
   function chooseReview(option: "like" | "basic_like" | "not_like") {
     setSelected(option);
@@ -196,6 +211,19 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
 
       {/* Review is an interactive identity decision: make orbit controls visible
           BEFORE the tall 3D stage, including on narrow owner phones. */}
+      <div className="v5-review-reference" data-testid="pli.twinreview.reference-photo">
+        {referencePhoto ? (
+          <>
+            <img src={referencePhoto} alt={`${pet?.name ?? "宠物"}的主人上传照片`} />
+            <div>
+              <strong>真实照片对照</strong>
+              <p>左侧是上传照片，下面是待确认的 3D 形象。请对照耳朵、毛色、脸型和身形。</p>
+            </div>
+          </>
+        ) : (
+          <p>尚无可用的主人照片对照。模板形象不能代替对真实宠物外观的确认。</p>
+        )}
+      </div>
       <div className="v5-review-tools">
         <h2>观察角度</h2>
         <p className="v5-review-hint">先从不同角度看清脸、耳朵、身形与尾巴，再判断是否像它。</p>
