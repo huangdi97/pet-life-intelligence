@@ -79,14 +79,18 @@ export const GROUND_SHADOW = {
 export const LIGHTS = {
   /** Warm low ambient so nothing is pitch black. */
   ambient: 0xffe8d2,
-  ambientIntensity: 0.82,
+  ambientIntensity: 0.46,
+  /** Warm sky / grounded beige hemisphere gives coat volume without a flat HUD look. */
+  hemisphereSky: 0xfff7ea,
+  hemisphereGround: 0xcdb89a,
+  hemisphereIntensity: 0.62,
   /** Warm key light from upper front-left. */
   key: 0xffd9b8,
-  keyIntensity: 1.12,
+  keyIntensity: 1.18,
   /** Cooler fill from the right to keep shapes readable. */
   fill: 0xe8e2d8,
-  fillIntensity: 0.58,
+  fillIntensity: 0.48,
   /** Soft rim from behind to lift the silhouette off the background. */
   rim: 0xfff3e0,
-  rimIntensity: 0.68,
+  rimIntensity: 0.72,
 } as const;
