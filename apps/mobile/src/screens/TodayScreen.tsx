@@ -238,7 +238,14 @@ export function TodayScreen() {
                 {todayTasks(tasks).map((t) => (
                   <View key={t.id} style={styles.taskRow}>
                     <Text style={styles.taskMark}>{t.status === "COMPLETED" ? "✓" : "○"}</Text>
-                    <Text style={styles.taskTitle}>{t.title}</Text>
+                    <View style={styles.taskBody}>
+                      <Text style={styles.taskTitle}>{t.title}</Text>
+                      {t.conflict_count > 0 ? (
+                        <Text style={styles.taskConflict} accessibilityLabel={`${t.conflict_count} 次重复完成冲突`}>
+                          已记录 {t.conflict_count} 次重复完成冲突 · 原完成记录未被覆盖
+                        </Text>
+                      ) : null}
+                    </View>
                   </View>
                 ))}
               </OpenSection>
@@ -284,8 +291,10 @@ const styles = StyleSheet.create({
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
   calmRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
   calmText: { fontSize: TYPE.sm, color: COLORS.textTertiary, lineHeight: 20 },
-  taskRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingVertical: 6 },
+  taskRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2, paddingVertical: 6 },
   taskMark: { fontSize: TYPE.body, color: COLORS.brandPrimaryDeep, width: 16 },
-  taskTitle: { fontSize: TYPE.body, color: COLORS.textPrimary, flex: 1 },
+  taskBody: { flex: 1 },
+  taskTitle: { fontSize: TYPE.body, color: COLORS.textPrimary },
+  taskConflict: { marginTop: 3, fontSize: TYPE.caption, color: COLORS.attention, lineHeight: 18 },
   memoryEmpty: { fontSize: TYPE.body, color: COLORS.textTertiary, lineHeight: 22, marginTop: SPACE.s1 },
 });
