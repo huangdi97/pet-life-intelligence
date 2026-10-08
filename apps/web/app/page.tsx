@@ -14,7 +14,7 @@ import { AttentionCard } from "./_components/today/AttentionCard";
 import { NowCard } from "./_components/today/NowCard";
 import { RecentCard } from "./_components/today/RecentCard";
 import { TasksCard } from "./_components/today/TasksCard";
-import { QUICK_TYPES, SHEET_TYPES, type TodayData } from "./_components/today/constants";
+import { SHEET_TYPES, type TodayData } from "./_components/today/constants";
 
 /** OWN-001 Today — Pet Living Stage（R2-P §7.1）：宠物是首屏视觉中心，
  *  此刻/变化/注意/动作/记忆依次展开。E2E 契约保留：快速记录 → .alert.info。 */
@@ -116,27 +116,37 @@ export default function TodayPage() {
     ? `最近记录 · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
     : `今天 · ${new Date().toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" })}`;
 
-  async function quickLog(q: (typeof QUICK_TYPES)[number], artifactIds: string[] = []) {
+  async function quickLog(
+    eventType: string,
+    label: string,
+    payload: Record<string, string | number>,
+    artifactIds: string[] = [],
+  ) {
     const target = current.id;
     try {
       await api.post(`/pets/${target}/events`, {
-        event_type: q.type,
-        payload: q.payload,
+        event_type: eventType,
+        payload,
         artifact_ids: artifactIds,
       });
-      setFlash(`已记录：${q.label}${artifactIds.length ? ` · 已绑定 ${artifactIds.length} 个媒体` : ""}`);
+      setFlash(`已记录：${label}${artifactIds.length ? ` · 已绑定 ${artifactIds.length} 个媒体` : ""}`);
       today.reload();
       setTimeout(() => setFlash(null), 2500);
     } catch (e) {
       // Offline UX（§63）：失败时保存草稿，恢复后可在 /offline 重试同步。
       // Already-uploaded artifact ids are retained in the draft so recovery
       // does not silently drop evidence.
-      saveDraft("quicklog", { event_type: q.type, payload: q.payload, artifact_ids: artifactIds });
+      saveDraft("quicklog", { event_type: eventType, payload, artifact_ids: artifactIds });
       setFlash(`${mapErrorMessage(e)}（已保存草稿，恢复后可同步）`);
     }
   }
 
-  async function sheetLog(type: string, textValue?: string, files: File[] = []) {
+  async function sheetLog(
+    type: string,
+    textValue?: string,
+    files: File[] = [],
+    fields: Record<string, string> = {},
+  ) {
     const q = SHEET_TYPES.find((s) => s.type === type);
     if (!q) return;
     if (type === "diary.created") {
@@ -159,10 +169,18 @@ export default function TodayPage() {
       const uploaded = await api.upload<{ artifact_id: string }>(`/pets/${current.id}/artifacts`, file);
       artifactIds.push(uploaded.artifact_id);
     }
-    await quickLog(
-      { type: q.type, label: q.label, payload: (q.payload as Record<string, string | number>) ?? {} },
-      artifactIds,
-    );
+    const payload: Record<string, string | number> = {};
+    for (const [key, raw] of Object.entries(fields)) {
+      const value = raw.trim();
+      if (!value) continue;
+      if (key === "duration_minutes") {
+        const minutes = Number.parseInt(value, 10);
+        if (Number.isFinite(minutes) && minutes >= 0) payload[key] = Math.min(minutes, 24 * 60);
+        continue;
+      }
+      payload[key] = value;
+    }
+    await quickLog(q.type, q.label, payload, artifactIds);
     setSheetOpen(false);
   }
 
