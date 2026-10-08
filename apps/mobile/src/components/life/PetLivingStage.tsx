@@ -48,6 +48,10 @@ interface Props {
   frameTarget?: number;
   /** Active motion clip for the 3D stage. */
   pose?: PoseName | null;
+  /** Optional semantic/test overrides for contextual Living Canvas surfaces such as Companion. */
+  stageRole?: string;
+  stageTestId?: string;
+  twinTestId?: string;
   /** Imperative handle to the embedded 3D page (Life View zoom/reset). */
   viewerRef?: React.Ref<import("../three/Pet3DViewer").Pet3DViewerHandle>;
   /** Twin Review view preset (front/side/back) — drives the real camera. */
@@ -66,6 +70,9 @@ export function PetLivingStage({
   twin = null,
   sourceMediaCount = 0,
   pose = null,
+  stageRole,
+  stageTestId: stageTestIdOverride,
+  twinTestId: twinTestIdOverride,
   viewerRef,
   view,
   frameTarget = 0,
@@ -109,23 +116,26 @@ export function PetLivingStage({
   const petWidth = Math.min(PET_WIDTHS[variant], Math.max(220, Math.floor(viewportWidth - 16)));
   // Namespace mapping for machine-readable ids: today→pli.today, pet→pli.pet,
   // life→pli.lifeview (Life View ids are the canonical "stage"/"twin" pair).
-  const stageTestId =
+  const stageTestId = stageTestIdOverride ?? (
     variant === "pet"
       ? "pli.pet.hero-stage"
       : variant === "life"
         ? "pli.lifeview.stage"
         : variant === "review"
           ? "pli.twinreview.stage"
-          : "pli.today.living-stage";
-  const twinTestId =
+          : "pli.today.living-stage"
+  );
+  const twinTestId = twinTestIdOverride ?? (
     variant === "life"
       ? "pli.lifeview.twin"
       : variant === "review"
         ? "pli.twinreview.twin"
-        : `pli.${variant}.pet-twin`;
+        : `pli.${variant}.pet-twin`
+  );
+  const runtimeStageRole = stageRole ?? variant;
   const petLayer = use3d ? (
     <View style={{ width: petWidth, height: Math.round(petWidth * 1.12) }}>
-      <Pet3DViewer ref={viewerRef} identity={identity} displayName={pet?.name ?? undefined} demoTwin={demo} twin={twin} pose={pose} interactive={interactive} frameTarget={frameTarget} view={view} stageRole={variant} stageTheme={stageTheme} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={setPet3d} />
+      <Pet3DViewer ref={viewerRef} identity={identity} displayName={pet?.name ?? undefined} demoTwin={demo} twin={twin} pose={pose} interactive={interactive} frameTarget={frameTarget} view={view} stageRole={runtimeStageRole} stageTheme={stageTheme} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={setPet3d} />
     </View>
   ) : (
     <View pointerEvents={onPressPet ? "none" : undefined}>
