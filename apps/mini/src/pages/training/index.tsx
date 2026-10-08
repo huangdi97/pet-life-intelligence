@@ -31,6 +31,12 @@ interface TrainingGoal {
   steps: Array<{ description: string; status: string }>;
 }
 
+interface TrainingTools {
+  tools: Array<{ name: string; use: string; safe?: boolean }>;
+  banned_note: string;
+  version?: string;
+}
+
 interface TrainingSession {
   session_id: string;
   goal_id: string | null;
@@ -72,6 +78,8 @@ export default function Training() {
   const [rewardNote, setRewardNote] = useState("");
   const [selectedReward, setSelectedReward] = useState("");
   const [rewardBusy, setRewardBusy] = useState(false);
+  const [tools, setTools] = useState<TrainingTools | null>(null);
+  const [toolsState, setToolsState] = useState<"loading" | "ready" | "error">("loading");
 
   const load = useCallback((pid: string) => {
     setState("loading");
@@ -84,6 +92,16 @@ export default function Training() {
       })
       .catch(() => setState("error"));
     setRewardState("loading");
+    setToolsState("loading");
+    api.get<TrainingTools>("/training/tools")
+      .then((value) => {
+        setTools(value);
+        setToolsState("ready");
+      })
+      .catch(() => {
+        setTools(null);
+        setToolsState("error");
+      });
     api.get<PreferenceRow[]>(`/pets/${pid}/preferences`)
       .then((items) => {
         setRewards(items.filter((row) => row.kind === "REWARD"));
@@ -317,6 +335,32 @@ export default function Training() {
               </View>
             </>
           ) : null}
+
+          <View className="open-section" data-testid="pli.mini.training.tools">
+            <View className="section-title">安全训练工具</View>
+            <View className="life-row-source">
+              这里只展示服务端版本化的正向强化工具；不会在加载失败时用客户端默认建议替代。
+            </View>
+            {toolsState === "loading" ? (
+              <View className="state">正在读取训练工具……</View>
+            ) : toolsState === "error" ? (
+              <View className="state state-error">训练工具暂时没有加载成功；请稍后重试。</View>
+            ) : tools?.tools?.length ? (
+              tools.tools.map((tool) => (
+                <View className="life-row" key={tool.name}>
+                  <View className="life-row-body">
+                    <View className="life-row-head">
+                      <Text className="life-row-type">{tool.name}</Text>
+                      <Text className="life-row-time">{tool.use}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View className="life-empty-note">当前没有可用的安全训练工具说明。</View>
+            )}
+            {tools?.banned_note ? <View className="life-row-source">{tools.banned_note}</View> : null}
+          </View>
 
           <View className="open-section">
             <View className="section-title" onClick={() => setFormOpen((value) => !value)}>
