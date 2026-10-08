@@ -8,6 +8,10 @@ import { eventTypeLabel } from "../../utils/labels";
 import { fmtTime } from "../../utils/format";
 
 interface WelfareProfile { profile?: { domains?: Record<string, unknown> } }
+interface EnrichmentLibrary {
+  activities: Array<{ name: string; domain: string; min_minutes: number }>;
+  version?: string;
+}
 interface WelfareEvidence {
   observation_counts?: Record<string, number>;
   sources?: string[];
@@ -63,17 +67,21 @@ export default function Welfare() {
   const [evidenceState, setEvidenceState] = useState<"loading" | "ready" | "error">("loading");
   const [eventsState, setEventsState] = useState<"loading" | "ready" | "error">("loading");
   const [version, setVersion] = useState(0);
+  const [enrichment, setEnrichment] = useState<EnrichmentLibrary | null>(null);
+  const [enrichmentState, setEnrichmentState] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     if (!petId) return;
     setProfileState("loading");
     setEvidenceState("loading");
     setEventsState("loading");
+    setEnrichmentState("loading");
     Promise.allSettled([
       api.get<WelfareProfile>(`/pets/${petId}/welfare-profile`),
       api.get<WelfareEvidence>(`/pets/${petId}/welfare-evidence`),
       api.get<{ events: LifeEvent[] }>(`/pets/${petId}/events?limit=30`),
-    ]).then(([p, ev, es]) => {
+      api.get<EnrichmentLibrary>("/welfare/enrichment-activities"),
+    ]).then(([p, ev, es, library]) => {
       if (p.status === "fulfilled") {
         setProfile(p.value);
         setProfileState("ready");
@@ -91,6 +99,13 @@ export default function Welfare() {
         setEventsState("ready");
       } else {
         setEventsState("error");
+      }
+      if (library.status === "fulfilled") {
+        setEnrichment(library.value);
+        setEnrichmentState("ready");
+      } else {
+        setEnrichment(null);
+        setEnrichmentState("error");
       }
     });
   }, [petId, version]);
@@ -170,6 +185,26 @@ export default function Welfare() {
             </View>
           </View>
         )) : <View className="life-empty-note">还没有相关日常记录。</View>}
+      </View>
+
+      <View className="open-section" data-testid="pli.mini.welfare.activity-library">
+        <View className="section-title">丰富化活动库</View>
+        <View className="life-row-source">通用安全活动建议，不代表这只宠物已经喜欢、适合或完成过。</View>
+        {enrichmentState === "loading" ? (
+          <View className="state">正在读取丰富化活动……</View>
+        ) : enrichmentState === "error" ? (
+          <View className="state state-error">活动库暂时没有加载成功；不会用客户端默认活动替代。</View>
+        ) : enrichment?.activities?.length ? enrichment.activities.map((activity) => (
+          <View className="life-row" key={activity.name}>
+            <View className="life-row-body">
+              <View className="life-row-head">
+                <Text className="life-row-type">{activity.name}</Text>
+                <Text className="life-row-time">{activity.domain}</Text>
+              </View>
+              <View className="life-row-source">建议至少 {activity.min_minutes} 分钟</View>
+            </View>
+          </View>
+        )) : <View className="life-empty-note">当前没有可用的丰富化活动说明。</View>}
       </View>
 
       <View className="open-section">
