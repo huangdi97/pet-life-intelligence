@@ -79,10 +79,17 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
   const events = (today.data?.events ?? []).filter((e) => e.event_type !== "today.viewed");
   const counts = today.data?.event_counts ?? {};
   const anchorValue = (n: number, unit: string) => (n > 0 ? `${n} ${unit}` : "—");
+  // Owner facts, not elapsed time for unrelated medication or sleep records.
+  // Match Android: only observed walking and play contribute activity minutes.
+  const observedActivityMinutes = events.reduce((sum, event) => {
+    if (event.event_type !== "daily.walk" && event.event_type !== "daily.play") return sum;
+    const minutes = Number(event.payload?.duration_minutes);
+    return Number.isFinite(minutes) && minutes > 0 ? sum + minutes : sum;
+  }, 0);
   const anchorsAll: StageAnchor[] = [
     { id: "water", label: "饮水", value: anchorValue(counts["daily.drink"] ?? 0, "次"), icon: "water", href: "/timeline" },
     { id: "meal", label: "进食", value: anchorValue(counts["daily.meal"] ?? 0, "次"), icon: "food", href: "/timeline" },
-    { id: "activity", label: "活动", value: anchorValue(events.reduce((s, e) => s + (Number(e.payload?.duration_minutes) || 0), 0), "分钟"), icon: "walk", href: "/timeline" },
+    { id: "activity", label: "活动", value: anchorValue(observedActivityMinutes, "分钟"), icon: "walk", href: "/timeline" },
     { id: "sleep", label: "睡眠", value: anchorValue(counts["daily.sleep"] ?? 0, "次"), icon: "sleep", href: "/timeline" },
   ];
   // INVARIANT: anchors always render ("—" when 0); never filtered out.
