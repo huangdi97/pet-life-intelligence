@@ -193,6 +193,17 @@
   outline: 2px solid var(--pli-primary-300, #a6b7a0); outline-offset: 2px;
 }
 .pli-quicklog-text-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.pli-quicklog-media {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px;
+  margin-bottom: 12px; padding: 10px 12px; border-radius: var(--pli-radius-lg, 12px);
+  background: var(--pli-bg-soft, #f7f3ed);
+}
+.pli-quicklog-media-pick { font-size: 13px; font-weight: 600; color: var(--pli-ink-secondary, #57504a); cursor: pointer; }
+.pli-quicklog-media-pick input { display: none; }
+.pli-quicklog-media-clear {
+  border: 0; background: transparent; color: var(--pli-ink-muted, #7c7369);
+  font: inherit; font-size: 12px; cursor: pointer; padding: 4px 0;
+}
 .pli-quicklog-btn[href] { text-decoration: none; color: inherit; justify-content: center; }
 
 /* ---------- states ---------- */
