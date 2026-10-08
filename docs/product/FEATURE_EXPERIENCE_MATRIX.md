@@ -92,10 +92,10 @@
 | PLI-082 | 05 Behavior | Intervention | 行为干预计划记录 | v1.0 | P2 | PRO_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | 主体实现（后端）+ 领域页入口 |
 | PLI-083 | 05 Behavior | Outcome | 行为干预结果 | v1.0 | P2 | PRO_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | 主体实现（后端）+ 领域页入口 |
 | PLI-084 | 05 Behavior | Safety | 行为建议安全过滤 | v0.2 | P1 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | 主体实现（后端）+ 领域页入口 |
-| PLI-085 | 06 Training | Goals | 训练目标创建 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
+| PLI-085 | 06 Training | Goals | 训练目标创建 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | Owner 三端真实创建并读取训练目标；加载失败与没有目标明确区分 |
 | PLI-086 | 06 Training | Curriculum | 目标分解 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
-| PLI-087 | 06 Training | Session | 训练会话记录 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
-| PLI-088 | 06 Training | Progress | 技能掌握度 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
+| PLI-087 | 06 Training | Session | 训练会话记录 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | Owner 三端提交真实训练会话、反应、时长与实际选择的奖励；未选择奖励时不伪造 |
+| PLI-088 | 06 Training | Progress | 技能掌握度 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | Owner 三端展示服务端 mastery；只由已提交会话更新，不按单次表现或模型猜测自动判定“学会了” |
 | PLI-089 | 06 Training | Generalization | 环境泛化矩阵 | v1.0 | P2 | PRO_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
 | PLI-090 | 06 Training | Adaptive | 下一步训练建议 | v1.0 | P2 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
 | PLI-091 | 06 Training | Reward | 奖励偏好库 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | Owner 三端真实 REWARD preference；训练会话只写用户实际选择的奖励，未选择则空数组 |
@@ -118,9 +118,9 @@
 | PLI-108 | 07 Welfare | Explainability | 福利证据解释 | v1.0 | P2 | FULL_UI | MISSING_STATE | PARTIAL_UI | — | — | — | — | — | Welfare | OWN-011 | TrendCard/MetricCard | low | 主体实现（后端）+ 领域页入口 |
 | PLI-109 | 07 Welfare | Household | 多宠资源冲突 | Future | Future | FUTURE | — | — | — | — | — | — | — | — | — | — | - | Future 42 冻结，不做 UI |
 | PLI-110 | 07 Welfare | Professional | 福利咨询摘要 | Future | Future | FUTURE | — | — | — | — | — | — | — | — | — | — | - | Future 42 冻结，不做 UI |
-| PLI-111 | 08 Social & Pet Friends | Profile | 社交偏好档案 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | — | — | — | — | — | Social | OWN-012 | InteractionCard | low | 主体实现（后端）+ 领域页入口 |
-| PLI-112 | 08 Social & Pet Friends | Graph | 宠物好友关系 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | — | — | — | — | — | Social | OWN-012 | InteractionCard | low | 主体实现（后端）+ 领域页入口 |
-| PLI-113 | 08 Social & Pet Friends | Interaction | 互动事件记录 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | — | — | — | — | — | Social | OWN-012 | InteractionCard | low | 主体实现（后端）+ 领域页入口 |
+| PLI-111 | 08 Social & Pet Friends | Profile | 社交偏好档案 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | — | — | Social | OWN-012 | InteractionCard | low | Owner 三端读取真实关系档案，并区分 loading/error/尚未形成；不输出伪精确兼容度 |
+| PLI-112 | 08 Social & Pet Friends | Graph | 宠物好友关系 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | — | — | Social | OWN-012 | InteractionCard | low | Owner 三端读取真实好友关系与状态；未知/加载失败不会显示成“没有好友” |
+| PLI-113 | 08 Social & Pet Friends | Interaction | 互动事件记录 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | — | — | Social | OWN-012 | InteractionCard | low | Owner 三端真实记录互动对象、状态、时长与备注，并回看 canonical interaction events |
 | PLI-114 | 08 Social & Pet Friends | Feedback | 互动后双向反馈 | v1.0 | P2 | FULL_UI | MISSING_STATE | PARTIAL_UI | — | — | — | — | — | Social | OWN-012 | InteractionCard | low | 主体实现（后端）+ 领域页入口 |
 | PLI-115 | 08 Social & Pet Friends | Learning | 经验型好友匹配 | v1.0 | P2 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | — | — | — | — | — | Social | OWN-012 | InteractionCard | low | 主体实现（后端）+ 领域页入口 |
 | PLI-116 | 08 Social & Pet Friends | Safety | 社交安全筛选 | v1.0 | P2 | FULL_UI | MISSING_STATE | PARTIAL_UI | — | — | — | — | — | Social | OWN-012 | InteractionCard | low | 主体实现（后端）+ 领域页入口 |
