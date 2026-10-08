@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, type Pet, type Task } from "@pli/api-client";
 import { QuickLogSheet } from "@pli/ui-kit";
 import { useAsync, useCurrentPet } from "../lib/hooks";
@@ -26,7 +26,10 @@ export default function TodayPage() {
   // Production/real-data sessions must never be mislabeled as "示例数据".
   const demoMode = process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1";
   const pets = useAsync<Pet[]>(() => api.get<Pet[]>("/pets"), [petId]);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  // A Quick Log form is owned by the pet active when it opened. Changing the
+  // selected pet must unmount its inputs, not silently retarget draft facts.
+  const [sheetPetId, setSheetPetId] = useState<string | null>(null);
+  useEffect(() => { setSheetPetId(null); }, [petId]);
   const today = useAsync<TodayData>(
     () => (petId ? api.get<TodayData>(`/pets/${petId}/today`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [petId],
@@ -151,7 +154,7 @@ export default function TodayPage() {
         await api.post(`/pets/${current.id}/diary`, { text });
         setFlash("已记录：备注");
         today.reload();
-        setSheetOpen(false);
+        setSheetPetId(null);
         setTimeout(() => setFlash(null), 2500);
       } catch (e) {
         saveDraft("quicklog", { pet_id: current.id, endpoint: `/pets/${current.id}/diary`, text });
@@ -183,7 +186,7 @@ export default function TodayPage() {
       payload[key] = value;
     }
     await quickLog(q.type, q.label, payload, artifactIds);
-    setSheetOpen(false);
+    setSheetPetId(null);
   }
 
   const identity = [current.breed || current.species].filter(Boolean).join(" · ");
@@ -219,7 +222,7 @@ export default function TodayPage() {
         <div>
           <NowCard lastEvent={lastEvent} counts={counts} />
           <AttentionCard hints={hints} evidenceState={attentionEvidenceReady ? "ready" : "unknown"} />
-          <ActionCard petId={current.id} onMore={() => setSheetOpen(true)} />
+          <ActionCard petId={current.id} onMore={() => setSheetPetId(current.id)} />
           <p className="v4-note" data-testid="pli.today.health-summary" style={{ margin: "10px 0 0" }}>
             {!attentionEvidenceReady
               ? "健康：当前证据未完整读取，不判断为正常"
@@ -242,8 +245,9 @@ export default function TodayPage() {
       </div>
 
       <QuickLogSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
+        key={current.id}
+        open={sheetPetId === current.id}
+        onClose={() => setSheetPetId(null)}
         types={SHEET_TYPES}
         onQuickLog={sheetLog}
         title="快速记录"

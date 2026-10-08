@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Pet } from "@pli/api-client";
 
@@ -102,4 +102,29 @@ describe("TodayPage (state rendering)", () => {
     await waitFor(() => expect(screen.getAllByText(/服务暂时不可用/).length).toBeGreaterThan(0));
     expect(document.body.textContent).not.toContain("Failed to fetch");
   });
+  it("closes the current Quick Log form immediately when switching to another pet", async () => {
+    apiMock.get.mockImplementation((path: string) => {
+      if (path === "/pets") return Promise.resolve([
+        PETS[0], { ...PETS[0], id: "pet-2", name: "咪咪" },
+      ]);
+      if (path.endsWith("/today")) return Promise.resolve({
+        pet: { id: "pet-1", name: "豆豆", species: "猫" },
+        date: "2026-10-08", event_counts: {}, events: [],
+      });
+      if (path.includes("/tasks")) return Promise.resolve([]);
+      if (path.includes("abnormal-day-hint")) return Promise.resolve({ hints: [] });
+      if (path.includes("visual-models")) return Promise.resolve({ models: [] });
+      return Promise.resolve({});
+    });
+    render(<TodayPage />);
+    const openButton = await screen.findByRole("button", { name: /快速记录/ });
+    fireEvent.click(openButton);
+    expect(screen.getByRole("dialog", { name: "快速记录" })).toBeTruthy();
+    await act(async () => {
+      window.localStorage.setItem("pli_current_pet", "pet-2");
+      window.dispatchEvent(new Event("pli-pet-changed"));
+    });
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "快速记录" })).toBeNull());
+  });
+
 });
