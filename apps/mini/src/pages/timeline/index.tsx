@@ -4,7 +4,7 @@
  * 筛选与数据流保持与后端 GET /pets/{id}/events 一致。
  */
 import { useCallback, useEffect, useState } from "react";
-import { Button, Text, Textarea, View } from "@tarojs/components";
+import { Button, Input, Text, Textarea, View } from "@tarojs/components";
 import Taro, { useDidShow } from "@tarojs/taro";
 import { api, type LifeEvent } from "../../services/api";
 import { usePets } from "../../utils/usePets";
