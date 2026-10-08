@@ -39,6 +39,17 @@ export function QuickLogScreen() {
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
   function pick(key: string) {
+    // Medication and structured behavior records have governed domain flows.
+    // Quick Log must never manufacture a GIVEN medication without a selected
+    // plan, nor collapse ABC behavior evidence into an empty generic event.
+    if (key === "medication") {
+      navigation.navigate("Medication");
+      return;
+    }
+    if (key === "behavior") {
+      navigation.navigate("Behavior");
+      return;
+    }
     setSelected(key);
     setSuccess(null);
     setError(null);
@@ -89,15 +100,8 @@ export function QuickLogScreen() {
           return;
         }
         payload = { weight_kg: String(w) };
-      } else if (t.event_type === "medication.administered") {
-        payload = { plan_id: "", administered_at: new Date().toISOString(), by_actor: "主人", status: "GIVEN" };
-      } else if (t.event_type === "behavior.observed") {
-        const b = behavior.trim();
-        if (!b) {
-          setError("请简单描述一下行为。");
-          return;
-        }
-        payload = { behavior: b, behavior_event_id: "", intensity_source: "OWNER_REPORTED" };
+      } else if (t.event_type === "medication.administered" || t.event_type === "behavior.observed") {
+        throw new Error("请从对应的完整记录页提交这类记录。");
       } else {
         const d = diaryText.trim();
         if (!d) {
@@ -141,6 +145,11 @@ export function QuickLogScreen() {
             <Text style={styles.noteText}>记录会保存来源与时间，可在时间线查看。</Text>
           </View>
         )}
+        {error ? (
+          <Text style={styles.errorText} accessibilityLiveRegion="assertive" testID="pli.quicklog.error">
+            {error}
+          </Text>
+        ) : null}
 
         {selectedType ? (
           <QuickLogForm t={selectedType} fields={fields} saving={saving} onSave={() => void save()} />
