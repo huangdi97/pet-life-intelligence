@@ -235,6 +235,12 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     });
     await expect(page.getByTestId("pli.quicklog.media")).toContainText("已选择 1 个文件");
 
+    // Selecting a record type opens an owner-confirmation form. It must not
+    // silently submit the old 100g/"狗粮" demo defaults.
+    await page.getByTestId("pli.quicklog.tile.feed").click();
+    await expect(page.getByTestId("pli.quicklog.field.amount")).toHaveValue("");
+    await expect(page.getByTestId("pli.quicklog.field.food_type")).toHaveValue("");
+
     const upload = page.waitForResponse(
       (response) => response.url().includes("/artifacts") && response.request().method() === "POST",
     );
@@ -243,12 +249,17 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
         response.url().includes("/events") &&
         response.request().method() === "POST",
     );
-    await page.getByTestId("pli.quicklog.tile.feed").click();
+    await page.getByTestId("pli.quicklog.text-save").click();
     expect((await upload).ok()).toBeTruthy();
     const eventResponse = await createEvent;
     expect(eventResponse.ok()).toBeTruthy();
-    const eventBody = (await eventResponse.json()) as { artifact_ids?: string[] };
+    const eventBody = (await eventResponse.json()) as {
+      artifact_ids?: string[];
+      payload?: Record<string, unknown>;
+    };
     expect(eventBody.artifact_ids).toHaveLength(1);
+    expect(eventBody.payload?.food_type ?? "").not.toBe("狗粮");
+    expect(eventBody.payload?.amount ?? "").not.toBe("100");
     await expect(page.getByText(/已记录：喂食 · 已绑定 1 个媒体/)).toBeVisible();
   });
 
