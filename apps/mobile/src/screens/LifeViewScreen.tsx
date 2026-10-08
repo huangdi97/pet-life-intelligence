@@ -36,27 +36,42 @@ interface AnchorDetail {
 export function LifeViewScreen() {
   const { pets, petId } = usePets();
   const { twin } = usePetTwin(petId);
-  const [today, setToday] = useState<{ events: LifeEvent[] } | null>(null);
+  const [loadedPetId, setLoadedPetId] = useState<string | null>(null);
+  const [rawToday, setToday] = useState<{ events: LifeEvent[] } | null>(null);
   const [mode, setMode] = useState<LivingMode>("now");
   const viewerRef = useRef<Pet3DViewerHandle>(null);
-  const [error, setError] = useState(false);
-  const [detail, setDetail] = useState<AnchorDetail | null>(null);
+  const [rawError, setError] = useState(false);
+  const [rawDetail, setDetail] = useState<AnchorDetail | null>(null);
+  const [detailPetId, setDetailPetId] = useState<string | null>(null);
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
+  // Each fact and any open detail sheet belongs to one pet. Hide stale state
+  // synchronously while React switches selected identity, before fetch effects.
+  const scoped = !!pet?.id && loadedPetId === pet.id;
+  const today = scoped ? rawToday : null;
+  const error = scoped ? rawError : false;
+  const detail = detailPetId === pet?.id ? rawDetail : null;
 
   useEffect(() => {
     if (!pet?.id) return;
     let alive = true;
+    setToday(null);
+    setError(false);
+    setDetail(null);
     api
       .get<{ events: LifeEvent[] }>(`/pets/${pet.id}/today`)
       .then((r) => {
         if (alive) {
           setToday(r);
           setError(false);
+          setLoadedPetId(pet.id);
         }
       })
       .catch(() => {
-        if (alive) setError(true);
+        if (alive) {
+          setError(true);
+          setLoadedPetId(pet.id);
+        }
       });
     return () => {
       alive = false;
@@ -90,6 +105,7 @@ export function LifeViewScreen() {
           ? new Date(evs[0].occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })
           : "—";
         const evi = evs[0] ? `${eventTypeLabel(evs[0].event_type)} · ${at}` : "暂无记录";
+        setDetailPetId(pet?.id ?? null);
         setDetail({ id, label, value, source: src, updatedAt: at, evidence: evi, compare: "暂无（数据积累后显示）" });
       },
     });
@@ -106,7 +122,7 @@ export function LifeViewScreen() {
       mk("sleep", "睡眠", c("daily.sleep") ? `${c("daily.sleep")} 次` : "—", "moon-outline", "daily.sleep"),
     ];
     return list;
-  }, [petEvents]);
+  }, [petEvents, pet?.id]);
 
   const nowLine = error
     ? "暂时连接不上，稍后自动恢复。"
