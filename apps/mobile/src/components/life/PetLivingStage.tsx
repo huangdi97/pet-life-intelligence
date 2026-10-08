@@ -8,7 +8,7 @@
  * P0 target).
  */
 import React, { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { Pet } from "../../services/types";
 import { api } from "../../api";
@@ -101,7 +101,9 @@ export function PetLivingStage({
   const reviewStudio = variant === "review";
   const stageTheme = reviewStudio ? ("review" as const) : ("living" as const);
   const height = HEIGHTS[variant];
-  const petWidth = PET_WIDTHS[variant];
+  // Keep the WebView inside narrow device viewports without clipping the 3D pet.
+  const { width: viewportWidth } = useWindowDimensions();
+  const petWidth = Math.min(PET_WIDTHS[variant], Math.max(220, Math.floor(viewportWidth - 16)));
   // Namespace mapping for machine-readable ids: today→pli.today, pet→pli.pet,
   // life→pli.lifeview (Life View ids are the canonical "stage"/"twin" pair).
   const stageTestId =
