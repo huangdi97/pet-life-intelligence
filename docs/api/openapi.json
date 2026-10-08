@@ -1765,6 +1765,51 @@
         }
       }
     },
+    "/api/v1/invitations/accept": {
+      "post": {
+        "tags": [
+          "care",
+          "care"
+        ],
+        "summary": "Accept Invitation By Token",
+        "description": "Accept a household invitation without exposing a household UUID.\n\nThe invitation token is a bearer secret but is also bound to the invited\naccount email, so forwarding a code cannot silently add another account.",
+        "operationId": "accept_invitation_by_token_api_v1_invitations_accept_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInvitation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Accept Invitation By Token Api V1 Invitations Accept Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/households/{household_id}/invitations/accept": {
       "post": {
         "tags": [
@@ -2102,6 +2147,61 @@
                   "type": "object",
                   "additionalProperties": true,
                   "title": "Response End Handoff Api V1 Handoffs  Handoff Id  End Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/handoffs/{handoff_id}/checklist/{item_id}/complete": {
+      "post": {
+        "tags": [
+          "care",
+          "care"
+        ],
+        "summary": "Complete Handoff Checklist Item",
+        "operationId": "complete_handoff_checklist_item_api_v1_handoffs__handoff_id__checklist__item_id__complete_post",
+        "parameters": [
+          {
+            "name": "handoff_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Handoff Id"
+            }
+          },
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Complete Handoff Checklist Item Api V1 Handoffs  Handoff Id  Checklist  Item Id  Complete Post"
                 }
               }
             }
@@ -2479,6 +2579,54 @@
       }
     },
     "/api/v1/pets/{pet_id}/deletion-requests": {
+      "get": {
+        "tags": [
+          "care",
+          "care"
+        ],
+        "summary": "List Deletion Requests",
+        "description": "Owner-visible deletion request history.\n\nThis is status-only. It never executes deletion; execution remains an\nexplicit, manual, audited high-risk operation outside this automatic path.",
+        "operationId": "list_deletion_requests_api_v1_pets__pet_id__deletion_requests_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Deletion Requests Api V1 Pets  Pet Id  Deletion Requests Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
           "care",
@@ -4028,6 +4176,67 @@
         }
       }
     },
+    "/api/v1/pets/{pet_id}/daily-summaries": {
+      "get": {
+        "tags": [
+          "v02-identity-daily",
+          "v02-identity-daily"
+        ],
+        "summary": "List Daily Summaries",
+        "operationId": "list_daily_summaries_api_v1_pets__pet_id__daily_summaries_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 90,
+              "minimum": 1,
+              "default": 14,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Daily Summaries Api V1 Pets  Pet Id  Daily Summaries Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/care-cards/{card_id}/qr.svg": {
       "get": {
         "tags": [
@@ -4482,6 +4691,55 @@
                   "type": "object",
                   "additionalProperties": true,
                   "title": "Response Create Recovery Plan Api V1 Health Events  Health Event Id  Recovery Plan Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health-events/{health_event_id}/recovery-plans": {
+      "get": {
+        "tags": [
+          "v02-care-health",
+          "v02-care-health"
+        ],
+        "summary": "List Recovery Plans",
+        "operationId": "list_recovery_plans_api_v1_health_events__health_event_id__recovery_plans_get",
+        "parameters": [
+          {
+            "name": "health_event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Health Event Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Recovery Plans Api V1 Health Events  Health Event Id  Recovery Plans Get"
                 }
               }
             }
@@ -12170,6 +12428,14 @@
             "type": "string",
             "title": "Reason",
             "default": ""
+          },
+          "checklist": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Checklist"
           }
         },
         "type": "object",
@@ -12985,6 +13251,10 @@
             ],
             "title": "Avatar Artifact Id"
           },
+          "lifecycle_status": {
+            "type": "string",
+            "title": "Lifecycle Status"
+          },
           "is_demo": {
             "type": "boolean",
             "title": "Is Demo",
@@ -13014,6 +13284,7 @@
           "weight_note",
           "timezone",
           "avatar_artifact_id",
+          "lifecycle_status",
           "created_at"
         ],
         "title": "PetOut"
