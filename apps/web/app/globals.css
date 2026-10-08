@@ -2091,3 +2091,24 @@ body{background:#F6F7F1}
 }
 .r2p-stage-photo-toggle:focus-visible{outline:2px solid #365F49;outline-offset:2px}
 @media(max-width:768px){.r2p-stage-photo-toggle{top:154px;right:12px}}
+
+/* R7.3 actual phone nav containment fix.
+   CSS backdrop-filter creates a containing block for position:fixed
+   descendants. Keeping it on sticky .topnav made the five "bottom tabs"
+   position themselves within the 63px HEADER: screenshots showed y=2!
+   The real owner viewport must own the bottom navigation. */
+@media(max-width:768px){
+  .topnav{
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
+    transform:none;
+    filter:none;
+  }
+  .topnav .navlinks{
+    position:fixed;
+    inset:auto 0 0 0;
+    width:auto;
+    margin:0;
+    z-index:300;
+  }
+}
