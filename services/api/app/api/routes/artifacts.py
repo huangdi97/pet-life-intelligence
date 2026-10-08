@@ -97,6 +97,37 @@ async def upload_artifact(
     }
 
 
+@router.get("/artifacts/{artifact_id}")
+async def get_artifact_metadata(
+    artifact_id: uuid_mod.UUID, db: DBSession, user: CurrentUser
+) -> dict:
+    """Owner-safe artifact metadata for memory/evidence presentation.
+
+    Access control exactly mirrors content download. The response deliberately
+    omits storage keys/backends so clients cannot infer object-store paths.
+    """
+    artifact = (
+        await db.execute(select(Artifact).where(Artifact.id == artifact_id))
+    ).scalar_one_or_none()
+    if artifact is None or artifact.deleted_at is not None:
+        raise NotFound("Artifact not found.")
+    pet = await perm.get_pet_or_404(db, artifact.pet_id)
+    capability = (
+        enums.Capability.MEDICAL_READ if artifact.sensitive else enums.Capability.DAILY_READ
+    )
+    await perm.require_capability(db, pet, user.id, capability)
+    return {
+        "artifact_id": str(artifact.id),
+        "pet_id": str(artifact.pet_id),
+        "kind": artifact.kind,
+        "content_type": artifact.content_type,
+        "size_bytes": artifact.size_bytes,
+        "original_filename": artifact.original_filename,
+        "sensitive": artifact.sensitive,
+        "created_at": artifact.created_at.isoformat(),
+    }
+
+
 @router.get("/artifacts/{artifact_id}/content")
 async def download_artifact(
     artifact_id: uuid_mod.UUID, db: DBSession, user: CurrentUser
