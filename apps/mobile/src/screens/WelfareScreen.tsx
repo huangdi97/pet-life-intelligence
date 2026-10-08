@@ -35,6 +35,11 @@ const DOMAIN_LABELS: Record<string, string> = {
   QOL_QUESTIONNAIRE: "生活质量问卷",
 };
 
+interface EnrichmentLibrary {
+  activities: Array<{ name: string; domain: string; min_minutes: number }>;
+  version?: string;
+}
+
 const SOURCE_LABELS: Record<string, string> = {
   OWNER_REPORTED: "你记录",
   DEVICE: "设备",
@@ -69,6 +74,8 @@ export function WelfareScreen() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
+  const [enrichment, setEnrichment] = useState<EnrichmentLibrary | null>(null);
+  const [enrichmentState, setEnrichmentState] = useState<"loading" | "ready" | "error">("loading");
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
@@ -76,15 +83,24 @@ export function WelfareScreen() {
     if (!petId) return;
     let alive = true;
     setLoading(true);
+    setEnrichmentState("loading");
     Promise.allSettled([
       api.get<WelfareProfile>(`/pets/${petId}/welfare-profile`),
       api.get<WelfareEvidence>(`/pets/${petId}/welfare-evidence`),
       api.get<{ events: LifeEvent[] }>(`/pets/${petId}/events?limit=40${WELFARE_EVENT_TYPES.map((w) => `&event_type=${w}`).join("")}`),
-    ]).then(([p, ev, evs]) => {
+      api.get<EnrichmentLibrary>("/welfare/enrichment-activities"),
+    ]).then(([p, ev, evs, library]) => {
       if (!alive) return;
       if (p.status === "fulfilled") setProfile(p.value);
       if (ev.status === "fulfilled") setEvidence(ev.value);
       if (evs.status === "fulfilled") setEvents(evs.value.events);
+      if (library.status === "fulfilled") {
+        setEnrichment(library.value);
+        setEnrichmentState("ready");
+      } else {
+        setEnrichment(null);
+        setEnrichmentState("error");
+      }
       setLoading(false);
       setError(p.status === "rejected" && ev.status === "rejected" && evs.status === "rejected");
     });
@@ -162,6 +178,26 @@ export function WelfareScreen() {
                     <Text style={styles.eventTime}>{fmtTime(e.occurred_at)}</Text>
                   </View>
                 ))
+              )}
+            </OpenSection>
+
+            <OpenSection title="丰富化活动库" testID="pli.welfare.activity-library">
+              <Text style={styles.sourceText}>通用安全活动建议，不代表这只宠物已经喜欢、适合或完成过。</Text>
+              {enrichmentState === "loading" ? (
+                <Text style={styles.emptyText}>正在读取丰富化活动……</Text>
+              ) : enrichmentState === "error" ? (
+                <Text style={styles.emptyText}>活动库暂时没有加载成功；不会用客户端默认活动替代。</Text>
+              ) : enrichment?.activities?.length ? (
+                enrichment.activities.map((activity, index) => (
+                  <View key={activity.name} style={[styles.eventRow, index > 0 && styles.eventDivider]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.eventType}>{activity.name}</Text>
+                      <Text style={styles.sourceText}>{activity.domain} · 至少 {activity.min_minutes} 分钟</Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.emptyText}>当前没有可用的丰富化活动说明。</Text>
               )}
             </OpenSection>
 
