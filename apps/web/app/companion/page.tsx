@@ -4,6 +4,7 @@ import Link from "next/link";
 import { api, type LifeEvent } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
 import type { DeviceInfo } from "./_components/types";
+import { PetLivingStage } from "../../components/pet-living-stage";
 
 /**
  * Companion — 陪伴模式 (Stage R.2 §54-56).
@@ -14,6 +15,20 @@ import type { DeviceInfo } from "./_components/types";
  * - device actions navigate to the real monitoring surface (no dead CTA);
  * - owner copy never leaks raw device/event status codes.
  */
+interface PetRow {
+  name: string;
+  species?: string | null;
+  breed?: string | null;
+}
+
+interface VisualModelRow {
+  version: number;
+  status: string;
+  provenance_kind?: string;
+  artifact_map?: { twin_descriptor?: import("@pli/pet-3d").TwinDescriptor };
+  metadata_json?: { demo_fixture?: boolean };
+}
+
 const LAYERS = [
   { key: "observe", zh: "观察", desc: "在不打扰它的前提下，留意活动、休息与互动变化。" },
   { key: "presence", zh: "在场", desc: "连接设备后，了解它是否来到附近、停留多久。" },
@@ -31,10 +46,42 @@ export default function CompanionPage() {
     () => (petId ? api.get(`/pets/${petId}/devices`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [petId],
   );
+  const pet = useAsync<PetRow>(
+    () => (petId ? api.get(`/pets/${petId}`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [petId],
+  );
+  const visual = useAsync<{ models: VisualModelRow[] }>(
+    () => (petId ? api.get(`/pets/${petId}/visual-models`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [petId],
+  );
 
   const visibleEvents = (recent.data?.events ?? [])
     .filter((e) => e.event_type !== "today.viewed")
     .slice(0, 4);
+
+  const activeTwin = visual.data?.models.find((model) => model.status === "ACTIVE") ?? null;
+  const twinDescriptor = activeTwin?.artifact_map?.twin_descriptor ?? null;
+  const sourceMediaCount = twinDescriptor?.surface?.observed_regions?.length ?? 0;
+  const demoTwin = activeTwin?.metadata_json?.demo_fixture === true;
+  const name = pet.data?.name ?? "它";
+  const onlineCount = (devices.data ?? []).filter((device) => {
+    const status = device.status.toUpperCase();
+    return status === "CONNECTED" || status === "ONLINE";
+  }).length;
+  const lastEvent = visibleEvents[0] ?? null;
+  const presenceHeadline =
+    devices.state === "error" || devices.state === "denied"
+      ? "先从它最近的生活继续了解它"
+      : onlineCount > 0
+        ? `${onlineCount} 个设备在线，可以了解它的此刻`
+        : "不在身边，也能继续看见它的生活";
+  const presenceCaption = lastEvent
+    ? `最近：${eventTypeZh(lastEvent.event_type)} · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })}`
+    : "还没有新的生活记录；不会用生成内容冒充实时画面。";
 
   return (
     <main className="v4-main v5-domain-page v5-utility-page">
@@ -45,28 +92,44 @@ export default function CompanionPage() {
         </div>
       </div>
 
-      <section className="v4-hero v4-hero--compact">
-        <div className="v4-art" aria-hidden="true">
-          <span className="v4-art-blob v4-art-blob--a" />
-          <span className="v4-art-blob v4-art-blob--b" />
-        </div>
-        <div className="v4-hero-copy">
-          <h2 className="v4-hero-title" style={{ fontSize: 28 }}>让陪伴自然发生</h2>
-          <p className="v4-hero-line">先观察，再理解；只有在合适的时候互动，而且节奏始终由你决定。</p>
-          <div className="v4-linkrow">
-            <Link className="v4-action v4-action--primary" href="/monitoring">
-              查看在家状态
-            </Link>
-            <Link className="v4-action v4-action--secondary" href="/timeline">
-              查看最近记录
-            </Link>
-          </div>
-        </div>
-      </section>
+      <PetLivingStage
+        name={name}
+        petId={petId ?? undefined}
+        species={pet.data?.species}
+        breed={pet.data?.breed}
+        variant="pet"
+        headline={presenceHeadline}
+        caption={presenceCaption}
+        note={
+          devices.state === "ready" && devices.data?.length === 0
+            ? "尚未连接设备 · 3D / 照片只是陪伴入口，不代表实时画面"
+            : "事实来自真实设备与生活记录；外观不会替代它们"
+        }
+        demo={demoTwin || process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1"}
+        twin={twinDescriptor}
+        sourceMediaCount={sourceMediaCount}
+        frameTarget={0.52}
+        stageRole="companion"
+        realityField="presence-space"
+        stageTestId="pli.companion.living-stage"
+        twinTestId="pli.companion.pet-twin"
+      />
+
+      <div className="v4-linkrow" style={{ margin: "14px 0 8px" }}>
+        <Link className="v4-action v4-action--primary" href={petId ? `/pets/${petId}/life-view` : "/pets"}>
+          看看它
+        </Link>
+        <Link className="v4-action v4-action--secondary" href="/monitoring">
+          在家与设备
+        </Link>
+        <Link className="v4-action v4-action--secondary" href="/timeline">
+          最近记录
+        </Link>
+      </div>
 
       <div className="v5-utility-stack">
         <section className="v5-utility-surface v5-utility-surface--soft" data-testid="pli.companion.overview">
-          <h2>四种能力</h2>
+          <h2>陪伴方式</h2>
           {LAYERS.map((l) => (
             <div className="v4-domain" key={l.key}>
               <div>
