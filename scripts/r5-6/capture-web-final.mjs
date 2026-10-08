@@ -71,6 +71,7 @@ const required = [
   "twinreview",
   "health",
   "assistant",
+  "companion",
   "me",
   "empty",
   "attention",
@@ -92,8 +93,9 @@ const expectedTwinStageRole = {
   pet: "pet",
   lifeview: "life",
   twinreview: "review",
+  companion: "companion",
 };
-for (const surface of ["today", "pet", "lifeview", "twinreview"]) {
+for (const surface of ["today", "pet", "lifeview", "twinreview", "companion"]) {
   const visualPath = resolve(out, surface, "visual.json");
   if (!existsSync(visualPath)) throw new Error(`required final Web visual manifest missing: ${surface}`);
   const visual = JSON.parse(readFileSync(visualPath, "utf8"));
@@ -139,7 +141,7 @@ const provenance = {
   primary_pet_id: petId || null,
   vision_model_used: false,
   required_surfaces: required,
-  product_twin_surfaces: ["today", "pet", "lifeview", "twinreview"],
+  product_twin_surfaces: ["today", "pet", "lifeview", "twinreview", "companion"],
 };
 writeFileSync(resolve(out, "capture-manifest.json"), JSON.stringify(provenance, null, 2) + "\n", "utf8");
 
