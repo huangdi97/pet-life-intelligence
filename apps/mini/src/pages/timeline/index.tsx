@@ -3,11 +3,12 @@
  * Day groups + time spine；事件类型/来源全部用户语言；不逐条套白卡。
  * 筛选与数据流保持与后端 GET /pets/{id}/events 一致。
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Input, Text, Textarea, View } from "@tarojs/components";
 import Taro, { useDidShow } from "@tarojs/taro";
 import { api, type LifeEvent } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { getPlatform } from "../../platform";
 import { eventPayloadText, eventTypeLabel, sourceLabel } from "../../utils/labels";
 import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../../components/timeline/LifeStream";
 import { EmptyState, InlineError, PetContextGate } from "../../components/feedback/Feedback";
@@ -18,6 +19,7 @@ interface DiaryRow {
   entry_at: string;
   text: string;
   has_audio: boolean;
+  audio_artifact_id: string | null;
 }
 interface MilestoneRow {
   milestone_id: string;
@@ -31,6 +33,14 @@ interface MemoryRow {
   events: number;
   sample: string[];
 }
+interface ArtifactMeta {
+  artifact_id: string;
+  kind: "IMAGE" | "VIDEO" | "AUDIO" | "DOCUMENT";
+  content_type: string;
+  original_filename: string;
+  size_bytes: number;
+}
+
 interface DailySummaryRow {
   summary_id: string;
   date: string;
@@ -89,6 +99,7 @@ function rowFromEvent(e: LifeEvent): LifeStreamRow {
     detail: eventPayloadText(e.payload),
     source: sourceLabel(e.source_type),
     mediaCount: e.artifact_ids?.length ?? 0,
+    artifactIds: e.artifact_ids ?? [],
   };
 }
 
@@ -107,7 +118,10 @@ export default function Timeline() {
   const [diary, setDiary] = useState<DiaryRow[]>([]);
   const [diaryState, setDiaryState] = useState<"loading" | "ready" | "error">("loading");
   const [diaryText, setDiaryText] = useState("");
+  const [diaryAudioPath, setDiaryAudioPath] = useState<string | null>(null);
+  const [diaryRecording, setDiaryRecording] = useState(false);
   const [diaryBusy, setDiaryBusy] = useState(false);
+  const recorderRef = useRef<ReturnType<typeof Taro.getRecorderManager> | null>(null);
   const [summaries, setSummaries] = useState<DailySummaryRow[]>([]);
   const [summaryState, setSummaryState] = useState<"loading" | "ready" | "error">("loading");
   const [summaryBusy, setSummaryBusy] = useState(false);
@@ -220,16 +234,79 @@ export default function Timeline() {
     }
   }
 
+  useEffect(() => {
+    const recorder = Taro.getRecorderManager();
+    recorderRef.current = recorder;
+    recorder.onStop((result) => {
+      setDiaryRecording(false);
+      if (result.tempFilePath) setDiaryAudioPath(result.tempFilePath);
+    });
+    recorder.onError(() => {
+      setDiaryRecording(false);
+      Taro.showToast({ title: "录音没有保存成功", icon: "none" });
+    });
+    return () => {
+      recorder.stop();
+      getPlatform().media.stopAudio();
+    };
+  }, []);
+
+  async function startDiaryRecording() {
+    try {
+      await Taro.authorize({ scope: "scope.record" });
+      setDiaryAudioPath(null);
+      setDiaryRecording(true);
+      recorderRef.current?.start({ duration: 60_000, format: "mp3" });
+    } catch {
+      setDiaryRecording(false);
+      Taro.showToast({ title: "需要麦克风权限才能录音；仍可写文字日记", icon: "none" });
+    }
+  }
+
+  function stopDiaryRecording() {
+    recorderRef.current?.stop();
+  }
+
+  async function openMedia(artifactIds: string[]) {
+    const ids = artifactIds.filter(Boolean);
+    if (!ids.length) return;
+    let index = 0;
+    if (ids.length > 1) {
+      const selected = await Taro.showActionSheet({
+        itemList: ids.map((_, i) => `原始媒体 ${i + 1}`),
+      }).catch(() => null);
+      if (!selected) return;
+      index = selected.tapIndex;
+    }
+    const artifactId = ids[index];
+    try {
+      const meta = await api.get<ArtifactMeta>(`/artifacts/${artifactId}`);
+      await getPlatform().media.openArtifact(artifactId, meta.kind);
+    } catch {
+      Taro.showToast({ title: "原始媒体暂时无法读取", icon: "none" });
+    }
+  }
+
   async function addDiary() {
     const text = diaryText.trim();
-    if (!petId || !text || diaryBusy) return;
+    if (!petId || (!text && !diaryAudioPath) || diaryBusy) return;
     setDiaryBusy(true);
     try {
-      await api.post(`/pets/${petId}/diary`, { text });
+      let audioArtifactId: string | null = null;
+      if (diaryAudioPath) {
+        const uploaded = await getPlatform().uploader.uploadAudio(petId, diaryAudioPath);
+        if (uploaded.kind !== "AUDIO") throw new Error("NOT_AUDIO");
+        audioArtifactId = uploaded.artifact_id;
+      }
+      await api.post(`/pets/${petId}/diary`, {
+        text,
+        audio_artifact_id: audioArtifactId,
+      });
       setDiaryText("");
+      setDiaryAudioPath(null);
       loadDiary(petId);
       load(petId, filter);
-      Taro.showToast({ title: "日记已保存", icon: "success" });
+      Taro.showToast({ title: audioArtifactId ? "语音日记已保存" : "日记已保存", icon: "success" });
     } catch {
       setDiaryState("error");
       Taro.showToast({ title: "暂时无法保存", icon: "none" });
@@ -364,7 +441,7 @@ export default function Timeline() {
           今天想记下什么
           <Text className="section-caption">生活日记</Text>
         </View>
-        <View className="life-empty-note">写下真实发生的事情。文字会作为主人记录保存，并在时间线留下来源明确的日记事件。</View>
+        <View className="life-empty-note">可以写文字，也可以录一段真实声音；录音作为原始媒体保存，不会被自动解释成情绪或健康结论。</View>
         <Textarea
           className="input"
           value={diaryText}
@@ -373,7 +450,20 @@ export default function Timeline() {
           onInput={(event) => setDiaryText(event.detail.value)}
           placeholder="例如：今天散步时第一次主动去闻路边的花。"
         />
-        <Button className="btn btn-primary" disabled={diaryBusy || !diaryText.trim()} onClick={() => void addDiary()}>
+        <View className="chips">
+          <View
+            className={`chip${diaryRecording ? " chip-active" : ""}`}
+            onClick={() => void (diaryRecording ? stopDiaryRecording() : startDiaryRecording())}
+          >
+            {diaryRecording ? "停止录音" : diaryAudioPath ? "重新录音" : "录一段声音"}
+          </View>
+          {diaryAudioPath ? (
+            <View className="chip" onClick={() => setDiaryAudioPath(null)}>移除录音</View>
+          ) : null}
+        </View>
+        {diaryRecording ? <View className="life-row-source">正在录音，最长 60 秒……</View> : null}
+        {diaryAudioPath && !diaryRecording ? <View className="life-row-source">已准备一段原始录音，将与这条日记一起保存。</View> : null}
+        <Button className="btn btn-primary" disabled={diaryBusy || (!diaryText.trim() && !diaryAudioPath) || diaryRecording} onClick={() => void addDiary()}>
           {diaryBusy ? "保存中…" : "保存日记"}
         </Button>
         {diaryState === "ready" && diary.length ? (
@@ -382,8 +472,13 @@ export default function Timeline() {
             {diary.slice(0, 3).map((entry) => (
               <View className="life-row" key={entry.diary_id}>
                 <View className="life-row-body">
-                  <View className="life-row-detail">{entry.text}</View>
-                  <View className="life-row-source">{new Date(entry.entry_at).toLocaleString()}</View>
+                  <View className="life-row-detail">{entry.text || "语音日记"}</View>
+                  <View className="life-row-source">{new Date(entry.entry_at).toLocaleString()}{entry.has_audio ? " · 含原始录音" : ""}</View>
+                  {entry.audio_artifact_id ? (
+                    <View className="secondary-action" style={{ marginTop: 6 }} onClick={() => void openMedia([entry.audio_artifact_id!])}>
+                      播放原始录音
+                    </View>
+                  ) : null}
                 </View>
               </View>
             ))}
@@ -458,7 +553,7 @@ export default function Timeline() {
         <EmptyState title={`${current?.name ?? "它"}的时间线还很安静`} body="第一次喂食、散步或健康记录会从这里开始。" />
       )}
 
-      <LifeStream days={days} />
+      <LifeStream days={days} onOpenMedia={(artifactIds) => void openMedia(artifactIds)} />
 
       {state === "loading" && <View className="state">加载中……</View>}
     </View>
