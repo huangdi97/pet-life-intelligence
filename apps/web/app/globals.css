@@ -2038,3 +2038,23 @@ body{background:#F6F7F1}
     padding-right:8px;
   }
 }
+
+/* R7.2 Timeline: the stream is the first-class experience. Keep active
+   pet/domain/search discoverable; secondary filtering is a quiet disclosure. */
+.v5-timeline-filter-shell { padding-top:10px; padding-bottom:12px; }
+.v7-timeline-search { display:flex; flex-direction:column; gap:6px; margin-top:12px; }
+.v7-timeline-search input { width:100%; box-sizing:border-box; min-height:44px; }
+.v7-timeline-refine { margin-top:8px; border:0; }
+.v7-timeline-refine-summary {
+  display:flex; align-items:center; justify-content:space-between;
+  min-height:44px; cursor:pointer; list-style:none;
+  font-size:13px; font-weight:650; color:#42674E;
+}
+.v7-timeline-refine-summary::-webkit-details-marker { display:none; }
+.v7-timeline-refine-summary:focus-visible { outline:2px solid #42674E; outline-offset:2px; }
+.v7-timeline-refine-count {
+  font-size:11px; color:#52695A; background:#E5EDE4;
+  border-radius:999px; padding:3px 10px; min-width:28px; text-align:center;
+}
+.v7-timeline-refine[open] .v5-timeline-primary-tools { margin-top:10px; }
+.v7-timeline-refine[open] .v5-timeline-precision { margin-top:10px; }
