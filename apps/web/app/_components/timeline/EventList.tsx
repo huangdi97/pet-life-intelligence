@@ -6,6 +6,7 @@ import { Icon, type WebIconName } from "../../../components/icons";
 import { provenanceLabelForSource } from "../../../lib/provenance-zh";
 import { eventPayloadSummary, eventTypeLabel } from "../../../lib/ownerLabels";
 import { TYPE_LABELS } from "./constants";
+import { ArtifactMemory } from "./ArtifactMemory";
 
 interface EventListProps {
   events: LifeEvent[];
@@ -128,12 +129,15 @@ export function EventList({ events, petName = "它" }: EventListProps) {
                       {(e.artifact_ids ?? []).length > 0 && (
                         <span className="ls-media">
                           <Icon name="camera" size={13} />
-                          {e.artifact_ids.length} 张照片
+                          {e.artifact_ids.length} 个原始媒体
                         </span>
                       )}
                       {e.supersedes_event_id && <span className="v4-chip">修订版本</span>}
                       {e.retracted_at && <span className="v4-chip v4-chip--danger">已撤回</span>}
                     </div>
+                    {(e.artifact_ids ?? []).slice(0, 3).map((artifactId) => (
+                      <ArtifactMemory key={artifactId} artifactId={artifactId} compact />
+                    ))}
                   </div>
                 </div>
               );
