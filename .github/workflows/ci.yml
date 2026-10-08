@@ -100,6 +100,11 @@ jobs:
         run: pnpm --dir apps/mobile build:3d-page
       - name: Web typecheck (cold, non-incremental)
         run: pnpm --dir apps/web exec tsc --noEmit --incremental false
+      # The Web component tests previously existed but CI never executed them.
+      # Run every Vitest spec, including pet framing, offline drafts, owner
+      # states, and Quick Log concurrency. No VLM is used.
+      - name: Web unit and component tests (Vitest)
+        run: pnpm --dir apps/web test
       - name: Web build
         run: pnpm --dir apps/web build
       - name: Admin typecheck
