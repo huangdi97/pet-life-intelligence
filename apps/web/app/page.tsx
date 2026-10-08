@@ -16,6 +16,7 @@ import { NowCard } from "./_components/today/NowCard";
 import { RecentCard } from "./_components/today/RecentCard";
 import { TasksCard } from "./_components/today/TasksCard";
 import { SHEET_TYPES, type TodayData } from "./_components/today/constants";
+import { observedActivityMinutes } from "./_components/today/activity";
 
 /** OWN-001 Today — Pet Living Stage（R2-P §7.1）：宠物是首屏视觉中心，
  *  此刻/变化/注意/动作/记忆依次展开。E2E 契约保留：快速记录 → .alert.info。 */
@@ -89,10 +90,7 @@ export default function TodayPage() {
   const hasPet = !!petId && petRows.some((p) => p.id === petId);
   const counts = today.data?.event_counts ?? {};
   const lastEvent = today.data?.events?.find((e) => e.event_type !== "today.viewed") ?? today.data?.events?.[0];
-  const activityMinutes = (today.data?.events ?? []).reduce((sum, e) => {
-    const mins = Number((e.payload as Record<string, unknown> | undefined)?.duration_minutes) || 0;
-    return sum + mins;
-  }, 0);
+  const activityMinutes = observedActivityMinutes(today.data?.events ?? []);
   const hints = (hint.data?.hints ?? []).filter((h) => Object.keys(h).length > 0);
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
   const attentionEvidenceReady = hint.state === "ready";
