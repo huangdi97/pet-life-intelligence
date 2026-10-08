@@ -142,7 +142,19 @@ export default function Index() {
       }
     });
     try {
-      await api.post(`/pets/${target}/events`, { event_type: sheetType.type, payload });
+      // Diary is owner-authored text with its own canonical endpoint. Let the
+      // backend create the corresponding timeline event rather than submitting
+      // a parallel generic event payload from the client.
+      if (sheetType.type === "diary.created") {
+        const text = String(payload.text ?? "").trim();
+        if (!text) {
+          setFlash("请先填写备注内容。");
+          return;
+        }
+        await api.post(`/pets/${target}/diary`, { text });
+      } else {
+        await api.post(`/pets/${target}/events`, { event_type: sheetType.type, payload });
+      }
       setSheetOpen(false);
       setSheetType(null);
       setFlash(`已记录：${DAILY_COUNT_LABELS[sheetType.type] ?? sheetType.type}`);
