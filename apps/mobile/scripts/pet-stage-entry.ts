@@ -40,7 +40,8 @@ const injectedStageRole =
   window.__PLI_STAGE_ROLE === "today" ||
   window.__PLI_STAGE_ROLE === "pet" ||
   window.__PLI_STAGE_ROLE === "life" ||
-  window.__PLI_STAGE_ROLE === "review"
+  window.__PLI_STAGE_ROLE === "review" ||
+  window.__PLI_STAGE_ROLE === "companion"
     ? String(window.__PLI_STAGE_ROLE)
     : stageTheme === "review"
       ? "review"
