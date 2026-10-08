@@ -11,6 +11,7 @@ export interface LifeStreamRow {
   typeLabel: string;
   detail: string;
   source: string;
+  mediaCount?: number;
 }
 
 export interface LifeStreamDay {
@@ -39,7 +40,9 @@ export function LifeStream({ days }: { days: LifeStreamDay[] }) {
                   <Text className="life-row-time">{r.time}</Text>
                 </View>
                 {r.detail ? <View className="life-row-detail">{r.detail}</View> : null}
-                <View className="life-row-source">{r.source}</View>
+                <View className="life-row-source">
+                  {r.source}{r.mediaCount && r.mediaCount > 0 ? ` · ${r.mediaCount} 个媒体证据` : ""}
+                </View>
               </View>
             </View>
           ))}
