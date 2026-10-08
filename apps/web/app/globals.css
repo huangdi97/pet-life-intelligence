@@ -1782,3 +1782,107 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
     min-height: 44px;
   }
 }
+
+
+/* ======================================================================
+   R6: LIVING CANVAS RECONSTRUCTION / all five owner tabs.
+   This is a new composition layer over the historical V4/R5 declarations.
+   It does NOT replace the 3D runtime or claim pet identity validation.
+   ====================================================================== */
+:root {
+  --v4-canvas:#fbf7f1;
+  --v4-text-primary:#302d27;
+  --v4-text-secondary:#625a4e;
+  --v4-brand-primary:#4c664e;
+  --v4-divider:#e8dfd2;
+}
+body { background:var(--v4-canvas); }
+.topnav { background:rgba(251,247,241,.94); border-bottom:1px solid rgba(105,91,71,.10); box-shadow:none; }
+.navlinks a.active { background:#e5ecdf; color:#38563d; }
+.page:has(main.v4-main) { max-width:1240px; padding-top:0; }
+.v4-main { max-width:1240px; }
+.v4-topline { padding:24px 0 12px; margin-bottom:0; }
+.v4-topline h1 { font-size:clamp(26px,3.1vw,36px); letter-spacing:-.045em; }
+.v4-sec { padding:26px 0; }
+.v4-sec + .v4-sec { border-color:rgba(102,90,77,.12); }
+.v4-sec-title { font-size:19px; color:#342f29; letter-spacing:-.035em; }
+.v4-sec-sub,.v4-sec-foot { line-height:1.6; }
+.card,.v5-form-surface,.v5-progress-surface { border-color:rgba(140,116,85,.12); box-shadow:none; border-radius:20px; }
+.v4-action--primary,.btn.primary { background:#4a644c; border-color:#4a644c; }
+.v4-action,.btn { border-radius:999px; }
+
+/* The animal is the spatial subject. No 3D showroom card or floating HUD. */
+.r2p-stage,.r2p-stage--3d,.r2p-stage--life.r2p-stage--3d {
+  position:relative; min-height:540px; border:0; border-radius:0;
+  box-shadow:none; margin:0 0 22px;
+  background:
+    radial-gradient(ellipse 78% 64% at 52% 35%,#fff9ee 0%,rgba(255,248,237,.65) 48%,transparent 100%),
+    linear-gradient(168deg,#f9f2e9 0%,#f3e8d8 58%,#ead9c1 100%);
+}
+.r2p-stage--pet.r2p-stage--3d { min-height:580px; }
+.r2p-stage--life.r2p-stage--3d { min-height:660px; }
+.r2p-stage--3d::after { display:none; }
+.r2p-stage--3d::before { opacity:.5; }
+.r2p-stage-wash { display:none; }
+.r2p-stage-glow { bottom:60px; width:min(80%,480px); height:90px; }
+.r2p-stage-name { top:30px; left:30px; right:24px; font-size:clamp(32px,4vw,45px); letter-spacing:-.045em; }
+.r2p-stage-now,.r2p-stage--life .r2p-stage-now {
+  top:96px; left:30px; right:30px; bottom:auto; width:auto; max-width:none;
+  border:0; padding:0; border-radius:0; box-shadow:none; background:none;
+  backdrop-filter:none;
+}
+.r2p-stage-headline { font-size:16px; font-weight:600; color:#655c50; }
+.r2p-stage-caption { font-size:12px; line-height:1.6; }
+.r2p-stage--3d .r2p-stage-pet--3d,
+.r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d,
+.r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d {
+  bottom:64px; width:min(95%,510px); height:440px; z-index:1;
+}
+.r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d { bottom:84px; height:510px; }
+.r2p-stage-pet:not(.r2p-stage-pet--3d) { bottom:96px; }
+.r2p-stage--3d .r2p-anchor,.r2p-anchor {
+  top:auto; right:auto; bottom:8px; width:24%; min-height:48px;
+  flex-direction:column; justify-content:center; align-items:center;
+  padding:5px 6px; gap:3px; background:transparent;
+  border:0; box-shadow:none; border-radius:8px;
+}
+.r2p-stage:has(.r2p-anchor) { padding-bottom:68px; }
+.r2p-anchor--0 { left:1% !important; }
+.r2p-anchor--1 { left:26% !important; }
+.r2p-anchor--2 { left:51% !important; }
+.r2p-anchor--3 { left:76% !important; }
+.r2p-anchor-icon { display:none; }
+.r2p-anchor-label { font-size:11px; }
+.r2p-anchor-value { font-size:15px; white-space:nowrap; }
+.r2p-stage--life .pet3d-controls { bottom:22px; right:20px; }
+.r5-review-studio { border-radius:20px; border:0; box-shadow:none; }
+/* The in-page owner controls are part of the living world, not a form wall. */
+.v4-calm,.v4-attn { border-radius:18px; padding:18px 20px; }
+.v4-metric { padding:18px 6px 12px; }
+.v4-metric-value { font-size:27px; }
+.v4-action--secondary { background:#e4eadd; }
+.ls-item { padding:14px 0; }
+.ls-day { padding-top:18px; }
+@media (min-width:1024px) {
+  .r2p-stage--3d .r2p-stage-pet--3d,
+  .r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d,
+  .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d {
+    width:min(74%,620px); height:480px;
+  }
+  .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d { height:540px; }
+}
+@media(max-width:768px) {
+  .page:has(main.v4-main) { padding:0 0 calc(108px + env(safe-area-inset-bottom,0px)); }
+  .v4-main > :not(.r2p-stage) { margin-left:16px; margin-right:16px; }
+  .v4-topline { padding:20px 0 12px; }
+  .r2p-stage,.r2p-stage--3d { min-height:510px; }
+  .r2p-stage--pet.r2p-stage--3d { min-height:560px; }
+  .r2p-stage--life.r2p-stage--3d { min-height:600px; }
+  .r2p-stage-name { top:24px; left:20px; font-size:32px; }
+  .r2p-stage-now,.r2p-stage--life .r2p-stage-now { left:20px; right:20px; top:79px; }
+  .r2p-stage--3d .r2p-stage-pet--3d,
+  .r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d { width:min(100%,370px); height:390px; bottom:63px; }
+  .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d { width:min(100%,380px); height:470px; bottom:66px; }
+  .navlinks { background:rgba(255,253,248,.97); border-radius:24px; }
+  .navlinks a.active { background:#e3ecdf; }
+}
