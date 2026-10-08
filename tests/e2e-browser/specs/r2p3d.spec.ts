@@ -295,3 +295,40 @@ test("R7 Timeline keeps the life stream near the first phone viewport, with opti
   await expect(refine.getByLabel("按事件类型过滤")).toBeVisible();
   await expect(refine.getByRole("group", { name: "按来源筛选" })).toBeVisible();
 });
+
+
+test("R7 Companion is a real pet Living Canvas on the owner phone", async ({ page, request }) => {
+  await loginAsEmail(page, request, "owner@pli.demo");
+  const petId = await demoDoudouId(request);
+  await useCurrentPet(page, petId);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/companion");
+
+  const canvas = page.getByTestId("pli.companion.living-stage");
+  await expect(canvas).toBeVisible();
+  const bounds = await canvas.boundingBox();
+  expect(bounds, "Companion Living Canvas has real geometry").not.toBeNull();
+  expect(bounds!.x).toBeGreaterThanOrEqual(-1);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(391);
+
+  const stage = page.locator('[data-testid="pet3d-stage"]').first();
+  await expect(stage).toHaveAttribute("data-pet3d", "ready", { timeout: 15000 });
+  await page.waitForFunction(
+    ({ expectedPetId }) => {
+      const manifest = (window as typeof window & { __PLI_3D_MANIFEST__?: Record<string, any> }).__PLI_3D_MANIFEST__;
+      return (
+        manifest?.ready === true &&
+        manifest?.manifestOrigin === "RUNTIME" &&
+        manifest?.representation === "high-fidelity-glb-twin" &&
+        manifest?.petId === expectedPetId &&
+        manifest?.stageRole === "companion" &&
+        manifest?.generic !== true &&
+        manifest?.fallbackUsed !== true
+      );
+    },
+    { expectedPetId: petId },
+  );
+  await expect(page.getByRole("link", { name: "看看它" })).toBeVisible();
+  await expect(page.getByText(/尚未连接设备|个设备在线|设备状态暂时/).first()).toBeVisible();
+  await expectNoFatalState(page);
+});
