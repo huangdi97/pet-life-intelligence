@@ -803,8 +803,7 @@ def test_android_life_view_activity_and_provenance_are_from_the_same_events() ->
     shared = read("apps/mobile/src/screens/today_helpers.ts")
     assert 'import { observedActivityMinutes } from "./today_helpers"' in life
     assert "const activityMinutes = observedActivityMinutes(petEvents);" in life
-    assert 'activityMinutes > 0 ? `${activityMinutes} 分钟`' not in life
-    assert 'activityMinutes > 0 ? `${activityMinutes} 分钟`'.replace("\\", "") in life
+    assert 'activityMinutes > 0 ? `${activityMinutes} 分钟`' in life
     assert 'e.event_type === "daily.walk" || e.event_type === "daily.play"' in life
     assert 'const evs = id === "activity"' in life
     assert 'new Set(["daily.walk", "daily.play"])' in shared
