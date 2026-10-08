@@ -122,6 +122,9 @@ export default function Timeline() {
   const [diaryRecording, setDiaryRecording] = useState(false);
   const [diaryBusy, setDiaryBusy] = useState(false);
   const recorderRef = useRef<ReturnType<typeof Taro.getRecorderManager> | null>(null);
+  const activePetRef = useRef(petId);
+  activePetRef.current = petId;
+  const recorderPetRef = useRef<string | null>(null);
   const [summaries, setSummaries] = useState<DailySummaryRow[]>([]);
   const [summaryState, setSummaryState] = useState<"loading" | "ready" | "error">("loading");
   const [summaryBusy, setSummaryBusy] = useState(false);
@@ -135,20 +138,23 @@ export default function Timeline() {
     api
       .get<{ events: LifeEvent[]; count: number }>(url)
       .then((r) => {
+        if (activePetRef.current !== pid) return;
         setEvents(r.events);
         setState("ready");
       })
-      .catch(() => setState("error"));
+      .catch(() => { if (activePetRef.current === pid) setState("error"); });
   }, []);
 
   const loadMilestones = useCallback((pid: string) => {
     setMilestoneState("loading");
     api.get<MilestoneRow[]>(`/pets/${pid}/milestones`)
       .then((rows) => {
+        if (activePetRef.current !== pid) return;
         setMilestones(rows);
         setMilestoneState("ready");
       })
       .catch(() => {
+        if (activePetRef.current !== pid) return;
         setMilestones([]);
         setMilestoneState("error");
       });
@@ -158,10 +164,12 @@ export default function Timeline() {
     setMemoryState("loading");
     api.get<MemoryRow[]>(`/pets/${pid}/memories?years_back=10`)
       .then((rows) => {
+        if (activePetRef.current !== pid) return;
         setMemories(rows);
         setMemoryState("ready");
       })
       .catch(() => {
+        if (activePetRef.current !== pid) return;
         setMemories([]);
         setMemoryState("error");
       });
@@ -171,10 +179,12 @@ export default function Timeline() {
     setSummaryState("loading");
     api.get<DailySummaryRow[]>(`/pets/${pid}/daily-summaries?limit=7`)
       .then((rows) => {
+        if (activePetRef.current !== pid) return;
         setSummaries(rows);
         setSummaryState("ready");
       })
       .catch(() => {
+        if (activePetRef.current !== pid) return;
         setSummaries([]);
         setSummaryState("error");
       });
@@ -184,10 +194,12 @@ export default function Timeline() {
     setDiaryState("loading");
     api.get<DiaryRow[]>(`/pets/${pid}/diary?limit=5`)
       .then((rows) => {
+        if (activePetRef.current !== pid) return;
         setDiary(rows);
         setDiaryState("ready");
       })
       .catch(() => {
+        if (activePetRef.current !== pid) return;
         setDiary([]);
         setDiaryState("error");
       });
@@ -238,10 +250,16 @@ export default function Timeline() {
     const recorder = Taro.getRecorderManager();
     recorderRef.current = recorder;
     recorder.onStop((result) => {
+      const owner = recorderPetRef.current;
+      recorderPetRef.current = null;
+      if (!owner || owner !== activePetRef.current) return;
       setDiaryRecording(false);
       if (result.tempFilePath) setDiaryAudioPath(result.tempFilePath);
     });
     recorder.onError(() => {
+      const owner = recorderPetRef.current;
+      recorderPetRef.current = null;
+      if (!owner || owner !== activePetRef.current) return;
       setDiaryRecording(false);
       Taro.showToast({ title: "录音没有保存成功", icon: "none" });
     });
@@ -252,14 +270,21 @@ export default function Timeline() {
   }, []);
 
   async function startDiaryRecording() {
+    const owner = petId;
+    if (!owner || recorderPetRef.current) return;
     try {
       await Taro.authorize({ scope: "scope.record" });
+      if (activePetRef.current !== owner) return;
       setDiaryAudioPath(null);
+      recorderPetRef.current = owner;
       setDiaryRecording(true);
       recorderRef.current?.start({ duration: 60_000, format: "mp3" });
     } catch {
-      setDiaryRecording(false);
-      Taro.showToast({ title: "需要麦克风权限才能录音；仍可写文字日记", icon: "none" });
+      recorderPetRef.current = null;
+      if (activePetRef.current === owner) {
+        setDiaryRecording(false);
+        Taro.showToast({ title: "需要麦克风权限才能录音；仍可写文字日记", icon: "none" });
+      }
     }
   }
 
@@ -289,23 +314,25 @@ export default function Timeline() {
 
   async function addDiary() {
     const text = diaryText.trim();
-    if (!petId || (!text && !diaryAudioPath) || diaryBusy) return;
+    const owner = petId;
+    if (!owner || (!text && !diaryAudioPath) || diaryBusy) return;
     setDiaryBusy(true);
     try {
       let audioArtifactId: string | null = null;
       if (diaryAudioPath) {
-        const uploaded = await getPlatform().uploader.uploadAudio(petId, diaryAudioPath);
+        const uploaded = await getPlatform().uploader.uploadAudio(owner, diaryAudioPath);
         if (uploaded.kind !== "AUDIO") throw new Error("NOT_AUDIO");
         audioArtifactId = uploaded.artifact_id;
       }
-      await api.post(`/pets/${petId}/diary`, {
+      await api.post(`/pets/${owner}/diary`, {
         text,
         audio_artifact_id: audioArtifactId,
       });
+      if (activePetRef.current !== owner) return;
       setDiaryText("");
       setDiaryAudioPath(null);
-      loadDiary(petId);
-      load(petId, filter);
+      loadDiary(owner);
+      load(owner, filter);
       Taro.showToast({ title: audioArtifactId ? "语音日记已保存" : "日记已保存", icon: "success" });
     } catch {
       setDiaryState("error");
@@ -326,6 +353,14 @@ export default function Timeline() {
   });
 
   useEffect(() => {
+    // Unsent notes and raw recordings are pet-scoped. Switching pets must
+    // neither transfer their content nor accept late recorder callbacks.
+    setDiaryText("");
+    setDiaryAudioPath(null);
+    setDiaryRecording(false);
+    recorderPetRef.current = null;
+    try { recorderRef.current?.stop(); } catch { /* not recording */ }
+    getPlatform().media.stopAudio();
     if (petId) {
       load(petId, filter);
       loadMilestones(petId);
