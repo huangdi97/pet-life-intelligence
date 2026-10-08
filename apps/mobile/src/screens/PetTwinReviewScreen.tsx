@@ -170,6 +170,30 @@ export function PetTwinReviewScreen() {
         <View style={styles.center}><ActivityIndicator color={COLORS.brandPrimary} /></View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {/* 3D orbit presets must be immediately usable, rather than buried
+              below a tall model and absent from the initial accessibility viewport. */}
+          <View style={styles.viewToolbar} testID="pli.twinreview.camera-controls">
+          <Text style={styles.toolbarTitle}>观察角度 · 从不同方向确认它的模样</Text>
+          <View style={styles.viewRow} accessibilityLabel="视图选择">
+            {VIEWS.map((v) => (
+              <Pressable
+                key={v.key}
+                testID={`pli.twinreview.view.${v.key}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: view === v.key }}
+                onPress={() => {
+                  setView(v.key);
+                  viewerRef.current?.setView(v.key);
+                }}
+                style={[styles.viewChip, view === v.key && styles.viewChipSel]}
+              >
+                <Text style={[styles.viewChipText, view === v.key && styles.viewChipTextSel]}>{v.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.viewNote}>当前视图：{VIEW_LABEL[view] ?? view}</Text>
+
+          </View>
           {candidate ? (
             <PetLivingStage pet={pet} spec={resolvePetStage(pet)} variant="review" demo={DEMO_ENV || candidateDemo} twin={candidate} sourceMediaCount={sourceMediaCount} pose="Stand" interactive frameTarget={0.40} view={view} viewerRef={viewerRef} />
           ) : (
@@ -189,27 +213,6 @@ export function PetTwinReviewScreen() {
                 ? `已关联 ${sourceMediaCount} 处素材区域；未观察到的部分仍可能来自模板推断。`
                 : "当前候选尚无可确认的素材区域；不会把模板部分描述为真实观察。"}
           </Text>
-
-          <Text style={styles.sectionLabel}>观察角度</Text>
-          <Text style={styles.sectionHint}>先从不同角度看清脸、耳朵、身形与尾巴，再判断是否像它。</Text>
-          <View style={styles.viewRow} accessibilityLabel="视图选择">
-            {VIEWS.map((v) => (
-              <Pressable
-                key={v.key}
-                testID={`pli.twinreview.view.${v.key}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: view === v.key }}
-                onPress={() => {
-                  setView(v.key);
-                  viewerRef.current?.setView(v.key);
-                }}
-                style={[styles.viewChip, view === v.key && styles.viewChipSel]}
-              >
-                <Text style={[styles.viewChipText, view === v.key && styles.viewChipTextSel]}>{v.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={styles.viewNote}>当前视图：{VIEW_LABEL[view] ?? view}</Text>
 
           <View style={styles.cameraRow} accessibilityLabel="3D 形象缩放与重置">
             <Pressable accessibilityRole="button" accessibilityLabel="缩小 3D 形象" onPress={() => viewerRef.current?.zoomOut()} style={styles.cameraBtn}>
@@ -331,7 +334,9 @@ const styles = StyleSheet.create({
   },
   caption: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20, marginTop: SPACE.s2 },
   provenanceNote: { fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18, marginTop: SPACE.s1 },
-  viewRow: { flexDirection: "row", gap: SPACE.s2, marginTop: SPACE.s3 },
+  viewToolbar: { paddingHorizontal: SPACE.s1, paddingVertical: SPACE.s2, marginBottom: SPACE.s3 },
+  toolbarTitle: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "700", lineHeight: 20 },
+  viewRow: { flexDirection: "row", gap: SPACE.s2, marginTop: SPACE.s2 },
   viewChip: { flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", paddingVertical: 10, backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.dividerSubtle },
   viewChipSel: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
   viewChipText: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "600" },
