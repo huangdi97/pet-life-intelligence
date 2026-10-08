@@ -83,6 +83,8 @@ export default function TrainingPage() {
     [],
   );
   const [title, setTitle] = useState("");
+  const [targetBehavior, setTargetBehavior] = useState("");
+  const [stepsText, setStepsText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [rewardSubject, setRewardSubject] = useState("");
   const [rewardNote, setRewardNote] = useState("");
@@ -115,8 +117,18 @@ export default function TrainingPage() {
     if (!petId || !title.trim()) return;
     setError(null);
     try {
-      await api.post(`/pets/${petId}/training-goals`, { title: title.trim() });
+      const steps = stepsText
+        .split(/\n|[；;]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+      await api.post(`/pets/${petId}/training-goals`, {
+        title: title.trim(),
+        target_behavior: targetBehavior.trim(),
+        steps,
+      });
       setTitle("");
+      setTargetBehavior("");
+      setStepsText("");
       goals.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -218,17 +230,37 @@ export default function TrainingPage() {
       <section className="v4-sec">
         <h2 className="v4-sec-title">开始一个新目标</h2>
         <p className="v4-sec-sub">先看当前目标与最近进展；需要时再添加一个新的小目标。</p>
-        <div className="row" style={{ marginTop: 10 }}>
-          <input
-            style={{ maxWidth: 380 }}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="如：安静应对门铃"
-          />
-          <button className="btn primary" onClick={createGoal} disabled={!petId} data-testid="pli.training.action">
-            创建
-          </button>
+        <div className="grid2" style={{ marginTop: 10 }}>
+          <label className="field">
+            目标名称
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="如：安静应对门铃"
+            />
+          </label>
+          <label className="field">
+            可观察目标行为
+            <input
+              value={targetBehavior}
+              onChange={(e) => setTargetBehavior(e.target.value)}
+              placeholder="如：门铃响后能在垫子上停留 5 秒"
+            />
+          </label>
         </div>
+        <label className="field" style={{ marginTop: 10 }}>
+          分解步骤（每行或分号一项）
+          <textarea
+            value={stepsText}
+            onChange={(e) => setStepsText(e.target.value)}
+            placeholder={"先练习看向垫子\n再练习走到垫子\n最后加入门铃声音"}
+            rows={3}
+          />
+        </label>
+        <p className="v4-note">步骤完全由你填写；系统不会自动把一次表现解释成“已掌握”。</p>
+        <button className="btn primary" onClick={createGoal} disabled={!petId || !title.trim()} data-testid="pli.training.action">
+          创建
+        </button>
         <ErrorNote message={error} />
       </section>
 
