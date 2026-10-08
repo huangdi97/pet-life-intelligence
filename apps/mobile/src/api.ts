@@ -127,6 +127,18 @@ async function uploadArtifact<T>(
   return (await resp.json()) as T;
 }
 
+export async function authenticatedMediaSource(
+  artifactId: string,
+): Promise<{ uri: string; headers: Record<string, string> }> {
+  if (!BASE) throw new Error("API_URL_MISSING");
+  const headers = await buildHeaders();
+  delete headers["Content-Type"];
+  return {
+    uri: `${BASE}/api/v1/artifacts/${artifactId}/content`,
+    headers,
+  };
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown) =>
