@@ -784,3 +784,14 @@ def test_web_life_view_never_mislabels_unrelated_durations_as_activity() -> None
     assert 'new Set(["daily.walk", "daily.play"])' in activity
     assert "minutes > 24 * 60" in activity
     assert 'events.reduce((s, e) => s + (Number(e.payload?.duration_minutes)' not in life
+
+
+def test_android_twin_review_never_exposes_previous_pet_candidate_or_activation() -> None:
+    review = read("apps/mobile/src/screens/PetTwinReviewScreen.tsx")
+    assert "candidateRequestVersion = useRef(0)" in review
+    assert "candidatePetId === petId ? candidate : null" in review
+    assert "candidateRequestVersion.current !== requestVersion" in review
+    assert "setCandidatePetId(petId)" in review
+    assert "if (!petId || !activeCandidate || resolvedVersion <= 0 || !selected) return;" in review
+    assert "twin={activeCandidate}" in review
+    assert "return () => { candidateRequestVersion.current += 1; };" in review
