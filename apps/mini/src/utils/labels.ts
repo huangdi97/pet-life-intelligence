@@ -89,6 +89,21 @@ export function petAgeText(birthDate: string | null): string {
   return `${years}岁${months}个月`;
 }
 
+function payloadValueLabel(key: string, value: unknown): string {
+  const raw = String(value);
+  const enums: Record<string, Record<string, string>> = {
+    kind: { urine: "尿", stool: "便", both: "尿和便" },
+    quality: {
+      normal: "和平时一样",
+      abnormal: "和平时不一样",
+      concerning: "明显需要关注",
+    },
+    intensity: { low: "轻松", normal: "一般", high: "较高" },
+    activity_type: { fetch: "追球" },
+  };
+  return enums[key]?.[raw] ?? raw;
+}
+
 /** 事件 payload → 简短用户语言摘要（只映射已知字段，未知字段不暴露 key）。 */
 export function eventPayloadText(payload: Record<string, unknown>): string {
   const map: Record<string, string> = {
@@ -108,7 +123,7 @@ export function eventPayloadText(payload: Record<string, unknown>): string {
   Object.entries(payload).forEach(([k, v]) => {
     const label = map[k];
     if (!label || v === null || v === undefined || v === "") return;
-    parts.push(`${label} ${String(v)}`);
+    parts.push(`${label} ${payloadValueLabel(k, v)}`);
   });
   return parts.join(" · ");
 }
