@@ -65,6 +65,7 @@ export function eventRowFromEvent(e: LifeEvent): LifeStreamRow {
     icon: (EVENT_ICONS[e.event_type] ?? "ellipse-outline") as LifeStreamRow["icon"],
     mediaUri: null,
     mediaCount: e.artifact_ids?.length ?? 0,
+    artifactIds: e.artifact_ids ?? [],
   };
 }
 
