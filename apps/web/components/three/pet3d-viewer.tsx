@@ -408,8 +408,21 @@ export function Pet3DViewer({
       scene?.traverse((obj) => {
         const mesh = obj as THREE.Mesh;
         if (mesh.isMesh) {
+          // Pet switches and Life View remounts must release GPU resources,
+          // including the GLB coat maps and generated soft-contact alpha map.
           const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-          mats.forEach((m) => m.dispose());
+          mats.forEach((m) => {
+            const material = m as THREE.MeshStandardMaterial;
+            material.map?.dispose();
+            material.alphaMap?.dispose();
+            material.normalMap?.dispose();
+            material.roughnessMap?.dispose();
+            material.metalnessMap?.dispose();
+            material.emissiveMap?.dispose();
+            material.aoMap?.dispose();
+            m.dispose();
+          });
+          mesh.geometry?.dispose();
         }
       });
       renderer?.dispose();
