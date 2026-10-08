@@ -31,12 +31,12 @@
 | PLI-021 | 02 Today & Daily Life | Toilet | 排泄记录 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | — | — | — | — | Quick Log | OWN-002 | QuickLogSheet | low |  |
 | PLI-022 | 02 Today & Daily Life | Walk | 散步与户外活动 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | — | — | — | — | Quick Log | OWN-002 | QuickLogSheet | low |  |
 | PLI-023 | 02 Today & Daily Life | Play | 玩耍与丰富化记录 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | — | — | — | — | Quick Log | OWN-002 | QuickLogSheet | low |  |
-| PLI-024 | 02 Today & Daily Life | Sleep | 睡眠/休息记录 | v0.2 | P1 | FULL_UI | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | PARTIAL_UI | — | — | — | Today/Quick Log/Timeline | OWN-001 | QuickLogSheet/EventCard/TimelineItem | low | 主体实现（后端）+ 领域页入口 |
+| PLI-024 | 02 Today & Daily Life | Sleep | 睡眠/休息记录 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | — | — | Today/Quick Log/Timeline | OWN-001 | QuickLogSheet/EventCard/TimelineItem | low | Owner 三端均可写入 daily.sleep；Today/Timeline 基于真实事件呈现，不用缺失值推断睡眠 |
 | PLI-025 | 02 Today & Daily Life | Weight | 体重与体况趋势 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | — | — | — | — | Quick Log | OWN-002 | QuickLogSheet | low |  |
 | PLI-026 | 02 Today & Daily Life | Tasks | 照护任务 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | — | — | FULL_UI | — | Today 任务区 | OWN-001 | CareTask | low |  |
 | PLI-027 | 02 Today & Daily Life | Tasks | 完成与责任人 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | — | — | FULL_UI | — | Tasks | OWN-001 | CareTask | low |  |
 | PLI-028 | 02 Today & Daily Life | Tasks | 重复执行冲突提醒 | v0.1 | P0 | FULL_UI | — | FULL_UI | PARTIAL_UI | — | — | — | — | Tasks | OWN-001 | CareTask | low | 冲突计数 |
-| PLI-029 | 02 Today & Daily Life | Routine | 个体日常基线 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | PARTIAL_UI | — | — | — | Today/Quick Log/Timeline | OWN-001 | QuickLogSheet/EventCard/TimelineItem | low | 主体实现（后端）+ 领域页入口 |
+| PLI-029 | 02 Today & Daily Life | Routine | 个体日常基线 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | — | — | Pet | OWN-004 | TrendCard/MetricCard | med | Owner 三端读取真实基线、样本数与窗口并可显式重算；样本不足/加载失败保持未知，不显示成“正常” |
 | PLI-030 | 02 Today & Daily Life | Routine | 异常日提示 | v1.0 | P2 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | PARTIAL_UI | — | — | — | Today/Quick Log/Timeline | OWN-001 | QuickLogSheet/EventCard/TimelineItem | low | 主体实现（后端）+ 领域页入口 |
 | PLI-031 | 02 Today & Daily Life | Notes | 自由文本/语音日记 | v0.2 | P1 | FULL_UI | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | PARTIAL_UI | — | — | — | Today/Quick Log/Timeline | OWN-001 | QuickLogSheet/EventCard/TimelineItem | low | 主体实现（后端）+ 领域页入口 |
 | PLI-032 | 02 Today & Daily Life | Media | 照片/视频绑定事件 | v0.1 | P0 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | — | — | — | — | Quick Log/Health 证据 | OWN-002 | EvidenceCard | low | 媒体经 artifacts |
@@ -87,19 +87,19 @@
 | PLI-077 | 05 Behavior | Aggression | 攻击相关安全记录 | v1.0 | P2 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | 主体实现（后端）+ 领域页入口 |
 | PLI-078 | 05 Behavior | Separation | 独处行为档案 | v1.0 | P2 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | 主体实现（后端）+ 领域页入口 |
 | PLI-079 | 05 Behavior | Preference | 偏好与厌恶档案 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | Owner 三端真实 preference API；LIKE/DISLIKE/ALLERGY_CAUTION 均明确为主人观察，不从单次行为自动推断 |
-| PLI-080 | 05 Behavior | Context | 环境上下文记录 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | 主体实现（后端）+ 领域页入口 |
+| PLI-080 | 05 Behavior | Context | 环境上下文记录 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | Owner 三端 ABC 记录都包含 environment/context，并在历史记录中作为事实字段呈现 |
 | PLI-081 | 05 Behavior | Professional | 行为咨询包 | v1.0 | P2 | PRO_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | 主体实现（后端）+ 领域页入口 |
 | PLI-082 | 05 Behavior | Intervention | 行为干预计划记录 | v1.0 | P2 | PRO_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | 主体实现（后端）+ 领域页入口 |
 | PLI-083 | 05 Behavior | Outcome | 行为干预结果 | v1.0 | P2 | PRO_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | 主体实现（后端）+ 领域页入口 |
 | PLI-084 | 05 Behavior | Safety | 行为建议安全过滤 | v0.2 | P1 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Behavior | OWN-009 | InteractionCard(ABC) | low | 主体实现（后端）+ 领域页入口 |
 | PLI-085 | 06 Training | Goals | 训练目标创建 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | Owner 三端真实创建并读取训练目标；加载失败与没有目标明确区分 |
-| PLI-086 | 06 Training | Curriculum | 目标分解 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
+| PLI-086 | 06 Training | Curriculum | 目标分解 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | med | Owner 三端可创建可观察 target_behavior 与主人填写的 steps；步骤不由模型自动生成，掌握度仍只来自真实会话 |
 | PLI-087 | 06 Training | Session | 训练会话记录 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | Owner 三端提交真实训练会话、反应、时长与实际选择的奖励；未选择奖励时不伪造 |
 | PLI-088 | 06 Training | Progress | 技能掌握度 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | Owner 三端展示服务端 mastery；只由已提交会话更新，不按单次表现或模型猜测自动判定“学会了” |
 | PLI-089 | 06 Training | Generalization | 环境泛化矩阵 | v1.0 | P2 | PRO_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
 | PLI-090 | 06 Training | Adaptive | 下一步训练建议 | v1.0 | P2 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
 | PLI-091 | 06 Training | Reward | 奖励偏好库 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | Owner 三端真实 REWARD preference；训练会话只写用户实际选择的奖励，未选择则空数组 |
-| PLI-092 | 06 Training | Clicker | 训练工具 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
+| PLI-092 | 06 Training | Clicker | 训练工具 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | Owner 三端读取同一版本化安全工具库（含响片）；加载失败不回退客户端默认建议，惩罚性工具明确禁止 |
 | PLI-093 | 06 Training | Family | 家庭训练一致性 | v1.0 | P2 | PRO_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
 | PLI-094 | 06 Training | Trainer | 训练师协作 | v1.0 | P2 | PRO_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
 | PLI-095 | 06 Training | Video | 动作/会话视频复盘 | v1.0 | P2 | ACCEPTED_UI_LIMITATION | MISSING_API_BINDING | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
@@ -107,7 +107,7 @@
 | PLI-097 | 06 Training | Programs | 标准课程模板 | v1.0 | P2 | BACKGROUND_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
 | PLI-098 | 06 Training | Outcome | 训练成果证明 | v1.0 | P2 | PRO_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Training | OWN-010 | TrendCard/CareTask | low | 主体实现（后端）+ 领域页入口 |
 | PLI-099 | 07 Welfare | Framework | 五域福利档案 | v1.0 | P2 | FULL_UI | MISSING_STATE | PARTIAL_UI | — | — | — | — | — | Welfare | OWN-011 | TrendCard/MetricCard | low | 主体实现（后端）+ 领域页入口 |
-| PLI-100 | 07 Welfare | Enrichment | 丰富化活动库 | v0.2 | P1 | FULL_UI | MISSING_STATE | PARTIAL_UI | — | — | — | — | — | Welfare | OWN-011 | TrendCard/MetricCard | low | 主体实现（后端）+ 领域页入口 |
+| PLI-100 | 07 Welfare | Enrichment | 丰富化活动库 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | — | — | Welfare | OWN-011 | TrendCard/MetricCard | low | Owner 三端读取同一版本化丰富化活动库；活动库只作为通用安全建议，不冒充个体偏好或已完成事实 |
 | PLI-101 | 07 Welfare | Enrichment | 个性化丰富化计划 | v1.0 | P2 | BACKGROUND_ONLY | INTENTIONALLY_BACKGROUND | PARTIAL_UI | — | — | — | — | — | Welfare | OWN-011 | TrendCard/MetricCard | low | 主体实现（后端）+ 领域页入口 |
 | PLI-102 | 07 Welfare | Agency | 选择与退出记录 | v1.0 | P2 | ACCEPTED_UI_LIMITATION | MISSING_API_BINDING | PARTIAL_UI | — | — | — | — | — | Welfare | OWN-011 | TrendCard/MetricCard | low | 主体实现（后端）+ 领域页入口 |
 | PLI-103 | 07 Welfare | Environment | 环境负荷记录 | v1.0 | P2 | FULL_UI | MISSING_STATE | PARTIAL_UI | — | — | — | — | — | Welfare | OWN-011 | TrendCard/MetricCard | low | 主体实现（后端）+ 领域页入口 |
