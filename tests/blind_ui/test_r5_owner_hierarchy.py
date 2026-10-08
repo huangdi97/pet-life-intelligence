@@ -807,3 +807,19 @@ def test_android_life_view_activity_and_provenance_are_from_the_same_events() ->
     assert 'e.event_type === "daily.walk" || e.event_type === "daily.play"' in life
     assert 'const evs = id === "activity"' in life
     assert 'new Set(["daily.walk", "daily.play"])' in shared
+
+
+def test_owner_identity_review_shows_real_photo_when_available() -> None:
+    """The candidate has to be compared with an uploaded reference, not believed."""
+    android = read("apps/mobile/src/screens/PetTwinReviewScreen.tsx")
+    web = read("apps/web/app/pets/[id]/twin/review/page.tsx")
+    css = read("apps/web/app/globals.css")
+    for source in (android, web):
+        assert "/avatar" in source
+        assert "reference-photo" in source
+        assert "真实照片对照" in source
+        assert "petId:" in source
+    assert "referencePhoto?.petId === pet.id" in android
+    assert "realPhoto?.petId === petId" in web
+    assert "if (!pet?.avatar_artifact_id) return;" in web
+    assert ".v5-review-reference img" in css
