@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api, type Pet, type Task } from "@pli/api-client";
 import { QuickLogSheet } from "@pli/ui-kit";
 import { useAsync, useCurrentPet } from "../lib/hooks";
@@ -9,6 +9,7 @@ import { saveDraft } from "../lib/drafts";
 import { mapErrorMessage } from "../lib/i18n";
 import { Icon } from "../components/icons";
 import { PetLivingStage, type StageAnchor } from "../components/pet-living-stage";
+import { PetCollectionGate } from "../components/pet-collection-gate";
 import { ActionCard } from "./_components/today/ActionCard";
 import { AttentionCard } from "./_components/today/AttentionCard";
 import { NowCard } from "./_components/today/NowCard";
@@ -23,7 +24,7 @@ export default function TodayPage() {
   // Demo disclosure is an environment truth, not a permanent decoration.
   // Production/real-data sessions must never be mislabeled as "示例数据".
   const demoMode = process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1";
-  const [pets, setPets] = useState<Pet[] | null>(null);
+  const pets = useAsync<Pet[]>(() => api.get<Pet[]>("/pets"), [petId]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const today = useAsync<TodayData>(
     () => (petId ? api.get<TodayData>(`/pets/${petId}/today`) : Promise.reject(new Error("NO_PET_SELECTED"))),
@@ -42,13 +43,6 @@ export default function TodayPage() {
   );
   const [flash, setFlash] = useState<string | null>(null);
 
-  useEffect(() => {
-    api
-      .get<Pet[]>("/pets")
-      .then((rows) => setPets(rows))
-      .catch(() => setPets([]));
-  }, [petId]);
-
   // Individual Twin (R2P3D-R3 D): same canonical per-pet asset as Life View.
   const twin = useAsync<{ models: Array<Record<string, unknown>> }>(
     () => (petId ? api.get(`/pets/${petId}/visual-models`) : Promise.reject(new Error("NO_PET_SELECTED"))),
@@ -65,8 +59,11 @@ export default function TodayPage() {
     (twinDescriptor as { surface?: { observed_regions?: string[] } } | null)?.surface?.observed_regions ?? []
   ).length;
 
-  if (pets === null) return <main className="v4-main"><div className="v4-loading" role="status"><span className="spinner" aria-hidden="true" />加载中……</div></main>;
-  if (pets.length === 0) {
+  if (pets.state !== "ready") {
+    return <PetCollectionGate surface="today" state={pets.state} onRetry={pets.reload} />;
+  }
+  const petRows = pets.data ?? [];
+  if (petRows.length === 0) {
     return (
       <main className="v4-main">
         <div className="v4-sec">
@@ -88,8 +85,8 @@ export default function TodayPage() {
     );
   }
 
-  const current = pets.find((p) => p.id === petId) ?? pets[0];
-  const hasPet = !!petId && pets.some((p) => p.id === petId);
+  const current = petRows.find((p) => p.id === petId) ?? petRows[0];
+  const hasPet = !!petId && petRows.some((p) => p.id === petId);
   const counts = today.data?.event_counts ?? {};
   const lastEvent = today.data?.events?.find((e) => e.event_type !== "today.viewed") ?? today.data?.events?.[0];
   const activityMinutes = (today.data?.events ?? []).reduce((sum, e) => {
@@ -234,7 +231,7 @@ export default function TodayPage() {
           </p>
         </div>
         <div className="v4-rail">
-          {pets.length > 1 && (
+          {petRows.length > 1 && (
             <div className="v4-chip" style={{ margin: "14px 0 4px" }}>
               <Icon name="users" size={13} />
               可在顶部切换多宠

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { api, type LifeEvent, type Pet } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
+import { PetCollectionGate } from "../../components/pet-collection-gate";
 import { mapErrorMessage } from "../../lib/i18n";
 import { breedLabel, eventTypeLabel } from "../../lib/ownerLabels";
 import { State } from "../../components/ui";
@@ -48,7 +49,7 @@ interface DailySummaryRow {
 /** OWN-003 Timeline — Life Stream（Stage R.2）：Day Group + time spine + 双栏桌面布局。 */
 export default function TimelinePage() {
   const { petId } = useCurrentPet();
-  const [pets, setPets] = useState<Pet[] | null>(null);
+  const pets = useAsync<Pet[]>(() => api.get<Pet[]>("/pets"), [petId]);
   const [filter, setFilter] = useState("");
   const [domain, setDomain] = useState("");
   const [source, setSource] = useState("");
@@ -107,14 +108,7 @@ export default function TimelinePage() {
     [petId, filter],
   );
 
-  useEffect(() => {
-    api
-      .get<Pet[]>("/pets")
-      .then(setPets)
-      .catch(() => setPets([]));
-  }, [petId]);
-
-  const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
+  const current = pets.data?.find((p) => p.id === petId) ?? pets.data?.[0];
 
   const events = useMemo(() => {
     let rows = timeline.data?.events ?? [];
@@ -209,6 +203,10 @@ export default function TimelinePage() {
     } finally {
       setDiaryBusy(false);
     }
+  }
+
+  if (pets.state !== "ready") {
+    return <PetCollectionGate surface="timeline" state={pets.state} onRetry={pets.reload} />;
   }
 
   return (

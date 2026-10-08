@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api, type Pet } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
 import { mapErrorMessage, t } from "../../lib/i18n";
 import { Icon, type WebIconName } from "../../components/icons";
+import { PetCollectionGate } from "../../components/pet-collection-gate";
 import { TABS, type AskAnswer, type Tab } from "./constants";
 import { AskPanel } from "./_components/AskPanel";
 import { BriefPanel } from "./_components/BriefPanel";
@@ -24,7 +25,7 @@ const TAB_ICONS: Record<Tab, WebIconName> = {
  *  Ask/Brief/Find/Plan/Explain；回答结构「结论→依据→不确定性→下一步」保持不变。 */
 export default function AgentPage() {
   const { petId } = useCurrentPet();
-  const [pets, setPets] = useState<Pet[] | null>(null);
+  const pets = useAsync<Pet[]>(() => api.get<Pet[]>("/pets"), [petId]);
   const [tab, setTab] = useState<Tab>(() => {
     if (typeof window !== "undefined") {
       const p = new URLSearchParams(window.location.search);
@@ -51,14 +52,7 @@ export default function AgentPage() {
     aiStatus.data.real_provider === false &&
     aiStatus.data.status !== "REAL_PROVIDER_READY";
 
-  useEffect(() => {
-    api
-      .get<Pet[]>("/pets")
-      .then(setPets)
-      .catch(() => setPets([]));
-  }, [petId]);
-
-  const petName = pets?.find((p) => p.id === petId)?.name ?? pets?.[0]?.name ?? "";
+  const petName = pets.data?.find((p) => p.id === petId)?.name ?? pets.data?.[0]?.name ?? "";
 
   async function ask(q: string) {
     if (!petId || !q.trim()) return;
@@ -90,6 +84,10 @@ export default function AgentPage() {
   }
 
   const contextualTools = TABS.filter((item) => item.id !== "ask");
+
+  if (pets.state !== "ready") {
+    return <PetCollectionGate surface="assistant" state={pets.state} onRetry={pets.reload} />;
+  }
 
   return (
     <main className="v4-main v5-domain-page">
