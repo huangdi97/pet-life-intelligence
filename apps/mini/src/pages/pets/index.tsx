@@ -433,6 +433,55 @@ export default function Pets() {
         <>
           <PetHero pet={current} headline="它的生活，从这里看见" identity={identityLine(current)} />
 
+          <View className="open-section" data-testid="pli.mini.pet.recent">
+            <View className="section-title">
+              {current.name}最近
+              <Text className="section-caption">真实记录</Text>
+            </View>
+            <View className="life-row">
+              <View className="life-dot" />
+              <View className="life-row-body">
+                <View className="life-row-head">
+                  <Text className="life-row-type">
+                    {eventsState === "error"
+                      ? "最近记录暂时没有加载成功"
+                      : (events ?? []).length
+                        ? eventTypeLabel((events ?? [])[0].event_type)
+                        : "还没有生活记录"}
+                  </Text>
+                  <Text className="life-row-time">
+                    {eventsState === "ready" && (events ?? []).length
+                      ? new Date((events ?? [])[0].occurred_at).toLocaleDateString()
+                      : ""}
+                  </Text>
+                </View>
+                <View className="life-row-detail">
+                  {eventsState === "error"
+                    ? "不会把加载失败显示成“没有变化”。"
+                    : (events ?? []).length
+                      ? "从它真实发生的生活继续往下看。"
+                      : "第一次进食、散步、健康或互动记录会从这里开始。"}
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <View className="open-section">
+            <View className="section-title">生活</View>
+            {domains.map((d) => (
+              <View className="life-row" key={d.label} onClick={() => Taro.navigateTo({ url: d.url })}>
+                <View className="life-dot" />
+                <View className="life-row-body">
+                  <View className="life-row-head">
+                    <Text className="life-row-type">{d.label}</Text>
+                    <Text className="life-row-time">›</Text>
+                  </View>
+                  <View className="life-row-detail">{d.hint}</View>
+                </View>
+              </View>
+            ))}
+          </View>
+
           <View className="open-section" data-testid="pli.mini.pet.avatar">
             <View className="section-title">
               头像与视觉档案
@@ -634,22 +683,6 @@ export default function Pets() {
             >
               查看生命视图
             </View>
-          </View>
-
-          <View className="open-section">
-            <View className="section-title">生活</View>
-            {domains.map((d) => (
-              <View className="life-row" key={d.label} onClick={() => Taro.navigateTo({ url: d.url })}>
-                <View className="life-dot" />
-                <View className="life-row-body">
-                  <View className="life-row-head">
-                    <Text className="life-row-type">{d.label}</Text>
-                    <Text className="life-row-time">›</Text>
-                  </View>
-                  <View className="life-row-detail">{d.hint}</View>
-                </View>
-              </View>
-            ))}
           </View>
 
           <View className="open-section">
