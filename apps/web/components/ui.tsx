@@ -21,6 +21,18 @@ type StableReactNode =
   | undefined
   | readonly StableReactNode[];
 
+/**
+ * Next's generated JSX runtime and workspace's React 19 types disagree on the
+ * ReactElement union. Cast only at the JSX child boundary; the runtime value
+ * remains the ORIGINAL element/array (no stringify/DOM coercion).
+ *
+ * All state slots are synchronous: portals, promises, and bigint are excluded
+ * by StableReactNode above.
+ */
+function jsxSlot(value: StableReactNode): string | number {
+  return value as unknown as string | number;
+}
+
 /** Render a user-facing message from a string or an Error/ApiError. */
 function humanize(error: string | Error | null | undefined): string | null {
   if (error == null) return null;
@@ -74,8 +86,8 @@ export function State({
         )}
       </div>
     );
-  if (empty && !children) return <div className="state">{empty}</div>;
-  return <>{children}</>;
+  if (empty && !children) return <div className="state">{jsxSlot(empty)}</div>;
+  return <>{jsxSlot(children)}</>;
 }
 
 export function ProvenanceBadge({ level }: { level: string }) {
