@@ -58,7 +58,7 @@ jobs:
         run: pnpm --dir apps/mobile exec expo prebuild --platform android --non-interactive
       - name: Gradle assembleRelease
         working-directory: apps/mobile/android
-        run: ./gradlew assembleRelease --no-daemon
+        run: bash ../../../scripts/ci/gradle-retry.sh assembleRelease
       - name: Collect APK
         run: |
           echo "--- release outputs ---"
@@ -163,7 +163,7 @@ jobs:
           pnpm --dir apps/mobile build:3d-page
           pnpm --dir apps/mobile exec expo prebuild --platform android --non-interactive
           cd apps/mobile/android
-          ./gradlew assembleDebug --no-daemon
+          bash ../../../scripts/ci/gradle-retry.sh assembleDebug
       - name: Start API
         run: |
           (cd services/api && nohup python -m uvicorn app.main:app --host 0.0.0.0 --port 8800 > /tmp/pli-api.log 2>&1 &)
