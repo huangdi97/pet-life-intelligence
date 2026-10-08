@@ -90,6 +90,85 @@ def test_diary_add_and_list(client, seeded):
     assert lst and "新朋友" in lst[0]["text"]
 
 
+def test_voice_diary_binds_real_audio_artifact_to_timeline(client, seeded):
+    owner, coco = seeded["owner_id"], seeded["coco_id"]
+    uploaded = client.post(
+        f"/api/v1/pets/{coco}/artifacts",
+        files={"file": ("voice-note.mp3", b"ID3-real-owner-voice", "audio/mpeg")},
+        headers=auth(owner),
+    )
+    assert uploaded.status_code == 201, uploaded.text
+    artifact_id = uploaded.json()["artifact_id"]
+    assert uploaded.json()["kind"] == "AUDIO"
+
+    created = client.post(
+        f"/api/v1/pets/{coco}/diary",
+        json={"text": "", "audio_artifact_id": artifact_id},
+        headers=auth(owner),
+    )
+    assert created.status_code == 201, created.text
+
+    diary = client.get(f"/api/v1/pets/{coco}/diary", headers=auth(owner))
+    assert diary.status_code == 200, diary.text
+    row = next(item for item in diary.json() if item["diary_id"] == created.json()["diary_id"])
+    assert row["text"] == ""
+    assert row["has_audio"] is True
+    assert row["audio_artifact_id"] == artifact_id
+
+    events = client.get(
+        f"/api/v1/pets/{coco}/events?event_type=diary.created",
+        headers=auth(owner),
+    )
+    assert events.status_code == 200, events.text
+    event = next(e for e in events.json()["events"] if e["payload"].get("diary_id") == created.json()["diary_id"])
+    assert event["artifact_ids"] == [artifact_id]
+    assert event["payload"]["has_audio"] is True
+    assert event["payload"]["text_present"] is False
+
+    meta = client.get(f"/api/v1/artifacts/{artifact_id}", headers=auth(owner))
+    assert meta.status_code == 200, meta.text
+    assert meta.json()["kind"] == "AUDIO"
+    assert meta.json()["original_filename"] == "voice-note.mp3"
+    assert "storage_key" not in meta.json()
+
+
+def test_voice_diary_rejects_wrong_pet_or_non_audio_artifact(client, seeded):
+    owner, coco, mimi = seeded["owner_id"], seeded["coco_id"], seeded["mimi_id"]
+
+    wrong_pet = client.post(
+        f"/api/v1/pets/{mimi}/artifacts",
+        files={"file": ("other.mp3", b"ID3-other-pet", "audio/mpeg")},
+        headers=auth(owner),
+    )
+    assert wrong_pet.status_code == 201, wrong_pet.text
+    rejected = client.post(
+        f"/api/v1/pets/{coco}/diary",
+        json={"text": "", "audio_artifact_id": wrong_pet.json()["artifact_id"]},
+        headers=auth(owner),
+    )
+    assert rejected.status_code == 422
+
+    image = client.post(
+        f"/api/v1/pets/{coco}/artifacts",
+        files={"file": ("photo.gif", b"GIF89a-owner-photo", "image/gif")},
+        headers=auth(owner),
+    )
+    assert image.status_code == 201, image.text
+    rejected_kind = client.post(
+        f"/api/v1/pets/{coco}/diary",
+        json={"text": "", "audio_artifact_id": image.json()["artifact_id"]},
+        headers=auth(owner),
+    )
+    assert rejected_kind.status_code == 422
+
+    empty = client.post(
+        f"/api/v1/pets/{coco}/diary",
+        json={"text": ""},
+        headers=auth(owner),
+    )
+    assert empty.status_code == 422
+
+
 def test_daily_summary_ai_provenance(client, seeded):
     owner, coco = seeded["owner_id"], seeded["coco_id"]
     client.post(f"/api/v1/pets/{coco}/events",
