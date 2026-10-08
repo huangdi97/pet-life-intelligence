@@ -823,3 +823,21 @@ def test_owner_identity_review_shows_real_photo_when_available() -> None:
     assert "realPhoto?.petId === petId" in web
     assert "if (!pet?.avatar_artifact_id) return;" in web
     assert ".v5-review-reference img" in css
+
+
+def test_uploaded_photo_can_replace_the_demo_3d_without_cross_pet_leakage() -> None:
+    """Living Canvas keeps the owner-controlled photo/3D choice, never forges media."""
+    native = read("apps/mobile/src/components/life/PetLivingStage.tsx")
+    web = read("apps/web/components/pet-living-stage.tsx")
+    css = read("apps/web/app/globals.css")
+    for source in (native, web):
+        assert "const [photoView, setPhotoView]" in source
+        assert "photoView?.petId ===" in source
+        assert "photoUri" in source
+        assert "canShow3d && !showPhoto" in source
+        assert "切换为主人上传的真实照片" in source
+        assert "看真实照片" in source
+        assert "看 3D 形象" in source
+    assert "if (!petId) return;" in web
+    assert "if (!petId || twin || demo) return;" not in web
+    assert ".r2p-stage-photo-toggle" in css
