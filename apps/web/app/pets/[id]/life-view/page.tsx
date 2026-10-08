@@ -11,6 +11,7 @@ import { PetLivingStage, type StageAnchor } from "../../../../components/pet-liv
 import { LivingModeSwitcher, type LivingMode } from "../../../../components/living-mode-switcher";
 import { RealPhotoCard } from "./_components/RealPhotoCard";
 import { EVENT_LABELS } from "../../../_components/today/constants";
+import { observedActivityMinutes } from "../../../_components/today/activity";
 
 interface PetRow {
   name: string;
@@ -79,17 +80,16 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
   const events = (today.data?.events ?? []).filter((e) => e.event_type !== "today.viewed");
   const counts = today.data?.event_counts ?? {};
   const anchorValue = (n: number, unit: string) => (n > 0 ? `${n} ${unit}` : "—");
-  // Owner facts, not elapsed time for unrelated medication or sleep records.
-  // Match Android: only observed walking and play contribute activity minutes.
-  const observedActivityMinutes = events.reduce((sum, event) => {
-    if (event.event_type !== "daily.walk" && event.event_type !== "daily.play") return sum;
-    const minutes = Number(event.payload?.duration_minutes);
-    return Number.isFinite(minutes) && minutes > 0 ? sum + minutes : sum;
-  }, 0);
+  // All owner clients share one observed-facts contract. Medication, sleep and
+  // invalid or implausible durations cannot silently become activity minutes.
+  const activityMinutes = observedActivityMinutes(events.map((event) => ({
+    event_type: event.event_type,
+    payload: event.payload ?? {},
+  })));
   const anchorsAll: StageAnchor[] = [
     { id: "water", label: "饮水", value: anchorValue(counts["daily.drink"] ?? 0, "次"), icon: "water", href: "/timeline" },
     { id: "meal", label: "进食", value: anchorValue(counts["daily.meal"] ?? 0, "次"), icon: "food", href: "/timeline" },
-    { id: "activity", label: "活动", value: anchorValue(observedActivityMinutes, "分钟"), icon: "walk", href: "/timeline" },
+    { id: "activity", label: "活动", value: anchorValue(activityMinutes, "分钟"), icon: "walk", href: "/timeline" },
     { id: "sleep", label: "睡眠", value: anchorValue(counts["daily.sleep"] ?? 0, "次"), icon: "sleep", href: "/timeline" },
   ];
   // INVARIANT: anchors always render ("—" when 0); never filtered out.
