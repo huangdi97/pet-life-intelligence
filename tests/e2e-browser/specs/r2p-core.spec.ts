@@ -61,6 +61,12 @@ test("R2P-CORE-02 interaction smoke: quick log flash + life-view modes", async (
   await page.goto("/");
   await page.getByRole("button", { name: "快速记录", exact: true }).click();
   await page.getByRole("button", { name: "喂食", exact: true }).click();
+  // R5 fact-first UX: selecting a record type opens a confirmation form;
+  // the app must not invent food/amount or record an unconfirmed fact.
+  await page.getByTestId("pli.quicklog.field.food_type").fill("鸡肉配方粮");
+  await page.getByTestId("pli.quicklog.field.amount").fill("80");
+  await page.getByTestId("pli.quicklog.field.unit").fill("g");
+  await page.getByTestId("pli.quicklog.text-save").click();
   await expect(page.locator(".alert.info").first()).toBeVisible();
 
   // Life view mode switching: 趋势 / 外观 panels are reachable and honest.
