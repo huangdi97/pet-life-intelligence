@@ -43,9 +43,9 @@
 | PLI-033 | 02 Today & Daily Life | Daily Summary | 每日AI摘要 | v0.2 | P1 | EXTERNAL_BLOCKED | EXTERNAL_DEPENDENCY | PARTIAL_UI | PARTIAL_UI | — | — | — | — | Today AI 摘要/Agent | OWN-015 | AIAnswer | med | AI EXTERNAL_BLOCKED 时降级 |
 | PLI-034 | 02 Today & Daily Life | Streaks | 轻量连续照护反馈 | v1.0 | P2 | ACCEPTED_UI_LIMITATION | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | PARTIAL_UI | — | — | — | Today/Quick Log/Timeline | OWN-001 | QuickLogSheet/EventCard/TimelineItem | low | 主体实现（后端）+ 领域页入口 |
 | PLI-035 | 03 Care Network | Household | 邀请家庭成员 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | — | — | FULL_UI | — | Care | OWN-008 | PersonChip | low |  |
-| PLI-036 | 03 Care Network | Household | 家庭角色模板 | v0.1 | P0 | FULL_UI | — | FULL_UI | PARTIAL_UI | — | — | FULL_UI | — | Care | OWN-008 | PersonChip | low |  |
-| PLI-037 | 03 Care Network | Handoff | 照护交接模式 | v0.1 | P0 | FULL_UI | — | FULL_UI | PARTIAL_UI | — | — | FULL_UI | — | Care 交接 | OWN-008 | CareTask | med |  |
-| PLI-038 | 03 Care Network | Handoff | 自动生成Care Card | v0.1 | P0 | FULL_UI | — | FULL_UI | PARTIAL_UI | — | — | — | FULL_UI | Care 交接 | OWN-008 | CareTask | med | Care Card share |
+| PLI-036 | 03 Care Network | Household | 家庭角色模板 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | FULL_UI | — | Care | OWN-008 | PersonChip | low | Owner 三端照护网络均展示真实 household role，并区分 OWNER / CO_OWNER / FAMILY / 临时照护与专业角色 |
+| PLI-037 | 03 Care Network | Handoff | 照护交接模式 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | FULL_UI | — | Care 交接 | OWN-008 | CareTask | med | Owner 三端可创建/读取真实 handoff、scope、起止时间、状态与 checklist；失败时不伪造交接成功 |
+| PLI-038 | 03 Care Network | Handoff | 自动生成Care Card | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | — | FULL_UI | Care 交接 | OWN-008 | CareTask | med | Owner 三端均调用真实 Care Card 接口，显示 expires_at 并支持撤销；H5 为只读分享落地端 |
 | PLI-039 | 03 Care Network | Handoff | 交接确认清单 | v0.2 | P1 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | PARTIAL_UI | — | Care | OWN-008 | CareTask/PersonChip | low | Owner 三端创建交接时生成确认清单，并可逐项真实确认；加载失败不冒充空状态 |
 | PLI-040 | 03 Care Network | Handoff | 照护期日报 | v0.2 | P1 | BACKGROUND_ONLY | INTENTIONALLY_BACKGROUND | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Care | OWN-008 | CareTask/PersonChip | low | 主体实现（后端）+ 领域页入口 |
 | PLI-041 | 03 Care Network | Handoff | 照护结束总结 | v0.2 | P1 | BACKGROUND_ONLY | INTENTIONALLY_BACKGROUND | PARTIAL_UI | PARTIAL_UI | — | — | PARTIAL_UI | — | Care | OWN-008 | CareTask/PersonChip | low | 主体实现（后端）+ 领域页入口 |
@@ -59,11 +59,11 @@
 | PLI-049 | 04 Health | Health Event | 发现异常入口 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | — | — | FULL_UI | — | Health | OWN-005 | EventCard | high | Stage H 全流程重构 |
 | PLI-050 | 04 Health | Health Event | 动态追问 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | — | — | FULL_UI | — | Health 详情 | OWN-005 | EvidenceList | high | 动态追问 |
 | PLI-051 | 04 Health | Evidence | 图片/视频/音频证据 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | — | — | FULL_UI | — | Health 证据 | OWN-005 | EvidenceCard | med |  |
-| PLI-052 | 04 Health | Evidence | 可观察事实提取 | v0.1 | P0 | FULL_UI | — | FULL_UI | PARTIAL_UI | — | — | FULL_UI | — | Health 详情 | OWN-005 | EvidenceList | high | Observable Facts |
+| PLI-052 | 04 Health | Evidence | 可观察事实提取 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | FULL_UI | — | Health 详情 | OWN-005 | EvidenceList | high | Owner 三端可提交并查看真实观察；AI 提取保留来源语义，读取失败时不把推断补成事实 |
 | PLI-053 | 04 Health | Safety | 红旗安全引擎 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | FULL_UI | — | Health RiskBanner | OWN-005 | RiskBanner/NextActionCard/EmergencyAction | high | Red Flag Rule Engine 独立 |
 | PLI-054 | 04 Health | Triage | 风险分级 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | FULL_UI | — | Health Triage | OWN-005 | RiskBanner | high |  |
 | PLI-055 | 04 Health | Vet Brief | 就诊前摘要 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | — | — | PRO_ONLY | FULL_UI | Health→Vet Brief | OWN-006 | VetBriefSection | med |  |
-| PLI-056 | 04 Health | Vet Brief | 分享链接/PDF | v0.1 | P0 | FULL_UI | — | FULL_UI | PARTIAL_UI | — | — | — | FULL_UI | Vet Brief 分享 | OWN-006 | VetBriefSection | med | print 支持 |
+| PLI-056 | 04 Health | Vet Brief | 分享链接/PDF | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | FULL_UI | — | — | FULL_UI | Vet Brief 分享 | OWN-006 | VetBriefSection | med | Owner 三端均生成有期限的真实只读分享并可撤销；Mobile 使用系统 Share，Mini 复制分享路径，H5 承担只读查看 |
 | PLI-057 | 04 Health | Records | 病历/处方/检验导入 | v0.2 | P1 | PRO_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | FULL_UI | PARTIAL_UI | — | Health | OWN-005 | RiskBanner/EvidenceCard/VetBriefSection | low | 主体实现（后端）+ 领域页入口 |
 | PLI-058 | 04 Health | Records | 医疗结构化与来源分级 | v0.2 | P1 | PRO_ONLY | MISSING_PAGE | PARTIAL_UI | PARTIAL_UI | — | FULL_UI | PARTIAL_UI | — | Health | OWN-005 | RiskBanner/EvidenceCard/VetBriefSection | low | 主体实现（后端）+ 领域页入口 |
 | PLI-059 | 04 Health | Medication | 用药计划 | v0.1 | P0 | FULL_UI | — | FULL_UI | FULL_UI | — | — | FULL_UI | — | Medication | OWN-007 | CareTask | high | 剂量不可 Agent 改 |
