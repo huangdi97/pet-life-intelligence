@@ -80,7 +80,6 @@ export function FilterBar({
 
       <details
         className="v7-timeline-refine"
-        // Explicitly controlled for React's DetailsHTMLAttributes type.
         open={expanded}
         onToggle={(event) => setExpanded(event.currentTarget.open)}
       >
