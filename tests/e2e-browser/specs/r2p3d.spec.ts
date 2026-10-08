@@ -232,3 +232,38 @@ test("R2P3D-R1-01 individual twin renders and pose switching changes pixels", as
   const walk = await shot();
   expect(walk.equals(sit), "Walk pose must differ from Sit").toBe(false);
 });
+
+test("R7 viewport layout: Life View fits phone and Review controls precede the 3D stage", async ({ page, request }) => {
+  await loginAsEmail(page, request, "owner@pli.demo");
+  const petId = await demoDoudouId(request);
+  await useCurrentPet(page, petId);
+
+  // Geometry checks use actual browser DOM bounds, not CSS-string assertions
+  // or a vision model. A stage partially off the phone is an owner-facing bug.
+  for (const width of [360, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto(`/pets/${petId}/life-view`);
+    const life = page.getByTestId("pli.lifeview.stage");
+    await expect(life).toBeVisible();
+    const lifeBounds = await life.boundingBox();
+    expect(lifeBounds, "life stage bounds exist").not.toBeNull();
+    expect(lifeBounds!.x, "life view left edge is on-screen").toBeGreaterThanOrEqual(-1);
+    expect(lifeBounds!.x + lifeBounds!.width, "life stage fits the phone").toBeLessThanOrEqual(width + 1);
+
+    await page.goto(`/pets/${petId}/twin/review?version=1`);
+    const stage = page.getByTestId("pli.twinreview.stage");
+    await expect(stage).toBeVisible();
+    const stageBounds = await stage.boundingBox();
+    expect(stageBounds).not.toBeNull();
+    for (const angle of ["front", "side", "back"]) {
+      const button = page.getByTestId(`pli.twinreview.view.${angle}`);
+      await expect(button).toBeVisible();
+      const bounds = await button.boundingBox();
+      expect(bounds, `${angle} has measured bounds`).not.toBeNull();
+      expect(bounds!.y + bounds!.height, `${angle} control before model`).toBeLessThan(stageBounds!.y + 1);
+      expect(bounds!.x, `${angle} left edge on screen`).toBeGreaterThanOrEqual(-1);
+      expect(bounds!.x + bounds!.width, `${angle} right edge on screen`).toBeLessThanOrEqual(width + 1);
+      expect(bounds!.height, `${angle} tap target`).toBeGreaterThanOrEqual(44);
+    }
+  }
+});
