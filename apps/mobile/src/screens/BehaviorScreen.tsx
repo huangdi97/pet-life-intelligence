@@ -29,6 +29,19 @@ const PREF_LABEL: Record<PreferenceRow["kind"], string> = {
   REWARD: "奖励",
 };
 
+const BEHAVIOR_TEMPLATES = ["吠叫", "抓挠", "破坏物品", "追逐", "躲避", "反复舔咬"] as const;
+
+function topObserved(values: Array<string | null | undefined>, limit = 3): Array<{ label: string; count: number }> {
+  const counts = new Map<string, number>();
+  values.forEach((raw) => {
+    const label = (raw ?? "").trim();
+    if (label) counts.set(label, (counts.get(label) ?? 0) + 1);
+  });
+  return Array.from(counts, ([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+    .slice(0, limit);
+}
+
 const EMPTY_FORM = {
   antecedent: "",
   behavior: "",
@@ -192,6 +205,8 @@ export function BehaviorScreen() {
     if (filter === "UNLABELED") return !row.intensity;
     return row.intensity === filter;
   });
+  const topBehaviors = topObserved(rows.map((row) => row.behavior));
+  const topContexts = topObserved(rows.flatMap((row) => [row.antecedent, row.environment]));
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
@@ -296,8 +311,24 @@ export function BehaviorScreen() {
               </Pressable>
             </OpenSection>
 
-            <OpenSection title="规律" testID="pli.behavior.patterns">
-              <Text style={styles.hintText}>积累更多观察后，这里会呈现与它自己相比的变化。</Text>
+            <OpenSection title="模式与情境" testID="pli.behavior.patterns">
+              <Text style={styles.hintText}>只按真实行为记录汇总频次与共现，不推断性格、情绪、疾病或因果。</Text>
+              {topBehaviors.length ? (
+                <View style={styles.filterWrap} accessibilityLabel="常见行为记录">
+                  {topBehaviors.map((item) => (
+                    <View key={item.label} style={styles.patternChip}>
+                      <Text style={styles.patternChipText}>{item.label} · {item.count} 次</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : <Text style={styles.hintText}>还没有足够记录形成可展示的频次。</Text>}
+              {topContexts.length ? (
+                <View style={styles.abcCard}>
+                  {topContexts.map((item) => (
+                    <AbcLine key={item.label} label="记录共现" value={`${item.label} · ${item.count} 次`} />
+                  ))}
+                </View>
+              ) : null}
             </OpenSection>
 
             <View style={styles.formSection}>
@@ -317,6 +348,12 @@ export function BehaviorScreen() {
                   <TextInput style={styles.input} value={form.antecedent} onChangeText={(v) => set("antecedent", v)} placeholder="例如：门铃响 / 陌生狗经过" placeholderTextColor={COLORS.textTertiary} />
                   <Text style={styles.fieldLabel}>观察到的行为 *（写你看到的）</Text>
                   <TextInput style={styles.input} value={form.behavior} onChangeText={(v) => set("behavior", v)} placeholder="例如：连续吠叫约 3 分钟后躲到沙发下" placeholderTextColor={COLORS.textTertiary} />
+                  <View style={styles.filterWrap} accessibilityLabel="行为观察快捷模板">
+                    {BEHAVIOR_TEMPLATES.map((template) => (
+                      <ChipPressable key={template} label={template} active={form.behavior === template} onPress={() => set("behavior", template)} />
+                    ))}
+                  </View>
+                  <Text style={styles.hintText}>模板只作为填写起点；请继续补充这次真实看到的细节。</Text>
                   <Text style={styles.fieldLabel}>关联行为视频（可选，最多保留 3 个）</Text>
                   <Pressable
                     testID="pli.behavior.video"
@@ -401,6 +438,8 @@ const styles = StyleSheet.create({
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
   filterWrap: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, paddingBottom: SPACE.s2 },
+  patternChip: { borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceSoft, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2 },
+  patternChipText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   obsRow: { paddingVertical: 10 },
   obsDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
   obsText: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "500" },
