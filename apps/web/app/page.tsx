@@ -174,7 +174,7 @@ export default function TodayPage() {
       // The event has NOT been saved. File objects are not recoverable from
       // localStorage; retain the open form instead of silently losing media.
       setFlash(`媒体上传失败，记录尚未保存：${mapErrorMessage(e)}`);
-      return;
+      throw e;
     }
     const payload: Record<string, string | number> = {};
     for (const [key, raw] of Object.entries(fields)) {

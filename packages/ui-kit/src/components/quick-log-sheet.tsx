@@ -77,6 +77,7 @@ export function QuickLogSheet({
   const [textValue, setTextValue] = useState("");
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -84,6 +85,7 @@ export function QuickLogSheet({
       setTextValue("");
       setFieldValues({});
       setMediaFiles([]);
+      setSaveError(null);
     }
   }, [open]);
 
@@ -121,7 +123,11 @@ export function QuickLogSheet({
             if (t.textInput) setMediaFiles([]);
             return;
           }
-          void Promise.resolve(onQuickLog(t.type, undefined, mediaFiles)).then(() => setMediaFiles([]));
+          setSaveError(null);
+          // A failed artifact upload must NOT clear selected evidence.
+          void Promise.resolve().then(() => onQuickLog(t.type, undefined, mediaFiles))
+            .then(() => setMediaFiles([]))
+            .catch(() => setSaveError("记录尚未保存，请检查网络或素材后重试。"));
         }}
         data-testid={`pli.quicklog.tile.${tileKey(t.type)}`}
       >
@@ -132,22 +138,29 @@ export function QuickLogSheet({
 
   async function saveTextEntry() {
     if (!textType || loading) return;
-    if (textType.textInput) {
-      if (!textValue.trim()) return;
-      await onQuickLog(textType.type, textValue.trim());
-    } else if (textType.fields?.length) {
-      const invalidField = textType.fields.some(
-        (field) => fieldInvalid(field, fieldValues[field.key]),
-      );
-      if (invalidField) return;
-      await onQuickLog(textType.type, undefined, mediaFiles, fieldValues);
-    } else {
-      return;
+    setSaveError(null);
+    try {
+      if (textType.textInput) {
+        if (!textValue.trim()) return;
+        await onQuickLog(textType.type, textValue.trim());
+      } else if (textType.fields?.length) {
+        const invalidField = textType.fields.some(
+          (field) => fieldInvalid(field, fieldValues[field.key]),
+        );
+        if (invalidField) return;
+        await onQuickLog(textType.type, undefined, mediaFiles, fieldValues);
+      } else {
+        return;
+      }
+      setTextType(null);
+      setTextValue("");
+      setFieldValues({});
+      setMediaFiles([]);
+    } catch {
+      // Keep the text, form values and File references in the active sheet.
+      // A parent callback rejected because the record was NOT persisted.
+      setSaveError("记录尚未保存，已保留填写内容和所选素材，请检查后重试。");
     }
-    setTextType(null);
-    setTextValue("");
-    setFieldValues({});
-    setMediaFiles([]);
   }
 
   return (
@@ -307,6 +320,7 @@ export function QuickLogSheet({
           </div>
         </>
       )}
+      {saveError ? <p className="pli-quicklog-hint" role="alert" data-testid="pli.quicklog.save-error">{saveError}</p> : null}
       <div className="pli-quicklog-feedback" data-testid="pli.quicklog.feedback" aria-live="polite">
         {loading ? (
           <span className="pli-state pli-state--loading" role="status">
