@@ -147,11 +147,15 @@ export default function Index() {
   async function saveSheet() {
     const target = current?.id;
     if (!target || !sheetType) return;
-    const missingRequired = sheetType.fields.some(
-      (field) => field.required && !(sheetForm[field.key] ?? "").trim(),
-    );
-    if (missingRequired) {
-      setFlash("请先填写带 * 的真实记录。");
+    const invalidRequired = sheetType.fields.some((field) => {
+      const raw = (sheetForm[field.key] ?? "").trim();
+      if (field.required && !raw) return true;
+      if (!raw || field.min == null) return false;
+      const value = Number(raw);
+      return !Number.isFinite(value) || value < field.min;
+    });
+    if (invalidRequired) {
+      setFlash("请先填写带 * 的真实记录，并确认数值有效。");
       setTimeout(() => setFlash(null), 2000);
       return;
     }
