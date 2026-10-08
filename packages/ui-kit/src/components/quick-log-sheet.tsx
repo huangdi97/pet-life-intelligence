@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Sheet } from "./sheet";
 
 export interface QuickLogField {
@@ -78,6 +78,26 @@ export function QuickLogSheet({
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const busy = loading || saving;
+
+  async function runImmediate(type: string) {
+    if (savingRef.current || loading) return;
+    // Ref lock is synchronous, unlike a useState-only button disable.
+    savingRef.current = true;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onQuickLog(type, undefined, mediaFiles);
+      setMediaFiles([]);
+    } catch {
+      setSaveError("记录尚未保存，已保留所选素材，请检查后重试。");
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
 
   useEffect(() => {
     if (!open) {
@@ -99,6 +119,9 @@ export function QuickLogSheet({
           key={t.type}
           href={t.href}
           className="pli-quicklog-btn"
+          aria-disabled={busy}
+          tabIndex={busy ? -1 : undefined}
+          onClick={(event) => { if (busy) event.preventDefault(); }}
           data-testid={`pli.quicklog.tile.${tileKey(t.type)}`}
         >
           {t.label}
@@ -110,8 +133,9 @@ export function QuickLogSheet({
         key={t.type}
         type="button"
         className={`pli-quicklog-btn${TILE_KEY[t.type] ? " pli-quicklog-btn--primary" : ""}`}
-        disabled={loading}
+        disabled={busy}
         onClick={() => {
+          if (savingRef.current || loading) return;
           if (t.textInput || t.fields?.length) {
             setTextType(t);
             setTextValue("");
@@ -123,11 +147,7 @@ export function QuickLogSheet({
             if (t.textInput) setMediaFiles([]);
             return;
           }
-          setSaveError(null);
-          // A failed artifact upload must NOT clear selected evidence.
-          void Promise.resolve().then(() => onQuickLog(t.type, undefined, mediaFiles))
-            .then(() => setMediaFiles([]))
-            .catch(() => setSaveError("记录尚未保存，请检查网络或素材后重试。"));
+          void runImmediate(t.type);
         }}
         data-testid={`pli.quicklog.tile.${tileKey(t.type)}`}
       >
@@ -137,7 +157,9 @@ export function QuickLogSheet({
   }
 
   async function saveTextEntry() {
-    if (!textType || loading) return;
+    if (!textType || loading || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
     setSaveError(null);
     try {
       if (textType.textInput) {
@@ -160,11 +182,14 @@ export function QuickLogSheet({
       // Keep the text, form values and File references in the active sheet.
       // A parent callback rejected because the record was NOT persisted.
       setSaveError("记录尚未保存，已保留填写内容和所选素材，请检查后重试。");
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title={title}>
+    <Sheet open={open} onClose={() => { if (!savingRef.current && !loading) onClose(); }} title={title}>
       {identity ? (
         <p className="pli-quicklog-identity" data-testid="pli.quicklog.identity">
           为 {identity} 记录
@@ -238,7 +263,7 @@ export function QuickLogSheet({
                     type="file"
                     accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"
                     multiple
-                    disabled={loading}
+                    disabled={busy}
                     onChange={(event) => {
                       setMediaFiles(Array.from(event.currentTarget.files ?? []).slice(0, 3));
                       event.currentTarget.value = "";
@@ -256,6 +281,7 @@ export function QuickLogSheet({
             <button
               type="button"
               className="pli-quicklog-btn"
+              disabled={busy}
               onClick={() => {
                 setTextType(null);
                 setTextValue("");
@@ -269,7 +295,7 @@ export function QuickLogSheet({
               type="button"
               className="pli-quicklog-save"
               disabled={
-                loading ||
+                busy ||
                 (textType.textInput
                   ? !textValue.trim()
                   : (textType.fields ?? []).some(
@@ -279,7 +305,7 @@ export function QuickLogSheet({
               onClick={() => void saveTextEntry()}
               data-testid="pli.quicklog.text-save"
             >
-              {loading ? "保存中……" : textType.textInput ? "保存备注" : "保存记录"}
+              {busy ? "保存中……" : textType.textInput ? "保存备注" : "保存记录"}
             </button>
           </div>
         </div>
@@ -292,7 +318,7 @@ export function QuickLogSheet({
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"
                 multiple
-                disabled={loading}
+                disabled={busy}
                 onChange={(event) => {
                   const files = Array.from(event.currentTarget.files ?? []).slice(0, 3);
                   setMediaFiles(files);
@@ -305,7 +331,7 @@ export function QuickLogSheet({
               {mediaFiles.length ? `已选择 ${mediaFiles.length} 个文件；会和下一条生活记录一起保存。` : "最多 3 个；上传成功后会作为该事件的证据。"}
             </span>
             {mediaFiles.length ? (
-              <button type="button" className="pli-quicklog-media-clear" onClick={() => setMediaFiles([])}>
+              <button type="button" className="pli-quicklog-media-clear" disabled={busy} onClick={() => setMediaFiles([])}>
                 清除
               </button>
             ) : null}
@@ -322,7 +348,7 @@ export function QuickLogSheet({
       )}
       {saveError ? <p className="pli-quicklog-hint" role="alert" data-testid="pli.quicklog.save-error">{saveError}</p> : null}
       <div className="pli-quicklog-feedback" data-testid="pli.quicklog.feedback" aria-live="polite">
-        {loading ? (
+        {busy ? (
           <span className="pli-state pli-state--loading" role="status">
             <span className="pli-spinner" aria-hidden="true" />
             记录中……
@@ -331,7 +357,7 @@ export function QuickLogSheet({
           <span className="pli-quicklog-feedback-note">记录会保存来源与时间，可在时间线查看。</span>
         )}
       </div>
-      <button type="button" className="pli-quicklog-save" data-testid="pli.quicklog.save" onClick={onClose}>
+      <button type="button" className="pli-quicklog-save" data-testid="pli.quicklog.save" disabled={busy} onClick={onClose}>
         完成
       </button>
     </Sheet>
