@@ -9,24 +9,28 @@ import { Image, Text, View } from "@tarojs/components";
 import { api, type Pet } from "../services/api";
 
 function usePersistedAvatar(pet: Pet | null): string | null {
-  const [uri, setUri] = useState<string | null>(null);
+  // Store media with the owning pet id. State updates caused by a pet switch
+  // run after render, so an unscoped uri would otherwise display one frame of
+  // the previous pet's private avatar on the new owner's screen.
+  const [avatar, setAvatar] = useState<{ petId: string; uri: string | null } | null>(null);
   useEffect(() => {
     let alive = true;
-    setUri(null);
-    if (!pet?.id || !pet.avatar_artifact_id) return () => { alive = false; };
+    const id = pet?.id;
+    setAvatar(null);
+    if (!id || !pet.avatar_artifact_id) return () => { alive = false; };
     api
-      .get<{ avatar_artifact_id: string | null; data_url: string | null }>(`/pets/${pet.id}/avatar`)
+      .get<{ avatar_artifact_id: string | null; data_url: string | null }>(`/pets/${id}/avatar`)
       .then((row) => {
-        if (alive) setUri(row.data_url ?? null);
+        if (alive) setAvatar({ petId: id, uri: row.data_url ?? null });
       })
       .catch(() => {
-        if (alive) setUri(null);
+        if (alive) setAvatar({ petId: id, uri: null });
       });
     return () => {
       alive = false;
     };
   }, [pet?.id, pet?.avatar_artifact_id]);
-  return uri;
+  return avatar?.petId === pet?.id ? avatar.uri : null;
 }
 
 export interface SpeciesVisual {
