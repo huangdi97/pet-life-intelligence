@@ -136,7 +136,7 @@ export default function TodayPage() {
       // Offline UX（§63）：失败时保存草稿，恢复后可在 /offline 重试同步。
       // Already-uploaded artifact ids are retained in the draft so recovery
       // does not silently drop evidence.
-      saveDraft("quicklog", { event_type: eventType, payload, artifact_ids: artifactIds });
+      saveDraft("quicklog", { pet_id: target, event_type: eventType, payload, artifact_ids: artifactIds });
       setFlash(`${mapErrorMessage(e)}（已保存草稿，恢复后可同步）`);
     }
   }
@@ -159,15 +159,22 @@ export default function TodayPage() {
         setSheetOpen(false);
         setTimeout(() => setFlash(null), 2500);
       } catch (e) {
-        saveDraft("quicklog", { endpoint: `/pets/${current.id}/diary`, text });
+        saveDraft("quicklog", { pet_id: current.id, endpoint: `/pets/${current.id}/diary`, text });
         setFlash(`${mapErrorMessage(e)}（备注已保存为草稿，恢复后可同步）`);
       }
       return;
     }
     const artifactIds: string[] = [];
-    for (const file of files.slice(0, 3)) {
-      const uploaded = await api.upload<{ artifact_id: string }>(`/pets/${current.id}/artifacts`, file);
-      artifactIds.push(uploaded.artifact_id);
+    try {
+      for (const file of files.slice(0, 3)) {
+        const uploaded = await api.upload<{ artifact_id: string }>(`/pets/${current.id}/artifacts`, file);
+        artifactIds.push(uploaded.artifact_id);
+      }
+    } catch (e) {
+      // The event has NOT been saved. File objects are not recoverable from
+      // localStorage; retain the open form instead of silently losing media.
+      setFlash(`媒体上传失败，记录尚未保存：${mapErrorMessage(e)}`);
+      return;
     }
     const payload: Record<string, string | number> = {};
     for (const [key, raw] of Object.entries(fields)) {
