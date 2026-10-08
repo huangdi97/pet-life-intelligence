@@ -290,7 +290,7 @@ def test_web_pet_world_uses_pet_specific_domain_narratives() -> None:
     ):
         assert endpoint in source
     assert "headline={current.name}" not in source
-    assert 'frameTarget={0.33}' in source
+    # R7: the prior 0.33 projected-area budget left the actual pet thumbnail-sized.\n    # Preserve an explicit pet-first camera contract; clip safety is still measured\n    # independently by the runtime projected-bounds acceptance gate.\n    assert 'frameTarget={0.57}' in source
     assert "domainMeaning[row.id]" in source
 
 
