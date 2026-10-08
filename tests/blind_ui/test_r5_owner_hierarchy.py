@@ -841,3 +841,34 @@ def test_uploaded_photo_can_replace_the_demo_3d_without_cross_pet_leakage() -> N
     assert "if (!petId) return;" in web
     assert "if (!petId || twin || demo) return;" not in web
     assert ".r2p-stage-photo-toggle" in css
+
+
+def test_companion_is_pet_first_across_owner_clients_and_final_evidence() -> None:
+    android = read("apps/mobile/src/screens/CompanionScreen.tsx")
+    web = read("apps/web/app/companion/page.tsx")
+    mini = read("apps/mini/src/pages/companion/index.tsx")
+    android_capture = read("scripts/r5-6/capture-android-final.py")
+    web_capture = read("scripts/r5-6/capture-web-final.mjs")
+
+    # Companion is a relationship surface: the current pet must lead before
+    # devices/capability explanation on every owner client.
+    assert "PetLivingStage" in android
+    assert 'stageRole="companion"' in android
+    assert android.index("<PetLivingStage") < android.index('title="真实设备状态"')
+    assert 'stageTestId="pli.companion.living-stage"' in android
+
+    assert "PetLivingStage" in web
+    assert 'stageRole="companion"' in web
+    assert web.index("<PetLivingStage") < web.index('data-testid="pli.companion.device-status"')
+    assert 'stageTestId="pli.companion.living-stage"' in web
+
+    assert "PetHero" in mini
+    assert mini.index("<PetHero") < mini.index("真实设备状态")
+    assert "不会模拟在线" in mini
+
+    # Final runtime evidence must prove Companion uses the same real Twin
+    # runtime rather than silently falling back to a device-only page.
+    assert '("companion", True, "companion")' in android_capture
+    assert '"companion"' in web_capture
+    assert 'companion: "companion"' in web_capture
+    assert '"today", "pet", "lifeview", "twinreview", "companion"' in web_capture
