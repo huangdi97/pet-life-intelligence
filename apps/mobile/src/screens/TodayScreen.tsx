@@ -28,7 +28,7 @@ import { todayTasks, type TodayResp } from "./today";
 import { usePetTwin } from "../hooks/usePetTwin";
 import { poseForEvent } from "@pli/pet-3d";
 import { TodayEmptyPet, TodayHealthSummary, TodayOffline } from "./today_sections";
-import { eventRowFromEvent, recentContext, timeContextText } from "./today_helpers";
+import { eventRowFromEvent, observedActivityMinutes, recentContext, timeContextText } from "./today_helpers";
 
 type TabNav = BottomTabNavigationProp<TabParamList>;
 type StackNav = NativeStackNavigationProp<StackParamList>;
@@ -112,10 +112,7 @@ export function TodayScreen() {
   const representativePose = poseForEvent(todayEvents[0]?.event_type ?? null);
 
   const anchors = useMemo(() => {
-    const activityMins = todayEvents.reduce(
-      (a, e) => a + (Number((e.payload as Record<string, unknown>)?.duration_minutes) || 0),
-      0
-    );
+    const activityMins = observedActivityMinutes(todayEvents);
     const rows = [
       { id: "food", label: "进食", value: counts["daily.meal"] ? `${counts["daily.meal"]} 次` : "—", icon: "restaurant-outline" as const },
       { id: "water", label: "饮水", value: counts["daily.drink"] ? `${counts["daily.drink"]} 次` : "—", icon: "water-outline" as const },
