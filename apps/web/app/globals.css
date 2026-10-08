@@ -2058,3 +2058,23 @@ body{background:#F6F7F1}
 }
 .v7-timeline-refine[open] .v5-timeline-primary-tools { margin-top:10px; }
 .v7-timeline-refine[open] .v5-timeline-precision { margin-top:10px; }
+
+/* Owner photo reference belongs in the identity review, before accepting a
+   generic 3D candidate. This is source media, not the generated GLB. */
+.v5-review-reference {
+  display:flex;align-items:center;gap:14px;max-width:700px;
+  margin:8px 0 12px;padding:12px 14px;border-radius:18px;
+  background:var(--v4-brand-soft,#E5EDE4);color:var(--v4-text-secondary,#52695A);
+}
+.v5-review-reference img {
+  display:block;flex:none;width:82px;height:82px;object-fit:cover;border-radius:14px;
+  background:#fff;
+}
+.v5-review-reference strong {
+  display:block;margin:0 0 4px;font-size:14px;color:var(--v4-text-primary,#25382D);
+}
+.v5-review-reference p {margin:0;line-height:1.55;font-size:12px}
+@media(max-width:768px){
+  .v5-review-reference {margin:8px 16px 12px;padding:10px;gap:10px;}
+  .v5-review-reference img {width:72px;height:72px;}
+}
