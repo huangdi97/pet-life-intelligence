@@ -21,6 +21,7 @@ import type { Pet3DViewerHandle } from "../components/three/Pet3DViewer";
 import { LivingModeSwitcher, type LivingMode } from "../components/life/LivingModeSwitcher";
 import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { eventTypeLabel, sourceLabel } from "./ui_labels";
+import { observedActivityMinutes } from "./today_helpers";
 import { usePetTwin } from "../hooks/usePetTwin";
 import { poseForEvent } from "@pli/pet-3d";
 
@@ -87,10 +88,7 @@ export function LifeViewScreen() {
   const anchors = useMemo(() => {
     const rows = petEvents.map((e) => e.event_type);
     const c = (t: string) => rows.filter((x) => x === t).length;
-    const duration = (t: string) =>
-      petEvents
-        .filter((e) => e.event_type === t)
-        .reduce((a, e) => a + (Number((e.payload as Record<string, unknown>)?.duration_minutes) || 0), 0);
+    const activityMinutes = observedActivityMinutes(petEvents);
     const matching = (t: string) => petEvents.filter((e) => e.event_type === t);
     const mk = (id: string, label: string, value: string, icon: keyof typeof Ionicons.glyphMap, type: string) => ({
       id,
@@ -99,7 +97,9 @@ export function LifeViewScreen() {
       icon,
       testID: `pli.lifeview.anchor.${id}`,
       onPress: () => {
-        const evs = matching(type);
+        // The activity metric aggregates observed walk AND play. Its evidence
+        // sheet must expose both sources, never only walking records.
+        const evs = id === "activity" ? petEvents.filter((e) => e.event_type === "daily.walk" || e.event_type === "daily.play") : matching(type);
         const src = evs.length ? Array.from(new Set(evs.map((e) => sourceLabel(e.source_type)))).join(" + ") : "—";
         const at = evs[0]
           ? new Date(evs[0].occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })
@@ -115,7 +115,7 @@ export function LifeViewScreen() {
       mk(
         "activity",
         "活动",
-        duration("daily.walk") + duration("daily.play") ? `${duration("daily.walk") + duration("daily.play")} 分钟` : "—",
+        activityMinutes > 0 ? `${activityMinutes} 分钟` : "—",
         "walk-outline",
         "daily.walk",
       ),
