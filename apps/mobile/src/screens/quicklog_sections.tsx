@@ -77,7 +77,23 @@ function tileZh(key: string): string {
   return map[key] ?? key;
 }
 
-export function QuickLogForm({ t, fields, saving, onSave }: { t: LogType; fields: QuickLogFields; saving: boolean; onSave: () => void }) {
+export function QuickLogForm({
+  t,
+  fields,
+  saving,
+  mediaCount,
+  onAddMedia,
+  onClearMedia,
+  onSave,
+}: {
+  t: LogType;
+  fields: QuickLogFields;
+  saving: boolean;
+  mediaCount: number;
+  onAddMedia: () => void;
+  onClearMedia: () => void;
+  onSave: () => void;
+}) {
   const { amount, setAmount, unit, setUnit, minutes, setMinutes, weight, setWeight, behavior, setBehavior, diaryText, setDiaryText, kind, setKind } = fields;
   return (
     <View style={styles.formWrap} testID="pli.quicklog.form">
@@ -125,6 +141,27 @@ export function QuickLogForm({ t, fields, saving, onSave }: { t: LogType; fields
           <TextInput style={[styles.input, styles.inputMultiline]} value={diaryText} onChangeText={setDiaryText} multiline placeholder="想记录点什么？" placeholderTextColor={COLORS.textTertiary} />
         </>
       )}
+      {t.event_type !== "diary.created" ? (
+        <View style={styles.mediaRow} testID="pli.quicklog.media">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="添加记录照片"
+            disabled={saving || mediaCount >= 3}
+            onPress={onAddMedia}
+            style={({ pressed }) => [styles.mediaBtn, (saving || mediaCount >= 3) && styles.saveDisabled, pressed && !saving && styles.pressed]}
+          >
+            <Ionicons name="camera-outline" size={17} color={COLORS.brandPrimaryDeep} />
+            <Text style={styles.mediaBtnText}>{mediaCount ? `已选 ${mediaCount}/3 张` : "添加照片"}</Text>
+          </Pressable>
+          {mediaCount > 0 ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="清除已选照片" onPress={onClearMedia} hitSlop={8}>
+              <Text style={styles.mediaClear}>清除</Text>
+            </Pressable>
+          ) : (
+            <Text style={styles.mediaHint}>可选 · 作为这条记录的证据</Text>
+          )}
+        </View>
+      ) : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="保存"
@@ -190,6 +227,21 @@ const styles = StyleSheet.create({
   inputMultiline: { minHeight: 80, textAlignVertical: "top" },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
   mutedForm: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: SPACE.s3 },
+  mediaRow: { marginTop: SPACE.s4, flexDirection: "row", alignItems: "center", gap: SPACE.s2 },
+  mediaBtn: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: SPACE.s3,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    borderColor: COLORS.dividerStrong,
+    backgroundColor: COLORS.surface,
+  },
+  mediaBtnText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  mediaClear: { fontSize: TYPE.sm, color: COLORS.textSecondary, paddingVertical: 10 },
+  mediaHint: { flex: 1, fontSize: TYPE.caption, color: COLORS.textTertiary },
   saveBtn: {
     marginTop: SPACE.s4,
     backgroundColor: COLORS.brandPrimary,
