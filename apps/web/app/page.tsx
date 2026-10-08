@@ -130,9 +130,24 @@ export default function TodayPage() {
     }
   }
 
-  async function sheetLog(type: string) {
+  async function sheetLog(type: string, textValue?: string) {
     const q = SHEET_TYPES.find((s) => s.type === type);
     if (!q) return;
+    if (type === "diary.created") {
+      const text = textValue?.trim();
+      if (!text) return;
+      try {
+        await api.post(`/pets/${current.id}/diary`, { text });
+        setFlash("已记录：备注");
+        today.reload();
+        setSheetOpen(false);
+        setTimeout(() => setFlash(null), 2500);
+      } catch (e) {
+        saveDraft("quicklog", { endpoint: `/pets/${current.id}/diary`, text });
+        setFlash(`${mapErrorMessage(e)}（备注已保存为草稿，恢复后可同步）`);
+      }
+      return;
+    }
     await quickLog({ type: q.type, label: q.label, payload: (q.payload as Record<string, string | number>) ?? {} });
     setSheetOpen(false);
   }
