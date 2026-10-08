@@ -53,13 +53,13 @@ export const COLORS = {
   mediaOverlay: "#0000001A",
   // stage warm living (R2P3D-R4.2): warm cream reality field — never a dark
   // viewer on owner hero pages. Dark stays only in the engineering debug theme.
-  stageWarmBase: "#E3EBDF",
-  stageWarmDeep: "#D4E1D0",
-  stageWarmGlow: "#EFF5E9",
-  stageWarmBeam: "#FFF9EEB8",
-  stageWarmBeamSoft: "#FFFDF780",
-  stageWarmFloor: "#C8D9BEA0",
-  stageWarmHorizon: "#ABC2AB4A",
+  stageWarmBase: "#F4E9D8",
+  stageWarmDeep: "#E7D5BC",
+  stageWarmGlow: "#FFF7E9",
+  stageWarmBeam: "#FFF9EECC",
+  stageWarmBeamSoft: "#FFFDF799",
+  stageWarmFloor: "#DEC6A299",
+  stageWarmHorizon: "#B8A07852",
   stageWarmBorder: "#E5D5BD",
   stageFog: "#EFDCC0",
   // review = neutral identity studio (off-white / soft warm grey)
