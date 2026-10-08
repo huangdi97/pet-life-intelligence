@@ -267,3 +267,31 @@ test("R7 viewport layout: Life View fits phone and Review controls precede the 3
     }
   }
 });
+
+
+test("R7 Timeline keeps the life stream near the first phone viewport, with optional filters", async ({ page, request }) => {
+  await loginAsEmail(page, request, "owner@pli.demo");
+  const petId = await demoDoudouId(request);
+  await useCurrentPet(page, petId);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/timeline");
+  await page.waitForLoadState("networkidle");
+
+  const refine = page.locator(".v7-timeline-refine");
+  await expect(refine).toBeVisible();
+  await expect(page.locator(".v7-timeline-search input")).toBeVisible();
+  await expect(page.locator('[data-testid="pli.timeline.filter.all"]')).toBeVisible();
+  await expect(refine.locator(".v5-timeline-primary-tools")).toBeHidden();
+
+  const stream = page.getByTestId("pli.timeline.stream");
+  await expect(stream).toBeVisible();
+  const streamBox = await stream.boundingBox();
+  expect(streamBox, "real event stream must have bounds").not.toBeNull();
+  expect(streamBox!.y, "the life stream should not be hidden under a filter form").toBeLessThan(620);
+
+  await refine.locator("summary").click();
+  await expect(refine.locator(".v5-timeline-primary-tools")).toBeVisible();
+  await expect(refine.getByLabel("回到那一天")).toBeVisible();
+  await expect(refine.getByLabel("按事件类型过滤")).toBeVisible();
+  await expect(refine.getByRole("group", { name: "按来源筛选" })).toBeVisible();
+});
