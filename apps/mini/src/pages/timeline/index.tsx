@@ -335,8 +335,12 @@ export default function Timeline() {
       load(owner, filter);
       Taro.showToast({ title: audioArtifactId ? "语音日记已保存" : "日记已保存", icon: "success" });
     } catch {
-      setDiaryState("error");
-      Taro.showToast({ title: "暂时无法保存", icon: "none" });
+      // An old-pet upload may finish after the household has switched.
+      // Do not replace the newly selected pet's diary state with its error.
+      if (activePetRef.current === owner) {
+        setDiaryState("error");
+        Taro.showToast({ title: "暂时无法保存", icon: "none" });
+      }
     } finally {
       setDiaryBusy(false);
     }
