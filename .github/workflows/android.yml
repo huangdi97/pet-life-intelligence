@@ -162,8 +162,13 @@ jobs:
           pnpm --dir packages/pet-3d build
           pnpm --dir apps/mobile build:3d-page
           pnpm --dir apps/mobile exec expo prebuild --platform android --non-interactive
+          # Evidence APK must be debuggable (run-as) AND self-contained. Normal
+          # RN debug omits JS and silently depends on emulator -> Metro reachability.
+          # Bundle JS in the debug variant to make the human-gate deterministic.
+          python scripts/r5-6/enable-debug-bundle.py
           cd apps/mobile/android
           bash ../../../scripts/ci/gradle-retry.sh assembleDebug
+          unzip -l app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/index.android.bundle'
       - name: Start API
         run: |
           (cd services/api && nohup python -m uvicorn app.main:app --host 0.0.0.0 --port 8800 > /tmp/pli-api.log 2>&1 &)
