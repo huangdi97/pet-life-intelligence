@@ -85,8 +85,9 @@ export function PetLivingStage({
   // Use the actual owner's persisted avatar when an individual 3D twin is
   // absent. Never reuse the previous animal's picture during a pet switch.
   const [avatar, setAvatar] = useState<{ petId: string; uri: string | null } | null>(null);
+  const [photoView, setPhotoView] = useState<{ petId: string; enabled: boolean } | null>(null);
   useEffect(() => {
-    if (!petId || twin || demo) return;
+    if (!petId) return;
     let alive = true;
     api.get<{ avatar_artifact_id: string | null; data_url: string | null }>(`/pets/${petId}/avatar`)
       .then((row) => {
@@ -96,12 +97,14 @@ export function PetLivingStage({
         if (alive) setAvatar({ petId, uri: null });
       });
     return () => { alive = false; };
-  }, [petId, twin, demo]);
+  }, [petId]);
   const photoUri = petId && avatar?.petId === petId ? avatar.uri : null;
   // A bundled procedural/demo identity is allowed only in an explicitly
   // marked demo session. Production owner surfaces need an actual persisted
   // Twin descriptor; otherwise they fall back to the honest 2.5D/photo path.
-  const show3d = identity !== null && (twin !== null || demo) && pet3d !== "failed";
+  const canShow3d = identity !== null && (twin !== null || demo) && pet3d !== "failed";
+  const showPhoto = Boolean(photoUri && photoView?.petId === petId && photoView.enabled);
+  const show3d = canShow3d && !showPhoto;
   const stageClass = [
     "r2p-stage",
     variant === "life" ? "r2p-stage--life" : variant === "pet" ? "r2p-stage--pet" : "",
@@ -248,6 +251,19 @@ export function PetLivingStage({
         {name}
         {demo ? <span className="r2p-stage-demo">示例数据</span> : null}
       </p>
+      {photoUri && canShow3d && petId ? (
+        <button
+          type="button"
+          className="r2p-stage-photo-toggle"
+          data-testid={`pli.${variant}.view-switch`}
+          aria-pressed={showPhoto}
+          aria-label={showPhoto ? "切换为可旋转的 3D 形象" : "切换为主人上传的真实照片"}
+          onClick={() => setPhotoView({ petId, enabled: !showPhoto })}
+        >
+          <Icon name="paw" size={12} />
+          {showPhoto ? "看 3D 形象" : "看真实照片"}
+        </button>
+      ) : null}
       <div className="r2p-stage-now">
         {headline ? <p className="r2p-stage-headline" data-testid={headlineTestId}>{headline}</p> : null}
         {caption ? <p className="r2p-stage-caption">{caption}</p> : null}
