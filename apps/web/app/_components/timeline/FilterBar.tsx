@@ -63,17 +63,32 @@ export function FilterBar({
         </div>
       </div>
 
-      <div className="v5-timeline-primary-tools">
-        <label className="v5-timeline-field v5-timeline-search">
-          <span>搜索记录</span>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("timeline.search")}
-            aria-label={t("timeline.search")}
-          />
-        </label>
+      {/* Life events, not a full filter form, are the primary Timeline content.
+          Keep text search directly available; put infrequent controls in
+          progressive disclosure without losing source/date/type filtering. */}
+      <label className="v5-timeline-field v5-timeline-search v7-timeline-search">
+        <span>搜索记录</span>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t("timeline.search")}
+          aria-label={t("timeline.search")}
+        />
+      </label>
 
+      <details
+        className="v7-timeline-refine"
+        // An active filter must never become mysteriously hidden on page load.
+        key={day || source || filter || (mediaOnly ? "media" : "all")}
+        defaultOpen={Boolean(day || source || filter || mediaOnly)}
+      >
+        <summary className="v7-timeline-refine-summary">
+          <span>日期、来源和更多筛选</span>
+          <span className="v7-timeline-refine-count">
+            {[day, source, filter, mediaOnly ? "media" : ""].filter(Boolean).length || "展开"}
+          </span>
+        </summary>
+        <div className="v5-timeline-primary-tools">
         <label className="v5-timeline-field v5-timeline-date">
           <span>回到某一天</span>
           <input
@@ -144,6 +159,7 @@ export function FilterBar({
           </div>
         </div>
       </div>
+      </details>
     </section>
   );
 }
