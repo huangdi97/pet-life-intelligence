@@ -7,7 +7,7 @@
  * Production builds never compile this path (flag off).
  */
 import React, { useCallback, useEffect, useState } from "react";
-import { Linking } from "react-native";
+import { Linking, Pressable, Text } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PetsProvider, usePets } from "./src/context";
 import { AppNavigation } from "./src/navigation";
@@ -59,45 +59,81 @@ function applyDemoNav(screen: string | null): void {
   }
 }
 
-/** Demo-only bootstrap: ensure a dev session (deep link or default account). */
+/** A demo session is a prerequisite of mounting owner screens, not a
+ * best-effort side effect next to them. Otherwise Today/usePetTwin can issue a
+ * 401 before devLogin persists X-Dev-User-Id and never retry visual-models.
+ * This gate is DEMO-ONLY. Production navigation mounts normally.
+ */
 function DemoSession() {
-  const { reload, choose } = usePets();
+  const { reload, choose, reset } = usePets();
+  const [ready, setReady] = useState(false);
+  const [failure, setFailure] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
-    if (!DEMO_ENV) return;
     let alive = true;
     async function boot() {
-      const url = await Linking.getInitialURL();
-      if (!alive) return;
-      const email = demoEmailFromUrl(url) ?? DEMO_DEFAULT_EMAIL;
-      if ((await getDevUserId()) && email === DEMO_DEFAULT_EMAIL) {
+      try {
+        const url = await Linking.getInitialURL();
+        if (!alive) return;
+        const email = demoEmailFromUrl(url) ?? DEMO_DEFAULT_EMAIL;
+        if (!(await getDevUserId()) || email !== DEMO_DEFAULT_EMAIL) {
+          await devLogin(email);
+        }
+        if (!alive) return;
+        // The PetsProvider's first fetch was deliberately deferred; this is
+        // its authenticated starting signal, not a race against login.
         reload();
-      } else {
-        await devLogin(email);
-        reload();
+        const pet = demoPetFromUrl(url);
+        if (pet) await choose(pet);
+        if (!alive) return;
+        setReady(true);
+        applyDemoNav(demoNavFromUrl(url));
+      } catch {
+        if (alive) setFailure(true);
       }
-      const pet = demoPetFromUrl(url);
-      if (pet) await choose(pet);
-      applyDemoNav(demoNavFromUrl(url));
     }
     void boot();
     const sub = Linking.addEventListener("url", ({ url }) => {
       void (async () => {
-        const email = demoEmailFromUrl(url);
-        if (email) {
-          await devLogin(email);
-          reload();
+        try {
+          const email = demoEmailFromUrl(url);
+          if (email) {
+            // Cross-account demo navigation must never expose prior owner
+            // content while a new session is being established.
+            setReady(false);
+            reset();
+            await devLogin(email);
+            if (!alive) return;
+            reload();
+          }
+          const pet = demoPetFromUrl(url);
+          if (pet) await choose(pet);
+          if (!alive) return;
+          setReady(true);
+          applyDemoNav(demoNavFromUrl(url));
+        } catch {
+          if (alive) setFailure(true);
         }
-        const pet = demoPetFromUrl(url);
-        if (pet) await choose(pet);
-        applyDemoNav(demoNavFromUrl(url));
       })();
     });
     return () => {
       alive = false;
       sub.remove();
     };
-  }, [choose, reload]);
-  return null;
+  }, [attempt, choose, reload, reset]);
+
+  if (failure && !ready) {
+    return (
+      <SafeAreaProvider>
+        <Pressable accessibilityRole="button" accessibilityLabel="重试演示登录" onPress={() => { setFailure(false); setAttempt((n) => n + 1); }}>
+          <Text>演示数据暂时没有连接成功 · 点击重试</Text>
+        </Pressable>
+      </SafeAreaProvider>
+    );
+  }
+  // No owner API hook or 3D Twin request can run before the demo session.
+  return ready ? <AppNavigation /> : null;
 }
 
 export default function App() {
@@ -115,9 +151,8 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <PetsProvider>
-        {DEMO_ENV ? <DemoSession /> : null}
-        <AppNavigation />
+      <PetsProvider deferInitialLoad={DEMO_ENV}>
+        {DEMO_ENV ? <DemoSession /> : <AppNavigation />}
       </PetsProvider>
     </SafeAreaProvider>
   );
