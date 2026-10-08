@@ -93,11 +93,13 @@ page {
 .attention-calm { background: $color-success-bg; }
 .attention-focus { background: $color-attention-bg; }
 .attention-danger { background: $color-danger-bg; }
+.attention-unknown { background: $color-surface-raised; border: 1px solid $color-divider-subtle; }
 .attention-icon { padding-top: 2px; }
 .attention-title { font-size: $font-body-strong; font-weight: $font-weight-bold; }
 .attention-title-calm { color: $color-success; }
 .attention-title-focus { color: $color-attention; }
 .attention-title-danger { color: $color-danger; }
+.attention-title-unknown { color: $color-text-secondary; }
 .attention-body { font-size: $font-body; color: $color-text-primary; margin-top: 2px; }
 .attention-footer { font-size: $font-caption; color: $color-text-tertiary; margin-top: $space-2; }
 
