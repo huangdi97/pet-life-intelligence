@@ -7,10 +7,11 @@
  * degrades to the certified photo/2.5D renderer (labeled fallback, never the
  * P0 target).
  */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { Pet } from "../../services/types";
+import { api } from "../../api";
 import { COLORS, RADIUS, SPACE, TYPE } from "../../tokens";
 import { resolvePet3DIdentity, type PoseName, type TwinDescriptor } from "@pli/pet-3d";
 import { PetStageRenderer, type PetStageSpec } from "../pet/PetStageRenderer";
@@ -71,6 +72,24 @@ export function PetLivingStage({
   onPressPet,
 }: Props) {
   const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
+  // Real owner photo must outrank the generic species glyph when no verified
+  // individual 3D twin exists. The keyed value makes previous-pet media
+  // invisible synchronously on the render that switches active identity.
+  const [avatar, setAvatar] = useState<{ petId: string; uri: string | null } | null>(null);
+  useEffect(() => {
+    const id = pet?.id;
+    if (!id || !pet.avatar_artifact_id) return;
+    let alive = true;
+    api.get<{ avatar_artifact_id: string | null; data_url: string | null }>(`/pets/${id}/avatar`)
+      .then((row) => {
+        if (alive) setAvatar({ petId: id, uri: row.data_url ?? null });
+      })
+      .catch(() => {
+        if (alive) setAvatar({ petId: id, uri: null });
+      });
+    return () => { alive = false; };
+  }, [pet?.id, pet?.avatar_artifact_id]);
+  const photoUri = pet?.avatar_artifact_id && avatar?.petId === pet?.id ? avatar.uri : null;
   const identity = pet ? resolvePet3DIdentity({ name: pet.name, species: pet.species, breed: pet.breed }) : null;
   // R4.2: the stage is a warm living reality field (today/pet/life) or a
   // neutral identity studio (review). The 3D page paints its own themed
@@ -105,7 +124,11 @@ export function PetLivingStage({
     </View>
   ) : (
     <View pointerEvents={onPressPet ? "none" : undefined}>
-      <PetStageRenderer pet={pet} spec={spec} width={petWidth} />
+      <PetStageRenderer
+        pet={pet}
+        spec={photoUri ? { mode: "photo", uri: photoUri } : spec}
+        width={petWidth}
+      />
     </View>
   );
   return (
