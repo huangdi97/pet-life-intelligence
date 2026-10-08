@@ -2078,3 +2078,16 @@ body{background:#F6F7F1}
   .v5-review-reference {margin:8px 16px 12px;padding:10px;gap:10px;}
   .v5-review-reference img {width:72px;height:72px;}
 }
+
+/* R7.2: let the owner compare the REAL uploaded photo to the current 3D
+   representation without making the real image pass through the GLB provider. */
+.r2p-stage-photo-toggle{
+  position:absolute;top:164px;right:20px;z-index:12;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:36px;padding:7px 12px;border-radius:999px;
+  background:rgba(255,253,245,.91);border:1px solid rgba(255,255,255,.96);
+  box-shadow:0 3px 12px rgba(37,66,47,.08);color:#365F49;
+  font-size:12px;font-weight:700;cursor:pointer;
+}
+.r2p-stage-photo-toggle:focus-visible{outline:2px solid #365F49;outline-offset:2px}
+@media(max-width:768px){.r2p-stage-photo-toggle{top:154px;right:12px}}
