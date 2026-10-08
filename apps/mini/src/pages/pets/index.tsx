@@ -11,6 +11,7 @@ import { breedLabel, speciesLabel } from "../../utils/format";
 import { petAgeText, sexLabelZh, eventTypeLabel } from "../../utils/labels";
 import { usePets } from "../../utils/usePets";
 import { PetHero } from "../../components/pet_visual";
+import { getPlatform } from "../../platform";
 import { EmptyState } from "../../components/feedback/Feedback";
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
@@ -104,6 +105,7 @@ export default function Pets() {
   });
   const [dietState, setDietState] = useState<"loading" | "ready" | "error">("loading");
   const [dietBusy, setDietBusy] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
     breed: "",
@@ -286,6 +288,25 @@ export default function Pets() {
     }
   }
 
+  async function chooseAvatar() {
+    if (!current?.id || avatarBusy) return;
+    setAvatarBusy(true);
+    try {
+      const platform = getPlatform();
+      const paths = await platform.media.chooseImage(1);
+      const filePath = paths[0];
+      if (!filePath) return;
+      const uploaded = await platform.uploader.uploadImage(current.id, filePath);
+      await api.put(`/pets/${current.id}/avatar`, { artifact_id: uploaded.artifact_id });
+      await refresh();
+      Taro.showToast({ title: "头像已更新", icon: "success" });
+    } catch {
+      Taro.showToast({ title: "头像更新失败", icon: "none" });
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
   async function recomputeBaseline() {
     if (!petId || baselineBusy) return;
     setBaselineBusy(true);
@@ -411,6 +432,19 @@ export default function Pets() {
       ) : (
         <>
           <PetHero pet={current} headline="它的生活，从这里看见" identity={identityLine(current)} />
+
+          <View className="open-section" data-testid="pli.mini.pet.avatar">
+            <View className="section-title">
+              头像与视觉档案
+              <Text className="section-caption">{current.avatar_artifact_id ? "已设置" : "未设置"}</Text>
+            </View>
+            <View className="life-empty-note">
+              头像只使用你明确选择并上传的图片；它与 3D 形象分开保存，不会被系统自动替换。
+            </View>
+            <Button className="btn" disabled={avatarBusy} onClick={() => void chooseAvatar()}>
+              {avatarBusy ? "上传中…" : current.avatar_artifact_id ? "更换头像" : "选择头像"}
+            </Button>
+          </View>
 
           <View className="open-section" data-testid="pli.mini.pet.profile">
             <View className="section-title" onClick={() => setShowEdit((value) => !value)}>
