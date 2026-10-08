@@ -112,7 +112,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         demo={isDemoTwin || process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1"}
         anchors={anchors}
         caption={mode === "now" ? nowLine : undefined}
-        frameTarget={0.39}
+        frameTarget={0.55}
         twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
         sourceMediaCount={observedRegions || undefined}
         interactive
