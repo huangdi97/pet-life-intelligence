@@ -757,3 +757,19 @@ def test_android_activity_does_not_count_sleep_or_medication_duration() -> None:
     assert "Number.isFinite(minutes)" in helper
     assert "observedActivityMinutes(todayEvents)" in today
     assert "todayEvents.reduce(" not in today
+
+
+def test_review_orbit_controls_are_first_screen_and_mobile_viewports_do_not_overflow() -> None:
+    """A working GLB is not sufficient if camera controls are below the fold."""
+    android = read("apps/mobile/src/screens/PetTwinReviewScreen.tsx")
+    web = read("apps/web/app/pets/[id]/twin/review/page.tsx")
+    css = read("apps/web/app/globals.css")
+
+    assert 'testID="pli.twinreview.camera-controls"' in android
+    assert android.index('testID="pli.twinreview.camera-controls"') < android.index('variant="review"')
+    assert 'testID={`pli.twinreview.view.${v.key}`}' in android or 'testID={`pli.twinreview.view.${v.key}`}' in android
+    assert web.index('data-testid={`pli.twinreview.view.${v.id}`}') < web.index('data-testid="pli.twinreview.stage"')
+    assert ".v4-main > .r5-life-stage-shell" in css
+    assert ".r5-life-stage-shell > .r2p-stage" in css
+    assert ".v5-review-page > .v5-segmented" in css
+    assert "grid-template-columns:repeat(3,minmax(0,1fr))" in css
