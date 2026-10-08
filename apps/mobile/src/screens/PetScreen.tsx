@@ -63,19 +63,34 @@ const DOMAIN_LABELS: Record<string, string> = {
 export function PetScreen() {
   const { pets, petId } = usePets();
   const navigation = useNavigation<StackNav>();
-  const [today, setToday] = useState<{ events: LifeEvent[]; event_counts: Record<string, number> } | null>(null);
-  const [hint, setHint] = useState<{ hints: string[]; rule: string } | null>(null);
-  const [health, setHealth] = useState<HealthEventRow[] | null>(null);
-  const [lastBehavior, setLastBehavior] = useState<BehaviorEventRow | null>(null);
-  const [goal, setGoal] = useState<TrainingGoalRow | null>(null);
-  const [welfare, setWelfare] = useState<WelfareEvidence | null>(null);
-  const [friends, setFriends] = useState<PetFriend[]>([]);
-  const [friendsState, setFriendsState] = useState<"loading" | "ready" | "error">("loading");
-  const [baseline, setBaseline] = useState<BaselineRow[]>([]);
-  const [baselineState, setBaselineState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadedPetId, setLoadedPetId] = useState<string | null>(null);
+  const [rawToday, setToday] = useState<{ events: LifeEvent[]; event_counts: Record<string, number> } | null>(null);
+  const [rawHint, setHint] = useState<{ hints: string[]; rule: string } | null>(null);
+  const [rawHealth, setHealth] = useState<HealthEventRow[] | null>(null);
+  const [rawLastBehavior, setLastBehavior] = useState<BehaviorEventRow | null>(null);
+  const [rawGoal, setGoal] = useState<TrainingGoalRow | null>(null);
+  const [rawWelfare, setWelfare] = useState<WelfareEvidence | null>(null);
+  const [rawFriends, setFriends] = useState<PetFriend[]>([]);
+  const [rawFriendsState, setFriendsState] = useState<"loading" | "ready" | "error">("loading");
+  const [rawBaseline, setBaseline] = useState<BaselineRow[]>([]);
+  const [rawBaselineState, setBaselineState] = useState<"loading" | "ready" | "error">("loading");
   const [baselineBusy, setBaselineBusy] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [rawLoading, setLoading] = useState(true);
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
+  // Hide previously selected pets' API facts before the effect runs, including
+  // baseline, social contacts and medical observations.
+  const scoped = !!pet?.id && loadedPetId === pet.id;
+  const today = scoped ? rawToday : null;
+  const hint = scoped ? rawHint : null;
+  const health = scoped ? rawHealth : null;
+  const lastBehavior = scoped ? rawLastBehavior : null;
+  const goal = scoped ? rawGoal : null;
+  const welfare = scoped ? rawWelfare : null;
+  const friends = scoped ? rawFriends : [];
+  const friendsState = scoped ? rawFriendsState : "loading";
+  const baseline = scoped ? rawBaseline : [];
+  const baselineState = scoped ? rawBaselineState : "loading";
+  const loading = rawLoading || !scoped;
 
   // Individual Twin (R2P3D-R3 D): same canonical per-pet asset as Today/Life
   // View, so Pet World shows the ACTIVE twin (generic demo only without one).
@@ -85,6 +100,14 @@ export function PetScreen() {
     if (!pet?.id) return;
     let alive = true;
     setLoading(true);
+    setToday(null);
+    setHint(null);
+    setHealth(null);
+    setLastBehavior(null);
+    setGoal(null);
+    setWelfare(null);
+    setFriends([]);
+    setBaseline([]);
     setFriendsState("loading");
     setBaselineState("loading");
     Promise.allSettled([
@@ -117,6 +140,7 @@ export function PetScreen() {
         setBaseline([]);
         setBaselineState("error");
       }
+      setLoadedPetId(pet.id);
       setLoading(false);
     });
     return () => {
