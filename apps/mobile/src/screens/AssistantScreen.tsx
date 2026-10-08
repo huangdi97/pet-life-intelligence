@@ -169,6 +169,13 @@ export function AssistantScreen() {
           </View>
         )}
 
+        <View style={styles.medicalBoundary} testID="pli.assistant.medical-boundary">
+          <Text style={styles.medicalBoundaryTitle}>医疗动作边界</Text>
+          <Text style={styles.medicalBoundaryBody}>
+            助手可以整理记录和解释规则结果，但不会诊断、开药、改剂量或替代兽医。需要尽快或立即就医时，以健康页的独立风险分级与行动指引为准。
+          </Text>
+        </View>
+
         <View style={styles.toolSection} accessibilityLabel="助手更多能力">
           <Text style={styles.toolLabel}>更多帮助</Text>
           <ScrollView
@@ -271,6 +278,9 @@ const styles = StyleSheet.create({
   toolPanel: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s4 },
   backToAsk: { minHeight: 44, alignSelf: "flex-start", justifyContent: "center", marginBottom: SPACE.s2 },
   backToAskText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  medicalBoundary: { marginHorizontal: SPACE.s4, marginTop: SPACE.s5, padding: SPACE.s3, borderRadius: RADIUS.lg, backgroundColor: COLORS.attentionBg },
+  medicalBoundaryTitle: { fontSize: TYPE.sm, fontWeight: "700", color: COLORS.textPrimary },
+  medicalBoundaryBody: { marginTop: 4, fontSize: TYPE.caption, color: COLORS.textSecondary, lineHeight: 18 },
   toolSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s6 },
   toolLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary, marginBottom: SPACE.s2 },
   toolRow: { flexDirection: "row", gap: SPACE.s2, paddingRight: SPACE.s4 },
