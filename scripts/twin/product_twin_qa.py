@@ -60,6 +60,120 @@ def finite_values(values: list[float] | tuple[float, ...]) -> bool:
     return all(math.isfinite(float(value)) for value in values)
 
 
+
+def _accessor_data(gltf: dict, binary: bytes, index: int, expected_type: str) -> list[tuple]:
+    """Read actual glTF BIN accessors, honoring offsets and strides.
+
+    Fail closed on sparse/external/invalid accessors rather than trusting JSON
+    metadata about their counts. No renderer or vision model is involved.
+    """
+    accessors = gltf.get("accessors") or []
+    views = gltf.get("bufferViews") or []
+    if not isinstance(index, int) or not 0 <= index < len(accessors):
+        raise ValueError(f"invalid accessor index: {index}")
+    a = accessors[index]
+    if a.get("sparse") or a.get("type") != expected_type:
+        raise ValueError(f"unexpected sparse/type accessor: {index} -> {a.get('type')}")
+    view_index = a.get("bufferView")
+    if not isinstance(view_index, int) or not 0 <= view_index < len(views):
+        raise ValueError(f"accessor has no valid BIN view: {index}")
+    view = views[view_index]
+    if int(view.get("buffer", 0)) != 0:
+        raise ValueError("external GLB buffer is not permitted")
+    fmts = {5121: "B", 5123: "H", 5125: "I", 5126: "f"}
+    comp = { "SCALAR": 1, "VEC4": 4, "MAT4": 16 }[expected_type]
+    fmt = fmts.get(a.get("componentType"))
+    if not fmt:
+        raise ValueError(f"invalid component type: {a.get('componentType')}")
+    decoder = struct.Struct("<" + fmt * comp)
+    count = int(a.get("count") or 0)
+    stride = int(view.get("byteStride") or decoder.size)
+    start = int(view.get("byteOffset") or 0) + int(a.get("byteOffset") or 0)
+    view_end = int(view.get("byteOffset") or 0) + int(view.get("byteLength") or 0)
+    if count < 1 or stride < decoder.size or start < 0:
+        raise ValueError(f"invalid accessor length/stride: {index}")
+    end = start + (count - 1) * stride + decoder.size
+    if end > view_end or end > len(binary):
+        raise ValueError(f"accessor exceeds BIN view: {index}")
+    return [decoder.unpack_from(binary, start + i * stride) for i in range(count)]
+
+
+def validate_skinning_data(gltf: dict, binary: bytes) -> tuple[list[str], dict]:
+    """Check each shipped vertex's *real* JOINTS/WEIGHTS and inverse binds."""
+    errors: list[str] = []
+    metrics: dict = {"checkedVertices": 0, "maxWeightSumError": None, "maxInverseBindError": None}
+    try:
+        meshes = gltf["meshes"]
+        skin = gltf["skins"][0]
+        joints = skin["joints"]
+        nodes = gltf["nodes"]
+        if len(joints) < 16 or any(not isinstance(j, int) or not 0 <= j < len(nodes) for j in joints):
+            return ["skin joint references invalid"], metrics
+
+        # Check all vertices, not merely the accessor count or first N rows.
+        for mesh in meshes:
+            for primitive in mesh.get("primitives", []):
+                attrs = primitive["attributes"]
+                joint_rows = _accessor_data(gltf, binary, attrs["JOINTS_0"], "VEC4")
+                weight_rows = _accessor_data(gltf, binary, attrs["WEIGHTS_0"], "VEC4")
+                if len(joint_rows) != len(weight_rows):
+                    errors.append("JOINTS_0/WEIGHTS_0 count mismatch")
+                    continue
+                weight_error = 0.0
+                invalid = 0
+                for js, ws in zip(joint_rows, weight_rows):
+                    total = sum(float(x) for x in ws)
+                    weight_error = max(weight_error, abs(total - 1.0))
+                    if any(not math.isfinite(float(w)) or float(w) < -1e-6 for w in ws):
+                        invalid += 1
+                    elif any(int(j) >= len(joints) and float(w) > 1e-5 for j, w in zip(js, ws)):
+                        invalid += 1
+                metrics["checkedVertices"] += len(joint_rows)
+                metrics["maxWeightSumError"] = max(metrics["maxWeightSumError"] or 0.0, weight_error)
+                if invalid:
+                    errors.append(f"{invalid} vertices have invalid skin weights/joint indices")
+                if weight_error > 0.002:
+                    errors.append(f"skin weights not normalized: maximum sum error {weight_error:.6g}")
+
+        # glbwriter's canonical bind transform contains only local translations;
+        # its inverse bind is the inverse WORLD translation of that joint.
+        parents: dict[int, int] = {}
+        for parent_idx, node in enumerate(nodes):
+            for child in node.get("children", []):
+                if child in parents:
+                    errors.append(f"joint node {child} has multiple parents")
+                parents[child] = parent_idx
+        def world_position(idx: int) -> tuple[float, float, float]:
+            result = [0.0, 0.0, 0.0]
+            seen: set[int] = set()
+            while idx not in seen:
+                seen.add(idx)
+                local = nodes[idx].get("translation") or [0.0, 0.0, 0.0]
+                for axis in range(3):
+                    result[axis] += float(local[axis])
+                if idx not in parents:
+                    return (result[0], result[1], result[2])
+                idx = parents[idx]
+            raise ValueError("cyclic joint hierarchy")
+
+        matrix_rows = _accessor_data(gltf, binary, skin["inverseBindMatrices"], "MAT4")
+        if len(matrix_rows) != len(joints):
+            errors.append("inverse bind matrix count does not match joint count")
+        max_ib_error = 0.0
+        for joint_idx, matrix in zip(joints, matrix_rows):
+            x, y, z = world_position(joint_idx)
+            expected = (1.,0.,0.,0., 0.,1.,0.,0., 0.,0.,1.,0., -x,-y,-z,1.)
+            max_ib_error = max(max_ib_error, max(abs(float(a)-b) for a,b in zip(matrix, expected)))
+        metrics["maxInverseBindError"] = max_ib_error
+        if max_ib_error > 1e-4:
+            errors.append(f"inverse bind matrices inconsistent with world bind pose: {max_ib_error:.6g}")
+        if not metrics["checkedVertices"]:
+            errors.append("no skinned vertices were checked")
+    except (KeyError, IndexError, TypeError, ValueError, struct.error) as exc:
+        errors.append(f"unreadable or inconsistent GLB skin data: {exc}")
+    return errors, metrics
+
+
 def qa_pet(pet: str) -> dict:
     errors: list[str] = []
     glb_path = TWIN_DIR / f"{pet}.glb"
@@ -178,7 +292,7 @@ def qa_pet(pet: str) -> dict:
         errors.append("UV/texture product prerequisites missing")
 
     try:
-        gltf, _ = read_glb(glb_path)
+        gltf, binary = read_glb(glb_path)
     except Exception as exc:  # noqa: BLE001
         errors.append(f"GLB unreadable: {exc}")
         return {
@@ -187,6 +301,9 @@ def qa_pet(pet: str) -> dict:
             "errors": errors,
             "pass": False,
         }
+
+    skin_errors, skin_diagnostics = validate_skinning_data(gltf, binary)
+    errors.extend(skin_errors)
 
     if str((gltf.get("asset") or {}).get("version")) != "2.0":
         errors.append("gltf asset.version is not 2.0")
@@ -296,6 +413,7 @@ def qa_pet(pet: str) -> dict:
         "skinCount": len(skins),
         "animationNames": sorted(animation_names),
         "axisSpans": axis_spans,
+        "skinIntegrity": skin_diagnostics,
         "errors": errors,
         "pass": not errors,
         "humanVisualAcceptance": "PENDING",
