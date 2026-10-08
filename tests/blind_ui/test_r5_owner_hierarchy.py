@@ -911,3 +911,5 @@ def test_mini_pet_world_is_life_first_before_profile_administration() -> None:
 
     assert hero < recent < domains < avatar < profile < identifiers
     assert "从它真实发生的生活继续往下看。" in source
+    assert 'event.event_type !== "today.viewed"' in source
+    assert "eventTypeLabel(recentPetEvent.event_type)" in source
