@@ -175,7 +175,7 @@ export default function PetsHubPage() {
                 headline={lastMeaningfulEvent ? "今天已经留下新的生活记录" : "今天还没有新的生活记录"}
                 caption={identityParts || undefined}
                 twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
-                frameTarget={0.33}
+                frameTarget={0.57}
                 sourceMediaCount={observedRegions || undefined}
                 stageTestId="pli.pet.hero-stage"
                 twinTestId="pli.pet.pet-twin"
