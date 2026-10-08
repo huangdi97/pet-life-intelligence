@@ -49,7 +49,7 @@ interface Props {
   /** Active motion clip for the 3D stage. */
   pose?: PoseName | null;
   /** Optional semantic/test overrides for contextual Living Canvas surfaces such as Companion. */
-  stageRole?: string;
+  stageRole?: "today" | "pet" | "life" | "review" | "companion";
   stageTestId?: string;
   twinTestId?: string;
   /** Imperative handle to the embedded 3D page (Life View zoom/reset). */
