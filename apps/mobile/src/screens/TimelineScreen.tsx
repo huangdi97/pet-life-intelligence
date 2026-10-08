@@ -80,6 +80,26 @@ export function TimelineScreen() {
   const [diaryErrorMessage, setDiaryErrorMessage] = useState("");
   const diaryRecordingRef = useRef<Audio.Recording | null>(null);
   const diaryPreviewSoundRef = useRef<Audio.Sound | null>(null);
+  const activePetRef = useRef(petId);
+  activePetRef.current = petId;
+  const recordingPetRef = useRef<string | null>(null);
+
+  // Voice notes and text are private drafts for a particular pet. Never carry
+  // an unsaved recording into the next pet after a household switch.
+  useEffect(() => {
+    setDiaryText("");
+    setDiaryAudioUri(null);
+    setDiaryRecording(false);
+    setDiaryErrorMessage("");
+    recordingPetRef.current = null;
+    const recording = diaryRecordingRef.current;
+    diaryRecordingRef.current = null;
+    if (recording) void recording.stopAndUnloadAsync().catch(() => {});
+    const sound = diaryPreviewSoundRef.current;
+    diaryPreviewSoundRef.current = null;
+    if (sound) void sound.unloadAsync().catch(() => {});
+    if (recording) void Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
+  }, [petId]);
   const [summaries, setSummaries] = useState<DailySummaryRow[]>([]);
   const [summaryState, setSummaryState] = useState<"loading" | "ready" | "error">("loading");
   const [summaryBusy, setSummaryBusy] = useState(false);
@@ -233,10 +253,12 @@ export function TimelineScreen() {
   }
 
   async function startDiaryRecording() {
-    if (diaryRecording || diaryBusy) return;
+    const recordingFor = petId;
+    if (!recordingFor || diaryRecording || diaryBusy) return;
     setDiaryErrorMessage("");
     try {
       const permission = await Audio.requestPermissionsAsync();
+      if (activePetRef.current !== recordingFor) return;
       if (!permission.granted) {
         setDiaryErrorMessage("没有麦克风权限；仍然可以继续写文字日记。");
         return;
@@ -254,27 +276,41 @@ export function TimelineScreen() {
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY,
       );
+      if (activePetRef.current !== recordingFor) {
+        await recording.stopAndUnloadAsync().catch(() => {});
+        return;
+      }
+      recordingPetRef.current = recordingFor;
       diaryRecordingRef.current = recording;
       setDiaryRecording(true);
     } catch {
       diaryRecordingRef.current = null;
-      setDiaryRecording(false);
-      setDiaryErrorMessage("录音没有开始成功；仍然可以继续写文字日记。");
+      recordingPetRef.current = null;
+      if (activePetRef.current === recordingFor) {
+        setDiaryRecording(false);
+        setDiaryErrorMessage("录音没有开始成功；仍然可以继续写文字日记。");
+      }
     }
   }
 
   async function stopDiaryRecording() {
     const recording = diaryRecordingRef.current;
+    const recordingFor = recordingPetRef.current;
     if (!recording) return;
     diaryRecordingRef.current = null;
+    recordingPetRef.current = null;
     try {
       await recording.stopAndUnloadAsync();
-      setDiaryAudioUri(recording.getURI());
+      if (recordingFor && activePetRef.current === recordingFor) {
+        setDiaryAudioUri(recording.getURI());
+      }
     } catch {
-      setDiaryAudioUri(null);
-      setDiaryErrorMessage("这段录音没有保存成功，请重试。");
+      if (recordingFor && activePetRef.current === recordingFor) {
+        setDiaryAudioUri(null);
+        setDiaryErrorMessage("这段录音没有保存成功，请重试。");
+      }
     } finally {
-      setDiaryRecording(false);
+      if (recordingFor && activePetRef.current === recordingFor) setDiaryRecording(false);
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
     }
   }
@@ -301,14 +337,15 @@ export function TimelineScreen() {
 
   async function addDiary() {
     const text = diaryText.trim();
-    if (!petId || (!text && !diaryAudioUri) || diaryBusy || diaryRecording) return;
+    const recordingFor = petId;
+    if (!recordingFor || (!text && !diaryAudioUri) || diaryBusy || diaryRecording) return;
     setDiaryBusy(true);
     setDiaryErrorMessage("");
     try {
       let audioArtifactId: string | null = null;
       if (diaryAudioUri) {
         const uploaded = await api.upload<{ artifact_id: string; kind: string }>(
-          `/pets/${petId}/artifacts`,
+          `/pets/${recordingFor}/artifacts`,
           {
             uri: diaryAudioUri,
             name: `voice-diary-${Date.now()}.m4a`,
@@ -318,23 +355,29 @@ export function TimelineScreen() {
         if (uploaded.kind !== "AUDIO") throw new Error("NOT_AUDIO");
         audioArtifactId = uploaded.artifact_id;
       }
-      await api.post(`/pets/${petId}/diary`, {
+      await api.post(`/pets/${recordingFor}/diary`, {
         text,
         audio_artifact_id: audioArtifactId,
       });
+      // Upload and post always target the original pet even if navigation
+      // switched during the await. Never repaint the NEW pet with OLD results.
+      if (activePetRef.current !== recordingFor) return;
       setDiaryText("");
       setDiaryAudioUri(null);
       const [diaryRows, eventRows] = await Promise.all([
-        api.get<DiaryRow[]>(`/pets/${petId}/diary?limit=5`),
-        api.get<EventsResp>(`/pets/${petId}/events?limit=200`),
+        api.get<DiaryRow[]>(`/pets/${recordingFor}/diary?limit=5`),
+        api.get<EventsResp>(`/pets/${recordingFor}/events?limit=200`),
       ]);
+      if (activePetRef.current !== recordingFor) return;
       setDiary(diaryRows);
       setDiaryState("ready");
       setEvents(eventRows.events.filter((event) => event.event_type !== "today.viewed"));
       setError(false);
     } catch {
-      setDiaryState("error");
-      setDiaryErrorMessage("这条日记暂时没有保存成功，原始录音不会被伪造成已保存。");
+      if (activePetRef.current === recordingFor) {
+        setDiaryState("error");
+        setDiaryErrorMessage("这条日记暂时没有保存成功，原始录音不会被伪造成已保存。");
+      }
     } finally {
       setDiaryBusy(false);
     }
