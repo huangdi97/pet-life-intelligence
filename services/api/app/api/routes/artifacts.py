@@ -29,10 +29,33 @@ ALLOWED = {
     "video/webm": ("VIDEO", b"\x1a\x45\xdf\xa3"),
     "audio/mpeg": ("AUDIO", None),
     "audio/mp4": ("AUDIO", None),
+    "audio/webm": ("AUDIO", b"\x1a\x45\xdf\xa3"),
     "application/pdf": ("DOCUMENT", b"%PDF"),
 }
 
 MAX_SIGNATURE_CHECK = 12
+
+
+def normalize_content_type(content_type: str, filename: str, head: bytes) -> str:
+    """Normalize conservative recorder uploads that arrive as octet-stream.
+
+    Mini-program/native upload bridges do not always attach the MIME type to a
+    multipart file part. We only recover a type when BOTH extension and file
+    signature agree; arbitrary octet-stream remains rejected.
+    """
+    if content_type != "application/octet-stream":
+        return content_type
+    lower = filename.lower()
+    if lower.endswith(".mp3") and (
+        head.startswith(b"ID3")
+        or (len(head) >= 2 and head[0] == 0xFF and (head[1] & 0xE0) == 0xE0)
+    ):
+        return "audio/mpeg"
+    if lower.endswith((".m4a", ".mp4")) and len(head) >= 8 and head[4:8] == b"ftyp":
+        return "audio/mp4"
+    if lower.endswith(".webm") and head.startswith(b"\x1a\x45\xdf\xa3"):
+        return "audio/webm"
+    return content_type
 
 
 def sniff(content_type: str, head: bytes) -> str:
@@ -58,7 +81,12 @@ async def upload_artifact(
     settings = get_settings()
     head = await file.read(MAX_SIGNATURE_CHECK)
     await file.seek(0)
-    kind = sniff(file.content_type or "", head)
+    effective_content_type = normalize_content_type(
+        file.content_type or "",
+        file.filename or "",
+        head,
+    )
+    kind = sniff(effective_content_type, head)
     content = await file.read()
     if len(content) > settings.max_upload_mb * 1024 * 1024:
         raise ValidationFailed(f"File exceeds {settings.max_upload_mb}MB limit.")
@@ -68,10 +96,10 @@ async def upload_artifact(
     key = f"{pet_id}/{uuid_mod.uuid4().hex}"
 
     storage = get_storage()
-    await storage.put(key, content, file.content_type or "application/octet-stream")
+    await storage.put(key, content, effective_content_type)
 
     artifact = Artifact(
-        pet_id=pet.id, kind=kind, content_type=file.content_type or "",
+        pet_id=pet.id, kind=kind, content_type=effective_content_type,
         size_bytes=len(content), sha256=sha,
         storage_backend=storage.name, storage_key=key,
         original_filename=(file.filename or "")[:255], sensitive=sensitive,
