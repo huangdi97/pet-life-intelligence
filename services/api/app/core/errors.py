@@ -86,7 +86,23 @@ def install_error_handlers(app: FastAPI) -> None:
             status_code=422,
             content=_envelope(
                 request, "VALIDATION_ERROR", "Request payload failed validation.",
-                {"errors": exc.errors()[:20]},
+                # Pydantic v2 can put a ValueError object into
+                # errors()[i]["ctx"]["error"]; JSONResponse cannot serialize
+                # exceptions. Expose only safe, stable validation metadata:
+                # never echo raw diary text, audio IDs, or submitted bodies.
+                {
+                    "errors": [
+                        {
+                            "loc": [
+                                part if isinstance(part, (str, int)) else str(part)
+                                for part in error.get("loc", ())
+                            ],
+                            "type": str(error.get("type", "value_error")),
+                            "msg": str(error.get("msg", "Invalid value")),
+                        }
+                        for error in exc.errors()[:20]
+                    ],
+                },
             ),
         )
 
