@@ -27,9 +27,11 @@ export const QUICK_TYPES: QuickLogItem[] = [
 export const SHEET_TYPES: QuickLogType[] = [
   ...QUICK_TYPES.map((q) => ({ type: q.type, label: q.label })),
   { type: "daily.sleep", label: "睡觉", payload: { duration_minutes: 60, quality: "normal" } },
-  { type: "medication.administered", label: "用药" },
-  { type: "behavior.observed", label: "行为" },
-  { type: "diary.created", label: "备注", payload: {} },
+  // Medication and Behavior require their governed domain forms; Quick Log
+  // must not fabricate an empty medication/behavior payload.
+  { type: "medication.administered", label: "用药", href: "/medication" },
+  { type: "behavior.observed", label: "行为", href: "/behavior" },
+  { type: "diary.created", label: "备注", textInput: { label: "备注内容", placeholder: "想记录点什么？", maxLength: 1000 } },
 ];
 
 export const EVENT_LABELS: Record<string, string> = {
