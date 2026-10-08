@@ -175,6 +175,20 @@ export function triageLabel(level: string | null | undefined): string {
   return TRIAGE_LABELS[level.trim().toUpperCase()] ?? TRIAGE_FALLBACK;
 }
 
+const OUTCOME_LABELS: Record<string, string> = {
+  RECOVERED: "已恢复",
+  IMPROVED: "有改善",
+  UNCHANGED: "暂无变化",
+  WORSENED: "变差",
+  RELAPSED: "再次出现",
+  REFERRED: "已转诊 / 就医",
+  UNRESOLVED: "仍未解决",
+};
+
+const ACTIVITY_TYPE_LABELS: Record<string, string> = {
+  fetch: "追球",
+};
+
 /**
  * Build a short owner-readable summary from an event payload.
  *
@@ -193,10 +207,16 @@ export function eventPayloadSummary(payload: Record<string, unknown>): string {
   const weight = payload["weight_kg"];
   if (typeof weight === "string" || typeof weight === "number") parts.push(`${weight} kg`);
   if (typeof payload["food_type"] === "string") parts.push(String(payload["food_type"]));
-  if (typeof payload["activity_type"] === "string") parts.push(String(payload["activity_type"]));
+  if (typeof payload["activity_type"] === "string") {
+    const activity = String(payload["activity_type"]).trim();
+    if (activity) parts.push(ACTIVITY_TYPE_LABELS[activity.toLowerCase()] ?? activity);
+  }
   if (typeof payload["behavior"] === "string") parts.push(String(payload["behavior"]));
   if (typeof payload["environment"] === "string") parts.push(`地点：${payload["environment"]}`);
-  if (typeof payload["outcome"] === "string") parts.push(`结果：${payload["outcome"]}`);
+  if (typeof payload["outcome"] === "string") {
+    const outcome = String(payload["outcome"]).trim().toUpperCase();
+    parts.push(`结果：${OUTCOME_LABELS[outcome] ?? "已记录"}`);
+  }
   if (typeof payload["medicine_name"] === "string") parts.push(String(payload["medicine_name"]));
   return parts.join(" · ");
 }
