@@ -181,6 +181,12 @@ export default function AgentPage() {
               回答会给出结论、依据、不确定性与下一步；医疗风险由独立规则引擎判断，不由 AI 决定。AI 无法回答时会明确说明，不会编造。
             </p>
           </div>
+          <div className="v4-sec" data-testid="pli.assistant.medical-boundary">
+            <h2 className="v4-sec-title">医疗动作边界</h2>
+            <p className="v4-note" style={{ margin: "6px 0 0" }}>
+              助手可以整理已有记录、解释规则结果和准备就诊问题，但不会诊断、开药、改剂量或替代兽医。出现“建议尽快就医 / 建议立即就医”时，以健康页的独立风险分级与行动指引为准。
+            </p>
+          </div>
         </div>
       </div>
     </main>
