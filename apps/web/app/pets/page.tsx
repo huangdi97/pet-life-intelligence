@@ -183,27 +183,6 @@ export default function PetsHubPage() {
             </div>
           ) : null}
 
-          <div className="v4-sec" style={{ paddingTop: 6 }}>
-            <div className="v4-sec-head">
-              <h2 className="v4-sec-title">它的生活</h2>
-              <Link href="/pets/new" className="v4-sec-link">新建宠物</Link>
-            </div>
-            {DOMAIN_META.map((row) => (
-              <div key={row.id} className="v4-domain">
-                <Link href={row.href} className="v4-domain-main" role="button" data-testid={`pli.pet.domain.${row.id}`}>
-                  <span className="v4-domain-icon">
-                    <Icon name={row.icon} size={20} />
-                  </span>
-                  <div>
-                    <div className="v4-domain-name">{row.label}</div>
-                    <div className="v4-domain-desc">{domainMeaning[row.id]}</div>
-                  </div>
-                </Link>
-                <Icon name="chevron" size={16} style={{ color: "var(--v4-text-tertiary)" }} />
-              </div>
-            ))}
-          </div>
-
           <div className="v4-sec" data-testid="pli.pet.recent">
             <div className="v4-sec-head">
               <h2 className="v4-sec-title">最近 · 与它自己相比</h2>
@@ -225,6 +204,27 @@ export default function PetsHubPage() {
                 今天有 {totalToday} 条记录；与自身基线的变化判断暂时没有可确认结果。
               </p>
             )}
+          </div>
+
+          <div className="v4-sec" style={{ paddingTop: 6 }}>
+            <div className="v4-sec-head">
+              <h2 className="v4-sec-title">它的生活</h2>
+              <Link href="/pets/new" className="v4-sec-link">新建宠物</Link>
+            </div>
+            {DOMAIN_META.map((row) => (
+              <div key={row.id} className="v4-domain">
+                <Link href={row.href} className="v4-domain-main" role="button" data-testid={`pli.pet.domain.${row.id}`}>
+                  <span className="v4-domain-icon">
+                    <Icon name={row.icon} size={20} />
+                  </span>
+                  <div>
+                    <div className="v4-domain-name">{row.label}</div>
+                    <div className="v4-domain-desc">{domainMeaning[row.id]}</div>
+                  </div>
+                </Link>
+                <Icon name="chevron" size={16} style={{ color: "var(--v4-text-tertiary)" }} />
+              </div>
+            ))}
           </div>
 
           <div className="v4-sec" data-testid="pli.pet.baseline">

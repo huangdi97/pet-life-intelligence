@@ -7,7 +7,7 @@ import { PetCollectionGate } from "../../components/pet-collection-gate";
 import { mapErrorMessage } from "../../lib/i18n";
 import { breedLabel, eventTypeLabel } from "../../lib/ownerLabels";
 import { State } from "../../components/ui";
-import { PetHero } from "../../components/pet-hero";
+
 import { Icon } from "../../components/icons";
 import { DOMAIN_CHIPS, type VisualModelRow } from "../_components/timeline/constants";
 import { DayBackCard } from "../_components/timeline/DayBackCard";
@@ -254,12 +254,13 @@ export default function TimelinePage() {
         <div className="v4-rail">
           {current ? (
             <div data-testid="pli.timeline.identity">
-              <PetHero
-                name={current.name}
-                petId={current.id}
-                compact
-                line={`${breedLabel(current.breed) || (current.species === "dog" ? "犬" : current.species === "cat" ? "猫" : "宠物")} · 持续记录中`}
-              />
+              <div className="v4-life-identity">
+                <span className="v4-life-identity-overline">这段生活属于</span>
+                <div className="v4-life-identity-name">{current.name}</div>
+                <p className="v4-life-identity-desc">
+                  {breedLabel(current.breed) || (current.species === "dog" ? "犬" : current.species === "cat" ? "猫" : "宠物")} · 每一条记录都可以回看
+                </p>
+              </div>
             </div>
           ) : (
             <div className="v4-calm" style={{ marginTop: 12 }}>

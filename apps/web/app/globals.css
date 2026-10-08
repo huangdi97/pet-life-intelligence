@@ -1886,3 +1886,11 @@ body { background:var(--v4-canvas); }
   .navlinks { background:rgba(255,253,248,.97); border-radius:24px; }
   .navlinks a.active { background:#e3ecdf; }
 }
+
+/* R6 owner identity strip — never substitute a generic paw badge for the pet. */
+.v4-life-identity { padding:24px 24px 28px; background:linear-gradient(135deg,#f4e7d6,#f9f4eb); border-radius:18px; }
+.v4-life-identity-overline { color:#62715e; font-weight:700; font-size:11px; letter-spacing:.12em; }
+.v4-life-identity-name { font-size:clamp(25px,3vw,36px); color:#342f29; letter-spacing:-.045em; font-weight:750; margin-top:6px; }
+.v4-life-identity-desc { color:#72685e; font-size:13px; line-height:1.5; margin:6px 0 0; }
+@media(max-width:768px) { .v4-life-identity { border-radius:0; } }
+.r2p-stage--life .r2p-anchor--2,.r2p-stage--life .r2p-anchor--3 { bottom:8px; }

@@ -238,9 +238,9 @@ export default function TodayPage() {
               可在顶部切换多宠
             </div>
           )}
-          <TasksCard hasPet={hasPet} tasks={tasks} />
-
           <RecentCard hasPet={hasPet} today={today} />
+
+          <TasksCard hasPet={hasPet} tasks={tasks} />
         </div>
       </div>
 
