@@ -201,7 +201,7 @@ function applyFit(): void {
     frameTarget,
     Math.max(1, Math.round(window.innerWidth || 1)),
     Math.max(1, Math.round(window.innerHeight || 1)),
-    { fitYaws: injectedStageRole === "review" ? [0, Math.PI / 2, Math.PI] : injectedStageRole === "life" ? [-0.35, 0, 0.35, Math.PI / 2, Math.PI] : undefined },
+    { fitYaws: injectedStageRole === "review" ? [0, Math.PI / 2, Math.PI] : injectedStageRole === "life" ? [-0.35, 0, 0.35, Math.PI / 2, Math.PI] : undefined, canvasRect: renderer.domElement.getBoundingClientRect() },
   );
   Object.assign(orbit, fit);
   zoomBounds.min = fit.radius * 0.5;
@@ -219,6 +219,8 @@ function buildManifest(): Record<string, unknown> {
     camera,
     Math.max(1, Math.round(window.innerWidth || 1)),
     Math.max(1, Math.round(window.innerHeight || 1)),
+    undefined,
+    rect,
   );
   const manifestPose = (activePose ?? "Idle") as PoseName;
   const poseTruth = POSE_META[manifestPose]?.truth ?? "AMBIENT";

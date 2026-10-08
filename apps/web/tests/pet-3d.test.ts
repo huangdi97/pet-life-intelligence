@@ -148,3 +148,30 @@ describe("portrait twin framing — never crop long bodies across Review angles"
     expect(fit.yaw).toBe(DEFAULT_ORBIT.yaw);
   });
 });
+
+describe("nested Hero canvas projection", () => {
+  it("translates NDC bounds to the actual stage rectangle in full-screen pixels", () => {
+    const pet = new THREE.Group();
+    pet.add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.3, 1.5)));
+    const canvasRect = { x: 80, y: 75, width: 220, height: 330 };
+    const viewport = { width: 400, height: 500 };
+    const camera = new THREE.PerspectiveCamera(38, 220 / 330, 0.1, 40);
+    camera.updateProjectionMatrix();
+    const fit = fitOrbitRadius(
+      pet, camera, DEFAULT_ORBIT, 0.3,
+      viewport.width, viewport.height,
+      { canvasRect, fitYaws: [0, Math.PI / 2, Math.PI], paddingRatio: 0.06 },
+    );
+    for (const yaw of [0, Math.PI / 2, Math.PI]) {
+      applyOrbit(camera, STAGE_TARGET, { ...fit, yaw });
+      const result = projectPetBounds(pet, camera, viewport.width, viewport.height, undefined, canvasRect);
+      expect(result).not.toBeNull();
+      expect(result!.x).toBeGreaterThanOrEqual(canvasRect.x + 0.06 * canvasRect.width - 1);
+      expect(result!.y).toBeGreaterThanOrEqual(canvasRect.y + 0.06 * canvasRect.height - 1);
+      expect(result!.x + result!.width).toBeLessThanOrEqual(canvasRect.x + 0.94 * canvasRect.width + 1);
+      expect(result!.y + result!.height).toBeLessThanOrEqual(canvasRect.y + 0.94 * canvasRect.height + 1);
+      expect(result!.viewportWidth).toBe(viewport.width);
+      expect(result!.viewportHeight).toBe(viewport.height);
+    }
+  });
+});

@@ -84,6 +84,8 @@ export function projectPetBounds(
   viewportWidth: number,
   viewportHeight: number,
   worldCenterOverride?: THREE.Vector3,
+  /** Canvas screen rect; viewport dimensions remain the FULL owner window. */
+  canvasRect?: { x: number; y: number; width: number; height: number },
 ): ProjectedBounds | null {
   if (viewportWidth <= 0 || viewportHeight <= 0) return null;
   // Projection is read during fitting and immediately after imperative camera
@@ -110,8 +112,10 @@ export function projectPetBounds(
   let minY = Infinity;
   let maxY = -Infinity;
   let visible = false;
-  const w2 = viewportWidth / 2;
-  const h2 = viewportHeight / 2;
+  const rect = canvasRect ?? { x: 0, y: 0, width: viewportWidth, height: viewportHeight };
+  if (rect.width <= 0 || rect.height <= 0) return null;
+  const w2 = rect.width / 2;
+  const h2 = rect.height / 2;
   for (const c of corners) {
     const p = c.project(camera);
     if (p.z > 1 || p.z < -1) continue; // behind near/far plane
@@ -122,8 +126,10 @@ export function projectPetBounds(
     maxY = Math.max(maxY, p.y);
   }
   if (!visible) return null;
-  const x = Math.round((minX + 1) * w2);
-  const y = Math.round((1 - maxY) * h2);
+  // NDC is relative to the WebGL canvas, not the full page. Translate it
+  // into full-window pixels so the RUNTIME manifest describes what owners see.
+  const x = Math.round(rect.x + (minX + 1) * w2);
+  const y = Math.round(rect.y + (1 - maxY) * h2);
   const width = Math.round((maxX - minX) * w2);
   const height = Math.round((maxY - minY) * h2);
   const areaPx = Math.max(1, width) * Math.max(1, height);
@@ -224,9 +230,13 @@ export function fitOrbitRadius(
     paddingRatio?: number;
     /** Review uses one stable radius that fits front, side, and rear. */
     fitYaws?: readonly number[];
+    /** Actual WebGL canvas rect, for nested Hero/Review stages. */
+    canvasRect?: { x: number; y: number; width: number; height: number };
   },
 ): OrbitState {
   if (!(targetAreaRatio > 0.0001) || viewportWidth <= 0 || viewportHeight <= 0) return { ...orbit };
+  const canvasRect = options?.canvasRect ?? { x: 0, y: 0, width: viewportWidth, height: viewportHeight };
+  if (canvasRect.width <= 0 || canvasRect.height <= 0) return { ...orbit };
   const iterations = options?.iterations ?? 12;
   const minRadius = options?.minRadius ?? 1.6;
   const maxRadius = options?.maxRadius ?? 40;
@@ -236,7 +246,7 @@ export function fitOrbitRadius(
     const r = Math.min(maxRadius, Math.max(minRadius, radius));
     applyOrbit(camera, STAGE_TARGET, { yaw: orbit.yaw, pitch: orbit.pitch, radius: r });
     camera.updateProjectionMatrix();
-    const p = projectPetBounds(pet, camera, viewportWidth, viewportHeight);
+    const p = projectPetBounds(pet, camera, viewportWidth, viewportHeight, undefined, canvasRect);
     if (!p || p.areaRatio <= 0) break;
     const err = p.areaRatio / targetAreaRatio;
     if (Math.abs(err - 1) <= tolerance) {
@@ -256,13 +266,13 @@ export function fitOrbitRadius(
     for (const yaw of yaws) {
       applyOrbit(camera, STAGE_TARGET, { ...orbit, yaw, radius: candidateRadius });
       camera.updateProjectionMatrix();
-      const bounds = projectPetBounds(pet, camera, viewportWidth, viewportHeight);
+      const bounds = projectPetBounds(pet, camera, viewportWidth, viewportHeight, undefined, canvasRect);
       if (
         !bounds ||
-        bounds.x < viewportWidth * padding ||
-        bounds.y < viewportHeight * padding ||
-        bounds.x + bounds.width > viewportWidth * (1 - padding) ||
-        bounds.y + bounds.height > viewportHeight * (1 - padding)
+        bounds.x < canvasRect.x + canvasRect.width * padding ||
+        bounds.y < canvasRect.y + canvasRect.height * padding ||
+        bounds.x + bounds.width > canvasRect.x + canvasRect.width * (1 - padding) ||
+        bounds.y + bounds.height > canvasRect.y + canvasRect.height * (1 - padding)
       ) return false;
     }
     return true;

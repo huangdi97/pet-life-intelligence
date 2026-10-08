@@ -188,7 +188,7 @@ export function Pet3DViewer({
               frameTarget,
               Math.max(1, Math.round(window.innerWidth)),
               Math.max(1, Math.round(window.innerHeight)),
-              { fitYaws: stageRole === "review" ? [0, Math.PI / 2, Math.PI] : stageRole === "life" ? [-0.35, 0, 0.35, Math.PI / 2, Math.PI] : undefined },
+              { fitYaws: stageRole === "review" ? [0, Math.PI / 2, Math.PI] : stageRole === "life" ? [-0.35, 0, 0.35, Math.PI / 2, Math.PI] : undefined, canvasRect: wrap.getBoundingClientRect() },
             );
             canonicalFitRef.current = fit;
             zoomBoundsRef.current = { min: fit.radius * 0.5, max: fit.radius * 2.5 };
@@ -237,7 +237,7 @@ export function Pet3DViewer({
               frameTarget,
               Math.max(1, Math.round(window.innerWidth)),
               Math.max(1, Math.round(window.innerHeight)),
-              { fitYaws: stageRole === "review" ? [0, Math.PI / 2, Math.PI] : stageRole === "life" ? [-0.35, 0, 0.35, Math.PI / 2, Math.PI] : undefined },
+              { fitYaws: stageRole === "review" ? [0, Math.PI / 2, Math.PI] : stageRole === "life" ? [-0.35, 0, 0.35, Math.PI / 2, Math.PI] : undefined, canvasRect: wrap.getBoundingClientRect() },
             );
             canonicalFitRef.current = fit;
             zoomBoundsRef.current = { min: fit.radius * 0.5, max: fit.radius * 2.5 };
@@ -268,6 +268,8 @@ export function Pet3DViewer({
         camera as THREE.PerspectiveCamera,
         Math.max(1, Math.round(window.innerWidth)),
         Math.max(1, Math.round(window.innerHeight)),
+        undefined,
+        rect,
       );
       const orbit = orbitRef.current;
       const manifestPose = (poseRef.current ?? "Idle") as PoseName;
