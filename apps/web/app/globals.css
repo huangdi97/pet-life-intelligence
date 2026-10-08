@@ -2112,3 +2112,43 @@ body{background:#F6F7F1}
     z-index:300;
   }
 }
+
+
+/* ==========================================================================
+   R7.2 warm-lifestyle correction.
+   Canonical v3.4/R5.6 says Warm Lifestyle + Individual Pet Twin + subtle
+   holographic presence. The previous green field over-indexed on the brand
+   accent. Restore cream/beige as the room itself; keep sage only as an accent.
+   ========================================================================== */
+body{background:#FBF7F1}
+.r2p-stage,.r2p-stage--3d,.r2p-stage--pet.r2p-stage--3d,
+.r2p-stage--life.r2p-stage--3d{
+  background:
+    radial-gradient(75% 56% at 72% 12%,rgba(255,252,244,.78),rgba(255,252,244,0) 68%),
+    linear-gradient(151deg,#FBF6EC 0%,#F2E6D5 46%,#E7D4B9 100%);
+}
+.r2p-stage--3d::before{
+  background:linear-gradient(100deg,rgba(255,255,255,.60),rgba(255,248,236,0));
+  opacity:.72;
+}
+/* One quiet projection footprint under the real 3D pet: no blue wireframe,
+   no neon HUD, no giant decorative circle behind the animal. */
+.r2p-stage--3d::after{
+  content:"";position:absolute;left:50%;bottom:73px;
+  width:min(54%,360px);height:52px;transform:translateX(-50%);
+  border-radius:50%;z-index:1;pointer-events:none;
+  border:1px solid rgba(166,126,78,.22);
+  background:radial-gradient(ellipse at center,rgba(255,249,238,.80) 0%,rgba(224,198,159,.28) 54%,rgba(224,198,159,0) 78%);
+}
+.r2p-stage-glow,.r2p-stage--3d .r2p-stage-glow{
+  background:radial-gradient(ellipse at center,rgba(126,145,118,.17),rgba(126,145,118,0) 76%);
+}
+.r2p-stage-name{color:#3C4438}
+.r2p-stage-headline{color:#4E5546}
+.r2p-stage-caption{color:#746A5E}
+.r2p-anchor,.r2p-stage--3d .r2p-anchor{
+  background:rgba(255,253,247,.88);border-color:rgba(255,255,255,.82);
+}
+@media(max-width:768px){
+  .r2p-stage--3d::after{bottom:68px;width:min(66%,300px);height:46px}
+}
