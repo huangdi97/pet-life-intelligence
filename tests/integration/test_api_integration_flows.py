@@ -226,8 +226,10 @@ class TestHealthFlow:
         assert trend.json()["health_event_id"] == he
         assert "非医学判断" in trend.json()["notice"]
 
+        # The seeded non-emergency health episode belongs to Mimi; recovery
+        # lifecycle events must be written to and queried from that same pet.
         events = client.get(
-            f"/api/v1/pets/{seeded['coco_id']}/events?event_type=recovery_plan.updated",
+            f"/api/v1/pets/{seeded['mimi_id']}/events?event_type=recovery_plan.updated",
             headers=auth(owner),
         )
         assert events.status_code == 200, events.text
