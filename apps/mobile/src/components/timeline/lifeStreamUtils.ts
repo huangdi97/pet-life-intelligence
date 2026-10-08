@@ -49,6 +49,7 @@ export function eventRowFromEvent(e: LifeEvent): LifeStreamRow {
     outcome: e.retracted_at ? "已撤回" : null,
     icon: (EVENT_ICONS[e.event_type] ?? "ellipse-outline") as LifeStreamRow["icon"],
     mediaUri: null,
+    mediaCount: e.artifact_ids?.length ?? 0,
   };
 }
 
