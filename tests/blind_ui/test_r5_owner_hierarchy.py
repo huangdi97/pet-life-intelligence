@@ -872,3 +872,29 @@ def test_companion_is_pet_first_across_owner_clients_and_final_evidence() -> Non
     assert '"companion"' in web_capture
     assert 'companion: "companion"' in web_capture
     assert '"today", "pet", "lifeview", "twinreview", "companion"' in web_capture
+
+
+def test_living_field_is_warm_cream_with_restrained_projection_presence() -> None:
+    palette = read("packages/pet-3d/src/palette.ts")
+    tokens = read("apps/mobile/src/tokens.ts")
+    stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
+    web_css = read("apps/web/app/globals.css")
+
+    # The owner stage is lifestyle-first cream/beige. Sage remains an accent;
+    # it must not become the full-screen room/background again.
+    for value in ("#F4E9D8", "#E7D5BC", "#FFF7E9", "#EFE0C8"):
+        assert value in palette
+    assert 'stageWarmBase: "#F4E9D8"' in tokens
+    assert 'stageWarmDeep: "#E7D5BC"' in tokens
+    assert "backgroundColor: COLORS.stageWarmBase" in stage
+    assert "projectionPlane" in stage
+    assert "projectionGlow" in stage
+    assert "R7.2 warm-lifestyle correction" in web_css
+    assert "#FBF6EC" in web_css and "#F2E6D5" in web_css and "#E7D4B9" in web_css
+
+
+def test_android_embedded_twin_runtime_preserves_companion_stage_role() -> None:
+    entry = read("apps/mobile/scripts/pet-stage-entry.ts")
+    capture = read("scripts/r5-6/capture-android-final.py")
+    assert 'window.__PLI_STAGE_ROLE === "companion"' in entry
+    assert '("companion", True, "companion")' in capture
