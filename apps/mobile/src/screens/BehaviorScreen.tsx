@@ -159,6 +159,7 @@ export function BehaviorScreen() {
       });
       setPreferenceSubject("");
       setPreferenceNote("");
+      setPreferenceOpen(false);
       setVersion((v) => v + 1);
     } catch (e: unknown) {
       setFormError(humanizeError(e));
