@@ -126,6 +126,12 @@ def test_build_individual_twin_dog(dog_photos):
     assert r["identity"]["similarity_provider"] == "heuristic_histogram"
     assert r["identity"]["consistency"] is not None
     assert r["identity"]["gate"] in ("heuristic_only", "NEEDS_OWNER_CONFIRMATION")
+    # Missing media evidence must preserve the corgi-family silhouette instead
+    # of collapsing every unobserved morph dimension to generic 1.0.
+    assert r["morph"]["chest_width"] == 1.15
+    assert r["morph"]["neck_length"] == 0.8
+    assert r["morph"]["tail_length"] == 0.45
+    assert r["morph"]["head_width"] == 1.18
     # Morph contract completeness (§29 keys).
     for key in (
         "body_length", "body_height", "chest_width", "waist_width", "neck_length",
@@ -144,6 +150,10 @@ def test_build_individual_twin_cat(cat_photos):
     r = build_individual_twin(cat_photos, species="cat", breed="英短")
     assert r["family"] == "standard-cat"
     assert r["provenance"] == "DEMO_SYNTHETIC"
+    assert r["morph"]["waist_width"] == 0.8
+    assert r["morph"]["tail_length"] == 1.4
+    assert r["morph"]["tail_thickness"] == 0.55
+    assert r["morph"]["paw_scale"] == 0.85
 
 
 def test_requires_photos():
