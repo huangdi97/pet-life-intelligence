@@ -1217,19 +1217,22 @@ def test_health_surfaces_replace_unfinished_vet_placeholder_with_real_records() 
         assert "不会把未知显示成“没有记录”" in source
 
 
-def test_shared_3d_living_palette_matches_r7_botanical_canvas() -> None:
+def test_shared_3d_living_palette_matches_warm_lifestyle_canvas() -> None:
     palette = read("packages/pet-3d/src/palette.ts")
     web_css = read("apps/web/app/globals.css")
+    mobile_tokens = read("apps/mobile/src/tokens.ts")
     mobile_stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
 
-    for token in ("#E3EBDF", "#D2DFD2", "#F7FBF3", "#E3ECDF"):
+    # The actual WebGL fog/background must belong to the same warm living
+    # space as its host. Sage stays an accent, never a full-screen room.
+    for token in ("#F4E9D8", "#E7D5BC", "#FFF7E9", "#EFE0C8"):
         assert token in palette
-    assert "#E3ECDF" in web_css
-    assert "#E3EBDF" in mobile_stage
-    # Keep owner-facing 3D haze in the new Living Canvas family, not the
-    # previous beige studio palette.
-    assert 'base: "#F4E9D8"' not in palette
-    assert 'fog: "#EFE0C8"' not in palette
+    assert 'stageWarmBase: "#F4E9D8"' in mobile_tokens
+    assert "backgroundColor: COLORS.stageWarmBase" in mobile_stage
+    assert "R7.2 warm-lifestyle correction" in web_css
+    assert "#FBF6EC" in web_css and "#F2E6D5" in web_css and "#E7D4B9" in web_css
+    for stale in ("#E3EBDF", "#D2DFD2", "#F7FBF3", "#E3ECDF"):
+        assert stale not in palette
 
 
 def test_web_3d_review_keeps_neutral_theme_and_role_dependencies() -> None:
