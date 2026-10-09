@@ -77,7 +77,7 @@ export default function BehaviorPage() {
   const [preferenceKind, setPreferenceKind] = useState<"LIKE" | "DISLIKE" | "ALLERGY_CAUTION">("LIKE");
   const [preferenceSubject, setPreferenceSubject] = useState("");
   const [preferenceNote, setPreferenceNote] = useState("");
-  const [preferenceBusy, setPreferenceBusy] = useState(false);
+  const [preferenceBusy, setPreferenceBusy] = useState(false);\n  const [preferenceOpen, setPreferenceOpen] = useState(false);
   const [artifactIds, setArtifactIds] = useState<string[]>([]);
   const [artifactNames, setArtifactNames] = useState<string[]>([]);
   const [videoUploading, setVideoUploading] = useState(false);
@@ -305,26 +305,41 @@ export default function BehaviorPage() {
             ))}
           </div>
         </State>
-        <div className="v4-filter-row" style={{ marginTop: 12 }}>
-          {(["LIKE", "DISLIKE", "ALLERGY_CAUTION"] as const).map((kind) => (
-            <button key={kind} type="button" className={`v4-chip ${preferenceKind === kind ? "v4-chip--brand" : ""}`} onClick={() => setPreferenceKind(kind)}>
-              {PREF_LABEL[kind]}
-            </button>
-          ))}
-        </div>
-        <div className="grid2" style={{ marginTop: 10 }}>
-          <label className="field">
-            对象
-            <input value={preferenceSubject} onChange={(e) => setPreferenceSubject(e.target.value)} placeholder="例如：冻干鸡肉 / 吹风机声音" />
-          </label>
-          <label className="field">
-            补充事实（可选）
-            <input value={preferenceNote} onChange={(e) => setPreferenceNote(e.target.value)} placeholder="只写你实际观察到的情况" />
-          </label>
-        </div>
-        <button className="btn" onClick={() => void addPreference()} disabled={preferenceBusy || !preferenceSubject.trim()}>
-          {preferenceBusy ? "保存中…" : "记录偏好"}
+        <button
+          type="button"
+          className="btn"
+          data-testid="pli.behavior.preference.toggle"
+          aria-expanded={preferenceOpen}
+          aria-controls="pli-behavior-preference-form"
+          onClick={() => setPreferenceOpen((value) => !value)}
+          style={{ marginTop: 12 }}
+        >
+          {preferenceOpen ? "收起" : "+ 记录偏好"}
         </button>
+        {preferenceOpen ? (
+          <div id="pli-behavior-preference-form" className="v5-form-surface v5-form-surface--inline">
+            <div className="v4-filter-row">
+              {(["LIKE", "DISLIKE", "ALLERGY_CAUTION"] as const).map((kind) => (
+                <button key={kind} type="button" className={`v4-chip ${preferenceKind === kind ? "v4-chip--brand" : ""}`} onClick={() => setPreferenceKind(kind)}>
+                  {PREF_LABEL[kind]}
+                </button>
+              ))}
+            </div>
+            <div className="grid2" style={{ marginTop: 10 }}>
+              <label className="field">
+                对象
+                <input value={preferenceSubject} onChange={(e) => setPreferenceSubject(e.target.value)} placeholder="例如：冻干鸡肉 / 吹风机声音" />
+              </label>
+              <label className="field">
+                补充事实（可选）
+                <input value={preferenceNote} onChange={(e) => setPreferenceNote(e.target.value)} placeholder="只写你实际观察到的情况" />
+              </label>
+            </div>
+            <button data-testid="pli.behavior.preference.submit" className="btn primary" onClick={() => void addPreference()} disabled={preferenceBusy || !preferenceSubject.trim()}>
+              {preferenceBusy ? "保存中…" : "保存偏好"}
+            </button>
+          </div>
+        ) : null}
       </section>
 
       <section className="v4-sec" data-testid="pli.behavior.recent">
