@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
   consentRow: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: SPACE.s2 },
   consentCopy: { flex: 1 },
   consentMeta: { marginTop: 2, fontSize: TYPE.caption, color: COLORS.textTertiary },
-  smallButton: { minHeight: 40, minWidth: 72, alignItems: "center", justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.dividerStrong, backgroundColor: COLORS.surface },
+  smallButton: { minHeight: 44, minWidth: 72, alignItems: "center", justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.dividerStrong, backgroundColor: COLORS.surface },
   smallButtonActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
   smallButtonText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   smallButtonTextActive: { color: COLORS.brandPrimaryDeep },
