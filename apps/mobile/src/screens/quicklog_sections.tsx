@@ -118,7 +118,7 @@ export function QuickLogForm({
       )}
       {(t.event_type === "daily.walk" || t.event_type === "daily.play" || t.event_type === "daily.sleep") && (
         <>
-          <Text style={styles.fieldLabel}>时长（分钟）</Text>
+          <Text style={styles.fieldLabel}>{t.event_type === "daily.walk" ? "时长（分钟，可选）" : "时长（分钟）"}</Text>
           <TextInput style={styles.input} value={minutes} onChangeText={setMinutes} keyboardType="number-pad" placeholder="如 30" placeholderTextColor={COLORS.textTertiary} />
         </>
       )}
