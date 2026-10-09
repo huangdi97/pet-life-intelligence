@@ -260,11 +260,11 @@ export default function LifeView() {
                 <Text className="life-view-detail-close" onClick={() => setDetailId(null)}>关闭</Text>
               </View>
               <View className="life-view-detail-grid">
-                <View><Text className="life-view-detail-key">事实</Text><Text>{activeDetail.value}</Text></View>
-                <View><Text className="life-view-detail-key">与自己相比</Text><Text>{activeDetail.compare}</Text></View>
-                <View><Text className="life-view-detail-key">来源</Text><Text>{activeDetail.source}</Text></View>
-                <View><Text className="life-view-detail-key">更新时间</Text><Text>{activeDetail.updatedAt}</Text></View>
-                <View><Text className="life-view-detail-key">证据</Text><Text>{activeDetail.evidence}</Text></View>
+                <View className="life-view-detail-cell"><Text className="life-view-detail-key">事实</Text><Text>{activeDetail.value}</Text></View>
+                <View className="life-view-detail-cell"><Text className="life-view-detail-key">与自己相比</Text><Text>{activeDetail.compare}</Text></View>
+                <View className="life-view-detail-cell"><Text className="life-view-detail-key">来源</Text><Text>{activeDetail.source}</Text></View>
+                <View className="life-view-detail-cell"><Text className="life-view-detail-key">更新时间</Text><Text>{activeDetail.updatedAt}</Text></View>
+                <View className="life-view-detail-cell"><Text className="life-view-detail-key">证据</Text><Text>{activeDetail.evidence}</Text></View>
               </View>
             </View>
           ) : (
