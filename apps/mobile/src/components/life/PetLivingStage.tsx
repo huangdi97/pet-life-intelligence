@@ -109,10 +109,10 @@ export function PetLivingStage({
   // explicitly marked demo. A production pet without a persisted Twin stays
   // on the honest 2.5D/photo fallback instead of borrowing a generic template.
   const canShow3d = identity !== null && (twin !== null || demo) && pet3d !== "failed";
-  // A real owner photo outranks bundled demo/template geometry. A verified
-  // individual Twin may lead the dedicated Life View, while the owner can
-  // always switch between representations when both exist.
-  const photoFirstByDefault = Boolean(photoUri && (demo || twin === null));
+  // A real owner photo is the identity-first default on Living surfaces.
+  // The current owner-media 3D path is descriptor-driven and intentionally
+  // offered as an alternate representation until a true per-pet GLB exists.
+  const photoFirstByDefault = Boolean(photoUri && variant !== "review");
   const explicitPhotoChoice = photoView && photoView.petId === pet?.id ? photoView.enabled : null;
   const showPhoto = Boolean(photoUri && (explicitPhotoChoice ?? photoFirstByDefault));
   const use3d = canShow3d && !showPhoto;
