@@ -63,7 +63,7 @@ test.describe("Stage H UX — new domain routes", () => {
     await page.goto("/companion");
     await expect(page).toHaveURL(urlRe("/companion"));
     await expect(page.getByText("陪伴模式").first()).toBeVisible();
-    await expect(page.getByText("四种能力").first()).toBeVisible();
+    await expect(page.getByTestId("pli.companion.overview")).toContainText("陪伴方式");
     await expect(page.getByText("尚未连接设备").first()).toBeVisible();
     await expect(page.getByText(/陪伴模式不用于医疗判断/).first()).toBeVisible();
   });
