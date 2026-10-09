@@ -107,7 +107,7 @@ export function PetLivingStage({
   // A real owner photo is the identity-first default on Living surfaces.
   // The current owner-media 3D path is descriptor-driven and intentionally
   // offered as an alternate representation until a true per-pet GLB exists.
-  const photoFirstByDefault = Boolean(photoUri && variant !== "review");
+  const photoFirstByDefault = Boolean(photoUri);
   const explicitPhotoChoice = photoView && photoView.petId === petId ? photoView.enabled : null;
   const showPhoto = Boolean(photoUri && (explicitPhotoChoice ?? photoFirstByDefault));
   const show3d = canShow3d && !showPhoto;
