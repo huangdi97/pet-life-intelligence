@@ -19,6 +19,21 @@ const REMINDER_KIND_LABEL: Record<ReminderRow["kind"], string> = {
   CHECKUP: "体检",
 };
 
+interface HealthRecordRow {
+  record_id: string;
+  kind: "PRESCRIPTION" | "LAB" | "EXAM" | "VACCINATION";
+  source_type: string;
+  source_note: string;
+  signature_status: string;
+  occurred_at: string | null;
+}
+const HEALTH_RECORD_KIND_LABEL: Record<HealthRecordRow["kind"], string> = {
+  PRESCRIPTION: "处方",
+  LAB: "检验",
+  EXAM: "检查",
+  VACCINATION: "疫苗记录",
+};
+
 interface HealthEventRow {
   health_event_id: string;
   status: string;
@@ -54,6 +69,8 @@ export default function Health() {
   const [reminderTitle, setReminderTitle] = useState("");
   const [reminderDate, setReminderDate] = useState("");
   const [reminderBusy, setReminderBusy] = useState<string | null>(null);
+  const [healthRecords, setHealthRecords] = useState<HealthRecordRow[]>([]);
+  const [healthRecordState, setHealthRecordState] = useState<"loading" | "ready" | "error">("loading");
 
   const load = useCallback((pid: string) => {
     setState("loading");
@@ -63,6 +80,19 @@ export default function Health() {
         setState("ready");
       })
       .catch(() => setState("error"));
+  }, []);
+
+  const loadHealthRecords = useCallback((pid: string) => {
+    setHealthRecordState("loading");
+    api.get<HealthRecordRow[]>(`/pets/${pid}/health-records`)
+      .then((items) => {
+        setHealthRecords(items);
+        setHealthRecordState("ready");
+      })
+      .catch(() => {
+        setHealthRecords([]);
+        setHealthRecordState("error");
+      });
   }, []);
 
   const loadReminders = useCallback((pid: string) => {
@@ -82,8 +112,9 @@ export default function Health() {
     if (petId) {
       load(petId);
       loadReminders(petId);
+      loadHealthRecords(petId);
     }
-  }, [petId, load, loadReminders]);
+  }, [petId, load, loadReminders, loadHealthRecords]);
 
   if (petContextState !== "ready" || !petId || !pets?.length) {
     return (
@@ -217,6 +248,29 @@ export default function Health() {
         )) : state === "ready" ? (
           <View className="life-empty-note">从一次真实观察开始，分级与后续变化会留在这里。</View>
         ) : null}
+      </View>
+
+      <View className="open-section" data-testid="pli.mini.health.vet">
+        <View className="section-title">就医与专业记录</View>
+        <View className="life-empty-note">处方、检验、检查与疫苗记录只展示真实导入的数据，并保留来源与签名状态。</View>
+        {healthRecordState === "loading" ? (
+          <View className="state">正在读取专业记录……</View>
+        ) : healthRecordState === "error" ? (
+          <View className="state state-error">专业记录暂时没有加载成功；不会把未知显示成“没有记录”。</View>
+        ) : healthRecords.length ? healthRecords.slice(0, 6).map((record) => (
+          <View className="life-row" key={record.record_id}>
+            <View className="life-row-body">
+              <View className="life-row-head">
+                <Text className="life-row-type">{HEALTH_RECORD_KIND_LABEL[record.kind] ?? "专业记录"}</Text>
+                <Text className="life-row-time">{record.occurred_at ? fmtTime(record.occurred_at) : "时间未记录"}</Text>
+              </View>
+              <View className="life-row-detail">{record.source_type === "PROFESSIONAL_CONFIRMED" ? "专业确认" : "来源已记录"} · {record.signature_status === "SIGNED" ? "签名已记录" : record.signature_status === "UNSIGNED" ? "未记录签名" : "无需签名"}</View>
+              {record.source_note ? <View className="life-row-source">{record.source_note}</View> : null}
+            </View>
+          </View>
+        )) : (
+          <View className="life-empty-note">还没有导入处方、检验、检查或疫苗专业记录。</View>
+        )}
       </View>
 
       <View className="open-section">
