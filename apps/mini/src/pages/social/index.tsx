@@ -59,6 +59,7 @@ export default function Social() {
   const [duration, setDuration] = useState("30");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [profileState, setProfileState] = useState<"loading" | "ready" | "error">("loading");
   const [friendsState, setFriendsState] = useState<"loading" | "ready" | "error">("loading");
   const [eventsState, setEventsState] = useState<"loading" | "ready" | "error">("loading");
