@@ -114,11 +114,29 @@ export async function loadTwinGLB(identity: Pet3DIdentity): Promise<LoadedTwin |
       // under the warm stage lights. Normalize textured PBR materials to a
       // neutral multiplier and a soft fur-like response. This is presentation
       // only: geometry, UV, skinning and provenance remain unchanged.
+      // Source demo assets are permissively licensed but stylistically coarse.
+      // Preserve their geometry/provenance while removing avoidable faceting
+      // introduced by authored hard normals. This does NOT make a template
+      // photorealistic; it only lets the subdivided surface shade continuously.
+      const position = geo.getAttribute("position");
+      if (position) {
+        geo.computeVertexNormals();
+        geo.normalizeNormals();
+      }
+
       const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
       for (const rawMaterial of materials) {
         const material = rawMaterial as THREE.MeshStandardMaterial;
         if (!material?.isMeshStandardMaterial) continue;
-        if (material.map) material.color.set(0xffffff);
+        if (material.map) {
+          material.color.set(0xffffff);
+          material.map.colorSpace = THREE.SRGBColorSpace;
+          // Four-tap anisotropy improves coat texture stability at the 3/4
+          // living-stage camera without assuming desktop-only GPU limits.
+          material.map.anisotropy = Math.max(material.map.anisotropy ?? 1, 4);
+          material.map.needsUpdate = true;
+        }
+        material.flatShading = false;
         material.metalness = 0;
         // Fur should read matte and light-reactive, not self-lit plastic.
         // The warm stage already provides ambient/key/fill/rim illumination.
