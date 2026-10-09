@@ -1583,3 +1583,45 @@ def test_today_living_canvas_reserves_phone_first_fold_for_action_without_small_
     assert "R7.8 Today first-fold closure" in css
     assert '[data-testid="pli.today.now"]' in css
     assert ".r2p-stage--today.r2p-stage--3d" in css
+
+
+def test_owner_editors_stay_secondary_to_life_reading_across_clients() -> None:
+    """R.2 §46.11: understand first, act second, edit third."""
+    mobile_timeline = read("apps/mobile/src/screens/TimelineScreen.tsx")
+    web_timeline = read("apps/web/app/timeline/page.tsx")
+    mini_timeline = read("apps/mini/src/pages/timeline/index.tsx")
+    web_training = read("apps/web/app/training/page.tsx")
+
+    assert 'testID="pli.timeline.milestones.compose"' in mobile_timeline
+    assert 'testID="pli.timeline.diary.compose"' in mobile_timeline
+    assert "showMilestoneComposer ? (" in mobile_timeline
+    assert "showDiaryComposer ? (" in mobile_timeline
+
+    assert web_timeline.count('className="v7-timeline-compose"') >= 2
+    assert "<summary>记录一个里程碑</summary>" in web_timeline
+    assert "<summary>写一段日记</summary>" in web_timeline
+
+    assert 'data-testid="pli.mini.timeline.milestones.compose"' in mini_timeline
+    assert 'data-testid="pli.mini.timeline.diary.compose"' in mini_timeline
+    assert "showMilestoneComposer ? (" in mini_timeline
+    assert "showDiaryComposer ? (" in mini_timeline
+
+    # Web now matches Android/Mini: new-goal creation comes after current
+    # progress, recent sessions, rewards/safe tools and the suggested next step.
+    create_at = web_training.index('data-testid="pli.training.action"')
+    assert web_training.index('data-testid="pli.training.recent"') < create_at
+    assert web_training.index('data-testid="pli.training.reward"') < create_at
+    assert web_training.index('data-testid="pli.training.next"') < create_at
+
+
+def test_today_uses_a_compact_phone_living_canvas_without_shrinking_inspection_views() -> None:
+    stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
+    css = read("apps/web/app/globals.css")
+
+    assert "today: 440" in stage
+    assert "pet: 580" in stage
+    assert "life: 590" in stage
+    assert "petSlotToday" in stage
+    assert "R7.9 Today first-fold truth" in css
+    assert '[data-testid="pli.today.living-stage"].r2p-stage' in css
+    assert "min-height:410px" in css
