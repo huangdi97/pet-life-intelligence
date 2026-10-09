@@ -1015,3 +1015,20 @@ def test_domain_home_forms_are_secondary_across_owner_clients() -> None:
         assert "aria-expanded={formOpen}" in source
     assert 'data-testid="pli.behavior.action.submit"' in behavior_web
     assert 'data-testid="pli.training.action.submit"' in training_web
+
+
+def test_health_preventive_editor_is_secondary_across_owner_clients() -> None:
+    """Preventive reminders stay readable by default; creation is explicit."""
+    web = read("apps/web/app/health/page.tsx")
+    mobile = read("apps/mobile/src/screens/HealthScreen.tsx")
+    mini = read("apps/mini/src/pages/health/index.tsx")
+
+    for source in (web, mobile, mini):
+        assert "reminderFormOpen" in source
+        assert "添加预防提醒" in source
+    assert 'data-testid="pli.health.reminder.toggle"' in web
+    assert 'data-testid="pli.health.reminder.submit"' in web
+    assert 'testID="pli.health.reminder.toggle"' in mobile
+    assert 'testID="pli.health.reminder.submit"' in mobile
+    assert 'data-testid="pli.mini.health.reminder.toggle"' in mini
+    assert 'data-testid="pli.mini.health.reminder.submit"' in mini
