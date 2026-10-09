@@ -62,6 +62,61 @@ MORPH_KEYS = (
 )
 
 
+# Keep backend descriptors aligned with the shared @pli/pet-3d template families.
+# Media fitting may override these values, but an unobserved dimension must
+# preserve its species/family prior instead of being silently reset to 1.0.
+_TEMPLATE_BASE = {
+    "body_length": 1.0, "body_height": 1.0, "chest_width": 1.0, "waist_width": 1.0,
+    "neck_length": 1.0, "head_scale": 1.0, "head_width": 1.0, "muzzle_length": 1.0,
+    "ear_length": 1.0, "ear_width": 1.0, "ear_angle": 0.0,
+    "leg_length_front": 1.0, "leg_length_back": 1.0, "paw_scale": 1.0,
+    "tail_length": 1.0, "tail_thickness": 1.0, "tail_curve": 0.0, "overall_scale": 1.0,
+}
+
+
+def _template_defaults(**overrides: float) -> dict[str, float]:
+    return {**_TEMPLATE_BASE, **overrides}
+
+
+TEMPLATE_MORPH_DEFAULTS: dict[str, dict[str, float]] = {
+    "corgi-like": _template_defaults(
+        body_length=1.5, body_height=0.82, chest_width=1.15, waist_width=0.95,
+        neck_length=0.8, head_scale=1.05, head_width=1.18, muzzle_length=0.7,
+        ear_length=0.85, ear_width=0.9, ear_angle=0.05,
+        leg_length_front=0.52, leg_length_back=0.55, paw_scale=1.0,
+        tail_length=0.45, tail_thickness=1.0, tail_curve=0.35,
+    ),
+    "standard-dog": _template_defaults(
+        body_length=1.1, body_height=1.0, chest_width=1.0, waist_width=0.9,
+        neck_length=1.15, head_scale=0.95, head_width=1.0, muzzle_length=1.1,
+        ear_length=0.9, ear_width=0.9, ear_angle=0.12,
+        leg_length_front=1.05, leg_length_back=1.05, paw_scale=1.0,
+        tail_length=1.1, tail_thickness=0.9, tail_curve=0.2,
+    ),
+    "spitz-dog": _template_defaults(
+        body_length=1.0, body_height=1.0, chest_width=1.05, waist_width=0.85,
+        neck_length=1.0, head_scale=1.0, head_width=1.0, muzzle_length=0.9,
+        ear_length=0.9, ear_width=0.8, ear_angle=0.1,
+        leg_length_front=1.0, leg_length_back=1.0, paw_scale=1.0,
+        tail_length=1.3, tail_thickness=1.1, tail_curve=0.45,
+    ),
+    "retriever-dog": _template_defaults(
+        body_length=1.12, body_height=1.05, chest_width=1.18, waist_width=0.92,
+        neck_length=1.05, head_scale=1.05, head_width=1.08, muzzle_length=1.15,
+        ear_length=0.75, ear_width=0.85, ear_angle=0.28,
+        leg_length_front=1.02, leg_length_back=1.02, paw_scale=1.05,
+        tail_length=1.05, tail_thickness=0.95, tail_curve=0.18,
+    ),
+    "standard-cat": _template_defaults(
+        body_length=1.15, body_height=0.92, chest_width=0.92, waist_width=0.8,
+        neck_length=0.95, head_scale=0.95, head_width=0.95, muzzle_length=0.7,
+        ear_length=1.0, ear_width=0.85, ear_angle=0.05,
+        leg_length_front=0.95, leg_length_back=0.98, paw_scale=0.85,
+        tail_length=1.4, tail_thickness=0.55, tail_curve=0.3,
+    ),
+}
+
+
 def pick_template(species: str | None, breed: str | None) -> tuple[str, dict]:
     """Return (family, prior morph) — breed is only a weak prior."""
     species_l = (species or "").lower()
@@ -139,14 +194,15 @@ def _region_color_zone(
     return _region_color(img, zone)
 
 
-def _fit_morph(silhouettes: list[dict], prior: dict) -> dict:
-    """Fit morph params from silhouette aspects, blending with breed priors.
+def _fit_morph(silhouettes: list[dict], family: str, prior: dict) -> dict:
+    """Fit observed proportions without destroying the template-family shape.
 
-    body_height & leg length are estimated from full-body silhouette aspect
-    (taller/less wide => longer legs); body_length from the side/3-4 aspect.
-    Everything is a soft heuristic; prior defaults cover missing views.
+    The family defaults are the unobserved prior. Deterministic silhouette
+    evidence may adjust supported dimensions, while every unsupported morph
+    keeps the canonical cat/dog/corgi/retriever/spitz proportion.
     """
-    morph: dict = dict(prior)
+    morph: dict = dict(TEMPLATE_MORPH_DEFAULTS.get(family, TEMPLATE_MORPH_DEFAULTS["standard-dog"]))
+    morph.update(prior)
     aspects = [s["aspect"] for s in silhouettes if s.get("has_pet")]
     heights = [s["height"] for s in silhouettes if s.get("has_pet")]
     if aspects:
@@ -158,10 +214,10 @@ def _fit_morph(silhouettes: list[dict], prior: dict) -> dict:
     if heights:
         # Taller relative to width => leaner torso.
         pass
+    # Contract stays complete, but missing evidence now retains the family
+    # template value rather than collapsing every dimension to 1.0.
     for k in MORPH_KEYS:
-        if k not in morph:
-            morph[k] = 1.0
-    morph["overall_scale"] = morph.get("overall_scale", 1.0)
+        morph.setdefault(k, TEMPLATE_MORPH_DEFAULTS["standard-dog"][k])
     return morph
 
 
@@ -286,7 +342,7 @@ def build_individual_twin(
         if r not in observed:
             inferred[r] = "template_default"
 
-    morph = _fit_morph(silhouettes, prior)
+    morph = _fit_morph(silhouettes, family, prior)
     observed_regions = sorted(observed)
     inferred_regions = sorted(r for r in OBSERVABLE_REGIONS if r not in observed)
     coverage_ratio = _coverage_ratio(set(observed_regions))
