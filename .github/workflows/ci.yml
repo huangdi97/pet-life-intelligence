@@ -216,6 +216,14 @@ jobs:
           # visual-regression-v2 diffs approved baseline vs current (explicit
           # refresh only via PLI_UPDATE_VISUAL_BASELINE=1).
           pnpm exec playwright test --config=tests/e2e-browser/playwright.config.ts --grep "STAGE-V-VISUAL|VISUAL-V2|VISUAL-V3"
+      - name: Reset demo data (final runtime evidence isolation)
+        run: |
+          # The visual-chain specs exercise model lifecycle/camera states and
+          # may legitimately mutate the ACTIVE visual model. Final product
+          # evidence must start from the canonical clean demo household again,
+          # otherwise Pet World can inherit a generated engineering candidate
+          # while Today/Life View still certify the bundled demo Twin.
+          cd services/api && python -m app.seed
       - name: R5.6 Web final runtime evidence
         run: |
           node scripts/r5-6/capture-web-final-bundle.mjs --base-url http://localhost:3100 --api-url http://localhost:8800
