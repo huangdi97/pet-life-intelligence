@@ -66,7 +66,8 @@ export function HealthScreen() {
   const [rows, setRows] = useState<HealthEventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);\n  const [reminderFormOpen, setReminderFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [reminderFormOpen, setReminderFormOpen] = useState(false);
   const [complaint, setComplaint] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -468,7 +469,8 @@ const styles = StyleSheet.create({
   changeBody: { fontSize: TYPE.body, color: COLORS.textPrimary, marginTop: SPACE.s2, lineHeight: 22 },
   recordRow: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: 10 },
   recordDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
-  reminderToggle: { alignSelf: "flex-start", marginTop: SPACE.s3 },\n  reminderForm: { marginTop: SPACE.s3, gap: SPACE.s2 },
+  reminderToggle: { alignSelf: "flex-start", marginTop: SPACE.s3 },
+  reminderForm: { marginTop: SPACE.s3, gap: SPACE.s2 },
   reminderKinds: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
   reminderChip: { minHeight: 40, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised },
   reminderChipSelected: { backgroundColor: COLORS.brandSoftGreen },
