@@ -1305,3 +1305,29 @@ def test_mobile_me_touch_targets_meet_44dp_floor() -> None:
     source = read("apps/mobile/src/screens/MeScreen.tsx")
     assert 'smallButton: { minHeight: 44' in source
     assert 'smallButton: { minHeight: 40' not in source
+
+
+def test_today_keeps_change_separate_from_health_attention_across_owner_clients() -> None:
+    mobile = read("apps/mobile/src/screens/TodayScreen.tsx")
+    web = read("apps/web/app/page.tsx")
+    mini = read("apps/mini/src/pages/index/index.tsx")
+
+    assert "ChangeNarrative" in mobile
+    assert mobile.index('testID="pli.today.change"') < mobile.index('testID="pli.today.attention"')
+    assert mobile.index('testID="pli.today.attention"') < mobile.index('testID="pli.today.primary-action"')
+    assert 'evidenceState={healthState}' in mobile
+    assert "总体稳定" not in read("apps/mobile/src/screens/today_sections.tsx")
+
+    assert "ChangeCard" in web
+    assert web.index("<NowCard") < web.index("<ChangeCard")
+    assert web.index("<ChangeCard") < web.index("<AttentionCard")
+    assert web.index("<AttentionCard") < web.index("<ActionCard")
+    assert 'health-events' in web
+    assert 'headlineTestId="pli.today.now-headline"' in web
+
+    assert "ChangeNarrative" in mini
+    assert mini.index("<LifeSignal") < mini.index("<ChangeNarrative")
+    assert mini.index("<ChangeNarrative") < mini.index('healthState !== "ready"')
+    for metric in ("meal", "drink", "activity", "sleep"):
+        assert f'id: "{metric}"' in mini
+    assert "abnormal-day-hint" in mini
