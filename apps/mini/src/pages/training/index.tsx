@@ -79,7 +79,8 @@ export default function Training() {
   const [rewardSubject, setRewardSubject] = useState("");
   const [rewardNote, setRewardNote] = useState("");
   const [selectedReward, setSelectedReward] = useState("");
-  const [rewardBusy, setRewardBusy] = useState(false);\n  const [rewardOpen, setRewardOpen] = useState(false);
+  const [rewardBusy, setRewardBusy] = useState(false);
+  const [rewardOpen, setRewardOpen] = useState(false);
   const [tools, setTools] = useState<TrainingTools | null>(null);
   const [toolsState, setToolsState] = useState<"loading" | "ready" | "error">("loading");
 
@@ -151,6 +152,7 @@ export default function Training() {
       setSelectedReward(row.subject);
       setRewardSubject("");
       setRewardNote("");
+      setRewardOpen(false);
       load(petId);
       Taro.showToast({ title: "奖励偏好已保存", icon: "success" });
     } catch {
