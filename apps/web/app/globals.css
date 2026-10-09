@@ -2273,3 +2273,39 @@ body{background:#FBF7F1}
     border-left:0;
   }
 }
+
+
+/* R7.3 Today truth hierarchy — CHANGE is quieter than ATTENTION.
+   Baseline variance is not rendered as a medical warning. */
+.v5-today-change { padding-top: 20px; padding-bottom: 20px; }
+.v5-change-line {
+  padding: 15px 18px;
+  border-radius: 18px;
+  background: rgba(238,243,234,.86);
+  border: 1px solid rgba(54,95,73,.10);
+}
+.v5-change-line--unknown {
+  background: rgba(255,254,249,.82);
+  border-color: var(--v4-divider,#DDE7DB);
+}
+.v5-change-summary {
+  margin: 0;
+  color: var(--v4-text-primary,#25382D);
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 650;
+}
+.v5-change-evidence {
+  margin: 5px 0 0;
+  color: var(--v4-text-secondary,#52695A);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.v4-attn--danger {
+  background: #FFF0ED;
+  border-color: rgba(173,63,45,.18);
+}
+.v4-attn--danger .v4-attn-title,
+.v4-attn--danger .v4-attn-icon {
+  color: #9C3D30;
+}
