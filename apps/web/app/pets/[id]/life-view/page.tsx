@@ -189,8 +189,8 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         ? "3D 状态暂时不可用"
         : twinDescriptor
           ? isDemoTwin
-            ? `示例 3D · v${twinVersion ?? 1}`
-            : `3D v${twinVersion ?? 1} · 已确认`
+            ? "示例形象 · 仅用于体验"
+            : "个体形象 · 已确认"
           : "暂无已确认个体 3D";
 
   return (
