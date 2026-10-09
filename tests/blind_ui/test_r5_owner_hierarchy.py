@@ -1674,3 +1674,12 @@ def test_android_evidence_fails_session_errors_before_3d_manifest_checks() -> No
     assert "demo owner session failed before Today/3D mounted" in runner
     assert 'if "pli.today.living-stage" not in primary_select_xml' in runner
     assert runner.index("demo owner session failed before Today/3D mounted") < runner.index("primary_manifest = android.read_runtime_manifest")
+
+
+def test_android_evidence_debug_apk_disables_metro_devsupport() -> None:
+    patcher = read("scripts/r5-6/enable-debug-bundle.py")
+    workflow = read(".github/workflows/android.yml")
+    assert "debuggableVariants = []" in patcher
+    assert "getUseDeveloperSupport(): Boolean = false" in patcher
+    assert "public boolean getUseDeveloperSupport() { return false; }" in patcher
+    assert "assets/index.android.bundle" in workflow
