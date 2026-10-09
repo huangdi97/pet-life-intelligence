@@ -70,7 +70,7 @@ export function AskPanel({
       {answer && !askErr && <AnswerPanel answer={answer} citations={citations} basePath={basePath} />}
       {!answer && !askErr && !asking && aiOff && (
         <div className="v4-assistant-empty">
-          AI 服务暂未开放。当前只能基于已有规则与记录回答；接入后会给出带依据的回答。
+          当前无法连接 AI 服务。已有记录、时间线与规则结果仍可正常查看；恢复连接后再继续提问。
         </div>
       )}
       {!answer && !askErr && !asking && !aiOff && (
