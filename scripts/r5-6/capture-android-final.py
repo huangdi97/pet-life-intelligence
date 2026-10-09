@@ -47,7 +47,7 @@ SURFACES = (
 SURFACE_ROOT_IDS = {
     "today": "pli.today.living-stage",
     "timeline": "pli.timeline.identity",
-    "pet": "pli.pet.identity",
+    "pet": "pli.pet.hero-stage",
     "lifeview": "pli.lifeview.identity",
     "twinreview": "pli.twinreview.identity",
     "health": "pli.health.identity",
