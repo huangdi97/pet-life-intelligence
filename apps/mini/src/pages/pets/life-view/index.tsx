@@ -19,6 +19,7 @@ type LifeMode = "now" | "trend" | "appearance";
 type DetailId = "water" | "meal" | "activity" | "sleep";
 
 interface DeviceMini { status: string; }
+interface HealthMini { latest_triage_level: string | null; }
 
 interface VisualModelRow {
   status?: string;
@@ -94,8 +95,10 @@ export default function LifeView() {
   const [detailId, setDetailId] = useState<DetailId | null>(null);
   const [supportTasks, setSupportTasks] = useState<Task[]>([]);
   const [supportDevices, setSupportDevices] = useState<DeviceMini[]>([]);
+  const [supportHealth, setSupportHealth] = useState<HealthMini[]>([]);
   const [taskSupportState, setTaskSupportState] = useState<"loading" | "ready" | "error">("loading");
   const [deviceSupportState, setDeviceSupportState] = useState<"loading" | "ready" | "error">("loading");
+  const [healthSupportState, setHealthSupportState] = useState<"loading" | "ready" | "error">("loading");
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0];
 
@@ -151,17 +154,22 @@ export default function LifeView() {
 
     setSupportTasks([]);
     setSupportDevices([]);
+    setSupportHealth([]);
     setTaskSupportState("loading");
     setDeviceSupportState("loading");
+    setHealthSupportState("loading");
     Promise.allSettled([
       api.get<Task[]>(`/pets/${petId}/tasks`),
       api.get<DeviceMini[]>(`/pets/${petId}/devices`),
-    ]).then(([tasksResult, devicesResult]) => {
+      api.get<HealthMini[]>(`/pets/${petId}/health-events`),
+    ]).then(([tasksResult, devicesResult, healthResult]) => {
       if (!alive) return;
       setSupportTasks(tasksResult.status === "fulfilled" ? tasksResult.value : []);
       setSupportDevices(devicesResult.status === "fulfilled" ? devicesResult.value : []);
+      setSupportHealth(healthResult.status === "fulfilled" ? healthResult.value : []);
       setTaskSupportState(tasksResult.status === "fulfilled" ? "ready" : "error");
       setDeviceSupportState(devicesResult.status === "fulfilled" ? "ready" : "error");
+      setHealthSupportState(healthResult.status === "fulfilled" ? "ready" : "error");
     });
 
     return () => {
@@ -260,6 +268,16 @@ export default function LifeView() {
             : supportDevices.some((device) => String(device.status).toLowerCase() === "offline")
               ? "有设备离线"
               : "状态待确认";
+  const healthText =
+    healthSupportState === "loading"
+      ? "读取中"
+      : healthSupportState === "error"
+        ? "暂不可用"
+        : supportHealth.some((row) => row.latest_triage_level === "URGENT" || row.latest_triage_level === "EMERGENCY")
+          ? "需立即关注"
+          : supportHealth.length > 0
+            ? "有健康记录"
+            : "暂无记录";
 
   const freshness = lastEvent
     ? `更新 ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
@@ -319,6 +337,14 @@ export default function LifeView() {
         <View className="life-view-support-item" data-testid="pli.mini.lifeview.support.weight">
           <Text className="life-view-support-label">体重</Text>
           <Text className="life-view-support-value">{weightText}</Text>
+        </View>
+        <View
+          className="life-view-support-item"
+          data-testid="pli.mini.lifeview.support.health"
+          onClick={() => Taro.navigateTo({ url: "/pages/health/index" })}
+        >
+          <Text className="life-view-support-label">健康</Text>
+          <Text className={`life-view-support-value${healthText === "需立即关注" ? " life-view-support-danger" : ""}`}>{healthText}</Text>
         </View>
         <View className="life-view-support-item" data-testid="pli.mini.lifeview.support.tasks">
           <Text className="life-view-support-label">任务</Text>
