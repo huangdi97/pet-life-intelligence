@@ -23,11 +23,10 @@ trap capture_diagnostics EXIT
 "$ADB" -s "$SERIAL" shell settings put global anr_show_background 0 || true
 "$ADB" -s "$SERIAL" shell am force-stop com.google.android.apps.nexuslauncher || true
 
-# React Native debug APKs load their JS from Metro. Reverse the device's
-# localhost:8081 to the hosted runner so the evidence APK gets the real app
-# bundle instead of a blank native shell.
-"$ADB" -s "$SERIAL" reverse tcp:8081 tcp:8081
-# Evidence backend uses device loopback via adb reverse; this avoids hosted-emulator\n# 10.0.2.2 routing variance and keeps the app/backend channel deterministic.\n"$ADB" -s "$SERIAL" reverse tcp:8800 tcp:8800\n
+# Port forwarding is configured after APK installation below. If an install
+# retry restarts the adb server, all reverse mappings established beforehand
+# are lost, so doing it here would make the app/backend channel flaky.
+
 ready=0
 for _ in $(seq 1 60); do
   if "$ADB" -s "$SERIAL" shell service check package 2>/dev/null | grep -q "found"; then
@@ -60,6 +59,20 @@ if [[ "$installed" -ne 1 ]]; then
   echo "APK installation failed after 3 attempts" >&2
   exit 1
 fi
+
+# The evidence bundle is self-contained, but React Native debug tooling may
+# still probe Metro. More importantly, the app was built with
+# EXPO_PUBLIC_PLI_API_URL=http://127.0.0.1:8800, so device loopback MUST be
+# reversed to the hosted runner. Establish mappings only after install/retry.
+"$ADB" -s "$SERIAL" reverse --remove-all || true
+"$ADB" -s "$SERIAL" reverse tcp:8800 tcp:8800
+"$ADB" -s "$SERIAL" reverse tcp:8081 tcp:8081
+
+# Fail here, before UI capture, if the device cannot see the evidence API.
+# curl is not guaranteed on Android images, so verify the reverse table and
+# leave the application-level session gate to capture-android-final.py.
+"$ADB" -s "$SERIAL" reverse --list | tee /tmp/pli-adb-reverse.txt
+grep -q "tcp:8800 tcp:8800" /tmp/pli-adb-reverse.txt
 
 "$ADB" -s "$SERIAL" shell wm size 1080x2340
 "$ADB" -s "$SERIAL" shell wm density 440
