@@ -60,7 +60,7 @@ export function WelfareRecordAction({ kind, setKind, busy, onRecord }: Omit<Evid
       <div className="v4-sec-head">
         <div>
           <h2 className="v4-sec-title">补充生活观察</h2>
-          <p className="v4-sec-sub">先看已有事实与趋势；确实有新情况时再补充一条主人观察。</p>
+          <p className="v4-sec-sub">先看已有事实与趋势；确实有新情况时再补充一条主人观察。仅记录可观察事实，不推断情绪或幸福指数。</p>
         </div>
         <button type="button" className="btn" data-testid="pli.welfare.record.toggle" aria-expanded={recordOpen} aria-controls="pli-welfare-record-form" onClick={() => setRecordOpen((value) => !value)}>
           {recordOpen ? "收起" : "记录观察"}
