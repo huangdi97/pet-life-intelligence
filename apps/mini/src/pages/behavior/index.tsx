@@ -57,7 +57,8 @@ export default function Behavior() {
   const [preferenceKind, setPreferenceKind] = useState<"LIKE" | "DISLIKE" | "ALLERGY_CAUTION">("LIKE");
   const [preferenceSubject, setPreferenceSubject] = useState("");
   const [preferenceNote, setPreferenceNote] = useState("");
-  const [preferenceBusy, setPreferenceBusy] = useState(false);\n  const [preferenceOpen, setPreferenceOpen] = useState(false);
+  const [preferenceBusy, setPreferenceBusy] = useState(false);
+  const [preferenceOpen, setPreferenceOpen] = useState(false);
   const [artifactIds, setArtifactIds] = useState<string[]>([]);
   const [artifactNames, setArtifactNames] = useState<string[]>([]);
   const [videoUploading, setVideoUploading] = useState(false);
@@ -133,6 +134,7 @@ export default function Behavior() {
       });
       setPreferenceSubject("");
       setPreferenceNote("");
+      setPreferenceOpen(false);
       loadPreferences(petId);
       Taro.showToast({ title: "偏好已记录", icon: "success" });
     } catch {
