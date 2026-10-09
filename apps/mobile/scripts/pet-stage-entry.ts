@@ -53,6 +53,8 @@ const injectedSourceMediaCount: number = Number(window.__PLI_SOURCE_MEDIA_COUNT 
 const injectedDemoTwin: boolean = window.__PLI_DEMO_TWIN === true;
 // §31 framing target injected per screen (0 = demo framing, no autofit).
 const frameTarget: number = Number(window.__PLI_FRAME_TARGET ?? 0);
+const reduceMotionQuery =
+  typeof window.matchMedia === "function" ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
 
 // R2P3D-R4: the WebView has no HTTP server (file:///android_asset/), so the GLB
 // bytes are embedded at build time and decoded here; null = procedural fallback.
@@ -334,11 +336,13 @@ function reportOrientation(): void {
 function frame(t: number): void {
   const time = (t / 1000) + poseTimeOffset.value;
   if (hdTwin) {
-    hdTwin.setPose((activePose ?? "Idle") as PoseName, time); // R4 GLB twin: real bones
+    const effectivePose = (reduceMotionQuery?.matches ?? false) && !activePose ? "Stand" : (activePose ?? "Idle");
+    hdTwin.setPose(effectivePose as PoseName, (reduceMotionQuery?.matches ?? false) && !activePose ? 0 : time); // ambient motion respects OS preference
   } else if (twinDescriptor) {
-    (stage as any).setPose(activePose ?? "Idle", time); // twin scene: joint clips
+    const effectivePose = (reduceMotionQuery?.matches ?? false) && !activePose ? "Stand" : (activePose ?? "Idle");
+    (stage as any).setPose(effectivePose, (reduceMotionQuery?.matches ?? false) && !activePose ? 0 : time); // individual twin respects OS preference
   } else {
-    (stage as any).setPose(time, true); // demo stage: breathing only
+    (stage as any).setPose(time, !(reduceMotionQuery?.matches ?? false)); // ambient breathing respects OS motion preference
   }
   applyOrbit(camera, STAGE_TARGET, orbit);
   renderer.render(scene, camera);
@@ -369,7 +373,7 @@ rootEl.addEventListener(
     if (e.touches.length >= 2 && lastPinch > 0) {
       const d = pinchDist(e);
       const factor = d / lastPinch;
-      if (factor > 0.01 && factor < 100) Object.assign(orbit, orbitZoom(orbit, factor));
+      if (factor > 0.01 && factor < 100) Object.assign(orbit, orbitZoom(orbit, factor, zoomBounds));
       lastPinch = d;
     } else if (e.touches.length === 1) {
       const t = e.touches[0];
