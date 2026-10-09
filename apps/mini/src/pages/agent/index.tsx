@@ -188,7 +188,7 @@ export default function Agent() {
 
       {askState === "blocked" && (
         <Text className="life-empty-note" style={{ display: "block", marginTop: 12 }}>
-          AI 服务暂未开放，连接后即可提问。
+          当前无法连接 AI 服务；已有记录与时间线仍可正常查看。
         </Text>
       )}
     </View>
