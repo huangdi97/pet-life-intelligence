@@ -213,7 +213,12 @@ function AnswerBlock({ answer, citations }: { answer: AskAnswer; citations: Arra
         <Text style={styles.emptyBody}>当前无法连接 AI 服务；已有记录、来源与时间线仍可正常查看。</Text>
       ) : (
         <>
-          {answer.answer ? (\n        <View style={styles.answerSection}>\n          <Text style={styles.sectionLabel}>结论</Text>\n          <Text style={styles.answerBody}>{answer.answer}</Text>\n        </View>\n      ) : null}
+          {answer.answer ? (
+            <View style={styles.answerSection}>
+              <Text style={styles.sectionLabel}>结论</Text>
+              <Text style={styles.answerBody}>{answer.answer}</Text>
+            </View>
+          ) : null}
           {answer.facts && answer.facts.length > 0 ? (
             <View style={styles.answerSection}>
               <Text style={styles.sectionLabel}>依据</Text>
