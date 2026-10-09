@@ -10,7 +10,8 @@ export default function Tasks() {
   const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
-  const [title, setTitle] = useState("");\n  const [createOpen, setCreateOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
 
   const load = useCallback((pid: string) => {
     setState("loading");
@@ -41,6 +42,7 @@ export default function Tasks() {
     try {
       await api.post(`/pets/${petId}/tasks`, { title: title.trim(), task_type: "OTHER" });
       setTitle("");
+      setCreateOpen(false);
       load(petId);
       Taro.showToast({ title: "已创建", icon: "success" });
     } catch {
