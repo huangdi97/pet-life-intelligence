@@ -1112,3 +1112,61 @@ def test_medication_tasks_and_care_mutations_are_secondary() -> None:
     assert 'testID="pli.care.handoff.toggle"' in care_mobile
     assert 'data-testid="pli.mini.care.invite.toggle"' in care_mini
     assert 'data-testid="pli.mini.care.handoff.toggle"' in care_mini
+
+
+def test_web_life_view_state_anchors_expose_truthful_fact_details() -> None:
+    stage = read("apps/web/components/pet-living-stage.tsx")
+    life = read("apps/web/app/pets/[id]/life-view/page.tsx")
+
+    assert "onPress?: () => void;" in stage
+    assert "r2p-anchor--button" in stage
+    assert "查看${a.label}详情" in stage
+    assert 'source_type?: string;' in life
+    assert 'provenanceLabel(event.source_type)' in life
+    assert 'compare: "暂无（数据积累后显示）"' in life
+    assert 'data-testid="pli.lifeview.anchor-detail"' in life
+    for label in ("事实", "与自己相比", "来源", "更新时间", "证据"):
+        assert label in life
+    assert '["daily.walk", "daily.play"]' in life
+
+
+def test_mini_life_view_is_photo_first_and_uses_canonical_four_way_rail() -> None:
+    life = read("apps/mini/src/pages/pets/life-view/index.tsx")
+
+    assert 'import { PetHero }' in life
+    assert "<PetHero" in life
+    assert 'data-testid="pli.mini.lifeview.meta"' in life
+    assert 'data-testid="pli.mini.lifeview.anchors"' in life
+    assert 'data-testid="pli.mini.lifeview.modebar"' in life
+    now = life.index('>此刻</View>')
+    trend = life.index('>趋势</View>')
+    timeline = life.index('>时间线</View>')
+    appearance = life.index('>外观</View>')
+    assert now < trend < timeline < appearance
+    assert 'Taro.switchTab({ url: "/pages/timeline/index" })' in life
+    assert 'data-testid="pli.mini.lifeview.anchor-detail"' in life
+    assert "真实照片优先" in life
+    assert "小程序不使用静态贴图伪装 3D" in life
+    assert "/visual/status" not in life
+    assert "/visual-models" in life
+    assert "/baseline" in life
+    assert 'new Set(["daily.walk", "daily.play"])' in life
+    assert "minutes > 24 * 60" in life
+
+
+def test_mini_today_activity_does_not_absorb_unrelated_event_durations() -> None:
+    today = read("apps/mini/src/pages/index/index.tsx")
+    assert 'event.event_type === "daily.walk" || event.event_type === "daily.play"' in today
+    assert "Number.isFinite(minutes)" in today
+    assert "minutes > 24 * 60" in today
+    assert "(acc, e) => acc + (Number(" not in today
+
+
+def test_timeline_pet_identity_precedes_the_stream_across_owner_clients() -> None:
+    web = read("apps/web/app/timeline/page.tsx")
+    mobile = read("apps/mobile/src/screens/TimelineScreen.tsx")
+    mini = read("apps/mini/src/pages/timeline/index.tsx")
+
+    assert web.index('data-testid="pli.timeline.identity"') < web.index('<div className="v4-grid">')
+    assert '${pet.name}的时间线' in mobile
+    assert '<PetContextHeader pet={current ?? null} title="时间线"' in mini
