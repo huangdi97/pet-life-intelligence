@@ -213,8 +213,8 @@ export default function LifeView() {
         ? "3D 状态暂时不可用"
         : activeTwin
           ? activeTwin.metadata_json?.demo_fixture === true
-            ? `示例 3D · v${activeTwin.version ?? 1}`
-            : `3D v${activeTwin.version ?? 1} · 已确认`
+            ? "示例形象 · 仅用于体验"
+            : "个体形象 · 已确认"
           : "暂无已确认个体 3D";
   const freshness = lastEvent
     ? `更新 ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
@@ -340,7 +340,7 @@ export default function LifeView() {
             小程序始终优先展示主人设置的真实照片。{activeTwin
               ? activeTwin.metadata_json?.demo_fixture === true
                 ? "当前账户有示例 3D 形象；它不代表真实宠物扫描。"
-                : `当前已有确认过的第 ${activeTwin.version ?? 1} 版 3D 形象。`
+                : "当前已有确认过的个体 3D 形象。"
               : "当前还没有已确认的个体 3D 形象。"}
           </Text>
           <Text className="life-empty-note">可旋转的 3D 交互在 Web / Android 提供；小程序不使用静态贴图伪装 3D。</Text>
