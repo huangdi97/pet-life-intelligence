@@ -952,6 +952,7 @@ def test_companion_living_stage_stays_pet_first_without_hiding_device_reality() 
 
     assert "compact?: boolean" in mobile_stage
     assert "const height = compact ? 470 : HEIGHTS[variant];" in mobile_stage
+    assert "life: 590" in mobile_stage  # keep Life View rail reachable without shrinking its WebView pet
     assert "compact" in mobile
     assert "frameTarget={0.48}" in mobile
     assert 'role === "companion" ? "r2p-stage--companion" : ""' in web_stage
