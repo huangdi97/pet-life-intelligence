@@ -13,6 +13,7 @@ interface AskPanelProps {
   citations: Array<{ label: string; event_id?: string }>;
   aiOff: boolean;
   petName: string;
+  petId: string;
   onAsk: (q: string) => void;
   onSuggestion: (s: Suggestion) => void;
   basePath: () => string;
@@ -28,6 +29,7 @@ export function AskPanel({
   citations,
   aiOff,
   petName,
+  petId,
   onAsk,
   onSuggestion,
   basePath,
@@ -67,7 +69,7 @@ export function AskPanel({
           {askErr}
         </div>
       )}
-      {answer && !askErr && <AnswerPanel answer={answer} citations={citations} basePath={basePath} />}
+      {answer && !askErr && <AnswerPanel answer={answer} citations={citations} basePath={basePath} petId={petId} />}
       {!answer && !askErr && !asking && aiOff && (
         <div className="v4-assistant-empty">
           当前无法连接 AI 服务。已有记录、时间线与规则结果仍可正常查看；恢复连接后再继续提问。
