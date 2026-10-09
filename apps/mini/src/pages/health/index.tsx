@@ -43,7 +43,7 @@ export default function Health() {
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
   const [rows, setRows] = useState<HealthEventRow[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
-  const [showCreate, setShowCreate] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);\n  const [reminderFormOpen, setReminderFormOpen] = useState(false);
   const [complaint, setComplaint] = useState("");
   const [duration, setDuration] = useState("");
   const [busy, setBusy] = useState(false);
@@ -251,18 +251,29 @@ export default function Health() {
           )) : (
             <View className="life-empty-note">还没有预防提醒。</View>
           )}
-          <View className="chips">
-            {(["VACCINE", "DEWORMING", "CHECKUP"] as const).map((kind) => (
-              <View key={kind} className={`chip${reminderKind === kind ? " chip-active" : ""}`} onClick={() => setReminderKind(kind)}>
-                {REMINDER_KIND_LABEL[kind]}
-              </View>
-            ))}
+          <View
+            className="secondary-action"
+            data-testid="pli.mini.health.reminder.toggle"
+            onClick={() => setReminderFormOpen((value) => !value)}
+          >
+            {reminderFormOpen ? "收起" : "＋ 添加预防提醒"}
           </View>
-          <Input className="input" value={reminderDate} onInput={(event) => setReminderDate(event.detail.value)} placeholder="计划日期 YYYY-MM-DD" />
-          <Input className="input" value={reminderTitle} onInput={(event) => setReminderTitle(event.detail.value)} placeholder="例如：年度核心疫苗" />
-          <Button className="btn" disabled={reminderBusy !== null || !reminderTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(reminderDate)} onClick={() => void createReminder()}>
-            {reminderBusy === "create" ? "保存中…" : "添加预防提醒"}
-          </Button>
+          {reminderFormOpen ? (
+            <View className="soft-panel" data-testid="pli.mini.health.reminder.form">
+              <View className="chips">
+                {(["VACCINE", "DEWORMING", "CHECKUP"] as const).map((kind) => (
+                  <View key={kind} className={`chip${reminderKind === kind ? " chip-active" : ""}`} onClick={() => setReminderKind(kind)}>
+                    {REMINDER_KIND_LABEL[kind]}
+                  </View>
+                ))}
+              </View>
+              <Input className="input" value={reminderDate} onInput={(event) => setReminderDate(event.detail.value)} placeholder="计划日期 YYYY-MM-DD" />
+              <Input className="input" value={reminderTitle} onInput={(event) => setReminderTitle(event.detail.value)} placeholder="例如：年度核心疫苗" />
+              <Button data-testid="pli.mini.health.reminder.submit" className="btn" disabled={reminderBusy !== null || !reminderTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(reminderDate)} onClick={() => void createReminder()}>
+                {reminderBusy === "create" ? "保存中…" : "保存预防提醒"}
+              </Button>
+            </View>
+          ) : null}
         </View>
       </View>
 
