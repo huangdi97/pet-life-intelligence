@@ -4,6 +4,7 @@
  * + 引导文案，不再是“还没有回答”。
  */
 import { Button, Input, Text, View } from "@tarojs/components";
+import Taro from "@tarojs/taro";
 import { SUGGESTED, type AnswerResult, type AskState } from "../_lib";
 
 export function AskPanel(props: {
@@ -95,6 +96,12 @@ export function AskPanel(props: {
           <View className="answer-block">
             <Text className="answer-label">下一步</Text>
             <View className="answer-body">{result.action || "可以继续追问，或在时间线中核对来源。"}</View>
+          </View>
+
+          <View className="action-row" data-testid="pli.mini.assistant.answer-actions">
+            <View className="secondary-action" onClick={() => Taro.switchTab({ url: "/pages/timeline/index" })}>查看记录</View>
+            <View className="secondary-action" onClick={() => Taro.switchTab({ url: "/pages/timeline/index" })}>查看来源</View>
+            <View className="secondary-action" onClick={() => Taro.navigateTo({ url: "/pages/pets/life-view/index" })}>与它自己相比</View>
           </View>
 
           <View className="life-row-source" style={{ marginTop: 16 }}>
