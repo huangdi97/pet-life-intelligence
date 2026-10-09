@@ -54,7 +54,7 @@ export {
 export { createTwinScene, twinFingerprint } from "./twinScene";
 export type { TwinDescriptor, TwinScene, TwinTextureRegions } from "./twinScene";
 export type { PoseName, PoseTruth, PoseMeta, PoseClipData, PoseFrame } from "./motion";
-export { loadTwinGLB, setTwinAssetResolver, TWIN_GLB_PATH } from "./loader";
+export { canPersonalizeTwinGLB, loadTwinGLB, setTwinAssetResolver, TWIN_GLB_PATH } from "./loader";
 export type { LoadedTwin, TwinAssetResolver } from "./loader";
 // Twin Manifest V2/V3 (shared by web + mobile runtime + blind harness).
 export {

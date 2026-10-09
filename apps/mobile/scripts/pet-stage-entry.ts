@@ -8,6 +8,7 @@ import {
   addStageLights,
   applyOrbit,
   buildManifestV2,
+  canPersonalizeTwinGLB,
   countMeshes,
   createPetStageScene,
   createTwinScene,
@@ -173,13 +174,19 @@ let hdTwin: LoadedTwin | null = null;
 // If the product GLB fails, the procedural bridge remains usable but is
 // explicitly classified as fallback in the runtime manifest.
 let hdLoadFailed = false;
-// The embedded GLBs are bundled DEMO templates. Non-demo descriptors keep
-// the procedural individual scene, which is currently the only renderer that
-// actually applies its per-pet morph and photo-projected region colors.
-const bundledTwin = injectedDemoTwin ? loadTwinGLB(identity) : Promise.resolve(null);
+// A compatible owner Corgi/cat descriptor may deform the corresponding
+// embedded skinned template. Other families stay procedural/photo fallback;
+// never route an arbitrary dog through the Corgi GLB just to satisfy a gate.
+const supportsIndividualGlb = Boolean(
+  twinDescriptor && canPersonalizeTwinGLB(identity, twinDescriptor),
+);
+const productGlbRequested = injectedDemoTwin || supportsIndividualGlb;
+const bundledTwin = productGlbRequested
+  ? loadTwinGLB(identity, injectedDemoTwin ? null : twinDescriptor)
+  : Promise.resolve(null);
 bundledTwin.then((twin) => {
   if (!twin) {
-    hdLoadFailed = Boolean(twinDescriptor && injectedDemoTwin);
+    hdLoadFailed = Boolean(productGlbRequested);
     post({ type: "manifest", manifest: buildManifest() });
     return;
   }
@@ -192,7 +199,7 @@ bundledTwin.then((twin) => {
 }).catch(() => {
   // PROVIDER: GLB failure keeps the procedural stage, but never masquerades
   // as the high-fidelity product representation.
-  hdLoadFailed = injectedDemoTwin;
+  hdLoadFailed = Boolean(productGlbRequested);
   post({ type: "manifest", manifest: buildManifest() });
 });
 // §31 aspect-aware auto-framing (mirrors web): fit the projected pet box onto frameTarget of the full viewport.
@@ -281,6 +288,8 @@ function buildManifest(): Record<string, unknown> {
         : "ENGINEERING_FALLBACK",
     individualIdentityEvidence: Boolean(twinDescriptor && injectedSourceMediaCount > 0 && !injectedDemoTwin),
     productCandidate: hdTwin !== null,
+    personalizedSkinnedTemplate: Boolean(hdTwin?.personalized),
+    ownerCoatTintApplied: Boolean(hdTwin?.ownerCoatTint),
     triangleCount: hdTwin?.triangleCount ?? 0,
     uvPresent: hdTwin !== null,
     texturePresent: hdTwin !== null,

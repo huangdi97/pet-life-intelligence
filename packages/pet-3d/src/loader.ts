@@ -20,6 +20,8 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { POSE_FN } from "./motion";
 import type { Pet3DIdentity } from "./registry";
 import type { PoseName } from "./motion";
+import { resolveTemplate, sanitizeMorph, type PetMorphParams } from "./morph";
+import type { TwinDescriptor } from "./twinScene";
 
 export interface LoadedTwin {
   /** Pet root group (ground anchored, centered). */
@@ -29,6 +31,10 @@ export interface LoadedTwin {
   skinnedMeshCount: number;
   triangleCount: number;
   vertexCount: number;
+  /** True only when a compatible owner descriptor has deformed this template. */
+  personalized: boolean;
+  /** True when an observed owner coat color is conservatively mixed into the authored atlas. */
+  ownerCoatTint: boolean;
   /** Apply a deterministic pose by bone name (PoseFrame -> joint_<name>). */
   setPose(pose: PoseName, t: number): void;
 }
@@ -55,8 +61,154 @@ export const TWIN_GLB_PATH: Record<Pet3DIdentity, string> = {
   mimi: "/assets/twins/mimi.glb",
 };
 
+
+/**
+ * A bundled skinned template may represent an owner Twin only when geometry
+ * family and routed identity are actually compatible. Never put a Corgi mesh
+ * under an arbitrary dog descriptor merely to satisfy a GLB gate.
+ */
+export function canPersonalizeTwinGLB(
+  identity: Pet3DIdentity,
+  descriptor: TwinDescriptor | null | undefined,
+): boolean {
+  if (!descriptor) return false;
+  return (
+    (identity === "doudou" && descriptor.family === "corgi-like") ||
+    (identity === "mimi" && descriptor.family === "standard-cat")
+  );
+}
+
+function ratio(
+  target: number,
+  baseline: number,
+  min = 0.72,
+  max = 1.28,
+): number {
+  if (!Number.isFinite(target) || !Number.isFinite(baseline) || baseline === 0) return 1;
+  return THREE.MathUtils.clamp(target / baseline, min, max);
+}
+
+function softenedRatio(
+  target: number,
+  baseline: number,
+  strength: number,
+  min = 0.78,
+  max = 1.22,
+): number {
+  const raw = ratio(target, baseline, min, max);
+  return 1 + (raw - 1) * strength;
+}
+
+function applyOwnerPersonalization(
+  root: THREE.Group,
+  bones: Map<string, THREE.Bone>,
+  identity: Pet3DIdentity,
+  descriptor: TwinDescriptor,
+): { personalized: boolean; ownerCoatTint: boolean } {
+  if (!canPersonalizeTwinGLB(identity, descriptor)) {
+    return { personalized: false, ownerCoatTint: false };
+  }
+
+  const template = resolveTemplate(descriptor.family);
+  const baseline = template.defaultMorph;
+  const target = sanitizeMorph({ ...baseline, ...(descriptor.morph ?? {}) });
+  const get = (key: keyof PetMorphParams, strength = 1, min = 0.78, max = 1.22) =>
+    softenedRatio(target[key], baseline[key], strength, min, max);
+
+  // Use restrained *relative* deltas because the source GLBs already embody
+  // their Corgi/cat family. Applying absolute template values would double
+  // shorten a native Corgi or double lengthen a cat tail.
+  root.scale.multiplyScalar(get("overall_scale", 1, 0.82, 1.18));
+
+  const torso = bones.get("joint_torso");
+  if (torso) {
+    torso.scale.x *= get("chest_width", 0.48);
+    torso.scale.y *= get("body_height", 0.42);
+    torso.scale.z *= get("body_length", 0.50);
+  }
+
+  const neck = bones.get("joint_neck");
+  if (neck) neck.position.z *= get("neck_length", 0.55);
+
+  const head = bones.get("joint_head");
+  if (head) {
+    head.scale.x *= get("head_width", 0.58);
+    head.scale.y *= get("head_scale", 0.52);
+    head.scale.z *= get("muzzle_length", 0.32);
+  }
+
+  for (const [name, side] of [["joint_earL", 1], ["joint_earR", -1]] as const) {
+    const ear = bones.get(name);
+    if (!ear) continue;
+    ear.scale.x *= get("ear_width", 0.55);
+    ear.scale.y *= get("ear_length", 0.58);
+    ear.rotation.z += side * (target.ear_angle - baseline.ear_angle) * 0.55;
+  }
+
+  for (const [name, key] of [
+    ["joint_kneeFL", "leg_length_front"],
+    ["joint_kneeFR", "leg_length_front"],
+    ["joint_kneeBL", "leg_length_back"],
+    ["joint_kneeBR", "leg_length_back"],
+  ] as const) {
+    const knee = bones.get(name);
+    if (knee) knee.position.y *= get(key, 0.72);
+  }
+
+  const tailLength = get("tail_length", 0.62);
+  const tailThickness = get("tail_thickness", 0.55);
+  const tailCurveDelta = (target.tail_curve - baseline.tail_curve) * 0.45;
+  for (const name of ["joint_tail0", "joint_tail1"]) {
+    const tail = bones.get(name);
+    if (!tail) continue;
+    tail.position.z *= tailLength;
+    tail.scale.x *= tailThickness;
+    tail.scale.y *= tailThickness;
+    tail.rotation.x -= tailCurveDelta;
+  }
+
+  // Existing product GLBs have one authored atlas/material. Preserve its
+  // markings and texture detail; only mix a small owner-observed coat tint.
+  // This is OWNER_MEDIA_REFERENCED, not per-region photo reconstruction.
+  const coat = descriptor.texture?.observed?.coat;
+  const validCoat = typeof coat === "string" && /^#[0-9a-fA-F]{6}$/.test(coat);
+  if (validCoat) {
+    const owner = new THREE.Color(coat);
+    const seen = new Set<THREE.Material>();
+    root.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const raw of materials) {
+        if (seen.has(raw)) continue;
+        seen.add(raw);
+        const material = raw as THREE.MeshStandardMaterial;
+        if (!material?.isMeshStandardMaterial) continue;
+        const strength = material.map ? 0.18 : 0.30;
+        material.color.copy(new THREE.Color(0xffffff).lerp(owner, strength));
+        material.needsUpdate = true;
+      }
+    });
+  }
+
+  root.updateMatrixWorld(true);
+  const bounds = new THREE.Box3().setFromObject(root);
+  if (!bounds.isEmpty() && Number.isFinite(bounds.min.y)) {
+    root.position.y -= bounds.min.y;
+    root.updateMatrixWorld(true);
+  }
+  return { personalized: true, ownerCoatTint: validCoat };
+}
+
 /** Load a high-fidelity twin GLB; returns null when unavailable (fallback). */
-export async function loadTwinGLB(identity: Pet3DIdentity): Promise<LoadedTwin | null> {
+export async function loadTwinGLB(
+  identity: Pet3DIdentity,
+  descriptor: TwinDescriptor | null = null,
+): Promise<LoadedTwin | null> {
+  if (descriptor && !canPersonalizeTwinGLB(identity, descriptor)) {
+    warnIfAvailable("R7_OWNER_TWIN_GLB_FAMILY_MISMATCH", identity, descriptor.family);
+    return null;
+  }
   let buffer: ArrayBuffer | null = null;
   if (injectedResolver) {
     buffer = await injectedResolver(identity);
@@ -161,16 +313,24 @@ export async function loadTwinGLB(identity: Pet3DIdentity): Promise<LoadedTwin |
     if ((o as THREE.Bone).isBone) {
       const bone = o as THREE.Bone;
       bones.set(o.name, bone);
-      bindPose.set(o.name, {
-        position: bone.position.clone(),
-        quaternion: bone.quaternion.clone(),
-        scale: bone.scale.clone(),
-      });
     }
   });
   if (skinned === 0) {
     warnIfAvailable("R4_TWIN_GLB_NO_SKINNED", identity, { triangles, vertices, bones: bones.size });
     return null;
+  }
+
+  const personalization = descriptor
+    ? applyOwnerPersonalization(root, bones, identity, descriptor)
+    : { personalized: false, ownerCoatTint: false };
+
+  // Poses are deltas from THIS final owner-personalized bind state.
+  for (const [boneName, bone] of bones) {
+    bindPose.set(boneName, {
+      position: bone.position.clone(),
+      quaternion: bone.quaternion.clone(),
+      scale: bone.scale.clone(),
+    });
   }
 
   return {
@@ -179,6 +339,8 @@ export async function loadTwinGLB(identity: Pet3DIdentity): Promise<LoadedTwin |
     skinnedMeshCount: skinned,
     triangleCount: triangles,
     vertexCount: vertices,
+    personalized: personalization.personalized,
+    ownerCoatTint: personalization.ownerCoatTint,
     setPose(pose: PoseName, t: number) {
       // POSE_FN values are deltas from the authored bind pose. Reset every
       // joint first so switching Sit -> Idle (or any sparse pose pair) cannot

@@ -38,7 +38,7 @@ import {
   STAGE_TARGET,
 } from "@pli/pet-3d";
 import type { OrbitState, Pet3DIdentity, PoseName, TwinDescriptor } from "@pli/pet-3d";
-import { loadTwinGLB, setTwinAssetResolver } from "@pli/pet-3d";
+import { canPersonalizeTwinGLB, loadTwinGLB, setTwinAssetResolver } from "@pli/pet-3d";
 import type { LoadedTwin } from "@pli/pet-3d";
 export type Pet3DStatus = "boot" | "ready" | "failed";
 
@@ -199,20 +199,22 @@ export function Pet3DViewer({
     // loads (or when it fails). Manifest reclassifies accordingly.
     let petRoot: THREE.Object3D = stage.pet;
     let hdTwin: LoadedTwin | null = null;
-    // Demo/template product surfaces promise the bundled skinned GLB. READY
-    // therefore means that asset is really mounted, not merely that WebGL and
-    // the temporary procedural bridge have initialized.
-    const requiresProductGlb = Boolean(twin && identity && demoTwin);
+    // Compatible Corgi/cat owner descriptors now personalize the actual
+    // continuous skinned GLB. Other families remain on the explicit procedural
+    // engineering fallback; a Corgi template must never impersonate them.
+    const supportsIndividualGlb = Boolean(
+      twin && canPersonalizeTwinGLB(identity, twin),
+    );
+    const requiresProductGlb = Boolean(
+      twin && (demoTwin || supportsIndividualGlb),
+    );
     // Truth invariant: the procedural twin may temporarily bridge GLB loading,
-    // but if the product GLB cannot load the runtime must report a fallback.
+    // but a requested product GLB that fails must report failure so the host
+    // can fall back to the real owner photo rather than bless primitives.
     let hdLoadFailed = false;
-    // Bundled doudou/mimi GLBs are demo templates. A non-demo individual
-    // descriptor must keep rendering createTwinScene(descriptor), because that
-    // is the only current path that actually applies owner-media morph/texture.
-    // Replacing it with a bundled GLB would silently erase the individual pet.
-    if (twin && identity && demoTwin) {
+    if (twin && (demoTwin || supportsIndividualGlb)) {
       setTwinAssetResolver(null);
-      loadTwinGLB(identity)
+      loadTwinGLB(identity, demoTwin ? null : twin)
         .then((twin3d) => {
           if (!alive) return undefined;
           if (!twin3d || !scene || !camera) {
@@ -383,6 +385,8 @@ export function Pet3DViewer({
             : "ENGINEERING_FALLBACK",
         individualIdentityEvidence: Boolean(twin && sourceMediaCount > 0 && !demoTwin),
         productCandidate: hdTwin !== null,
+        personalizedSkinnedTemplate: Boolean(hdTwin?.personalized),
+        ownerCoatTintApplied: Boolean(hdTwin?.ownerCoatTint),
         triangleCount: hdTwin?.triangleCount ?? 0,
         uvPresent: hdTwin !== null,
         texturePresent: hdTwin !== null,

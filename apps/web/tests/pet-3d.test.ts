@@ -7,6 +7,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyOrbit,
+  canPersonalizeTwinGLB,
   createPetStageScene,
   createTwinScene,
   twinFingerprint,
@@ -72,6 +73,17 @@ describe("demo assets — 豆豆 ≠ 咪咪", () => {
     expect(delta).toBeLessThan(0.03);
     scene.setPose(0, false);
     expect(body.scale.y).toBeCloseTo(before, 5);
+  });
+});
+
+describe("owner skinned-GLB personalization capability", () => {
+  it("only personalizes a descriptor onto a truly compatible base geometry", () => {
+    expect(canPersonalizeTwinGLB("doudou", { family: "corgi-like" })).toBe(true);
+    expect(canPersonalizeTwinGLB("mimi", { family: "standard-cat" })).toBe(true);
+    expect(canPersonalizeTwinGLB("doudou", { family: "standard-dog" })).toBe(false);
+    expect(canPersonalizeTwinGLB("doudou", { family: "retriever-dog" })).toBe(false);
+    expect(canPersonalizeTwinGLB("mimi", { family: "corgi-like" })).toBe(false);
+    expect(canPersonalizeTwinGLB("mimi", null)).toBe(false);
   });
 });
 
