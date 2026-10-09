@@ -109,7 +109,12 @@ export function PetLivingStage({
   // explicitly marked demo. A production pet without a persisted Twin stays
   // on the honest 2.5D/photo fallback instead of borrowing a generic template.
   const canShow3d = identity !== null && (twin !== null || demo) && pet3d !== "failed";
-  const showPhoto = Boolean(photoUri && photoView?.petId === pet?.id && photoView?.enabled === true);
+  // A real owner photo outranks bundled demo/template geometry. A verified
+  // individual Twin may lead the dedicated Life View, while the owner can
+  // always switch between representations when both exist.
+  const photoFirstByDefault = Boolean(photoUri && (demo || twin === null));
+  const explicitPhotoChoice = photoView?.petId === pet?.id ? photoView.enabled : null;
+  const showPhoto = Boolean(photoUri && (explicitPhotoChoice ?? photoFirstByDefault));
   const use3d = canShow3d && !showPhoto;
   const reviewStudio = variant === "review";
   const stageTheme = reviewStudio ? ("review" as const) : ("living" as const);
@@ -201,8 +206,8 @@ export function PetLivingStage({
         </View>
       ) : null}
 
-      {/* Personal photo is an opt-in alternative to the bundled demo model.
-          The preference is pet-ID scoped: switching pets never reuses media. */}
+      {/* Owner media outranks demo/template geometry by default. The explicit
+          switch is pet-ID scoped: switching pets never reuses media. */}
       {photoUri && canShow3d && pet?.id && !reviewStudio ? (
         <Pressable
           testID={`pli.${variant}.view-switch`}
