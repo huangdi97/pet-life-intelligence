@@ -1477,3 +1477,19 @@ def test_quicklog_primary_and_secondary_information_architecture_matches_master(
     assert '{ label: "健康", url: "/pages/health/index" }' in mini
     assert '{ label: "用药", url: "/pages/medication/index" }' in mini
     assert '{ label: "行为", url: "/pages/behavior/index" }' in mini
+
+
+def test_health_and_welfare_keep_read_before_write_owner_order() -> None:
+    health = read("apps/web/app/health/page.tsx")
+    welfare = read("apps/web/app/welfare/page.tsx")
+
+    assert health.index('data-testid="pli.health.overview"') < health.index('data-testid="pli.health.changes"')
+    assert health.index('data-testid="pli.health.changes"') < health.index('data-testid="pli.health.records"')
+    assert health.index('data-testid="pli.health.records"') < health.index('data-testid="pli.health.medication"')
+    assert health.index('data-testid="pli.health.medication"') < health.index('data-testid="pli.health.compose"')
+
+    # Pet-specific observed evidence and trend precede generic enrichment ideas.
+    assert welfare.index('data-testid="pli.welfare.observable"') < welfare.index("<WelfareTrendCard")
+    assert welfare.index("<WelfareTrendCard") < welfare.index('data-testid="pli.welfare.enrichment"')
+    assert "最近喜欢的活动" not in welfare
+    assert "不能从事件频次自动推断" in welfare
