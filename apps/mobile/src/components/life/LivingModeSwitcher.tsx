@@ -28,8 +28,8 @@ export function LivingModeSwitcher({ value, onChange, onTimeline }: Props) {
   // the canonical "appearance" key from the blind-UI contract.
   const idOf = (id: LivingMode) => (id === "look" ? "appearance" : id);
   return (
-    <View accessibilityRole="tablist" testID={`pli.lifeview.mode.${idOf(value)}`} style={styles.bar}>
-      {MODES.map((m) => {
+    <View accessibilityRole="tablist" testID="pli.lifeview.modebar" style={styles.bar}>
+      {MODES.slice(0, 2).map((m) => {
         const active = m.id === value;
         return (
           <Pressable
@@ -55,6 +55,22 @@ export function LivingModeSwitcher({ value, onChange, onTimeline }: Props) {
       >
         <Text style={styles.itemText}>时间线</Text>
       </Pressable>
+      {MODES.slice(2).map((m) => {
+        const active = m.id === value;
+        return (
+          <Pressable
+            key={m.id}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={m.label}
+            testID={`pli.lifeview.mode.${idOf(m.id)}`}
+            onPress={() => onChange(m.id)}
+            style={[styles.item, active && styles.itemActive]}
+          >
+            <Text style={[styles.itemText, active && styles.itemTextActive]}>{m.label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
