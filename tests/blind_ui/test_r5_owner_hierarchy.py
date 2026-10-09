@@ -1032,3 +1032,16 @@ def test_health_preventive_editor_is_secondary_across_owner_clients() -> None:
     assert 'testID="pli.health.reminder.submit"' in mobile
     assert 'data-testid="pli.mini.health.reminder.toggle"' in mini
     assert 'data-testid="pli.mini.health.reminder.submit"' in mini
+
+
+def test_welfare_observation_capture_is_secondary_across_owner_clients() -> None:
+    web = read("apps/web/app/_components/welfare/EvidenceCard.tsx")
+    mobile = read("apps/mobile/src/screens/WelfareScreen.tsx")
+    mini = read("apps/mini/src/pages/welfare/index.tsx")
+
+    assert "recordOpen" in web and 'data-testid="pli.welfare.record.toggle"' in web
+    assert 'data-testid="pli.welfare.record.submit"' in web
+    assert "recordOpen" in mobile and 'testID="pli.welfare.action"' in mobile
+    assert 'testID="pli.welfare.action.submit"' in mobile
+    assert "recordOpen" in mini and 'data-testid="pli.mini.welfare.action"' in mini
+    assert 'data-testid="pli.mini.welfare.action.submit"' in mini
