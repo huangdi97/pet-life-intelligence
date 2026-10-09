@@ -107,6 +107,38 @@ def _region_color(img: Image.Image, mask: Image.Image) -> str | None:
     return _hex(mean)
 
 
+def _region_color_zone(
+    img: Image.Image,
+    mask: Image.Image,
+    silhouette: dict,
+    rel_box: tuple[float, float, float, float],
+) -> str | None:
+    """Sample foreground color from a conservative silhouette-relative zone.
+
+    This is deterministic spatial sampling, not semantic segmentation. It is
+    only used when the owner explicitly supplied the matching camera angle.
+    """
+    if not silhouette.get("has_pet"):
+        return None
+    x0, y0, x1, y1 = (
+        int(silhouette["x0"]), int(silhouette["y0"]),
+        int(silhouette["x1"]), int(silhouette["y1"]),
+    )
+    width, height = max(1, x1 - x0), max(1, y1 - y0)
+    rx0, ry0, rx1, ry1 = rel_box
+    box = (
+        max(x0, min(x1, int(x0 + width * rx0))),
+        max(y0, min(y1, int(y0 + height * ry0))),
+        max(x0, min(x1, int(x0 + width * rx1))),
+        max(y0, min(y1, int(y0 + height * ry1))),
+    )
+    if box[2] <= box[0] or box[3] <= box[1]:
+        return None
+    zone = Image.new("L", mask.size, 0)
+    zone.paste(mask.crop(box), (box[0], box[1]))
+    return _region_color(img, zone)
+
+
 def _fit_morph(silhouettes: list[dict], prior: dict) -> dict:
     """Fit morph params from silhouette aspects, blending with breed priors.
 
@@ -158,6 +190,7 @@ def build_individual_twin(
 
     qc: list[dict] = []
     masks: list[Image.Image] = []
+    binary_masks: list[Image.Image] = []
     silhouettes: list[dict] = []
     region_samples: dict[str, list[str]] = {r: [] for r in OBSERVABLE_REGIONS}
 
@@ -169,6 +202,7 @@ def build_individual_twin(
         q.update({"path": p.name, "coverage": seg["coverage"], "has_pet": sil.get("has_pet", False)})
         qc.append(q)
         masks.append(seg["soft"])
+        binary_masks.append(seg["binary"])
         silhouettes.append(sil)
         # Region color from the masked full image (view-angle weighting is
         # applied below by duplicating samples per covered angle).
@@ -198,22 +232,56 @@ def build_individual_twin(
         if base:
             weighted_coat.extend([base] * max(1, len(angles)))
 
-    # Per-region observed colors: coat from photos; cream/ear/tail/paw default
-    # unless a dedicated photo (head close-up) is available, in which case ear
-    # and cream samples are refined from the head photo.
+    # Per-region observation is angle-gated. We only promote a surface region
+    # when the owner supplied the camera view that can actually support it.
     observed: dict[str, str] = {}
     inferred: dict[str, str] = {}
     if weighted_coat:
         observed["coat"] = _median_hex(weighted_coat)
-    # Head close-up refines ear/cream.
-    head_photos = [files for k, files in (angle_map or {}).items() if k == "head" and files]
-    if head_photos:
-        head_idx = head_photos[0][0] if head_photos[0] else None
-        if head_idx is not None and head_idx < len(photos):
-            seg = segment_by_background(photos[head_idx])
-            head_color = _region_color(_open(photos[head_idx]), seg["binary"])
-            if head_color:
-                observed["ear"] = head_color
+
+    def first_index(angle: str) -> int | None:
+        values = angle_map.get(angle) or []
+        idx = values[0] if values else None
+        return idx if idx is not None and 0 <= idx < len(photos) else None
+
+    head_idx = first_index("head")
+    if head_idx is not None:
+        img = _open(photos[head_idx])
+        # Head close-up itself is explicit face evidence.
+        face = _region_color(img, binary_masks[head_idx])
+        if face:
+            observed["face"] = face
+        # Upper silhouette is the conservative ear zone for a head close-up.
+        ear = _region_color_zone(
+            img, binary_masks[head_idx], silhouettes[head_idx],
+            (0.08, 0.00, 0.92, 0.40),
+        )
+        if ear:
+            observed["ear"] = ear
+
+    front_idx = first_index("front")
+    full_idx = first_index("full_body")
+    chest_idx = front_idx if front_idx is not None else full_idx
+    if chest_idx is not None:
+        img = _open(photos[chest_idx])
+        cream = _region_color_zone(
+            img, binary_masks[chest_idx], silhouettes[chest_idx],
+            (0.28, 0.28, 0.72, 0.72),
+        )
+        if cream:
+            observed["cream"] = cream
+
+    if full_idx is not None:
+        img = _open(photos[full_idx])
+        paw = _region_color_zone(
+            img, binary_masks[full_idx], silhouettes[full_idx],
+            (0.08, 0.76, 0.92, 1.00),
+        )
+        if paw:
+            observed["paw"] = paw
+
+    # Tail stays inferred until we have a reliable tail-specific region/capture
+    # rather than pretending the back/side body color is tail evidence.
     for r in OBSERVABLE_REGIONS:
         if r not in observed:
             inferred[r] = "template_default"
