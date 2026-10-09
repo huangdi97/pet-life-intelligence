@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sheet } from "./sheet";
 
 export interface QuickLogField {
@@ -69,7 +69,7 @@ export function QuickLogSheet({
   ) => void | Promise<void>;
   loading?: boolean;
   title?: string;
-  hint?: ReactNode;
+  hint?: unknown;
   /** Current pet identity line (name · species) rendered at the top of the sheet. */
   identity?: string;
 }) {
@@ -112,7 +112,7 @@ export function QuickLogSheet({
   const primary = types.filter((t) => TILE_KEY[t.type]);
   const more = types.filter((t) => !TILE_KEY[t.type]);
 
-  function actionFor(t: QuickLogType): ReactNode {
+  function actionFor(t: QuickLogType): any {
     if (t.href) {
       return (
         <a
@@ -195,7 +195,7 @@ export function QuickLogSheet({
           为 {identity} 记录
         </p>
       ) : null}
-      {hint ? <p className="pli-quicklog-hint">{hint}</p> : null}
+      {hint ? <p className="pli-quicklog-hint">{hint as any}</p> : null}
       {types.length === 0 ? (
         <div className="pli-empty" role="status">
           <div className="pli-empty-title">暂无可用的记录类型</div>
