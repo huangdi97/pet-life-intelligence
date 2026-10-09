@@ -50,11 +50,21 @@ function demoPetFromUrl(url: string | null): string | null {
   }
 }
 
+let demoNavGeneration = 0;
+
 function applyDemoNav(screen: string | null): void {
   if (!screen) return;
-  // navigation may not be ready right after mount; retry briefly
+  // Navigation can be unready immediately after mount, so retry briefly.
+  // IMPORTANT: every new deep link invalidates all retries scheduled by the
+  // previous link. Without this generation guard, a late Timeline retry can
+  // switch the app back after a subsequent Pet deep link and produce a
+  // screenshot/3D-manifest pair from two different tabs.
+  const generation = ++demoNavGeneration;
   for (let i = 0; i < 10; i++) {
-    setTimeout(() => navigateToDemoScreen(screen), i * 500);
+    setTimeout(() => {
+      if (generation !== demoNavGeneration) return;
+      navigateToDemoScreen(screen);
+    }, i * 500);
   }
 }
 
