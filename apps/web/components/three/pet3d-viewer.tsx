@@ -24,6 +24,7 @@ import {
   countMeshes,
   createPetStageScene,
   createTwinScene,
+  enableStageShadowCasters,
   DEFAULT_ORBIT,
   fitOrbitRadius,
   frameCamera,
@@ -128,6 +129,8 @@ export function Pet3DViewer({
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.08;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       // R5 Living Experience: the owner-facing stage owns the warm/neutral
       // surface. Keep WebGL explicitly transparent so the renderer can never
       // re-introduce the old black viewer rectangle over that composition.
@@ -159,6 +162,7 @@ export function Pet3DViewer({
           provenance: twin.provenance,
         })
       : createPetStageScene(identity);
+    enableStageShadowCasters(stage.pet);
     scene.add(stage.pet);
     scene.add(stage.shadow);
     addStageLights(scene);
@@ -180,6 +184,22 @@ export function Pet3DViewer({
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = 0.005;
     scene.add(floor);
+
+    const shadowCatcher = new THREE.Mesh(
+      new THREE.CircleGeometry(2.15, 64),
+      new THREE.ShadowMaterial({
+        color: new THREE.Color(0x294331),
+        transparent: true,
+        opacity: stageRole === "review" ? 0.10 : 0.14,
+        depthWrite: false,
+      }),
+    );
+    shadowCatcher.name = "pliRealShadowCatcher";
+    shadowCatcher.rotation.x = -Math.PI / 2;
+    shadowCatcher.position.y = 0.018;
+    shadowCatcher.receiveShadow = true;
+    scene.add(shadowCatcher);
+
     const projectionGlow = new THREE.Mesh(
       new THREE.CircleGeometry(1.7, 48),
       new THREE.MeshBasicMaterial({
@@ -225,6 +245,7 @@ export function Pet3DViewer({
             return undefined;
           }
           scene.remove(stage.pet);
+          enableStageShadowCasters(twin3d.group);
           scene.add(twin3d.group);
           petRoot = twin3d.group;
           hdTwin = twin3d;
