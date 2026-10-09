@@ -80,17 +80,17 @@ export const LIGHTS = {
   /** Neutral daylight ambient so coat colors stay readable without a beige cast. */
   ambient: 0xfff8ef,
   ambientIntensity: 0.46,
-  /** Soft green-neutral sky / ground separation gives coat volume without a HUD look. */
-  hemisphereSky: 0xf8fff4,
-  hemisphereGround: 0xc7d4c4,
+  /** Warm-neutral sky / ground separation gives coat volume without tinting fur green. */
+  hemisphereSky: 0xfffbf4,
+  hemisphereGround: 0xdccbb5,
   hemisphereIntensity: 0.62,
   /** Daylight key from upper front-left. */
   key: 0xfff1dd,
   keyIntensity: 1.18,
-  /** Neutral fill from the right to keep shapes readable. */
-  fill: 0xe7efe7,
+  /** Warm-neutral fill from the right keeps cream/brown/grey coats faithful. */
+  fill: 0xf1e7d8,
   fillIntensity: 0.48,
-  /** Soft daylight rim from behind to lift the silhouette off the background. */
-  rim: 0xf5fff0,
+  /** Soft warm daylight rim lifts the silhouette without a neon/hologram edge. */
+  rim: 0xfff6e8,
   rimIntensity: 0.72,
 } as const;
