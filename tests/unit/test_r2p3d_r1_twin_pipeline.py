@@ -13,8 +13,10 @@ fixture media (tests/fixtures/media, DEMO_SYNTHETIC):
 
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "services" / "api"))
 
@@ -53,7 +55,6 @@ def test_segmentation_produces_mask_and_silhouette(dog_photos):
 
 
 def test_silhouette_box_measures_foreground_not_background_frame():
-    from PIL import Image
     from app.services.twin_media import silhouette_box
 
     mask = Image.new("L", (120, 80), 0)
@@ -86,7 +87,6 @@ def test_identity_similarity_same_vs_cross(dog_photos, cat_photos):
 
 
 def test_angle_map_preserves_uuid_named_owner_capture_semantics():
-    from types import SimpleNamespace
     from app.services.visual_pipeline import _angle_map_for_photos
 
     front = "11111111-1111-1111-1111-111111111111"
