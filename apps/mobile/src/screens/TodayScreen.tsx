@@ -34,6 +34,12 @@ import { eventRowFromEvent, observedActivityMinutes, recentContext, timeContextT
 type TabNav = BottomTabNavigationProp<TabParamList>;
 type StackNav = NativeStackNavigationProp<StackParamList>;
 
+function ownerFacingHealthText(value: string | null | undefined, fallback: string): string {
+  const text = value?.trim();
+  if (!text || /^(?:BW|HE|EV)-[A-Za-z0-9_-]+$/i.test(text)) return fallback;
+  return text;
+}
+
 export function TodayScreen() {
   const { pets, petId, choose, reload } = usePets();
   const { twin } = usePetTwin(petId);
@@ -139,7 +145,7 @@ export function TodayScreen() {
     if (danger) {
       return {
         kind: "danger" as const,
-        body: danger.chief_complaint || "有一条健康记录需要关注，请查看健康页。",
+        body: ownerFacingHealthText(danger.chief_complaint, "有一条健康记录需要关注，请查看健康页。"),
         footer: "由独立风险分级规则判定 · 查看健康页了解详情",
       };
     }
@@ -147,7 +153,7 @@ export function TodayScreen() {
     if (focus) {
       return {
         kind: "attention" as const,
-        body: focus.chief_complaint || "有一条健康记录值得查看。",
+        body: ownerFacingHealthText(focus.chief_complaint, "有一条健康记录值得查看。"),
         footer: "来自已记录的健康事件；不是诊断结论",
       };
     }
