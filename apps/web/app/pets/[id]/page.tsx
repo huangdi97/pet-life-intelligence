@@ -31,6 +31,22 @@ interface BaselineRow {
   computed_at: string;
 }
 
+interface PetHealthMeaning {
+  health_event_id: string;
+}
+interface PetBehaviorMeaning {
+  behavior_event_id: string;
+  behavior: string;
+}
+interface PetTrainingMeaning {
+  goal_id: string;
+  title: string;
+  status: string;
+}
+interface PetWelfareMeaning {
+  observation_counts?: Record<string, number>;
+}
+
 const BASELINE_LABELS: Record<string, { label: string; suffix: string }> = {
   meal_count_per_day: { label: "每日进食次数", suffix: " 次/天" },
   walk_minutes_per_day: { label: "每日散步", suffix: " 分钟/天" },
@@ -86,6 +102,22 @@ export default function PetProfilePage() {
   );
   const baseline = useAsync<BaselineRow[]>(
     () => (id ? api.get(`/pets/${id}/baseline`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [id],
+  );
+  const healthMeaning = useAsync<PetHealthMeaning[]>(
+    () => (id ? api.get(`/pets/${id}/health-events`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [id],
+  );
+  const behaviorMeaning = useAsync<PetBehaviorMeaning[]>(
+    () => (id ? api.get(`/pets/${id}/behavior-events`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [id],
+  );
+  const trainingMeaning = useAsync<PetTrainingMeaning[]>(
+    () => (id ? api.get(`/pets/${id}/training-goals`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [id],
+  );
+  const welfareMeaning = useAsync<PetWelfareMeaning>(
+    () => (id ? api.get(`/pets/${id}/welfare-evidence`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [id],
   );
   const [baselineBusy, setBaselineBusy] = useState(false);
@@ -191,6 +223,79 @@ export default function PetProfilePage() {
   const relationshipStatusLabel = (status: string) =>
     status === "PENDING" ? "待确认" : status === "ACTIVE" || status === "ACCEPTED" ? "已连接" : "已记录";
 
+  // Pet World rows answer “what does this domain mean for this pet now?”.
+  // Loading/error stays distinct from an actual empty history.
+  const activeTrainingGoal = (trainingMeaning.data ?? []).find(
+    (goal) => goal.status === "OPEN" || goal.status === "ACTIVE",
+  );
+  const welfareObservationCount = Object.values(welfareMeaning.data?.observation_counts ?? {})
+    .reduce((sum, value) => sum + Number(value || 0), 0);
+  const domainRows = DOMAIN_ROWS.map((row) => {
+    if (row.id === "health") {
+      return {
+        ...row,
+        desc: healthMeaning.state === "loading"
+          ? "正在读取最近健康记录"
+          : healthMeaning.state === "error" || healthMeaning.state === "denied"
+            ? "健康记录暂时没有加载成功"
+            : healthMeaning.data?.length
+              ? `最近有 ${healthMeaning.data.length} 条健康记录`
+              : "最近还没有健康记录",
+      };
+    }
+    if (row.id === "behavior") {
+      const latest = behaviorMeaning.data?.[0];
+      const text = latest?.behavior?.trim() ?? "";
+      return {
+        ...row,
+        desc: behaviorMeaning.state === "loading"
+          ? "正在读取最近行为观察"
+          : behaviorMeaning.state === "error" || behaviorMeaning.state === "denied"
+            ? "行为记录暂时没有加载成功"
+            : text
+              ? `最近一次：${text.slice(0, 22)}${text.length > 22 ? "…" : ""}`
+              : "还没有行为观察",
+      };
+    }
+    if (row.id === "training") {
+      return {
+        ...row,
+        desc: trainingMeaning.state === "loading"
+          ? "正在读取当前训练目标"
+          : trainingMeaning.state === "error" || trainingMeaning.state === "denied"
+            ? "训练记录暂时没有加载成功"
+            : activeTrainingGoal
+              ? `正在学习：${activeTrainingGoal.title}`
+              : "还没有进行中的训练目标",
+      };
+    }
+    if (row.id === "welfare") {
+      return {
+        ...row,
+        desc: welfareMeaning.state === "loading"
+          ? "正在读取近期生活观察"
+          : welfareMeaning.state === "error" || welfareMeaning.state === "denied"
+            ? "福祉记录暂时没有加载成功"
+            : welfareObservationCount > 0
+              ? `近期观察 ${welfareObservationCount} 条`
+              : "最近没有新增生活观察",
+      };
+    }
+    if (row.id === "social") {
+      return {
+        ...row,
+        desc: friends.state === "loading"
+          ? "正在读取关系与互动"
+          : friends.state === "error" || friends.state === "denied"
+            ? "关系记录暂时没有加载成功"
+            : visibleRelationships.length > 0
+              ? `已有 ${visibleRelationships.length} 个已连接或待确认关系`
+              : "还没有已记录的宠物关系",
+      };
+    }
+    return row;
+  });
+
   return (
 
     <main className="v4-main">
@@ -236,7 +341,7 @@ export default function PetProfilePage() {
 
           <div className="v4-sec">
             <h2 className="v4-sec-title">它的生活</h2>
-            {DOMAIN_ROWS.map((row) => (
+            {domainRows.map((row) => (
               <div key={row.id} className="v4-domain">
                 <Link href={row.id === "life" ? `/pets/${id}/life-view` : row.href} className="v4-domain-main" role="button" data-testid={`pli.pet.domain.${row.id}`}>
                   <span className="v4-domain-icon">
