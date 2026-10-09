@@ -175,7 +175,7 @@ export default function HealthPage() {
 
       <section className="v4-sec" data-testid="pli.health.vet">
         <h2 className="v4-sec-title">就医与专业记录</h2>
-        <p className="v4-sec-sub">处方、检验、检查与疫苗记录只展示真实导入的数据，并保留来源与签名状态。</p>
+        <p className="v4-sec-sub">处方、检验、检查与疫苗记录只展示真实导入的数据，并保留来源与签名状态；加载失败时不会把未知显示成“没有记录”。</p>
         <State
           state={professionalRecords.state}
           error={professionalRecords.error}
