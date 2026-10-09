@@ -9,27 +9,27 @@
 
 // Stage environment (used by clients for CSS background + fog tint).
 export const STAGE = {
-  /** Warm living base — the R4 Reality Field, never a dark viewer. */
-  base: "#F4E9D8",
+  /** R7 botanical living base — calm daylight, never a dark viewer. */
+  base: "#E3EBDF",
   /** Far field matches the owner's botanical green living canvas. */
-  deep: "#E7D5BC",
+  deep: "#D2DFD2",
   /** Daylight diffuses softly through the pet's living space. */
-  glow: "#FFF7E9",
+  glow: "#F7FBF3",
   /** The transparent 3D canvas and RN/Web host must share the same haze. */
-  fog: "#EFE0C8",
+  fog: "#E3ECDF",
 } as const;
 
 // R4.2 stage themes — the WebView/WebGL surface itself is themed per screen
 // role (never a dark viewer on owner hero pages):
-//   living      -> warm cream reality field (Today / Pet / Life View)
+//   living      -> botanical daylight reality field (Today / Pet / Life View)
 //   review      -> neutral identity studio (Twin Review)
 //   engineering -> dark debug stage (engineering manifests only)
 export const STAGE_THEMES = {
   living: {
-    base: "#F4E9D8",
-    deep: "#E7D5BC",
-    glow: "#FFF7E9",
-    fog: "#EFE0C8",
+    base: "#E3EBDF",
+    deep: "#D2DFD2",
+    glow: "#F7FBF3",
+    fog: "#E3ECDF",
   },
   review: {
     base: "#F4F1EA",
@@ -77,20 +77,20 @@ export const GROUND_SHADOW = {
 } as const;
 
 export const LIGHTS = {
-  /** Warm low ambient so nothing is pitch black. */
-  ambient: 0xffe8d2,
+  /** Neutral daylight ambient so coat colors stay readable without a beige cast. */
+  ambient: 0xfff8ef,
   ambientIntensity: 0.46,
-  /** Warm sky / grounded beige hemisphere gives coat volume without a flat HUD look. */
-  hemisphereSky: 0xfff7ea,
-  hemisphereGround: 0xcdb89a,
+  /** Soft green-neutral sky / ground separation gives coat volume without a HUD look. */
+  hemisphereSky: 0xf8fff4,
+  hemisphereGround: 0xc7d4c4,
   hemisphereIntensity: 0.62,
-  /** Warm key light from upper front-left. */
-  key: 0xffd9b8,
+  /** Daylight key from upper front-left. */
+  key: 0xfff1dd,
   keyIntensity: 1.18,
-  /** Cooler fill from the right to keep shapes readable. */
-  fill: 0xe8e2d8,
+  /** Neutral fill from the right to keep shapes readable. */
+  fill: 0xe7efe7,
   fillIntensity: 0.48,
-  /** Soft rim from behind to lift the silhouette off the background. */
-  rim: 0xfff3e0,
+  /** Soft daylight rim from behind to lift the silhouette off the background. */
+  rim: 0xf5fff0,
   rimIntensity: 0.72,
 } as const;
