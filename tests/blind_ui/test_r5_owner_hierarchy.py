@@ -1295,3 +1295,7 @@ def test_settings_missing_emergency_profile_is_unconfigured_not_404() -> None:
     assert '"critical_care_notes": ""' in backend
     assert '"updated_at": None' in backend
     assert "updated_at: string | null;" in settings_types
+    page = read("apps/web/app/settings/page.tsx")
+    assert "setForm(null);" in page
+    assert "f ?? profile.data ??" in page
+    assert "useEffect(() => {" in page
