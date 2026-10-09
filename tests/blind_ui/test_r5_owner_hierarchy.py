@@ -1215,3 +1215,18 @@ def test_health_surfaces_replace_unfinished_vet_placeholder_with_real_records() 
         assert "签名已记录" in source
         assert "当前页面未汇总" not in source
         assert "不会把未知显示成“没有记录”" in source
+
+
+def test_shared_3d_living_palette_matches_r7_botanical_canvas() -> None:
+    palette = read("packages/pet-3d/src/palette.ts")
+    web_css = read("apps/web/app/globals.css")
+    mobile_stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
+
+    for token in ("#E3EBDF", "#D2DFD2", "#F7FBF3", "#E3ECDF"):
+        assert token in palette
+    assert "#E3ECDF" in web_css
+    assert "#E3EBDF" in mobile_stage
+    # Keep owner-facing 3D haze in the new Living Canvas family, not the
+    # previous beige studio palette.
+    assert 'base: "#F4E9D8"' not in palette
+    assert 'fog: "#EFE0C8"' not in palette
