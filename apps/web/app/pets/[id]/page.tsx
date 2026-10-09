@@ -335,6 +335,14 @@ export default function PetProfilePage() {
             </div>
           </div>
 
+          <details className="v5-pet-management" data-testid="pli.pet.management">
+            <summary>
+              <span>
+                <strong>更多档案与管理</strong>
+                <small>基础档案、照护、授权与数据入口</small>
+              </span>
+              <span aria-hidden="true">展开</span>
+            </summary>
           <div className="v4-sec">
             <div className="v4-sec-head">
               <h2 className="v4-sec-title">基本信息</h2>
@@ -396,6 +404,7 @@ export default function PetProfilePage() {
               </Link>
             </div>
           </div>
+          </details>
         </div>
       </div>
     </main>
