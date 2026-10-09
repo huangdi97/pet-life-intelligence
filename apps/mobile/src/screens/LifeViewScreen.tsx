@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { api, type DeviceRow, type LifeEvent, type Task } from "../api";
+import { api, type DeviceRow, type HealthEventRow, type LifeEvent, type Task } from "../api";
 import { usePets } from "../context";
 import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
 import { PetLivingStage } from "../components/life/PetLivingStage";
@@ -62,8 +62,10 @@ export function LifeViewScreen() {
   const [supportPetId, setSupportPetId] = useState<string | null>(null);
   const [supportTasks, setSupportTasks] = useState<Task[]>([]);
   const [supportDevices, setSupportDevices] = useState<DeviceRow[]>([]);
+  const [supportHealth, setSupportHealth] = useState<HealthEventRow[]>([]);
   const [taskSupportState, setTaskSupportState] = useState<"loading" | "ready" | "error">("loading");
   const [deviceSupportState, setDeviceSupportState] = useState<"loading" | "ready" | "error">("loading");
+  const [healthSupportState, setHealthSupportState] = useState<"loading" | "ready" | "error">("loading");
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   // Each fact and any open detail sheet belongs to one pet. Hide stale state
@@ -125,17 +127,22 @@ export function LifeViewScreen() {
     setSupportPetId(null);
     setSupportTasks([]);
     setSupportDevices([]);
+    setSupportHealth([]);
     setTaskSupportState("loading");
     setDeviceSupportState("loading");
+    setHealthSupportState("loading");
     Promise.allSettled([
       api.get<Task[]>(`/pets/${targetPetId}/tasks`),
       api.get<DeviceRow[]>(`/pets/${targetPetId}/devices`),
-    ]).then(([tasksResult, devicesResult]) => {
+      api.get<HealthEventRow[]>(`/pets/${targetPetId}/health-events`),
+    ]).then(([tasksResult, devicesResult, healthResult]) => {
       if (!alive) return;
       setSupportTasks(tasksResult.status === "fulfilled" ? tasksResult.value : []);
       setSupportDevices(devicesResult.status === "fulfilled" ? devicesResult.value : []);
+      setSupportHealth(healthResult.status === "fulfilled" ? healthResult.value : []);
       setTaskSupportState(tasksResult.status === "fulfilled" ? "ready" : "error");
       setDeviceSupportState(devicesResult.status === "fulfilled" ? "ready" : "error");
+      setHealthSupportState(healthResult.status === "fulfilled" ? "ready" : "error");
       setSupportPetId(targetPetId);
     });
     return () => { alive = false; };
@@ -239,6 +246,15 @@ export function LifeViewScreen() {
           : supportDevices.some((device) => String(device.status).toLowerCase() === "offline")
             ? "有设备离线"
             : "状态待确认";
+  const healthText = !supportOwned || healthSupportState === "loading"
+    ? "读取中"
+    : healthSupportState === "error"
+      ? "暂不可用"
+      : supportHealth.some((row) => row.latest_triage_level === "URGENT" || row.latest_triage_level === "EMERGENCY")
+        ? "需立即关注"
+        : supportHealth.length > 0
+          ? "有健康记录"
+          : "暂无记录";
 
   const nowLine = error
     ? "暂时连接不上，稍后自动恢复。"
@@ -324,6 +340,17 @@ export function LifeViewScreen() {
             <Ionicons name="scale-outline" size={17} color={COLORS.brandPrimaryDeep} />
             <Text style={styles.supportLabel}>体重</Text>
             <Text numberOfLines={1} style={styles.supportValue}>{weightText}</Text>
+          </Pressable>
+          <Pressable
+            testID="pli.lifeview.support.health"
+            accessibilityRole="button"
+            accessibilityLabel={`健康状态：${healthText}，点击查看健康记录`}
+            onPress={() => navigation.navigate("Health")}
+            style={styles.supportFact}
+          >
+            <Ionicons name="heart-outline" size={17} color={healthText === "需立即关注" ? COLORS.danger : COLORS.brandPrimaryDeep} />
+            <Text style={styles.supportLabel}>健康</Text>
+            <Text style={[styles.supportValue, healthText === "需立即关注" && styles.supportValueDanger]}>{healthText}</Text>
           </Pressable>
           <Pressable
             testID="pli.lifeview.support.tasks"
@@ -449,13 +476,15 @@ const styles = StyleSheet.create({
   lookRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2 },
   supportFacts: {
     flexDirection: "row",
+    flexWrap: "wrap",
     marginHorizontal: SPACE.s4,
     marginTop: SPACE.s3,
     gap: SPACE.s2,
   },
   supportFact: {
-    flex: 1,
-    minWidth: 0,
+    width: "48%",
+    flexGrow: 1,
+    minWidth: 140,
     minHeight: 82,
     paddingHorizontal: SPACE.s2,
     paddingVertical: SPACE.s2,
@@ -466,6 +495,7 @@ const styles = StyleSheet.create({
   },
   supportLabel: { marginTop: 4, fontSize: TYPE.caption, color: COLORS.textTertiary },
   supportValue: { marginTop: 2, maxWidth: "100%", fontSize: TYPE.sm, fontWeight: "700", color: COLORS.textPrimary },
+  supportValueDanger: { color: COLORS.danger },
   controlBtnText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   identityRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
   identityText: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
