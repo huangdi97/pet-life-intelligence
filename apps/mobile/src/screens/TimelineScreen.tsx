@@ -62,6 +62,8 @@ export function TimelineScreen() {
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   const [selected, setSelected] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [showMilestoneComposer, setShowMilestoneComposer] = useState(false);
+  const [showDiaryComposer, setShowDiaryComposer] = useState(false);
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -231,6 +233,7 @@ export function TimelineScreen() {
       setMemoryState("ready");
       setMilestoneTitle("");
       setMilestoneDate("");
+      setShowMilestoneComposer(false);
     } catch {
       setMilestoneState("error");
     } finally {
@@ -372,6 +375,7 @@ export function TimelineScreen() {
       if (activePetRef.current !== recordingFor) return;
       setDiary(diaryRows);
       setDiaryState("ready");
+      setShowDiaryComposer(false);
       setEvents(eventRows.events.filter((event) => event.event_type !== "today.viewed"));
       setError(false);
     } catch {
@@ -478,34 +482,48 @@ export function TimelineScreen() {
         <View style={styles.memorySection} testID="pli.timeline.milestones">
           <Text style={styles.diaryTitle}>里程碑</Text>
           <Text style={styles.diaryIntro}>只记录真实发生、值得长期保留的节点；保存后会进入同一条生命时间线。</Text>
-          <View style={styles.milestoneForm}>
-            <TextInput
-              style={[styles.diaryInput, styles.milestoneDateInput]}
-              value={milestoneDate}
-              onChangeText={setMilestoneDate}
-              placeholder="发生日期 YYYY-MM-DD"
-              placeholderTextColor={COLORS.textTertiary}
-              autoCapitalize="none"
-            />
-            <TextInput
-              style={[styles.diaryInput, styles.milestoneTitleInput]}
-              value={milestoneTitle}
-              onChangeText={setMilestoneTitle}
-              maxLength={200}
-              placeholder="例如：第一次完成长途徒步"
-              placeholderTextColor={COLORS.textTertiary}
-            />
-          </View>
           <Pressable
+            testID="pli.timeline.milestones.compose"
             accessibilityRole="button"
-            accessibilityLabel="记录里程碑"
-            accessibilityState={{ disabled: milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate) }}
-            disabled={milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate)}
-            onPress={() => void addMilestone()}
-            style={[styles.diaryButton, (milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate)) && styles.diaryButtonDisabled]}
+            accessibilityState={{ expanded: showMilestoneComposer }}
+            onPress={() => setShowMilestoneComposer((value) => !value)}
+            style={styles.composeToggle}
           >
-            <Text style={styles.diaryButtonText}>{milestoneBusy ? "保存中…" : "记录里程碑"}</Text>
+            <Text style={styles.composeToggleText}>{showMilestoneComposer ? "收起记录" : "记录一个里程碑"}</Text>
+            <Ionicons name={showMilestoneComposer ? "chevron-up" : "add-circle-outline"} size={17} color={COLORS.brandPrimaryDeep} />
           </Pressable>
+          {showMilestoneComposer ? (
+            <View style={styles.composerBody}>
+              <View style={styles.milestoneForm}>
+                <TextInput
+                  style={[styles.diaryInput, styles.milestoneDateInput]}
+                  value={milestoneDate}
+                  onChangeText={setMilestoneDate}
+                  placeholder="发生日期 YYYY-MM-DD"
+                  placeholderTextColor={COLORS.textTertiary}
+                  autoCapitalize="none"
+                />
+                <TextInput
+                  style={[styles.diaryInput, styles.milestoneTitleInput]}
+                  value={milestoneTitle}
+                  onChangeText={setMilestoneTitle}
+                  maxLength={200}
+                  placeholder="例如：第一次完成长途徒步"
+                  placeholderTextColor={COLORS.textTertiary}
+                />
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="记录里程碑"
+                accessibilityState={{ disabled: milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate) }}
+                disabled={milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate)}
+                onPress={() => void addMilestone()}
+                style={[styles.diaryButton, (milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate)) && styles.diaryButtonDisabled]}
+              >
+                <Text style={styles.diaryButtonText}>{milestoneBusy ? "保存中…" : "记录里程碑"}</Text>
+              </Pressable>
+            </View>
+          ) : null}
           {milestoneState === "ready" && milestones.length ? (
             <View style={styles.diaryRecent}>
               {milestones.slice(0, 3).map((row) => (
@@ -548,68 +566,83 @@ export function TimelineScreen() {
         <View style={styles.diarySection} testID="pli.timeline.diary">
           <Text style={styles.diaryTitle}>今天想记下什么</Text>
           <Text style={styles.diaryIntro}>可以写文字，也可以录一段真实声音。录音作为原始媒体保存，不会被自动解释成情绪或健康结论。</Text>
-          <TextInput
-            style={styles.diaryInput}
-            value={diaryText}
-            onChangeText={setDiaryText}
-            multiline
-            maxLength={5000}
-            placeholder="例如：今天散步时第一次主动去闻路边的花。"
-            placeholderTextColor={COLORS.textTertiary}
-          />
-          <View style={styles.diaryAudioControls}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={diaryRecording ? "停止语音日记录音" : "开始语音日记录音"}
-              onPress={() => void (diaryRecording ? stopDiaryRecording() : startDiaryRecording())}
-              disabled={diaryBusy}
-              style={[styles.diaryAudioButton, diaryRecording && styles.diaryAudioButtonActive]}
-            >
-              <Ionicons
-                name={diaryRecording ? "stop-circle-outline" : "mic-outline"}
-                size={17}
-                color={diaryRecording ? COLORS.textInverse : COLORS.brandPrimaryDeep}
-              />
-              <Text style={[styles.diaryAudioButtonText, diaryRecording && styles.diaryAudioButtonTextActive]}>
-                {diaryRecording ? "停止录音" : diaryAudioUri ? "重新录音" : "录一段声音"}
-              </Text>
-            </Pressable>
-            {diaryAudioUri && !diaryRecording ? (
-              <>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="试听语音日记录音"
-                  onPress={() => void previewDiaryRecording()}
-                  style={styles.diaryAudioButton}
-                >
-                  <Ionicons name="play-outline" size={17} color={COLORS.brandPrimaryDeep} />
-                  <Text style={styles.diaryAudioButtonText}>试听</Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="移除语音日记录音"
-                  onPress={() => setDiaryAudioUri(null)}
-                  style={styles.diaryAudioButton}
-                >
-                  <Ionicons name="close-outline" size={17} color={COLORS.textSecondary} />
-                  <Text style={styles.diaryAudioRemoveText}>移除</Text>
-                </Pressable>
-              </>
-            ) : null}
-          </View>
-          {diaryRecording ? <Text style={styles.diaryAudioHint}>正在录音……完成后点“停止录音”。</Text> : null}
-          {diaryAudioUri && !diaryRecording ? <Text style={styles.diaryAudioHint}>已准备一段原始录音；保存后会与这条日记一起进入时间线。</Text> : null}
-          {diaryErrorMessage ? <Text style={styles.diaryError}>{diaryErrorMessage}</Text> : null}
           <Pressable
+            testID="pli.timeline.diary.compose"
             accessibilityRole="button"
-            accessibilityLabel="保存生活日记"
-            accessibilityState={{ disabled: diaryBusy || diaryRecording || (!diaryText.trim() && !diaryAudioUri) }}
-            disabled={diaryBusy || diaryRecording || (!diaryText.trim() && !diaryAudioUri)}
-            onPress={() => void addDiary()}
-            style={[styles.diaryButton, (diaryBusy || diaryRecording || (!diaryText.trim() && !diaryAudioUri)) && styles.diaryButtonDisabled]}
+            accessibilityState={{ expanded: showDiaryComposer }}
+            onPress={() => setShowDiaryComposer((value) => !value)}
+            style={styles.composeToggle}
           >
-            <Text style={styles.diaryButtonText}>{diaryBusy ? "保存中…" : "保存日记"}</Text>
+            <Text style={styles.composeToggleText}>{showDiaryComposer ? "收起日记编辑" : "写一段日记"}</Text>
+            <Ionicons name={showDiaryComposer ? "chevron-up" : "create-outline"} size={17} color={COLORS.brandPrimaryDeep} />
           </Pressable>
+          {showDiaryComposer ? (
+            <View style={styles.composerBody}>
+                        <TextInput
+                          style={styles.diaryInput}
+                          value={diaryText}
+                          onChangeText={setDiaryText}
+                          multiline
+                          maxLength={5000}
+                          placeholder="例如：今天散步时第一次主动去闻路边的花。"
+                          placeholderTextColor={COLORS.textTertiary}
+                        />
+                        <View style={styles.diaryAudioControls}>
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={diaryRecording ? "停止语音日记录音" : "开始语音日记录音"}
+                            onPress={() => void (diaryRecording ? stopDiaryRecording() : startDiaryRecording())}
+                            disabled={diaryBusy}
+                            style={[styles.diaryAudioButton, diaryRecording && styles.diaryAudioButtonActive]}
+                          >
+                            <Ionicons
+                              name={diaryRecording ? "stop-circle-outline" : "mic-outline"}
+                              size={17}
+                              color={diaryRecording ? COLORS.textInverse : COLORS.brandPrimaryDeep}
+                            />
+                            <Text style={[styles.diaryAudioButtonText, diaryRecording && styles.diaryAudioButtonTextActive]}>
+                              {diaryRecording ? "停止录音" : diaryAudioUri ? "重新录音" : "录一段声音"}
+                            </Text>
+                          </Pressable>
+                          {diaryAudioUri && !diaryRecording ? (
+                            <>
+                              <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="试听语音日记录音"
+                                onPress={() => void previewDiaryRecording()}
+                                style={styles.diaryAudioButton}
+                              >
+                                <Ionicons name="play-outline" size={17} color={COLORS.brandPrimaryDeep} />
+                                <Text style={styles.diaryAudioButtonText}>试听</Text>
+                              </Pressable>
+                              <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="移除语音日记录音"
+                                onPress={() => setDiaryAudioUri(null)}
+                                style={styles.diaryAudioButton}
+                              >
+                                <Ionicons name="close-outline" size={17} color={COLORS.textSecondary} />
+                                <Text style={styles.diaryAudioRemoveText}>移除</Text>
+                              </Pressable>
+                            </>
+                          ) : null}
+                        </View>
+                        {diaryRecording ? <Text style={styles.diaryAudioHint}>正在录音……完成后点“停止录音”。</Text> : null}
+                        {diaryAudioUri && !diaryRecording ? <Text style={styles.diaryAudioHint}>已准备一段原始录音；保存后会与这条日记一起进入时间线。</Text> : null}
+                        {diaryErrorMessage ? <Text style={styles.diaryError}>{diaryErrorMessage}</Text> : null}
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="保存生活日记"
+                          accessibilityState={{ disabled: diaryBusy || diaryRecording || (!diaryText.trim() && !diaryAudioUri) }}
+                          disabled={diaryBusy || diaryRecording || (!diaryText.trim() && !diaryAudioUri)}
+                          onPress={() => void addDiary()}
+                          style={[styles.diaryButton, (diaryBusy || diaryRecording || (!diaryText.trim() && !diaryAudioUri)) && styles.diaryButtonDisabled]}
+                        >
+                          <Text style={styles.diaryButtonText}>{diaryBusy ? "保存中…" : "保存日记"}</Text>
+                        </Pressable>
+              
+            </View>
+          ) : null}
           {diaryState === "ready" && diary.length ? (
             <View style={styles.diaryRecent}>
               <Text style={styles.diaryRecentLabel}>最近日记</Text>
@@ -696,6 +729,9 @@ const styles = StyleSheet.create({
   milestoneTitleInput: { minHeight: 48 },
   diarySection: { marginHorizontal: SPACE.s4, marginTop: SPACE.s4, padding: SPACE.s4, backgroundColor: COLORS.surfaceRaised, borderRadius: 22 },
   diaryTitle: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary },
+  composeToggle: { minHeight: 44, marginTop: SPACE.s2, paddingVertical: SPACE.s2, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.dividerSubtle },
+  composeToggleText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "700" },
+  composerBody: { marginTop: SPACE.s2 },
   diaryIntro: { marginTop: 4, fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18 },
   diaryInput: { minHeight: 96, marginTop: SPACE.s3, borderWidth: 1, borderColor: COLORS.dividerStrong, borderRadius: 14, backgroundColor: COLORS.surface, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s3, textAlignVertical: "top", fontSize: TYPE.body, color: COLORS.textPrimary },
   diaryAudioControls: { marginTop: SPACE.s3, flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
