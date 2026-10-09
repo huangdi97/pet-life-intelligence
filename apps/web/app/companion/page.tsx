@@ -108,7 +108,7 @@ export default function CompanionPage() {
         demo={demoTwin || process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1"}
         twin={twinDescriptor}
         sourceMediaCount={sourceMediaCount}
-        frameTarget={0.52}
+        frameTarget={0.48}
         stageRole="companion"
         realityField="presence-space"
         stageTestId="pli.companion.living-stage"
