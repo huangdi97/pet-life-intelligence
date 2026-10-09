@@ -10,7 +10,7 @@
  * appear on the owner surface.
  */
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -25,7 +25,7 @@ import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { eventTypeLabel, sourceLabel } from "./ui_labels";
 import { observedActivityMinutes } from "./today_helpers";
 import { usePetTwin } from "../hooks/usePetTwin";
-import { poseForEvent } from "@pli/pet-3d";
+import { poseForEvent, type TwinDescriptor } from "@pli/pet-3d";
 import type { StackParamList } from "../navigation";
 
 interface BaselineRow {
@@ -34,6 +34,23 @@ interface BaselineRow {
   sample_count: number;
   window_days: number;
   computed_at: string;
+}
+
+type TimeScope = "now" | "today" | "7d" | "30d" | "date";
+interface HistoricalVisualModel {
+  version: number;
+  status: string;
+  activated_at: string | null;
+  retired_at: string | null;
+  artifact_map?: { twin_descriptor?: TwinDescriptor };
+  metadata_json?: { demo_fixture?: boolean };
+}
+interface HistoricalTwin {
+  version: number;
+  descriptor: TwinDescriptor;
+  demoFixture: boolean;
+  activatedAt: string;
+  observedRegions: string[];
 }
 
 interface AnchorDetail {
@@ -49,9 +66,14 @@ export function LifeViewScreen() {
   const { pets, petId } = usePets();
   const navigation = useNavigation<NativeStackNavigationProp<StackParamList>>();
   const { twin, loading: twinLoading, error: twinError } = usePetTwin(petId);
-  const [loadedPetId, setLoadedPetId] = useState<string | null>(null);
   const [rawToday, setToday] = useState<{ events: LifeEvent[] } | null>(null);
   const [mode, setMode] = useState<LivingMode>("now");
+  const [timeScope, setTimeScope] = useState<TimeScope>("now");
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [loadedScopeKey, setLoadedScopeKey] = useState<string | null>(null);
+  const [historyPetId, setHistoryPetId] = useState<string | null>(null);
+  const [historyModels, setHistoryModels] = useState<HistoricalVisualModel[]>([]);
+  const [historyState, setHistoryState] = useState<"loading" | "ready" | "error">("loading");
   const viewerRef = useRef<Pet3DViewerHandle>(null);
   const [rawError, setError] = useState(false);
   const [rawDetail, setDetail] = useState<AnchorDetail | null>(null);
@@ -68,9 +90,13 @@ export function LifeViewScreen() {
   const [healthSupportState, setHealthSupportState] = useState<"loading" | "ready" | "error">("loading");
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
+  const scopeKey = pet?.id
+    ? `${pet.id}:${timeScope}:${timeScope === "date" ? selectedDate : ""}`
+    : "";
+  const currentFactScope = timeScope === "now" || timeScope === "today";
   // Each fact and any open detail sheet belongs to one pet. Hide stale state
   // synchronously while React switches selected identity, before fetch effects.
-  const scoped = !!pet?.id && loadedPetId === pet.id;
+  const scoped = !!pet?.id && loadedScopeKey === scopeKey;
   const today = scoped ? rawToday : null;
   const error = scoped ? rawError : false;
   const detail = detailPetId === pet?.id ? rawDetail : null;
@@ -79,28 +105,56 @@ export function LifeViewScreen() {
 
   useEffect(() => {
     if (!pet?.id) return;
+    const targetPetId = pet.id;
+    const targetScopeKey = scopeKey;
     let alive = true;
     setToday(null);
     setError(false);
     setDetail(null);
+
+    const loadEvents = async (): Promise<{ events: LifeEvent[] }> => {
+      if (timeScope === "date") {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) return { events: [] };
+        return api.get<{ events: LifeEvent[] }>(`/pets/${targetPetId}/today?date=${selectedDate}`);
+      }
+      if (timeScope === "7d" || timeScope === "30d") {
+        const days = timeScope === "7d" ? 7 : 30;
+        const response = await api.get<{ events: LifeEvent[] }>(`/pets/${targetPetId}/events?limit=200`);
+        const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+        return {
+          events: response.events.filter((event) => {
+            const at = new Date(event.occurred_at).getTime();
+            return Number.isFinite(at) && at >= cutoff;
+          }),
+        };
+      }
+      return api.get<{ events: LifeEvent[] }>(`/pets/${targetPetId}/today`);
+    };
+
+    loadEvents()
+      .then((r) => {
+        if (!alive) return;
+        setToday(r);
+        setError(false);
+        setLoadedScopeKey(targetScopeKey);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setError(true);
+        setLoadedScopeKey(targetScopeKey);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [pet?.id, scopeKey, timeScope, selectedDate]);
+
+  useEffect(() => {
+    if (!pet?.id) return;
+    let alive = true;
     setBaseline([]);
     setBaselinePetId(null);
     setBaselineState("loading");
-    api
-      .get<{ events: LifeEvent[] }>(`/pets/${pet.id}/today`)
-      .then((r) => {
-        if (alive) {
-          setToday(r);
-          setError(false);
-          setLoadedPetId(pet.id);
-        }
-      })
-      .catch(() => {
-        if (alive) {
-          setError(true);
-          setLoadedPetId(pet.id);
-        }
-      });
     api
       .get<BaselineRow[]>(`/pets/${pet.id}/baseline`)
       .then((rows) => {
@@ -115,9 +169,30 @@ export function LifeViewScreen() {
         setBaselinePetId(pet.id);
         setBaselineState("error");
       });
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
+  }, [pet?.id]);
+
+  useEffect(() => {
+    if (!pet?.id) return;
+    const targetPetId = pet.id;
+    let alive = true;
+    setHistoryPetId(null);
+    setHistoryModels([]);
+    setHistoryState("loading");
+    api.get<{ models: HistoricalVisualModel[] }>(`/pets/${targetPetId}/visual-models`)
+      .then((response) => {
+        if (!alive) return;
+        setHistoryModels(response.models ?? []);
+        setHistoryPetId(targetPetId);
+        setHistoryState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setHistoryModels([]);
+        setHistoryPetId(targetPetId);
+        setHistoryState("error");
+      });
+    return () => { alive = false; };
   }, [pet?.id]);
 
   useEffect(() => {
@@ -149,6 +224,46 @@ export function LifeViewScreen() {
   }, [pet?.id]);
 
   const petEvents = useMemo(() => (today?.events ?? []).filter((e) => e.event_type !== "today.viewed"), [today]);
+  const historicalTwin = useMemo<HistoricalTwin | null>(() => {
+    if (timeScope !== "date" || historyPetId !== pet?.id || historyState !== "ready") return null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) return null;
+    const dayStart = new Date(`${selectedDate}T00:00:00+08:00`).getTime();
+    const dayEnd = new Date(`${selectedDate}T23:59:59.999+08:00`).getTime();
+    const candidates = historyModels
+      .filter((model) => {
+        const descriptor = model.artifact_map?.twin_descriptor;
+        if (!descriptor || !model.activated_at) return false;
+        const activated = new Date(model.activated_at).getTime();
+        const retired = model.retired_at ? new Date(model.retired_at).getTime() : Number.POSITIVE_INFINITY;
+        return Number.isFinite(activated) && activated <= dayEnd && retired >= dayStart;
+      })
+      .sort((a, b) => (b.activated_at ?? "").localeCompare(a.activated_at ?? ""));
+    const model = candidates[0];
+    const descriptor = model?.artifact_map?.twin_descriptor;
+    if (!model || !descriptor || !model.activated_at) return null;
+    const surface = (descriptor as { surface?: { observed_regions?: string[] } }).surface;
+    return {
+      version: model.version,
+      descriptor,
+      demoFixture: model.metadata_json?.demo_fixture === true,
+      activatedAt: model.activated_at,
+      observedRegions: surface?.observed_regions ?? [],
+    };
+  }, [timeScope, selectedDate, historyPetId, historyState, historyModels, pet?.id]);
+
+  const displayTwin =
+    timeScope === "now" || timeScope === "today"
+      ? twin
+      : timeScope === "date"
+        ? historicalTwin
+        : null;
+  const historicalRange = timeScope === "7d" || timeScope === "30d";
+  const scopeLabel =
+    timeScope === "now" ? "现在" :
+    timeScope === "today" ? "今天" :
+    timeScope === "7d" ? "最近 7 天" :
+    timeScope === "30d" ? "最近 30 天" :
+    selectedDate;
   const lastEvent = petEvents[0] ?? null;
   // Owner UI does not expose an animation-demo toolbar. Motion follows the
   // most recent non-health life event as a representative pose; otherwise the
@@ -167,6 +282,8 @@ export function LifeViewScreen() {
       }, 0);
     const sleepMinutes = durationMinutes("daily.sleep");
     const comparisonFor = (metric: string | null, current: number) => {
+      if (timeScope === "date") return "历史常态未版本化，不用当前常态解释过去";
+      if (historicalRange) return "这是时间范围汇总，不与单日常态直接比较";
       if (!metric) return "暂无（当前没有同口径常态）";
       if (current <= 0) return "暂无（今天没有足够记录）";
       if (scopedBaselineState === "loading") return "常态读取中";
@@ -221,7 +338,7 @@ export function LifeViewScreen() {
       mk("sleep", "睡眠", sleepMinutes > 0 ? `${sleepMinutes} 分钟` : "—", "moon-outline", "daily.sleep", "sleep_minutes_per_day", sleepMinutes),
     ];
     return list;
-  }, [petEvents, pet?.id, baseline, scopedBaselineState]);
+  }, [petEvents, pet?.id, baseline, scopedBaselineState, timeScope, historicalRange]);
 
   const supportOwned = supportPetId === pet?.id;
   const openTaskCount = supportOwned && taskSupportState === "ready"
@@ -256,12 +373,39 @@ export function LifeViewScreen() {
           ? "有健康记录"
           : "暂无记录";
 
+  const scopeEmptyCopy =
+    timeScope === "date"
+      ? `${selectedDate} 没有已记录事件。`
+      : historicalRange
+        ? `${scopeLabel}还没有足够记录。`
+        : `${pet?.name ?? "宠物"}今天安安静静的。`;
+  const scopeModelStatus =
+    timeScope === "date"
+      ? historyState === "loading"
+        ? "历史 3D 版本读取中"
+        : historyState === "error"
+          ? "历史 3D 版本暂不可用"
+          : historicalTwin
+            ? `历史第 ${historicalTwin.version} 版 · ${new Date(historicalTwin.activatedAt).toLocaleDateString("zh-CN")} 激活`
+            : "该日无可确认 3D 版本"
+      : historicalRange
+        ? "时间范围汇总 · 不使用当前 3D"
+        : twinLoading
+          ? "3D 状态读取中"
+          : twinError
+            ? "3D 状态暂时不可用"
+            : twin
+              ? twin.demoFixture
+                ? "示例形象 · 仅用于体验"
+                : "个体形象 · 已确认"
+              : "暂无已确认个体 3D";
+
   const nowLine = error
     ? "暂时连接不上，稍后自动恢复。"
     : !pet
       ? ""
       : petEvents.length === 0
-        ? `${pet?.name ?? "宠物"}今天安安静静的。`
+        ? scopeEmptyCopy
         : lastEvent
           ? `最近一次记录：${eventTypeLabel(lastEvent.event_type)} · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
           : "";
@@ -279,36 +423,72 @@ export function LifeViewScreen() {
             </Text>
             <Text style={styles.metaDot}>·</Text>
             <Text style={styles.metaText} testID="pli.lifeview.model-status">
-              {twinLoading
-                ? "3D 状态读取中"
-                : twinError
-                  ? "3D 状态暂时不可用"
-                  : twin
-                    ? twin.demoFixture
-                      ? "示例形象 · 仅用于体验"
-                      : "个体形象 · 已确认"
-                    : "暂无已确认个体 3D"}
+              {scopeModelStatus}
             </Text>
           </View>
         </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.timeScopeRow}
+          testID="pli.lifeview.time-scrubber"
+          accessibilityLabel="生命视图时间范围"
+        >
+          {([
+            ["now", "现在"],
+            ["today", "今天"],
+            ["7d", "7天"],
+            ["30d", "30天"],
+            ["date", "某一天"],
+          ] as const).map(([value, label]) => (
+            <Pressable
+              key={value}
+              accessibilityRole="button"
+              accessibilityState={{ selected: timeScope === value }}
+              onPress={() => setTimeScope(value)}
+              style={[styles.timeScopeChip, timeScope === value && styles.timeScopeChipActive]}
+              testID={`pli.lifeview.time.${value}`}
+            >
+              <Text style={[styles.timeScopeChipText, timeScope === value && styles.timeScopeChipTextActive]}>{label}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+        {timeScope === "date" ? (
+          <View style={styles.dateRow}>
+            <Text style={styles.dateLabel}>查看日期</Text>
+            <TextInput
+              testID="pli.lifeview.time.date-input"
+              value={selectedDate}
+              onChangeText={setSelectedDate}
+              placeholder="YYYY-MM-DD"
+              autoCapitalize="none"
+              keyboardType="numbers-and-punctuation"
+              style={styles.dateInput}
+            />
+          </View>
+        ) : null}
+
         <View style={styles.stageWrap}>
           <PetLivingStage
             pet={pet}
             spec={resolvePetStage(pet)}
             variant="life"
             anchors={anchors}
-            headline={mode === "now" ? `${pet?.name ?? "宠物"} · 此刻` : undefined}
+            headline={mode === "now" ? `${pet?.name ?? "宠物"} · ${scopeLabel}` : undefined}
             caption={mode === "now" ? nowLine : undefined}
-            demo={DEMO_ENV || twin?.demoFixture === true}
-            interactive
-            twin={twin?.descriptor ?? null}
-            sourceMediaCount={twin?.observedRegions.length ?? 0}
+            note={historicalRange ? "时间范围汇总不使用当前 3D 形象冒充历史。" : timeScope === "date" && !historicalTwin ? "该日没有可确认的历史 3D 版本；保留真实记录与照片。" : undefined}
+            demo={displayTwin ? (DEMO_ENV || displayTwin.demoFixture === true) : false}
+            interactive={Boolean(displayTwin)}
+            twin={displayTwin?.descriptor ?? null}
+            sourceMediaCount={displayTwin?.observedRegions.length ?? 0}
             frameTarget={0.54}
             viewerRef={viewerRef}
-            pose={twin ? representativePose : null}
+            pose={displayTwin ? representativePose : null}
           />
         </View>
 
+        {displayTwin ? (
         <View testID="pli.lifeview.control.zoom" style={styles.controlRow} accessibilityLabel="3D 视图控制">
           <Pressable accessibilityRole="button" onPress={() => viewerRef.current?.zoomOut()} style={styles.controlBtn}>
             <Ionicons name="remove" size={16} color={COLORS.textSecondary} />
@@ -323,12 +503,14 @@ export function LifeViewScreen() {
             <Text style={styles.controlBtnText}>重置视图</Text>
           </Pressable>
         </View>
+        ) : null}
 
 
         <View testID="pli.lifeview.control.modes">
           <LivingModeSwitcher value={mode} onChange={setMode} onTimeline={() => navigation.navigate("Tabs", { screen: "Timeline" })} />
         </View>
 
+        {currentFactScope ? (
         <View testID="pli.lifeview.support-facts" style={styles.supportFacts} accessibilityLabel="体重、任务与设备状态">
           <Pressable
             testID="pli.lifeview.support.weight"
@@ -375,6 +557,14 @@ export function LifeViewScreen() {
             <Text style={styles.supportValue}>{deviceText}</Text>
           </Pressable>
         </View>
+        ) : (
+          <View style={styles.historyTruth} testID="pli.lifeview.history-truth">
+            <Ionicons name="time-outline" size={16} color={COLORS.textTertiary} />
+            <Text style={styles.historyTruthText}>
+              历史范围只显示当时存在的事件和可验证 3D 版本；今天的体重、任务、健康与设备状态不会倒灌到过去。
+            </Text>
+          </View>
+        )}
 
 
         <View testID="pli.lifeview.panel" style={styles.panel} accessibilityLiveRegion="polite">
@@ -406,11 +596,17 @@ export function LifeViewScreen() {
             <View style={styles.lookRow}>
               <Ionicons name="cube-outline" size={18} color={COLORS.textTertiary} />
               <Text style={styles.panelText}>
-                {twin
-                  ? twin.demoFixture
-                    ? "当前是示例 3D 形象，用于体验交互；它不代表真实宠物扫描或已验证个体外观。"
-                    : `这是${pet?.name ?? "宠物"}的 3D 形象，已通过你的确认。外观不会替代真实照片与记录。`
-                  : "当前还没有已确认的个体 3D 形象。真实照片与记录仍可正常使用；生成能力可用并经你确认后，才会显示个体 3D。"}
+                {timeScope === "date"
+                  ? historicalTwin
+                    ? `这一天使用当时有效的第 ${historicalTwin.version} 版 3D 形象；不会使用后来版本替代。`
+                    : "这一天没有可确认的历史 3D 版本；不会用现在的样子补画过去。"
+                  : historicalRange
+                    ? "该时间范围跨越多个日期，不使用当前 3D 形象代表整个历史区间。"
+                    : twin
+                      ? twin.demoFixture
+                        ? "当前是示例 3D 形象，用于体验交互；它不代表真实宠物扫描或已验证个体外观。"
+                        : `这是${pet?.name ?? "宠物"}的 3D 形象，已通过你的确认。外观不会替代真实照片与记录。`
+                      : "当前还没有已确认的个体 3D 形象。真实照片与记录仍可正常使用；生成能力可用并经你确认后，才会显示个体 3D。"}
               </Text>
             </View>
           ) : null}
@@ -459,6 +655,16 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingBottom: SPACE.s8 },
   stageWrap: { alignSelf: "center", width: "100%", maxWidth: 430 },
+  timeScopeRow: { paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3, gap: SPACE.s2 },
+  timeScopeChip: { minHeight: 40, paddingHorizontal: 14, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.surfaceRaised },
+  timeScopeChipActive: { backgroundColor: COLORS.brandPrimary },
+  timeScopeChipText: { fontSize: TYPE.sm, fontWeight: "600", color: COLORS.textSecondary },
+  timeScopeChipTextActive: { color: COLORS.textInverse },
+  dateRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s2, flexDirection: "row", alignItems: "center", gap: SPACE.s2 },
+  dateLabel: { fontSize: TYPE.sm, color: COLORS.textTertiary },
+  dateInput: { flex: 1, minHeight: 44, borderRadius: 16, paddingHorizontal: SPACE.s3, backgroundColor: COLORS.surfaceRaised, color: COLORS.textPrimary },
+  historyTruth: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3, flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2, padding: SPACE.s3, borderRadius: 18, backgroundColor: COLORS.surfaceRaised },
+  historyTruthText: { flex: 1, fontSize: TYPE.sm, lineHeight: 20, color: COLORS.textSecondary },
   panel: { marginHorizontal: SPACE.s4, marginTop: SPACE.s4 },
   panelText: { fontSize: TYPE.body, color: COLORS.textSecondary, lineHeight: 22 },
   trendRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s3 },
