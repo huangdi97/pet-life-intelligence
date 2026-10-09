@@ -88,7 +88,7 @@ export default function CompanionPage() {
       <div className="v4-topline v5-page-lede" data-testid="pli.companion.identity">
         <div>
           <h1>陪伴模式</h1>
-          <p className="sub">连接支持的设备后，在不打扰它的前提下观察、理解并适度互动。</p>
+          <p className="sub">先看见这一只宠物，再决定是否需要设备；没有实时来源时仍以真实照片与生活记录理解它。</p>
         </div>
       </div>
 
