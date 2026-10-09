@@ -108,6 +108,7 @@ export default function Timeline() {
   const [events, setEvents] = useState<LifeEvent[] | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [filter, setFilter] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
   const [milestones, setMilestones] = useState<MilestoneRow[]>([]);
   const [milestoneState, setMilestoneState] = useState<"loading" | "ready" | "error">("loading");
   const [milestoneTitle, setMilestoneTitle] = useState("");
@@ -426,20 +427,30 @@ export default function Timeline() {
         </View>
       )}
 
-      <View className="chips">
-        {FILTERS.map((f, i) => (
-          <View
-            key={f.label}
-            className={`chip${filter === i ? " chip-active" : ""}`}
-            onClick={() => {
-              setFilter(i);
-              if (petId) load(petId, i);
-            }}
-          >
-            {f.label}
-          </View>
-        ))}
+      <View
+        className="secondary-action"
+        data-testid="pli.mini.timeline.filters-toggle"
+        onClick={() => setShowFilters((value) => !value)}
+      >
+        {showFilters ? "收起筛选" : filter === 0 ? "筛选这段生活" : `筛选：${FILTERS[filter]?.label ?? "已选择"}`}
       </View>
+      {showFilters ? (
+              <View className="chips">
+                {FILTERS.map((f, i) => (
+                  <View
+                    key={f.label}
+                    className={`chip${filter === i ? " chip-active" : ""}`}
+                    onClick={() => {
+                      setFilter(i);
+                      if (petId) load(petId, i);
+                    }}
+                  >
+                    {f.label}
+                  </View>
+                ))}
+              </View>
+      ) : null}
+
 
       {state === "error" && <InlineError onRetry={() => petId && load(petId, filter)} />}
 
