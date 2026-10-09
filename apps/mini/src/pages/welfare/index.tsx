@@ -62,7 +62,7 @@ export default function Welfare() {
   const [evidence, setEvidence] = useState<WelfareEvidence | null>(null);
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [kind, setKind] = useState(KINDS[0].value);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false);\n  const [recordOpen, setRecordOpen] = useState(false);
   const [profileState, setProfileState] = useState<"loading" | "ready" | "error">("loading");
   const [evidenceState, setEvidenceState] = useState<"loading" | "ready" | "error">("loading");
   const [eventsState, setEventsState] = useState<"loading" | "ready" | "error">("loading");
@@ -225,22 +225,30 @@ export default function Welfare() {
         )) : <View className="life-empty-note">观察积累后，会按舒适、压力恢复、活动与环境逐渐归纳。</View>}
       </View>
 
-      <View className="open-section">
-        <View className="section-title">记录生活观察</View>
-        <View className="field">
-          <Text>观察类型</Text>
-          <Picker
-            mode="selector"
-            range={KINDS.map((k) => k.label)}
-            value={Math.max(0, KINDS.findIndex((k) => k.value === kind))}
-            onChange={(e) => setKind(KINDS[Number(e.detail.value)]?.value ?? KINDS[0].value)}
-          >
-            <View className="input">{KINDS.find((k) => k.value === kind)?.label ?? KINDS[0].label}</View>
-          </Picker>
+      <View className="open-section" data-testid="pli.mini.welfare.action">
+        <View className="section-title" onClick={() => setRecordOpen((value) => !value)}>
+          记录生活观察
+          <Text className="section-caption">{recordOpen ? "收起" : "＋ 记录"}</Text>
         </View>
-        <Button className="btn btn-primary" onClick={record} disabled={busy}>
-          {busy ? "记录中…" : "记录观察"}
-        </Button>
+        <View className="life-row-source">已有观察与趋势优先；需要补充事实时再记录。</View>
+        {recordOpen ? (
+          <View className="soft-panel">
+            <View className="field">
+              <Text>观察类型</Text>
+              <Picker
+                mode="selector"
+                range={KINDS.map((k) => k.label)}
+                value={Math.max(0, KINDS.findIndex((k) => k.value === kind))}
+                onChange={(e) => setKind(KINDS[Number(e.detail.value)]?.value ?? KINDS[0].value)}
+              >
+                <View className="input">{KINDS.find((k) => k.value === kind)?.label ?? KINDS[0].label}</View>
+              </Picker>
+            </View>
+            <Button data-testid="pli.mini.welfare.action.submit" className="btn btn-primary" onClick={record} disabled={busy}>
+              {busy ? "记录中…" : "保存观察"}
+            </Button>
+          </View>
+        ) : null}
       </View>
     </View>
   );
