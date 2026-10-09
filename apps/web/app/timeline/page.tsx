@@ -325,7 +325,7 @@ export default function TimelinePage() {
               这里只回看历史上同一日期附近真实存在的事件；没有记录就不生成“回忆”。
             </p>
             {memories.state === "ready" && memories.data?.length ? memories.data.slice(0, 3).map((row) => (
-              <div className="v4-calm" key={row.years_ago} style={{ marginTop: 8 }}>
+              <div className="v7-timeline-journal-item" key={row.years_ago}>
                 <div>
                   <p className="v4-calm-title">{row.years_ago} 年前 · {row.events} 条记录</p>
                   <p className="v4-calm-body">{row.sample.slice(0, 3).map(eventTypeLabel).join(" · ")}</p>
@@ -404,7 +404,7 @@ export default function TimelinePage() {
               AI 只整理已经记录的事实；不会把推测写成生活记录，也不会替代原始时间线。
             </p>
             {dailySummaries.state === "ready" && dailySummaries.data?.length ? (
-              <div className="v4-calm">
+              <div className="v7-timeline-journal-item v7-timeline-journal-summary">
                 <p className="v4-calm-body">{dailySummaries.data[0].summary}</p>
                 <p className="v4-note" style={{ margin: "6px 0 0" }}>
                   AI 自动整理 · {dailySummaries.data[0].fact_count} 条已记录事实 · {dailySummaries.data[0].date}
