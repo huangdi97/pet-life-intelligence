@@ -2545,3 +2545,25 @@ body{background:#FBF7F1}
 .v7-timeline-journal-item + .v7-timeline-journal-item{margin-top:0}
 .v7-timeline-journal-item .v4-calm-title{color:#294C37}
 .v7-timeline-journal-summary{margin-top:10px}
+
+
+/* R7.12 Assistant answer continuation — the answer is not a dead-end result.
+   Owner can inspect raw records/sources or continue into the active pet's
+   self-comparison surface without promoting those actions above Ask. */
+.v5-assistant-answer-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:16px;
+}
+.v5-assistant-answer-actions .v4-action{
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:9px 14px;
+  text-decoration:none;
+}
+@media(max-width:768px){
+  .v5-assistant-answer-actions .v4-action{flex:1 1 30%;min-width:96px}
+}
