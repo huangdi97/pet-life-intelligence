@@ -707,11 +707,13 @@ page { background:#F6F7F1; }
 // It is intentionally quieter than the four primary life anchors.
 .life-view-support {
   display: flex;
+  flex-wrap: wrap;
   gap: $space-2;
   padding: $space-2 $space-4 0;
 }
 .life-view-support-item {
-  flex: 1;
+  width: calc(50% - #{$space-2 / 2});
+  flex: 0 0 calc(50% - #{$space-2 / 2});
   min-width: 0;
   min-height: 86px;
   box-sizing: border-box;
@@ -740,3 +742,5 @@ page { background:#F6F7F1; }
   font-size: $font-size-sm;
   font-weight: $font-weight-bold;
 }
+.life-view-support-danger { color: $color-danger; }
+
