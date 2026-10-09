@@ -11,6 +11,7 @@ import { PetLivingStage, type StageAnchor } from "../../../../components/pet-liv
 import { LivingModeSwitcher, type LivingMode } from "../../../../components/living-mode-switcher";
 import { RealPhotoCard } from "./_components/RealPhotoCard";
 import { EVENT_LABELS } from "../../../_components/today/constants";
+import { poseForEvent } from "@pli/pet-3d";
 import { observedActivityMinutes } from "../../../_components/today/activity";
 import { eventTypeLabel, provenanceLabel } from "../../../../lib/ownerLabels";
 
@@ -173,6 +174,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
   const anchors = anchorsAll;
 
   const lastEvent = events[0] ?? null;
+  const representativePose = poseForEvent(lastEvent?.event_type ?? null) ?? "Idle";
   const nowLine = lastEvent
     ? `最近一次记录：${EVENT_LABELS[lastEvent.event_type] ?? "活动"} · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
     : "今天还没有足够记录。";
@@ -216,6 +218,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         caption={mode === "now" ? nowLine : undefined}
         frameTarget={0.55}
         twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
+        pose={twinDescriptor ? representativePose : null}
         sourceMediaCount={observedRegions || undefined}
         interactive
         stageTestId="pli.lifeview.stage"
