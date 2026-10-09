@@ -166,7 +166,7 @@ export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DVi
   }, [view, status]);
 
   const twinJson = twin ? JSON.stringify(twin).replace(/\\/g, "\\\\").replace(/'/g, "\\'") : "";
-  const injected = `window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; window.__PLI_FRAME_TARGET = ${Number(frameTarget) || 0}; window.__PLI_PET_ID = ${petId ? JSON.stringify(petId) : "null"}; window.__PLI_SOURCE_MEDIA_COUNT = ${Number(sourceMediaCount) || 0}; window.__PLI_STAGE_ROLE = ${JSON.stringify(stageRole ?? (stageTheme === "review" ? "review" : "life"))}; window.__PLI_STAGE_THEME = ${JSON.stringify(stageTheme)}; ${
+  const injected = `window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; window.__PLI_FRAME_TARGET = ${Number(frameTarget) || 0}; window.__PLI_PET_ID = ${petId ? JSON.stringify(petId) : "null"}; window.__PLI_SOURCE_MEDIA_COUNT = ${Number(sourceMediaCount) || 0}; window.__PLI_DEMO_TWIN = ${demoTwin}; window.__PLI_STAGE_ROLE = ${JSON.stringify(stageRole ?? (stageTheme === "review" ? "review" : "life"))}; window.__PLI_STAGE_THEME = ${JSON.stringify(stageTheme)}; ${
     twin ? `window.__PLI_TWIN = JSON.parse('${twinJson}');` : ""
   } true;`;
 
