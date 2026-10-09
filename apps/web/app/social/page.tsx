@@ -20,6 +20,7 @@ export default function SocialPage() {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
 
   const profile = useAsync<SocialProfile>(
     () => (petId ? api.get(`/pets/${petId}/social-profile`) : Promise.reject(new Error("NO_PET_SELECTED"))),
@@ -59,6 +60,7 @@ export default function SocialPage() {
       setMsg("已记录互动");
       events.reload();
       setNotes("");
+      setFormOpen(false);
       setTimeout(() => setMsg(null), 2500);
     } catch (e) {
       setMsg(mapErrorMessage(e));
