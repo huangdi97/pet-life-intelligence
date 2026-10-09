@@ -398,8 +398,8 @@ export function TimelineScreen() {
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.head} testID="pli.timeline.identity">
           <View style={styles.headText}>
-            <Text style={styles.title}>时间线</Text>
-            <Text style={styles.sub}>记录每一天真实发生的事情</Text>
+            <Text style={styles.title}>{pet ? `${pet.name}的时间线` : "时间线"}</Text>
+            <Text style={styles.sub}>记录每一天真实发生的事情 · 每条都保留时间与来源</Text>
           </View>
           <Pressable
             testID="pli.timeline.search"
