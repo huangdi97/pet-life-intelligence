@@ -105,10 +105,13 @@ export default function Index() {
   const counts = today?.event_counts ?? {};
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
   const todayEvents = (today?.events ?? []).filter((e) => e.event_type !== "today.viewed");
-  const activityMinutes = todayEvents.reduce(
-    (acc, e) => acc + (Number((e.payload as Record<string, unknown>)?.duration_minutes) || 0),
-    0,
-  );
+  const activityMinutes = todayEvents
+    .filter((event) => event.event_type === "daily.walk" || event.event_type === "daily.play")
+    .reduce((total, event) => {
+      const minutes = Number((event.payload as Record<string, unknown>)?.duration_minutes);
+      if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 24 * 60) return total;
+      return total + minutes;
+    }, 0);
   const signalRows: LifeSignalRow[] = [
     { id: "meal", label: "进食", value: `${counts["daily.meal"] ?? 0} 次` },
     { id: "drink", label: "饮水", value: `${counts["daily.drink"] ?? 0} 次` },
