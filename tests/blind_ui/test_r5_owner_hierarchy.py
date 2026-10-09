@@ -1370,3 +1370,19 @@ def test_owner_3d_never_swaps_individual_descriptor_for_bundled_demo_glb() -> No
         asset = read(f"packages/pet-3d/assets/twins/{name}.glb.manifest.json")
         assert '"visualFidelityTier": "STYLIZED_REFERENCE"' in asset
         assert '"individualIdentityEvidence": false' in asset
+
+
+def test_pet_world_keeps_life_view_primary_and_management_progressive_on_web_android() -> None:
+    mobile = read("apps/mobile/src/screens/PetScreen.tsx")
+    web = read("apps/web/app/pets/[id]/page.tsx")
+    css = read("apps/web/app/globals.css")
+
+    assert mobile.index('testID="pli.pet.entry.lifeview"') < mobile.index('title={`${pet?.name ?? "宠物"}最近`}')
+    assert 'testID="pli.pet.management.toggle"' in mobile
+    assert 'accessibilityState={{ expanded: showManagement }}' in mobile
+    assert mobile.index('testID="pli.pet.management.toggle"') < mobile.index('testID="pli.pet.caregivers"')
+
+    assert '<details className="v5-pet-management" data-testid="pli.pet.management">' in web
+    assert web.index('打开生命视图') < web.index('更多档案与管理')
+    assert web.index('更多档案与管理') < web.index('基本信息')
+    assert '.v5-pet-management > summary' in css
