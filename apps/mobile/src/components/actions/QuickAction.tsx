@@ -13,6 +13,7 @@ export function PrimaryAction({
   onPress,
   disabled,
   testID,
+  compact = false,
 }: {
   label: string;
   icon?: keyof typeof Ionicons.glyphMap;
@@ -20,6 +21,8 @@ export function PrimaryAction({
   disabled?: boolean;
   /** Machine-readable testID (blind-UI acceptance). */
   testID?: string;
+  /** Same primary hierarchy with reduced vertical chrome for Today first fold. */
+  compact?: boolean;
 }) {
   return (
     <Pressable
@@ -29,7 +32,7 @@ export function PrimaryAction({
       disabled={disabled}
       accessibilityState={{ disabled: !!disabled }}
       onPress={onPress}
-      style={({ pressed }) => [styles.primary, disabled && styles.disabled, pressed && !disabled && styles.pressed]}
+      style={({ pressed }) => [styles.primary, compact && styles.primaryCompact, disabled && styles.disabled, pressed && !disabled && styles.pressed]}
     >
       <Ionicons name={icon} size={20} color={COLORS.textInverse} />
       <Text style={styles.primaryText}>{label}</Text>
@@ -81,6 +84,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
+  primaryCompact: { minHeight: 44, paddingVertical: 10, marginTop: SPACE.s2, shadowOpacity: 0.08, elevation: 1 },
   primaryText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   secondary: {
     flexDirection: "row",
