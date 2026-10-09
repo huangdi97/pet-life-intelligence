@@ -20,6 +20,14 @@ interface PetRow {
   breed?: string | null;
 }
 
+interface BaselineRow {
+  metric: string;
+  value: string;
+  sample_count: number;
+  window_days: number;
+  computed_at: string;
+}
+
 interface TodayMini {
   events?: Array<{
     event_type: string;
@@ -44,6 +52,10 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
   );
   const today = useAsync<TodayMini>(
     () => (petId ? api.get(`/pets/${petId}/today`) : Promise.reject(new Error("NO_PET"))),
+    [petId],
+  );
+  const baseline = useAsync<BaselineRow[]>(
+    () => (petId ? api.get(`/pets/${petId}/baseline`) : Promise.reject(new Error("NO_PET"))),
     [petId],
   );
   // Individual Twin (R2P3D-R3 D): the ACTIVE per-pet twin descriptor drives the
@@ -83,6 +95,26 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
   const events = (today.data?.events ?? []).filter((e) => e.event_type !== "today.viewed");
   const counts = today.data?.event_counts ?? {};
   const anchorValue = (n: number, unit: string) => (n > 0 ? `${n} ${unit}` : "—");
+  const observedDurationMinutes = (eventType: string) =>
+    events
+      .filter((event) => event.event_type === eventType)
+      .reduce((total, event) => {
+        const minutes = Number(event.payload?.duration_minutes);
+        return Number.isFinite(minutes) && minutes > 0 && minutes <= 24 * 60 ? total + minutes : total;
+      }, 0);
+  const sleepMinutes = observedDurationMinutes("daily.sleep");
+  const comparisonFor = (metric: string | null, current: number) => {
+    if (!metric) return "暂无（当前没有同口径常态）";
+    if (current <= 0) return "暂无（今天没有足够记录）";
+    if (baseline.state === "loading") return "常态读取中";
+    if (baseline.state !== "ready") return "常态暂时不可用";
+    const row = baseline.data?.find((item) => item.metric === metric);
+    const usual = Number(row?.value);
+    if (!row || row.sample_count < 3 || !Number.isFinite(usual) || usual <= 0) return "数据还不足以比较";
+    const delta = Math.round(((current - usual) / usual) * 100);
+    if (Math.abs(delta) < 5) return `接近最近 ${row.window_days} 天常态（${row.sample_count} 天样本）`;
+    return `比最近 ${row.window_days} 天常态${delta > 0 ? "高" : "低"} ${Math.abs(delta)}%（${row.sample_count} 天样本）`;
+  };
   // All owner clients share one observed-facts contract. Medication, sleep and
   // invalid or implausible durations cannot silently become activity minutes.
   const activityMinutes = observedActivityMinutes(events.map((event) => ({
@@ -100,7 +132,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
   };
 
   const eventsFor = (types: string[]) => events.filter((event) => types.includes(event.event_type));
-  const detailFor = (id: string, label: string, value: string, types: string[]): LifeDetail => {
+  const detailFor = (id: string, label: string, value: string, types: string[], baselineMetric: string | null, current: number): LifeDetail => {
     const matching = eventsFor(types);
     const latest = matching[0] ?? null;
     const sources = Array.from(
@@ -117,17 +149,17 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
       evidence: latest
         ? `${eventTypeLabel(latest.event_type)} · ${new Date(latest.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
         : "暂无记录",
-      // The Today payload has no validated personal baseline. Never invent a
-      // comparison from a single day just to fill this field.
-      compare: "暂无（数据积累后显示）",
+      // Compare only when this fact and the backend personal baseline share
+      // the same metric/unit and have enough real sample days.
+      compare: comparisonFor(baselineMetric, current),
     };
   };
 
   const detailRows: LifeDetail[] = [
-    detailFor("water", "饮水", anchorValue(counts["daily.drink"] ?? 0, "次"), ["daily.drink"]),
-    detailFor("meal", "进食", anchorValue(counts["daily.meal"] ?? 0, "次"), ["daily.meal"]),
-    detailFor("activity", "活动", anchorValue(activityMinutes, "分钟"), ["daily.walk", "daily.play"]),
-    detailFor("sleep", "睡眠", anchorValue(counts["daily.sleep"] ?? 0, "次"), ["daily.sleep"]),
+    detailFor("water", "饮水", anchorValue(counts["daily.drink"] ?? 0, "次"), ["daily.drink"], null, counts["daily.drink"] ?? 0),
+    detailFor("meal", "进食", anchorValue(counts["daily.meal"] ?? 0, "次"), ["daily.meal"], "meal_count_per_day", counts["daily.meal"] ?? 0),
+    detailFor("activity", "活动", anchorValue(activityMinutes, "分钟"), ["daily.walk", "daily.play"], null, activityMinutes),
+    detailFor("sleep", "睡眠", anchorValue(sleepMinutes, "分钟"), ["daily.sleep"], "sleep_minutes_per_day", sleepMinutes),
   ];
   const anchorsAll: StageAnchor[] = detailRows.map((detail) => ({
     id: detail.id,
