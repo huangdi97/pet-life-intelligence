@@ -2478,3 +2478,34 @@ body{background:#FBF7F1}
     margin-bottom:7px;
   }
 }
+
+
+/* R7.9 Today first-fold truth.
+   On a 390x844 owner phone the fixed five-tab rail begins around y=784.
+   The Living Canvas must still make the pet the visual focus, but the primary
+   “快速记录” action also belongs to the initial PET→NOW→CHANGE→ATTENTION→ACTION
+   reading sequence rather than underneath navigation chrome. Pet/Life View keep
+   their larger inspection canvases; this override is Today-only. */
+@media(max-width:768px){
+  [data-testid="pli.today.living-stage"].r2p-stage,
+  [data-testid="pli.today.living-stage"].r2p-stage--3d{
+    min-height:410px;
+  }
+  [data-testid="pli.today.living-stage"].r2p-stage--3d .r2p-stage-pet--3d{
+    width:min(94%,350px);
+    height:330px;
+    bottom:68px;
+  }
+  .v5-today-change{
+    padding-top:7px;
+    padding-bottom:6px;
+  }
+  .v5-today-attention{
+    padding-top:6px;
+    padding-bottom:6px;
+  }
+  .v5-today-action{
+    padding-top:7px;
+    padding-bottom:10px;
+  }
+}
