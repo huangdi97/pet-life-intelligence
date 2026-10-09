@@ -121,6 +121,7 @@ export default function Social() {
         notes: notes.trim(),
       });
       setNotes("");
+      setFormOpen(false);
       setVersion((v) => v + 1);
       Taro.showToast({ title: "已记录互动", icon: "success" });
     } catch {
