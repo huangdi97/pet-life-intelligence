@@ -88,6 +88,23 @@ for (const surface of required) {
   if (/\bERROR:/i.test(reportText)) throw new Error(`final Web capture reported an error: ${surface}`);
 }
 
+const ownerErrorFree = new Set(["today", "timeline", "pet", "lifeview", "health", "me"]);
+for (const surface of ownerErrorFree) {
+  const layoutPath = resolve(out, surface, "layout.json");
+  if (!existsSync(layoutPath)) throw new Error(`required owner layout evidence missing: ${surface}`);
+  const layout = JSON.parse(readFileSync(layoutPath, "utf8"));
+  const ownerText = Array.isArray(layout?.elements)
+    ? layout.elements.map((node) => String(node?.text ?? "")).join("\n")
+    : "";
+  // Dedicated not-found/offline/permission captures live on their own surfaces.
+  // A primary owner page must never silently pass evidence while embedding one.
+  for (const forbidden of ["出错了：页面不存在", "出错了：未找到", "页面不存在\n重试"]) {
+    if (ownerText.includes(forbidden)) {
+      throw new Error(`broken owner state leaked into final Web surface: ${surface}; ${forbidden}`);
+    }
+  }
+}
+
 const expectedTwinStageRole = {
   today: "today",
   pet: "pet",
