@@ -226,7 +226,8 @@ def test_version_upgrade_surface_manifest_and_provenance(client, seeded):
     # Media-driven individual twin: at least coat observed, template-inferred
     # regions present (never the reverse).
     assert r1["observed_surface_manifest"].get("coat") == "photo_projection"
-    assert r1["inferred_surface_manifest"].get("face") == "template_default"
+    assert r1["observed_surface_manifest"].get("face") == "photo_projection"
+    assert "face" not in r1["inferred_surface_manifest"]
     assert r1["artifact_map"]["twin_descriptor"]["surface"]["coverage_ratio"] > 0
     assert r1["artifact_map"]["twin_descriptor"]["morph"]["overall_scale"] >= 0.35
     assert r1["rig_version"].startswith("rig-anim")

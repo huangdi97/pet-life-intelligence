@@ -112,7 +112,10 @@ def test_generate_template_local_enters_owner_review(client, seeded):
     assert ready["status"] == "READY"
     assert ready["geometry_version"].startswith("template-")
     assert ready["observed_surface_manifest"]  # photos -> photo_projection observed
-    assert ready["inferred_surface_manifest"]["face"] == "template_default"
+    # The canonical demo capture contains an explicit head view, so face is
+    # now legitimately source-backed rather than template-inferred.
+    assert ready["observed_surface_manifest"]["face"] == "photo_projection"
+    assert "face" not in ready["inferred_surface_manifest"]
 
     # Honest: a real external generative provider is still reported blocked.
     status = client.get("/api/v1/visual/status", headers=headers).json()

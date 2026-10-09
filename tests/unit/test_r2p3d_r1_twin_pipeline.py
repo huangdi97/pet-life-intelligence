@@ -176,7 +176,8 @@ def test_build_individual_twin_cat(cat_photos):
     assert r["family"] == "standard-cat"
     assert r["provenance"] == "DEMO_SYNTHETIC"
     assert r["morph"]["waist_width"] == 0.8
-    assert r["morph"]["tail_length"] == 1.4
+    # 英短 weak prior intentionally shortens the standard-cat family tail.
+    assert r["morph"]["tail_length"] == 1.2
     assert r["morph"]["tail_thickness"] == 0.55
     assert r["morph"]["paw_scale"] == 0.85
 
@@ -201,26 +202,46 @@ def test_metadata_only_fallback_has_no_observed(cat_photos, dog_photos):
     assert "face" in d["surface"]["inferred_regions"]
     assert d["provenance"] == "NOT_YET_OBSERVED"
     assert d["morph"]["overall_scale"] >= 0.35
+    assert d["morph"]["chest_width"] == 1.15
+    assert d["morph"]["tail_length"] == 0.45
+    assert d["morph"]["leg_length_front"] == 0.52
 
 
-def test_pipeline_build_individual_uses_fixture_for_demo_pet():
+@pytest.mark.asyncio
+async def test_pipeline_build_individual_uses_fixture_for_demo_pet():
     """visual_pipeline media resolution: demo pet + capture -> fixtures."""
     from app.services.visual_pipeline import _resolve_photos
 
     class Pet:
+        id = "00000000-0000-0000-0000-0000000000aa"
         name = "豆豆"
         species = "dog"
         breed = "柯基"
 
     class Capture:
+        id = "00000000-0000-0000-0000-0000000000bb"
         artifact_ids = ["00000000-0000-0000-0000-000000000001"]
 
-    photos, prov = _resolve_photos(Capture(), Pet())
+    class Scalars:
+        def all(self):
+            return []
+
+    class Result:
+        def scalars(self):
+            return Scalars()
+
+    class DB:
+        async def execute(self, *_args, **_kwargs):
+            return Result()
+
+    photos, prov, artifact_ids = await _resolve_photos(DB(), Capture(), Pet())
     assert len(photos) == 6
     assert prov == "DEMO_SYNTHETIC"
+    assert artifact_ids == [None] * 6
 
 
-def test_pipeline_build_individual_nocapture_metadata_only():
+@pytest.mark.asyncio
+async def test_pipeline_build_individual_nocapture_metadata_only():
     from app.services.visual_pipeline import _build_individual
 
     class Pet:
@@ -228,9 +249,11 @@ def test_pipeline_build_individual_nocapture_metadata_only():
         species = "dog"
         breed = "柯基"
 
-    d = _build_individual(None, Pet())
+    d = await _build_individual(None, None, Pet())
     assert d["surface"]["observed_regions"] == []
     assert d["provenance"] == "NOT_YET_OBSERVED"
+    assert d["morph"]["tail_length"] == 0.45
+    assert d["morph"]["leg_length_front"] == 0.52
 
 
 def test_glb_qa_and_motion_manifest():

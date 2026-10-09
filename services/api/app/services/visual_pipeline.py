@@ -227,13 +227,18 @@ async def run_local_generation(
             "poster": "",
             "turntable": "",
         }
-        model.metadata_json["opts"] = {
+        metadata = dict(model.metadata_json or {})
+        metadata["opts"] = {
             "observed_photo_count": n_photos,
             "media_provenance": desc["provenance"],
             "identity": desc["identity"],
             "capture_angles": desc.get("capture_angles", []),
         }
-        model.metadata_json["surface"] = {"observed": observed, "inferred": inferred}
+        metadata["surface"] = {"observed": observed, "inferred": inferred}
+        # SQLAlchemy JSON columns do not reliably detect nested in-place
+        # mutation. Reassign the complete object so provenance/capture-angle
+        # truth survives the commit and is returned by later GET requests.
+        model.metadata_json = metadata
         # Identity gate surfaces on the model for the client review screen.
         if desc["identity"].get("gate") == "NEEDS_OWNER_CONFIRMATION":
             model.identity_qc = {"gate": "NEEDS_OWNER_CONFIRMATION"}
