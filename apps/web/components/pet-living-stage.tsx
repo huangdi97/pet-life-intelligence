@@ -104,7 +104,12 @@ export function PetLivingStage({
   // marked demo session. Production owner surfaces need an actual persisted
   // Twin descriptor; otherwise they fall back to the honest 2.5D/photo path.
   const canShow3d = identity !== null && (twin !== null || demo) && pet3d !== "failed";
-  const showPhoto = Boolean(photoUri && photoView?.petId === petId && photoView?.enabled === true);
+  // A real owner photo outranks a demo/template Twin. Once a verified
+  // individual Twin exists, Life View may lead with the rotatable 3D pet as
+  // required by §34.3; the owner can always switch back to the real photo.
+  const photoFirstByDefault = Boolean(photoUri && (demo || twin === null));
+  const explicitPhotoChoice = photoView?.petId === petId ? photoView.enabled : null;
+  const showPhoto = Boolean(photoUri && (explicitPhotoChoice ?? photoFirstByDefault));
   const show3d = canShow3d && !showPhoto;
   const stageClass = [
     "r2p-stage",
