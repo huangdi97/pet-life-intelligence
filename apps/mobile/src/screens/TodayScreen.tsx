@@ -317,7 +317,7 @@ export function TodayScreen() {
                 )}
               </OpenSection>
             </View>
-          </View>
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
