@@ -92,6 +92,20 @@ test.describe("blind-ui harness (web)", () => {
   });
 
 
+  test("today primary action clears the fixed phone nav on first fold", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seedPet(page, "");
+    await page.goto("/");
+    const action = page.getByTestId("pli.today.primary-action");
+    const nav = page.getByTestId("pli.nav.today");
+    await expect(action).toBeVisible();
+    await expect(nav).toBeVisible();
+    const [actionBox, navBox] = await Promise.all([action.boundingBox(), nav.boundingBox()]);
+    expect(actionBox).not.toBeNull();
+    expect(navBox).not.toBeNull();
+    expect(actionBox!.y + actionBox!.height).toBeLessThanOrEqual(navBox!.y - 4);
+  });
+
   test("today renders four basic anchors + identity + health summary", async ({ page }) => {
     await seedPet(page, "");
     await page.goto("/");
