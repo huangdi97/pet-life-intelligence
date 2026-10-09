@@ -1249,3 +1249,12 @@ def test_mini_shell_matches_r7_living_canvas_and_five_tabs() -> None:
     assert config.count("pagePath:") >= 5
     assert 'selectedColor: "#4E6349"' not in config
     assert 'backgroundColor: "#F6F1E9"' not in config
+
+
+def test_assistant_provider_outage_is_complete_degraded_state() -> None:
+    mobile = read("apps/mobile/src/screens/AssistantScreen.tsx")
+    web = read("apps/web/app/agent/_components/AskPanel.tsx")
+    mini = read("apps/mini/src/pages/agent/index.tsx")
+    for source in (mobile, web, mini):
+        assert "当前无法连接 AI 服务" in source
+        assert "暂未开放" not in source
