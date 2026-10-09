@@ -114,7 +114,7 @@ export function createTwinScene(descriptor: TwinDescriptor): TwinScene {
   rig.addPart("torso", chest);
 
   // Head + muzzle + eyes + nose (head region; shape via morph on joint).
-  const headColor = colorFor(tex, "coat", bodyColor);
+  const headColor = colorFor(tex, "face", colorFor(tex, "coat", bodyColor));
   const head = part(sphere(0.4), headColor, 0, 0.12, 0.28);
   head.name = "head";
   rig.addPart("head", head);
