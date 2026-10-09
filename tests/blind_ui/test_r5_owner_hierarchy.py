@@ -1625,3 +1625,22 @@ def test_today_uses_a_compact_phone_living_canvas_without_shrinking_inspection_v
     assert "R7.9 Today first-fold truth" in css
     assert '[data-testid="pli.today.living-stage"].r2p-stage' in css
     assert "min-height:410px" in css
+
+
+def test_owner_life_view_copy_hides_model_versions_and_provider_language() -> None:
+    mobile = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    web = read("apps/web/app/pets/[id]/life-view/page.tsx")
+    mini = read("apps/mini/src/pages/pets/index.tsx")
+
+    for source in (mobile, web):
+        assert "个体形象 · 已确认" in source
+        assert "示例形象 · 仅用于体验" in source
+        assert "3D v${" not in source
+        assert "示例 3D · v${" not in source
+
+    assert "已启用个体 3D 形象" in mini
+    assert "已启用${twinVersion" not in mini
+
+    # Version/provenance remains in data plumbing; only owner-facing copy
+    # is simplified. Dedicated TwinVersion management is the audit surface.
+    assert "twinVersion" in web
