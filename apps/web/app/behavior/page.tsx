@@ -124,6 +124,7 @@ export default function BehaviorPage() {
       });
       setPreferenceSubject("");
       setPreferenceNote("");
+      setPreferenceOpen(false);
       preferences.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
