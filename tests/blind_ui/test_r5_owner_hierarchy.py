@@ -1724,3 +1724,17 @@ def test_timeline_secondary_tools_stay_in_open_journal_flow() -> None:
     assert "v7-timeline-journal-summary" in web
     assert ".v7-timeline-journal-item{" in web_css
     assert "background:transparent" in web_css
+
+
+def test_living_canvas_runtime_manifest_reports_real_shadow_depth() -> None:
+    manifest = read("packages/pet-3d/src/manifest.ts")
+    web = read("apps/web/components/three/pet3d-viewer.tsx")
+    mobile = read("apps/mobile/scripts/pet-stage-entry.ts")
+
+    assert "realTimeShadows?: boolean;" in manifest
+    assert "shadowTechnique?: string | null;" in manifest
+    assert "realTimeShadows: input.realTimeShadows ?? false" in manifest
+    for source in (web, mobile):
+        assert "renderer.shadowMap.enabled = true" in source
+        assert "THREE.PCFSoftShadowMap" in source
+        assert 'shadowTechnique: renderer.shadowMap.enabled ? "PCFSoftShadowMap+ShadowMaterial" : null' in source
