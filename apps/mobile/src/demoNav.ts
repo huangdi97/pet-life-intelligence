@@ -75,6 +75,21 @@ export function navigateToDemoScreen(screen: string): void {
   }
   const stack = STACK_SCREENS[screen];
   if (stack) {
-    nav.navigate(stack);
+    // Demo evidence navigation must land deterministically on the requested
+    // stack surface. Repeated dynamic navigate() calls can be coalesced by
+    // React Navigation while an existing tab route remains focused, which
+    // produced a Pet screenshot for a LifeView request in CI. Reset only the
+    // DEMO navigation tree so the requested owner surface is unambiguous;
+    // production navigation never calls this helper.
+    const deterministic = navigationRef as unknown as {
+      resetRoot: (state: {
+        index: number;
+        routes: Array<{ name: string; params?: unknown }>;
+      }) => void;
+    };
+    deterministic.resetRoot({
+      index: 1,
+      routes: [{ name: "Tabs" }, { name: stack }],
+    });
   }
 }
