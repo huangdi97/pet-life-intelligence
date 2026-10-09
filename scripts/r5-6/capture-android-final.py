@@ -53,7 +53,7 @@ SURFACE_ROOT_IDS = {
     "twinreview": "pli.twinreview.identity",
     "health": "pli.health.identity",
     "assistant": "pli.assistant.identity",
-    "companion": "pli.companion.identity",
+    "companion": "pli.companion.living-stage",
     "me": "pli.me.owner",
 }
 
