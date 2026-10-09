@@ -2309,3 +2309,32 @@ body{background:#FBF7F1}
 .v4-attn--danger .v4-attn-icon {
   color: #9C3D30;
 }
+
+
+/* R7.4 Pet World progressive management — life stays primary. */
+.v5-pet-management {
+  margin-top: 16px;
+  border-top: 1px solid rgba(54,95,73,.10);
+}
+.v5-pet-management > summary {
+  min-height: 64px;
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--v4-text-primary,#25382D);
+}
+.v5-pet-management > summary::-webkit-details-marker { display: none; }
+.v5-pet-management > summary strong { display: block; font-size: 15px; }
+.v5-pet-management > summary small {
+  display: block;
+  margin-top: 3px;
+  color: var(--v4-text-secondary,#52695A);
+  font-size: 12px;
+  font-weight: 400;
+}
+.v5-pet-management[open] > summary {
+  border-bottom: 1px solid rgba(54,95,73,.08);
+}
