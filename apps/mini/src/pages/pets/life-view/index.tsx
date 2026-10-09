@@ -64,6 +64,15 @@ function observedActivityMinutes(events: LifeEvent[]): number {
   }, 0);
 }
 
+function observedDurationMinutes(events: LifeEvent[], eventType: string): number {
+  return events.reduce((total, event) => {
+    if (event.event_type !== eventType) return total;
+    const minutes = Number((event.payload as Record<string, unknown>)?.duration_minutes);
+    if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 24 * 60) return total;
+    return total + minutes;
+  }, 0);
+}
+
 function baselineLabel(metric: string): string | null {
   if (metric === "meal_count_per_day") return "每日进食";
   if (metric === "walk_minutes_per_day") return "每日散步";
@@ -151,10 +160,23 @@ export default function LifeView() {
   const lastEvent = petEvents[0] ?? null;
   const count = (type: string) => petEvents.filter((event) => event.event_type === type).length;
   const activityMinutes = observedActivityMinutes(petEvents);
+  const sleepMinutes = observedDurationMinutes(petEvents, "daily.sleep");
   const value = (n: number, unit: string) => (n > 0 ? `${n} ${unit}` : "—");
+  const comparisonFor = (metric: string | null, current: number) => {
+    if (!metric) return "暂无（当前没有同口径常态）";
+    if (current <= 0) return "暂无（今天没有足够记录）";
+    if (baselineState === "loading") return "常态读取中";
+    if (baselineState !== "ready") return "常态暂时不可用";
+    const row = baseline.find((item) => item.metric === metric);
+    const usual = Number(row?.value);
+    if (!row || row.sample_count < 3 || !Number.isFinite(usual) || usual <= 0) return "数据还不足以比较";
+    const delta = Math.round(((current - usual) / usual) * 100);
+    if (Math.abs(delta) < 5) return `接近最近 ${row.window_days} 天常态（${row.sample_count} 天样本）`;
+    return `比最近 ${row.window_days} 天常态${delta > 0 ? "高" : "低"} ${Math.abs(delta)}%（${row.sample_count} 天样本）`;
+  };
 
   const matchingEvents = (types: string[]) => petEvents.filter((event) => types.includes(event.event_type));
-  const makeDetail = (id: DetailId, label: string, fact: string, types: string[]): LifeDetail => {
+  const makeDetail = (id: DetailId, label: string, fact: string, types: string[], baselineMetric: string | null, current: number): LifeDetail => {
     const rows = matchingEvents(types);
     const latest = rows[0] ?? null;
     const sources = Array.from(new Set(rows.map((event) => sourceLabel(event.source_type))));
@@ -167,15 +189,15 @@ export default function LifeView() {
         ? new Date(latest.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })
         : "暂无更新时间",
       evidence: latest ? `${eventTypeLabel(latest.event_type)} · ${eventPayloadText(latest.payload) || "已记录"}` : "暂无记录",
-      compare: "暂无（数据积累后显示）",
+      compare: comparisonFor(baselineMetric, current),
     };
   };
 
   const details: LifeDetail[] = [
-    makeDetail("water", "饮水", value(count("daily.drink"), "次"), ["daily.drink"]),
-    makeDetail("meal", "进食", value(count("daily.meal"), "次"), ["daily.meal"]),
-    makeDetail("activity", "活动", value(activityMinutes, "分钟"), ["daily.walk", "daily.play"]),
-    makeDetail("sleep", "睡眠", value(count("daily.sleep"), "次"), ["daily.sleep"]),
+    makeDetail("water", "饮水", value(count("daily.drink"), "次"), ["daily.drink"], null, count("daily.drink")),
+    makeDetail("meal", "进食", value(count("daily.meal"), "次"), ["daily.meal"], "meal_count_per_day", count("daily.meal")),
+    makeDetail("activity", "活动", value(activityMinutes, "分钟"), ["daily.walk", "daily.play"], null, activityMinutes),
+    makeDetail("sleep", "睡眠", value(sleepMinutes, "分钟"), ["daily.sleep"], "sleep_minutes_per_day", sleepMinutes),
   ];
   const activeDetail = details.find((row) => row.id === detailId) ?? null;
 
