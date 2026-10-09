@@ -225,7 +225,8 @@ export default function PetProfilePage() {
 
   // Pet World rows answer “what does this domain mean for this pet now?”.
   // Loading/error stays distinct from an actual empty history.
-  const activeTrainingGoal = (trainingMeaning.data ?? []).find(
+  const trainingGoals = Array.isArray(trainingMeaning.data) ? trainingMeaning.data : [];
+  const activeTrainingGoal = trainingGoals.find(
     (goal) => goal.status === "OPEN" || goal.status === "ACTIVE",
   );
   const welfareObservationCount = Object.values(welfareMeaning.data?.observation_counts ?? {})
