@@ -1789,3 +1789,21 @@ def test_pet_world_uses_life_event_pose_and_web_lifeview_routing() -> None:
     for label in ("进食", "饮水", "活动", "睡眠"):
         assert f'label: "{label}"' in web
     assert 'event.event_type === "daily.walk" || event.event_type === "daily.play"' in web
+
+
+def test_assistant_answers_continue_into_records_sources_and_self_comparison() -> None:
+    """Master §46.12: an answer must remain connected to evidence and the pet."""
+    web = read("apps/web/app/agent/_components/AnswerPanel.tsx")
+    mobile = read("apps/mobile/src/screens/AssistantScreen.tsx")
+    mini = read("apps/mini/src/pages/agent/_components/ask_panel.tsx")
+
+    for source in (web, mobile, mini):
+        for label in ("查看记录", "查看来源", "与它自己相比"):
+            assert label in source
+
+    assert 'href={`${basePath()}/timeline`}' in web
+    assert 'href={`${basePath()}/pets/${petId}/life-view`}' in web
+    assert 'onOpenTimeline={() => tabNav.navigate("Timeline")}' in mobile
+    assert 'onOpenLifeView={() => stackNav.navigate("LifeView")}' in mobile
+    assert 'Taro.switchTab({ url: "/pages/timeline/index" })' in mini
+    assert 'Taro.navigateTo({ url: "/pages/pets/life-view/index" })' in mini
