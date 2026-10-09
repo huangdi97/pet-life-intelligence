@@ -28,6 +28,15 @@ interface TodayHealthEvent {
 
 type DayHintEntry = string | Record<string, string>;
 
+function ownerFacingHealthText(value: string | null | undefined, fallback: string): string {
+  const text = value?.trim();
+  if (!text) return fallback;
+  // Backend fixture / workflow identifiers are evidence keys, not owner copy.
+  // Preserve the health state while keeping internal ids out of the product UI.
+  if (/^(?:BW|HE|EV)-[A-Za-z0-9_-]+$/i.test(text)) return fallback;
+  return text;
+}
+
 /** OWN-001 Today — Pet Living Stage（R2-P §7.1）：宠物是首屏视觉中心，
  *  此刻/变化/注意/动作/记忆依次展开。E2E 契约保留：快速记录 → .alert.info。 */
 export default function TodayPage() {
@@ -143,7 +152,7 @@ export default function TodayPage() {
     if (danger) {
       return {
         kind: "danger",
-        body: danger.chief_complaint || "有一条健康记录触发了高风险分级。",
+        body: ownerFacingHealthText(danger.chief_complaint, "有一条健康记录触发了高风险分级。"),
         footer: "由独立风险分级规则判定；不是模型生成的诊断",
       };
     }
@@ -151,7 +160,7 @@ export default function TodayPage() {
     if (focus) {
       return {
         kind: "attention",
-        body: focus.chief_complaint || "有一条仍在跟进的健康记录。",
+        body: ownerFacingHealthText(focus.chief_complaint, "有一条仍在跟进的健康记录。"),
         footer: "来自已记录的健康事件；不是诊断结论",
       };
     }
