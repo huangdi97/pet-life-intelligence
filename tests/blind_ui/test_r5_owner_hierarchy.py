@@ -1896,3 +1896,13 @@ def test_life_view_health_support_is_real_and_never_claims_unknown_normal() -> N
     assert 'pli.lifeview.support.health' in mobile
     assert 'pli.lifeview.support.health' in web
     assert 'pli.mini.lifeview.support.health' in mini
+
+
+def test_web_day_back_uses_historical_model_active_interval_not_current_model() -> None:
+    source = read("apps/web/app/_components/timeline/DayBackCard.tsx")
+    assert "activated <= dayEnd" in source
+    assert "retired >= dayStart" in source
+    assert "当天有效的 3D 形象" in source
+    assert "当天没有可确认的 3D 版本" in source
+    assert "不会用现在的 3D 形象补画过去" in source
+    assert 'm.activated_at.slice(0, 10) === day' not in source
