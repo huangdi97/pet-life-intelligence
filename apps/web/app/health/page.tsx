@@ -22,6 +22,21 @@ const REMINDER_KIND_LABEL: Record<ReminderRow["kind"], string> = {
   CHECKUP: "体检",
 };
 
+interface HealthRecordRow {
+  record_id: string;
+  kind: "PRESCRIPTION" | "LAB" | "EXAM" | "VACCINATION";
+  source_type: string;
+  source_note: string;
+  signature_status: string;
+  occurred_at: string | null;
+}
+const HEALTH_RECORD_KIND_LABEL: Record<HealthRecordRow["kind"], string> = {
+  PRESCRIPTION: "处方",
+  LAB: "检验",
+  EXAM: "检查",
+  VACCINATION: "疫苗记录",
+};
+
 interface HealthEventRow {
   health_event_id: string;
   status: string;
@@ -48,6 +63,13 @@ export default function HealthPage() {
     () =>
       petId
         ? api.get<HealthEventRow[]>(`/pets/${petId}/health-events`)
+        : Promise.reject(new Error("no pet")),
+    [petId],
+  );
+  const professionalRecords = useAsync<HealthRecordRow[]>(
+    () =>
+      petId
+        ? api.get<HealthRecordRow[]>(`/pets/${petId}/health-records`)
         : Promise.reject(new Error("no pet")),
     [petId],
   );
@@ -149,6 +171,34 @@ export default function HealthPage() {
         <p className="muted" style={{ margin: 0 }}>
           {rows.length > 0 ? `最近的健康事件是「${rows[0].chief_complaint}」，打开于 ${fmtTime(rows[0].opened_at)}。` : "还没有健康记录，变化会从第一条记录开始汇总。"}
         </p>
+      </section>
+
+      <section className="v4-sec" data-testid="pli.health.vet">
+        <h2 className="v4-sec-title">就医与专业记录</h2>
+        <p className="v4-sec-sub">处方、检验、检查与疫苗记录只展示真实导入的数据，并保留来源与签名状态。</p>
+        <State
+          state={professionalRecords.state}
+          error={professionalRecords.error}
+          onRetry={professionalRecords.reload}
+          empty="还没有导入处方、检验、检查或疫苗专业记录。"
+        >
+          <div className="v4-list">
+            {(professionalRecords.data ?? []).slice(0, 6).map((record) => (
+              <div className="v4-list-row" key={record.record_id}>
+                <div>
+                  <strong>{HEALTH_RECORD_KIND_LABEL[record.kind] ?? "专业记录"}</strong>
+                  <div className="v4-note">
+                    {record.occurred_at ? fmtTime(record.occurred_at) : "时间未记录"} · {record.source_type === "PROFESSIONAL_CONFIRMED" ? "专业确认" : "来源已记录"}
+                  </div>
+                  <div className="v4-note">
+                    {record.signature_status === "SIGNED" ? "签名已记录" : record.signature_status === "UNSIGNED" ? "未记录签名" : "无需签名"}
+                    {record.source_note ? ` · ${record.source_note}` : ""}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </State>
       </section>
 
       <section className="v4-sec" data-testid="pli.health.prevent">
