@@ -86,23 +86,43 @@ export default function SocialPage() {
         <InteractionsPanel events={events} friendName={friendName} />
       </div>
 
-      {/* 记录互动 */}
-      <div data-testid="pli.social.action">
-        <RecordInteractionPanel
-          pets={pets.data}
-          petId={petId}
-          friendPetId={friendPetId}
-          onFriendChange={setFriendPetId}
-          quality={quality}
-          onQualityChange={setQuality}
-          duration={duration}
-          onDurationChange={setDuration}
-          notes={notes}
-          onNotesChange={setNotes}
-          busy={busy}
-          onRecord={recordInteraction}
-        />
-      </div>
+      {/* Record is an explicit create flow. Domain home stays relationship-first. */}
+      <section className="v4-sec v5-domain-create" data-testid="pli.social.action" data-form-open={formOpen ? "true" : "false"}>
+        <div className="v4-sec-head">
+          <div>
+            <h2 className="v4-sec-title">补充一次互动</h2>
+            <p className="v4-sec-sub">已有关系与互动历史优先展示；需要时再补充这次真实发生的互动。</p>
+          </div>
+          <button
+            type="button"
+            className="btn"
+            aria-expanded={formOpen}
+            aria-controls="pli-social-record-form"
+            onClick={() => setFormOpen((value) => !value)}
+            data-testid="pli.social.action.toggle"
+          >
+            {formOpen ? "收起" : "记录互动"}
+          </button>
+        </div>
+        {formOpen ? (
+          <div id="pli-social-record-form">
+            <RecordInteractionPanel
+              pets={pets.data}
+              petId={petId}
+              friendPetId={friendPetId}
+              onFriendChange={setFriendPetId}
+              quality={quality}
+              onQualityChange={setQuality}
+              duration={duration}
+              onDurationChange={setDuration}
+              notes={notes}
+              onNotesChange={setNotes}
+              busy={busy}
+              onRecord={recordInteraction}
+            />
+          </div>
+        ) : null}
+      </section>
 
       <div className="row" style={{ marginTop: 8 }}>
         <Link href="/" className="btn">
