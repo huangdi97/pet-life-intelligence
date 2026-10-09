@@ -1409,3 +1409,34 @@ def test_timeline_keeps_retrieval_tools_progressive_across_owner_clients() -> No
     assert 'data-testid="pli.mini.timeline.filters-toggle"' in mini
     assert 'showFilters ? (' in mini
     assert '筛选这段生活' in mini
+
+
+def test_cross_client_living_twin_keeps_pose_grounding_and_motion_safety() -> None:
+    web_stage = read("apps/web/components/pet-living-stage.tsx")
+    web_today = read("apps/web/app/page.tsx")
+    web_life = read("apps/web/app/pets/[id]/life-view/page.tsx")
+    web_viewer = read("apps/web/components/three/pet3d-viewer.tsx")
+    android_entry = read("apps/mobile/scripts/pet-stage-entry.ts")
+
+    # Web and Android must both present the Twin as part of the living space,
+    # not a floating viewer object.
+    assert 'floor.name = "pliAmbientFloor"' in web_viewer
+    assert 'projectionGlow.name = "pliAmbientGlow"' in web_viewer
+    assert 'floor.name = "pliAmbientFloor"' in android_entry
+    assert 'glow.name = "pliAmbientGlow"' in android_entry
+
+    # Recent life evidence drives the same representative pose chain on Web
+    # that Android already uses; the component must actually pass it to WebGL.
+    assert "pose?: PoseName | null" in web_stage
+    assert web_stage.count("pose={pose}") == 2
+    assert "poseForEvent" in web_today
+    assert "representativePose" in web_today
+    assert "pose={twinDescriptor ? representativePose : null}" in web_today
+    assert "poseForEvent" in web_life
+    assert "pose={twinDescriptor ? representativePose : null}" in web_life
+
+    # Auto-fit establishes safe zoom bounds. Pinch zoom must use them, and
+    # ambient motion must respect the OS reduced-motion preference.
+    assert "orbitZoom(orbit, factor, zoomBounds)" in android_entry
+    assert "reduceMotionQuery" in android_entry
+    assert '"Stand" : (activePose ?? "Idle")' in android_entry
