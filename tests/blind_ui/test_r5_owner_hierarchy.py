@@ -752,7 +752,7 @@ def test_android_runtime_capture_uses_unique_surface_truth_ids() -> None:
         "pli.twinreview.identity",
         "pli.health.identity",
         "pli.assistant.identity",
-        "pli.companion.identity",
+        "pli.companion.living-stage",
         "pli.me.owner",
     ):
         assert root_id in capture
@@ -1404,8 +1404,15 @@ def test_timeline_keeps_retrieval_tools_progressive_across_owner_clients() -> No
     assert 'testID="pli.timeline.filters.toggle"' in mobile
     assert 'accessibilityState={{ expanded: showFilters }}' in mobile
     assert 'showFilters ? (' in mobile
-    assert '<details className="v5-timeline-tools" data-testid="pli.timeline.filters">' in web
-    assert '筛选与搜索这段生活' in web
+    filter_bar = read("apps/web/app/_components/timeline/FilterBar.tsx")
+    # Web keeps search/domain visible and only the secondary controls behind
+    # one disclosure. A second outer <details> would hide the entire R7 filter
+    # experience and the real Life Stream behind a closed legacy wrapper.
+    assert '<details className="v5-timeline-tools" data-testid="pli.timeline.filters">' not in web
+    assert '<FilterBar' in web
+    assert 'className="v7-timeline-search' in filter_bar
+    assert 'className="v7-timeline-refine"' in filter_bar
+    assert '日期、来源和更多筛选' in filter_bar
     assert 'data-testid="pli.mini.timeline.filters-toggle"' in mini
     assert 'showFilters ? (' in mini
     assert '筛选这段生活' in mini
