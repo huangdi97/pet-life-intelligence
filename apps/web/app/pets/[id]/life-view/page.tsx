@@ -196,6 +196,14 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
     : "今天暂无新记录";
   const openTaskCount = (tasks.data ?? []).filter((task) => task.status === "OPEN").length;
   const weightText = pet.data?.weight_note?.trim() || "未记录";
+  const taskText =
+    tasks.state === "loading"
+      ? "读取中"
+      : tasks.state !== "ready"
+        ? "暂不可用"
+        : openTaskCount > 0
+          ? `${openTaskCount} 项待办`
+          : "暂无待办";
   const deviceRows = devices.data ?? [];
   const deviceText =
     devices.state === "loading"
@@ -264,7 +272,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         </Link>
         <Link href="/" className="v7-life-support-item" data-testid="pli.lifeview.support.tasks">
           <span className="v7-life-support-label">任务</span>
-          <strong>{tasks.state === "loading" ? "读取中" : openTaskCount > 0 ? `${openTaskCount} 项待办` : "暂无待办"}</strong>
+          <strong>{taskText}</strong>
         </Link>
         <Link href="/monitoring" className="v7-life-support-item" data-testid="pli.lifeview.support.devices">
           <span className="v7-life-support-label">设备</span>
