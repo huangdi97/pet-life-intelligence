@@ -1238,3 +1238,14 @@ def test_web_3d_review_keeps_neutral_theme_and_role_dependencies() -> None:
     assert 'stageRole === "review"' in viewer
     assert "stageRole, realityField" in viewer
     assert "frameTarget, stageRole" in viewer
+
+
+def test_mini_shell_matches_r7_living_canvas_and_five_tabs() -> None:
+    config = read("apps/mini/src/app.config.ts")
+    for token in ('"#F6F7F1"', '"#365F49"', '"#FFFEFA"'):
+        assert token in config
+    for label in ("今天", "时间线", "宠物", "助手", "我的"):
+        assert f'text: "{label}"' in config
+    assert config.count("pagePath:") >= 5
+    assert 'selectedColor: "#4E6349"' not in config
+    assert 'backgroundColor: "#F6F1E9"' not in config
