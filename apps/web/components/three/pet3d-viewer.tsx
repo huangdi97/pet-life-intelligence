@@ -158,6 +158,37 @@ export function Pet3DViewer({
     scene.add(stage.shadow);
     addStageLights(scene);
 
+    // R7.6: keep Web parity with the native WebView Living Canvas. The host
+    // background provides the room; these transparent world-space layers only
+    // ground the feet and softly catch the projection light so the Twin reads
+    // as being *in* the living space rather than pasted over a CSS panel.
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(2.4, 64),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color(stageTheme.base),
+        transparent: true,
+        opacity: stageRole === "review" ? 0.045 : 0.07,
+        depthWrite: false,
+      }),
+    );
+    floor.name = "pliAmbientFloor";
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = 0.005;
+    scene.add(floor);
+    const projectionGlow = new THREE.Mesh(
+      new THREE.CircleGeometry(1.7, 48),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color(stageTheme.glow),
+        transparent: true,
+        opacity: stageRole === "review" ? 0.055 : 0.10,
+        depthWrite: false,
+      }),
+    );
+    projectionGlow.name = "pliAmbientGlow";
+    projectionGlow.rotation.x = -Math.PI / 2;
+    projectionGlow.position.y = 0.012;
+    scene.add(projectionGlow);
+
     // R4: the product candidate is a HIGH_FIDELITY_SKINNED GLB. The
     // procedural twin stays only as the engineering fallback while the GLB
     // loads (or when it fails). Manifest reclassifies accordingly.
