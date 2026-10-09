@@ -1644,3 +1644,18 @@ def test_owner_life_view_copy_hides_model_versions_and_provider_language() -> No
     # Version/provenance remains in data plumbing; only owner-facing copy
     # is simplified. Dedicated TwinVersion management is the audit surface.
     assert "twinVersion" in web
+
+
+def test_frequent_walk_quicklog_is_two_step_without_invented_duration() -> None:
+    mobile = read("apps/mobile/src/screens/QuickLogScreen.tsx")
+    mobile_ui = read("apps/mobile/src/screens/quicklog_sections.tsx")
+    web = read("apps/web/app/_components/today/constants.ts")
+    mini = read("apps/mini/src/pages/index/_lib.ts")
+
+    assert 't.event_type === "daily.walk"' in mobile
+    assert 'payload = duration > 0 ? { duration_minutes: duration } : {};' in mobile
+    assert '时长（分钟，可选）' in mobile_ui
+    assert 'label: "时长（分钟，可选)"' not in web  # guard malformed copy
+    assert 'label: "时长（分钟，可选）"' in web
+    assert 'label: "时长（分钟，可选）"' in mini
+    assert 'type: "daily.walk"' in web and 'type: "daily.walk"' in mini
