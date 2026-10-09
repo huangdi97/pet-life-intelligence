@@ -166,16 +166,16 @@ export function PetTwinCaptureScreen() {
               key={a.key}
               testID={`pli.twincapture.view.${viewId(a.key)}`}
               accessibilityRole="button"
-              accessibilityState={{ checked: shots[a.key] }}
+              accessibilityState={{ checked: Boolean(shots[a.key]) }}
               accessibilityLabel={`${a.label}${shots[a.key] ? "已拍摄" : "尚未拍摄"}`}
               onPress={() => void captureAngle(a.key)}
-              style={[styles.angle, shots[a.key] && styles.angleDone]}
+              style={[styles.angle, Boolean(shots[a.key]) && styles.angleDone]}
             >
               <Ionicons name={shots[a.key] ? "checkmark-circle" : "ellipse-outline"} size={18}
                 color={shots[a.key] ? COLORS.success : COLORS.textTertiary} />
               <View style={styles.angleText}>
                 <Text style={styles.angleLabel}>{a.label}</Text>
-                <Text testID={`pli.twincapture.status.${viewId(a.key)}`} style={[styles.angleStatus, shots[a.key] && styles.angleStatusDone]}>
+                <Text testID={`pli.twincapture.status.${viewId(a.key)}`} style={[styles.angleStatus, Boolean(shots[a.key]) && styles.angleStatusDone]}>
                   {uploadingAngle === a.key ? "正在上传…" : shots[a.key] ? "已拍摄" : "尚未拍摄"}
                 </Text>
                 <Text style={styles.angleHint}>{a.hint}</Text>
