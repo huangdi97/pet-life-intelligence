@@ -156,7 +156,7 @@ jobs:
           python -m app.seed
       - name: Build demo-evidence Android APK
         env:
-          EXPO_PUBLIC_PLI_API_URL: http://10.0.2.2:8800
+          EXPO_PUBLIC_PLI_API_URL: http://127.0.0.1:8800
           EXPO_PUBLIC_PLI_DEMO_ENV: "1"
         run: |
           pnpm --dir packages/pet-3d build
@@ -183,7 +183,7 @@ jobs:
       - name: Start Metro for demo-evidence debug APK
         env:
           CI: "1"
-          EXPO_PUBLIC_PLI_API_URL: http://10.0.2.2:8800
+          EXPO_PUBLIC_PLI_API_URL: http://127.0.0.1:8800
           EXPO_PUBLIC_PLI_DEMO_ENV: "1"
         run: |
           (cd apps/mobile && nohup pnpm exec expo start --port 8081 > /tmp/pli-metro.log 2>&1 &)
