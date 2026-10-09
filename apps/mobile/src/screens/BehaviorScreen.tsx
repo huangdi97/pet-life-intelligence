@@ -274,6 +274,26 @@ export function BehaviorScreen() {
               )}
             </OpenSection>
 
+            <OpenSection title="模式与情境" testID="pli.behavior.patterns">
+              <Text style={styles.hintText}>只按真实行为记录汇总频次与共现，不推断性格、情绪、疾病或因果。</Text>
+              {topBehaviors.length ? (
+                <View style={styles.filterWrap} accessibilityLabel="常见行为记录">
+                  {topBehaviors.map((item) => (
+                    <View key={item.label} style={styles.patternChip}>
+                      <Text style={styles.patternChipText}>{item.label} · {item.count} 次</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : <Text style={styles.hintText}>还没有足够记录形成可展示的频次。</Text>}
+              {topContexts.length ? (
+                <View style={styles.abcCard}>
+                  {topContexts.map((item) => (
+                    <AbcLine key={item.label} label="记录共现" value={`${item.label} · ${item.count} 次`} />
+                  ))}
+                </View>
+              ) : null}
+            </OpenSection>
+
             {latest ? (
               <OpenSection title="当前情境" testID="pli.behavior.context">
                 <View style={styles.abcCard}>
@@ -327,25 +347,7 @@ export function BehaviorScreen() {
               ) : null}
             </OpenSection>
 
-            <OpenSection title="模式与情境" testID="pli.behavior.patterns">
-              <Text style={styles.hintText}>只按真实行为记录汇总频次与共现，不推断性格、情绪、疾病或因果。</Text>
-              {topBehaviors.length ? (
-                <View style={styles.filterWrap} accessibilityLabel="常见行为记录">
-                  {topBehaviors.map((item) => (
-                    <View key={item.label} style={styles.patternChip}>
-                      <Text style={styles.patternChipText}>{item.label} · {item.count} 次</Text>
-                    </View>
-                  ))}
-                </View>
-              ) : <Text style={styles.hintText}>还没有足够记录形成可展示的频次。</Text>}
-              {topContexts.length ? (
-                <View style={styles.abcCard}>
-                  {topContexts.map((item) => (
-                    <AbcLine key={item.label} label="记录共现" value={`${item.label} · ${item.count} 次`} />
-                  ))}
-                </View>
-              ) : null}
-            </OpenSection>
+
 
             <View style={styles.formSection}>
               <Pressable
