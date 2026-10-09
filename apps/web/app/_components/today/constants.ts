@@ -78,6 +78,7 @@ export const SHEET_TYPES: QuickLogType[] = [
   // must not fabricate an empty medication/behavior payload.
   { type: "medication.administered", label: "用药", href: "/medication" },
   { type: "behavior.observed", label: "行为", href: "/behavior" },
+  { type: "health", label: "健康", href: "/health" },
   { type: "diary.created", label: "备注", textInput: { label: "备注内容", placeholder: "想记录点什么？", maxLength: 1000 } },
 ];
 
