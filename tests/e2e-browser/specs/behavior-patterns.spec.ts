@@ -70,6 +70,11 @@ test.describe("Behavior record-derived product semantics", () => {
     );
     await expect(page.getByTestId("pli.behavior.context")).toContainText("不表示因果");
 
+    // Behavior is intentionally read-first. Open the secondary observation
+    // composer before using its input template, exactly as an owner must.
+    await page.getByTestId("pli.behavior.action").click();
+    await expect(page.locator("#pli-behavior-record-form")).toBeVisible();
+
     const template = page.getByRole("button", {
       name: "用“吠叫”作为行为记录起点",
     });
