@@ -11723,6 +11723,14 @@
               }
             ],
             "title": "Coverage"
+          },
+          "angle_artifact_ids": {
+            "additionalProperties": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "object",
+            "title": "Angle Artifact Ids"
           }
         },
         "type": "object",
@@ -11768,8 +11776,15 @@
           "coverage": {
             "additionalProperties": true,
             "type": "object",
-            "title": "Coverage",
-            "default": {}
+            "title": "Coverage"
+          },
+          "angle_artifact_ids": {
+            "additionalProperties": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "object",
+            "title": "Angle Artifact Ids"
           },
           "privacy_scan": {
             "additionalProperties": true,
