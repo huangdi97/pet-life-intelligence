@@ -732,6 +732,25 @@ def test_behavior_video_binding_uses_real_artifacts_across_owner_clients() -> No
     assert "async function uploadArtifact" in mobile_api
 
 
+def test_android_runtime_capture_uses_unique_surface_truth_ids() -> None:
+    capture = read("scripts/r5-6/capture-android-final.py")
+    # Pet identity also appears as context on Today, so only the Pet hero stage
+    # can certify that a capture really landed on the Pet tab.
+    assert '"pet": "pli.pet.hero-stage"' in capture
+    assert '"pet": "pli.pet.identity"' not in capture
+    for root_id in (
+        "pli.today.living-stage",
+        "pli.timeline.identity",
+        "pli.lifeview.identity",
+        "pli.twinreview.identity",
+        "pli.health.identity",
+        "pli.assistant.identity",
+        "pli.companion.identity",
+        "pli.me.owner",
+    ):
+        assert root_id in capture
+
+
 def test_android_demo_authenticates_before_owner_twin_mount() -> None:
     """The 401→generic GLB regression must fail blind checks, not be blessed."""
     app = read("apps/mobile/App.tsx")
