@@ -1699,3 +1699,28 @@ def test_android_evidence_api_reverse_is_real_and_post_install() -> None:
     assert reverse in runner
     assert runner.index(reverse) > runner.index(install_gate)
     assert 'grep -q "tcp:8800 tcp:8800" /tmp/pli-adb-reverse.txt' in runner
+
+
+def test_timeline_secondary_tools_stay_in_open_journal_flow() -> None:
+    """Milestones, memories and diary extend the life story instead of a card wall."""
+    mobile = read("apps/mobile/src/screens/TimelineScreen.tsx")
+    mini = read("apps/mini/src/pages/timeline/index.tsx")
+    mini_css = read("apps/mini/src/app.scss")
+    web = read("apps/web/app/timeline/page.tsx")
+    web_css = read("apps/web/app/globals.css")
+
+    for style in ("memorySection", "diarySection", "summarySection"):
+        block = mobile.split(f"{style}: {{", 1)[1].split("},", 1)[0]
+        assert "backgroundColor" not in block
+        assert "borderRadius" not in block
+        assert "borderTop" in block
+
+    assert 'className="soft-panel"' not in mini
+    assert mini.count('className="timeline-journal-list"') == 4
+    assert ".timeline-journal-list {" in mini_css
+    assert "background: transparent" in mini_css
+
+    assert 'className="v7-timeline-journal-item" key={row.years_ago}' in web
+    assert "v7-timeline-journal-summary" in web
+    assert ".v7-timeline-journal-item{" in web_css
+    assert "background:transparent" in web_css
