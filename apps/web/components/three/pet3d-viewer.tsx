@@ -166,7 +166,11 @@ export function Pet3DViewer({
     // Truth invariant: the procedural twin may temporarily bridge GLB loading,
     // but if the product GLB cannot load the runtime must report a fallback.
     let hdLoadFailed = false;
-    if (twin && identity) {
+    // Bundled doudou/mimi GLBs are demo templates. A non-demo individual
+    // descriptor must keep rendering createTwinScene(descriptor), because that
+    // is the only current path that actually applies owner-media morph/texture.
+    // Replacing it with a bundled GLB would silently erase the individual pet.
+    if (twin && identity && demoTwin) {
       setTwinAssetResolver(null);
       loadTwinGLB(identity)
         .then((twin3d) => {
@@ -326,12 +330,12 @@ export function Pet3DViewer({
         // real owner media participates in this pet's appearance pipeline.
         representationQuality: hdTwin ? "HIGH_FIDELITY_SKINNED" : "engineering",
         technicalRepresentationQuality: hdTwin ? "RIGGED_PBR_SKINNED" : "PROCEDURAL_ENGINEERING",
-        visualFidelityTier: !hdTwin
-          ? "ENGINEERING_FALLBACK"
-          : sourceMediaCount > 0
+        visualFidelityTier: demoTwin && hdTwin
+          ? "STYLIZED_REFERENCE"
+          : twin && sourceMediaCount > 0 && !demoTwin
             ? "OWNER_MEDIA_REFERENCED"
-            : "STYLIZED_REFERENCE",
-        individualIdentityEvidence: hdTwin !== null && sourceMediaCount > 0,
+            : "ENGINEERING_FALLBACK",
+        individualIdentityEvidence: Boolean(twin && sourceMediaCount > 0 && !demoTwin),
         productCandidate: hdTwin !== null,
         triangleCount: hdTwin?.triangleCount ?? 0,
         uvPresent: hdTwin !== null,
