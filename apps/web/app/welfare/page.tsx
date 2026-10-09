@@ -84,6 +84,16 @@ export default function WelfarePage() {
 
       <QualityCard profile={profile} />
 
+      <div data-testid="pli.welfare.observable">
+        <EvidenceCard evidence={evidence} kind={kind} setKind={setKind} busy={busy} onRecord={recordObservation} />
+      </div>
+
+      <div className="v4-note" data-testid="pli.welfare.action">
+        新观察会保存记录人与来源；趋势只基于已记录事实，不推断情绪或幸福指数。
+      </div>
+
+      <WelfareTrendCard events={events} welfareEvents={welfareEvents} />
+
       <div className="v4-sec" data-testid="pli.welfare.enrichment">
         <h2>丰富化</h2>
         <p className="muted" style={{ margin: 0 }}>
@@ -114,22 +124,12 @@ export default function WelfarePage() {
         <p className="muted" style={{ margin: 0 }}>睡眠、休息环境与舒适度相关的观察会汇总到这里。还没有相关记录。</p>
       </div>
 
-      <div className="v4-sec" data-testid="pli.welfare.liked">
-        <h2>最近喜欢的活动</h2>
+      <div className="v4-sec" data-testid="pli.welfare.activity">
+        <h2>活动与探索</h2>
         <p className="muted" style={{ margin: 0 }}>
-          {welfareEvents.length > 0 ? "从最近的观察中可以看到它偏好的活动。" : "记录几次玩耍与探索后，这里会呈现它自己的偏好，不猜测情绪。"}
+          {welfareEvents.length > 0 ? "这里仅汇总已记录的活动与探索事实；是否喜欢需要主人明确记录，不能从事件频次自动推断。" : "记录玩耍与探索后，这里会呈现发生过的活动；不会自动推断偏好或情绪。"}
         </p>
       </div>
-
-      <div data-testid="pli.welfare.observable">
-        <EvidenceCard evidence={evidence} kind={kind} setKind={setKind} busy={busy} onRecord={recordObservation} />
-      </div>
-
-      <div className="v4-note" data-testid="pli.welfare.action">
-        新观察会保存记录人与来源；趋势只基于已记录事实，不推断情绪或幸福指数。
-      </div>
-
-      <WelfareTrendCard events={events} welfareEvents={welfareEvents} />
 
       <div className="row" style={{ marginTop: 8 }}>
         <Link href="/health" className="btn">
