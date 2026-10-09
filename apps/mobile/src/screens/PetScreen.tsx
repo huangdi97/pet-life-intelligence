@@ -75,6 +75,7 @@ export function PetScreen() {
   const [rawBaseline, setBaseline] = useState<BaselineRow[]>([]);
   const [rawBaselineState, setBaselineState] = useState<"loading" | "ready" | "error">("loading");
   const [baselineBusy, setBaselineBusy] = useState(false);
+  const [showManagement, setShowManagement] = useState(false);
   const [rawLoading, setLoading] = useState(true);
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   const activePetRef = useRef<string | null>(null);
@@ -259,6 +260,20 @@ export function PetScreen() {
           />
         </View>
 
+        <Pressable
+          testID="pli.pet.entry.lifeview"
+          accessibilityRole="button"
+          accessibilityLabel={`进入${pet?.name ?? "宠物"}的生命视图`}
+          onPress={() => navigation.navigate("LifeView")}
+          style={styles.lifeViewCta}
+        >
+          <View>
+            <Text style={styles.lifeViewCtaKicker}>生命视图</Text>
+            <Text style={styles.lifeViewCtaText}>进入它的此刻、趋势与外观</Text>
+          </View>
+          <Ionicons name="arrow-forward" size={20} color={COLORS.textInverse} />
+        </Pressable>
+
         {loading ? (
           <View style={styles.loadingWrap}>
             <Skeleton rows={2} />
@@ -356,54 +371,61 @@ export function PetScreen() {
               </OpenSection>
             </View>
 
-            <View testID="pli.pet.caregivers">
-              <OpenSection title="照护它的人">
-                <Text style={styles.caregiverNote}>查看谁可以照护、能做什么，以及临时权限何时到期；未读取到的成员关系不会在这里猜测。</Text>
-                <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Care")} style={styles.entryRow}>
-                  <Ionicons name="people-outline" size={18} color={COLORS.brandPrimaryDeep} />
-                  <Text style={styles.entryText}>管理照护交接与限时权限</Text>
-                  <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-                </Pressable>
-              </OpenSection>
-            </View>
+            <Pressable
+              testID="pli.pet.management.toggle"
+              accessibilityRole="button"
+              accessibilityState={{ expanded: showManagement }}
+              onPress={() => setShowManagement((value) => !value)}
+              style={styles.managementToggle}
+            >
+              <View style={styles.managementToggleText}>
+                <Text style={styles.managementTitle}>更多档案与管理</Text>
+                <Text style={styles.managementHint}>照护、基础档案与 3D 版本等低频维护</Text>
+              </View>
+              <Ionicons name={showManagement ? "chevron-up" : "chevron-down"} size={18} color={COLORS.textSecondary} />
+            </Pressable>
 
-            <OpenSection title="档案">
-              <Pressable
-                testID="pli.pet.profile.edit"
-                accessibilityRole="button"
-                accessibilityLabel={`编辑${pet?.name ?? "宠物"}的档案`}
-                onPress={() => navigation.navigate("PetProfile", { mode: "edit" })}
-                style={({ pressed }) => [styles.entryRow, pressed && styles.entryRowPressed]}
-              >
-                <Ionicons name="create-outline" size={18} color={COLORS.brandPrimaryDeep} />
-                <Text style={styles.entryText}>编辑名字、品种、生日、性别与体重备注</Text>
-                <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-              </Pressable>
-            </OpenSection>
+            {showManagement ? (
+              <>
+                <View testID="pli.pet.caregivers">
+                  <OpenSection title="照护它的人">
+                    <Text style={styles.caregiverNote}>查看谁可以照护、能做什么，以及临时权限何时到期；未读取到的成员关系不会在这里猜测。</Text>
+                    <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Care")} style={styles.entryRow}>
+                      <Ionicons name="people-outline" size={18} color={COLORS.brandPrimaryDeep} />
+                      <Text style={styles.entryText}>管理照护交接与限时权限</Text>
+                      <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+                    </Pressable>
+                  </OpenSection>
+                </View>
 
-            <OpenSection title="生命与陪伴">
-              <Pressable
-                testID="pli.pet.entry.lifeview"
-                accessibilityRole="button"
-                accessibilityLabel={`打开${pet?.name ?? "宠物"}的生命视图`}
-                onPress={() => navigation.navigate("LifeView")}
-                style={({ pressed }) => [styles.entryRow, pressed && styles.entryRowPressed]}
-              >
-                <Ionicons name="planet-outline" size={18} color={COLORS.brandPrimaryDeep} />
-                <Text style={styles.entryText}>生命视图 · {pet?.name ?? "宠物"}的此刻、趋势与外观</Text>
-                <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`查看${pet?.name ?? "宠物"}的 3D 形象版本`}
-                onPress={() => navigation.navigate("TwinVersion")}
-                style={({ pressed }) => [styles.entryRow, pressed && styles.entryRowPressed]}
-              >
-                <Ionicons name="sparkles-outline" size={18} color={COLORS.brandPrimaryDeep} />
-                <Text style={styles.entryText}>3D 形象 · 为{pet?.name ?? "宠物"}创建/查看 3D 形象</Text>
-                <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-              </Pressable>
-            </OpenSection>
+                <OpenSection title="档案">
+                  <Pressable
+                    testID="pli.pet.profile.edit"
+                    accessibilityRole="button"
+                    accessibilityLabel={`编辑${pet?.name ?? "宠物"}的档案`}
+                    onPress={() => navigation.navigate("PetProfile", { mode: "edit" })}
+                    style={({ pressed }) => [styles.entryRow, pressed && styles.entryRowPressed]}
+                  >
+                    <Ionicons name="create-outline" size={18} color={COLORS.brandPrimaryDeep} />
+                    <Text style={styles.entryText}>编辑名字、品种、生日、性别与体重备注</Text>
+                    <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+                  </Pressable>
+                </OpenSection>
+
+                <OpenSection title="3D 形象">
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`查看${pet?.name ?? "宠物"}的 3D 形象版本`}
+                    onPress={() => navigation.navigate("TwinVersion")}
+                    style={({ pressed }) => [styles.entryRow, pressed && styles.entryRowPressed]}
+                  >
+                    <Ionicons name="sparkles-outline" size={18} color={COLORS.brandPrimaryDeep} />
+                    <Text style={styles.entryText}>创建、查看或重新确认生成的 3D 形象</Text>
+                    <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+                  </Pressable>
+                </OpenSection>
+              </>
+            ) : null}
           </>
         )}
       </ScrollView>
@@ -416,6 +438,13 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingBottom: SPACE.s8 },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  lifeViewCta: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3, minHeight: 76, borderRadius: 26, backgroundColor: COLORS.brandPrimary, paddingHorizontal: SPACE.s4, paddingVertical: SPACE.s3, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  lifeViewCtaKicker: { fontSize: TYPE.caption, color: COLORS.textInverse, opacity: 0.78, fontWeight: "700", letterSpacing: 1.2 },
+  lifeViewCtaText: { fontSize: TYPE.bodyStrong, color: COLORS.textInverse, fontWeight: "700", marginTop: 3 },
+  managementToggle: { marginHorizontal: SPACE.s4, marginTop: SPACE.s5, minHeight: 64, paddingHorizontal: SPACE.s3, borderRadius: 22, backgroundColor: COLORS.surfaceRaised, flexDirection: "row", alignItems: "center", gap: SPACE.s3 },
+  managementToggleText: { flex: 1 },
+  managementTitle: { fontSize: TYPE.bodyStrong, color: COLORS.textPrimary, fontWeight: "700" },
+  managementHint: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: 3 },
   pulseRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingVertical: 8 },
   pulseDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle, marginTop: 4 },
   pulseText: { fontSize: TYPE.body, color: COLORS.textPrimary, flex: 1, lineHeight: 20 },
