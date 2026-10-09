@@ -12,6 +12,7 @@ import { LivingModeSwitcher, type LivingMode } from "../../../../components/livi
 import { RealPhotoCard } from "./_components/RealPhotoCard";
 import { EVENT_LABELS } from "../../../_components/today/constants";
 import { observedActivityMinutes } from "../../../_components/today/activity";
+import { eventTypeLabel, provenanceLabel } from "../../../../lib/ownerLabels";
 
 interface PetRow {
   name: string;
@@ -24,6 +25,7 @@ interface TodayMini {
     event_type: string;
     occurred_at: string;
     payload?: Record<string, unknown>;
+    source_type?: string;
   }>;
   event_counts?: Record<string, number>;
 }
@@ -34,6 +36,7 @@ interface TodayMini {
 export default function PetLifeViewPage({ params }: { params: Promise<{ id: string }> }) {
   const petId = use(params).id;
   const [mode, setMode] = useState<LivingMode>("now");
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const pet = useAsync<PetRow>(
     () => (petId ? api.get(`/pets/${petId}`) : Promise.reject(new Error("NO_PET"))),
@@ -86,12 +89,54 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
     event_type: event.event_type,
     payload: event.payload ?? {},
   })));
-  const anchorsAll: StageAnchor[] = [
-    { id: "water", label: "饮水", value: anchorValue(counts["daily.drink"] ?? 0, "次"), icon: "water", href: "/timeline" },
-    { id: "meal", label: "进食", value: anchorValue(counts["daily.meal"] ?? 0, "次"), icon: "food", href: "/timeline" },
-    { id: "activity", label: "活动", value: anchorValue(activityMinutes, "分钟"), icon: "walk", href: "/timeline" },
-    { id: "sleep", label: "睡眠", value: anchorValue(counts["daily.sleep"] ?? 0, "次"), icon: "sleep", href: "/timeline" },
+  type LifeDetail = {
+    id: string;
+    label: string;
+    value: string;
+    source: string;
+    updatedAt: string;
+    evidence: string;
+    compare: string;
+  };
+
+  const eventsFor = (types: string[]) => events.filter((event) => types.includes(event.event_type));
+  const detailFor = (id: string, label: string, value: string, types: string[]): LifeDetail => {
+    const matching = eventsFor(types);
+    const latest = matching[0] ?? null;
+    const sources = Array.from(
+      new Set(matching.map((event) => provenanceLabel(event.source_type)).filter(Boolean)),
+    );
+    return {
+      id,
+      label,
+      value,
+      source: sources.length ? sources.join(" + ") : "暂无来源记录",
+      updatedAt: latest
+        ? new Date(latest.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })
+        : "暂无更新时间",
+      evidence: latest
+        ? `${eventTypeLabel(latest.event_type)} · ${new Date(latest.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+        : "暂无记录",
+      // The Today payload has no validated personal baseline. Never invent a
+      // comparison from a single day just to fill this field.
+      compare: "暂无（数据积累后显示）",
+    };
+  };
+
+  const detailRows: LifeDetail[] = [
+    detailFor("water", "饮水", anchorValue(counts["daily.drink"] ?? 0, "次"), ["daily.drink"]),
+    detailFor("meal", "进食", anchorValue(counts["daily.meal"] ?? 0, "次"), ["daily.meal"]),
+    detailFor("activity", "活动", anchorValue(activityMinutes, "分钟"), ["daily.walk", "daily.play"]),
+    detailFor("sleep", "睡眠", anchorValue(counts["daily.sleep"] ?? 0, "次"), ["daily.sleep"]),
   ];
+  const anchorsAll: StageAnchor[] = detailRows.map((detail) => ({
+    id: detail.id,
+    label: detail.label,
+    value: detail.value,
+    icon: detail.id === "water" ? "water" : detail.id === "meal" ? "food" : detail.id === "activity" ? "walk" : "sleep",
+    onPress: () => setDetailId(detail.id),
+  }));
+  const activeDetail = detailRows.find((detail) => detail.id === detailId) ?? null;
   // INVARIANT: anchors always render ("—" when 0); never filtered out.
   const anchors = anchorsAll;
 
@@ -148,6 +193,26 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
       </div>
 
       <LivingModeSwitcher value={mode} onChange={setMode} />
+
+      {activeDetail ? (
+        <section className="v7-life-detail" data-testid="pli.lifeview.anchor-detail" aria-live="polite">
+          <div className="v7-life-detail-head">
+            <div>
+              <p className="v7-life-detail-kicker">此刻的记录详情</p>
+              <h2>{activeDetail.label} · {activeDetail.value}</h2>
+            </div>
+            <button type="button" className="btn" onClick={() => setDetailId(null)} aria-label="关闭状态详情">关闭</button>
+          </div>
+          <dl className="v7-life-detail-grid">
+            <div><dt>事实</dt><dd>{activeDetail.value}</dd></div>
+            <div><dt>与自己相比</dt><dd>{activeDetail.compare}</dd></div>
+            <div><dt>来源</dt><dd>{activeDetail.source}</dd></div>
+            <div><dt>更新时间</dt><dd>{activeDetail.updatedAt}</dd></div>
+            <div><dt>证据</dt><dd>{activeDetail.evidence}</dd></div>
+          </dl>
+          <Link href="/timeline" className="v4-action v4-action--secondary">在时间线里查看原始记录</Link>
+        </section>
+      ) : null}
 
       <div className="v4-grid">
         <div>
