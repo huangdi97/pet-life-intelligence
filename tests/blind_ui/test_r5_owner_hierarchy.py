@@ -1537,3 +1537,36 @@ def test_final_web_runtime_evidence_reseeds_after_visual_chain() -> None:
     assert workflow.index(reset) < workflow.index(capture)
     between = workflow[workflow.index(reset):workflow.index(capture)]
     assert "python -m app.seed" in between
+
+
+def test_web_product_glb_ready_means_product_asset_is_really_mounted() -> None:
+    viewer = read("apps/web/components/three/pet3d-viewer.tsx")
+    assert 'setStatus("boot");' in viewer
+    assert 'const requiresProductGlb = Boolean(twin && identity && demoTwin);' in viewer
+    assert 'if (!requiresProductGlb) {' in viewer
+    load = viewer.index("loadTwinGLB(identity)")
+    ready = viewer.index('setStatus("ready");', load)
+    mounted = viewer.index("hdTwin = twin3d;", load)
+    assert mounted < ready
+    failed = viewer.index('setStatus("failed");', load)
+    assert failed > load
+
+
+def test_today_living_canvas_reserves_phone_first_fold_for_action_without_small_pet_regression() -> None:
+    stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
+    today = read("apps/mobile/src/screens/TodayScreen.tsx")
+    change = read("apps/mobile/src/components/life/ChangeNarrative.tsx")
+    action = read("apps/mobile/src/components/actions/QuickAction.tsx")
+    web_stage = read("apps/web/components/pet-living-stage.tsx")
+    css = read("apps/web/app/globals.css")
+
+    assert "today: 500" in stage
+    assert "PET_WIDTHS" in stage and "today: 372" in stage
+    assert "<ChangeNarrative" in today and "compact" in today
+    assert 'label="快速记录"' in today and 'compact />' in today
+    assert "blockCompact" in change
+    assert "primaryCompact" in action
+    assert 'variant === "today" ? "r2p-stage--today"' in web_stage
+    assert "R7.8 Today first-fold closure" in css
+    assert '[data-testid="pli.today.now"]' in css
+    assert ".r2p-stage--today.r2p-stage--3d" in css
