@@ -113,7 +113,7 @@ export function PetLivingStage({
   // individual Twin may lead the dedicated Life View, while the owner can
   // always switch between representations when both exist.
   const photoFirstByDefault = Boolean(photoUri && (demo || twin === null));
-  const explicitPhotoChoice = photoView?.petId === pet?.id ? photoView.enabled : null;
+  const explicitPhotoChoice = photoView && photoView.petId === pet?.id ? photoView.enabled : null;
   const showPhoto = Boolean(photoUri && (explicitPhotoChoice ?? photoFirstByDefault));
   const use3d = canShow3d && !showPhoto;
   const reviewStudio = variant === "review";
