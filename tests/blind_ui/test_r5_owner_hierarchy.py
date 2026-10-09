@@ -1526,3 +1526,14 @@ def test_web_pet_world_domain_rows_are_current_pet_meanings_not_static_menu_copy
     assert "const domains:" in mini
     assert "healthCount7d" in mini
     assert "lastBehavior" in mini and "lastGoal" in mini and "lastWelfare" in mini
+
+
+def test_final_web_runtime_evidence_reseeds_after_visual_chain() -> None:
+    """Final visual evidence must not inherit model mutations from visual specs."""
+    workflow = read(".github/workflows/ci.yml")
+    reset = "Reset demo data (final runtime evidence isolation)"
+    capture = "R5.6 Web final runtime evidence"
+    assert reset in workflow
+    assert workflow.index(reset) < workflow.index(capture)
+    between = workflow[workflow.index(reset):workflow.index(capture)]
+    assert "python -m app.seed" in between
