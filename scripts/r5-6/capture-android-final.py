@@ -482,7 +482,7 @@ def capture_review_views(
     expected_pet_id: str,
 ) -> None:
     android.clear_runtime_manifest()
-    android.start_link("pli-demo://nav?screen=twinreview")
+    android.start_link(f"pli-demo://nav?screen=twinreview&pet={expected_pet_id}")
 
     # This function runs *after* the surface sweep, whose last screen is Me.
     # A fixed sleep can therefore freeze the previous tab while React
@@ -617,11 +617,30 @@ def main() -> None:
     secondary_review = out / "secondary-review"
     secondary_review.mkdir(parents=True, exist_ok=True)
     android.clear_runtime_manifest()
-    android.start_link("pli-demo://nav?screen=twinreview")
-    time.sleep(5)
-    secondary_review_xml = android.dump_xml(secondary_review / "ui.xml")
-    if "pli.twinreview.camera-controls" not in secondary_review_xml:
-        raise CaptureError("secondary Twin Review capture is missing first-screen camera controls")
+    android.start_link(f"pli-demo://nav?screen=twinreview&pet={secondary_id}")
+    secondary_review_xml = ""
+    required_secondary_controls = (
+        "pli.twinreview.camera-controls",
+        "pli.twinreview.view.front",
+        "pli.twinreview.view.side",
+        "pli.twinreview.view.back",
+    )
+    for attempt in range(12):
+        time.sleep(1 if attempt else 3)
+        secondary_review_xml = android.dump_xml(secondary_review / "ui.xml")
+        if all(control in secondary_review_xml for control in required_secondary_controls):
+            break
+    missing_secondary = [
+        control for control in required_secondary_controls if control not in secondary_review_xml
+    ]
+    if missing_secondary:
+        observed_ids = sorted(
+            set(re.findall(r'resource-id="(pli\\.[^"]+)"', secondary_review_xml))
+        )[:12]
+        raise CaptureError(
+            "secondary Twin Review did not reach the requested pet/review surface: "
+            f"missing={missing_secondary}; observed_ui_ids={observed_ids}"
+        )
     save_manifest(
         secondary_review / "3d.json",
         android.read_runtime_manifest(
