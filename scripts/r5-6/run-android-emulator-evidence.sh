@@ -27,7 +27,7 @@ trap capture_diagnostics EXIT
 # localhost:8081 to the hosted runner so the evidence APK gets the real app
 # bundle instead of a blank native shell.
 "$ADB" -s "$SERIAL" reverse tcp:8081 tcp:8081
-
+# Evidence backend uses device loopback via adb reverse; this avoids hosted-emulator\n# 10.0.2.2 routing variance and keeps the app/backend channel deterministic.\n"$ADB" -s "$SERIAL" reverse tcp:8800 tcp:8800\n
 ready=0
 for _ in $(seq 1 60); do
   if "$ADB" -s "$SERIAL" shell service check package 2>/dev/null | grep -q "found"; then
