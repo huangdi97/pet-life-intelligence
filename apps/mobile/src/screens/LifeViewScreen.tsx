@@ -40,7 +40,7 @@ interface AnchorDetail {
 export function LifeViewScreen() {
   const { pets, petId } = usePets();
   const navigation = useNavigation<NativeStackNavigationProp<StackParamList>>();
-  const { twin } = usePetTwin(petId);
+  const { twin, loading: twinLoading, error: twinError } = usePetTwin(petId);
   const [loadedPetId, setLoadedPetId] = useState<string | null>(null);
   const [rawToday, setToday] = useState<{ events: LifeEvent[] } | null>(null);
   const [mode, setMode] = useState<LivingMode>("now");
@@ -142,7 +142,26 @@ export function LifeViewScreen() {
     <SafeAreaView style={styles.page} edges={["top"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.identityRow} testID="pli.lifeview.identity">
-          <Text style={styles.identityText}>{pet?.name ?? "宠物"} · 此刻</Text>
+          <Text style={styles.identityText}>{pet?.name ?? "宠物"} · 生命视图</Text>
+          <View style={styles.metaRow}>
+            <Text style={styles.metaText} testID="pli.lifeview.freshness">
+              {lastEvent
+                ? `更新 ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+                : "今天暂无新记录"}
+            </Text>
+            <Text style={styles.metaDot}>·</Text>
+            <Text style={styles.metaText} testID="pli.lifeview.model-status">
+              {twinLoading
+                ? "3D 状态读取中"
+                : twinError
+                  ? "3D 状态暂时不可用"
+                  : twin
+                    ? twin.demoFixture
+                      ? `示例 3D · v${twin.version}`
+                      : `3D v${twin.version} · 已确认`
+                    : "暂无已确认个体 3D"}
+            </Text>
+          </View>
         </View>
         <View style={styles.stageWrap}>
           <PetLivingStage
@@ -282,6 +301,9 @@ const styles = StyleSheet.create({
   controlBtnText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   identityRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
   identityText: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
+  metaRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6, marginTop: 4 },
+  metaText: { fontSize: TYPE.caption, color: COLORS.textTertiary },
+  metaDot: { fontSize: TYPE.caption, color: COLORS.dividerStrong },
   controlRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginTop: SPACE.s3 },
   controlBtn: {
     flexDirection: "row",
