@@ -54,7 +54,7 @@ export const QUICK_TYPES: QuickLogType[] = [
   {
     type: "daily.walk",
     label: "散步",
-    fields: [{ key: "duration_minutes", label: "时长（分钟）", placeholder: "如：30", inputMode: "numeric", required: true, min: 1 }],
+    fields: [{ key: "duration_minutes", label: "时长（分钟，可选）", placeholder: "如：30", inputMode: "numeric", min: 1 }],
   },
   {
     type: "daily.play",
