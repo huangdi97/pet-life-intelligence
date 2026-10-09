@@ -19,19 +19,19 @@ per candidate (DEMO_SYNTHETIC fixtures vs owner media).
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-import uuid
 
-from app.adapters.visual_provider import VisualProvider
 from sqlalchemy import select
 
+from app.adapters.visual_provider import VisualProvider
 from app.core.config import get_settings
 from app.models import Artifact, Pet, PetVisualCapture, PetVisualJob, PetVisualModel
+from app.services.storage import get_storage
 from app.services.twin_individual import build_individual_twin
 from app.services.twin_media import image_quality
-from app.services.storage import get_storage
 
 GEOMETRY_VERSION = "template-v1"
 RIG_VERSION = "rig-anim-v2"  # R2P3D-R1: 12-clip joint rig
