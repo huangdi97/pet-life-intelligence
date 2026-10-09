@@ -636,3 +636,39 @@ page { background:#F6F7F1; }
   color: $color-text-tertiary;
   font-size: $font-caption;
 }
+
+
+/* R7.3 Today CHANGE layer — quieter than health Attention. */
+.change-narrative {
+  margin:$space-3 $space-4 0;
+  padding:$space-3 $space-4;
+  border-radius:28px;
+  background:rgba(238,243,234,.9);
+  border:1px solid rgba(54,95,73,.10);
+}
+.change-narrative-unknown {
+  background:rgba(255,254,249,.9);
+  border-color:$color-divider-subtle;
+}
+.change-kicker {
+  display:block;
+  color:#42634E;
+  font-size:$font-caption;
+  font-weight:$font-weight-bold;
+  letter-spacing:2px;
+}
+.change-summary {
+  display:block;
+  margin-top:7px;
+  color:$color-text-primary;
+  font-size:$font-body-strong;
+  font-weight:$font-weight-semibold;
+  line-height:1.55;
+}
+.change-evidence {
+  display:block;
+  margin-top:5px;
+  color:$color-text-tertiary;
+  font-size:$font-caption;
+  line-height:1.5;
+}
