@@ -28,6 +28,14 @@ import { usePetTwin } from "../hooks/usePetTwin";
 import { poseForEvent } from "@pli/pet-3d";
 import type { StackParamList } from "../navigation";
 
+interface BaselineRow {
+  metric: string;
+  value: string;
+  sample_count: number;
+  window_days: number;
+  computed_at: string;
+}
+
 interface AnchorDetail {
   id: string;
   label: string;
@@ -48,6 +56,9 @@ export function LifeViewScreen() {
   const [rawError, setError] = useState(false);
   const [rawDetail, setDetail] = useState<AnchorDetail | null>(null);
   const [detailPetId, setDetailPetId] = useState<string | null>(null);
+  const [rawBaseline, setBaseline] = useState<BaselineRow[]>([]);
+  const [baselinePetId, setBaselinePetId] = useState<string | null>(null);
+  const [baselineState, setBaselineState] = useState<"loading" | "ready" | "error">("loading");
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   // Each fact and any open detail sheet belongs to one pet. Hide stale state
@@ -56,6 +67,8 @@ export function LifeViewScreen() {
   const today = scoped ? rawToday : null;
   const error = scoped ? rawError : false;
   const detail = detailPetId === pet?.id ? rawDetail : null;
+  const baseline = baselinePetId === pet?.id ? rawBaseline : [];
+  const scopedBaselineState = baselinePetId === pet?.id ? baselineState : "loading";
 
   useEffect(() => {
     if (!pet?.id) return;
@@ -63,6 +76,9 @@ export function LifeViewScreen() {
     setToday(null);
     setError(false);
     setDetail(null);
+    setBaseline([]);
+    setBaselinePetId(null);
+    setBaselineState("loading");
     api
       .get<{ events: LifeEvent[] }>(`/pets/${pet.id}/today`)
       .then((r) => {
@@ -77,6 +93,20 @@ export function LifeViewScreen() {
           setError(true);
           setLoadedPetId(pet.id);
         }
+      });
+    api
+      .get<BaselineRow[]>(`/pets/${pet.id}/baseline`)
+      .then((rows) => {
+        if (!alive) return;
+        setBaseline(rows);
+        setBaselinePetId(pet.id);
+        setBaselineState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setBaseline([]);
+        setBaselinePetId(pet.id);
+        setBaselineState("error");
       });
     return () => {
       alive = false;
@@ -93,8 +123,35 @@ export function LifeViewScreen() {
     const rows = petEvents.map((e) => e.event_type);
     const c = (t: string) => rows.filter((x) => x === t).length;
     const activityMinutes = observedActivityMinutes(petEvents);
+    const durationMinutes = (eventType: string) =>
+      petEvents.reduce((total, event) => {
+        if (event.event_type !== eventType) return total;
+        const minutes = Number(event.payload?.duration_minutes);
+        return Number.isFinite(minutes) && minutes > 0 && minutes <= 24 * 60 ? total + minutes : total;
+      }, 0);
+    const sleepMinutes = durationMinutes("daily.sleep");
+    const comparisonFor = (metric: string | null, current: number) => {
+      if (!metric) return "暂无（当前没有同口径常态）";
+      if (current <= 0) return "暂无（今天没有足够记录）";
+      if (scopedBaselineState === "loading") return "常态读取中";
+      if (scopedBaselineState !== "ready") return "常态暂时不可用";
+      const row = baseline.find((item) => item.metric === metric);
+      const usual = Number(row?.value);
+      if (!row || row.sample_count < 3 || !Number.isFinite(usual) || usual <= 0) return "数据还不足以比较";
+      const delta = Math.round(((current - usual) / usual) * 100);
+      if (Math.abs(delta) < 5) return `接近最近 ${row.window_days} 天常态（${row.sample_count} 天样本）`;
+      return `比最近 ${row.window_days} 天常态${delta > 0 ? "高" : "低"} ${Math.abs(delta)}%（${row.sample_count} 天样本）`;
+    };
     const matching = (t: string) => petEvents.filter((e) => e.event_type === t);
-    const mk = (id: string, label: string, value: string, icon: keyof typeof Ionicons.glyphMap, type: string) => ({
+    const mk = (
+      id: string,
+      label: string,
+      value: string,
+      icon: keyof typeof Ionicons.glyphMap,
+      type: string,
+      baselineMetric: string | null,
+      current: number,
+    ) => ({
       id,
       label,
       value,
@@ -110,23 +167,25 @@ export function LifeViewScreen() {
           : "—";
         const evi = evs[0] ? `${eventTypeLabel(evs[0].event_type)} · ${at}` : "暂无记录";
         setDetailPetId(pet?.id ?? null);
-        setDetail({ id, label, value, source: src, updatedAt: at, evidence: evi, compare: "暂无（数据积累后显示）" });
+        setDetail({ id, label, value, source: src, updatedAt: at, evidence: evi, compare: comparisonFor(baselineMetric, current) });
       },
     });
     const list = [
-      mk("drink", "饮水", c("daily.drink") ? `${c("daily.drink")} 次` : "—", "water-outline", "daily.drink"),
-      mk("meal", "进食", c("daily.meal") ? `${c("daily.meal")} 次` : "—", "restaurant-outline", "daily.meal"),
+      mk("drink", "饮水", c("daily.drink") ? `${c("daily.drink")} 次` : "—", "water-outline", "daily.drink", null, c("daily.drink")),
+      mk("meal", "进食", c("daily.meal") ? `${c("daily.meal")} 次` : "—", "restaurant-outline", "daily.meal", "meal_count_per_day", c("daily.meal")),
       mk(
         "activity",
         "活动",
         activityMinutes > 0 ? `${activityMinutes} 分钟` : "—",
         "walk-outline",
         "daily.walk",
+        null,
+        activityMinutes,
       ),
-      mk("sleep", "睡眠", c("daily.sleep") ? `${c("daily.sleep")} 次` : "—", "moon-outline", "daily.sleep"),
+      mk("sleep", "睡眠", sleepMinutes > 0 ? `${sleepMinutes} 分钟` : "—", "moon-outline", "daily.sleep", "sleep_minutes_per_day", sleepMinutes),
     ];
     return list;
-  }, [petEvents, pet?.id]);
+  }, [petEvents, pet?.id, baseline, scopedBaselineState]);
 
   const nowLine = error
     ? "暂时连接不上，稍后自动恢复。"
