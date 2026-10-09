@@ -79,7 +79,7 @@ export default function Training() {
   const [rewardSubject, setRewardSubject] = useState("");
   const [rewardNote, setRewardNote] = useState("");
   const [selectedReward, setSelectedReward] = useState("");
-  const [rewardBusy, setRewardBusy] = useState(false);
+  const [rewardBusy, setRewardBusy] = useState(false);\n  const [rewardOpen, setRewardOpen] = useState(false);
   const [tools, setTools] = useState<TrainingTools | null>(null);
   const [toolsState, setToolsState] = useState<"loading" | "ready" | "error">("loading");
 
@@ -283,17 +283,28 @@ export default function Training() {
                     ))}
                   </View>
                 ) : <View className="life-empty-note">还没有保存奖励偏好。</View>}
-                <View className="field">
-                  <Text>新奖励</Text>
-                  <Input className="input" value={rewardSubject} onInput={(event) => setRewardSubject(event.detail.value)} placeholder="例如：冻干鸡肉 / 拉扯玩具 / 抚摸" />
+                <View
+                  className="secondary-action"
+                  data-testid="pli.mini.training.reward.toggle"
+                  onClick={() => setRewardOpen((value) => !value)}
+                >
+                  {rewardOpen ? "收起" : "＋ 添加奖励偏好"}
                 </View>
-                <View className="field">
-                  <Text>补充事实（可选）</Text>
-                  <Input className="input" value={rewardNote} onInput={(event) => setRewardNote(event.detail.value)} placeholder="例如：在安静环境下反应最好" />
-                </View>
-                <Button className="btn" disabled={rewardBusy || !rewardSubject.trim()} onClick={() => void addReward()}>
-                  {rewardBusy ? "保存中…" : "保存奖励偏好"}
-                </Button>
+                {rewardOpen ? (
+                  <View className="soft-panel">
+                    <View className="field">
+                      <Text>新奖励</Text>
+                      <Input className="input" value={rewardSubject} onInput={(event) => setRewardSubject(event.detail.value)} placeholder="例如：冻干鸡肉 / 拉扯玩具 / 抚摸" />
+                    </View>
+                    <View className="field">
+                      <Text>补充事实（可选）</Text>
+                      <Input className="input" value={rewardNote} onInput={(event) => setRewardNote(event.detail.value)} placeholder="例如：在安静环境下反应最好" />
+                    </View>
+                    <Button data-testid="pli.mini.training.reward.submit" className="btn" disabled={rewardBusy || !rewardSubject.trim()} onClick={() => void addReward()}>
+                      {rewardBusy ? "保存中…" : "保存奖励偏好"}
+                    </Button>
+                  </View>
+                ) : null}
               </View>
 
               <View className="open-section" data-testid="pli.mini.training.history">
