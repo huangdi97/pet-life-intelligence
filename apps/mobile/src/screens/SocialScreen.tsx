@@ -3,7 +3,7 @@
  * (记录互动 last). 真实互动学习，不做伪精确兼容度。
  */
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { usePets } from "../context";
 import { api, humanizeError, type LifeEvent, type Pet, type PetFriend, type SocialProfile } from "../api";
@@ -193,22 +193,39 @@ export function SocialScreen() {
               )}
             </OpenSection>
 
-            <View style={styles.formSection} testID="pli.social.action">
-              <Text style={styles.formLabel}>记录互动</Text>
-              <SocialRecordForm
-                candidates={friendCandidates}
-                friendPetId={friendPetId}
-                onFriendChange={setFriendPetId}
-                quality={quality}
-                onQualityChange={setQuality}
-                duration={duration}
-                onDurationChange={setDuration}
-                notes={notes}
-                onNotesChange={setNotes}
-                busy={busy}
-                msg={msg}
-                onRecord={() => void recordInteraction()}
-              />
+            <View style={styles.formSection}>
+              <Pressable
+                testID="pli.social.action"
+                accessibilityRole="button"
+                accessibilityLabel={formOpen ? "收起互动记录表单" : "记录一次互动"}
+                accessibilityState={{ expanded: formOpen }}
+                onPress={() => setFormOpen((value) => !value)}
+                style={({ pressed }) => [styles.formToggle, pressed && styles.pressed]}
+              >
+                <View style={styles.formToggleCopy}>
+                  <Text style={styles.formLabel}>补充一次互动</Text>
+                  <Text style={styles.formHint}>先看关系与最近互动；需要时再记录真实发生的这一次。</Text>
+                </View>
+                <Text style={styles.formToggleAction}>{formOpen ? "收起" : "记录"}</Text>
+              </Pressable>
+              {formOpen ? (
+                <View style={styles.formWrap}>
+                  <SocialRecordForm
+                    candidates={friendCandidates}
+                    friendPetId={friendPetId}
+                    onFriendChange={setFriendPetId}
+                    quality={quality}
+                    onQualityChange={setQuality}
+                    duration={duration}
+                    onDurationChange={setDuration}
+                    notes={notes}
+                    onNotesChange={setNotes}
+                    busy={busy}
+                    msg={msg}
+                    onRecord={() => void recordInteraction()}
+                  />
+                </View>
+              ) : null}
             </View>
           </>
         )}
@@ -247,5 +264,11 @@ const styles = StyleSheet.create({
   eventTime: { fontSize: TYPE.caption, color: COLORS.textTertiary },
   emptyText: { fontSize: TYPE.body, color: COLORS.textTertiary },
   formSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
-  formLabel: { fontSize: TYPE.section, fontWeight: "600", color: COLORS.textPrimary, marginBottom: SPACE.s2 },
+  formToggle: { minHeight: 66, borderRadius: 20, backgroundColor: COLORS.brandSoftGreen, paddingHorizontal: SPACE.s4, paddingVertical: SPACE.s3, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: SPACE.s3 },
+  formToggleCopy: { flex: 1 },
+  formLabel: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary },
+  formHint: { fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18, marginTop: 3 },
+  formToggleAction: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "700" },
+  formWrap: { marginTop: SPACE.s3 },
+  pressed: { opacity: 0.84 },
 });
