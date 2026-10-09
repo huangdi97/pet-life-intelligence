@@ -506,7 +506,7 @@ export default function Timeline() {
           </View>
         ) : null}
         {milestoneState === "ready" && milestones.length ? (
-          <View className="soft-panel">
+          <View className="timeline-journal-list">
             {milestones.slice(0, 3).map((row) => (
               <View className="life-row" key={row.milestone_id}>
                 <View className="life-row-body">
@@ -532,7 +532,7 @@ export default function Timeline() {
         </View>
         <View className="life-empty-note">这里只回看历史上同一日期附近真实存在的事件；没有记录就不生成“回忆”。</View>
         {memoryState === "ready" && memories.length ? (
-          <View className="soft-panel">
+          <View className="timeline-journal-list">
             {memories.slice(0, 3).map((row) => (
               <View className="life-row" key={row.years_ago}>
                 <View className="life-row-body">
@@ -597,7 +597,7 @@ export default function Timeline() {
           </View>
         ) : null}
         {diaryState === "ready" && diary.length ? (
-          <View className="soft-panel">
+          <View className="timeline-journal-list">
             <View className="section-title">最近日记</View>
             {diary.slice(0, 3).map((entry) => (
               <View className="life-row" key={entry.diary_id}>
@@ -628,7 +628,7 @@ export default function Timeline() {
           {summaryBusy ? "整理中…" : "自动整理今日回顾"}
         </Button>
         {summaryState === "ready" && summaries.length ? (
-          <View className="soft-panel">
+          <View className="timeline-journal-list">
             <View className="life-row-detail">{summaries[0].summary}</View>
             <View className="life-row-source">AI 自动整理 · {summaries[0].fact_count} 条已记录事实 · {summaries[0].date}</View>
             <View className="life-row-source">{summaries[0].disclaimer}</View>
