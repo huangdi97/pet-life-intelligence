@@ -1230,3 +1230,11 @@ def test_shared_3d_living_palette_matches_r7_botanical_canvas() -> None:
     # previous beige studio palette.
     assert 'base: "#F4E9D8"' not in palette
     assert 'fog: "#EFE0C8"' not in palette
+
+
+def test_web_3d_review_keeps_neutral_theme_and_role_dependencies() -> None:
+    viewer = read("apps/web/components/three/pet3d-viewer.tsx")
+    assert "STAGE_THEMES.review" in viewer
+    assert 'stageRole === "review"' in viewer
+    assert "stageRole, realityField" in viewer
+    assert "frameTarget, stageRole" in viewer
