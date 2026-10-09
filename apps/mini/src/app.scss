@@ -688,3 +688,16 @@ page { background:#F6F7F1; }
 .timeline-composer > .btn:first-child {
   margin-top: 0;
 }
+
+
+/* R7.11 Timeline is a journal, not a feature-card stack. Secondary memories
+   continue the same reading rhythm after the Life Stream. */
+.timeline-journal-list {
+  margin-top: $space-3;
+  padding-top: $space-2;
+  border-top: 1px solid $color-divider-subtle;
+  background: transparent;
+}
+.timeline-journal-list > .life-row {
+  padding: $space-2 0;
+}
