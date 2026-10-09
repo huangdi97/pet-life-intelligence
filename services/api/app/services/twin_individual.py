@@ -194,28 +194,70 @@ def _region_color_zone(
     return _region_color(img, zone)
 
 
-def _fit_morph(silhouettes: list[dict], family: str, prior: dict) -> dict:
+def _fit_morph(
+    silhouettes: list[dict],
+    family: str,
+    prior: dict,
+    angle_map: dict[str, list[int]] | None = None,
+) -> dict:
     """Fit observed proportions without destroying the template-family shape.
 
-    The family defaults are the unobserved prior. Deterministic silhouette
-    evidence may adjust supported dimensions, while every unsupported morph
-    keeps the canonical cat/dog/corgi/retriever/spitz proportion.
+    Only BODY views influence body height / leg length. A head close-up is
+    useful for surface color but must never make the pet appear stockier simply
+    because a tightly cropped face has a large width/height ratio. Explicit
+    left/right captures provide only a low-weight body-length correction.
     """
     morph: dict = dict(TEMPLATE_MORPH_DEFAULTS.get(family, TEMPLATE_MORPH_DEFAULTS["standard-dog"]))
     morph.update(prior)
-    aspects = [s["aspect"] for s in silhouettes if s.get("has_pet")]
-    heights = [s["height"] for s in silhouettes if s.get("has_pet")]
-    if aspects:
-        avg = sum(aspects) / len(aspects)
-        # Aspect (w/h): stocky pets ~0.9-1.3; leggy pets ~0.5-0.8.
-        morph["body_height"] = round(max(0.7, min(1.35, 1.0 + (0.9 - avg) * 0.45)), 3)
-        morph["leg_length_front"] = round(max(0.5, min(1.6, morph.get("leg_length_front", 1.0) + (0.95 - avg) * 0.7)), 3)
-        morph["leg_length_back"] = morph["leg_length_front"]
-    if heights:
-        # Taller relative to width => leaner torso.
-        pass
-    # Contract stays complete, but missing evidence now retains the family
-    # template value rather than collapsing every dimension to 1.0.
+    angle_map = angle_map or {}
+
+    def valid_aspects(indices: list[int]) -> list[float]:
+        values: list[float] = []
+        for idx in indices:
+            if 0 <= idx < len(silhouettes):
+                sil = silhouettes[idx]
+                if sil.get("has_pet") and float(sil.get("aspect") or 0) > 0:
+                    values.append(float(sil["aspect"]))
+        return values
+
+    body_indices = sorted({
+        idx
+        for angle in ("front", "left", "right", "back", "full_body")
+        for idx in (angle_map.get(angle) or [])
+    })
+    # Backward-compatible fallback for older captures with no semantic angle
+    # bindings: use all silhouettes, but still prefer explicit body views when
+    # present. New owner captures always persist angle_artifact_ids.
+    body_aspects = valid_aspects(body_indices) if body_indices else [
+        float(s["aspect"]) for s in silhouettes if s.get("has_pet") and float(s.get("aspect") or 0) > 0
+    ]
+    if body_aspects:
+        ordered = sorted(body_aspects)
+        median = ordered[len(ordered) // 2]
+        base_height = morph["body_height"]
+        base_front_leg = morph["leg_length_front"]
+        base_back_leg = morph["leg_length_back"]
+        # Keep family priors dominant: observed silhouette adjusts at most ~18%.
+        height_factor = max(0.82, min(1.18, 1.0 + (0.9 - median) * 0.20))
+        leg_factor = max(0.82, min(1.18, 1.0 + (0.95 - median) * 0.24))
+        morph["body_height"] = round(base_height * height_factor, 3)
+        morph["leg_length_front"] = round(base_front_leg * leg_factor, 3)
+        morph["leg_length_back"] = round(base_back_leg * leg_factor, 3)
+
+    side_indices = sorted({
+        idx for angle in ("left", "right") for idx in (angle_map.get(angle) or [])
+    })
+    side_aspects = valid_aspects(side_indices)
+    if side_aspects:
+        ordered = sorted(side_aspects)
+        side_median = ordered[len(ordered) // 2]
+        # Side silhouette is the only deterministic 2D cue currently allowed
+        # to nudge body length. Weight is deliberately small because framing
+        # distance/crop are not metric-calibrated.
+        length_factor = max(0.90, min(1.10, 1.0 + (side_median - 0.9) * 0.10))
+        morph["body_length"] = round(morph["body_length"] * length_factor, 3)
+
+    # Contract stays complete, but missing evidence retains the family template.
     for k in MORPH_KEYS:
         morph.setdefault(k, TEMPLATE_MORPH_DEFAULTS["standard-dog"][k])
     return morph
@@ -342,7 +384,7 @@ def build_individual_twin(
         if r not in observed:
             inferred[r] = "template_default"
 
-    morph = _fit_morph(silhouettes, family, prior)
+    morph = _fit_morph(silhouettes, family, prior, angle_map)
     observed_regions = sorted(observed)
     inferred_regions = sorted(r for r in OBSERVABLE_REGIONS if r not in observed)
     coverage_ratio = _coverage_ratio(set(observed_regions))
