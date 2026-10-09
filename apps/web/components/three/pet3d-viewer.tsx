@@ -142,7 +142,7 @@ export function Pet3DViewer({
     const stageTheme = stageRole === "review" ? STAGE_THEMES.review : STAGE_THEMES.living;
     scene.fog = new THREE.FogExp2(
       stageRole === "review" ? new THREE.Color(stageTheme.fog) : STAGE_FOG,
-      stageRole === "review" ? 0.022 : 0.028,
+      0.022,
     );
     // Individual twin (R2P3D-R1) beats demo identity when a descriptor exists.
     const stage = twin
