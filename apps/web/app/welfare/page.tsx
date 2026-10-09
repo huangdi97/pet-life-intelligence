@@ -48,8 +48,8 @@ export default function WelfarePage() {
     [petId],
   );
 
-  async function recordObservation() {
-    if (!petId) return;
+  async function recordObservation(): Promise<boolean> {
+    if (!petId) return false;
     setBusy(true);
     setMsg(null);
     try {
@@ -61,8 +61,10 @@ export default function WelfarePage() {
       setMsg("已记录福祉观察");
       evidence.reload();
       setTimeout(() => setMsg(null), 2500);
+      return true;
     } catch (e) {
       setMsg(mapErrorMessage(e));
+      return false;
     } finally {
       setBusy(false);
     }
