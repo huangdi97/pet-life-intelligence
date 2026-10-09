@@ -941,3 +941,20 @@ def test_web_pet_stage_releases_gpu_geometry_and_texture_resources() -> None:
         "renderer?.dispose()",
     ):
         assert token in viewer
+
+
+def test_companion_living_stage_stays_pet_first_without_hiding_device_reality() -> None:
+    mobile_stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
+    mobile = read("apps/mobile/src/screens/CompanionScreen.tsx")
+    web_stage = read("apps/web/components/pet-living-stage.tsx")
+    web = read("apps/web/app/companion/page.tsx")
+    css = read("apps/web/app/globals.css")
+
+    assert "compact?: boolean" in mobile_stage
+    assert "const height = compact ? 470 : HEIGHTS[variant];" in mobile_stage
+    assert "compact" in mobile
+    assert "frameTarget={0.48}" in mobile
+    assert 'role === "companion" ? "r2p-stage--companion" : ""' in web_stage
+    assert "frameTarget={0.48}" in web
+    assert ".r2p-stage--companion.r2p-stage--3d" in css
+    assert "min-height:470px" in css
