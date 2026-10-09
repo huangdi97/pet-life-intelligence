@@ -1851,3 +1851,13 @@ def test_life_view_exposes_real_secondary_state_across_owner_clients() -> None:
     for source in (mobile, web, mini):
         assert "暂不可用" in source
         assert "状态待确认" in source
+
+
+def test_life_view_keeps_core_mode_rail_ahead_of_secondary_support_facts() -> None:
+    mobile = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    web = read("apps/web/app/pets/[id]/life-view/page.tsx")
+    mini = read("apps/mini/src/pages/pets/life-view/index.tsx")
+
+    assert mobile.index('testID="pli.lifeview.control.modes"') < mobile.index('testID="pli.lifeview.support-facts"')
+    assert web.index("<LivingModeSwitcher") < web.index('className="v7-life-support"')
+    assert mini.index('className="life-view-modes"') < mini.index('className="life-view-support"')
