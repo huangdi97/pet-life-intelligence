@@ -66,7 +66,7 @@ export function HealthScreen() {
   const [rows, setRows] = useState<HealthEventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);\n  const [reminderFormOpen, setReminderFormOpen] = useState(false);
   const [complaint, setComplaint] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -312,32 +312,45 @@ export function HealthScreen() {
                 ) : (
                   <Text style={styles.emptyText}>还没有预防提醒。</Text>
                 )}
-                <View style={styles.reminderForm}>
-                  <View style={styles.reminderKinds}>
-                    {(["VACCINE", "DEWORMING", "CHECKUP"] as const).map((kind) => (
-                      <Pressable
-                        key={kind}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: reminderKind === kind }}
-                        onPress={() => setReminderKind(kind)}
-                        style={[styles.reminderChip, reminderKind === kind && styles.reminderChipSelected]}
-                      >
-                        <Text style={[styles.reminderChipText, reminderKind === kind && styles.reminderChipTextSelected]}>{REMINDER_KIND_LABEL[kind]}</Text>
-                      </Pressable>
-                    ))}
+                <Pressable
+                  testID="pli.health.reminder.toggle"
+                  accessibilityRole="button"
+                  accessibilityLabel={reminderFormOpen ? "收起预防提醒表单" : "添加预防提醒"}
+                  accessibilityState={{ expanded: reminderFormOpen }}
+                  onPress={() => setReminderFormOpen((value) => !value)}
+                  style={[styles.recordsEmptyAction, styles.reminderToggle]}
+                >
+                  <Text style={styles.recordsEmptyActionText}>{reminderFormOpen ? "收起" : "+ 添加预防提醒"}</Text>
+                </Pressable>
+                {reminderFormOpen ? (
+                  <View style={styles.reminderForm}>
+                    <View style={styles.reminderKinds}>
+                      {(["VACCINE", "DEWORMING", "CHECKUP"] as const).map((kind) => (
+                        <Pressable
+                          key={kind}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: reminderKind === kind }}
+                          onPress={() => setReminderKind(kind)}
+                          style={[styles.reminderChip, reminderKind === kind && styles.reminderChipSelected]}
+                        >
+                          <Text style={[styles.reminderChipText, reminderKind === kind && styles.reminderChipTextSelected]}>{REMINDER_KIND_LABEL[kind]}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                    <TextInput style={styles.input} value={reminderDate} onChangeText={setReminderDate} placeholder="计划日期 YYYY-MM-DD" placeholderTextColor={COLORS.textTertiary} autoCapitalize="none" />
+                    <TextInput style={styles.input} value={reminderTitle} onChangeText={setReminderTitle} placeholder="例如：年度核心疫苗" placeholderTextColor={COLORS.textTertiary} />
+                    <Pressable
+                      testID="pli.health.reminder.submit"
+                      accessibilityRole="button"
+                      accessibilityLabel="保存预防提醒"
+                      disabled={reminderBusy !== null || !reminderTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(reminderDate)}
+                      onPress={() => void createReminder()}
+                      style={[styles.recordsEmptyAction, { alignSelf: "flex-start" }]}
+                    >
+                      <Text style={styles.recordsEmptyActionText}>{reminderBusy === "create" ? "保存中…" : "保存提醒"}</Text>
+                    </Pressable>
                   </View>
-                  <TextInput style={styles.input} value={reminderDate} onChangeText={setReminderDate} placeholder="计划日期 YYYY-MM-DD" placeholderTextColor={COLORS.textTertiary} autoCapitalize="none" />
-                  <TextInput style={styles.input} value={reminderTitle} onChangeText={setReminderTitle} placeholder="例如：年度核心疫苗" placeholderTextColor={COLORS.textTertiary} />
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="添加预防提醒"
-                    disabled={reminderBusy !== null || !reminderTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(reminderDate)}
-                    onPress={() => void createReminder()}
-                    style={[styles.recordsEmptyAction, { alignSelf: "flex-start" }]}
-                  >
-                    <Text style={styles.recordsEmptyActionText}>{reminderBusy === "create" ? "保存中…" : "添加提醒"}</Text>
-                  </Pressable>
-                </View>
+                ) : null}
               </View>
               <Pressable
                 testID="pli.health.medication"
@@ -455,7 +468,7 @@ const styles = StyleSheet.create({
   changeBody: { fontSize: TYPE.body, color: COLORS.textPrimary, marginTop: SPACE.s2, lineHeight: 22 },
   recordRow: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: 10 },
   recordDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
-  reminderForm: { marginTop: SPACE.s3, gap: SPACE.s2 },
+  reminderToggle: { alignSelf: "flex-start", marginTop: SPACE.s3 },\n  reminderForm: { marginTop: SPACE.s3, gap: SPACE.s2 },
   reminderKinds: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
   reminderChip: { minHeight: 40, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised },
   reminderChipSelected: { backgroundColor: COLORS.brandSoftGreen },
