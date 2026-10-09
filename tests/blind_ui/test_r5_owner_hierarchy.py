@@ -1284,3 +1284,14 @@ def test_assistant_provider_outage_is_complete_degraded_state() -> None:
     for source in (mobile, web, mini):
         assert "当前无法连接 AI 服务" in source
         assert "暂未开放" not in source
+
+
+def test_settings_missing_emergency_profile_is_unconfigured_not_404() -> None:
+    """Legacy/demo pets must render an editable empty emergency card, never a 404."""
+    backend = read("services/api/app/api/routes/pets_consent.py")
+    settings_types = read("apps/web/app/settings/_components/types.ts")
+    assert 'raise NotFound("Emergency profile not initialized.")' not in backend
+    assert '"owner_contact": ""' in backend
+    assert '"critical_care_notes": ""' in backend
+    assert '"updated_at": None' in backend
+    assert "updated_at: string | null;" in settings_types
