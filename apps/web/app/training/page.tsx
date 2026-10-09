@@ -89,7 +89,8 @@ export default function TrainingPage() {
   const [rewardSubject, setRewardSubject] = useState("");
   const [rewardNote, setRewardNote] = useState("");
   const [selectedReward, setSelectedReward] = useState("");
-  const [rewardBusy, setRewardBusy] = useState(false);\n  const [rewardOpen, setRewardOpen] = useState(false);
+  const [rewardBusy, setRewardBusy] = useState(false);
+  const [rewardOpen, setRewardOpen] = useState(false);
 
   async function addReward() {
     if (!petId || !rewardSubject.trim() || rewardBusy) return;
