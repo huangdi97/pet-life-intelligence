@@ -55,7 +55,7 @@ export default function HealthPage() {
   const [onset, setOnset] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);\n  const [reminderFormOpen, setReminderFormOpen] = useState(false);
   const [reminderKind, setReminderKind] = useState<ReminderRow["kind"]>("VACCINE");
   const [reminderTitle, setReminderTitle] = useState("");
   const [reminderDate, setReminderDate] = useState("");
@@ -178,28 +178,46 @@ export default function HealthPage() {
             ))}
           </div>
         </State>
-        <div className="grid2" style={{ marginTop: 12 }}>
-          <label className="field">
-            类型
-            <select value={reminderKind} onChange={(e) => setReminderKind(e.target.value as ReminderRow["kind"])}>
-              <option value="VACCINE">疫苗</option>
-              <option value="DEWORMING">驱虫</option>
-              <option value="CHECKUP">体检</option>
-            </select>
-          </label>
-          <label className="field">
-            计划日期
-            <input type="date" value={reminderDate} onChange={(e) => setReminderDate(e.target.value)} />
-          </label>
-          <label className="field" style={{ gridColumn: "1 / -1" }}>
-            提醒内容
-            <input value={reminderTitle} onChange={(e) => setReminderTitle(e.target.value)} placeholder="例如：年度核心疫苗" />
-          </label>
-        </div>
-        {reminderError ? <p className="v4-note">提醒暂时没有保存成功：{reminderError}</p> : null}
-        <button className="btn" onClick={() => void createReminder()} disabled={reminderBusy !== null || !reminderTitle.trim() || !reminderDate}>
-          {reminderBusy === "create" ? "保存中…" : "添加预防提醒"}
+        <button
+          type="button"
+          className="btn"
+          data-testid="pli.health.reminder.toggle"
+          aria-expanded={reminderFormOpen}
+          aria-controls="pli-health-reminder-form"
+          onClick={() => {
+            setReminderFormOpen((value) => !value);
+            setReminderError(null);
+          }}
+          style={{ marginTop: 12 }}
+        >
+          {reminderFormOpen ? "收起" : "+ 添加预防提醒"}
         </button>
+        {reminderFormOpen ? (
+          <div id="pli-health-reminder-form" className="v5-form-surface v5-form-surface--inline">
+            <div className="grid2">
+              <label className="field">
+                类型
+                <select value={reminderKind} onChange={(e) => setReminderKind(e.target.value as ReminderRow["kind"])}>
+                  <option value="VACCINE">疫苗</option>
+                  <option value="DEWORMING">驱虫</option>
+                  <option value="CHECKUP">体检</option>
+                </select>
+              </label>
+              <label className="field">
+                计划日期
+                <input type="date" value={reminderDate} onChange={(e) => setReminderDate(e.target.value)} />
+              </label>
+              <label className="field" style={{ gridColumn: "1 / -1" }}>
+                提醒内容
+                <input value={reminderTitle} onChange={(e) => setReminderTitle(e.target.value)} placeholder="例如：年度核心疫苗" />
+              </label>
+            </div>
+            {reminderError ? <p className="v4-note">提醒暂时没有保存成功：{reminderError}</p> : null}
+            <button className="btn primary" data-testid="pli.health.reminder.submit" onClick={() => void createReminder()} disabled={reminderBusy !== null || !reminderTitle.trim() || !reminderDate}>
+              {reminderBusy === "create" ? "保存中…" : "保存预防提醒"}
+            </button>
+          </div>
+        ) : reminderError ? <p className="v4-note">提醒暂时没有保存成功：{reminderError}</p> : null}
       </section>
 
       <section className="v4-sec" data-testid="pli.health.medication">
