@@ -86,6 +86,31 @@ def test_identity_similarity_same_vs_cross(dog_photos, cat_photos):
     assert same >= 0.5
 
 
+def test_head_closeup_never_distorts_body_or_leg_morph():
+    from app.services.twin_individual import _fit_morph
+
+    silhouettes = [
+        {"has_pet": True, "aspect": 0.8, "height": 100},  # full body
+        {"has_pet": True, "aspect": 2.4, "height": 100},  # tightly cropped head
+    ]
+    with_head = _fit_morph(
+        silhouettes,
+        "standard-cat",
+        {},
+        {"full_body": [0], "head": [1]},
+    )
+    body_only = _fit_morph(
+        silhouettes[:1],
+        "standard-cat",
+        {},
+        {"full_body": [0]},
+    )
+    assert with_head["body_height"] == body_only["body_height"]
+    assert with_head["leg_length_front"] == body_only["leg_length_front"]
+    assert with_head["leg_length_back"] == body_only["leg_length_back"]
+    assert with_head["tail_length"] == 1.4
+
+
 def test_angle_map_preserves_uuid_named_owner_capture_semantics():
     from app.services.visual_pipeline import _angle_map_for_photos
 
