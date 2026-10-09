@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { api, type LifeEvent } from "../api";
+import { api, type DeviceRow, type LifeEvent, type Task } from "../api";
 import { usePets } from "../context";
 import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
 import { PetLivingStage } from "../components/life/PetLivingStage";
@@ -59,6 +59,10 @@ export function LifeViewScreen() {
   const [rawBaseline, setBaseline] = useState<BaselineRow[]>([]);
   const [baselinePetId, setBaselinePetId] = useState<string | null>(null);
   const [baselineState, setBaselineState] = useState<"loading" | "ready" | "error">("loading");
+  const [supportPetId, setSupportPetId] = useState<string | null>(null);
+  const [supportTasks, setSupportTasks] = useState<Task[]>([]);
+  const [supportDevices, setSupportDevices] = useState<DeviceRow[]>([]);
+  const [supportState, setSupportState] = useState<"loading" | "ready" | "partial-error">("loading");
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   // Each fact and any open detail sheet belongs to one pet. Hide stale state
@@ -112,6 +116,32 @@ export function LifeViewScreen() {
       alive = false;
     };
   }, [pet?.id]);
+
+  useEffect(() => {
+    if (!pet?.id) return;
+    const targetPetId = pet.id;
+    let alive = true;
+    setSupportPetId(null);
+    setSupportTasks([]);
+    setSupportDevices([]);
+    setSupportState("loading");
+    Promise.allSettled([
+      api.get<Task[]>(`/pets/${targetPetId}/tasks`),
+      api.get<DeviceRow[]>(`/pets/${targetPetId}/devices`),
+    ]).then(([tasksResult, devicesResult]) => {
+      if (!alive) return;
+      setSupportTasks(tasksResult.status === "fulfilled" ? tasksResult.value : []);
+      setSupportDevices(devicesResult.status === "fulfilled" ? devicesResult.value : []);
+      setSupportPetId(targetPetId);
+      setSupportState(
+        tasksResult.status === "fulfilled" && devicesResult.status === "fulfilled"
+          ? "ready"
+          : "partial-error",
+      );
+    });
+    return () => { alive = false; };
+  }, [pet?.id]);
+
   const petEvents = useMemo(() => (today?.events ?? []).filter((e) => e.event_type !== "today.viewed"), [today]);
   const lastEvent = petEvents[0] ?? null;
   // Owner UI does not expose an animation-demo toolbar. Motion follows the
@@ -187,6 +217,21 @@ export function LifeViewScreen() {
     return list;
   }, [petEvents, pet?.id, baseline, scopedBaselineState]);
 
+  const supportOwned = supportPetId === pet?.id;
+  const openTaskCount = supportOwned ? supportTasks.filter((task) => task.status === "OPEN").length : 0;
+  const weightText = pet?.weight_note?.trim() || "未记录";
+  const deviceText = !supportOwned || supportState === "loading"
+    ? "读取中"
+    : supportState === "partial-error" && supportDevices.length === 0
+      ? "暂不可用"
+      : supportDevices.length === 0
+        ? "未连接"
+        : supportDevices.every((device) => ["connected", "online"].includes(String(device.status).toLowerCase()))
+          ? `${supportDevices.length} 个在线`
+          : supportDevices.some((device) => String(device.status).toLowerCase() === "offline")
+            ? "有设备离线"
+            : "状态待确认";
+
   const nowLine = error
     ? "暂时连接不上，稍后自动恢复。"
     : !pet
@@ -238,6 +283,42 @@ export function LifeViewScreen() {
             viewerRef={viewerRef}
             pose={twin ? representativePose : null}
           />
+        </View>
+
+        <View testID="pli.lifeview.support-facts" style={styles.supportFacts} accessibilityLabel="体重、任务与设备状态">
+          <Pressable
+            testID="pli.lifeview.support.weight"
+            accessibilityRole="button"
+            accessibilityLabel={`体重记录：${weightText}，点击编辑宠物资料`}
+            onPress={() => navigation.navigate("PetProfile", { mode: "edit" })}
+            style={styles.supportFact}
+          >
+            <Ionicons name="scale-outline" size={17} color={COLORS.brandPrimaryDeep} />
+            <Text style={styles.supportLabel}>体重</Text>
+            <Text numberOfLines={1} style={styles.supportValue}>{weightText}</Text>
+          </Pressable>
+          <Pressable
+            testID="pli.lifeview.support.tasks"
+            accessibilityRole="button"
+            accessibilityLabel={`待办任务：${supportOwned ? openTaskCount : "读取中"}，点击回到今天`}
+            onPress={() => navigation.navigate("Tabs", { screen: "Today" })}
+            style={styles.supportFact}
+          >
+            <Ionicons name="checkmark-done-outline" size={17} color={COLORS.brandPrimaryDeep} />
+            <Text style={styles.supportLabel}>任务</Text>
+            <Text style={styles.supportValue}>{supportOwned ? (openTaskCount > 0 ? `${openTaskCount} 项待办` : "暂无待办") : "读取中"}</Text>
+          </Pressable>
+          <Pressable
+            testID="pli.lifeview.support.devices"
+            accessibilityRole="button"
+            accessibilityLabel={`设备状态：${deviceText}，点击查看设备`}
+            onPress={() => navigation.navigate("Monitoring")}
+            style={styles.supportFact}
+          >
+            <Ionicons name="hardware-chip-outline" size={17} color={COLORS.brandPrimaryDeep} />
+            <Text style={styles.supportLabel}>设备</Text>
+            <Text style={styles.supportValue}>{deviceText}</Text>
+          </Pressable>
         </View>
 
         <View testID="pli.lifeview.control.zoom" style={styles.controlRow} accessibilityLabel="3D 视图控制">
@@ -357,6 +438,25 @@ const styles = StyleSheet.create({
   trendLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary },
   trendValue: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary },
   lookRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2 },
+  supportFacts: {
+    flexDirection: "row",
+    marginHorizontal: SPACE.s4,
+    marginTop: SPACE.s3,
+    gap: SPACE.s2,
+  },
+  supportFact: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 82,
+    paddingHorizontal: SPACE.s2,
+    paddingVertical: SPACE.s2,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceRaised,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  supportLabel: { marginTop: 4, fontSize: TYPE.caption, color: COLORS.textTertiary },
+  supportValue: { marginTop: 2, maxWidth: "100%", fontSize: TYPE.sm, fontWeight: "700", color: COLORS.textPrimary },
   controlBtnText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   identityRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
   identityText: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
