@@ -324,7 +324,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
     <main className="v4-main">
       <div className="v4-topline">
         <h1>生命视图</h1>
-        <p className="v4-topline-sub" data-testid="pli.lifeview.identity">{name} · 此刻</p>
+        <p className="v4-topline-sub" data-testid="pli.lifeview.identity">{name} · {scopeLabel}</p>
       </div>
       <div className="v4-filter-row" aria-label="生命视图状态" style={{ marginBottom: 12 }}>
         <span className="v4-chip" data-testid="pli.lifeview.freshness">{freshness}</span>
@@ -345,7 +345,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
             className={`v7-life-time-chip${timeScope === value ? " is-active" : ""}`}
             aria-pressed={timeScope === value}
             data-testid={`pli.lifeview.time.${value}`}
-            onClick={() => setTimeScope(value)}
+            onClick={() => { setTimeScope(value); setDetailId(null); }}
           >
             {label}
           </button>
@@ -357,7 +357,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
               type="date"
               value={selectedDate}
               data-testid="pli.lifeview.time.date-input"
-              onChange={(event) => setSelectedDate(event.target.value)}
+              onChange={(event) => { setSelectedDate(event.target.value); setDetailId(null); }}
             />
           </label>
         ) : null}
@@ -373,7 +373,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         variant="life"
         stageRole="life"
         realityField="twin-space"
-        demo={Boolean(displayModel) && (isDemoTwin || (currentFactScope && process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1"))}
+        demo={(currentFactScope && process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1") || Boolean(displayModel && isDemoTwin)}
         anchors={anchors}
         caption={mode === "now" ? nowLine : undefined}
         note={historicalRange ? "时间范围汇总不使用当前 3D 形象冒充历史。" : timeScope === "date" && !historicalTwin ? "该日没有可确认的历史 3D 版本；保留真实记录。" : undefined}
