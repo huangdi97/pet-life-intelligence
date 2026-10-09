@@ -32,6 +32,7 @@ from xml.etree import ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUT = ROOT / "artifacts" / "r5-6-final" / "android"
+OWNER_ERROR_FREE_SURFACES = {"today", "timeline", "pet", "lifeview", "health", "me"}
 SURFACES = (
     ("today", True, "today"),
     ("timeline", False, None),
@@ -437,6 +438,14 @@ def capture_surface(
             f"wrong Android surface after demo navigation: requested={screen}; "
             f"expected_ui_id={expected_root}"
         )
+    if screen in OWNER_ERROR_FREE_SURFACES:
+        # Dedicated negative-state tests cover error/not-found behavior. A
+        # primary owner screen must not pass evidence while embedding a 404.
+        for forbidden in ("页面不存在", "出错了：未找到", "出错了：页面不存在"):
+            if forbidden in xml:
+                raise CaptureError(
+                    f"broken owner state leaked into Android surface {screen}: {forbidden}"
+                )
     if needs_manifest:
         # Prove the high-fidelity runtime is ready before freezing the visual
         # frame. This prevents a screenshot of an earlier procedural/loading
