@@ -71,7 +71,8 @@ export function WelfareScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [kind, setKind] = useState("STRESS_RECOVERY");
-  const [busy, setBusy] = useState(false);\n  const [recordOpen, setRecordOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [recordOpen, setRecordOpen] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const [enrichment, setEnrichment] = useState<EnrichmentLibrary | null>(null);
