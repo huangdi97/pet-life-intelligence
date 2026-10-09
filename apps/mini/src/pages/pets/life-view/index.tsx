@@ -301,6 +301,13 @@ export default function LifeView() {
         ))}
       </View>
 
+      <View className="life-view-modes" data-testid="pli.mini.lifeview.modebar">
+        <View className={`life-view-mode${mode === "now" ? " life-view-mode-active" : ""}`} onClick={() => setMode("now")}>此刻</View>
+        <View className={`life-view-mode${mode === "trend" ? " life-view-mode-active" : ""}`} onClick={() => setMode("trend")}>趋势</View>
+        <View className="life-view-mode" onClick={() => Taro.switchTab({ url: "/pages/timeline/index" })}>时间线</View>
+        <View className={`life-view-mode${mode === "appearance" ? " life-view-mode-active" : ""}`} onClick={() => setMode("appearance")}>外观</View>
+      </View>
+
       <View className="life-view-support" data-testid="pli.mini.lifeview.support-facts">
         <View className="life-view-support-item" data-testid="pli.mini.lifeview.support.weight">
           <Text className="life-view-support-label">体重</Text>
@@ -318,12 +325,6 @@ export default function LifeView() {
         </View>
       </View>
 
-      <View className="life-view-modes" data-testid="pli.mini.lifeview.modebar">
-        <View className={`life-view-mode${mode === "now" ? " life-view-mode-active" : ""}`} onClick={() => setMode("now")}>此刻</View>
-        <View className={`life-view-mode${mode === "trend" ? " life-view-mode-active" : ""}`} onClick={() => setMode("trend")}>趋势</View>
-        <View className="life-view-mode" onClick={() => Taro.switchTab({ url: "/pages/timeline/index" })}>时间线</View>
-        <View className={`life-view-mode${mode === "appearance" ? " life-view-mode-active" : ""}`} onClick={() => setMode("appearance")}>外观</View>
-      </View>
 
       {mode === "now" ? (
         <>
