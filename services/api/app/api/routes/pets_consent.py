@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
-from app.core.errors import NotFound, ValidationFailed
+from app.core.errors import ValidationFailed
 from app.domain import enums
 from app.models import Consent, EmergencyProfile
 from app.services import permissions as perm
@@ -88,7 +88,20 @@ async def get_emergency_profile(
         )
     ).scalar_one_or_none()
     if prof is None:
-        raise NotFound("Emergency profile not initialized.")
+        # Historical/demo pets can predate the EmergencyProfile row even though
+        # all newly-created pets initialize one. Reading settings must still be
+        # a valid product state: return an honest empty card instead of turning
+        # "not configured yet" into a user-visible 404. PUT remains the only
+        # operation that persists/creates the row and still requires MANAGE_PET.
+        return {
+            "owner_contact": "",
+            "backup_contact": "",
+            "vet_clinic_name": "",
+            "vet_clinic_phone": "",
+            "vet_clinic_address_text": "",
+            "critical_care_notes": "",
+            "updated_at": None,
+        }
     return {
         "owner_contact": prof.owner_contact,
         "backup_contact": prof.backup_contact,
