@@ -1446,8 +1446,8 @@ def test_behavior_domains_read_observations_before_patterns_across_clients() -> 
     mobile = read("apps/mobile/src/screens/BehaviorScreen.tsx")
     web = read("apps/web/app/behavior/page.tsx")
 
-    assert mobile.index('title="最近观察"') < mobile.index('title="模式与倾向"')
-    assert mobile.index('title="模式与倾向"') < mobile.index('title="情境与触发"')
+    assert mobile.index('title="最近观察"') < mobile.index('title="模式与情境"')
+    assert mobile.index('title="模式与情境"') < mobile.index('title="当前情境"')
     assert web.index('data-testid="pli.behavior.recent"') < web.index('data-testid="pli.behavior.patterns"')
     assert web.index('data-testid="pli.behavior.patterns"') < web.index('data-testid="pli.behavior.context"')
     assert web.index('data-testid="pli.behavior.context"') < web.index('className="v4-sec v5-domain-create"')
