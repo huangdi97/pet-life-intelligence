@@ -103,6 +103,8 @@ export default function Care() {
   const [hours, setHours] = useState("48");
   const [card, setCard] = useState<CareCard | null>(null);
   const [busy, setBusy] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [handoffOpen, setHandoffOpen] = useState(false);
 
   const load = useCallback((pid: string) => {
     setGrantsState("loading");
@@ -356,37 +358,45 @@ export default function Care() {
             </View>
           </View>
         )) : <View className="life-empty-note">家庭成员暂时没有读取到。</View>}
-        <View className="field">
-          <Text>对方邮箱</Text>
-          <Input
+        <View className="secondary-action" data-testid="pli.mini.care.invite.toggle" onClick={() => setInviteOpen((value) => !value)}>
+          {inviteOpen ? "收起" : "＋ 邀请成员"}
+        </View>
+        {inviteOpen ? (
+          <View className="soft-panel">
+            <View className="field">
+            <Text>对方邮箱</Text>
+            <Input
             className="input"
             type="text"
             value={inviteEmail}
             placeholder="name@example.com"
             onInput={(e) => setInviteEmail(e.detail.value)}
-          />
-        </View>
-        <View className="field">
-          <Text>家庭角色</Text>
-          <Picker
+            />
+            </View>
+            <View className="field">
+            <Text>家庭角色</Text>
+            <Picker
             mode="selector"
             range={["家庭成员", "共同主人", "临时照护人", "兽医", "训练师", "美容护理"]}
             value={Math.max(0, ["FAMILY", "CO_OWNER", "SITTER", "VET", "TRAINER", "GROOMER"].indexOf(inviteRole))}
             onChange={(e) => {
-              const roles = ["FAMILY", "CO_OWNER", "SITTER", "VET", "TRAINER", "GROOMER"];
-              setInviteRole(roles[Number(e.detail.value)] ?? "FAMILY");
+            const roles = ["FAMILY", "CO_OWNER", "SITTER", "VET", "TRAINER", "GROOMER"];
+            setInviteRole(roles[Number(e.detail.value)] ?? "FAMILY");
             }}
-          >
+            >
             <View className="input">{roleLabel(inviteRole)}</View>
-          </Picker>
-        </View>
-        <Button
-          className="btn btn-primary"
-          onClick={inviteMember}
-          disabled={busy || !current?.household_id || !inviteEmail.trim()}
-        >
-          {busy ? "处理中…" : "发送邀请"}
-        </Button>
+            </Picker>
+            </View>
+            <Button
+            className="btn btn-primary"
+            onClick={inviteMember}
+            disabled={busy || !current?.household_id || !inviteEmail.trim()}
+            >
+            {busy ? "处理中…" : "发送邀请"}
+            </Button>
+            
+          </View>
+        ) : null}
         {invitation ? (
           <View className="soft-panel">
             <View className="section-title">邀请已创建</View>
@@ -401,55 +411,64 @@ export default function Care() {
       <View className="open-section">
         <View className="section-title">发起临时交接</View>
         <View className="life-row-detail">默认只开放日常查看与记录权限；到期自动失效，临时照护人不能转授管理权限。</View>
-        <View className="field">
-          <Text>临时照护人</Text>
-          {caregiverOptions.length ? (
+        <View className="secondary-action" data-testid="pli.mini.care.handoff.toggle" onClick={() => setHandoffOpen((value) => !value)}>
+          {handoffOpen ? "收起" : "＋ 发起交接"}
+        </View>
+        {handoffOpen ? (
+          <View className="soft-panel">
+            
+            <View className="field">
+            <Text>临时照护人</Text>
+            {caregiverOptions.length ? (
             <Picker
-              mode="selector"
-              range={caregiverOptions.map((person) => `${person.label} · ${person.role}`)}
-              value={memberIndex}
-              onChange={(e) => setCaregiver(caregiverOptions[Number(e.detail.value)]?.user_id ?? "")}
+            mode="selector"
+            range={caregiverOptions.map((person) => `${person.label} · ${person.role}`)}
+            value={memberIndex}
+            onChange={(e) => setCaregiver(caregiverOptions[Number(e.detail.value)]?.user_id ?? "")}
             >
-              <View className="input">
-                {caregiver && selectedMember
-                  ? `${selectedMember.label} · ${selectedMember.role}`
-                  : "选择照护人"}
-              </View>
+            <View className="input">
+            {caregiver && selectedMember
+            ? `${selectedMember.label} · ${selectedMember.role}`
+            : "选择照护人"}
+            </View>
             </Picker>
-          ) : (
+            ) : (
             <View className="life-empty-note">还没有可选择的照护人；请先完成家庭邀请。</View>
-          )}
-          <View className="life-row-source">新照护人请先完成家庭邀请，再从这里选择。</View>
-        </View>
-        <View className="field">
-          <Text>授权范围</Text>
-          <View className="row" style={{ flexWrap: "wrap", gap: 6 }}>
+            )}
+            <View className="life-row-source">新照护人请先完成家庭邀请，再从这里选择。</View>
+            </View>
+            <View className="field">
+            <Text>授权范围</Text>
+            <View className="row" style={{ flexWrap: "wrap", gap: 6 }}>
             {HANDOFF_SCOPES.map((scope) => {
-              const selected = scopes.includes(scope);
-              return (
-                <Button
-                  key={scope}
-                  className={`btn${selected ? " btn-accent" : ""}`}
-                  size="mini"
-                  onClick={() =>
-                    setScopes((old) =>
-                      selected ? old.filter((value) => value !== scope) : [...old, scope],
-                    )
-                  }
-                >
-                  {SCOPE_LABELS[scope]}
-                </Button>
-              );
+            const selected = scopes.includes(scope);
+            return (
+            <Button
+            key={scope}
+            className={`btn${selected ? " btn-accent" : ""}`}
+            size="mini"
+            onClick={() =>
+            setScopes((old) =>
+            selected ? old.filter((value) => value !== scope) : [...old, scope],
+            )
+            }
+            >
+            {SCOPE_LABELS[scope]}
+            </Button>
+            );
             })}
+            </View>
+            </View>
+            <View className="field">
+            <Text>有效时长（小时）</Text>
+            <Input className="input" type="number" value={hours} onInput={(e) => setHours(e.detail.value)} />
+            </View>
+            <Button data-testid="pli.mini.care.handoff.submit" className="btn btn-primary" onClick={createHandoff} disabled={busy || !caregiver.trim() || scopes.length === 0}>
+            {busy ? "处理中…" : "创建交接"}
+            </Button>
+            
           </View>
-        </View>
-        <View className="field">
-          <Text>有效时长（小时）</Text>
-          <Input className="input" type="number" value={hours} onInput={(e) => setHours(e.detail.value)} />
-        </View>
-        <Button className="btn btn-primary" onClick={createHandoff} disabled={busy || !caregiver.trim() || scopes.length === 0}>
-          {busy ? "处理中…" : "创建交接"}
-        </Button>
+        ) : null}
       </View>
 
       <View className="open-section">
