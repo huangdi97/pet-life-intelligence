@@ -61,7 +61,17 @@ export interface ManifestBuildInput {
   poseConfidence: number;
   projected?: ProjectedBounds | null;
   /** V3 asset classification (Blind Contract V3 §51). */
+  /** Legacy technical asset gate kept for existing harness readers. */
   representationQuality?: string;
+  /** Technical renderer/asset completeness, independent of visual realism. */
+  technicalRepresentationQuality?: "RIGGED_PBR_SKINNED" | "PROCEDURAL_ENGINEERING";
+  /**
+   * Owner-facing visual fidelity truth. A rigged/PBR asset can still be a
+   * stylized template; only source-backed individual media may claim identity
+   * evidence, and even that is not a photorealism claim.
+   */
+  visualFidelityTier?: "STYLIZED_REFERENCE" | "OWNER_MEDIA_REFERENCED" | "ENGINEERING_FALLBACK";
+  individualIdentityEvidence?: boolean;
   productCandidate?: boolean;
   triangleCount?: number;
   uvPresent?: boolean;
@@ -180,6 +190,17 @@ export function buildManifestV2(input: ManifestBuildInput): Record<string, unkno
       ? Math.round((input.projected.height / Math.max(1, input.projected.viewportHeight)) * 1000) / 1000
       : 0,
     representationQuality: input.representationQuality ?? "engineering",
+    technicalRepresentationQuality:
+      input.technicalRepresentationQuality ??
+      (input.representationQuality === "HIGH_FIDELITY_SKINNED" ? "RIGGED_PBR_SKINNED" : "PROCEDURAL_ENGINEERING"),
+    visualFidelityTier:
+      input.visualFidelityTier ??
+      (input.fallbackUsed
+        ? "ENGINEERING_FALLBACK"
+        : input.sourceMediaCount > 0
+          ? "OWNER_MEDIA_REFERENCED"
+          : "STYLIZED_REFERENCE"),
+    individualIdentityEvidence: input.individualIdentityEvidence ?? input.sourceMediaCount > 0,
     productCandidate: input.productCandidate ?? false,
     triangleCount: input.triangleCount ?? 0,
     uvPresent: input.uvPresent ?? false,
