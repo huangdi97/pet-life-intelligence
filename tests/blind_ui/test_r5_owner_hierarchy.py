@@ -1807,3 +1807,14 @@ def test_assistant_answers_continue_into_records_sources_and_self_comparison() -
     assert 'onOpenLifeView={() => stackNav.navigate("LifeView")}' in mobile
     assert 'Taro.switchTab({ url: "/pages/timeline/index" })' in mini
     assert 'Taro.navigateTo({ url: "/pages/pets/life-view/index" })' in mini
+
+
+def test_android_evidence_navigation_binds_twin_review_to_current_pet() -> None:
+    runner = read("scripts/r5-6/capture-android-final.py")
+    # A review deep link must carry the expected pet identity in the SAME
+    # navigation event; otherwise late Today retries can leave the evidence
+    # harness on the previous surface after a pet switch.
+    assert 'screen=twinreview&pet={expected_pet_id}' in runner
+    assert 'screen=twinreview&pet={secondary_id}' in runner
+    assert "required_secondary_controls" in runner
+    assert "missing_secondary" in runner
