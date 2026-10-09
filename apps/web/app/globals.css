@@ -2152,3 +2152,30 @@ body{background:#FBF7F1}
 @media(max-width:768px){
   .r2p-stage--3d::after{bottom:68px;width:min(66%,300px);height:46px}
 }
+
+/* R7.2 Companion is a relationship/device surface, not a second Pet World.
+   Keep one large individual pet, but let real device state enter the first
+   viewport instead of hiding below a 570–630px hero. */
+.r2p-stage--companion.r2p-stage--3d{
+  min-height:470px;
+}
+.r2p-stage--companion.r2p-stage--3d .r2p-stage-pet--3d{
+  width:min(88%,500px);
+  height:360px;
+  bottom:76px;
+}
+@media(min-width:1024px){
+  .r2p-stage--companion.r2p-stage--3d{min-height:500px}
+  .r2p-stage--companion.r2p-stage--3d .r2p-stage-pet--3d{
+    width:min(62%,540px);
+    height:390px;
+  }
+}
+@media(max-width:768px){
+  .r2p-stage--companion.r2p-stage--3d{min-height:470px}
+  .r2p-stage--companion.r2p-stage--3d .r2p-stage-pet--3d{
+    width:min(100%,390px);
+    height:342px;
+    bottom:76px;
+  }
+}
