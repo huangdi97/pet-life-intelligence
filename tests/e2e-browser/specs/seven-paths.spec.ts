@@ -66,9 +66,11 @@ test("E2E-02 家庭协作 / 权限（成员可完成，Owner-only 被拒，API 4
   await loginAsEmail(ownerPage, request, "owner@pli.demo");
   await useCurrentPet(ownerPage, coco.id);
   await ownerPage.goto("/tasks");
+  await ownerPage.getByTestId("pli.tasks.create.toggle").click();
+  await expect(ownerPage.locator("#pli-tasks-create-form")).toBeVisible();
   const title = `BW-task-${stamp}`;
   await ownerPage.getByPlaceholder("如：晚上喂食").fill(title);
-  await ownerPage.getByRole("button", { name: "创建", exact: true }).click();
+  await ownerPage.getByTestId("pli.tasks.create.submit").click();
   await expect(ownerPage.getByText(title).first()).toBeVisible();
   await ownerPage.close();
 
@@ -144,10 +146,12 @@ test("E2E-04 Medication → 给药 → Outcome → Timeline（重复提交无重
   await useCurrentPet(page, coco.id);
 
   await page.goto("/medication");
+  await page.getByTestId("pli.medication.create.toggle").click();
+  await expect(page.locator("#pli-medication-create-form")).toBeVisible();
   const medName = `BW-Med-${stamp}`;
+  await page.getByLabel("药名").fill(medName);
   await page.getByPlaceholder("如 50mg").fill("10mg");
-  await page.locator("input").first().fill(medName);
-  await page.getByRole("button", { name: "创建计划" }).click();
+  await page.getByTestId("pli.medication.create.submit").click();
   await expect(page.getByText(medName).first()).toBeVisible();
 
   // give the first scheduled dose via UI
@@ -202,6 +206,8 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
   await useCurrentPet(page, coco.id);
 
   await page.goto("/care");
+  await page.getByTestId("pli.care.handoff.toggle").click();
+  await expect(page.locator("#pli-care-handoff-form")).toBeVisible();
   // Care is now owner-facing: choose a known caregiver by readable person
   // control instead of typing an implementation/user identifier into the UI.
   // The option value remains a transport detail used only by this E2E.
@@ -287,6 +293,8 @@ test("E2E-06 Behavior ABC（中文+emoji 输入，Timeline 可见，页面不崩
 
   const behaviorText = `对门铃响连续吠叫📞然后躲到沙发下🛋️（BW-${stamp}）`;
   await page.goto("/behavior");
+  await page.getByTestId("pli.behavior.action").click();
+  await expect(page.locator("#pli-behavior-record-form")).toBeVisible();
   await page.getByPlaceholder(/门铃响 \/ 陌生狗经过/).fill("门铃响🔔");
   await page.getByPlaceholder(/连续吠叫/).fill(behaviorText);
   await page.getByPlaceholder(/主人安抚后自行出来/).fill("主人安抚后出来");
