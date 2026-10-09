@@ -11,6 +11,7 @@ Covers the acceptance items beyond the basic contract flow:
 """
 
 import uuid
+from pathlib import Path
 
 from tests.conftest import auth
 
@@ -94,6 +95,65 @@ def test_contamination_and_privacy_reported_heuristic_only(client, seeded):
                   "exposure_check", "occlusion_check", "multi_pet_interference",
                   "resolution_check"):
         assert qc["qc_result"].get(field) == "heuristic_only"
+
+
+
+def test_real_uploaded_artifacts_materialize_with_angle_provenance(client, seeded):
+    owner, coco = seeded["owner_id"], seeded["coco_id"]
+    headers = auth(owner)
+    media = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "media" / "doudou-demo-dog"
+    artifact_by_angle = {}
+    for angle, filename in (
+        ("front", "front.png"),
+        ("full_body", "full_body.png"),
+        ("head", "head.png"),
+    ):
+        raw = (media / filename).read_bytes()
+        upload = client.post(
+            f"/api/v1/pets/{coco}/artifacts",
+            files={"file": (filename, raw, "image/png")},
+            headers=headers,
+        )
+        assert upload.status_code == 201, upload.text
+        artifact_by_angle[angle] = upload.json()["artifact_id"]
+
+    cap = client.post(
+        f"/api/v1/pets/{coco}/visual-captures",
+        json={
+            "artifact_ids": list(artifact_by_angle.values()),
+            "capture_type": "PHOTO_SET",
+            "consent_visual_model_training": False,
+            "coverage": {angle: True for angle in artifact_by_angle},
+            "angle_artifact_ids": artifact_by_angle,
+        },
+        headers=headers,
+    )
+    assert cap.status_code == 200, cap.text
+    body = cap.json()
+    assert body["angle_artifact_ids"] == artifact_by_angle
+
+    qc = client.post(
+        f"/api/v1/pets/{coco}/visual-captures/{body['capture_id']}/qc",
+        json={},
+        headers=headers,
+    )
+    assert qc.status_code == 200, qc.text
+    assert qc.json()["qc_passed"] is True
+
+    model = _create_model(client, coco, headers, capture_id=body["capture_id"])
+    _wait_request(
+        client,
+        f"/api/v1/pets/{coco}/visual-models/{model['version']}/job",
+        headers=headers,
+    )
+    resolved = client.get(
+        f"/api/v1/pets/{coco}/visual-models/{model['version']}",
+        headers=headers,
+    ).json()
+    opts = resolved["metadata_json"]["opts"]
+    assert opts["media_provenance"] == "OWNER_REPORTED"
+    assert set(opts["capture_angles"]) == {"front", "full_body", "head"}
+    assert resolved["observed_surface_manifest"].get("coat") == "photo_projection"
 
 
 def test_generation_idempotent_via_key(client, seeded):
