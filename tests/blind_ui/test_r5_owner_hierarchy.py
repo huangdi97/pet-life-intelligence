@@ -1124,7 +1124,12 @@ def test_web_life_view_state_anchors_expose_truthful_fact_details() -> None:
     assert "查看${a.label}详情" in stage
     assert 'source_type?: string;' in life
     assert 'provenanceLabel(event.source_type)' in life
-    assert 'compare: "暂无（数据积累后显示）"' in life
+    assert "compare: comparisonFor(baselineMetric, current)" in life
+    assert "/baseline" in life
+    assert "row.sample_count < 3" in life
+    assert '"meal_count_per_day"' in life
+    assert '"sleep_minutes_per_day"' in life
+    assert '"暂无（当前没有同口径常态）"' in life
     assert 'data-testid="pli.lifeview.anchor-detail"' in life
     for label in ("事实", "与自己相比", "来源", "更新时间", "证据"):
         assert label in life
@@ -1151,6 +1156,9 @@ def test_mini_life_view_is_photo_first_and_uses_canonical_four_way_rail() -> Non
     assert "/visual/status" not in life
     assert "/visual-models" in life
     assert "/baseline" in life
+    assert "comparisonFor(baselineMetric, current)" in life
+    assert "row.sample_count < 3" in life
+    assert '"sleep_minutes_per_day"' in life
     assert 'new Set(["daily.walk", "daily.play"])' in life
     assert "minutes > 24 * 60" in life
 
@@ -1171,3 +1179,15 @@ def test_timeline_pet_identity_precedes_the_stream_across_owner_clients() -> Non
     assert web.index('data-testid="pli.timeline.identity"') < web.index('<div className="v4-grid">')
     assert '${pet.name}的时间线' in mobile
     assert '<PetContextHeader pet={current ?? null} title="时间线"' in mini
+
+
+def test_android_life_view_uses_real_personal_baseline_only_for_matching_metrics() -> None:
+    life = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    assert "/baseline" in life
+    assert "baselinePetId === pet?.id" in life
+    assert "comparisonFor(baselineMetric, current)" in life
+    assert "row.sample_count < 3" in life
+    assert '"meal_count_per_day"' in life
+    assert '"sleep_minutes_per_day"' in life
+    assert '"暂无（当前没有同口径常态）"' in life
+    assert "sleepMinutes > 0" in life
