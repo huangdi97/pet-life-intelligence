@@ -324,6 +324,8 @@ function buildManifest(): Record<string, unknown> {
           ? ("dark-debug" as const)
           : ("warm-living-field" as const),
     realityField: stageTheme === "review" ? ("review-studio" as const) : stageTheme === "engineering" ? ("engineering-debug" as const) : ("warm-living" as const),
+    realTimeShadows: renderer.shadowMap.enabled,
+    shadowTechnique: renderer.shadowMap.enabled ? "PCFSoftShadowMap+ShadowMaterial" : null,
   });
   // Release builds strip console.log (Hermes), so uiautomator accessibility can
   // see the manifest via document.title (machine-readable runtime evidence).
