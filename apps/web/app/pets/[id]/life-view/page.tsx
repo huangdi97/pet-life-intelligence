@@ -255,6 +255,8 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
       />
       </div>
 
+      <LivingModeSwitcher value={mode} onChange={setMode} />
+
       <div className="v7-life-support" data-testid="pli.lifeview.support-facts" aria-label="体重、任务与设备状态">
         <Link href={`/pets/${petId}`} className="v7-life-support-item" data-testid="pli.lifeview.support.weight">
           <span className="v7-life-support-label">体重</span>
@@ -270,7 +272,6 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         </Link>
       </div>
 
-      <LivingModeSwitcher value={mode} onChange={setMode} />
 
       {activeDetail ? (
         <section className="v7-life-detail" data-testid="pli.lifeview.anchor-detail" aria-live="polite">
