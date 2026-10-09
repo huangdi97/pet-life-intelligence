@@ -121,6 +121,7 @@ export function WelfareScreen() {
         source_type: "OWNER_REPORTED",
       });
       setMsg("已记录生活观察。");
+      setRecordOpen(false);
       setVersion((v) => v + 1);
     } catch (e: unknown) {
       setMsg(humanizeError(e));
@@ -284,6 +285,11 @@ const styles = StyleSheet.create({
   eventTime: { fontSize: TYPE.caption, color: COLORS.textTertiary },
   emptyText: { fontSize: TYPE.body, color: COLORS.textTertiary },
   formSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  formToggle: { minHeight: 66, borderRadius: RADIUS.xl, backgroundColor: COLORS.brandSoftGreen, paddingHorizontal: SPACE.s4, paddingVertical: SPACE.s3, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: SPACE.s3 },
+  formToggleCopy: { flex: 1 },
+  formHint: { fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18, marginTop: 3 },
+  formToggleAction: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "700" },
+  formWrap: { marginTop: SPACE.s3 },
   formLabel: { fontSize: TYPE.section, fontWeight: "600", color: COLORS.textPrimary, marginBottom: SPACE.s2 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
   chip: { minHeight: 44, paddingHorizontal: SPACE.s3, paddingVertical: 6, justifyContent: "center", borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
