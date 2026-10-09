@@ -33,6 +33,22 @@ const REMINDER_KIND_LABEL: Record<ReminderRow["kind"], string> = {
   CHECKUP: "体检",
 };
 
+interface HealthRecordRow {
+  record_id: string;
+  kind: "PRESCRIPTION" | "LAB" | "EXAM" | "VACCINATION";
+  source_type: string;
+  source_note: string;
+  signature_status: string;
+  occurred_at: string | null;
+}
+
+const HEALTH_RECORD_KIND_LABEL: Record<HealthRecordRow["kind"], string> = {
+  PRESCRIPTION: "处方",
+  LAB: "检验",
+  EXAM: "检查",
+  VACCINATION: "疫苗记录",
+};
+
 interface HealthEventCreateResp {
   health_event_id: string;
   status: string;
@@ -79,6 +95,8 @@ export function HealthScreen() {
   const [reminderTitle, setReminderTitle] = useState("");
   const [reminderDate, setReminderDate] = useState("");
   const [reminderBusy, setReminderBusy] = useState<string | null>(null);
+  const [healthRecords, setHealthRecords] = useState<HealthRecordRow[]>([]);
+  const [healthRecordState, setHealthRecordState] = useState<"loading" | "ready" | "error">("loading");
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
@@ -119,6 +137,24 @@ export function HealthScreen() {
         if (!alive) return;
         setReminders([]);
         setReminderState("error");
+      });
+    return () => { alive = false; };
+  }, [petId, version]);
+
+  useEffect(() => {
+    if (!petId) return;
+    let alive = true;
+    setHealthRecordState("loading");
+    api.get<HealthRecordRow[]>(`/pets/${petId}/health-records`)
+      .then((items) => {
+        if (!alive) return;
+        setHealthRecords(items);
+        setHealthRecordState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setHealthRecords([]);
+        setHealthRecordState("error");
       });
     return () => { alive = false; };
   }, [petId, version]);
@@ -364,8 +400,31 @@ export function HealthScreen() {
                 <Text style={styles.recordMeta}>用药计划与给药记录</Text>
                 <Text style={styles.recordMeta}>›</Text>
               </Pressable>
-              <View testID="pli.health.vet" style={styles.recordRow}>
-                <Text style={styles.recordMeta}>就医记录：当前页面未汇总</Text>
+              <View testID="pli.health.vet">
+                <Text style={styles.healthRecordLead}>就医与专业记录</Text>
+                <Text style={styles.emptyText}>处方、检验、检查与疫苗记录只展示真实导入的数据，并保留来源与签名状态。</Text>
+                {healthRecordState === "loading" ? (
+                  <Text style={styles.emptyText}>正在读取专业记录……</Text>
+                ) : healthRecordState === "error" ? (
+                  <Text style={styles.emptyText}>专业记录暂时没有加载成功；不会把未知显示成“没有记录”。</Text>
+                ) : healthRecords.length ? (
+                  healthRecords.slice(0, 4).map((record, index) => (
+                    <View key={record.record_id} style={[styles.recordRow, index > 0 && styles.recordDivider]}>
+                      <View style={styles.recordText}>
+                        <Text style={styles.recordTitle}>{HEALTH_RECORD_KIND_LABEL[record.kind] ?? "专业记录"}</Text>
+                        <Text style={styles.recordMeta}>
+                          {record.occurred_at ? fmtDate(record.occurred_at) : "时间未记录"} · {record.source_type === "PROFESSIONAL_CONFIRMED" ? "专业确认" : "来源已记录"}
+                        </Text>
+                        <Text style={styles.recordMeta}>
+                          {record.signature_status === "SIGNED" ? "签名已记录" : record.signature_status === "UNSIGNED" ? "未记录签名" : "无需签名"}
+                          {record.source_note ? ` · ${record.source_note}` : ""}
+                        </Text>
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>还没有导入处方、检验、检查或疫苗专业记录。</Text>
+                )}
               </View>
             </OpenSection>
             {createdLevel ? (
@@ -479,6 +538,7 @@ const styles = StyleSheet.create({
   reminderChipTextSelected: { color: COLORS.brandPrimaryDeep, fontWeight: "700" },
   riskPill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   riskPillText: { fontSize: TYPE.caption, fontWeight: "700" },
+  healthRecordLead: { fontSize: TYPE.bodyStrong, color: COLORS.textPrimary, fontWeight: "700", marginTop: SPACE.s3, marginBottom: 4 },
   recordText: { flex: 1 },
   recordTitle: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "500" },
   recordMeta: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: 1 },
