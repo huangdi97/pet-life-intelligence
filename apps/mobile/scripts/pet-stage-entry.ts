@@ -190,7 +190,7 @@ bundledTwin.then((twin) => {
 }).catch(() => {
   // PROVIDER: GLB failure keeps the procedural stage, but never masquerades
   // as the high-fidelity product representation.
-  hdLoadFailed = Boolean(twinDescriptor);
+  hdLoadFailed = injectedDemoTwin;
   post({ type: "manifest", manifest: buildManifest() });
 });
 // §31 aspect-aware auto-framing (mirrors web): fit the projected pet box onto frameTarget of the full viewport.
