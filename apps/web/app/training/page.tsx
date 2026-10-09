@@ -106,6 +106,7 @@ export default function TrainingPage() {
       setSelectedReward(row.subject);
       setRewardSubject("");
       setRewardNote("");
+      setRewardOpen(false);
       preferences.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
