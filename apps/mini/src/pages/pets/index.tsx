@@ -218,14 +218,13 @@ export default function Pets() {
   const lastSocial = lastOf("social.");
   const activeTwin = twinModels?.find((model) => model.status === "ACTIVE") ?? null;
   const latestTwin = twinModels?.[0] ?? null;
-  const twinVersion = activeTwin?.version ?? activeTwin?.twin_version ?? latestTwin?.version ?? latestTwin?.twin_version;
-  const twinStatusCopy =
+    const twinStatusCopy =
     twinState === "loading"
       ? "正在读取 3D 形象状态…"
       : twinState === "error"
         ? "3D 形象状态暂时没有加载成功"
         : activeTwin
-          ? `已启用${twinVersion ? `第 ${String(twinVersion)} 版` : "当前 3D 形象"}`
+          ? "已启用个体 3D 形象"
           : latestTwin
             ? "已有候选形象，等待你在支持的客户端确认"
             : "还没有启用 3D 形象";
