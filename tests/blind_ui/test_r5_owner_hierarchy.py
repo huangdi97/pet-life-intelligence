@@ -1573,8 +1573,8 @@ def test_today_living_canvas_reserves_phone_first_fold_for_action_without_small_
     web_stage = read("apps/web/components/pet-living-stage.tsx")
     css = read("apps/web/app/globals.css")
 
-    assert "today: 500" in stage
-    assert "PET_WIDTHS" in stage and "today: 372" in stage
+    assert "today: 440" in stage
+    assert "PET_WIDTHS" in stage and "today: 326" in stage
     assert "<ChangeNarrative" in today and "compact" in today
     assert 'label="快速记录"' in today and 'compact />' in today
     assert "blockCompact" in change
