@@ -1343,3 +1343,30 @@ def test_mini_pet_world_keeps_life_primary_and_crud_progressive() -> None:
     assert source.index('进入生命视图') < source.index('更多档案与管理')
     assert source.index('更多档案与管理') < source.index('pli.mini.pet.avatar')
     assert 'onPress={() => Taro.navigateTo({ url: "/pages/pets/life-view/index" })}' in source
+
+
+def test_owner_3d_never_swaps_individual_descriptor_for_bundled_demo_glb() -> None:
+    web_viewer = read("apps/web/components/three/pet3d-viewer.tsx")
+    mobile_host = read("apps/mobile/src/components/three/Pet3DViewer.tsx")
+    mobile_runtime = read("apps/mobile/scripts/pet-stage-entry.ts")
+    web_stage = read("apps/web/components/pet-living-stage.tsx")
+    mobile_stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
+    manifest = read("packages/pet-3d/src/manifest.ts")
+    loader = read("packages/pet-3d/src/loader.ts")
+
+    assert "twin && identity && demoTwin" in web_viewer
+    assert 'window.__PLI_DEMO_TWIN = ${demoTwin}' in mobile_host
+    assert "injectedDemoTwin ? loadTwinGLB(identity) : Promise.resolve(null)" in mobile_runtime
+    assert 'visualFidelityTier' in web_viewer
+    assert 'visualFidelityTier' in mobile_runtime
+    assert 'individualIdentityEvidence' in manifest
+    assert 'technicalRepresentationQuality' in manifest
+    assert 'const photoFirstByDefault = Boolean(photoUri && variant !== "review");' in web_stage
+    assert 'const photoFirstByDefault = Boolean(photoUri && variant !== "review");' in mobile_stage
+    assert "geo.computeVertexNormals()" in loader
+    assert "material.flatShading = false" in loader
+
+    for name in ("doudou", "mimi"):
+        asset = read(f"packages/pet-3d/assets/twins/{name}.glb.manifest.json")
+        assert '"visualFidelityTier": "STYLIZED_REFERENCE"' in asset
+        assert '"individualIdentityEvidence": false' in asset
