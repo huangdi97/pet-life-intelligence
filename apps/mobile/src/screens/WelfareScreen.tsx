@@ -71,7 +71,7 @@ export function WelfareScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [kind, setKind] = useState("STRESS_RECOVERY");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false);\n  const [recordOpen, setRecordOpen] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const [enrichment, setEnrichment] = useState<EnrichmentLibrary | null>(null);
@@ -215,25 +215,42 @@ export function WelfareScreen() {
             </OpenSection>
 
             <View style={styles.formSection} testID="pli.welfare.liked">
-              <Text style={styles.formLabel}>记录生活观察</Text>
-              <View style={styles.chipRow}>
-                {WELFARE_KINDS.map((k) => (
-                  <Pressable key={k.value} accessibilityRole="button" accessibilityLabel={k.label} accessibilityState={{ selected: kind === k.value }} onPress={() => setKind(k.value)} style={[styles.chip, kind === k.value && styles.chipActive]}>
-                    <Text style={[styles.chipText, kind === k.value && styles.chipActiveText]}>{k.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
               <Pressable
                 testID="pli.welfare.action"
                 accessibilityRole="button"
-                accessibilityLabel="记录观察"
-                accessibilityState={{ disabled: busy }}
-                disabled={busy}
-                onPress={() => void recordObservation()}
-                style={({ pressed }) => [styles.submitBtn, busy && styles.pressed, pressed && styles.pressed]}
+                accessibilityLabel={recordOpen ? "收起生活观察记录" : "记录生活观察"}
+                accessibilityState={{ expanded: recordOpen }}
+                onPress={() => setRecordOpen((value) => !value)}
+                style={({ pressed }) => [styles.formToggle, pressed && styles.pressed]}
               >
-                <Text style={styles.submitText}>{busy ? "提交中…" : "记录观察"}</Text>
+                <View style={styles.formToggleCopy}>
+                  <Text style={styles.formLabel}>记录生活观察</Text>
+                  <Text style={styles.formHint}>已有观察与趋势优先；需要补充事实时再记录。</Text>
+                </View>
+                <Text style={styles.formToggleAction}>{recordOpen ? "收起" : "记录"}</Text>
               </Pressable>
+              {recordOpen ? (
+                <View style={styles.formWrap}>
+                  <View style={styles.chipRow}>
+                    {WELFARE_KINDS.map((k) => (
+                      <Pressable key={k.value} accessibilityRole="button" accessibilityLabel={k.label} accessibilityState={{ selected: kind === k.value }} onPress={() => setKind(k.value)} style={[styles.chip, kind === k.value && styles.chipActive]}>
+                        <Text style={[styles.chipText, kind === k.value && styles.chipActiveText]}>{k.label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  <Pressable
+                    testID="pli.welfare.action.submit"
+                    accessibilityRole="button"
+                    accessibilityLabel="保存观察"
+                    accessibilityState={{ disabled: busy }}
+                    disabled={busy}
+                    onPress={() => void recordObservation()}
+                    style={({ pressed }) => [styles.submitBtn, busy && styles.pressed, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.submitText}>{busy ? "提交中…" : "保存观察"}</Text>
+                  </Pressable>
+                </View>
+              ) : null}
               {msg ? (
                 <Text style={[styles.msg, msg.includes("失败") || msg.includes("异常") ? styles.msgError : styles.msgOk]}>{msg}</Text>
               ) : null}
