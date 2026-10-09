@@ -430,13 +430,24 @@ def capture_surface(
     if needs_manifest:
         android.clear_runtime_manifest()
     android.start_link(f"pli-demo://nav?screen={screen}")
-    time.sleep(5)
-    xml = android.dump_xml(directory / "ui.xml")
     expected_root = SURFACE_ROOT_IDS.get(screen)
+    xml = ""
+    # Navigation and RN layout completion are asynchronous on hosted emulators.
+    # Poll for the EXACT requested root instead of blessing whichever page
+    # happens to be visible after one arbitrary sleep.
+    attempts = 12 if expected_root else 1
+    for attempt in range(attempts):
+        time.sleep(1 if attempt else 3)
+        xml = android.dump_xml(directory / "ui.xml")
+        if not expected_root or expected_root in xml:
+            break
     if expected_root and expected_root not in xml:
+        observed_ids = sorted(
+            set(re.findall(r'resource-id="(pli\.[^"]+)"', xml))
+        )[:12]
         raise CaptureError(
             f"wrong Android surface after demo navigation: requested={screen}; "
-            f"expected_ui_id={expected_root}"
+            f"expected_ui_id={expected_root}; observed_ui_ids={observed_ids}"
         )
     if screen in OWNER_ERROR_FREE_SURFACES:
         # Dedicated negative-state tests cover error/not-found behavior. A
