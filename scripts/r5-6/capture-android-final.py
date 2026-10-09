@@ -44,6 +44,18 @@ SURFACES = (
     ("me", False, None),
 )
 
+SURFACE_ROOT_IDS = {
+    "today": "pli.today.living-stage",
+    "timeline": "pli.timeline.identity",
+    "pet": "pli.pet.identity",
+    "lifeview": "pli.lifeview.identity",
+    "twinreview": "pli.twinreview.identity",
+    "health": "pli.health.identity",
+    "assistant": "pli.assistant.identity",
+    "companion": "pli.companion.identity",
+    "me": "pli.me.owner",
+}
+
 
 class CaptureError(RuntimeError):
     pass
@@ -418,7 +430,13 @@ def capture_surface(
         android.clear_runtime_manifest()
     android.start_link(f"pli-demo://nav?screen={screen}")
     time.sleep(5)
-    android.dump_xml(directory / "ui.xml")
+    xml = android.dump_xml(directory / "ui.xml")
+    expected_root = SURFACE_ROOT_IDS.get(screen)
+    if expected_root and expected_root not in xml:
+        raise CaptureError(
+            f"wrong Android surface after demo navigation: requested={screen}; "
+            f"expected_ui_id={expected_root}"
+        )
     if needs_manifest:
         # Prove the high-fidelity runtime is ready before freezing the visual
         # frame. This prevents a screenshot of an earlier procedural/loading
@@ -447,6 +465,8 @@ def capture_review_views(
     android.start_link("pli-demo://nav?screen=twinreview")
     time.sleep(5)
     xml = android.dump_xml(directory / "ui.xml")
+    if "pli.twinreview.camera-controls" not in xml:
+        raise CaptureError("Twin Review camera controls are not present on the captured review surface")
     expected = {"front": 0.0, "side": 1.5707963267948966, "back": 3.141592653589793}
     for view, yaw in expected.items():
         android.clear_runtime_manifest()
@@ -529,7 +549,9 @@ def main() -> None:
     android.clear_runtime_manifest()
     android.start_link(f"pli-demo://nav?screen=today&pet={secondary_id}")
     time.sleep(6)
-    android.dump_xml(secondary_today / "ui.xml")
+    secondary_today_xml = android.dump_xml(secondary_today / "ui.xml")
+    if "pli.today.living-stage" not in secondary_today_xml:
+        raise CaptureError("secondary pet sanity capture is not on Today")
     secondary_manifest = android.read_runtime_manifest(
         expected_pet_id=secondary_id,
         expected_stage_role="today",
@@ -543,7 +565,9 @@ def main() -> None:
     android.clear_runtime_manifest()
     android.start_link("pli-demo://nav?screen=twinreview")
     time.sleep(5)
-    android.dump_xml(secondary_review / "ui.xml")
+    secondary_review_xml = android.dump_xml(secondary_review / "ui.xml")
+    if "pli.twinreview.camera-controls" not in secondary_review_xml:
+        raise CaptureError("secondary Twin Review capture is missing first-screen camera controls")
     save_manifest(
         secondary_review / "3d.json",
         android.read_runtime_manifest(
