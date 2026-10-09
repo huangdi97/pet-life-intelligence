@@ -143,7 +143,7 @@ export function AssistantScreen() {
               ))}
             </View>
             {askErr ? <Text style={styles.errorText}>{askErr}</Text> : null}
-            {answer && !askErr ? <AnswerBlock answer={answer} citations={citations} /> : null}
+            {answer && !askErr ? <AnswerBlock answer={answer} citations={citations} onOpenTimeline={() => tabNav.navigate("Timeline")} onOpenLifeView={() => stackNav.navigate("LifeView")} /> : null}
             {!answer && !askErr && !asking ? (
               <View style={styles.emptyState} testID="pli.assistant.context">
                 <Text style={styles.emptyTitle}>只基于已有记录，不替你猜。</Text>
@@ -206,7 +206,7 @@ export function AssistantScreen() {
   );
 }
 
-function AnswerBlock({ answer, citations }: { answer: AskAnswer; citations: Array<{ label: string; event_id?: string }> }) {
+function AnswerBlock({ answer, citations, onOpenTimeline, onOpenLifeView }: { answer: AskAnswer; citations: Array<{ label: string; event_id?: string }>; onOpenTimeline: () => void; onOpenLifeView: () => void }) {
   return (
     <View style={styles.answer}>
       {answer.external_blocked ? (
@@ -242,6 +242,17 @@ function AnswerBlock({ answer, citations }: { answer: AskAnswer; citations: Arra
             </View>
           ) : null}
           {answer.action ? <Text style={styles.actionBody}>下一步：{answer.action}</Text> : null}
+          <View style={styles.answerActions} accessibilityLabel="继续查看">
+            <Pressable accessibilityRole="button" onPress={onOpenTimeline} style={styles.answerAction}>
+              <Text style={styles.answerActionText}>查看记录</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={onOpenTimeline} style={styles.answerAction}>
+              <Text style={styles.answerActionText}>查看来源</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={onOpenLifeView} style={styles.answerAction}>
+              <Text style={styles.answerActionText}>与它自己相比</Text>
+            </Pressable>
+          </View>
         </>
       )}
     </View>
@@ -307,4 +318,7 @@ const styles = StyleSheet.create({
   noticeBox: { backgroundColor: COLORS.attentionBg, borderRadius: RADIUS.lg, padding: SPACE.s3, marginTop: SPACE.s3 },
   noticeText: { fontSize: TYPE.sm, color: COLORS.attention },
   actionBody: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600", marginTop: SPACE.s3 },
+  answerActions: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, marginTop: SPACE.s3 },
+  answerAction: { minHeight: 44, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.surface },
+  answerActionText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "700" },
 });
