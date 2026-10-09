@@ -1299,3 +1299,9 @@ def test_settings_missing_emergency_profile_is_unconfigured_not_404() -> None:
     assert "setForm(null);" in page
     assert "f ?? profile.data ??" in page
     assert "useEffect(() => {" in page
+
+
+def test_mobile_me_touch_targets_meet_44dp_floor() -> None:
+    source = read("apps/mobile/src/screens/MeScreen.tsx")
+    assert 'smallButton: { minHeight: 44' in source
+    assert 'smallButton: { minHeight: 40' not in source
