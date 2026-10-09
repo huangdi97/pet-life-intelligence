@@ -91,6 +91,7 @@ export default function TrainingPage() {
   const [selectedReward, setSelectedReward] = useState("");
   const [rewardBusy, setRewardBusy] = useState(false);
   const [rewardOpen, setRewardOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
 
   async function addReward() {
     if (!petId || !rewardSubject.trim() || rewardBusy) return;
@@ -131,6 +132,7 @@ export default function TrainingPage() {
       setTitle("");
       setTargetBehavior("");
       setStepsText("");
+      setFormOpen(false);
       goals.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
