@@ -11,6 +11,7 @@ import { State } from "../../../components/ui";
 import { PetLivingStage } from "../../../components/pet-living-stage";
 import { Icon, type WebIconName } from "../../../components/icons";
 import { EVENT_LABELS } from "../../_components/today/constants";
+import { poseForEvent } from "@pli/pet-3d";
 
 interface Consent {
   purpose: string;
@@ -20,6 +21,11 @@ interface Consent {
 interface TodayMini {
   event_counts: Record<string, number>;
   date: string;
+  events?: Array<{
+    event_type: string;
+    occurred_at: string;
+    payload?: Record<string, unknown>;
+  }>;
 }
 
 interface BaselineRow {
@@ -183,24 +189,22 @@ export default function PetProfilePage() {
   const p = pet.data;
   const counts = today.data?.event_counts ?? {};
   const countEntries = Object.entries(counts);
-  const ANCHOR_ICONS: Record<string, WebIconName> = {
-    "daily.meal": "food",
-    "daily.drink": "water",
-    "daily.walk": "walk",
-    "daily.play": "play",
-    "daily.sleep": "sleep",
-    "daily.weight": "weight",
-  };
-  const anchors = countEntries
-    .filter(([et]) => et !== "today.viewed")
-    .slice(0, 4)
-    .map(([et, n]) => ({
-      id: et,
-      label: EVENT_LABELS[et] ?? "状态",
-      value: `${n} 次`,
-      icon: ANCHOR_ICONS[et] ?? "paw",
-      href: "/timeline",
-    }));
+  const todayEvents = (today.data?.events ?? []).filter((event) => event.event_type !== "today.viewed");
+  const latestLifeEvent = todayEvents[0] ?? null;
+  const representativePose = poseForEvent(latestLifeEvent?.event_type ?? null) ?? "Idle";
+  const activityMinutes = todayEvents
+    .filter((event) => event.event_type === "daily.walk" || event.event_type === "daily.play")
+    .reduce((total, event) => {
+      const minutes = Number(event.payload?.duration_minutes);
+      if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 24 * 60) return total;
+      return total + minutes;
+    }, 0);
+  const anchors = [
+    { id: "meal", label: "进食", value: `${counts["daily.meal"] ?? 0} 次`, icon: "food" as WebIconName, href: "/timeline" },
+    { id: "water", label: "饮水", value: `${counts["daily.drink"] ?? 0} 次`, icon: "water" as WebIconName, href: "/timeline" },
+    { id: "activity", label: "活动", value: activityMinutes > 0 ? `${activityMinutes} 分钟` : "—", icon: "walk" as WebIconName, href: "/timeline" },
+    { id: "sleep", label: "睡眠", value: `${counts["daily.sleep"] ?? 0} 次`, icon: "sleep" as WebIconName, href: "/timeline" },
+  ];
 
 
   const identityLine = [
@@ -232,6 +236,13 @@ export default function PetProfilePage() {
   const welfareObservationCount = Object.values(welfareMeaning.data?.observation_counts ?? {})
     .reduce((sum, value) => sum + Number(value || 0), 0);
   const domainRows = DOMAIN_ROWS.map((row) => {
+    if (row.id === "life") {
+      return {
+        ...row,
+        href: `/pets/${id}/life-view`,
+        desc: "此刻、趋势与外观都在这里",
+      };
+    }
     if (row.id === "health") {
       return {
         ...row,
@@ -314,7 +325,8 @@ export default function PetProfilePage() {
             twin={twinDescriptor}
             frameTarget={0.56}
             sourceMediaCount={twinSourceMediaCount}
-            anchors={anchors.length ? anchors : undefined}
+            pose={twinDescriptor ? representativePose : null}
+            anchors={anchors}
             headline={petHeadline}
             caption={identityLine || undefined}
             stageTestId="pli.pet.hero-stage"
