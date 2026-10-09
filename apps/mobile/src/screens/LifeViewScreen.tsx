@@ -285,6 +285,26 @@ export function LifeViewScreen() {
           />
         </View>
 
+        <View testID="pli.lifeview.control.zoom" style={styles.controlRow} accessibilityLabel="3D 视图控制">
+          <Pressable accessibilityRole="button" onPress={() => viewerRef.current?.zoomOut()} style={styles.controlBtn}>
+            <Ionicons name="remove" size={16} color={COLORS.textSecondary} />
+            <Text style={styles.controlBtnText}>缩小</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => viewerRef.current?.zoomIn()} style={styles.controlBtn}>
+            <Ionicons name="add" size={16} color={COLORS.textSecondary} />
+            <Text style={styles.controlBtnText}>放大</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => viewerRef.current?.resetView()} style={styles.controlBtn}>
+            <Ionicons name="refresh" size={16} color={COLORS.textSecondary} />
+            <Text style={styles.controlBtnText}>重置视图</Text>
+          </Pressable>
+        </View>
+
+
+        <View testID="pli.lifeview.control.modes">
+          <LivingModeSwitcher value={mode} onChange={setMode} onTimeline={() => navigation.navigate("Tabs", { screen: "Timeline" })} />
+        </View>
+
         <View testID="pli.lifeview.support-facts" style={styles.supportFacts} accessibilityLabel="体重、任务与设备状态">
           <Pressable
             testID="pli.lifeview.support.weight"
@@ -321,25 +341,6 @@ export function LifeViewScreen() {
           </Pressable>
         </View>
 
-        <View testID="pli.lifeview.control.zoom" style={styles.controlRow} accessibilityLabel="3D 视图控制">
-          <Pressable accessibilityRole="button" onPress={() => viewerRef.current?.zoomOut()} style={styles.controlBtn}>
-            <Ionicons name="remove" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.controlBtnText}>缩小</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => viewerRef.current?.zoomIn()} style={styles.controlBtn}>
-            <Ionicons name="add" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.controlBtnText}>放大</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => viewerRef.current?.resetView()} style={styles.controlBtn}>
-            <Ionicons name="refresh" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.controlBtnText}>重置视图</Text>
-          </Pressable>
-        </View>
-
-
-        <View testID="pli.lifeview.control.modes">
-          <LivingModeSwitcher value={mode} onChange={setMode} onTimeline={() => navigation.navigate("Tabs", { screen: "Timeline" })} />
-        </View>
 
         <View testID="pli.lifeview.panel" style={styles.panel} accessibilityLiveRegion="polite">
           {mode === "now" ? (
