@@ -207,6 +207,52 @@ export default function BehaviorPage() {
         </p>
       </div>
 
+      <section className="v4-sec" data-testid="pli.behavior.recent">
+        <div className="v4-sec-head">
+          <h2 className="v4-sec-title">最近记录</h2>
+          <span className="muted">按主人标注的强度筛选</span>
+        </div>
+        <div className="v4-filter-row" aria-label="行为记录筛选" style={{ marginBottom: 10 }}>
+          {[
+            ["all", "全部"],
+            ["MILD", "轻度"],
+            ["MODERATE", "中度"],
+            ["SEVERE", "重度"],
+            ["UNLABELED", "未标注"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={`v4-chip ${filter === value ? "v4-chip--brand" : ""}`}
+              aria-pressed={filter === value}
+              onClick={() => setFilter(value as typeof filter)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <State state={list.state} error={list.error} onRetry={list.reload} empty="还没有行为记录。">
+          {visibleRows.length === 0 ? <p className="v4-note">当前筛选下没有行为记录。</p> : null}
+          <ul className="tl" data-testid="pli.behavior.observations">
+            {visibleRows.map((b) => (
+              <li key={b.behavior_event_id}>
+                <div className="tl-head">
+                  <span className="tl-type">{b.behavior}</span>
+                  {b.intensity && <span className="badge">{b.intensity === "MILD" ? "轻度" : b.intensity === "MODERATE" ? "中度" : b.intensity === "SEVERE" ? "重度" : b.intensity}（主人记录）</span>}
+                  <span className="tl-time" data-testid="pli.behavior.source">{fmtTime(b.occurred_at)}</span>
+                </div>
+                <div className="tl-body">
+                  之前：{b.antecedent || "—"} · 之后：{b.consequence || "—"} · 环境：{b.environment || "—"}
+                </div>
+                {b.artifact_ids?.length ? (
+                  <div className="muted">已关联 {b.artifact_ids.length} 个媒体证据 · 仅作为本次行为记录的原始素材</div>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </State>
+      </section>
+
       <section className="v4-sec" data-testid="pli.behavior.patterns">
         <h2 className="v4-sec-title">模式与倾向</h2>
         <p className="muted" style={{ margin: "0 0 10px" }}>
@@ -342,52 +388,6 @@ export default function BehaviorPage() {
             </button>
           </div>
         ) : null}
-      </section>
-
-      <section className="v4-sec" data-testid="pli.behavior.recent">
-        <div className="v4-sec-head">
-          <h2 className="v4-sec-title">最近记录</h2>
-          <span className="muted">按主人标注的强度筛选</span>
-        </div>
-        <div className="v4-filter-row" aria-label="行为记录筛选" style={{ marginBottom: 10 }}>
-          {[
-            ["all", "全部"],
-            ["MILD", "轻度"],
-            ["MODERATE", "中度"],
-            ["SEVERE", "重度"],
-            ["UNLABELED", "未标注"],
-          ].map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              className={`v4-chip ${filter === value ? "v4-chip--brand" : ""}`}
-              aria-pressed={filter === value}
-              onClick={() => setFilter(value as typeof filter)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <State state={list.state} error={list.error} onRetry={list.reload} empty="还没有行为记录。">
-          {visibleRows.length === 0 ? <p className="v4-note">当前筛选下没有行为记录。</p> : null}
-          <ul className="tl" data-testid="pli.behavior.observations">
-            {visibleRows.map((b) => (
-              <li key={b.behavior_event_id}>
-                <div className="tl-head">
-                  <span className="tl-type">{b.behavior}</span>
-                  {b.intensity && <span className="badge">{b.intensity === "MILD" ? "轻度" : b.intensity === "MODERATE" ? "中度" : b.intensity === "SEVERE" ? "重度" : b.intensity}（主人记录）</span>}
-                  <span className="tl-time" data-testid="pli.behavior.source">{fmtTime(b.occurred_at)}</span>
-                </div>
-                <div className="tl-body">
-                  之前：{b.antecedent || "—"} · 之后：{b.consequence || "—"} · 环境：{b.environment || "—"}
-                </div>
-                {b.artifact_ids?.length ? (
-                  <div className="muted">已关联 {b.artifact_ids.length} 个媒体证据 · 仅作为本次行为记录的原始素材</div>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </State>
       </section>
 
       <section className="v4-sec v5-domain-create" data-form-open={formOpen ? "true" : "false"}>
