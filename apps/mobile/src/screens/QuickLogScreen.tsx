@@ -122,11 +122,22 @@ export function QuickLogScreen() {
         if (kind) payload.kind = kind;
       } else if (t.event_type === "daily.walk" || t.event_type === "daily.play" || t.event_type === "daily.sleep") {
         const duration = clampMinutes(minutes);
-        if (!minutes.trim() || duration <= 0) {
-          setError("请填写实际时长（分钟）。");
-          return;
+        if (t.event_type === "daily.walk") {
+          // Walking itself is a truthful event even when the owner did not
+          // time it. Keep the canonical two-tap frequent path: tap “散步”,
+          // then save. Never invent a default duration.
+          if (minutes.trim() && duration <= 0) {
+            setError("如果填写时长，请输入有效的分钟数。");
+            return;
+          }
+          payload = duration > 0 ? { duration_minutes: duration } : {};
+        } else {
+          if (!minutes.trim() || duration <= 0) {
+            setError("请填写实际时长（分钟）。");
+            return;
+          }
+          payload = { duration_minutes: duration };
         }
-        payload = { duration_minutes: duration };
       } else if (t.event_type === "daily.weight") {
         const w = parseFloat(weight);
         if (!Number.isFinite(w) || w <= 0) {
