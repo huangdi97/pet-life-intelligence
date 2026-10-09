@@ -1076,3 +1076,39 @@ def test_behavior_preferences_and_training_rewards_edit_third_across_clients() -
     assert 'testID="pli.training.reward.submit"' in training[1]
     assert 'data-testid="pli.mini.training.reward.toggle"' in training[2]
     assert 'data-testid="pli.mini.training.reward.submit"' in training[2]
+
+
+def test_medication_tasks_and_care_mutations_are_secondary() -> None:
+    medication_web = read("apps/web/app/medication/page.tsx")
+    medication_mobile = read("apps/mobile/src/screens/MedicationScreen.tsx")
+    medication_mini = read("apps/mini/src/pages/medication/index.tsx")
+    tasks_web = read("apps/web/app/tasks/page.tsx")
+    tasks_mini = read("apps/mini/src/pages/tasks/index.tsx")
+    care_web = read("apps/web/app/care/page.tsx")
+    care_mobile = read("apps/mobile/src/screens/CareScreen.tsx")
+    care_mini = read("apps/mini/src/pages/care/index.tsx")
+
+    assert "formOpen" in medication_web
+    assert 'data-testid="pli.medication.create.toggle"' in medication_web
+    assert 'data-testid="pli.medication.create.submit"' in medication_web
+    assert "formOpen" in medication_mobile
+    assert "showCreate" in medication_mini
+    assert 'data-testid="pli.mini.medication.create.toggle"' in medication_mini
+    assert 'data-testid="pli.mini.medication.create.submit"' in medication_mini
+
+    assert "createOpen" in tasks_web
+    assert tasks_web.index("当前任务") < tasks_web.index('data-testid="pli.tasks.create.toggle"')
+    assert 'data-testid="pli.tasks.create.submit"' in tasks_web
+    assert "createOpen" in tasks_mini
+    assert tasks_mini.index("当前任务") < tasks_mini.index('data-testid="pli.mini.tasks.create"')
+    assert 'data-testid="pli.mini.tasks.create.submit"' in tasks_mini
+
+    for source in (care_web, care_mobile, care_mini):
+        assert "inviteOpen" in source
+        assert "handoffOpen" in source
+    assert 'data-testid="pli.care.invite.toggle"' in care_web
+    assert 'data-testid="pli.care.handoff.toggle"' in care_web
+    assert 'testID="pli.care.invite.toggle"' in care_mobile
+    assert 'testID="pli.care.handoff.toggle"' in care_mobile
+    assert 'data-testid="pli.mini.care.invite.toggle"' in care_mini
+    assert 'data-testid="pli.mini.care.handoff.toggle"' in care_mini
