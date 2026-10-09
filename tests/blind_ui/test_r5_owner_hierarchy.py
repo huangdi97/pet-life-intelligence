@@ -1667,3 +1667,10 @@ def test_mini_life_view_hides_model_versions_from_owner_copy() -> None:
     assert "第 ${activeTwin.version" not in source
     assert "个体形象 · 已确认" in source
     assert "示例形象 · 仅用于体验" in source
+
+
+def test_android_evidence_fails_session_errors_before_3d_manifest_checks() -> None:
+    runner = read("scripts/r5-6/capture-android-final.py")
+    assert "demo owner session failed before Today/3D mounted" in runner
+    assert 'if "pli.today.living-stage" not in primary_select_xml' in runner
+    assert runner.index("demo owner session failed before Today/3D mounted") < runner.index("primary_manifest = android.read_runtime_manifest")
