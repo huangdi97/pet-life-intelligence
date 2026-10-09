@@ -2357,3 +2357,82 @@ body{background:#FBF7F1}
 }
 .v5-timeline-tools > summary::-webkit-details-marker { display: none; }
 .v5-timeline-tools[open] > summary { color: var(--v4-brand-primary,#365F49); }
+
+
+/* R7.8 Today first-fold closure.
+   The hero already answers NOW. On owner phones do not repeat the same facts in
+   a second section before CHANGE → ATTENTION → ACTION. Preserve the large pet,
+   reclaim card padding/chrome instead. */
+@media(max-width:768px){
+  .r2p-stage--today,
+  .r2p-stage--today.r2p-stage--3d {
+    min-height:500px;
+  }
+  [data-testid="pli.today.now"] {
+    display:none;
+  }
+  .v5-today-change {
+    padding-top:10px;
+    padding-bottom:8px;
+  }
+  .v5-today-change .v4-sec-head {
+    margin-bottom:5px;
+  }
+  .v5-today-change .v4-sec-title {
+    font-size:14px;
+  }
+  .v5-change-line {
+    padding:10px 12px;
+    border-radius:14px;
+    background:rgba(238,243,234,.58);
+  }
+  .v5-change-summary {
+    font-size:14px;
+    line-height:1.4;
+  }
+  .v5-change-evidence {
+    margin-top:2px;
+    line-height:1.35;
+  }
+  .v5-today-attention--calm,
+  .v5-today-attention--unknown {
+    padding-top:5px;
+    padding-bottom:5px;
+  }
+  .v5-today-attention--calm .v4-sec-head,
+  .v5-today-attention--unknown .v4-sec-head {
+    display:none;
+  }
+  .v5-today-attention--calm .v4-calm,
+  .v5-today-attention--unknown .v4-calm {
+    padding:9px 12px;
+    gap:8px;
+    border-radius:14px;
+  }
+  .v5-today-attention--calm .v4-calm-title,
+  .v5-today-attention--unknown .v4-calm-title {
+    font-size:13px;
+  }
+  .v5-today-attention--calm .v4-calm-body,
+  .v5-today-attention--unknown .v4-calm-body {
+    font-size:12px;
+    line-height:1.35;
+  }
+  .v5-today-action {
+    padding-top:7px;
+    padding-bottom:16px;
+  }
+  .v5-today-action .v4-sec-head {
+    display:none;
+  }
+  .v5-today-action .v5-today-primary {
+    min-height:44px;
+    padding-block:10px;
+  }
+  .v5-today-action .v5-today-secondary {
+    margin-top:6px;
+  }
+  .v5-today-action .v4-sec-foot {
+    margin-top:6px;
+  }
+}
