@@ -1440,3 +1440,14 @@ def test_cross_client_living_twin_keeps_pose_grounding_and_motion_safety() -> No
     assert "orbitZoom(orbit, factor, zoomBounds)" in android_entry
     assert "reduceMotionQuery" in android_entry
     assert '"Stand" : (activePose ?? "Idle")' in android_entry
+
+
+def test_behavior_domains_read_observations_before_patterns_across_clients() -> None:
+    mobile = read("apps/mobile/src/screens/BehaviorScreen.tsx")
+    web = read("apps/web/app/behavior/page.tsx")
+
+    assert mobile.index('title="最近观察"') < mobile.index('title="模式与倾向"')
+    assert mobile.index('title="模式与倾向"') < mobile.index('title="情境与触发"')
+    assert web.index('data-testid="pli.behavior.recent"') < web.index('data-testid="pli.behavior.patterns"')
+    assert web.index('data-testid="pli.behavior.patterns"') < web.index('data-testid="pli.behavior.context"')
+    assert web.index('data-testid="pli.behavior.context"') < web.index('className="v4-sec v5-domain-create"')
