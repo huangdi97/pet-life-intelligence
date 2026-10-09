@@ -544,17 +544,24 @@ def test_today_never_labels_unavailable_attention_evidence_as_calm() -> None:
     mobile = read("apps/mobile/src/screens/TodayScreen.tsx")
     mini = read("apps/mini/src/pages/index/index.tsx")
 
-    assert "attentionEvidenceReady" in web_page
-    assert "关注状态暂时无法确认" in web_attention
-    assert "不会把未知状态显示成“没有变化”" in web_attention
+    # CHANGE and health ATTENTION are separate truth channels. Unknown health
+    # evidence must never be rendered as calm/no-risk.
+    assert 'health.state !== "ready"' in web_page
+    assert 'kind: "unknown"' in web_page
+    assert "健康关注状态暂时无法确认" in web_attention
+    assert "不会把未知状态显示成“没有风险”" in web_page
+    assert "不会把未知状态显示成“没有变化”" in web_page
 
-    # Mobile already uses hint=null as an explicit unknown state after a
-    # failed/absent baseline response.
+    assert 'healthState !== "ready"' in mobile
     assert 'kind: "unknown"' in mobile
-    assert "今天还没有足够信息判断是否有需要关注的变化" in mobile
+    assert "健康关注状态暂时无法确认" in mobile
+    assert "不会把未知状态显示成“没有风险”" in mobile
+    assert "与它自己相比：今天还没有足够的基线信息。" in mobile
 
-    assert 'healthState' in mini
+    assert 'healthState !== "ready"' in mini
     assert 'kind="unknown"' in mini
+    assert "健康关注状态暂时无法确认" in mini
+    assert "不会把未知状态显示成“没有风险”" in mini
     assert "不会把未知状态显示成“没有变化”" in mini
 
 
@@ -852,12 +859,13 @@ def test_uploaded_photo_can_replace_the_demo_3d_without_cross_pet_leakage() -> N
     for source in (native, web):
         assert "const [photoView, setPhotoView]" in source
         assert "photoUri" in source
-        assert "photoFirstByDefault = Boolean(photoUri && (demo || twin === null))" in source
         assert "explicitPhotoChoice = photoView && photoView.petId ===" in source
         assert "canShow3d && !showPhoto" in source
         assert "切换为主人上传的真实照片" in source
         assert "看真实照片" in source
         assert "看 3D 形象" in source
+    assert 'photoFirstByDefault = Boolean(photoUri && variant !== "review")' in native
+    assert "photoFirstByDefault = Boolean(photoUri);" in web
     assert "if (!petId) return;" in web
     assert "if (!petId || twin || demo) return;" not in web
     assert ".r2p-stage-photo-toggle" in css
@@ -1361,7 +1369,7 @@ def test_owner_3d_never_swaps_individual_descriptor_for_bundled_demo_glb() -> No
     assert 'visualFidelityTier' in mobile_runtime
     assert 'individualIdentityEvidence' in manifest
     assert 'technicalRepresentationQuality' in manifest
-    assert 'const photoFirstByDefault = Boolean(photoUri && variant !== "review");' in web_stage
+    assert 'const photoFirstByDefault = Boolean(photoUri);' in web_stage
     assert 'const photoFirstByDefault = Boolean(photoUri && variant !== "review");' in mobile_stage
     assert "geo.computeVertexNormals()" in loader
     assert "material.flatShading = false" in loader
