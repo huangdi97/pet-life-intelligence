@@ -21,7 +21,7 @@ function fmtTime(value: string | null | undefined): string {
  * never appear in owner copy.
  */
 const HOUSEHOLD_ENTRIES: Array<{ label: string; detail: string; url: string }> = [
-  { label: "宠物档案", detail: "查看与切换家庭里的宠物", url: "/pages/pets/index" },
+  { label: "我的宠物", detail: "查看与切换家庭里的宠物", url: "/pages/pets/index" },
   { label: "照护协作", detail: "管理照护交接、范围与有效期", url: "/pages/care/index" },
 ];
 
@@ -476,12 +476,12 @@ export default function Mine() {
         ) : null}
       </View>
 
-      <View className="open-section">
+      <View className="open-section" data-testid="pli.mini.me.about">
         <View
           className="section-title"
           onClick={() => setAccountOpen((value) => !value)}
         >
-          应用
+          关于
           <Text className="section-caption">{accountOpen ? "收起" : "查看"}</Text>
         </View>
         {accountOpen ? (
@@ -491,7 +491,7 @@ export default function Mine() {
                 <View className="life-row-head">
                   <Text className="life-row-type">Pet Life Intelligence</Text>
                 </View>
-                <View className="life-row-detail">当前为预览构建；未开放的能力会在页面中明确说明，不会伪装成已连接或已完成。</View>
+                <View className="life-row-detail">围绕一只具体宠物的真实生活记录、照护协作与长期理解；未开放的能力会明确说明。</View>
               </View>
             </View>
           </View>

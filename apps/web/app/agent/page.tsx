@@ -99,9 +99,9 @@ export default function AgentPage() {
       </div>
 
       <div className="v4-sec" data-testid="pli.assistant.context" style={{ marginBottom: 12 }}>
-        <h2 className="v4-sec-title">正在查看</h2>
+        <h2 className="v4-sec-title">正在帮助你理解</h2>
         <p className="v4-note" style={{ margin: "6px 0 0" }}>
-          {petName ? `${petName} 的最近记录与变化` : "还没有选择宠物"}
+          {petName ? `${petName} · 最近记录、变化与证据` : "还没有选择宠物"}
         </p>
       </div>
 

@@ -230,6 +230,13 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      <div className="v5-me-section" data-testid="pli.me.about">
+        <h2>关于</h2>
+        <p className="muted" style={{ margin: 0 }}>
+          Pet Life Intelligence · 围绕一只具体宠物的真实生活记录、照护协作与长期理解。
+        </p>
+      </div>
+
       <div data-testid="pli.me.settings">
         <AccountSecurityCard />
       </div>

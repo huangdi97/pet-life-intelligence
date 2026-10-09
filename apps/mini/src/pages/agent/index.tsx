@@ -125,6 +125,10 @@ export default function Agent() {
         sub="回答引用真实记录；风险判断以独立规则引擎为准"
       />
 
+      <View className="sub" data-testid="pli.mini.assistant.context">
+        正在帮助你理解：{current?.name ?? "这只宠物"}
+      </View>
+
       {tab === "ask" ? (
         <>
           <View className="agent-primary-lead">先问一件和{current?.name ?? "这只宠物"}有关的事</View>

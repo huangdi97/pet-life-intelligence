@@ -975,3 +975,21 @@ def test_life_view_restores_canonical_four_way_mode_rail_without_copying_timelin
     assert "此刻 / 趋势 / 时间线 / 外观" in web_switcher
     assert 'href="/timeline"' in web_switcher
     assert 'data-testid="pli.lifeview.mode.timeline"' in web_switcher
+
+
+def test_assistant_and_me_close_canonical_owner_context_across_clients() -> None:
+    web_assistant = read("apps/web/app/agent/page.tsx")
+    mini_assistant = read("apps/mini/src/pages/agent/index.tsx")
+    web_me = read("apps/web/app/settings/page.tsx")
+    mini_me = read("apps/mini/src/pages/mine/index.tsx")
+
+    assert "正在帮助你理解" in web_assistant
+    assert "最近记录、变化与证据" in web_assistant
+    assert "正在帮助你理解：" in mini_assistant
+    assert 'data-testid="pli.mini.assistant.context"' in mini_assistant
+
+    assert 'data-testid="pli.me.about"' in web_me
+    assert "<h2>关于</h2>" in web_me
+    assert '"我的宠物"' in mini_me
+    assert 'data-testid="pli.mini.me.about"' in mini_me
+    assert "关于" in mini_me
