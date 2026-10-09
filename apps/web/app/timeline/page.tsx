@@ -216,6 +216,25 @@ export default function TimelinePage() {
         <p className="v4-topline-sub">记录每一天真实发生的事情，每条都带有时间与来源。</p>
       </div>
 
+      {current ? (
+        <div data-testid="pli.timeline.identity">
+          <div className="v4-life-identity">
+            <span className="v4-life-identity-overline">这段生活属于</span>
+            <div className="v4-life-identity-name">{current.name}</div>
+            <p className="v4-life-identity-desc">
+              {breedLabel(current.breed) || (current.species === "dog" ? "犬" : current.species === "cat" ? "猫" : "宠物")} · 每一条记录都可以回看
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="v4-calm" style={{ marginTop: 12 }}>
+          <span className="v4-calm-icon">
+            <Icon name="paw" size={18} />
+          </span>
+          <p className="v4-calm-body">请先在顶部选择一只宠物。</p>
+        </div>
+      )}
+
       <div className="v4-grid">
         <div>
           <FilterBar
@@ -252,24 +271,6 @@ export default function TimelinePage() {
         </div>
 
         <div className="v4-rail">
-          {current ? (
-            <div data-testid="pli.timeline.identity">
-              <div className="v4-life-identity">
-                <span className="v4-life-identity-overline">这段生活属于</span>
-                <div className="v4-life-identity-name">{current.name}</div>
-                <p className="v4-life-identity-desc">
-                  {breedLabel(current.breed) || (current.species === "dog" ? "犬" : current.species === "cat" ? "猫" : "宠物")} · 每一条记录都可以回看
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="v4-calm" style={{ marginTop: 12 }}>
-              <span className="v4-calm-icon">
-                <Icon name="paw" size={18} />
-              </span>
-              <p className="v4-calm-body">请先在顶部选择一只宠物。</p>
-            </div>
-          )}
           {day && <DayBackCard day={day} models={visual.data?.models ?? []} />}
           <div className="v4-sec" data-testid="pli.timeline.milestones">
             <div className="v4-sec-head">
