@@ -383,7 +383,8 @@ export function CareScreen() {
               </View>
               <Pressable
               accessibilityRole="button"
-              testID="pli.care.invite.submit"\n            accessibilityLabel="发送家庭邀请"
+              testID="pli.care.invite.submit"
+              accessibilityLabel="发送家庭邀请"
               accessibilityState={{ disabled: busy || !pet?.household_id || !inviteEmail.trim() }}
               disabled={busy || !pet?.household_id || !inviteEmail.trim()}
               onPress={() => void inviteMember()}
@@ -470,7 +471,8 @@ export function CareScreen() {
               })}
               </View>
               <TextInput style={styles.input} value={hours} onChangeText={setHours} keyboardType="number-pad" placeholder="有效小时数" placeholderTextColor={COLORS.textTertiary} />
-              <Pressable accessibilityRole="button" testID="pli.care.handoff.submit"\n            accessibilityLabel="创建临时照护交接" accessibilityState={{ disabled: busy || !caregiver.trim() || scopes.length === 0 }} disabled={busy || !caregiver.trim() || scopes.length === 0} onPress={() => void createHandoff()} style={[styles.primary, (busy || !caregiver.trim() || scopes.length === 0) && styles.disabled]}>
+              <Pressable accessibilityRole="button" testID="pli.care.handoff.submit"
+              accessibilityLabel="创建临时照护交接" accessibilityState={{ disabled: busy || !caregiver.trim() || scopes.length === 0 }} disabled={busy || !caregiver.trim() || scopes.length === 0} onPress={() => void createHandoff()} style={[styles.primary, (busy || !caregiver.trim() || scopes.length === 0) && styles.disabled]}>
               <Text style={styles.primaryText}>{busy ? "处理中…" : "创建交接"}</Text>
               </Pressable>
               
