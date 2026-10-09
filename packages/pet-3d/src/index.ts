@@ -15,6 +15,7 @@ export type { Pet3DIdentity, Pet3DAssetMeta } from "./registry";
 export {
   createPetStageScene,
   addStageLights,
+  enableStageShadowCasters,
   applyOrbit,
   frameCamera,
   orbitFromDrag,
