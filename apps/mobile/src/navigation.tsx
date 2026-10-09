@@ -6,7 +6,7 @@
  */
 import React from "react";
 import { View } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, type NavigatorScreenParams } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -51,7 +51,7 @@ export type TabParamList = {
 };
 
 export type StackParamList = {
-  Tabs: undefined;
+  Tabs: NavigatorScreenParams<TabParamList> | undefined;
   QuickLog: undefined;
   Notifications: undefined;
   Search: undefined;
