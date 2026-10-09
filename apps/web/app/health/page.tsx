@@ -55,7 +55,8 @@ export default function HealthPage() {
   const [onset, setOnset] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [composerOpen, setComposerOpen] = useState(false);\n  const [reminderFormOpen, setReminderFormOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [reminderFormOpen, setReminderFormOpen] = useState(false);
   const [reminderKind, setReminderKind] = useState<ReminderRow["kind"]>("VACCINE");
   const [reminderTitle, setReminderTitle] = useState("");
   const [reminderDate, setReminderDate] = useState("");
