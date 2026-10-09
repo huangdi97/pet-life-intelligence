@@ -563,7 +563,19 @@ def main() -> None:
     time.sleep(6)
     primary_select_dir = out / "_primary-select"
     primary_select_dir.mkdir(parents=True, exist_ok=True)
-    android.dump_xml(primary_select_dir / "ui.xml")
+    primary_select_xml = android.dump_xml(primary_select_dir / "ui.xml")
+    if "演示数据暂时没有连接成功" in primary_select_xml or "重试演示登录" in primary_select_xml:
+        raise CaptureError(
+            "demo owner session failed before Today/3D mounted; check evidence API reachability/authentication"
+        )
+    if "pli.today.living-stage" not in primary_select_xml:
+        observed_ids = sorted(
+            set(re.findall(r'resource-id="(pli\\.[^"]+)"', primary_select_xml))
+        )[:12]
+        raise CaptureError(
+            "primary pet selection did not reach Today before 3D verification; "
+            f"observed_ui_ids={observed_ids}"
+        )
     primary_manifest = android.read_runtime_manifest(
         expected_pet_id=primary_id,
         expected_stage_role="today",
