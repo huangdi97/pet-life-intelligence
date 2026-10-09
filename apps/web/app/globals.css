@@ -2533,3 +2533,15 @@ body{background:#FBF7F1}
 .v7-timeline-compose > summary::after{content:"＋";font-size:18px;font-weight:500}
 .v7-timeline-compose[open] > summary::after{content:"−"}
 .v7-timeline-compose-body{padding:8px 0 4px}
+
+
+/* R7.11 Timeline secondary memories continue the life stream instead of
+   switching into boxed feature modules. */
+.v7-timeline-journal-item{
+  padding:12px 0;
+  border-top:1px solid rgba(54,95,73,.12);
+  background:transparent;
+}
+.v7-timeline-journal-item + .v7-timeline-journal-item{margin-top:0}
+.v7-timeline-journal-item .v4-calm-title{color:#294C37}
+.v7-timeline-journal-summary{margin-top:10px}
