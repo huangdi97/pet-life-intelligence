@@ -50,6 +50,7 @@ const twinDescriptor = window.__PLI_TWIN ?? null;
 // Injected by Pet3DViewer for the V2 identity gate (pet id + media count).
 const injectedPetId: string | null = window.__PLI_PET_ID ?? null;
 const injectedSourceMediaCount: number = Number(window.__PLI_SOURCE_MEDIA_COUNT ?? 0);
+const injectedDemoTwin: boolean = window.__PLI_DEMO_TWIN === true;
 // §31 framing target injected per screen (0 = demo framing, no autofit).
 const frameTarget: number = Number(window.__PLI_FRAME_TARGET ?? 0);
 
@@ -170,9 +171,13 @@ let hdTwin: LoadedTwin | null = null;
 // If the product GLB fails, the procedural bridge remains usable but is
 // explicitly classified as fallback in the runtime manifest.
 let hdLoadFailed = false;
-loadTwinGLB(identity).then((twin) => {
+// The embedded GLBs are bundled DEMO templates. Non-demo descriptors keep
+// the procedural individual scene, which is currently the only renderer that
+// actually applies its per-pet morph and photo-projected region colors.
+const bundledTwin = injectedDemoTwin ? loadTwinGLB(identity) : Promise.resolve(null);
+bundledTwin.then((twin) => {
   if (!twin) {
-    hdLoadFailed = Boolean(twinDescriptor);
+    hdLoadFailed = Boolean(twinDescriptor && injectedDemoTwin);
     post({ type: "manifest", manifest: buildManifest() });
     return;
   }
@@ -267,12 +272,12 @@ function buildManifest(): Record<string, unknown> {
     // stylized reference, never an asserted likeness of the owner's pet.
     representationQuality: hdTwin ? "HIGH_FIDELITY_SKINNED" : "engineering",
     technicalRepresentationQuality: hdTwin ? "RIGGED_PBR_SKINNED" : "PROCEDURAL_ENGINEERING",
-    visualFidelityTier: !hdTwin
-      ? "ENGINEERING_FALLBACK"
-      : injectedSourceMediaCount > 0
+    visualFidelityTier: injectedDemoTwin && hdTwin
+      ? "STYLIZED_REFERENCE"
+      : twinDescriptor && injectedSourceMediaCount > 0 && !injectedDemoTwin
         ? "OWNER_MEDIA_REFERENCED"
-        : "STYLIZED_REFERENCE",
-    individualIdentityEvidence: hdTwin !== null && injectedSourceMediaCount > 0,
+        : "ENGINEERING_FALLBACK",
+    individualIdentityEvidence: Boolean(twinDescriptor && injectedSourceMediaCount > 0 && !injectedDemoTwin),
     productCandidate: hdTwin !== null,
     triangleCount: hdTwin?.triangleCount ?? 0,
     uvPresent: hdTwin !== null,
