@@ -20,7 +20,7 @@ import { PetStateAnchor, type PetAnchor } from "./PetStateAnchor";
 
 export type StageVariant = "today" | "pet" | "life" | "review";
 
-const HEIGHTS: Record<StageVariant, number> = { today: 550, pet: 580, life: 654, review: 550 };
+const HEIGHTS: Record<StageVariant, number> = { today: 550, pet: 580, life: 590, review: 550 };
 const PET_WIDTHS: Record<StageVariant, number> = { today: 372, pet: 388, life: 414, review: 372 };
 
 // Life state facts belong in one quiet ribbon, not four HUD bubbles over the animal.
