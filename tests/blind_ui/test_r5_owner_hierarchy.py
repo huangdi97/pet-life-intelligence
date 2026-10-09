@@ -1818,3 +1818,36 @@ def test_android_evidence_navigation_binds_twin_review_to_current_pet() -> None:
     assert 'screen=twinreview&pet={secondary_id}' in runner
     assert "required_secondary_controls" in runner
     assert "missing_secondary" in runner
+
+
+def test_life_view_exposes_real_secondary_state_across_owner_clients() -> None:
+    mobile = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    web = read("apps/web/app/pets/[id]/life-view/page.tsx")
+    mini = read("apps/mini/src/pages/pets/life-view/index.tsx")
+
+    for source in (mobile, web, mini):
+        assert "/tasks" in source
+        assert "/devices" in source
+        assert "weight_note" in source
+        for label in ("体重", "任务", "设备"):
+            assert label in source
+
+    for test_id in (
+        "pli.lifeview.support.weight",
+        "pli.lifeview.support.tasks",
+        "pli.lifeview.support.devices",
+    ):
+        assert test_id in mobile
+        assert test_id in web
+
+    for test_id in (
+        "pli.mini.lifeview.support.weight",
+        "pli.mini.lifeview.support.tasks",
+        "pli.mini.lifeview.support.devices",
+    ):
+        assert test_id in mini
+
+    # Unknown / unavailable device data must remain explicit, never inferred online.
+    for source in (mobile, web, mini):
+        assert "暂不可用" in source
+        assert "状态待确认" in source
