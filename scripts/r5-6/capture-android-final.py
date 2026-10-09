@@ -483,10 +483,32 @@ def capture_review_views(
 ) -> None:
     android.clear_runtime_manifest()
     android.start_link("pli-demo://nav?screen=twinreview")
-    time.sleep(5)
-    xml = android.dump_xml(directory / "ui.xml")
-    if "pli.twinreview.camera-controls" not in xml:
-        raise CaptureError("Twin Review camera controls are not present on the captured review surface")
+
+    # This function runs *after* the surface sweep, whose last screen is Me.
+    # A fixed sleep can therefore freeze the previous tab while React
+    # Navigation is still applying the stack reset. Poll the exact Review
+    # controls, just like capture_surface() polls its exact surface root.
+    xml = ""
+    required_controls = (
+        "pli.twinreview.camera-controls",
+        "pli.twinreview.view.front",
+        "pli.twinreview.view.side",
+        "pli.twinreview.view.back",
+    )
+    for attempt in range(12):
+        time.sleep(1 if attempt else 3)
+        xml = android.dump_xml(directory / "ui.xml")
+        if all(control in xml for control in required_controls):
+            break
+    missing = [control for control in required_controls if control not in xml]
+    if missing:
+        observed_ids = sorted(
+            set(re.findall(r'resource-id="(pli\\.[^"]+)"', xml))
+        )[:12]
+        raise CaptureError(
+            "Twin Review controls unavailable after deterministic navigation: "
+            f"missing={missing}; observed_ui_ids={observed_ids}"
+        )
     expected = {"front": 0.0, "side": 1.5707963267948966, "back": 3.141592653589793}
     for view, yaw in expected.items():
         android.clear_runtime_manifest()
