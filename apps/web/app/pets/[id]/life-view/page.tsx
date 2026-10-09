@@ -32,6 +32,7 @@ interface BaselineRow {
 
 interface TaskMini { status: string; }
 interface DeviceMini { status: string; }
+interface HealthMini { latest_triage_level: string | null; }
 
 interface TodayMini {
   events?: Array<{
@@ -69,6 +70,10 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
   );
   const devices = useAsync<DeviceMini[]>(
     () => (petId ? api.get(`/pets/${petId}/devices`) : Promise.reject(new Error("NO_PET"))),
+    [petId],
+  );
+  const health = useAsync<HealthMini[]>(
+    () => (petId ? api.get(`/pets/${petId}/health-events`) : Promise.reject(new Error("NO_PET"))),
     [petId],
   );
   // Individual Twin (R2P3D-R3 D): the ACTIVE per-pet twin descriptor drives the
@@ -217,6 +222,17 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
             : deviceRows.some((device) => String(device.status).toLowerCase() === "offline")
               ? "有设备离线"
               : "状态待确认";
+  const healthRows = health.data ?? [];
+  const healthText =
+    health.state === "loading"
+      ? "读取中"
+      : health.state !== "ready"
+        ? "暂不可用"
+        : healthRows.some((row) => row.latest_triage_level === "URGENT" || row.latest_triage_level === "EMERGENCY")
+          ? "需立即关注"
+          : healthRows.length > 0
+            ? "有健康记录"
+            : "暂无记录";
 
   const modelStatus =
     twin.state === "loading"
@@ -269,6 +285,10 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         <Link href={`/pets/${petId}`} className="v7-life-support-item" data-testid="pli.lifeview.support.weight">
           <span className="v7-life-support-label">体重</span>
           <strong>{weightText}</strong>
+        </Link>
+        <Link href="/health" className="v7-life-support-item" data-testid="pli.lifeview.support.health">
+          <span className="v7-life-support-label">健康</span>
+          <strong className={healthText === "需立即关注" ? "v7-life-support-danger" : undefined}>{healthText}</strong>
         </Link>
         <Link href="/" className="v7-life-support-item" data-testid="pli.lifeview.support.tasks">
           <span className="v7-life-support-label">任务</span>
