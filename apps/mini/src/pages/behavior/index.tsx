@@ -57,7 +57,7 @@ export default function Behavior() {
   const [preferenceKind, setPreferenceKind] = useState<"LIKE" | "DISLIKE" | "ALLERGY_CAUTION">("LIKE");
   const [preferenceSubject, setPreferenceSubject] = useState("");
   const [preferenceNote, setPreferenceNote] = useState("");
-  const [preferenceBusy, setPreferenceBusy] = useState(false);
+  const [preferenceBusy, setPreferenceBusy] = useState(false);\n  const [preferenceOpen, setPreferenceOpen] = useState(false);
   const [artifactIds, setArtifactIds] = useState<string[]>([]);
   const [artifactNames, setArtifactNames] = useState<string[]>([]);
   const [videoUploading, setVideoUploading] = useState(false);
@@ -272,18 +272,29 @@ export default function Behavior() {
             </View>
           ))
         ) : <View className="life-empty-note">还没有偏好记录。</View>}
-        <View className="chips">
-          {(["LIKE", "DISLIKE", "ALLERGY_CAUTION"] as const).map((kind) => (
-            <View key={kind} className={`chip${preferenceKind === kind ? " chip-active" : ""}`} onClick={() => setPreferenceKind(kind)}>
-              {PREF_LABEL[kind]}
-            </View>
-          ))}
+        <View
+          className="secondary-action"
+          data-testid="pli.mini.behavior.preference.toggle"
+          onClick={() => setPreferenceOpen((value) => !value)}
+        >
+          {preferenceOpen ? "收起" : "＋ 记录偏好"}
         </View>
-        <Input className="input" value={preferenceSubject} onInput={(event) => setPreferenceSubject(event.detail.value)} placeholder="例如：冻干鸡肉 / 吹风机声音" />
-        <Input className="input" value={preferenceNote} onInput={(event) => setPreferenceNote(event.detail.value)} placeholder="补充实际观察（可选）" />
-        <Button className="btn" disabled={preferenceBusy || !preferenceSubject.trim()} onClick={() => void addPreference()}>
-          {preferenceBusy ? "保存中…" : "记录偏好"}
-        </Button>
+        {preferenceOpen ? (
+          <View className="soft-panel">
+            <View className="chips">
+              {(["LIKE", "DISLIKE", "ALLERGY_CAUTION"] as const).map((kind) => (
+                <View key={kind} className={`chip${preferenceKind === kind ? " chip-active" : ""}`} onClick={() => setPreferenceKind(kind)}>
+                  {PREF_LABEL[kind]}
+                </View>
+              ))}
+            </View>
+            <Input className="input" value={preferenceSubject} onInput={(event) => setPreferenceSubject(event.detail.value)} placeholder="例如：冻干鸡肉 / 吹风机声音" />
+            <Input className="input" value={preferenceNote} onInput={(event) => setPreferenceNote(event.detail.value)} placeholder="补充实际观察（可选）" />
+            <Button data-testid="pli.mini.behavior.preference.submit" className="btn" disabled={preferenceBusy || !preferenceSubject.trim()} onClick={() => void addPreference()}>
+              {preferenceBusy ? "保存中…" : "保存偏好"}
+            </Button>
+          </View>
+        ) : null}
       </View>
 
       <View className="open-section">
