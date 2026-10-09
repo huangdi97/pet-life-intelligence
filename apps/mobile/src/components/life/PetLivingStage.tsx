@@ -20,8 +20,8 @@ import { PetStateAnchor, type PetAnchor } from "./PetStateAnchor";
 
 export type StageVariant = "today" | "pet" | "life" | "review";
 
-const HEIGHTS: Record<StageVariant, number> = { today: 500, pet: 580, life: 590, review: 550 };
-const PET_WIDTHS: Record<StageVariant, number> = { today: 372, pet: 388, life: 414, review: 372 };
+const HEIGHTS: Record<StageVariant, number> = { today: 440, pet: 580, life: 590, review: 550 };
+const PET_WIDTHS: Record<StageVariant, number> = { today: 326, pet: 388, life: 414, review: 372 };
 
 // Today keeps the pet dominant while reserving enough first-fold room for Change → Attention → Action.\n// Pet/Life/Review remain deeper inspection canvases.\n// Life state facts belong in one quiet ribbon, not four HUD bubbles over the animal.
 
@@ -184,13 +184,13 @@ export function PetLivingStage({
           accessibilityRole="button"
           accessibilityLabel={`打开 ${pet?.name ?? "宠物"} 的生命视图`}
           testID={twinTestId}
-          style={styles.pressPet}
+          style={[styles.pressPet, variant === "today" && styles.petSlotToday]}
           onPress={onPressPet}
         >
           {petLayer}
         </Pressable>
       ) : (
-        <View testID={twinTestId} style={[styles.petSlot, variant === "life" && styles.petSlotLife]}>
+        <View testID={twinTestId} style={[styles.petSlot, variant === "today" && styles.petSlotToday, variant === "life" && styles.petSlotLife]}>
           {petLayer}
         </View>
       )}
@@ -359,6 +359,7 @@ const styles = StyleSheet.create({
   },
   pressPet: { position: "absolute", left: 0, right: 0, bottom: 89, alignItems: "center" },
   petSlot: { position: "absolute", left: 0, right: 0, bottom: 89, alignItems: "center" },
+  petSlotToday: { bottom: 74 },
   petSlotLife: { bottom: 118 },
   lifeRibbon: { position: "absolute", bottom: 12, left: SPACE.s4, right: SPACE.s4, flexDirection: "row", borderRadius: 21, paddingVertical: 9, backgroundColor: "#FFFEF6EC", borderWidth: StyleSheet.hairlineWidth, borderColor: "#EAF2E7" },
   lifeRibbonItem: { flex: 1, minWidth: 0 },
