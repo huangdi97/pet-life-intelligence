@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { api } from "@pli/api-client";
 import { Icon, type WebIconName } from "./icons";
 import { resolvePet3DIdentity } from "@pli/pet-3d";
+import type { PoseName } from "@pli/pet-3d";
 import { Pet3DViewer, type Pet3DStatus } from "./three/pet3d-viewer";
 
 export interface StageAnchor {
@@ -39,6 +40,8 @@ interface Props {
   sourceMediaCount?: number;
   /** Individual twin descriptor (R2P3D-R3 D): drives the real per-pet asset. */
   twin?: import("@pli/pet-3d").TwinDescriptor | null;
+  /** Representative motion derived from a real life event; null keeps ambient Idle. */
+  pose?: PoseName | null;
   /** Enables drag rotate + pinch zoom (Life View). */
   interactive?: boolean;
   /** Blind-UI contract: id on the outer stage section (e.g. pli.today.living-stage). */
@@ -70,6 +73,7 @@ export function PetLivingStage({
   caption,
   note,
   demo = false,
+  pose = null,
   interactive = false,
   frameTarget = 0,
   stageTestId,
@@ -195,6 +199,7 @@ export function PetLivingStage({
               displayName={name}
               demoTwin={demo}
               twin={twin}
+              pose={pose}
               variant="stage"
               frameTarget={frameTarget}
               petId={petId}
@@ -217,6 +222,7 @@ export function PetLivingStage({
               displayName={name}
               demoTwin={demo}
               twin={twin}
+              pose={pose}
               variant={variant === "life" ? "life" : "stage"}
               interactive={variant === "life"}
               frameTarget={frameTarget}
