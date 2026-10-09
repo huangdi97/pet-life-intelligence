@@ -64,6 +64,7 @@ export default function MedicationPage() {
         source_note: form.source_note,
       });
       setForm((f) => ({ ...f, medicine_name: "", dose_text: "", source_note: "" }));
+      setFormOpen(false);
       plans.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
