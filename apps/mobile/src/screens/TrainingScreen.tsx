@@ -150,6 +150,7 @@ export function TrainingScreen() {
       setSelectedReward(row.subject);
       setRewardSubject("");
       setRewardNote("");
+      setRewardOpen(false);
       setVersion((value) => value + 1);
     } catch (e: unknown) {
       setFormError(humanizeError(e));
