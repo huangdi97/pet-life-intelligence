@@ -40,7 +40,7 @@
     "scale": 0.003338503055837978,
     "translate_y_min": -4.751849174,
     "height": 1.35,
-    "rotate_y_deg": 0.0
+    "rotate_y_deg": 0
   },
   "morphology": {
     "applied": false
@@ -52,7 +52,7 @@
   "atlasObservedRatio": 0.57415771484375,
   "landmarks": {
     "eye_center": [
-      0.0,
+      0,
       1.026,
       0.2634490405790321
     ],
@@ -97,5 +97,9 @@
     "Play": "REPRESENTATIVE",
     "Sniff": "OBSERVED",
     "Stretch": "OBSERVED"
-  }
+  },
+  "technicalRepresentationQuality": "RIGGED_PBR_SKINNED",
+  "visualFidelityTier": "STYLIZED_REFERENCE",
+  "individualIdentityEvidence": false,
+  "visualFidelityNote": "Rigged/PBR demo template; technical completeness does not assert photorealism or owner-pet likeness."
 }
