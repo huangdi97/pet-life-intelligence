@@ -6,7 +6,7 @@
  * 所有状态锚点只展示真实记录；事实详情保留来源、更新时间和证据。
  */
 import { useEffect, useState } from "react";
-import { Text, View } from "@tarojs/components";
+import { Input, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api, type LifeEvent, type Task } from "../../../services/api";
 import { usePets } from "../../../utils/usePets";
@@ -17,6 +17,7 @@ import { InlineError, PetContextGate } from "../../../components/feedback/Feedba
 
 type LifeMode = "now" | "trend" | "appearance";
 type DetailId = "water" | "meal" | "activity" | "sleep";
+type TimeScope = "now" | "today" | "7d" | "30d" | "date";
 
 interface DeviceMini { status: string; }
 interface HealthMini { latest_triage_level: string | null; }
@@ -25,6 +26,8 @@ interface VisualModelRow {
   status?: string;
   version?: number;
   metadata_json?: { demo_fixture?: boolean };
+  activated_at?: string | null;
+  retired_at?: string | null;
 }
 
 interface BaselineRow {
@@ -93,6 +96,8 @@ export default function LifeView() {
   const [baselineState, setBaselineState] = useState<"loading" | "ready" | "error">("loading");
   const [mode, setMode] = useState<LifeMode>("now");
   const [detailId, setDetailId] = useState<DetailId | null>(null);
+  const [timeScope, setTimeScope] = useState<TimeScope>("now");
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [supportTasks, setSupportTasks] = useState<Task[]>([]);
   const [supportDevices, setSupportDevices] = useState<DeviceMini[]>([]);
   const [supportHealth, setSupportHealth] = useState<HealthMini[]>([]);
@@ -101,6 +106,14 @@ export default function LifeView() {
   const [healthSupportState, setHealthSupportState] = useState<"loading" | "ready" | "error">("loading");
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0];
+  const currentFactScope = timeScope === "now" || timeScope === "today";
+  const historicalRange = timeScope === "7d" || timeScope === "30d";
+  const scopeLabel =
+    timeScope === "now" ? "现在" :
+    timeScope === "today" ? "今天" :
+    timeScope === "7d" ? "最近 7 天" :
+    timeScope === "30d" ? "最近 30 天" :
+    selectedDate;
 
   useEffect(() => {
     if (!petId) return;
@@ -114,8 +127,26 @@ export default function LifeView() {
     setDetailId(null);
     setMode("now");
 
-    api
-      .get<{ events: LifeEvent[] }>(`/pets/${petId}/today`)
+    const loadEvents = async (): Promise<{ events: LifeEvent[] }> => {
+      if (timeScope === "date") {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) return { events: [] };
+        return api.get(`/pets/${petId}/today?date=${selectedDate}`);
+      }
+      if (timeScope === "7d" || timeScope === "30d") {
+        const days = timeScope === "7d" ? 7 : 30;
+        const response = await api.get<{ events: LifeEvent[] }>(`/pets/${petId}/events?limit=200`);
+        const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+        return {
+          events: response.events.filter((event) => {
+            const at = new Date(event.occurred_at).getTime();
+            return Number.isFinite(at) && at >= cutoff;
+          }),
+        };
+      }
+      return api.get(`/pets/${petId}/today`);
+    };
+
+    loadEvents()
       .then((result) => {
         if (!alive) return;
         setToday(result);
@@ -175,7 +206,7 @@ export default function LifeView() {
     return () => {
       alive = false;
     };
-  }, [petId]);
+  }, [petId, timeScope, selectedDate]);
 
   if (petContextState !== "ready" || !petId || !pets?.length) {
     return (
@@ -193,6 +224,8 @@ export default function LifeView() {
   const sleepMinutes = observedDurationMinutes(petEvents, "daily.sleep");
   const value = (n: number, unit: string) => (n > 0 ? `${n} ${unit}` : "—");
   const comparisonFor = (metric: string | null, current: number) => {
+    if (timeScope === "date") return "历史常态未版本化，不用当前常态解释过去";
+    if (historicalRange) return "这是时间范围汇总，不与单日常态直接比较";
     if (!metric) return "暂无（当前没有同口径常态）";
     if (current <= 0) return "暂无（今天没有足够记录）";
     if (baselineState === "loading") return "常态读取中";
@@ -232,20 +265,43 @@ export default function LifeView() {
   const activeDetail = details.find((row) => row.id === detailId) ?? null;
 
   const streamDays: LifeStreamDay[] = petEvents.slice(0, 4).length
-    ? [{ id: "now", label: "最近", isToday: true, rows: petEvents.slice(0, 4).map(rowFromEvent) }]
+    ? [{ id: scopeLabel, label: scopeLabel, isToday: currentFactScope, rows: petEvents.slice(0, 4).map(rowFromEvent) }]
     : [];
 
   const activeTwin = models?.find((model) => model.status === "ACTIVE") ?? null;
+  const historicalTwin = (() => {
+    if (timeScope !== "date" || visualState !== "ready" || !/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) return null;
+    const dayStart = new Date(`${selectedDate}T00:00:00+08:00`).getTime();
+    const dayEnd = new Date(`${selectedDate}T23:59:59.999+08:00`).getTime();
+    return (models ?? [])
+      .filter((model) => {
+        if (!model.activated_at) return false;
+        const activated = new Date(model.activated_at).getTime();
+        const retired = model.retired_at ? new Date(model.retired_at).getTime() : Number.POSITIVE_INFINITY;
+        return Number.isFinite(activated) && activated <= dayEnd && retired >= dayStart;
+      })
+      .sort((a, b) => (b.activated_at ?? "").localeCompare(a.activated_at ?? ""))[0] ?? null;
+  })();
   const modelStatus =
-    visualState === "loading"
-      ? "3D 状态读取中"
-      : visualState === "error"
-        ? "3D 状态暂时不可用"
-        : activeTwin
-          ? activeTwin.metadata_json?.demo_fixture === true
-            ? "示例形象 · 仅用于体验"
-            : "个体形象 · 已确认"
-          : "暂无已确认个体 3D";
+    timeScope === "date"
+      ? visualState === "loading"
+        ? "历史 3D 版本读取中"
+        : visualState === "error"
+          ? "历史 3D 版本暂不可用"
+          : historicalTwin
+            ? `历史第 ${historicalTwin.version ?? "—"} 版`
+            : "该日无可确认 3D 版本"
+      : historicalRange
+        ? "时间范围汇总 · 不使用当前 3D"
+        : visualState === "loading"
+          ? "3D 状态读取中"
+          : visualState === "error"
+            ? "3D 状态暂时不可用"
+            : activeTwin
+              ? activeTwin.metadata_json?.demo_fixture === true
+                ? "示例形象 · 仅用于体验"
+                : "个体形象 · 已确认"
+              : "暂无已确认个体 3D";
   const openTaskCount = supportTasks.filter((task) => task.status === "OPEN").length;
   const weightText = pet?.weight_note?.trim() || "未记录";
   const taskText =
@@ -280,14 +336,14 @@ export default function LifeView() {
             : "暂无记录";
 
   const freshness = lastEvent
-    ? `更新 ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
-    : "今天暂无新记录";
+    ? `更新 ${new Date(lastEvent.occurred_at).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}`
+    : `${scopeLabel}暂无新记录`;
 
   return (
     <View className="page life-view-page">
       <View className="life-view-top">
         <View className="h1">生命视图</View>
-        <View className="sub">{pet?.name ?? "宠物"} · 此刻</View>
+        <View className="sub">{pet?.name ?? "宠物"} · {scopeLabel}</View>
         <View className="life-view-meta" data-testid="pli.mini.lifeview.meta">
           <Text>{freshness}</Text>
           <Text>·</Text>
@@ -295,17 +351,52 @@ export default function LifeView() {
         </View>
       </View>
 
+      <View className="life-view-time-scrubber" data-testid="pli.mini.lifeview.time-scrubber">
+        {([
+          ["now", "现在"],
+          ["today", "今天"],
+          ["7d", "7天"],
+          ["30d", "30天"],
+          ["date", "某一天"],
+        ] as const).map(([value, label]) => (
+          <View
+            key={value}
+            className={`life-view-time-chip${timeScope === value ? " life-view-time-chip-active" : ""}`}
+            data-testid={`pli.mini.lifeview.time.${value}`}
+            onClick={() => {
+              setTimeScope(value);
+              setDetailId(null);
+            }}
+          >
+            {label}
+          </View>
+        ))}
+        {timeScope === "date" ? (
+          <Input
+            className="life-view-date-input"
+            value={selectedDate}
+            placeholder="YYYY-MM-DD"
+            data-testid="pli.mini.lifeview.time.date-input"
+            onInput={(event) => {
+              setSelectedDate(event.detail.value);
+              setDetailId(null);
+            }}
+          />
+        ) : null}
+      </View>
+
       <PetHero
         pet={pet ?? null}
         headline={
           state === "error"
-            ? "暂时连接不上，照片与已有记录仍然保留"
+            ? "暂时连接不上，已有记录仍然保留"
             : lastEvent
               ? `最近一次记录：${eventTypeLabel(lastEvent.event_type)}`
-              : "今天还没有新的记录"
+              : `${scopeLabel}还没有新的记录`
         }
-        identity="真实照片优先 · 生活记录可追溯"
+        identity={currentFactScope ? "真实照片优先 · 生活记录可追溯" : "历史范围 · 只显示当时存在的记录"}
         timeContext={freshness}
+        allowOwnerPhoto={currentFactScope}
       />
 
       {state === "error" && <InlineError message="暂时连接不上；不会把未知状态显示成没有记录。" />}
@@ -333,6 +424,7 @@ export default function LifeView() {
         <View className={`life-view-mode${mode === "appearance" ? " life-view-mode-active" : ""}`} onClick={() => setMode("appearance")}>外观</View>
       </View>
 
+      {currentFactScope ? (
       <View className="life-view-support" data-testid="pli.mini.lifeview.support-facts">
         <View className="life-view-support-item" data-testid="pli.mini.lifeview.support.weight">
           <Text className="life-view-support-label">体重</Text>
@@ -357,6 +449,11 @@ export default function LifeView() {
           <Text className="life-view-support-value">{deviceText}</Text>
         </View>
       </View>
+      ) : (
+        <View className="life-view-history-truth" data-testid="pli.mini.lifeview.history-truth">
+          历史范围只显示当时存在的事件和可验证版本；今天的体重、任务、健康、设备和头像不会倒灌到过去。
+        </View>
+      )}
 
 
       {mode === "now" ? (
@@ -380,8 +477,12 @@ export default function LifeView() {
             </View>
           ) : (
             <View className="open-section">
-              <View className="section-title">此刻</View>
-              <Text className="life-empty-note">点一下上面的饮水、进食、活动或睡眠，可以查看事实、来源和更新时间。</Text>
+              <View className="section-title">{scopeLabel}</View>
+              <Text className="life-empty-note">
+                {currentFactScope
+                  ? "点一下上面的饮水、进食、活动或睡眠，可以查看事实、来源和更新时间。"
+                  : `${scopeLabel}只汇总该范围真实存在的记录，不混入今天的状态。`}
+              </Text>
             </View>
           )}
 
@@ -426,13 +527,19 @@ export default function LifeView() {
         <View className="open-section" data-testid="pli.mini.lifeview.appearance">
           <View className="section-title">外观</View>
           <Text className="life-empty-note">
-            小程序始终优先展示主人设置的真实照片。{activeTwin
-              ? activeTwin.metadata_json?.demo_fixture === true
-                ? "当前账户有示例 3D 形象；它不代表真实宠物扫描。"
-                : "当前已有确认过的个体 3D 形象。"
-              : "当前还没有已确认的个体 3D 形象。"}
+            {timeScope === "date"
+              ? historicalTwin
+                ? `这一天存在当时有效的第 ${historicalTwin.version ?? "—"} 版 3D 形象；Web / Android 会按历史版本展示。`
+                : "这一天没有可确认的历史 3D 版本；不会用现在的样子补画过去。"
+              : historicalRange
+                ? "该时间范围跨越多个日期，不使用当前 3D 形象代表整个历史区间。"
+                : activeTwin
+                  ? activeTwin.metadata_json?.demo_fixture === true
+                    ? "当前账户有示例 3D 形象；它不代表真实宠物扫描。"
+                    : "当前已有确认过的个体 3D 形象。"
+                  : "当前还没有已确认的个体 3D 形象。"}
           </Text>
-          <Text className="life-empty-note">可旋转的 3D 交互在 Web / Android 提供；小程序不使用静态贴图伪装 3D。</Text>
+          <Text className="life-empty-note">可旋转的 3D 交互在 Web / Android 提供；小程序不使用静态贴图或当前照片伪装历史 3D。</Text>
         </View>
       ) : null}
     </View>
