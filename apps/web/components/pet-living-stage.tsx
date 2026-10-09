@@ -108,7 +108,7 @@ export function PetLivingStage({
   // individual Twin exists, Life View may lead with the rotatable 3D pet as
   // required by §34.3; the owner can always switch back to the real photo.
   const photoFirstByDefault = Boolean(photoUri && (demo || twin === null));
-  const explicitPhotoChoice = photoView?.petId === petId ? photoView.enabled : null;
+  const explicitPhotoChoice = photoView && photoView.petId === petId ? photoView.enabled : null;
   const showPhoto = Boolean(photoUri && (explicitPhotoChoice ?? photoFirstByDefault));
   const show3d = canShow3d && !showPhoto;
   const stageClass = [
