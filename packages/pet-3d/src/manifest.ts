@@ -85,6 +85,9 @@ export interface ManifestBuildInput {
   surfaceVariant?: string | null;
   /** Reality Field presence on the hero surfaces. */
   realityField?: string | null;
+  /** Living Canvas depth: real renderer shadow map + receiver, not CSS decoration. */
+  realTimeShadows?: boolean;
+  shadowTechnique?: string | null;
 }
 
 /** Project the pet group's world bounding box into canvas pixel space. */
@@ -210,6 +213,8 @@ export function buildManifestV2(input: ManifestBuildInput): Record<string, unkno
     stageRole: input.stageRole ?? null,
     surfaceVariant: input.surfaceVariant ?? null,
     realityField: input.realityField ?? null,
+    realTimeShadows: input.realTimeShadows ?? false,
+    shadowTechnique: input.shadowTechnique ?? null,
   };
 }
 
