@@ -100,11 +100,29 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
     ? `最近一次记录：${EVENT_LABELS[lastEvent.event_type] ?? "活动"} · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
     : "今天还没有足够记录。";
 
+  const freshness = lastEvent
+    ? `更新 ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+    : "今天暂无新记录";
+  const modelStatus =
+    twin.state === "loading"
+      ? "3D 状态读取中"
+      : twin.state === "error"
+        ? "3D 状态暂时不可用"
+        : twinDescriptor
+          ? isDemoTwin
+            ? `示例 3D · v${twinVersion ?? 1}`
+            : `3D v${twinVersion ?? 1} · 已确认`
+          : "暂无已确认个体 3D";
+
   return (
     <main className="v4-main">
       <div className="v4-topline">
         <h1>生命视图</h1>
         <p className="v4-topline-sub" data-testid="pli.lifeview.identity">{name} · 此刻</p>
+      </div>
+      <div className="v4-filter-row" aria-label="生命视图状态" style={{ marginBottom: 12 }}>
+        <span className="v4-chip" data-testid="pli.lifeview.freshness">{freshness}</span>
+        <span className="v4-chip" data-testid="pli.lifeview.model-status">{modelStatus}</span>
       </div>
       <div className="r5-life-stage-shell">
       <PetLivingStage
