@@ -134,30 +134,6 @@ export default function Medication() {
       <View className="h1">用药</View>
       <View className="sub">剂量以兽医处方为准 · 系统不自动改药</View>
 
-      <Button className="btn btn-primary" onClick={() => setShowCreate((v) => !v)}>
-        {showCreate ? "收起" : "＋ 添加用药计划"}
-      </Button>
-
-      {showCreate && (
-        <View className="card">
-          <View className="field">
-            <Text>药物名称 *</Text>
-            <Input className="input" value={form.medicine_name} onInput={(e) => setForm({ ...form, medicine_name: e.detail.value })} placeholder="如 阿莫西林" />
-          </View>
-          <View className="field">
-            <Text>剂量文本 *</Text>
-            <Input className="input" value={form.dose_text} onInput={(e) => setForm({ ...form, dose_text: e.detail.value })} placeholder="如 1/2 片" />
-          </View>
-          <View className="field">
-            <Text>频次</Text>
-            <Input className="input" value={form.frequency_text} onInput={(e) => setForm({ ...form, frequency_text: e.detail.value })} placeholder="如 每日 2 次" />
-          </View>
-          <Button className="btn btn-primary" onClick={create} disabled={!form.medicine_name.trim() || !form.dose_text.trim()}>
-            保存
-          </Button>
-        </View>
-      )}
-
       {state === "loading" && <View className="state">加载中……</View>}
       {state === "error" && (
         <View className="state state-error">
@@ -167,7 +143,7 @@ export default function Medication() {
       )}
       {state === "ready" && plans.length === 0 && <View className="state">还没有用药计划。</View>}
       {plans.map((p) => (
-        <View className="card" key={p.plan_id}>
+        <View className="soft-panel" key={p.plan_id}>
           <View className="row" style={{ justifyContent: "space-between" }}>
             <Text style={{ fontWeight: 600 }}>{p.medicine_name}</Text>
             <Text className="badge">{planStatusLabel(p.status)}</Text>
@@ -214,6 +190,36 @@ export default function Medication() {
           </View>
         </View>
       ))}
+
+      <View className="open-section" data-testid="pli.mini.medication.create">
+        <View className="section-title">添加用药计划</View>
+        <View className="life-row-source">当前计划与待给药优先；只在有明确处方或来源时录入新计划。</View>
+        <Button data-testid="pli.mini.medication.create.toggle" className="btn" onClick={() => setShowCreate((v) => !v)}>
+        {showCreate ? "收起" : "＋ 添加用药计划"}
+        </Button>
+        
+        {showCreate && (
+        <View className="soft-panel">
+        <View className="field">
+        <Text>药物名称 *</Text>
+        <Input className="input" value={form.medicine_name} onInput={(e) => setForm({ ...form, medicine_name: e.detail.value })} placeholder="如 阿莫西林" />
+        </View>
+        <View className="field">
+        <Text>剂量文本 *</Text>
+        <Input className="input" value={form.dose_text} onInput={(e) => setForm({ ...form, dose_text: e.detail.value })} placeholder="如 1/2 片" />
+        </View>
+        <View className="field">
+        <Text>频次</Text>
+        <Input className="input" value={form.frequency_text} onInput={(e) => setForm({ ...form, frequency_text: e.detail.value })} placeholder="如 每日 2 次" />
+        </View>
+        <Button data-testid="pli.mini.medication.create.submit" className="btn btn-primary" onClick={create} disabled={!form.medicine_name.trim() || !form.dose_text.trim()}>
+        保存
+        </Button>
+        </View>
+        )}
+        
+        
+      </View>
     </View>
   );
 }
