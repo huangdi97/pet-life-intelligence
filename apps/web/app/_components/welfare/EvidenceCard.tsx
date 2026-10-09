@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { type Async } from "../../../lib/hooks";
 import { mapErrorMessage, t } from "../../../lib/i18n";
 import { State } from "../../../components/ui";
@@ -10,11 +11,19 @@ interface EvidenceCardProps {
   kind: string;
   setKind: (v: string) => void;
   busy: boolean;
-  onRecord: () => void;
+  onRecord: () => Promise<boolean>;
 }
 
 /** OWN-011 证据（带来源的可观察记录）+ 记录观察控件。 */
 export function EvidenceCard({ evidence, kind, setKind, busy, onRecord }: EvidenceCardProps) {
+  const [recordOpen, setRecordOpen] = useState(false);
+
+  async function saveObservation() {
+    if (busy) return;
+    const saved = await onRecord();
+    if (saved) setRecordOpen(false);
+  }
+
   return (
     <section className="v4-sec">
       <h2 className="v4-sec-title">观察依据</h2>
@@ -66,10 +75,7 @@ export function EvidenceCard({ evidence, kind, setKind, busy, onRecord }: Eviden
               className="btn primary"
               data-testid="pli.welfare.record.submit"
               disabled={busy}
-              onClick={() => {
-                onRecord();
-                setRecordOpen(false);
-              }}
+              onClick={() => void saveObservation()}
             >
               {busy ? "记录中…" : "保存观察"}
             </button>
