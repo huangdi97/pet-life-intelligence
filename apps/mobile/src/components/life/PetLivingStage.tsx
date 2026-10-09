@@ -39,6 +39,8 @@ interface Props {
   demo?: boolean;
   /** Enables drag rotate + pinch zoom (Life View). */
   interactive?: boolean;
+  /** Relationship/device surfaces can keep the pet dominant without consuming the whole first viewport. */
+  compact?: boolean;
   onPressPet?: () => void;
   /** Individual twin descriptor from the backend (R2P3D-R1). */
   twin?: TwinDescriptor | null;
@@ -67,6 +69,7 @@ export function PetLivingStage({
   note,
   demo = false,
   interactive = false,
+  compact = false,
   twin = null,
   sourceMediaCount = 0,
   pose = null,
@@ -110,10 +113,10 @@ export function PetLivingStage({
   const use3d = canShow3d && !showPhoto;
   const reviewStudio = variant === "review";
   const stageTheme = reviewStudio ? ("review" as const) : ("living" as const);
-  const height = HEIGHTS[variant];
+  const height = compact ? 470 : HEIGHTS[variant];
   // Keep the WebView inside narrow device viewports without clipping the 3D pet.
   const { width: viewportWidth } = useWindowDimensions();
-  const petWidth = Math.min(PET_WIDTHS[variant], Math.max(220, Math.floor(viewportWidth - 16)));
+  const petWidth = Math.min(compact ? 340 : PET_WIDTHS[variant], Math.max(220, Math.floor(viewportWidth - 16)));
   // Namespace mapping for machine-readable ids: today→pli.today, pet→pli.pet,
   // life→pli.lifeview (Life View ids are the canonical "stage"/"twin" pair).
   const stageTestId = stageTestIdOverride ?? (
@@ -147,7 +150,7 @@ export function PetLivingStage({
     </View>
   );
   return (
-    <View testID={stageTestId} style={[styles.stage, { height }, reviewStudio ? styles.stageReview : styles.stageLiving]}>
+    <View testID={stageTestId} style={[styles.stage, compact && styles.stageCompact, { height }, reviewStudio ? styles.stageReview : styles.stageLiving]}>
       {/* BACKGROUND: a quiet room field, not a viewer card. Living surfaces use
           window-like daylight + a low floor haze; Review uses a neutral studio. */}
       <View style={[styles.fieldBase, reviewStudio ? styles.fieldBaseReview : styles.fieldBaseLiving]} />
