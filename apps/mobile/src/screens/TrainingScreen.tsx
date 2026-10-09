@@ -66,7 +66,7 @@ export function TrainingScreen() {
   const [rewardSubject, setRewardSubject] = useState("");
   const [rewardNote, setRewardNote] = useState("");
   const [selectedReward, setSelectedReward] = useState("");
-  const [rewardBusy, setRewardBusy] = useState(false);
+  const [rewardBusy, setRewardBusy] = useState(false);\n  const [rewardOpen, setRewardOpen] = useState(false);
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
@@ -319,17 +319,32 @@ export function TrainingScreen() {
                 <Text style={styles.emptyText}>还没有保存奖励偏好。</Text>
               )}
               <Text style={styles.historyMeta}>本次会话奖励：{selectedReward || "未选择（不会写入奖励）"}</Text>
-              <TextInput style={styles.input} value={rewardSubject} onChangeText={setRewardSubject} placeholder="例如：冻干鸡肉 / 拉扯玩具 / 抚摸" placeholderTextColor={COLORS.textTertiary} />
-              <TextInput style={styles.input} value={rewardNote} onChangeText={setRewardNote} placeholder="补充实际观察（可选）" placeholderTextColor={COLORS.textTertiary} />
               <Pressable
+                testID="pli.training.reward.toggle"
                 accessibilityRole="button"
-                accessibilityLabel="保存奖励偏好"
-                disabled={rewardBusy || !rewardSubject.trim()}
-                onPress={() => void addReward()}
-                style={[styles.submitBtn, (rewardBusy || !rewardSubject.trim()) && styles.pressed]}
+                accessibilityLabel={rewardOpen ? "收起奖励偏好编辑" : "添加奖励偏好"}
+                accessibilityState={{ expanded: rewardOpen }}
+                onPress={() => setRewardOpen((value) => !value)}
+                style={styles.secondaryToggle}
               >
-                <Text style={styles.submitText}>{rewardBusy ? "保存中…" : "保存奖励偏好"}</Text>
+                <Text style={styles.secondaryToggleText}>{rewardOpen ? "收起" : "+ 添加奖励偏好"}</Text>
               </Pressable>
+              {rewardOpen ? (
+                <View style={styles.secondaryForm}>
+                  <TextInput style={styles.input} value={rewardSubject} onChangeText={setRewardSubject} placeholder="例如：冻干鸡肉 / 拉扯玩具 / 抚摸" placeholderTextColor={COLORS.textTertiary} />
+                  <TextInput style={styles.input} value={rewardNote} onChangeText={setRewardNote} placeholder="补充实际观察（可选）" placeholderTextColor={COLORS.textTertiary} />
+                  <Pressable
+                    testID="pli.training.reward.submit"
+                    accessibilityRole="button"
+                    accessibilityLabel="保存奖励偏好"
+                    disabled={rewardBusy || !rewardSubject.trim()}
+                    onPress={() => void addReward()}
+                    style={[styles.submitBtn, (rewardBusy || !rewardSubject.trim()) && styles.pressed]}
+                  >
+                    <Text style={styles.submitText}>{rewardBusy ? "保存中…" : "保存奖励偏好"}</Text>
+                  </Pressable>
+                </View>
+              ) : null}
             </OpenSection>
 
             <OpenSection title="安全工具" caption={tools?.banned_note ?? undefined}>
@@ -453,6 +468,9 @@ const styles = StyleSheet.create({
   toolRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.dividerSubtle },
   toolName: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "500" },
   toolUse: { fontSize: TYPE.meta, color: COLORS.textTertiary },
+  secondaryToggle: { marginTop: SPACE.s3, minHeight: 44, alignSelf: "flex-start", justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.brandSoftGreen },
+  secondaryToggleText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "700" },
+  secondaryForm: { marginTop: SPACE.s3, gap: SPACE.s2 },
   formSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
   formToggle: { minHeight: 48, justifyContent: "center", paddingVertical: 12, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center" },
   formToggleText: { fontSize: TYPE.button, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
