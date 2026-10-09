@@ -114,6 +114,8 @@ export default function CarePage() {
   const [scopes, setScopes] = useState<string[]>(["daily:read", "daily:write"]);
   const [error, setError] = useState<string | null>(null);
   const [card, setCard] = useState<{ token_id: string; token: string; expires_at: string } | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [handoffOpen, setHandoffOpen] = useState(false);
 
   const ALL_SCOPES = ["daily:read", "daily:write", "medical:read", "medical:write", "card:read"];
 
@@ -259,31 +261,41 @@ export default function CarePage() {
             ))}
           </ul>
         </State>
-        <div className="grid2" style={{ marginTop: 12 }}>
-          <label className="field">
+        <button type="button" className="btn" data-testid="pli.care.invite.toggle"
+          aria-expanded={inviteOpen} aria-controls="pli-care-invite-form"
+          onClick={() => setInviteOpen((value) => !value)} style={{ marginTop: 12 }}>
+          {inviteOpen ? "收起" : "+ 邀请成员"}
+        </button>
+        {inviteOpen ? (
+          <div id="pli-care-invite-form" className="v5-form-surface v5-form-surface--inline">
+            <div className="grid2" style={{ marginTop: 12 }}>
+            <label className="field">
             对方邮箱
             <input
-              type="email"
-              value={inviteEmail}
-              placeholder="name@example.com"
-              onChange={(e) => setInviteEmail(e.target.value)}
+            type="email"
+            value={inviteEmail}
+            placeholder="name@example.com"
+            onChange={(e) => setInviteEmail(e.target.value)}
             />
-          </label>
-          <label className="field">
+            </label>
+            <label className="field">
             家庭角色
             <select aria-label="家庭角色" value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
-              <option value="FAMILY">家庭成员</option>
-              <option value="CO_OWNER">共同主人</option>
-              <option value="SITTER">临时照护人</option>
-              <option value="VET">兽医</option>
-              <option value="TRAINER">训练师</option>
-              <option value="GROOMER">美容护理</option>
+            <option value="FAMILY">家庭成员</option>
+            <option value="CO_OWNER">共同主人</option>
+            <option value="SITTER">临时照护人</option>
+            <option value="VET">兽医</option>
+            <option value="TRAINER">训练师</option>
+            <option value="GROOMER">美容护理</option>
             </select>
-          </label>
-        </div>
-        <button className="btn primary" onClick={inviteMember} disabled={!householdId || !inviteEmail.trim()}>
-          发送邀请
-        </button>
+            </label>
+            </div>
+            <button data-testid="pli.care.invite.submit" className="btn primary" onClick={inviteMember} disabled={!householdId || !inviteEmail.trim()}>
+            发送邀请
+            </button>
+            
+          </div>
+        ) : null}
         {invitation ? (
           <div className="v4-note" style={{ marginTop: 10 }}>
             已为 {invitation.email} 创建邀请，有效至 {fmtTime(invitation.expires_at)}。
@@ -301,48 +313,58 @@ export default function CarePage() {
         <p className="muted">
           仅主人或共同主人可操作；临时照护人只获得限时、限定范围的权限，到期自动失效，无法转授管理权限。
         </p>
-        <div className="grid2">
-          <label className="field">
+        <button type="button" className="btn" data-testid="pli.care.handoff.toggle"
+          aria-expanded={handoffOpen} aria-controls="pli-care-handoff-form"
+          onClick={() => setHandoffOpen((value) => !value)}>
+          {handoffOpen ? "收起" : "+ 发起交接"}
+        </button>
+        {handoffOpen ? (
+          <div id="pli-care-handoff-form" className="v5-form-surface v5-form-surface--inline">
+            <div className="grid2">
+            <label className="field">
             临时照护人
             <select aria-label="临时照护人" value={caregiver} onChange={(e) => setCaregiver(e.target.value)}>
-              <option value="">选择照护人</option>
-              {caregiverOptions.map((person) => (
-                <option key={person.user_id} value={person.user_id}>
-                  {person.label} · {person.role}
-                </option>
-              ))}
+            <option value="">选择照护人</option>
+            {caregiverOptions.map((person) => (
+            <option key={person.user_id} value={person.user_id}>
+            {person.label} · {person.role}
+            </option>
+            ))}
             </select>
             {members.state === "error" ? <span className="v4-note">家庭成员暂时无法读取；仍可选择此前已有照护记录的人。</span> : null}
             <span className="v4-note">新照护人请先完成家庭邀请，再从这里选择。</span>
-          </label>
-          <label className="field">
+            </label>
+            <label className="field">
             有效时长（小时）
             <input type="number" min={1} value={hours} onChange={(e) => setHours(e.target.value)} />
-          </label>
-        </div>
-        <fieldset style={{ border: "none", padding: 0 }}>
-          <legend className="muted">授权范围：</legend>
-          <div className="row">
+            </label>
+            </div>
+            <fieldset style={{ border: "none", padding: 0 }}>
+            <legend className="muted">授权范围：</legend>
+            <div className="row">
             {ALL_SCOPES.map((s) => (
-              <label key={s} className="muted" style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                <input
-                  type="checkbox"
-                  style={{ width: "auto" }}
-                  checked={scopes.includes(s)}
-                  onChange={(e) =>
-                    setScopes((old) =>
-                      e.target.checked ? [...old, s] : old.filter((x) => x !== s),
-                    )
-                  }
-                />
-                {SCOPE_LABELS[s] ?? "限定权限"}
-              </label>
+            <label key={s} className="muted" style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <input
+            type="checkbox"
+            style={{ width: "auto" }}
+            checked={scopes.includes(s)}
+            onChange={(e) =>
+            setScopes((old) =>
+            e.target.checked ? [...old, s] : old.filter((x) => x !== s),
+            )
+            }
+            />
+            {SCOPE_LABELS[s] ?? "限定权限"}
+            </label>
             ))}
+            </div>
+            </fieldset>
+            <button data-testid="pli.care.handoff.submit" className="btn primary" onClick={createHandoff} disabled={!petId || !caregiver || scopes.length === 0}>
+            创建交接
+            </button>
+            
           </div>
-        </fieldset>
-        <button className="btn primary" onClick={createHandoff} disabled={!petId || !caregiver || scopes.length === 0}>
-          创建交接
-        </button>
+        ) : null}
       </section>
 
       <section className="v5-utility-surface">
