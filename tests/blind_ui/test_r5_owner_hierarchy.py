@@ -758,6 +758,14 @@ def test_android_runtime_capture_uses_unique_surface_truth_ids() -> None:
         assert root_id in capture
 
 
+def test_android_demo_stack_deeplink_resets_to_requested_surface() -> None:
+    """Evidence deep links must not remain on the prior tab surface."""
+    source = read("apps/mobile/src/demoNav.ts")
+    assert "deterministic.resetRoot" in source
+    assert 'routes: [{ name: "Tabs" }, { name: stack }]' in source
+    assert source.index("const tab = TAB_SCREENS[screen]") < source.index("const stack = STACK_SCREENS[screen]")
+
+
 def test_android_demo_authenticates_before_owner_twin_mount() -> None:
     """The 401→generic GLB regression must fail blind checks, not be blessed."""
     app = read("apps/mobile/App.tsx")
@@ -1362,9 +1370,12 @@ def test_owner_3d_never_swaps_individual_descriptor_for_bundled_demo_glb() -> No
     manifest = read("packages/pet-3d/src/manifest.ts")
     loader = read("packages/pet-3d/src/loader.ts")
 
-    assert "twin && identity && demoTwin" in web_viewer
+    assert "canPersonalizeTwinGLB(identity, twin)" in web_viewer
+    assert "twin && (demoTwin || supportsIndividualGlb)" in web_viewer
     assert 'window.__PLI_DEMO_TWIN = ${demoTwin}' in mobile_host
-    assert "injectedDemoTwin ? loadTwinGLB(identity) : Promise.resolve(null)" in mobile_runtime
+    assert "canPersonalizeTwinGLB(identity, twinDescriptor)" in mobile_runtime
+    assert "productGlbRequested = injectedDemoTwin || supportsIndividualGlb" in mobile_runtime
+    assert "loadTwinGLB(identity, injectedDemoTwin ? null : twinDescriptor)" in mobile_runtime
     assert 'visualFidelityTier' in web_viewer
     assert 'visualFidelityTier' in mobile_runtime
     assert 'individualIdentityEvidence' in manifest
@@ -1542,9 +1553,11 @@ def test_final_web_runtime_evidence_reseeds_after_visual_chain() -> None:
 def test_web_product_glb_ready_means_product_asset_is_really_mounted() -> None:
     viewer = read("apps/web/components/three/pet3d-viewer.tsx")
     assert 'setStatus("boot");' in viewer
-    assert 'const requiresProductGlb = Boolean(twin && identity && demoTwin);' in viewer
+    assert "canPersonalizeTwinGLB(identity, twin)" in viewer
+    assert "const requiresProductGlb = Boolean(" in viewer
+    assert "twin && (demoTwin || supportsIndividualGlb)" in viewer
     assert 'if (!requiresProductGlb) {' in viewer
-    load = viewer.index("loadTwinGLB(identity)")
+    load = viewer.index("loadTwinGLB(identity, demoTwin ? null : twin)")
     ready = viewer.index('setStatus("ready");', load)
     mounted = viewer.index("hdTwin = twin3d;", load)
     assert mounted < ready
