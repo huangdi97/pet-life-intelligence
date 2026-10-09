@@ -89,7 +89,7 @@ export default function TrainingPage() {
   const [rewardSubject, setRewardSubject] = useState("");
   const [rewardNote, setRewardNote] = useState("");
   const [selectedReward, setSelectedReward] = useState("");
-  const [rewardBusy, setRewardBusy] = useState(false);
+  const [rewardBusy, setRewardBusy] = useState(false);\n  const [rewardOpen, setRewardOpen] = useState(false);
 
   async function addReward() {
     if (!petId || !rewardSubject.trim() || rewardBusy) return;
@@ -301,19 +301,34 @@ export default function TrainingPage() {
           </div>
         </State>
         <p className="v4-note">本次会话奖励：{selectedReward || "未选择（不会写入奖励）"}</p>
-        <div className="grid2" style={{ marginTop: 10 }}>
-          <label className="field">
-            新奖励
-            <input value={rewardSubject} onChange={(e) => setRewardSubject(e.target.value)} placeholder="例如：冻干鸡肉 / 拉扯玩具 / 抚摸" />
-          </label>
-          <label className="field">
-            补充事实（可选）
-            <input value={rewardNote} onChange={(e) => setRewardNote(e.target.value)} placeholder="例如：在安静环境下反应最好" />
-          </label>
-        </div>
-        <button className="btn" onClick={() => void addReward()} disabled={rewardBusy || !rewardSubject.trim()}>
-          {rewardBusy ? "保存中…" : "保存奖励偏好"}
+        <button
+          type="button"
+          className="btn"
+          data-testid="pli.training.reward.toggle"
+          aria-expanded={rewardOpen}
+          aria-controls="pli-training-reward-form"
+          onClick={() => setRewardOpen((value) => !value)}
+          style={{ marginTop: 10 }}
+        >
+          {rewardOpen ? "收起" : "+ 添加奖励偏好"}
         </button>
+        {rewardOpen ? (
+          <div id="pli-training-reward-form" className="v5-form-surface v5-form-surface--inline">
+            <div className="grid2">
+              <label className="field">
+                新奖励
+                <input value={rewardSubject} onChange={(e) => setRewardSubject(e.target.value)} placeholder="例如：冻干鸡肉 / 拉扯玩具 / 抚摸" />
+              </label>
+              <label className="field">
+                补充事实（可选）
+                <input value={rewardNote} onChange={(e) => setRewardNote(e.target.value)} placeholder="例如：在安静环境下反应最好" />
+              </label>
+            </div>
+            <button data-testid="pli.training.reward.submit" className="btn primary" onClick={() => void addReward()} disabled={rewardBusy || !rewardSubject.trim()}>
+              {rewardBusy ? "保存中…" : "保存奖励偏好"}
+            </button>
+          </div>
+        ) : null}
         <h3 style={{ marginTop: 18 }}>安全工具</h3>
         <p className="muted">训练工具库只包含奖励式正向强化工具，不包含惩罚性工具。</p>
         <ul className="tl" style={{ marginTop: 8 }}>
