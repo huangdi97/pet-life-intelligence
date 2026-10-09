@@ -2567,3 +2567,22 @@ body{background:#FBF7F1}
 @media(max-width:768px){
   .v5-assistant-answer-actions .v4-action{flex:1 1 30%;min-width:96px}
 }
+
+/* R7.2 Life View support facts — real secondary state, subordinate to the pet. */
+.v7-life-support{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;
+  margin:14px auto 6px;max-width:760px;
+}
+.v7-life-support-item{
+  min-width:0;min-height:74px;padding:12px 14px;border-radius:18px;
+  background:rgba(255,254,248,.82);border:1px solid rgba(221,231,219,.95);
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  text-decoration:none;color:#25382D;
+}
+.v7-life-support-item strong{font-size:15px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.v7-life-support-label{font-size:11px;color:#667A6B;margin-bottom:4px;letter-spacing:.04em}
+@media(max-width:768px){
+  .v7-life-support{margin:12px 16px 4px;gap:8px}
+  .v7-life-support-item{padding:10px 8px;min-height:70px;align-items:center;text-align:center}
+  .v7-life-support-item strong{font-size:13px}
+}
