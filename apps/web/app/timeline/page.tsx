@@ -281,19 +281,24 @@ export default function TimelinePage() {
             <p className="v4-note" style={{ margin: "6px 0 8px" }}>
               只记录真实发生、值得长期保留的节点；保存后会进入同一条生命时间线。
             </p>
-            <div className="grid2">
-              <label className="field">
-                发生日期
-                <input type="date" value={milestoneDate} onChange={(e) => setMilestoneDate(e.target.value)} />
-              </label>
-              <label className="field">
-                里程碑
-                <input value={milestoneTitle} onChange={(e) => setMilestoneTitle(e.target.value)} placeholder="例如：第一次完成长途徒步" />
-              </label>
-            </div>
-            <button className="btn" disabled={milestoneBusy || !milestoneDate || !milestoneTitle.trim()} onClick={() => void addMilestone()}>
-              {milestoneBusy ? "保存中…" : "记录里程碑"}
-            </button>
+            <details className="v7-timeline-compose">
+              <summary>记录一个里程碑</summary>
+              <div className="v7-timeline-compose-body">
+                <div className="grid2">
+                  <label className="field">
+                    发生日期
+                    <input type="date" value={milestoneDate} onChange={(e) => setMilestoneDate(e.target.value)} />
+                  </label>
+                  <label className="field">
+                    里程碑
+                    <input value={milestoneTitle} onChange={(e) => setMilestoneTitle(e.target.value)} placeholder="例如：第一次完成长途徒步" />
+                  </label>
+                </div>
+                <button className="btn" disabled={milestoneBusy || !milestoneDate || !milestoneTitle.trim()} onClick={() => void addMilestone()}>
+                  {milestoneBusy ? "保存中…" : "记录里程碑"}
+                </button>
+              </div>
+            </details>
             {milestoneError ? <p className="v4-note">暂时没有保存成功：{milestoneError}</p> : null}
             {milestones.state === "ready" && milestones.data?.length ? (
               <div style={{ marginTop: 10 }}>
@@ -341,29 +346,35 @@ export default function TimelinePage() {
             <p className="v4-note" style={{ margin: "6px 0 8px" }}>
               可以写文字，也可以附一段真实录音。声音作为原始媒体保存，并与日记事件一起进入时间线。
             </p>
-            <textarea
-              className="input"
-              value={diaryText}
-              onChange={(e) => setDiaryText(e.target.value)}
-              maxLength={5000}
-              rows={4}
-              placeholder="例如：今天散步时第一次主动去闻路边的花。"
-              style={{ width: "100%", resize: "vertical" }}
-            />
-            <label className="field" style={{ marginTop: 10 }}>
-              语音日记（可选）
-              <input
-                type="file"
-                accept="audio/mpeg,audio/mp4"
-                onChange={(e) => setDiaryAudio(e.target.files?.[0] ?? null)}
-              />
-              <span className="v4-note">
-                {diaryAudio ? `已选择：${diaryAudio.name}` : "支持 MP3 / M4A；不会自动把录音解释成情绪或健康结论。"}
-              </span>
-            </label>
-            <button className="btn primary" onClick={() => void addDiary()} disabled={(!diaryText.trim() && !diaryAudio) || diaryBusy}>
-              {diaryBusy ? "保存中…" : "保存日记"}
-            </button>
+            <details className="v7-timeline-compose">
+              <summary>写一段日记</summary>
+              <div className="v7-timeline-compose-body">
+                            <textarea
+                              className="input"
+                              value={diaryText}
+                              onChange={(e) => setDiaryText(e.target.value)}
+                              maxLength={5000}
+                              rows={4}
+                              placeholder="例如：今天散步时第一次主动去闻路边的花。"
+                              style={{ width: "100%", resize: "vertical" }}
+                            />
+                            <label className="field" style={{ marginTop: 10 }}>
+                              语音日记（可选）
+                              <input
+                                type="file"
+                                accept="audio/mpeg,audio/mp4"
+                                onChange={(e) => setDiaryAudio(e.target.files?.[0] ?? null)}
+                              />
+                              <span className="v4-note">
+                                {diaryAudio ? `已选择：${diaryAudio.name}` : "支持 MP3 / M4A；不会自动把录音解释成情绪或健康结论。"}
+                              </span>
+                            </label>
+                            <button className="btn primary" onClick={() => void addDiary()} disabled={(!diaryText.trim() && !diaryAudio) || diaryBusy}>
+                              {diaryBusy ? "保存中…" : "保存日记"}
+                            </button>
+                
+              </div>
+            </details>
             {diaryError ? <p className="v4-note">日记暂时没有保存成功：{diaryError}</p> : null}
             {diary.state === "ready" && diary.data?.length ? (
               <div style={{ marginTop: 12 }}>
