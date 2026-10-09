@@ -26,6 +26,12 @@ import {
 import { CompanionEntryCard, MonitorCard, QuickLogSheet, TodayTasks, TodayMemory } from "./_components";
 import { timeContextText, heroIdentity, eventRowFromEvent } from "./_lib";
 
+function ownerFacingHealthText(value: string | null | undefined, fallback: string): string {
+  const text = value?.trim();
+  if (!text || /^(?:BW|HE|EV)-[A-Za-z0-9_-]+$/i.test(text)) return fallback;
+  return text;
+}
+
 export default function Index() {
   const { pets, petId, choose } = usePets();
   const [today, setToday] = useState<TodayData | null>(null);
@@ -332,14 +338,14 @@ export default function Index() {
           ) : danger ? (
             <AttentionPanel
               kind="danger"
-              body={danger.chief_complaint || "有一条健康记录需要关注，请查看健康页。"}
+              body={ownerFacingHealthText(danger.chief_complaint, "有一条健康记录需要关注，请查看健康页。")}
               footer="由风险规则引擎判定 · 查看健康页了解详情"
               onPress={() => Taro.navigateTo({ url: "/pages/health/index" })}
             />
           ) : focus ? (
             <AttentionPanel
               kind="focus"
-              body={focus.chief_complaint}
+              body={ownerFacingHealthText(focus.chief_complaint, "有一条健康记录值得查看。")}
               footer="查看健康页了解详情"
               onPress={() => Taro.navigateTo({ url: "/pages/health/index" })}
             />
