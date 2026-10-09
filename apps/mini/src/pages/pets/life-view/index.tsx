@@ -94,7 +94,8 @@ export default function LifeView() {
   const [detailId, setDetailId] = useState<DetailId | null>(null);
   const [supportTasks, setSupportTasks] = useState<Task[]>([]);
   const [supportDevices, setSupportDevices] = useState<DeviceMini[]>([]);
-  const [supportState, setSupportState] = useState<"loading" | "ready" | "partial-error">("loading");
+  const [taskSupportState, setTaskSupportState] = useState<"loading" | "ready" | "error">("loading");
+  const [deviceSupportState, setDeviceSupportState] = useState<"loading" | "ready" | "error">("loading");
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0];
 
@@ -150,7 +151,8 @@ export default function LifeView() {
 
     setSupportTasks([]);
     setSupportDevices([]);
-    setSupportState("loading");
+    setTaskSupportState("loading");
+    setDeviceSupportState("loading");
     Promise.allSettled([
       api.get<Task[]>(`/pets/${petId}/tasks`),
       api.get<DeviceMini[]>(`/pets/${petId}/devices`),
@@ -158,11 +160,8 @@ export default function LifeView() {
       if (!alive) return;
       setSupportTasks(tasksResult.status === "fulfilled" ? tasksResult.value : []);
       setSupportDevices(devicesResult.status === "fulfilled" ? devicesResult.value : []);
-      setSupportState(
-        tasksResult.status === "fulfilled" && devicesResult.status === "fulfilled"
-          ? "ready"
-          : "partial-error",
-      );
+      setTaskSupportState(tasksResult.status === "fulfilled" ? "ready" : "error");
+      setDeviceSupportState(devicesResult.status === "fulfilled" ? "ready" : "error");
     });
 
     return () => {
@@ -241,10 +240,18 @@ export default function LifeView() {
           : "暂无已确认个体 3D";
   const openTaskCount = supportTasks.filter((task) => task.status === "OPEN").length;
   const weightText = pet?.weight_note?.trim() || "未记录";
-  const deviceText =
-    supportState === "loading"
+  const taskText =
+    taskSupportState === "loading"
       ? "读取中"
-      : supportState === "partial-error" && supportDevices.length === 0
+      : taskSupportState === "error"
+        ? "暂不可用"
+        : openTaskCount > 0
+          ? `${openTaskCount} 项待办`
+          : "暂无待办";
+  const deviceText =
+    deviceSupportState === "loading"
+      ? "读取中"
+      : deviceSupportState === "error"
         ? "暂不可用"
         : supportDevices.length === 0
           ? "未连接"
@@ -316,7 +323,7 @@ export default function LifeView() {
         <View className="life-view-support-item" data-testid="pli.mini.lifeview.support.tasks">
           <Text className="life-view-support-label">任务</Text>
           <Text className="life-view-support-value">
-            {supportState === "loading" ? "读取中" : openTaskCount > 0 ? `${openTaskCount} 项待办` : "暂无待办"}
+            {taskText}
           </Text>
         </View>
         <View className="life-view-support-item" data-testid="pli.mini.lifeview.support.devices">
