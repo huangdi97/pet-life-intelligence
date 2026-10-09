@@ -1768,3 +1768,24 @@ def test_mobile_assistant_owner_copy_has_no_internal_ai_terms() -> None:
         assert forbidden not in source
     for owner_copy in ("与它自己相比", "推断与不确定", "AI 深度分析", "安全规则：独立运行"):
         assert owner_copy in source
+
+
+def test_pet_world_uses_life_event_pose_and_web_lifeview_routing() -> None:
+    """Pet World must feel alive and its life domain must open the canonical Life View."""
+    mobile = read("apps/mobile/src/screens/PetScreen.tsx")
+    web = read("apps/web/app/pets/[id]/page.tsx")
+
+    assert 'import { poseForEvent } from "@pli/pet-3d";' in mobile
+    assert 'poseForEvent(lastActivity?.event_type ?? null) ?? "Idle"' in mobile
+    assert 'pose={twin ? representativePose : null}' in mobile
+
+    assert 'import { poseForEvent } from "@pli/pet-3d";' in web
+    assert 'poseForEvent(latestLifeEvent?.event_type ?? null) ?? "Idle"' in web
+    assert 'pose={twinDescriptor ? representativePose : null}' in web
+    assert 'href: `/pets/${id}/life-view`' in web
+
+    # The Pet World stage uses the same four human-facing life anchors as Today
+    # instead of whichever event-count keys happen to arrive first from the API.
+    for label in ("进食", "饮水", "活动", "睡眠"):
+        assert f'label: "{label}"' in web
+    assert 'event.event_type === "daily.walk" || event.event_type === "daily.play"' in web
