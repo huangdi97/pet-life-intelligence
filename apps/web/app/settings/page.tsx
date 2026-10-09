@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, pilotApi, type Consent, type Pet } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote } from "../../components/ui";
@@ -82,8 +82,27 @@ export default function SettingsPage() {
     }
   }
 
+  useEffect(() => {
+    // Pet identity is a hard form boundary. Never keep unsaved emergency
+    // details from the previously selected pet after a pet switch.
+    setForm(null);
+  }, [pid]);
+
   function set<K extends keyof EmergencyProfile>(k: K, v: string) {
-    setForm((f) => (f ? { ...f, [k]: v } : f));
+    // The first keystroke must materialize an editable draft. Previously the
+    // form started at null and the controlled inputs discarded every edit.
+    setForm((f) => ({
+      ...(f ?? profile.data ?? {
+        owner_contact: "",
+        backup_contact: "",
+        vet_clinic_name: "",
+        vet_clinic_phone: "",
+        vet_clinic_address_text: "",
+        critical_care_notes: "",
+        updated_at: null,
+      }),
+      [k]: v,
+    }));
   }
 
   async function toggleConsent(purpose: string, granted: boolean) {
@@ -103,6 +122,7 @@ export default function SettingsPage() {
     try {
       await api.put(`/pets/${pid}/emergency-profile`, form);
       setFlash("紧急联系卡已保存。");
+      setForm(null);
       profile.reload();
       setTimeout(() => setFlash(null), 2000);
     } catch (e) {
