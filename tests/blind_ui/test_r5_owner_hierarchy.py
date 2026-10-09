@@ -993,3 +993,25 @@ def test_assistant_and_me_close_canonical_owner_context_across_clients() -> None
     assert '"我的宠物"' in mini_me
     assert 'data-testid="pli.mini.me.about"' in mini_me
     assert "关于" in mini_me
+
+
+def test_domain_home_forms_are_secondary_across_owner_clients() -> None:
+    """R.2 §46.11 / V4 §47.3: understand first, act second, edit third."""
+    social_web = read("apps/web/app/social/page.tsx")
+    social_mobile = read("apps/mobile/src/screens/SocialScreen.tsx")
+    social_mini = read("apps/mini/src/pages/social/index.tsx")
+    behavior_web = read("apps/web/app/behavior/page.tsx")
+    training_web = read("apps/web/app/training/page.tsx")
+
+    for source in (social_web, social_mobile, social_mini):
+        assert "formOpen" in source
+        assert "补充一次互动" in source
+    assert 'data-testid="pli.social.action.toggle"' in social_web
+    assert 'testID="pli.social.action"' in social_mobile
+    assert 'data-testid="pli.mini.social.action"' in social_mini
+
+    for source in (behavior_web, training_web):
+        assert "formOpen" in source
+        assert "aria-expanded={formOpen}" in source
+    assert 'data-testid="pli.behavior.action.submit"' in behavior_web
+    assert 'data-testid="pli.training.action.submit"' in training_web
