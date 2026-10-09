@@ -76,6 +76,7 @@ export default function HealthPage() {
       });
       setReminderTitle("");
       setReminderDate("");
+      setReminderFormOpen(false);
       reminders.reload();
     } catch (e) {
       setReminderError(e instanceof Error ? e.message : String(e));
