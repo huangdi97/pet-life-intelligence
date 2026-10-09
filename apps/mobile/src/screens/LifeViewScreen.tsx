@@ -4,15 +4,17 @@
  * Full 3D Living Stage: the shared demo pet asset is interactive here
  * (drag rotate, pinch zoom, reset). State anchors are clickable and open a
  * detail sheet with facts / self-comparison / source / updated-at / evidence —
- * all real API data, never invented scores. Modes: 此刻 / 趋势 / 外观.
- * Timeline remains the canonical first-level destination instead of being
- * duplicated inside this inspection space. Provider/model/raw keys never
+ * all real API data, never invented scores. Modes: 此刻 / 趋势 / 时间线 / 外观.
+ * Timeline remains the canonical event destination and is linked from this
+ * inspection space rather than duplicated here. Provider/model/raw keys never
  * appear on the owner surface.
  */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { api, type LifeEvent } from "../api";
 import { usePets } from "../context";
 import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
@@ -24,6 +26,7 @@ import { eventTypeLabel, sourceLabel } from "./ui_labels";
 import { observedActivityMinutes } from "./today_helpers";
 import { usePetTwin } from "../hooks/usePetTwin";
 import { poseForEvent } from "@pli/pet-3d";
+import type { StackParamList } from "../navigation";
 
 interface AnchorDetail {
   id: string;
@@ -36,6 +39,7 @@ interface AnchorDetail {
 }
 export function LifeViewScreen() {
   const { pets, petId } = usePets();
+  const navigation = useNavigation<NativeStackNavigationProp<StackParamList>>();
   const { twin } = usePetTwin(petId);
   const [loadedPetId, setLoadedPetId] = useState<string | null>(null);
   const [rawToday, setToday] = useState<{ events: LifeEvent[] } | null>(null);
@@ -175,7 +179,7 @@ export function LifeViewScreen() {
 
 
         <View testID="pli.lifeview.control.modes">
-          <LivingModeSwitcher value={mode} onChange={setMode} />
+          <LivingModeSwitcher value={mode} onChange={setMode} onTimeline={() => navigation.navigate("Tabs", { screen: "Timeline" })} />
         </View>
 
         <View testID="pli.lifeview.panel" style={styles.panel} accessibilityLiveRegion="polite">
