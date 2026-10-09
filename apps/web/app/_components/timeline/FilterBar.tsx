@@ -68,7 +68,7 @@ export function FilterBar({
       {/* Life events, not a full filter form, are the primary Timeline content.
           Keep text search directly available; put infrequent controls in
           progressive disclosure without losing source/date/type filtering. */}
-      <label className="v5-timeline-field v5-timeline-search v7-timeline-search">
+      <label className="v7-timeline-search v5-timeline-field v5-timeline-search">
         <span>搜索记录</span>
         <input
           value={search}
