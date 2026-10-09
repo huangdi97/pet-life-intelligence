@@ -52,6 +52,23 @@ def test_segmentation_produces_mask_and_silhouette(dog_photos):
     assert 0 < seg["coverage"] <= 1
 
 
+def test_silhouette_box_measures_foreground_not_background_frame():
+    from PIL import Image
+    from app.services.twin_media import silhouette_box
+
+    mask = Image.new("L", (120, 80), 0)
+    for y in range(20, 60):
+        for x in range(30, 90):
+            mask.putpixel((x, y), 255)
+
+    sil = silhouette_box(mask)
+    assert sil["has_pet"] is True
+    assert (sil["x0"], sil["y0"], sil["x1"], sil["y1"]) == (30, 20, 90, 60)
+    assert sil["width"] == 60
+    assert sil["height"] == 40
+    assert sil["aspect"] == 1.5
+
+
 def test_identity_similarity_same_vs_cross(dog_photos, cat_photos):
     from app.services.twin_media import identity_similarity, segment_by_background
 
