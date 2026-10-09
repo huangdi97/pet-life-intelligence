@@ -163,6 +163,7 @@ export default function Care() {
         { email: inviteEmail.trim().toLowerCase(), role: inviteRole },
       );
       setInvitation(result);
+      setInviteOpen(false);
       setInviteEmail("");
       const rows = await api.get<HouseholdMember[]>(`/households/${current.household_id}/members`);
       setMembers(rows.filter((member) => member.status === "ACTIVE"));
@@ -186,6 +187,7 @@ export default function Care() {
         checklist: handoffChecklist(scopes),
       });
       setCaregiver("");
+      setHandoffOpen(false);
       load(petId);
       Taro.showToast({ title: "交接已创建", icon: "success" });
     } catch {
