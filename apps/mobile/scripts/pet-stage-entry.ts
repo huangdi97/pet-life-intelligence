@@ -262,7 +262,17 @@ function buildManifest(): Record<string, unknown> {
     poseConfidence: poseTruth === "OBSERVED" ? 1.0 : poseTruth === "REPRESENTATIVE" ? 0.9 : 0.3,
     projected: projected ?? null,
     // --- Blind Contract V3 (§51) — additive; V2 fields above stay intact ---
+    // Technical completeness and visual/identity fidelity are independent.
+    // A bundled rigged PBR template with zero owner-media evidence remains a
+    // stylized reference, never an asserted likeness of the owner's pet.
     representationQuality: hdTwin ? "HIGH_FIDELITY_SKINNED" : "engineering",
+    technicalRepresentationQuality: hdTwin ? "RIGGED_PBR_SKINNED" : "PROCEDURAL_ENGINEERING",
+    visualFidelityTier: !hdTwin
+      ? "ENGINEERING_FALLBACK"
+      : injectedSourceMediaCount > 0
+        ? "OWNER_MEDIA_REFERENCED"
+        : "STYLIZED_REFERENCE",
+    individualIdentityEvidence: hdTwin !== null && injectedSourceMediaCount > 0,
     productCandidate: hdTwin !== null,
     triangleCount: hdTwin?.triangleCount ?? 0,
     uvPresent: hdTwin !== null,
