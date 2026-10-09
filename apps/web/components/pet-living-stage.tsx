@@ -108,6 +108,7 @@ export function PetLivingStage({
   const stageClass = [
     "r2p-stage",
     variant === "life" ? "r2p-stage--life" : variant === "pet" ? "r2p-stage--pet" : "",
+    role === "companion" ? "r2p-stage--companion" : "",
     show3d ? "r2p-stage--3d" : "",
   ]
     .filter(Boolean)
