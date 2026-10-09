@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import type { ReactNode } from "react";
 import { cx } from "../lib/cx";
 import { TokenIcon } from "./icons";
 
@@ -15,8 +14,8 @@ export function Sheet({
   open: boolean;
   onClose: () => void;
   title: string;
-  children: ReactNode;
-  footer?: ReactNode;
+  children: unknown;
+  footer?: unknown;
   className?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -56,8 +55,8 @@ export function Sheet({
             <TokenIcon name="x" size={16} />
           </button>
         </div>
-        <div className="pli-sheet-body">{children}</div>
-        {footer ? <div className="pli-sheet-foot">{footer}</div> : null}
+        <div className="pli-sheet-body">{children as any}</div>
+        {footer ? <div className="pli-sheet-foot">{footer as any}</div> : null}
       </div>
     </div>
   );
