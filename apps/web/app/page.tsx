@@ -11,12 +11,21 @@ import { Icon } from "../components/icons";
 import { PetLivingStage, type StageAnchor } from "../components/pet-living-stage";
 import { PetCollectionGate } from "../components/pet-collection-gate";
 import { ActionCard } from "./_components/today/ActionCard";
-import { AttentionCard } from "./_components/today/AttentionCard";
+import { AttentionCard, type TodayAttentionState } from "./_components/today/AttentionCard";
+import { ChangeCard } from "./_components/today/ChangeCard";
 import { NowCard } from "./_components/today/NowCard";
 import { RecentCard } from "./_components/today/RecentCard";
 import { TasksCard } from "./_components/today/TasksCard";
 import { SHEET_TYPES, type TodayData } from "./_components/today/constants";
 import { observedActivityMinutes } from "./_components/today/activity";
+
+interface TodayHealthEvent {
+  status?: string | null;
+  latest_triage_level?: string | null;
+  chief_complaint?: string | null;
+}
+
+type DayHintEntry = string | Record<string, string>;
 
 /** OWN-001 Today — Pet Living Stage（R2-P §7.1）：宠物是首屏视觉中心，
  *  此刻/变化/注意/动作/记忆依次展开。E2E 契约保留：快速记录 → .alert.info。 */
@@ -41,8 +50,12 @@ export default function TodayPage() {
         : Promise.reject(new Error("NO_PET_SELECTED")),
     [petId],
   );
-  const hint = useAsync<{ hints?: Array<Record<string, string>> }>(
+  const hint = useAsync<{ hints?: DayHintEntry[]; rule?: string }>(
     () => (petId ? api.get(`/pets/${petId}/abnormal-day-hint`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [petId],
+  );
+  const health = useAsync<TodayHealthEvent[]>(
+    () => (petId ? api.get(`/pets/${petId}/health-events`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [petId],
   );
   const [flash, setFlash] = useState<string | null>(null);
@@ -94,10 +107,58 @@ export default function TodayPage() {
   const counts = today.data?.event_counts ?? {};
   const lastEvent = today.data?.events?.find((e) => e.event_type !== "today.viewed") ?? today.data?.events?.[0];
   const activityMinutes = observedActivityMinutes(today.data?.events ?? []);
-  const hints = (hint.data?.hints ?? []).filter((h) => Object.keys(h).length > 0);
+  const hintMessages = (hint.data?.hints ?? [])
+    .map((entry) =>
+      typeof entry === "string"
+        ? entry
+        : entry.message || entry.hint || entry.detail || "",
+    )
+    .filter((value): value is string => Boolean(value.trim()));
+  const abnormalChange = hintMessages.find((value) => !value.includes("无明显异常")) ?? null;
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
-  const attentionEvidenceReady = hint.state === "ready";
-  const hasAttention = attentionEvidenceReady && hints.length > 0;
+  const changeUnknown = hint.state !== "ready";
+  const changeSummary = changeUnknown
+    ? "今天的自身基线暂时没有完整读取到。"
+    : abnormalChange
+      ? abnormalChange
+      : "按当前规则，今天与它自己的近期常态相比暂未出现明显变化。";
+  const changeEvidence = changeUnknown
+    ? "不会把未知状态显示成“没有变化”"
+    : hint.data?.rule || "只比较已记录事实，不推断情绪或健康结论";
+
+  const attentionState: TodayAttentionState = (() => {
+    if (health.state !== "ready") {
+      return {
+        kind: "unknown",
+        body: "健康记录没有完整读取到。",
+        footer: "不会把未知状态显示成“没有风险”",
+      };
+    }
+    const rows = health.data ?? [];
+    const danger = rows.find(
+      (row) => row.latest_triage_level === "URGENT" || row.latest_triage_level === "EMERGENCY",
+    );
+    if (danger) {
+      return {
+        kind: "danger",
+        body: danger.chief_complaint || "有一条健康记录触发了高风险分级。",
+        footer: "由独立风险分级规则判定；不是模型生成的诊断",
+      };
+    }
+    const focus = rows.find((row) => row.status !== "CLOSED" && Boolean(row.latest_triage_level));
+    if (focus) {
+      return {
+        kind: "attention",
+        body: focus.chief_complaint || "有一条仍在跟进的健康记录。",
+        footer: "来自已记录的健康事件；不是诊断结论",
+      };
+    }
+    return {
+      kind: "calm",
+      body: "当前已读取的健康记录没有触发需要立即处理的规则。",
+      footer: "这不等同于“健康正常”",
+    };
+  })();
   const anchorValue = (n: number, unit: string) => (n > 0 ? `${n} ${unit}` : "—");
   const anchorsAll: StageAnchor[] = [
     { id: "food", label: "进食", value: anchorValue(counts["daily.meal"] ?? 0, "次"), icon: "food" },
@@ -108,8 +169,7 @@ export default function TodayPage() {
   // INVARIANT: all four state anchors always render ("—" when 0) so the
   // blind-UI contract can count pli.today.anchor.{water,food,activity,sleep}.
   const anchors = anchorsAll;
-  const headline =
-    totalCount === 0 ? "今天还没有新的记录" : hasAttention ? "今天有值得留意的变化" : `今天记录了 ${totalCount} 件生活片段`;
+  const headline = totalCount === 0 ? "今天还没有新的记录" : `今天记录了 ${totalCount} 件生活片段`;
   const recent = lastEvent
     ? `最近记录 · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
     : `今天 · ${new Date().toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" })}`;
@@ -214,22 +274,16 @@ export default function TodayPage() {
           stageTestId="pli.today.living-stage"
           twinTestId="pli.today.pet-twin"
           anchorTestIdPrefix="pli.today.anchor"
-          headlineTestId="pli.today.change"
+          headlineTestId="pli.today.now-headline"
         />
       </div>
 
       <div className="v4-grid">
         <div>
           <NowCard lastEvent={lastEvent} counts={counts} />
-          <AttentionCard hints={hints} evidenceState={attentionEvidenceReady ? "ready" : "unknown"} />
+          <ChangeCard summary={changeSummary} evidence={changeEvidence} unknown={changeUnknown} />
+          <AttentionCard state={attentionState} />
           <ActionCard petId={current.id} onMore={() => setSheetPetId(current.id)} />
-          <p className="v4-note" data-testid="pli.today.health-summary" style={{ margin: "10px 0 0" }}>
-            {!attentionEvidenceReady
-              ? "健康：当前证据未完整读取，不判断为正常"
-              : hints.length > 0
-                ? `健康：${hints.length} 项需要留意`
-                : "当前没有规则标记的健康变化"}
-          </p>
         </div>
         <div className="v4-rail">
           {petRows.length > 1 && (
