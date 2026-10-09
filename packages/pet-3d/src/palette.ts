@@ -9,27 +9,27 @@
 
 // Stage environment (used by clients for CSS background + fog tint).
 export const STAGE = {
-  /** R7 botanical living base — calm daylight, never a dark viewer. */
-  base: "#E3EBDF",
-  /** Far field matches the owner's botanical green living canvas. */
-  deep: "#D2DFD2",
-  /** Daylight diffuses softly through the pet's living space. */
-  glow: "#F7FBF3",
-  /** The transparent 3D canvas and RN/Web host must share the same haze. */
-  fog: "#E3ECDF",
+  /** Canonical warm-lifestyle base — calm daylight, never a dark viewer. */
+  base: "#F4E9D8",
+  /** Far field keeps depth without turning the room into a green brand panel. */
+  deep: "#E7D5BC",
+  /** Warm daylight around the real pet / individual Twin. */
+  glow: "#FFF7E9",
+  /** The WebGL haze must blend into the cream Living Canvas host. */
+  fog: "#EFE0C8",
 } as const;
 
 // R4.2 stage themes — the WebView/WebGL surface itself is themed per screen
 // role (never a dark viewer on owner hero pages):
-//   living      -> botanical daylight reality field (Today / Pet / Life View)
+//   living      -> warm lifestyle reality field (Today / Pet / Life View)
 //   review      -> neutral identity studio (Twin Review)
 //   engineering -> dark debug stage (engineering manifests only)
 export const STAGE_THEMES = {
   living: {
-    base: "#E3EBDF",
-    deep: "#D2DFD2",
-    glow: "#F7FBF3",
-    fog: "#E3ECDF",
+    base: "#F4E9D8",
+    deep: "#E7D5BC",
+    glow: "#FFF7E9",
+    fog: "#EFE0C8",
   },
   review: {
     base: "#F4F1EA",
