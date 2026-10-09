@@ -18,6 +18,7 @@ import { RecentCard } from "./_components/today/RecentCard";
 import { TasksCard } from "./_components/today/TasksCard";
 import { SHEET_TYPES, type TodayData } from "./_components/today/constants";
 import { observedActivityMinutes } from "./_components/today/activity";
+import { poseForEvent } from "@pli/pet-3d";
 
 interface TodayHealthEvent {
   status?: string | null;
@@ -106,6 +107,7 @@ export default function TodayPage() {
   const hasPet = !!petId && petRows.some((p) => p.id === petId);
   const counts = today.data?.event_counts ?? {};
   const lastEvent = today.data?.events?.find((e) => e.event_type !== "today.viewed") ?? today.data?.events?.[0];
+  const representativePose = poseForEvent(lastEvent?.event_type ?? null) ?? "Idle";
   const activityMinutes = observedActivityMinutes(today.data?.events ?? []);
   const hintMessages = (hint.data?.hints ?? [])
     .map((entry) =>
@@ -270,6 +272,7 @@ export default function TodayPage() {
           demo={demoMode || demoTwin}
           frameTarget={0.57}
           twin={twinDescriptor ? { ...twinDescriptor, version: twinVersion ?? 1 } : null}
+          pose={twinDescriptor ? representativePose : null}
           sourceMediaCount={observedRegions || undefined}
           stageTestId="pli.today.living-stage"
           twinTestId="pli.today.pet-twin"
