@@ -62,7 +62,8 @@ export default function Welfare() {
   const [evidence, setEvidence] = useState<WelfareEvidence | null>(null);
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [kind, setKind] = useState(KINDS[0].value);
-  const [busy, setBusy] = useState(false);\n  const [recordOpen, setRecordOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [recordOpen, setRecordOpen] = useState(false);
   const [profileState, setProfileState] = useState<"loading" | "ready" | "error">("loading");
   const [evidenceState, setEvidenceState] = useState<"loading" | "ready" | "error">("loading");
   const [eventsState, setEventsState] = useState<"loading" | "ready" | "error">("loading");
@@ -128,6 +129,7 @@ export default function Welfare() {
         data: { recorded_from: "mini", note: "" },
         source_type: "OWNER_REPORTED",
       });
+      setRecordOpen(false);
       setVersion((v) => v + 1);
       Taro.showToast({ title: "已记录观察", icon: "success" });
     } catch {
