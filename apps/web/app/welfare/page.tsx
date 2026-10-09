@@ -11,7 +11,7 @@ import {
   type WelfareEvidence,
   type WelfareProfile,
 } from "../_components/welfare/constants";
-import { EvidenceCard } from "../_components/welfare/EvidenceCard";
+import { EvidenceCard, WelfareRecordAction } from "../_components/welfare/EvidenceCard";
 import { QualityCard } from "../_components/welfare/QualityCard";
 import { WelfareTrendCard } from "../_components/welfare/WelfareTrendCard";
 
@@ -88,9 +88,6 @@ export default function WelfarePage() {
         <EvidenceCard evidence={evidence} kind={kind} setKind={setKind} busy={busy} onRecord={recordObservation} />
       </div>
 
-      <div className="v4-note" data-testid="pli.welfare.action">
-        新观察会保存记录人与来源；趋势只基于已记录事实，不推断情绪或幸福指数。
-      </div>
 
       <WelfareTrendCard events={events} welfareEvents={welfareEvents} />
 
@@ -130,6 +127,8 @@ export default function WelfarePage() {
           {welfareEvents.length > 0 ? "这里仅汇总已记录的活动与探索事实；是否喜欢需要主人明确记录，不能从事件频次自动推断。" : "记录玩耍与探索后，这里会呈现发生过的活动；不会自动推断偏好或情绪。"}
         </p>
       </div>
+
+      <WelfareRecordAction kind={kind} setKind={setKind} busy={busy} onRecord={recordObservation} />
 
       <div className="row" style={{ marginTop: 8 }}>
         <Link href="/health" className="btn">
