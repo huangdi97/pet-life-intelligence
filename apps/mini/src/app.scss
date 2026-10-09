@@ -672,3 +672,19 @@ page { background:#F6F7F1; }
   font-size:$font-caption;
   line-height:1.5;
 }
+
+
+/* R7.10 Timeline creation is secondary to reading the Life Stream. */
+.timeline-composer {
+  margin-top: 12px;
+}
+.timeline-composer > .input,
+.timeline-composer > .chips,
+.timeline-composer > .btn {
+  margin-top: 10px;
+}
+.timeline-composer > .input:first-child,
+.timeline-composer > .chips:first-child,
+.timeline-composer > .btn:first-child {
+  margin-top: 0;
+}
