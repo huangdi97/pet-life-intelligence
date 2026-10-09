@@ -8,10 +8,11 @@ interface AnswerPanelProps {
   answer: AskAnswer;
   citations: Array<{ label: string; event_id?: string }>;
   basePath: () => string;
+  petId: string;
 }
 
 /** OWN-015 AI 回答块：Facts/Inference/Sources/Uncertainty/Action；Citation 跳转 Timeline。 */
-export function AnswerPanel({ answer, citations, basePath }: AnswerPanelProps) {
+export function AnswerPanel({ answer, citations, basePath, petId }: AnswerPanelProps) {
   return (
     <div className="pli-state" style={{ textAlign: "left", marginTop: 12 }}>
       <div className="pli-ai-answer-head">
@@ -76,6 +77,11 @@ export function AnswerPanel({ answer, citations, basePath }: AnswerPanelProps) {
           {t("agent.action")}：{answer.action}
         </div>
       )}
+      <div className="v5-assistant-answer-actions" data-testid="pli.assistant.answer-actions" aria-label="继续查看">
+        <a className="v4-action v4-action--secondary" href={`${basePath()}/timeline`}>查看记录</a>
+        <a className="v4-action v4-action--secondary" href={`${basePath()}/timeline`}>查看来源</a>
+        {petId ? <a className="v4-action v4-action--secondary" href={`${basePath()}/pets/${petId}/life-view`}>与它自己相比</a> : null}
+      </div>
     </div>
   );
 }
