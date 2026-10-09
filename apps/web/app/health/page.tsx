@@ -173,6 +173,30 @@ export default function HealthPage() {
         </p>
       </section>
 
+      <section className="v4-sec" data-testid="pli.health.records">
+        <h2 className="v4-sec-title">健康记录</h2>
+        <p className="muted" style={{ marginTop: 0 }} data-testid="pli.health.status">
+          {rows.length} 条记录 · {openCount} 个进行中
+        </p>
+        <State state={list.state} error={list.error} onRetry={list.reload} empty="还没有健康事件。">
+          <ul className="tl">
+            {rows.map((h) => (
+              <li key={h.health_event_id}>
+                <div className="tl-head">
+                  <Link href={`/health/${h.health_event_id}`} className="tl-type" role="button" data-testid="pli.health.records">
+                    {h.chief_complaint}
+                  </Link>
+                  <TriageBadge level={h.latest_triage_level} />
+                  <span className={`badge status-${h.status}`}>{h.status === "OPEN" ? "进行中" : h.status === "CLOSED" ? "已关闭" : "其他状态"}</span>
+                  <span className="tl-time">{fmtTime(h.opened_at)}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </State>
+      </section>
+
+
       <section className="v4-sec" data-testid="pli.health.vet">
         <h2 className="v4-sec-title">就医与专业记录</h2>
         <p className="v4-sec-sub">处方、检验、检查与疫苗记录只展示真实导入的数据，并保留来源与签名状态；加载失败时不会把未知显示成“没有记录”。</p>
@@ -323,29 +347,6 @@ export default function HealthPage() {
             </button>
           </div>
         ) : null}
-      </section>
-
-      <section className="v4-sec" data-testid="pli.health.records">
-        <h2 className="v4-sec-title">健康记录</h2>
-        <p className="muted" style={{ marginTop: 0 }} data-testid="pli.health.status">
-          {rows.length} 条记录 · {openCount} 个进行中
-        </p>
-        <State state={list.state} error={list.error} onRetry={list.reload} empty="还没有健康事件。">
-          <ul className="tl">
-            {rows.map((h) => (
-              <li key={h.health_event_id}>
-                <div className="tl-head">
-                  <Link href={`/health/${h.health_event_id}`} className="tl-type" role="button" data-testid="pli.health.records">
-                    {h.chief_complaint}
-                  </Link>
-                  <TriageBadge level={h.latest_triage_level} />
-                  <span className={`badge status-${h.status}`}>{h.status === "OPEN" ? "进行中" : h.status === "CLOSED" ? "已关闭" : "其他状态"}</span>
-                  <span className="tl-time">{fmtTime(h.opened_at)}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </State>
       </section>
 
       <div className="row" style={{ marginTop: 8 }} data-testid="pli.health.vet">
