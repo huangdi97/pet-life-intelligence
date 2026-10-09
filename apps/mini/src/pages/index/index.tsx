@@ -326,8 +326,8 @@ export default function Index() {
           {healthState !== "ready" ? (
             <AttentionPanel
               kind="unknown"
-              body={healthState === "loading" ? "正在核对需要关注的健康变化。" : "关注状态暂时无法确认。"}
-              footer={healthState === "error" ? "健康信息没有完整读取到，不会把未知状态显示成“没有变化”" : undefined}
+              body={healthState === "loading" ? "正在读取健康记录。" : "健康关注状态暂时无法确认。"}
+              footer={healthState === "error" ? "健康记录没有完整读取到，不会把未知状态显示成“没有风险”" : undefined}
             />
           ) : danger ? (
             <AttentionPanel
