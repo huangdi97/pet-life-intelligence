@@ -109,6 +109,8 @@ export default function Timeline() {
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [filter, setFilter] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const [showMilestoneComposer, setShowMilestoneComposer] = useState(false);
+  const [showDiaryComposer, setShowDiaryComposer] = useState(false);
   const [milestones, setMilestones] = useState<MilestoneRow[]>([]);
   const [milestoneState, setMilestoneState] = useState<"loading" | "ready" | "error">("loading");
   const [milestoneTitle, setMilestoneTitle] = useState("");
@@ -219,6 +221,7 @@ export default function Timeline() {
       });
       setMilestoneTitle("");
       setMilestoneDate("");
+      setShowMilestoneComposer(false);
       loadMilestones(petId);
       loadMemories(petId);
       load(petId, filter);
@@ -332,6 +335,7 @@ export default function Timeline() {
       if (activePetRef.current !== owner) return;
       setDiaryText("");
       setDiaryAudioPath(null);
+      setShowDiaryComposer(false);
       loadDiary(owner);
       load(owner, filter);
       Taro.showToast({ title: audioArtifactId ? "语音日记已保存" : "日记已保存", icon: "success" });
@@ -470,26 +474,37 @@ export default function Timeline() {
           <Text className="section-caption">主人记录</Text>
         </View>
         <View className="life-empty-note">只记录真实发生、值得长期保留的节点；保存后会进入同一条生命时间线。</View>
-        <Input
-          className="input"
-          value={milestoneDate}
-          onInput={(event) => setMilestoneDate(event.detail.value)}
-          placeholder="发生日期 YYYY-MM-DD"
-        />
-        <Input
-          className="input"
-          value={milestoneTitle}
-          maxlength={200}
-          onInput={(event) => setMilestoneTitle(event.detail.value)}
-          placeholder="例如：第一次完成长途徒步"
-        />
-        <Button
-          className="btn"
-          disabled={milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate)}
-          onClick={() => void addMilestone()}
+        <View
+          className="secondary-action"
+          data-testid="pli.mini.timeline.milestones.compose"
+          onClick={() => setShowMilestoneComposer((value) => !value)}
         >
-          {milestoneBusy ? "保存中…" : "记录里程碑"}
-        </Button>
+          {showMilestoneComposer ? "收起记录" : "记录一个里程碑"}
+        </View>
+        {showMilestoneComposer ? (
+          <View className="timeline-composer">
+            <Input
+              className="input"
+              value={milestoneDate}
+              onInput={(event) => setMilestoneDate(event.detail.value)}
+              placeholder="发生日期 YYYY-MM-DD"
+            />
+            <Input
+              className="input"
+              value={milestoneTitle}
+              maxlength={200}
+              onInput={(event) => setMilestoneTitle(event.detail.value)}
+              placeholder="例如：第一次完成长途徒步"
+            />
+            <Button
+              className="btn"
+              disabled={milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate)}
+              onClick={() => void addMilestone()}
+            >
+              {milestoneBusy ? "保存中…" : "记录里程碑"}
+            </Button>
+          </View>
+        ) : null}
         {milestoneState === "ready" && milestones.length ? (
           <View className="soft-panel">
             {milestones.slice(0, 3).map((row) => (
@@ -545,30 +560,42 @@ export default function Timeline() {
           <Text className="section-caption">生活日记</Text>
         </View>
         <View className="life-empty-note">可以写文字，也可以录一段真实声音；录音作为原始媒体保存，不会被自动解释成情绪或健康结论。</View>
-        <Textarea
-          className="input"
-          value={diaryText}
-          maxlength={5000}
-          autoHeight
-          onInput={(event) => setDiaryText(event.detail.value)}
-          placeholder="例如：今天散步时第一次主动去闻路边的花。"
-        />
-        <View className="chips">
-          <View
-            className={`chip${diaryRecording ? " chip-active" : ""}`}
-            onClick={() => void (diaryRecording ? stopDiaryRecording() : startDiaryRecording())}
-          >
-            {diaryRecording ? "停止录音" : diaryAudioPath ? "重新录音" : "录一段声音"}
-          </View>
-          {diaryAudioPath ? (
-            <View className="chip" onClick={() => setDiaryAudioPath(null)}>移除录音</View>
-          ) : null}
+        <View
+          className="secondary-action"
+          data-testid="pli.mini.timeline.diary.compose"
+          onClick={() => setShowDiaryComposer((value) => !value)}
+        >
+          {showDiaryComposer ? "收起日记编辑" : "写一段日记"}
         </View>
-        {diaryRecording ? <View className="life-row-source">正在录音，最长 60 秒……</View> : null}
-        {diaryAudioPath && !diaryRecording ? <View className="life-row-source">已准备一段原始录音，将与这条日记一起保存。</View> : null}
-        <Button className="btn btn-primary" disabled={diaryBusy || (!diaryText.trim() && !diaryAudioPath) || diaryRecording} onClick={() => void addDiary()}>
-          {diaryBusy ? "保存中…" : "保存日记"}
-        </Button>
+        {showDiaryComposer ? (
+          <View className="timeline-composer">
+                    <Textarea
+                      className="input"
+                      value={diaryText}
+                      maxlength={5000}
+                      autoHeight
+                      onInput={(event) => setDiaryText(event.detail.value)}
+                      placeholder="例如：今天散步时第一次主动去闻路边的花。"
+                    />
+                    <View className="chips">
+                      <View
+                        className={`chip${diaryRecording ? " chip-active" : ""}`}
+                        onClick={() => void (diaryRecording ? stopDiaryRecording() : startDiaryRecording())}
+                      >
+                        {diaryRecording ? "停止录音" : diaryAudioPath ? "重新录音" : "录一段声音"}
+                      </View>
+                      {diaryAudioPath ? (
+                        <View className="chip" onClick={() => setDiaryAudioPath(null)}>移除录音</View>
+                      ) : null}
+                    </View>
+                    {diaryRecording ? <View className="life-row-source">正在录音，最长 60 秒……</View> : null}
+                    {diaryAudioPath && !diaryRecording ? <View className="life-row-source">已准备一段原始录音，将与这条日记一起保存。</View> : null}
+                    <Button className="btn btn-primary" disabled={diaryBusy || (!diaryText.trim() && !diaryAudioPath) || diaryRecording} onClick={() => void addDiary()}>
+                      {diaryBusy ? "保存中…" : "保存日记"}
+                    </Button>
+            
+          </View>
+        ) : null}
         {diaryState === "ready" && diary.length ? (
           <View className="soft-panel">
             <View className="section-title">最近日记</View>
