@@ -2436,3 +2436,45 @@ body{background:#FBF7F1}
     margin-top:6px;
   }
 }
+
+
+/* R7.7 phone-first Today closure.
+   Keep the Living Canvas large, but stop explanatory sections from pushing the
+   primary "快速记录" action underneath the fixed five-tab navigation. */
+@media(max-width:768px){
+  [data-testid="pli.today.living-stage"].r2p-stage,
+  [data-testid="pli.today.living-stage"].r2p-stage--3d{
+    min-height:470px;
+  }
+  [data-testid="pli.today.living-stage"].r2p-stage--3d .r2p-stage-pet--3d{
+    height:372px;
+    bottom:74px;
+  }
+  .v5-today-change,
+  .v5-today-attention{
+    padding-top:10px;
+    padding-bottom:10px;
+  }
+  .v5-today-change .v4-sec-head,
+  .v5-today-attention .v4-sec-head{
+    margin-bottom:5px;
+  }
+  .v5-change-summary{line-height:1.38}
+  .v5-change-evidence{margin-top:2px;line-height:1.35}
+  .v5-today-attention .v4-calm,
+  .v5-today-attention .v4-attn{
+    gap:8px;
+    padding:10px 12px;
+    border-radius:16px;
+  }
+  .v5-today-attention .v4-calm-body,
+  .v5-today-attention .v4-attn-body{
+    line-height:1.35;
+  }
+  .v5-today-action{
+    padding-top:11px;
+  }
+  .v5-today-action .v4-sec-head{
+    margin-bottom:7px;
+  }
+}
