@@ -415,6 +415,8 @@ export function Pet3DViewer({
         canonicalPose: manifestPose,
         stageRole,
         realityField: realityField || "warm-living",
+    realTimeShadows: renderer.shadowMap.enabled,
+    shadowTechnique: renderer.shadowMap.enabled ? "PCFSoftShadowMap+ShadowMaterial" : null,
       } as const;
       Object.assign((window as any).__PLI_3D_MANIFEST__, v3);
     };
