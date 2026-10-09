@@ -34,6 +34,7 @@ import {
   PET_3D_ASSETS,
   projectPetBounds,
   STAGE_FOG,
+  STAGE_THEMES,
   STAGE_TARGET,
 } from "@pli/pet-3d";
 import type { OrbitState, Pet3DIdentity, PoseName, TwinDescriptor } from "@pli/pet-3d";
@@ -138,7 +139,11 @@ export function Pet3DViewer({
 
     scene = new THREE.Scene();
     scene.background = null;
-    scene.fog = new THREE.FogExp2(STAGE_FOG, 0.028);
+    const stageTheme = stageRole === "review" ? STAGE_THEMES.review : STAGE_THEMES.living;
+    scene.fog = new THREE.FogExp2(
+      stageRole === "review" ? new THREE.Color(stageTheme.fog) : STAGE_FOG,
+      stageRole === "review" ? 0.022 : 0.028,
+    );
     // Individual twin (R2P3D-R1) beats demo identity when a descriptor exists.
     const stage = twin
       ? createTwinScene({
@@ -428,7 +433,7 @@ export function Pet3DViewer({
       renderer?.dispose();
       if (renderer?.domElement?.parentElement === wrap) wrap.removeChild(renderer.domElement);
     };
-  }, [identity, interactive, variant, onStatus, twin, petId, sourceMediaCount, frameTarget]);
+  }, [identity, interactive, variant, onStatus, twin, petId, sourceMediaCount, frameTarget, stageRole, realityField]);
 
   // Keep poseRef in sync so the frame loop picks up pose switches.
   useEffect(() => {
@@ -466,7 +471,7 @@ export function Pet3DViewer({
       delete win.__PLI_RESET_VIEW;
       delete win.__PLI_SET_VIEW;
     };
-  }, [interactive, variant, twin, frameTarget]);
+  }, [interactive, variant, twin, frameTarget, stageRole]);
 
   // Publish immediately after a control action so harness camera evidence
   // (zoom/reset) is fresh without waiting for the next 20-frame tick.
