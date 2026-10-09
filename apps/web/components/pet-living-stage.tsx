@@ -21,6 +21,7 @@ export interface StageAnchor {
   value: string;
   icon: WebIconName;
   href?: string;
+  onPress?: () => void;
 }
 
 interface Props {
@@ -224,7 +225,22 @@ export function PetLivingStage({
         </span>
       )}
       {anchors.slice(0, 4).map((a, i) =>
-        a.href ? (
+        a.onPress ? (
+          <button
+            key={a.id}
+            type="button"
+            onClick={a.onPress}
+            className={`r2p-anchor r2p-anchor--button r2p-anchor--${i}`}
+            aria-label={`查看${a.label}详情：${a.value}`}
+            data-testid={anchorTestIdPrefix ? `${anchorTestIdPrefix}.${a.id}` : undefined}
+          >
+            <span className="r2p-anchor-icon"><Icon name={a.icon} size={13} /></span>
+            <span>
+              <span className="r2p-anchor-label" style={{ display: "block" }}>{a.label}</span>
+              <span className="r2p-anchor-value">{a.value}</span>
+            </span>
+          </button>
+        ) : a.href ? (
           <Link
             key={a.id}
             href={a.href}
