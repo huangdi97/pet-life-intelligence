@@ -245,6 +245,7 @@ export function PetLivingStage({
 
 const styles = StyleSheet.create({
   stage: { marginHorizontal: 0, marginTop: 0, borderRadius: 0, overflow: "hidden" },
+  stageCompact: { minHeight: 470 },
   stageLiving: { backgroundColor: COLORS.stageWarmBase },
   stageReview: { marginHorizontal: SPACE.s3, borderRadius: RADIUS.hero, backgroundColor: COLORS.stageReviewBase },
   fieldBase: { ...StyleSheet.absoluteFillObject },
