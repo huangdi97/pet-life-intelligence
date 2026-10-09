@@ -1331,3 +1331,15 @@ def test_today_keeps_change_separate_from_health_attention_across_owner_clients(
     for metric in ("meal", "drink", "activity", "sleep"):
         assert f'id: "{metric}"' in mini
     assert "abnormal-day-hint" in mini
+
+
+def test_mini_pet_world_keeps_life_primary_and_crud_progressive() -> None:
+    source = read("apps/mini/src/pages/pets/index.tsx")
+    assert '进入生命视图' in source
+    assert '看时间线' in source
+    assert '更多档案与管理' in source
+    assert 'showMoreProfile ? (' in source
+    assert source.index('headline="它的生活，从这里看见"') < source.index('进入生命视图')
+    assert source.index('进入生命视图') < source.index('更多档案与管理')
+    assert source.index('更多档案与管理') < source.index('pli.mini.pet.avatar')
+    assert 'onPress={() => Taro.navigateTo({ url: "/pages/pets/life-view/index" })}' in source
