@@ -266,6 +266,7 @@ export function TodayScreen() {
                 summary={change.summary}
                 evidenceHint={change.evidence}
                 onWhy={() => tabNav.navigate("Timeline")}
+                compact
               />
             </View>
             <View testID="pli.today.attention">
@@ -282,7 +283,7 @@ export function TodayScreen() {
             {/* Canonical hierarchy: PET → NOW → CHANGE → ATTENTION → ACTION.
                 Baseline change and health attention are deliberately distinct:
                 a changed life pattern is not itself a medical conclusion. */}
-            <PrimaryAction testID="pli.today.primary-action" label="快速记录" onPress={() => stackNav.navigate("QuickLog")} />
+            <PrimaryAction testID="pli.today.primary-action" label="快速记录" onPress={() => stackNav.navigate("QuickLog")} compact />
             <ActionRow>
               <SecondaryAction label="看看它" icon="eye-outline" onPress={() => stackNav.navigate("LifeView")} />
               <SecondaryAction label="问助手" icon="chatbubble-ellipses-outline" onPress={() => tabNav.navigate("Assistant")} />
@@ -350,9 +351,9 @@ const styles = StyleSheet.create({
   chipText: { fontSize: TYPE.sm, color: COLORS.textTertiary },
   chipActiveText: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
-  calmRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
-  calmText: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20 },
-  calmMeta: { fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18, marginTop: 3 },
+  calmRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s1, paddingVertical: 4 },
+  calmText: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 18 },
+  calmMeta: { fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 16, marginTop: 1 },
   taskRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2, paddingVertical: 6 },
   taskMark: { fontSize: TYPE.body, color: COLORS.brandPrimaryDeep, width: 16 },
   taskBody: { flex: 1 },
