@@ -11,7 +11,7 @@ interface ActionCardProps {
 /** OWN-001 Action — one primary action, two lightweight peer secondary actions. */
 export function ActionCard({ petId, onMore }: ActionCardProps) {
   return (
-    <section className="v4-sec" data-pli-type="section" data-testid="pli.today.action">
+    <section className="v4-sec v5-today-action" data-pli-type="section" data-testid="pli.today.action">
       <div className="v4-sec-head">
         <div>
           <h2 className="v4-sec-title">下一步</h2>
