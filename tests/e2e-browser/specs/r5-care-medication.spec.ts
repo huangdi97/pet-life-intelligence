@@ -57,6 +57,11 @@ test.describe("R5 owner contracts — Care + Medication", () => {
     await loginAsEmail(page, request, OWNER_EMAIL);
     await page.goto("/care");
 
+    // Care mutations are secondary to the current care network. Expand the
+    // handoff composer before selecting a person.
+    await page.getByTestId("pli.care.handoff.toggle").click();
+    await expect(page.locator("#pli-care-handoff-form")).toBeVisible();
+
     const memberSelect = page.getByRole("combobox", { name: "临时照护人" });
     await expect(memberSelect).toBeVisible();
     const label = caregiver!.display_name || caregiver!.email || "家庭成员";
