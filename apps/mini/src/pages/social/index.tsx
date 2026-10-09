@@ -194,45 +194,51 @@ export default function Social() {
         )) : <View className="life-empty-note">还没有互动记录。</View>}
       </View>
 
-      <View className="open-section">
-        <View className="section-title">记录互动</View>
-        {candidates.length ? (
-          <>
-            <View className="field">
-              <Text>和谁互动</Text>
-              <Picker
-                mode="selector"
-                range={candidates.map((p) => p.name)}
-                value={selectedIndex}
-                onChange={(e) => setFriendPetId(candidates[Number(e.detail.value)]?.id ?? "")}
-              >
-                <View className="input">{candidates[selectedIndex]?.name ?? "选择宠物"}</View>
-              </Picker>
+      <View className="open-section" data-testid="pli.mini.social.action">
+        <View className="section-title" onClick={() => setFormOpen((value) => !value)}>
+          补充一次互动
+          <Text className="section-caption">{formOpen ? "收起" : "＋ 记录"}</Text>
+        </View>
+        <View className="life-row-source">先看关系与最近互动；需要时再记录真实发生的这一次。</View>
+        {formOpen ? (
+          candidates.length ? (
+            <View className="soft-panel">
+              <View className="field">
+                <Text>和谁互动</Text>
+                <Picker
+                  mode="selector"
+                  range={candidates.map((p) => p.name)}
+                  value={selectedIndex}
+                  onChange={(e) => setFriendPetId(candidates[Number(e.detail.value)]?.id ?? "")}
+                >
+                  <View className="input">{candidates[selectedIndex]?.name ?? "选择宠物"}</View>
+                </Picker>
+              </View>
+              <View className="field">
+                <Text>互动状态</Text>
+                <Picker
+                  mode="selector"
+                  range={QUALITY.map((q) => q.label)}
+                  value={qualityIndex}
+                  onChange={(e) => setQuality(QUALITY[Number(e.detail.value)]?.value ?? "NEUTRAL")}
+                >
+                  <View className="input">{QUALITY[qualityIndex]?.label ?? "平静"}</View>
+                </Picker>
+              </View>
+              <View className="field">
+                <Text>持续时间（分钟）</Text>
+                <Input className="input" type="number" value={duration} onInput={(e) => setDuration(e.detail.value)} />
+              </View>
+              <View className="field">
+                <Text>备注</Text>
+                <Input className="input" value={notes} onInput={(e) => setNotes(e.detail.value)} placeholder="只记录真实发生的事" />
+              </View>
+              <Button className="btn btn-primary" disabled={busy || !friendPetId} onClick={record}>
+                {busy ? "记录中…" : "记录互动"}
+              </Button>
             </View>
-            <View className="field">
-              <Text>互动状态</Text>
-              <Picker
-                mode="selector"
-                range={QUALITY.map((q) => q.label)}
-                value={qualityIndex}
-                onChange={(e) => setQuality(QUALITY[Number(e.detail.value)]?.value ?? "NEUTRAL")}
-              >
-                <View className="input">{QUALITY[qualityIndex]?.label ?? "平静"}</View>
-              </Picker>
-            </View>
-            <View className="field">
-              <Text>持续时间（分钟）</Text>
-              <Input className="input" type="number" value={duration} onInput={(e) => setDuration(e.detail.value)} />
-            </View>
-            <View className="field">
-              <Text>备注</Text>
-              <Input className="input" value={notes} onInput={(e) => setNotes(e.detail.value)} placeholder="只记录真实发生的事" />
-            </View>
-            <Button className="btn btn-primary" disabled={busy || !friendPetId} onClick={record}>
-              {busy ? "记录中…" : "记录互动"}
-            </Button>
-          </>
-        ) : <View className="life-empty-note">添加另一只宠物后，就可以记录彼此的互动。</View>}
+          ) : <View className="life-empty-note">添加另一只宠物后，就可以记录彼此的互动。</View>
+        ) : null}
       </View>
     </View>
   );
