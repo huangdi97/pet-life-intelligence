@@ -54,6 +54,7 @@ export default function TasksPage() {
         repeat_rule: repeat,
       });
       setTitle("");
+      setCreateOpen(false);
       tasks.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
