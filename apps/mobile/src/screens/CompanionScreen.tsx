@@ -124,7 +124,8 @@ export function CompanionScreen() {
           onPressPet={pet ? () => navigation.navigate("LifeView") : undefined}
           twin={twin?.descriptor ?? null}
           sourceMediaCount={twin?.observedRegions.length ?? 0}
-          frameTarget={0.52}
+          frameTarget={0.48}
+          compact
           pose={twin ? poseForEvent(lastEvent?.event_type ?? null) ?? "Idle" : null}
           stageRole="companion"
           stageTestId="pli.companion.living-stage"
