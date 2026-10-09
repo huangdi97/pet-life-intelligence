@@ -40,6 +40,7 @@ export function SocialScreen() {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
   const [version, setVersion] = useState(0);
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
@@ -110,6 +111,7 @@ export function SocialScreen() {
       });
       setMsg("已记录互动。");
       setNotes("");
+      setFormOpen(false);
       setVersion((v) => v + 1);
     } catch (e: unknown) {
       setMsg(humanizeError(e));
