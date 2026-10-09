@@ -6,10 +6,12 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  addStageLights,
   applyOrbit,
   canPersonalizeTwinGLB,
   createPetStageScene,
   createTwinScene,
+  enableStageShadowCasters,
   twinFingerprint,
   DEFAULT_ORBIT,
   fitOrbitRadius,
@@ -223,5 +225,34 @@ describe("nested Hero canvas projection", () => {
       expect(result!.viewportWidth).toBe(viewport.width);
       expect(result!.viewportHeight).toBe(viewport.height);
     }
+  });
+});
+
+
+describe("Living Canvas depth — real pet shadows, not only decorative ellipses", () => {
+  it("marks pet meshes as shadow casters without changing identity geometry", () => {
+    const stage = createPetStageScene("doudou");
+    enableStageShadowCasters(stage.pet);
+    let meshes = 0;
+    stage.pet.traverse((object) => {
+      const mesh = object as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      meshes += 1;
+      expect(mesh.castShadow).toBe(true);
+      expect(mesh.receiveShadow).toBe(false);
+    });
+    expect(meshes).toBeGreaterThan(0);
+  });
+
+  it("configures the shared daylight key as a bounded soft-shadow source", () => {
+    const scene = new THREE.Scene();
+    addStageLights(scene);
+    const key = scene.children.find(
+      (object) => object instanceof THREE.DirectionalLight && object.castShadow,
+    ) as THREE.DirectionalLight | undefined;
+    expect(key).toBeTruthy();
+    expect(key!.shadow.mapSize.width).toBe(1024);
+    expect(key!.shadow.mapSize.height).toBe(1024);
+    expect(key!.shadow.camera.far).toBe(12);
   });
 });
