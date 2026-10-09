@@ -254,3 +254,27 @@ Corrections completed in this pass:
 
 The implementation is source-complete only when the current branch HEAD also produces fresh Web/Android evidence from the same SHA. Human approval is intentionally a separate gate and cannot be inferred from tests.
 
+
+## 14. 2026-10-09 canonical owner-experience closure
+
+A final evidence-driven source pass closed the remaining gaps between the v3.4-R1 information architecture and the implemented owner clients:
+
+1. **Life View canonical rail restored:** capable Android/Web Life View now exposes **此刻 / 趋势 / 时间线 / 外观**. “时间线” navigates to the canonical real-event stream instead of duplicating or reconstructing historical state inside the current 3D scene.
+2. **Android Life View dead space reduced:** the outer Life View stage is tightened from 654dp to 590dp while the actual 3D WebView/pet framing target is preserved. This returns first-viewport space to modes and factual explanation rather than shrinking the pet.
+3. **Companion first-viewport balance corrected:** the current pet remains the dominant identity visual, but a compact Living Stage lets real device state and companion actions enter the owner flow sooner. Companion remains explicitly different from a live-camera claim.
+4. **Assistant context unified:** Web/Mini now make the active-pet relationship explicit with **正在帮助你理解** semantics, matching the Android pet-aware assistant hierarchy. Ask remains primary; 摘要 / 找记录 / 计划 / 解释 remain contextual.
+5. **Me responsibilities completed across clients:** Web/Mini explicitly expose **关于**, and Mini uses the canonical **我的宠物** label alongside household, notifications/devices, privacy/data and help/feedback responsibilities.
+6. **Runtime truth is unchanged:** a generic/demo skinned GLB, even when PBR/rig/motion/runtime gates pass, is not proof of individual-pet likeness. Real identity still requires owner media, reconstruction and owner confirmation.
+
+Source freeze after this section requires fresh CI plus Web/Android runtime evidence from the exact final branch HEAD before `R5_6_FRESH_VISUAL_EVIDENCE` can move away from `PENDING`.
+
+The governance boundaries remain:
+
+```text
+NO_VISION_MODEL_USED = TRUE
+HUMAN_VISUAL_ACCEPTANCE = PENDING
+REAL_PET_IDENTITY_VALIDATION = NOT_YET_OBSERVED
+APPROVED_VISUAL_BASELINE = OLD
+PR_2 = OPEN
+MERGE = BLOCKED_UNTIL_HUMAN_APPROVAL
+```
