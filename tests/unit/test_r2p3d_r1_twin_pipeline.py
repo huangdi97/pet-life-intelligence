@@ -85,6 +85,31 @@ def test_identity_similarity_same_vs_cross(dog_photos, cat_photos):
     assert same >= 0.5
 
 
+def test_angle_map_preserves_uuid_named_owner_capture_semantics():
+    from types import SimpleNamespace
+    from app.services.visual_pipeline import _angle_map_for_photos
+
+    front = "11111111-1111-1111-1111-111111111111"
+    head = "22222222-2222-2222-2222-222222222222"
+    full = "33333333-3333-3333-3333-333333333333"
+    capture = SimpleNamespace(
+        coverage={
+            "_angle_artifact_ids": {
+                "front": front,
+                "head": head,
+                "full_body": full,
+            }
+        }
+    )
+    photos = [
+        Path(f"/tmp/{front}.jpg"),
+        Path(f"/tmp/{head}.jpg"),
+        Path(f"/tmp/{full}.jpg"),
+    ]
+    result = _angle_map_for_photos(photos, [front, head, full], capture)
+    assert result == {"front": [0], "head": [1], "full_body": [2]}
+
+
 def test_build_individual_twin_dog(dog_photos):
     from app.services.twin_individual import build_individual_twin
 
