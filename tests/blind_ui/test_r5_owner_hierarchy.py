@@ -1451,3 +1451,29 @@ def test_behavior_domains_read_observations_before_patterns_across_clients() -> 
     assert web.index('data-testid="pli.behavior.recent"') < web.index('data-testid="pli.behavior.patterns"')
     assert web.index('data-testid="pli.behavior.patterns"') < web.index('data-testid="pli.behavior.context"')
     assert web.index('data-testid="pli.behavior.context"') < web.index('className="v4-sec v5-domain-create"')
+
+
+def test_quicklog_primary_and_secondary_information_architecture_matches_master() -> None:
+    web_types = read("apps/web/app/_components/today/constants.ts")
+    web_sheet = read("packages/ui-kit/src/components/quick-log-sheet.tsx")
+    mobile = read("apps/mobile/src/screens/quicklog_sections.tsx")
+    mini = read("apps/mini/src/pages/index/_lib.ts")
+
+    # Canonical primary row is deliberately only the four highest-frequency
+    # life events; everything else stays secondary or routes to a governed
+    # domain surface.
+    for event_type in ("daily.meal", "daily.drink", "daily.elimination", "daily.walk"):
+        assert event_type in web_types
+        assert event_type in mini
+    assert 'const TILE_KEY: Record<string, string>' in web_sheet
+    assert 'export const PRIMARY_TILES: QuickLogTile[] = ["meal", "drink", "elimination", "walk"]' in mobile
+    assert 'export const QUICK_LEVEL1 = ["daily.meal", "daily.drink", "daily.elimination", "daily.walk"]' in mini
+
+    # Secondary canonical actions include health on all three clients. Health,
+    # medication and behavior are navigation actions rather than fabricated
+    # generic event writes.
+    assert '{ type: "health", label: "健康", href: "/health" }' in web_types
+    assert '"health"' in mobile and '"medication"' in mobile and '"behavior"' in mobile
+    assert '{ label: "健康", url: "/pages/health/index" }' in mini
+    assert '{ label: "用药", url: "/pages/medication/index" }' in mini
+    assert '{ label: "行为", url: "/pages/behavior/index" }' in mini
