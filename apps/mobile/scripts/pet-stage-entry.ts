@@ -12,6 +12,7 @@ import {
   countMeshes,
   createPetStageScene,
   createTwinScene,
+  enableStageShadowCasters,
   DEFAULT_ORBIT,
   fitOrbitRadius,
   loadTwinGLB,
@@ -90,6 +91,8 @@ try {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 } catch {
   post({ type: "status", status: "failed" });
@@ -123,6 +126,7 @@ const stage = twinDescriptor
       provenance: twinDescriptor.provenance,
     })
   : createPetStageScene(identity, {});
+enableStageShadowCasters(stage.pet);
 scene.add(stage.pet);
 scene.add(stage.shadow);
 addStageLights(scene);
@@ -144,6 +148,22 @@ if (stageTheme !== "engineering") {
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = 0.005;
   scene.add(floor);
+
+  const shadowCatcher = new THREE.Mesh(
+    new THREE.CircleGeometry(2.15, 64),
+    new THREE.ShadowMaterial({
+      color: new THREE.Color(0x294331),
+      transparent: true,
+      opacity: stageTheme === "review" ? 0.10 : 0.14,
+      depthWrite: false,
+    }),
+  );
+  shadowCatcher.name = "pliRealShadowCatcher";
+  shadowCatcher.rotation.x = -Math.PI / 2;
+  shadowCatcher.position.y = 0.018;
+  shadowCatcher.receiveShadow = true;
+  scene.add(shadowCatcher);
+
   const glow = new THREE.Mesh(
     new THREE.CircleGeometry(1.7, 48),
     new THREE.MeshBasicMaterial({
@@ -191,6 +211,7 @@ bundledTwin.then((twin) => {
     return;
   }
   scene.remove(stage.pet);
+  enableStageShadowCasters(twin.group);
   scene.add(twin.group);
   petRoot = twin.group;
   hdTwin = twin;
