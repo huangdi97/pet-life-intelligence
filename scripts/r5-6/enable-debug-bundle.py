@@ -23,4 +23,33 @@ if "debuggableVariants = []" not in source:
     path.write_text(source, encoding="utf-8")
 if "debuggableVariants = []" not in path.read_text(encoding="utf-8"):
     raise SystemExit("debug JS bundle configuration was not installed")
-print(f"PASS: self-contained debuggable JS variant configured at {path}")
+
+# A debug package is intentionally retained so capture can use `run-as`, but
+# DevSupport must be off or React Native will prefer the live Metro connection
+# over the embedded bundle and can tear down the instance on a later deep link.
+java_root = Path("apps/mobile/android/app/src/main/java")
+candidates = list(java_root.rglob("MainApplication.kt")) + list(java_root.rglob("MainApplication.java"))
+if len(candidates) != 1:
+    raise SystemExit(f"expected exactly one generated MainApplication, found {candidates}")
+app = candidates[0]
+app_source = app.read_text(encoding="utf-8")
+replacements = (
+    ("override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG",
+     "override fun getUseDeveloperSupport(): Boolean = false"),
+    ("public boolean getUseDeveloperSupport() { return BuildConfig.DEBUG; }",
+     "public boolean getUseDeveloperSupport() { return false; }"),
+)
+changed = False
+for before, after in replacements:
+    if before in app_source:
+        app_source = app_source.replace(before, after, 1)
+        changed = True
+        break
+if not changed and "getUseDeveloperSupport" in app_source and "Boolean = false" not in app_source and "return false;" not in app_source:
+    raise SystemExit(f"generated DevSupport shape changed; refuse an unverified patch: {app}")
+app.write_text(app_source, encoding="utf-8")
+verified = app.read_text(encoding="utf-8")
+if "getUseDeveloperSupport" not in verified or not ("Boolean = false" in verified or "return false;" in verified):
+    raise SystemExit(f"DevSupport was not disabled in {app}")
+
+print(f"PASS: self-contained debuggable JS variant configured at {path}; DevSupport disabled in {app}")
