@@ -108,6 +108,19 @@ export function addStageLights(scene: THREE.Scene): void {
 
   const key = new THREE.DirectionalLight(LIGHTS.key, LIGHTS.keyIntensity);
   key.position.set(2.2, 3.4, 3.2);
+  // Real contact shadow is part of the Living Canvas depth cue. The adapters
+  // enable the renderer shadow map and install a transparent receiver; keeping
+  // the light configuration here guarantees Web and Android use the same rig.
+  key.castShadow = true;
+  key.shadow.mapSize.set(1024, 1024);
+  key.shadow.bias = -0.00035;
+  key.shadow.normalBias = 0.018;
+  key.shadow.camera.near = 0.5;
+  key.shadow.camera.far = 12;
+  key.shadow.camera.left = -3.2;
+  key.shadow.camera.right = 3.2;
+  key.shadow.camera.top = 3.4;
+  key.shadow.camera.bottom = -2.4;
   scene.add(key);
 
   const fill = new THREE.DirectionalLight(LIGHTS.fill, LIGHTS.fillIntensity);
@@ -117,6 +130,18 @@ export function addStageLights(scene: THREE.Scene): void {
   const rim = new THREE.SpotLight(LIGHTS.rim, LIGHTS.rimIntensity, 12, Math.PI / 6, 0.4, 1.6);
   rim.position.set(-0.6, 2.8, -3.4);
   scene.add(rim);
+}
+
+/** Mark the actual pet geometry as a shadow caster. This applies equally to
+ * procedural loading fallbacks and the final skinned GLB, without altering
+ * geometry, texture, provenance, or identity semantics. */
+export function enableStageShadowCasters(root: THREE.Object3D): void {
+  root.traverse((object) => {
+    const mesh = object as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.castShadow = true;
+    mesh.receiveShadow = false;
+  });
 }
 
 /** Stage fog color for warm depth (matches R2P3D palette). */
