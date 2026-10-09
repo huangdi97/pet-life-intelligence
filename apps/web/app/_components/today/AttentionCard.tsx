@@ -16,7 +16,7 @@ export interface TodayAttentionState {
 export function AttentionCard({ state }: { state: TodayAttentionState }) {
   const isCalm = state.kind === "calm" || state.kind === "unknown";
   return (
-    <section className="v4-sec" data-testid="pli.attention.panel" data-pli-type="section">
+    <section className={`v4-sec v5-today-attention v5-today-attention--${state.kind}`} data-testid="pli.attention.panel" data-pli-type="section">
       <div className="v4-sec-head">
         <h2 className="v4-sec-title">值得注意</h2>
       </div>
