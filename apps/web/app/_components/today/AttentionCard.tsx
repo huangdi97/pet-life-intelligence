@@ -21,7 +21,7 @@ export function AttentionCard({ state }: { state: TodayAttentionState }) {
         <h2 className="v4-sec-title">值得注意</h2>
       </div>
       {isCalm ? (
-        <div className="v4-calm">
+        <div className="v4-calm" data-testid="pli.today.health-summary">
           <span className="v4-calm-icon">
             <Icon name={state.kind === "calm" ? "check" : "clock"} size={18} />
           </span>
@@ -34,7 +34,7 @@ export function AttentionCard({ state }: { state: TodayAttentionState }) {
           </div>
         </div>
       ) : (
-        <div className={`v4-attn${state.kind === "danger" ? " v4-attn--danger" : ""}`}>
+        <div className={`v4-attn${state.kind === "danger" ? " v4-attn--danger" : ""}`} data-testid="pli.today.health-summary">
           <span className="v4-attn-icon">
             <Icon name="alert" size={18} />
           </span>
