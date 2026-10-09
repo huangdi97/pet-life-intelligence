@@ -1878,3 +1878,21 @@ def test_life_view_never_reinterprets_failed_support_requests_as_zero() -> None:
         assert '"暂不可用"' in source
         assert '"暂无待办"' in source
         assert '"未连接"' in source
+
+
+def test_life_view_health_support_is_real_and_never_claims_unknown_normal() -> None:
+    mobile = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    web = read("apps/web/app/pets/[id]/life-view/page.tsx")
+    mini = read("apps/mini/src/pages/pets/life-view/index.tsx")
+
+    for source in (mobile, web, mini):
+        assert "/health-events" in source
+        assert '"需立即关注"' in source
+        assert '"有健康记录"' in source
+        assert '"暂无记录"' in source
+        assert '"暂不可用"' in source
+        assert '"健康正常"' not in source
+
+    assert 'pli.lifeview.support.health' in mobile
+    assert 'pli.lifeview.support.health' in web
+    assert 'pli.mini.lifeview.support.health' in mini
