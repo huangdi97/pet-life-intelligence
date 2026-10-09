@@ -1753,3 +1753,18 @@ def test_android_domains_read_before_write() -> None:
     assert training.index('testID="pli.training.goal"') < training.index('testID="pli.training.recent"') < training.index('testID="pli.training.action"')
     assert welfare.index('testID="pli.welfare.observable"') < welfare.index('testID="pli.welfare.enrichment"') < welfare.index('testID="pli.welfare.action"')
     assert social.index('testID="pli.social.friends"') < social.index('testID="pli.social.interactions"') < social.index('testID="pli.social.action"')
+
+
+def test_mobile_assistant_owner_copy_has_no_internal_ai_terms() -> None:
+    source = read("apps/mobile/src/screens/assistant_panels.tsx")
+    for forbidden in (
+        "NOT_AVAILABLE",
+        "Personal Baseline",
+        "AI provider",
+        "Red Flag Rule Engine",
+        "Inference & Uncertainty",
+        "Next step",
+    ):
+        assert forbidden not in source
+    for owner_copy in ("与它自己相比", "推断与不确定", "AI 深度分析", "安全规则：独立运行"):
+        assert owner_copy in source
