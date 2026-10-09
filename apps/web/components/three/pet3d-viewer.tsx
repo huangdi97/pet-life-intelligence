@@ -105,6 +105,11 @@ export function Pet3DViewer({
     const wrap = wrapRef.current;
     if (!wrap) return;
 
+    // A pet/twin change is a new renderer identity boundary. Never leave the
+    // previous renderer's READY state visible while the next asset is loading.
+    setStatus("boot");
+    onStatus?.("boot");
+
     let renderer: THREE.WebGLRenderer | null = null;
     let scene: THREE.Scene | null = null;
     let camera: THREE.PerspectiveCamera | null = null;
@@ -194,6 +199,10 @@ export function Pet3DViewer({
     // loads (or when it fails). Manifest reclassifies accordingly.
     let petRoot: THREE.Object3D = stage.pet;
     let hdTwin: LoadedTwin | null = null;
+    // Demo/template product surfaces promise the bundled skinned GLB. READY
+    // therefore means that asset is really mounted, not merely that WebGL and
+    // the temporary procedural bridge have initialized.
+    const requiresProductGlb = Boolean(twin && identity && demoTwin);
     // Truth invariant: the procedural twin may temporarily bridge GLB loading,
     // but if the product GLB cannot load the runtime must report a fallback.
     let hdLoadFailed = false;
@@ -208,6 +217,8 @@ export function Pet3DViewer({
           if (!alive) return undefined;
           if (!twin3d || !scene || !camera) {
             hdLoadFailed = true;
+            setStatus("failed");
+            onStatus?.("failed");
             syncOrientation();
             return undefined;
           }
@@ -236,6 +247,8 @@ export function Pet3DViewer({
             applyOrbit(camera, STAGE_TARGET, orbitRef.current);
           }
           syncOrientation();
+          setStatus("ready");
+          onStatus?.("ready");
           return undefined;
         })
         .catch((err) => {
@@ -243,6 +256,8 @@ export function Pet3DViewer({
           // procedural twin stays as the engineering fallback, but that
           // fallback is explicit in runtime evidence.
           hdLoadFailed = true;
+          setStatus("failed");
+          onStatus?.("failed");
           syncOrientation();
           if (typeof console !== "undefined") console.error("R4_TWIN_GLB_LOAD_FAIL", err);
           return undefined;
@@ -440,8 +455,10 @@ export function Pet3DViewer({
     reduceQuery?.addEventListener("change", onReduce);
 
     raf = requestAnimationFrame(frame);
-    setStatus("ready");
-    onStatus?.("ready");
+    if (!requiresProductGlb) {
+      setStatus("ready");
+      onStatus?.("ready");
+    }
     syncOrientation();
 
     return () => {
