@@ -8,6 +8,8 @@ import { describe, expect, it } from "vitest";
 import {
   applyOrbit,
   createPetStageScene,
+  createTwinScene,
+  twinFingerprint,
   DEFAULT_ORBIT,
   fitOrbitRadius,
   projectPetBounds,
@@ -70,6 +72,41 @@ describe("demo assets — 豆豆 ≠ 咪咪", () => {
     expect(delta).toBeLessThan(0.03);
     scene.setPose(0, false);
     expect(body.scale.y).toBeCloseTo(before, 5);
+  });
+});
+
+describe("individual owner Twin — organic morph volume contract", () => {
+  it("uses the full owner morph scale and a richer continuous silhouette", () => {
+    const base = createTwinScene({
+      family: "standard-cat",
+      morph: { overall_scale: 1 },
+      texture: { observed: { coat: "#A98365", face: "#B28C70" } },
+    });
+    const scaled = createTwinScene({
+      family: "standard-cat",
+      morph: { overall_scale: 1.25 },
+      texture: { observed: { coat: "#A98365", face: "#B28C70" } },
+    });
+    expect(scaled.bounds.height).toBeGreaterThan(base.bounds.height * 1.18);
+    expect(twinFingerprint(base).parts).toBeGreaterThan(24);
+    expect(base.pet.getObjectByName("torsoCore")).toBeTruthy();
+    expect(base.pet.getObjectByName("neckBridge")).toBeTruthy();
+    expect(base.pet.getObjectByName("cheekL")).toBeTruthy();
+    expect(base.pet.getObjectByName("tailJoint")).toBeTruthy();
+  });
+
+  it("makes waist_width visible in the actual rendered abdomen", () => {
+    const narrow = createTwinScene({
+      family: "standard-dog",
+      morph: { chest_width: 1.1, waist_width: 0.65 },
+    });
+    const wide = createTwinScene({
+      family: "standard-dog",
+      morph: { chest_width: 1.1, waist_width: 1.15 },
+    });
+    const narrowAbdomen = narrow.pet.getObjectByName("abdomen") as THREE.Mesh;
+    const wideAbdomen = wide.pet.getObjectByName("abdomen") as THREE.Mesh;
+    expect(narrowAbdomen.scale.x).toBeLessThan(wideAbdomen.scale.x);
   });
 });
 
