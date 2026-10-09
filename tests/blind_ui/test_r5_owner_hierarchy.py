@@ -1659,3 +1659,11 @@ def test_frequent_walk_quicklog_is_two_step_without_invented_duration() -> None:
     assert 'label: "时长（分钟，可选）"' in web
     assert 'label: "时长（分钟，可选）"' in mini
     assert 'type: "daily.walk"' in web and 'type: "daily.walk"' in mini
+
+
+def test_mini_life_view_hides_model_versions_from_owner_copy() -> None:
+    source = read("apps/mini/src/pages/pets/life-view/index.tsx")
+    assert "3D v${" not in source
+    assert "第 ${activeTwin.version" not in source
+    assert "个体形象 · 已确认" in source
+    assert "示例形象 · 仅用于体验" in source
