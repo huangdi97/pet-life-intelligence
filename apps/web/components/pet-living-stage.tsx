@@ -117,7 +117,7 @@ export function PetLivingStage({
   const show3d = canShow3d && !showPhoto;
   const stageClass = [
     "r2p-stage",
-    variant === "life" ? "r2p-stage--life" : variant === "pet" ? "r2p-stage--pet" : "",
+    variant === "today" ? "r2p-stage--today" : variant === "life" ? "r2p-stage--life" : variant === "pet" ? "r2p-stage--pet" : "",
     role === "companion" ? "r2p-stage--companion" : "",
     show3d ? "r2p-stage--3d" : "",
   ]
