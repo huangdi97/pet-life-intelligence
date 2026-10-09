@@ -11,9 +11,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api, humanizeError, type AiStatus, type AskAnswer } from "../api";
 import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { usePets } from "../context";
 import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
-import type { TabParamList } from "../navigation";
+import type { StackParamList, TabParamList } from "../navigation";
 import { PetAvatar } from "../components/media/PetAvatar";
 import { resolvePetMediaUri } from "../components/media/demoPetVisual";
 import { BriefPanel, ExplainPanel, FindPanel, PlanPanel } from "./assistant_panels";
@@ -37,6 +38,7 @@ const TOOLS: Array<{ id: Exclude<Tab, "ask">; label: string }> = [
 export function AssistantScreen() {
   const { pets, petId } = usePets();
   const tabNav = useNavigation<BottomTabNavigationProp<TabParamList>>();
+  const stackNav = useNavigation<NativeStackNavigationProp<StackParamList>>();
   const [tab, setTab] = useState<Tab>("ask");
   const [question, setQuestion] = useState("");
   const [asking, setAsking] = useState(false);
