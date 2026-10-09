@@ -24,6 +24,7 @@ import { OpenSection } from "../components/feedback/OpenSection";
 import { Skeleton } from "../components/feedback/Feedback";
 import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { eventTypeLabel } from "./ui_labels";
+import { poseForEvent } from "@pli/pet-3d";
 
 type StackNav = NativeStackNavigationProp<StackParamList>;
 
@@ -153,6 +154,7 @@ export function PetScreen() {
 
   const todayEvents = (today?.events ?? []).filter((e) => e.event_type !== "today.viewed");
   const lastActivity = todayEvents[0] ?? null;
+  const representativePose = poseForEvent(lastActivity?.event_type ?? null) ?? "Idle";
   const abnormal = hint?.hints.find((x) => !x.includes("无明显异常"));
   const stable = hint !== null && !abnormal;
 
@@ -257,6 +259,7 @@ export function PetScreen() {
             twin={twin?.descriptor ?? null}
             sourceMediaCount={twin?.observedRegions.length ?? 0}
             frameTarget={0.56}
+            pose={twin ? representativePose : null}
           />
         </View>
 
