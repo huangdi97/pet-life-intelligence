@@ -119,6 +119,7 @@ export default function AgentPage() {
                 citations={citations}
                 aiOff={aiOff}
                 petName={petName}
+                petId={petId ?? ""}
                 onAsk={ask}
                 onSuggestion={(s) => {
                   if (s.href) {
