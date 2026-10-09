@@ -44,6 +44,8 @@ interface Props {
   pose?: PoseName | null;
   /** Enables drag rotate + pinch zoom (Life View). */
   interactive?: boolean;
+  /** Historical surfaces must not reuse today's owner avatar as if it existed then. */
+  allowOwnerPhoto?: boolean;
   /** Blind-UI contract: id on the outer stage section (e.g. pli.today.living-stage). */
   stageTestId?: string;
   /** Blind-UI contract: id on the element containing the 3D/2.5D renderer. */
@@ -75,6 +77,7 @@ export function PetLivingStage({
   demo = false,
   pose = null,
   interactive = false,
+  allowOwnerPhoto = true,
   frameTarget = 0,
   stageTestId,
   twinTestId,
@@ -103,7 +106,7 @@ export function PetLivingStage({
       });
     return () => { alive = false; };
   }, [petId]);
-  const photoUri = petId && avatar?.petId === petId ? avatar.uri : null;
+  const photoUri = allowOwnerPhoto && petId && avatar?.petId === petId ? avatar.uri : null;
   // A bundled procedural/demo identity is allowed only in an explicitly
   // marked demo session. Production owner surfaces need an actual persisted
   // Twin descriptor; otherwise they fall back to the honest 2.5D/photo path.
