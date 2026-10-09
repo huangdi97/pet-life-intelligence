@@ -1738,3 +1738,18 @@ def test_living_canvas_runtime_manifest_reports_real_shadow_depth() -> None:
         assert "renderer.shadowMap.enabled = true" in source
         assert "THREE.PCFSoftShadowMap" in source
         assert 'shadowTechnique: renderer.shadowMap.enabled ? "PCFSoftShadowMap+ShadowMaterial" : null' in source
+
+
+def test_android_domains_read_before_write() -> None:
+    """Canonical domain hierarchy: understand first, act second, edit third."""
+    health = read("apps/mobile/src/screens/HealthScreen.tsx")
+    behavior = read("apps/mobile/src/screens/BehaviorScreen.tsx")
+    training = read("apps/mobile/src/screens/TrainingScreen.tsx")
+    welfare = read("apps/mobile/src/screens/WelfareScreen.tsx")
+    social = read("apps/mobile/src/screens/SocialScreen.tsx")
+
+    assert health.index('testID="pli.health.overview"') < health.index('testID="pli.health.records"') < health.index('testID="pli.health.action"')
+    assert behavior.index('testID="pli.behavior.observations"') < behavior.index('testID="pli.behavior.patterns"') < behavior.index('testID="pli.behavior.action"')
+    assert training.index('testID="pli.training.goal"') < training.index('testID="pli.training.recent"') < training.index('testID="pli.training.action"')
+    assert welfare.index('testID="pli.welfare.observable"') < welfare.index('testID="pli.welfare.enrichment"') < welfare.index('testID="pli.welfare.action"')
+    assert social.index('testID="pli.social.friends"') < social.index('testID="pli.social.interactions"') < social.index('testID="pli.social.action"')
