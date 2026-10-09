@@ -926,6 +926,10 @@ def test_shared_pet_scene_uses_soft_grounding_and_dimensional_warm_light() -> No
     assert "LIGHTS.hemisphereSky" in scene
     assert "LIGHTS.hemisphereGround" in scene
     assert "hemisphereIntensity: 0.62" in palette
+    for warm_light in ("0xfffbf4", "0xdccbb5", "0xf1e7d8", "0xfff6e8"):
+        assert warm_light in palette
+    for stale_green_light in ("0xf8fff4", "0xc7d4c4", "0xe7efe7", "0xf5fff0"):
+        assert stale_green_light not in palette
     # No owner-facing cyberpunk/blue projection light was introduced.
     assert "0x00ffff" not in scene.lower()
     assert "0x00aaff" not in scene.lower()
