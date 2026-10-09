@@ -41,6 +41,7 @@ export default function TasksPage() {
   const [repeat, setRepeat] = useState("NONE");
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   async function create() {
     if (!petId || !title.trim()) return;
@@ -84,40 +85,6 @@ export default function TasksPage() {
         <h1>照护任务</h1>
         <p className="sub">今天要做的事、重复照护与多人协作冲突，都围绕同一只宠物记录。</p>
       </div>
-      <section className="v5-form-surface">
-        <h2>新建任务</h2>
-        <div className="grid2">
-          <label className="field">
-            标题
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="如：晚上喂食" />
-          </label>
-          <label className="field">
-            类型
-            <select value={type} onChange={(e) => setType(e.target.value)}>
-              {Object.entries(TASK_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            截止时间
-            <input type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} />
-          </label>
-          <label className="field">
-            重复
-            <select value={repeat} onChange={(e) => setRepeat(e.target.value)}>
-              <option value="NONE">不重复</option>
-              <option value="DAILY">每天</option>
-              <option value="WEEKLY">每周</option>
-            </select>
-          </label>
-        </div>
-        <ErrorNote message={error} />
-        <button className="btn primary" onClick={create} disabled={!petId}>
-          创建
-        </button>
-      </section>
-
       {conflict && (
         <div className="v4-attn">
           <div>
@@ -169,6 +136,40 @@ export default function TasksPage() {
           </ul>
         </State>
       </section>
+      <section className="v4-sec v5-domain-create" data-form-open={createOpen ? "true" : "false"}>
+        <div className="v4-sec-head">
+          <div>
+            <h2 className="v4-sec-title">新建任务</h2>
+            <p className="v4-sec-sub">先完成当前待办；确有新的照护事项时再创建任务。</p>
+          </div>
+          <button
+            type="button"
+            className="btn"
+            data-testid="pli.tasks.create.toggle"
+            aria-expanded={createOpen}
+            aria-controls="pli-tasks-create-form"
+            onClick={() => {
+              setCreateOpen((value) => !value);
+              setError(null);
+            }}
+          >
+            {createOpen ? "收起" : "+ 新建任务"}
+          </button>
+        </div>
+        {createOpen ? (
+          <div id="pli-tasks-create-form" className="v5-form-surface v5-form-surface--inline">
+            <div className="grid2">
+              <label className="field">标题<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="如：晚上喂食" /></label>
+              <label className="field">类型<select value={type} onChange={(e) => setType(e.target.value)}>{Object.entries(TASK_TYPE_LABELS).map(([value, label]) => (<option key={value} value={value}>{label}</option>))}</select></label>
+              <label className="field">截止时间<input type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} /></label>
+              <label className="field">重复<select value={repeat} onChange={(e) => setRepeat(e.target.value)}><option value="NONE">不重复</option><option value="DAILY">每天</option><option value="WEEKLY">每周</option></select></label>
+            </div>
+            <ErrorNote message={error} />
+            <button data-testid="pli.tasks.create.submit" className="btn primary" onClick={create} disabled={!petId || !title.trim()}>创建任务</button>
+          </div>
+        ) : null}
+      </section>
+
     </main>
   );
 }
