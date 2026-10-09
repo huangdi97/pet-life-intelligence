@@ -44,6 +44,7 @@ export default function MedicationPage() {
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
 
   function set(k: keyof typeof form, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -190,47 +191,45 @@ export default function MedicationPage() {
       </State>
 
 
-      <section className="v5-form-surface">
-        <h2>添加用药计划</h2>
-        <p className="v4-note">先核对上面的现有计划与待给药；只有依据处方或明确来源时再添加新计划。</p>
-        <div className="grid2">
-          <label className="field">
-            药名
-            <input value={form.medicine_name} onChange={(e) => set("medicine_name", e.target.value)} />
-          </label>
-          <label className="field">
-            剂量文字（来自处方）
-            <input value={form.dose_text} onChange={(e) => set("dose_text", e.target.value)} placeholder="如 50mg" />
-          </label>
-          <label className="field">
-            途径
-            <input value={form.route} onChange={(e) => set("route", e.target.value)} />
-          </label>
-          <label className="field">
-            每日次数
-            <input type="number" min={1} max={12} value={form.frequency_per_day} onChange={(e) => set("frequency_per_day", e.target.value)} />
-          </label>
-          <label className="field">
-            天数
-            <input type="number" min={1} max={30} value={form.duration_days} onChange={(e) => set("duration_days", e.target.value)} />
-          </label>
-          <label className="field">
-            信息来源
-            <select value={form.source_type} onChange={(e) => set("source_type", e.target.value)}>
-              <option value="PROFESSIONAL_CONFIRMED">兽医确认</option>
-              <option value="OWNER_REPORTED">主人记录</option>
-              <option value="LAB_CONFIRMED">检验确认</option>
-            </select>
-          </label>
-          <label className="field">
-            来源备注（兽医/诊所）
-            <input value={form.source_note} onChange={(e) => set("source_note", e.target.value)} />
-          </label>
+      <section className="v4-sec v5-domain-create" data-form-open={formOpen ? "true" : "false"}>
+        <div className="v4-sec-head">
+          <div>
+            <h2 className="v4-sec-title">添加用药计划</h2>
+            <p className="v4-sec-sub">当前计划和待给药始终优先；有明确处方或来源时再录入新计划。</p>
+          </div>
+          <button
+            type="button"
+            className="btn"
+            data-testid="pli.medication.create.toggle"
+            aria-expanded={formOpen}
+            aria-controls="pli-medication-create-form"
+            onClick={() => {
+              setFormOpen((value) => !value);
+              setError(null);
+            }}
+          >
+            {formOpen ? "收起" : "+ 新用药计划"}
+          </button>
         </div>
-        <ErrorNote message={error} />
-        <button className="btn primary" onClick={createPlan} disabled={!petId || !form.medicine_name || !form.dose_text}>
-          创建计划
-        </button>
+        {formOpen ? (
+          <div id="pli-medication-create-form" className="v5-form-surface v5-form-surface--inline">
+            <h2>新用药计划</h2>
+            <p className="v4-note">只录入你已经从处方、兽医或明确记录获得的信息；系统不生成剂量建议。</p>
+            <div className="grid2">
+              <label className="field">药名<input value={form.medicine_name} onChange={(e) => set("medicine_name", e.target.value)} /></label>
+              <label className="field">剂量文字（来自处方）<input value={form.dose_text} onChange={(e) => set("dose_text", e.target.value)} placeholder="如 50mg" /></label>
+              <label className="field">途径<input value={form.route} onChange={(e) => set("route", e.target.value)} /></label>
+              <label className="field">每日次数<input type="number" min={1} max={12} value={form.frequency_per_day} onChange={(e) => set("frequency_per_day", e.target.value)} /></label>
+              <label className="field">天数<input type="number" min={1} max={30} value={form.duration_days} onChange={(e) => set("duration_days", e.target.value)} /></label>
+              <label className="field">信息来源<select value={form.source_type} onChange={(e) => set("source_type", e.target.value)}><option value="PROFESSIONAL_CONFIRMED">兽医确认</option><option value="OWNER_REPORTED">主人记录</option><option value="LAB_CONFIRMED">检验确认</option></select></label>
+              <label className="field">来源备注（兽医/诊所）<input value={form.source_note} onChange={(e) => set("source_note", e.target.value)} /></label>
+            </div>
+            <ErrorNote message={error} />
+            <button data-testid="pli.medication.create.submit" className="btn primary" onClick={createPlan} disabled={!petId || !form.medicine_name || !form.dose_text}>
+              创建计划
+            </button>
+          </div>
+        ) : null}
       </section>
     </main>
   );
