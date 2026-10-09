@@ -18,7 +18,12 @@ export function AnswerPanel({ answer, citations, basePath }: AnswerPanelProps) {
         <span className="badge pli-badge--ai">{t("agent.aiBadge")}</span>
         <span className="pli-ai-answer-title">{t("agent.answer")}</span>
       </div>
-      {answer.answer && <p style={{ margin: "8px 0 0" }}>{answer.answer}</p>}
+      {answer.answer && (
+        <div style={{ marginTop: 8 }}>
+          <div className="muted">结论</div>
+          <p style={{ margin: "4px 0 0" }}>{answer.answer}</p>
+        </div>
+      )}
       {answer.facts && answer.facts.length > 0 && (
         <>
           <div className="muted" style={{ marginTop: 8 }}>
