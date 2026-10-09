@@ -210,7 +210,7 @@ function AnswerBlock({ answer, citations }: { answer: AskAnswer; citations: Arra
   return (
     <View style={styles.answer}>
       {answer.external_blocked ? (
-        <Text style={styles.emptyBody}>该能力暂未开放。</Text>
+        <Text style={styles.emptyBody}>当前无法连接 AI 服务；已有记录、来源与时间线仍可正常查看。</Text>
       ) : (
         <>
           {answer.answer ? <Text style={styles.answerBody}>{answer.answer}</Text> : null}
