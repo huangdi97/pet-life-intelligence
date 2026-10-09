@@ -1191,3 +1191,13 @@ def test_android_life_view_uses_real_personal_baseline_only_for_matching_metrics
     assert '"sleep_minutes_per_day"' in life
     assert '"暂无（当前没有同口径常态）"' in life
     assert "sleepMinutes > 0" in life
+
+
+def test_web_pet_detail_preserves_pet_first_twin_framing() -> None:
+    detail = read("apps/web/app/pets/[id]/page.tsx")
+    assert "frameTarget={0.56}" in detail
+    assert "twinSourceMediaCount" in detail
+    assert "sourceMediaCount={twinSourceMediaCount}" in detail
+    # The secondary detail route must not regress to the old thumbnail-sized
+    # 0.34 framing while the primary Pet world uses a pet-first Living Canvas.
+    assert "frameTarget={0.34}" not in detail
