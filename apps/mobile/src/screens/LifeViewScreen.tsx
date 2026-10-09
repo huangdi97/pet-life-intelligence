@@ -216,8 +216,8 @@ export function LifeViewScreen() {
                   ? "3D 状态暂时不可用"
                   : twin
                     ? twin.demoFixture
-                      ? `示例 3D · v${twin.version}`
-                      : `3D v${twin.version} · 已确认`
+                      ? "示例形象 · 仅用于体验"
+                      : "个体形象 · 已确认"
                     : "暂无已确认个体 3D"}
             </Text>
           </View>
