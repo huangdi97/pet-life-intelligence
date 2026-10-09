@@ -1201,3 +1201,17 @@ def test_web_pet_detail_preserves_pet_first_twin_framing() -> None:
     # The secondary detail route must not regress to the old thumbnail-sized
     # 0.34 framing while the primary Pet world uses a pet-first Living Canvas.
     assert "frameTarget={0.34}" not in detail
+
+
+def test_health_surfaces_replace_unfinished_vet_placeholder_with_real_records() -> None:
+    mobile = read("apps/mobile/src/screens/HealthScreen.tsx")
+    web = read("apps/web/app/health/page.tsx")
+    mini = read("apps/mini/src/pages/health/index.tsx")
+
+    for source in (mobile, web, mini):
+        assert "/health-records" in source
+        assert "就医与专业记录" in source
+        assert "专业确认" in source
+        assert "签名已记录" in source
+        assert "当前页面未汇总" not in source
+        assert "不会把未知显示成“没有记录”" in source
