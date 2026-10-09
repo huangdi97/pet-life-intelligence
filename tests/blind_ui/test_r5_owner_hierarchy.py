@@ -1045,3 +1045,34 @@ def test_welfare_observation_capture_is_secondary_across_owner_clients() -> None
     assert 'testID="pli.welfare.action.submit"' in mobile
     assert "recordOpen" in mini and 'data-testid="pli.mini.welfare.action"' in mini
     assert 'data-testid="pli.mini.welfare.action.submit"' in mini
+
+
+def test_behavior_preferences_and_training_rewards_edit_third_across_clients() -> None:
+    behavior = (
+        read("apps/web/app/behavior/page.tsx"),
+        read("apps/mobile/src/screens/BehaviorScreen.tsx"),
+        read("apps/mini/src/pages/behavior/index.tsx"),
+    )
+    training = (
+        read("apps/web/app/training/page.tsx"),
+        read("apps/mobile/src/screens/TrainingScreen.tsx"),
+        read("apps/mini/src/pages/training/index.tsx"),
+    )
+
+    for source in behavior:
+        assert "preferenceOpen" in source
+    assert 'data-testid="pli.behavior.preference.toggle"' in behavior[0]
+    assert 'data-testid="pli.behavior.preference.submit"' in behavior[0]
+    assert 'testID="pli.behavior.preference.toggle"' in behavior[1]
+    assert 'testID="pli.behavior.preference.submit"' in behavior[1]
+    assert 'data-testid="pli.mini.behavior.preference.toggle"' in behavior[2]
+    assert 'data-testid="pli.mini.behavior.preference.submit"' in behavior[2]
+
+    for source in training:
+        assert "rewardOpen" in source
+    assert 'data-testid="pli.training.reward.toggle"' in training[0]
+    assert 'data-testid="pli.training.reward.submit"' in training[0]
+    assert 'testID="pli.training.reward.toggle"' in training[1]
+    assert 'testID="pli.training.reward.submit"' in training[1]
+    assert 'data-testid="pli.mini.training.reward.toggle"' in training[2]
+    assert 'data-testid="pli.mini.training.reward.submit"' in training[2]
