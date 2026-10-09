@@ -69,7 +69,7 @@ export function BehaviorScreen() {
   const [preferenceKind, setPreferenceKind] = useState<"LIKE" | "DISLIKE" | "ALLERGY_CAUTION">("LIKE");
   const [preferenceSubject, setPreferenceSubject] = useState("");
   const [preferenceNote, setPreferenceNote] = useState("");
-  const [preferenceBusy, setPreferenceBusy] = useState(false);
+  const [preferenceBusy, setPreferenceBusy] = useState(false);\n  const [preferenceOpen, setPreferenceOpen] = useState(false);
   const [artifactIds, setArtifactIds] = useState<string[]>([]);
   const [artifactNames, setArtifactNames] = useState<string[]>([]);
   const [videoUploading, setVideoUploading] = useState(false);
@@ -299,16 +299,30 @@ export function BehaviorScreen() {
               ) : (
                 <Text style={styles.hintText}>还没有偏好记录。</Text>
               )}
-              <View style={styles.filterWrap}>
-                {(["LIKE", "DISLIKE", "ALLERGY_CAUTION"] as const).map((kind) => (
-                  <ChipPressable key={kind} label={PREF_LABEL[kind]} active={preferenceKind === kind} onPress={() => setPreferenceKind(kind)} />
-                ))}
-              </View>
-              <TextInput style={styles.input} value={preferenceSubject} onChangeText={setPreferenceSubject} placeholder="例如：冻干鸡肉 / 吹风机声音" placeholderTextColor={COLORS.textTertiary} />
-              <TextInput style={styles.input} value={preferenceNote} onChangeText={setPreferenceNote} placeholder="补充实际观察（可选）" placeholderTextColor={COLORS.textTertiary} />
-              <Pressable accessibilityRole="button" accessibilityLabel="记录偏好" disabled={preferenceBusy || !preferenceSubject.trim()} onPress={() => void addPreference()} style={[styles.submitBtn, (preferenceBusy || !preferenceSubject.trim()) && styles.pressed]}>
-                <Text style={styles.submitText}>{preferenceBusy ? "保存中…" : "记录偏好"}</Text>
+              <Pressable
+                testID="pli.behavior.preference.toggle"
+                accessibilityRole="button"
+                accessibilityLabel={preferenceOpen ? "收起偏好记录" : "记录偏好"}
+                accessibilityState={{ expanded: preferenceOpen }}
+                onPress={() => setPreferenceOpen((value) => !value)}
+                style={styles.secondaryToggle}
+              >
+                <Text style={styles.secondaryToggleText}>{preferenceOpen ? "收起" : "+ 记录偏好"}</Text>
               </Pressable>
+              {preferenceOpen ? (
+                <View style={styles.secondaryForm}>
+                  <View style={styles.filterWrap}>
+                    {(["LIKE", "DISLIKE", "ALLERGY_CAUTION"] as const).map((kind) => (
+                      <ChipPressable key={kind} label={PREF_LABEL[kind]} active={preferenceKind === kind} onPress={() => setPreferenceKind(kind)} />
+                    ))}
+                  </View>
+                  <TextInput style={styles.input} value={preferenceSubject} onChangeText={setPreferenceSubject} placeholder="例如：冻干鸡肉 / 吹风机声音" placeholderTextColor={COLORS.textTertiary} />
+                  <TextInput style={styles.input} value={preferenceNote} onChangeText={setPreferenceNote} placeholder="补充实际观察（可选）" placeholderTextColor={COLORS.textTertiary} />
+                  <Pressable testID="pli.behavior.preference.submit" accessibilityRole="button" accessibilityLabel="保存偏好" disabled={preferenceBusy || !preferenceSubject.trim()} onPress={() => void addPreference()} style={[styles.submitBtn, (preferenceBusy || !preferenceSubject.trim()) && styles.pressed]}>
+                    <Text style={styles.submitText}>{preferenceBusy ? "保存中…" : "保存偏好"}</Text>
+                  </Pressable>
+                </View>
+              ) : null}
             </OpenSection>
 
             <OpenSection title="模式与情境" testID="pli.behavior.patterns">
@@ -453,6 +467,9 @@ const styles = StyleSheet.create({
   abcLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary, width: 40 },
   abcValue: { fontSize: TYPE.sm, color: COLORS.textPrimary, flex: 1 },
   hintText: { fontSize: TYPE.body, color: COLORS.textTertiary, lineHeight: 22 },
+  secondaryToggle: { marginTop: SPACE.s3, minHeight: 44, alignSelf: "flex-start", justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.brandSoftGreen },
+  secondaryToggleText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "700" },
+  secondaryForm: { marginTop: SPACE.s3, gap: SPACE.s2 },
   formSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
   formToggle: { minHeight: 48, paddingVertical: 12, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center", justifyContent: "center" },
   formToggleText: { fontSize: TYPE.button, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
