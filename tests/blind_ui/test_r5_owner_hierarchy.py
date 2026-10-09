@@ -832,8 +832,9 @@ def test_uploaded_photo_can_replace_the_demo_3d_without_cross_pet_leakage() -> N
     css = read("apps/web/app/globals.css")
     for source in (native, web):
         assert "const [photoView, setPhotoView]" in source
-        assert "photoView?.petId ===" in source
         assert "photoUri" in source
+        assert "photoFirstByDefault = Boolean(photoUri && (demo || twin === null))" in source
+        assert "explicitPhotoChoice = photoView && photoView.petId ===" in source
         assert "canShow3d && !showPhoto" in source
         assert "切换为主人上传的真实照片" in source
         assert "看真实照片" in source
