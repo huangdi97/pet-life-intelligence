@@ -19,6 +19,7 @@ interface PetRow {
   name: string;
   species?: string | null;
   breed?: string | null;
+  weight_note?: string | null;
 }
 
 interface BaselineRow {
@@ -28,6 +29,9 @@ interface BaselineRow {
   window_days: number;
   computed_at: string;
 }
+
+interface TaskMini { status: string; }
+interface DeviceMini { status: string; }
 
 interface TodayMini {
   events?: Array<{
@@ -57,6 +61,14 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
   );
   const baseline = useAsync<BaselineRow[]>(
     () => (petId ? api.get(`/pets/${petId}/baseline`) : Promise.reject(new Error("NO_PET"))),
+    [petId],
+  );
+  const tasks = useAsync<TaskMini[]>(
+    () => (petId ? api.get(`/pets/${petId}/tasks`) : Promise.reject(new Error("NO_PET"))),
+    [petId],
+  );
+  const devices = useAsync<DeviceMini[]>(
+    () => (petId ? api.get(`/pets/${petId}/devices`) : Promise.reject(new Error("NO_PET"))),
     [petId],
   );
   // Individual Twin (R2P3D-R3 D): the ACTIVE per-pet twin descriptor drives the
@@ -182,6 +194,22 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
   const freshness = lastEvent
     ? `更新 ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
     : "今天暂无新记录";
+  const openTaskCount = (tasks.data ?? []).filter((task) => task.status === "OPEN").length;
+  const weightText = pet.data?.weight_note?.trim() || "未记录";
+  const deviceRows = devices.data ?? [];
+  const deviceText =
+    devices.state === "loading"
+      ? "读取中"
+      : devices.state !== "ready"
+        ? "暂不可用"
+        : deviceRows.length === 0
+          ? "未连接"
+          : deviceRows.every((device) => ["connected", "online"].includes(String(device.status).toLowerCase()))
+            ? `${deviceRows.length} 个在线`
+            : deviceRows.some((device) => String(device.status).toLowerCase() === "offline")
+              ? "有设备离线"
+              : "状态待确认";
+
   const modelStatus =
     twin.state === "loading"
       ? "3D 状态读取中"
@@ -225,6 +253,21 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
         twinTestId="pli.lifeview.twin"
         anchorTestIdPrefix="pli.lifeview.anchor"
       />
+      </div>
+
+      <div className="v7-life-support" data-testid="pli.lifeview.support-facts" aria-label="体重、任务与设备状态">
+        <Link href={`/pets/${petId}`} className="v7-life-support-item" data-testid="pli.lifeview.support.weight">
+          <span className="v7-life-support-label">体重</span>
+          <strong>{weightText}</strong>
+        </Link>
+        <Link href="/" className="v7-life-support-item" data-testid="pli.lifeview.support.tasks">
+          <span className="v7-life-support-label">任务</span>
+          <strong>{tasks.state === "loading" ? "读取中" : openTaskCount > 0 ? `${openTaskCount} 项待办` : "暂无待办"}</strong>
+        </Link>
+        <Link href="/monitoring" className="v7-life-support-item" data-testid="pli.lifeview.support.devices">
+          <span className="v7-life-support-label">设备</span>
+          <strong>{deviceText}</strong>
+        </Link>
       </div>
 
       <LivingModeSwitcher value={mode} onChange={setMode} />
