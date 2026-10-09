@@ -62,7 +62,8 @@ export function LifeViewScreen() {
   const [supportPetId, setSupportPetId] = useState<string | null>(null);
   const [supportTasks, setSupportTasks] = useState<Task[]>([]);
   const [supportDevices, setSupportDevices] = useState<DeviceRow[]>([]);
-  const [supportState, setSupportState] = useState<"loading" | "ready" | "partial-error">("loading");
+  const [taskSupportState, setTaskSupportState] = useState<"loading" | "ready" | "error">("loading");
+  const [deviceSupportState, setDeviceSupportState] = useState<"loading" | "ready" | "error">("loading");
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   // Each fact and any open detail sheet belongs to one pet. Hide stale state
@@ -124,7 +125,8 @@ export function LifeViewScreen() {
     setSupportPetId(null);
     setSupportTasks([]);
     setSupportDevices([]);
-    setSupportState("loading");
+    setTaskSupportState("loading");
+    setDeviceSupportState("loading");
     Promise.allSettled([
       api.get<Task[]>(`/pets/${targetPetId}/tasks`),
       api.get<DeviceRow[]>(`/pets/${targetPetId}/devices`),
@@ -132,12 +134,9 @@ export function LifeViewScreen() {
       if (!alive) return;
       setSupportTasks(tasksResult.status === "fulfilled" ? tasksResult.value : []);
       setSupportDevices(devicesResult.status === "fulfilled" ? devicesResult.value : []);
+      setTaskSupportState(tasksResult.status === "fulfilled" ? "ready" : "error");
+      setDeviceSupportState(devicesResult.status === "fulfilled" ? "ready" : "error");
       setSupportPetId(targetPetId);
-      setSupportState(
-        tasksResult.status === "fulfilled" && devicesResult.status === "fulfilled"
-          ? "ready"
-          : "partial-error",
-      );
     });
     return () => { alive = false; };
   }, [pet?.id]);
@@ -218,11 +217,20 @@ export function LifeViewScreen() {
   }, [petEvents, pet?.id, baseline, scopedBaselineState]);
 
   const supportOwned = supportPetId === pet?.id;
-  const openTaskCount = supportOwned ? supportTasks.filter((task) => task.status === "OPEN").length : 0;
+  const openTaskCount = supportOwned && taskSupportState === "ready"
+    ? supportTasks.filter((task) => task.status === "OPEN").length
+    : 0;
   const weightText = pet?.weight_note?.trim() || "未记录";
-  const deviceText = !supportOwned || supportState === "loading"
+  const taskText = !supportOwned || taskSupportState === "loading"
     ? "读取中"
-    : supportState === "partial-error" && supportDevices.length === 0
+    : taskSupportState === "error"
+      ? "暂不可用"
+      : openTaskCount > 0
+        ? `${openTaskCount} 项待办`
+        : "暂无待办";
+  const deviceText = !supportOwned || deviceSupportState === "loading"
+    ? "读取中"
+    : deviceSupportState === "error"
       ? "暂不可用"
       : supportDevices.length === 0
         ? "未连接"
@@ -320,13 +328,13 @@ export function LifeViewScreen() {
           <Pressable
             testID="pli.lifeview.support.tasks"
             accessibilityRole="button"
-            accessibilityLabel={`待办任务：${supportOwned ? openTaskCount : "读取中"}，点击回到今天`}
+            accessibilityLabel={`待办任务：${taskText}，点击回到今天`}
             onPress={() => navigation.navigate("Tabs", { screen: "Today" })}
             style={styles.supportFact}
           >
             <Ionicons name="checkmark-done-outline" size={17} color={COLORS.brandPrimaryDeep} />
             <Text style={styles.supportLabel}>任务</Text>
-            <Text style={styles.supportValue}>{supportOwned ? (openTaskCount > 0 ? `${openTaskCount} 项待办` : "暂无待办") : "读取中"}</Text>
+            <Text style={styles.supportValue}>{taskText}</Text>
           </Pressable>
           <Pressable
             testID="pli.lifeview.support.devices"
