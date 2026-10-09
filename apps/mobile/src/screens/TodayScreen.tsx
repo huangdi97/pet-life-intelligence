@@ -19,6 +19,7 @@ import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
 import type { StackParamList, TabParamList } from "../navigation";
 import { PetLivingStage } from "../components/life/PetLivingStage";
 import { AttentionPanel } from "../components/life/AttentionPanel";
+import { ChangeNarrative } from "../components/life/ChangeNarrative";
 import { PrimaryAction, SecondaryAction, ActionRow } from "../components/actions/QuickAction";
 import { Skeleton } from "../components/feedback/Feedback";
 import { OpenSection } from "../components/feedback/OpenSection";
@@ -46,6 +47,7 @@ export function TodayScreen() {
   const [rawTasks, setTasks] = useState<Task[]>([]);
   const [rawHint, setHint] = useState<{ hints: string[]; rule: string } | null>(null);
   const [rawHealth, setHealth] = useState<HealthEventRow[]>([]);
+  const [rawHealthState, setHealthState] = useState<"loading" | "ready" | "error">("loading");
   const [rawError, setError] = useState<string | null>(null);
   const [rawLoading, setLoading] = useState(true);
   const [rawCachedAt, setCachedAt] = useState<number | null>(null);
@@ -56,6 +58,7 @@ export function TodayScreen() {
   const tasks = isOwnData ? rawTasks : [];
   const hint = isOwnData ? rawHint : null;
   const health = isOwnData ? rawHealth : [];
+  const healthState = isOwnData ? rawHealthState : "loading";
   const error = isOwnData ? rawError : null;
   const loading = rawLoading || !isOwnData;
   const cachedAt = isOwnData ? rawCachedAt : null;
@@ -72,6 +75,7 @@ export function TodayScreen() {
     setCachedAt(null);
     setHint(null);
     setHealth([]);
+    setHealthState("loading");
     Promise.allSettled([
       api.get<TodayResp>(`/pets/${petId}/today`),
       api.get<Task[]>(`/pets/${petId}/tasks`),
@@ -88,7 +92,13 @@ export function TodayScreen() {
       }
       if (tk.status === "fulfilled") setTasks(tk.value);
       if (h.status === "fulfilled") setHint(h.value);
-      if (he.status === "fulfilled") setHealth(he.value);
+      if (he.status === "fulfilled") {
+        setHealth(he.value);
+        setHealthState("ready");
+      } else {
+        setHealth([]);
+        setHealthState("error");
+      }
       setLoadedPetId(petId);
       setLoading(false);
     });
@@ -97,32 +107,56 @@ export function TodayScreen() {
     };
   }, [petId, refreshCounter]);
 
-  const attention = useMemo(() => {
-    const danger = health.find((r) => r.latest_triage_level === "URGENT" || r.latest_triage_level === "EMERGENCY");
-    if (danger) {
-      return {
-        kind: "danger" as const,
-        body: danger.chief_complaint || "有一条健康记录需要关注，请查看健康页。",
-        footer: "由风险规则引擎判定 · 查看健康页了解详情",
-      };
-    }
+  const change = useMemo(() => {
     if (hint === null) {
       return {
-        kind: "unknown" as const,
-        body: "今天还没有足够信息判断是否有需要关注的变化。",
-        footer: "记录更多生活片段后再进行与自身基线的比较",
+        summary: "与它自己相比：今天还没有足够的基线信息。",
+        evidence: "继续记录后，才会比较它自己的同期常态。",
       };
     }
     const abnormal = hint.hints.find((x) => !x.includes("无明显异常"));
     if (abnormal) {
       return {
-        kind: "attention" as const,
-        body: abnormal,
-        footer: hint.rule ? "确定性对比（今日计数 vs 基线）" : undefined,
+        summary: abnormal,
+        evidence: hint.rule || "基于今天已记录事实与它自己的近期基线比较",
       };
     }
-    return { kind: "calm" as const, body: "按当前规则，暂未标记需要特别关注的变化。", footer: "仅基于已记录的数据，不等同于健康结论" };
-  }, [health, hint]);
+    return {
+      summary: "与它自己相比：按当前规则，今天暂未出现明显变化。",
+      evidence: hint.rule || "只比较已记录事实，不推断情绪或健康结论",
+    };
+  }, [hint]);
+
+  const attention = useMemo(() => {
+    if (healthState !== "ready") {
+      return {
+        kind: "unknown" as const,
+        body: "健康关注状态暂时无法确认。",
+        footer: "健康记录没有完整读取到，不会把未知状态显示成“没有风险”",
+      };
+    }
+    const danger = health.find((r) => r.latest_triage_level === "URGENT" || r.latest_triage_level === "EMERGENCY");
+    if (danger) {
+      return {
+        kind: "danger" as const,
+        body: danger.chief_complaint || "有一条健康记录需要关注，请查看健康页。",
+        footer: "由独立风险分级规则判定 · 查看健康页了解详情",
+      };
+    }
+    const focus = health.find((r) => r.status !== "CLOSED" && r.latest_triage_level);
+    if (focus) {
+      return {
+        kind: "attention" as const,
+        body: focus.chief_complaint || "有一条健康记录值得查看。",
+        footer: "来自已记录的健康事件；不是诊断结论",
+      };
+    }
+    return {
+      kind: "calm" as const,
+      body: "目前没有健康记录被独立风险规则标记为需要立即关注。",
+      footer: "仅表示当前已记录事实未触发规则，不等同于健康正常",
+    };
+  }, [health, healthState]);
 
   const counts = today?.event_counts ?? {};
   const todayEvents = (today?.events ?? []).filter((e) => e.event_type !== "today.viewed");
@@ -222,21 +256,28 @@ export function TodayScreen() {
             <Skeleton rows={2} />
           </View>
         ) : (
-          <View testID="pli.today.change">
+          <>
+            <View testID="pli.today.change">
+              <ChangeNarrative
+                summary={change.summary}
+                evidenceHint={change.evidence}
+                onWhy={() => tabNav.navigate("Timeline")}
+              />
+            </View>
             <View testID="pli.today.attention">
               {calm ? (
                 <View style={styles.calmRow}>
                   <Text style={styles.calmText}>{attention.body}</Text>
+                  {attention.footer ? <Text style={styles.calmMeta}>{attention.footer}</Text> : null}
                 </View>
               ) : (
-                <AttentionPanel kind={attention.kind} body={attention.body} footer={attention.footer} onPress={() => tabNav.navigate("Timeline")} />
+                <AttentionPanel kind={attention.kind} body={attention.body} footer={attention.footer} onPress={() => stackNav.navigate("Health")} />
               )}
             </View>
 
-            {/* R5.6 closure: preserve the canonical living hierarchy
-                PET → NOW → CHANGE → ATTENTION → ACTION → SUPPORT → MEMORY.
-                Health summary and tasks are support, so neither may displace
-                the one primary owner action immediately after Attention. */}
+            {/* Canonical hierarchy: PET → NOW → CHANGE → ATTENTION → ACTION.
+                Baseline change and health attention are deliberately distinct:
+                a changed life pattern is not itself a medical conclusion. */}
             <PrimaryAction testID="pli.today.primary-action" label="快速记录" onPress={() => stackNav.navigate("QuickLog")} />
             <ActionRow>
               <SecondaryAction label="看看它" icon="eye-outline" onPress={() => stackNav.navigate("LifeView")} />
@@ -245,7 +286,7 @@ export function TodayScreen() {
 
             {pet ? (
               <View testID="pli.today.support">
-                <TodayHealthSummary health={health} hint={hint} />
+                <TodayHealthSummary health={health} evidenceState={healthState} />
               </View>
             ) : null}
 
@@ -306,7 +347,8 @@ const styles = StyleSheet.create({
   chipActiveText: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
   calmRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
-  calmText: { fontSize: TYPE.sm, color: COLORS.textTertiary, lineHeight: 20 },
+  calmText: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20 },
+  calmMeta: { fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18, marginTop: 3 },
   taskRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2, paddingVertical: 6 },
   taskMark: { fontSize: TYPE.body, color: COLORS.brandPrimaryDeep, width: 16 },
   taskBody: { flex: 1 },
