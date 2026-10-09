@@ -84,6 +84,7 @@ export default function BehaviorPage() {
   const [advice, setAdvice] = useState<BehaviorAdviceResponse | null>(null);
   const [adviceBusy, setAdviceBusy] = useState(false);
   const [adviceError, setAdviceError] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
 
   function set(k: keyof typeof form, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -178,6 +179,7 @@ export default function BehaviorPage() {
       setForm((f) => ({ ...f, antecedent: "", behavior: "", consequence: "" }));
       setArtifactIds([]);
       setArtifactNames([]);
+      setFormOpen(false);
       list.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -371,8 +373,25 @@ export default function BehaviorPage() {
         </State>
       </section>
 
-      <div className="v5-form-surface">
-        <h2>记录一次行为事件</h2>
+      <section className="v4-sec v5-domain-create" data-form-open={formOpen ? "true" : "false"}>
+        <div className="v4-sec-head">
+          <div>
+            <h2 className="v4-sec-title">记录一次行为观察</h2>
+            <p className="v4-sec-sub">先读最近记录、情境和模式；需要时再进入 ABC 观察录入。</p>
+          </div>
+          <button
+            type="button"
+            className="btn"
+            data-testid="pli.behavior.action"
+            aria-expanded={formOpen}
+            aria-controls="pli-behavior-record-form"
+            onClick={() => setFormOpen((value) => !value)}
+          >
+            {formOpen ? "收起" : "记录行为"}
+          </button>
+        </div>
+        {formOpen ? (
+          <div id="pli-behavior-record-form" className="v5-form-surface v5-form-surface--inline">
         <label className="field">
           发生时间
           <input type="datetime-local" value={form.occurred_at} onChange={(e) => set("occurred_at", e.target.value)} />
@@ -446,10 +465,12 @@ export default function BehaviorPage() {
         </label>
         {validation && <div className="alert warn">{validation}</div>}
         <ErrorNote message={error} />
-        <button className="btn primary" onClick={submit} disabled={!petId} data-testid="pli.behavior.action">
+        <button className="btn primary" onClick={submit} disabled={!petId} data-testid="pli.behavior.action.submit">
           保存行为事件
         </button>
-      </div>
+          </div>
+        ) : null}
+      </section>
 
     </main>
   );
