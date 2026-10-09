@@ -103,6 +103,8 @@ export function CareScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [handoffOpen, setHandoffOpen] = useState(false);
 
   useEffect(() => {
     if (!petId) return;
@@ -331,52 +333,67 @@ export function CareScreen() {
               <Text style={styles.meta}>{roleLabel(member.role)}</Text>
             </View>
           )) : <Text style={styles.emptyLine}>家庭成员暂时没有读取到。</Text>}
-          <Text style={styles.note}>邀请共同照护的人加入家庭。主人角色不能通过邀请转移。</Text>
-          <TextInput
-            style={styles.input}
-            value={inviteEmail}
-            onChangeText={setInviteEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            placeholder="对方邮箱"
-            placeholderTextColor={COLORS.textTertiary}
-          />
-          <Text style={styles.scopeTitle}>家庭角色</Text>
-          <View style={styles.scopeWrap}>
-            {[
+          <Pressable
+            testID="pli.care.invite.toggle"
+            accessibilityRole="button"
+            accessibilityLabel={inviteOpen ? "收起家庭成员邀请" : "邀请家庭成员"}
+            accessibilityState={{ expanded: inviteOpen }}
+            onPress={() => setInviteOpen((value) => !value)}
+            style={styles.flowToggle}
+          >
+            <Text style={styles.flowToggleText}>{inviteOpen ? "收起" : "+ 邀请成员"}</Text>
+          </Pressable>
+          {inviteOpen ? (
+            <View style={styles.flowForm}>
+              <Text style={styles.note}>邀请共同照护的人加入家庭。主人角色不能通过邀请转移。</Text>
+              <TextInput
+              style={styles.input}
+              value={inviteEmail}
+              onChangeText={setInviteEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholder="对方邮箱"
+              placeholderTextColor={COLORS.textTertiary}
+              />
+              <Text style={styles.scopeTitle}>家庭角色</Text>
+              <View style={styles.scopeWrap}>
+              {[
               ["FAMILY", "家庭成员"],
               ["CO_OWNER", "共同主人"],
               ["SITTER", "临时照护人"],
               ["VET", "兽医"],
               ["TRAINER", "训练师"],
               ["GROOMER", "美容护理"],
-            ].map(([value, label]) => {
+              ].map(([value, label]) => {
               const selected = inviteRole === value;
               return (
-                <Pressable
-                  key={value}
-                  accessibilityRole="button"
-                  accessibilityLabel={`邀请角色：${label}`}
-                  accessibilityState={{ selected, disabled: busy }}
-                  disabled={busy}
-                  onPress={() => setInviteRole(value)}
-                  style={[styles.scopeChoice, selected && styles.scopeChoiceActive]}
-                >
-                  <Text style={[styles.scopeChoiceText, selected && styles.scopeChoiceTextActive]}>{label}</Text>
-                </Pressable>
+              <Pressable
+              key={value}
+              accessibilityRole="button"
+              accessibilityLabel={`邀请角色：${label}`}
+              accessibilityState={{ selected, disabled: busy }}
+              disabled={busy}
+              onPress={() => setInviteRole(value)}
+              style={[styles.scopeChoice, selected && styles.scopeChoiceActive]}
+              >
+              <Text style={[styles.scopeChoiceText, selected && styles.scopeChoiceTextActive]}>{label}</Text>
+              </Pressable>
               );
-            })}
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="发送家庭邀请"
-            accessibilityState={{ disabled: busy || !pet?.household_id || !inviteEmail.trim() }}
-            disabled={busy || !pet?.household_id || !inviteEmail.trim()}
-            onPress={() => void inviteMember()}
-            style={[styles.primary, (busy || !pet?.household_id || !inviteEmail.trim()) && styles.disabled]}
-          >
-            <Text style={styles.primaryText}>{busy ? "处理中…" : "发送邀请"}</Text>
-          </Pressable>
+              })}
+              </View>
+              <Pressable
+              accessibilityRole="button"
+              testID="pli.care.invite.submit"\n            accessibilityLabel="发送家庭邀请"
+              accessibilityState={{ disabled: busy || !pet?.household_id || !inviteEmail.trim() }}
+              disabled={busy || !pet?.household_id || !inviteEmail.trim()}
+              onPress={() => void inviteMember()}
+              style={[styles.primary, (busy || !pet?.household_id || !inviteEmail.trim()) && styles.disabled]}
+              >
+              <Text style={styles.primaryText}>{busy ? "处理中…" : "发送邀请"}</Text>
+              </Pressable>
+              
+            </View>
+          ) : null}
           {invitation ? (
             <View style={styles.cardResult}>
               <Text style={styles.rowTitle}>邀请已创建</Text>
@@ -390,59 +407,75 @@ export function CareScreen() {
 
         <OpenSection title="发起临时交接" caption="默认仅日常权限">
           <Text style={styles.note}>临时照护人默认只获得日常查看与记录权限；到期自动失效，不能转授管理权限。</Text>
-          {caregiverOptions.length ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.memberRail}>
+          <Pressable
+            testID="pli.care.handoff.toggle"
+            accessibilityRole="button"
+            accessibilityLabel={handoffOpen ? "收起临时照护交接" : "发起临时照护交接"}
+            accessibilityState={{ expanded: handoffOpen }}
+            onPress={() => setHandoffOpen((value) => !value)}
+            style={styles.flowToggle}
+          >
+            <Text style={styles.flowToggleText}>{handoffOpen ? "收起" : "+ 发起交接"}</Text>
+          </Pressable>
+          {handoffOpen ? (
+            <View style={styles.flowForm}>
+              
+              {caregiverOptions.length ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.memberRail}>
               {caregiverOptions.map((person) => {
-                const selected = caregiver === person.user_id;
-                return (
-                  <Pressable
-                    key={person.user_id}
-                    accessibilityRole="button"
-                    accessibilityLabel={`选择临时照护人：${person.label}`}
-                    accessibilityState={{ selected }}
-                    onPress={() => setCaregiver(person.user_id)}
-                    style={[styles.memberChoice, selected && styles.memberChoiceActive]}
-                  >
-                    <Text style={[styles.memberChoiceName, selected && styles.memberChoiceNameActive]}>
-                      {person.label}
-                    </Text>
-                    <Text style={styles.memberChoiceRole}>{person.role}</Text>
-                  </Pressable>
-                );
+              const selected = caregiver === person.user_id;
+              return (
+              <Pressable
+              key={person.user_id}
+              accessibilityRole="button"
+              accessibilityLabel={`选择临时照护人：${person.label}`}
+              accessibilityState={{ selected }}
+              onPress={() => setCaregiver(person.user_id)}
+              style={[styles.memberChoice, selected && styles.memberChoiceActive]}
+              >
+              <Text style={[styles.memberChoiceName, selected && styles.memberChoiceNameActive]}>
+              {person.label}
+              </Text>
+              <Text style={styles.memberChoiceRole}>{person.role}</Text>
+              </Pressable>
+              );
               })}
-            </ScrollView>
-          ) : (
-            <Text style={styles.emptyLine}>还没有可选择的照护人；请先完成家庭邀请。</Text>
-          )}
-          <Text style={styles.memberHint}>新照护人请先完成家庭邀请，再从这里选择。</Text>
-          <Text style={styles.scopeTitle}>允许临时照护人做什么</Text>
-          <View style={styles.scopeWrap}>
-            {HANDOFF_SCOPES.map((scope) => {
+              </ScrollView>
+              ) : (
+              <Text style={styles.emptyLine}>还没有可选择的照护人；请先完成家庭邀请。</Text>
+              )}
+              <Text style={styles.memberHint}>新照护人请先完成家庭邀请，再从这里选择。</Text>
+              <Text style={styles.scopeTitle}>允许临时照护人做什么</Text>
+              <View style={styles.scopeWrap}>
+              {HANDOFF_SCOPES.map((scope) => {
               const selected = scopes.includes(scope);
               return (
-                <Pressable
-                  key={scope}
-                  accessibilityRole="button"
-                  accessibilityLabel={SCOPE_LABELS[scope]}
-                  accessibilityState={{ selected }}
-                  onPress={() =>
-                    setScopes((old) =>
-                      selected ? old.filter((value) => value !== scope) : [...old, scope],
-                    )
-                  }
-                  style={[styles.scopeChoice, selected && styles.scopeChoiceActive]}
-                >
-                  <Text style={[styles.scopeChoiceText, selected && styles.scopeChoiceTextActive]}>
-                    {SCOPE_LABELS[scope]}
-                  </Text>
-                </Pressable>
+              <Pressable
+              key={scope}
+              accessibilityRole="button"
+              accessibilityLabel={SCOPE_LABELS[scope]}
+              accessibilityState={{ selected }}
+              onPress={() =>
+              setScopes((old) =>
+              selected ? old.filter((value) => value !== scope) : [...old, scope],
+              )
+              }
+              style={[styles.scopeChoice, selected && styles.scopeChoiceActive]}
+              >
+              <Text style={[styles.scopeChoiceText, selected && styles.scopeChoiceTextActive]}>
+              {SCOPE_LABELS[scope]}
+              </Text>
+              </Pressable>
               );
-            })}
-          </View>
-          <TextInput style={styles.input} value={hours} onChangeText={setHours} keyboardType="number-pad" placeholder="有效小时数" placeholderTextColor={COLORS.textTertiary} />
-          <Pressable accessibilityRole="button" accessibilityLabel="创建临时照护交接" accessibilityState={{ disabled: busy || !caregiver.trim() || scopes.length === 0 }} disabled={busy || !caregiver.trim() || scopes.length === 0} onPress={() => void createHandoff()} style={[styles.primary, (busy || !caregiver.trim() || scopes.length === 0) && styles.disabled]}>
-            <Text style={styles.primaryText}>{busy ? "处理中…" : "创建交接"}</Text>
-          </Pressable>
+              })}
+              </View>
+              <TextInput style={styles.input} value={hours} onChangeText={setHours} keyboardType="number-pad" placeholder="有效小时数" placeholderTextColor={COLORS.textTertiary} />
+              <Pressable accessibilityRole="button" testID="pli.care.handoff.submit"\n            accessibilityLabel="创建临时照护交接" accessibilityState={{ disabled: busy || !caregiver.trim() || scopes.length === 0 }} disabled={busy || !caregiver.trim() || scopes.length === 0} onPress={() => void createHandoff()} style={[styles.primary, (busy || !caregiver.trim() || scopes.length === 0) && styles.disabled]}>
+              <Text style={styles.primaryText}>{busy ? "处理中…" : "创建交接"}</Text>
+              </Pressable>
+              
+            </View>
+          ) : null}
         </OpenSection>
 
         <OpenSection title="照护卡">
@@ -499,6 +532,9 @@ const styles = StyleSheet.create({
   scopeChoiceTextActive: { color: COLORS.brandPrimaryDeep, fontWeight: "700" },
   emptyLine: { fontSize: TYPE.body, color: COLORS.textTertiary, paddingVertical: 8 },
   note: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20, marginBottom: SPACE.s2 },
+  flowToggle: { minHeight: 44, alignSelf: "flex-start", justifyContent: "center", marginTop: SPACE.s2, paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.brandSoftGreen },
+  flowToggleText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "700" },
+  flowForm: { marginTop: SPACE.s2 },
   input: { marginTop: SPACE.s2, borderWidth: 1, borderColor: COLORS.dividerStrong, borderRadius: RADIUS.md, backgroundColor: COLORS.surface, paddingHorizontal: SPACE.s3, paddingVertical: 10, fontSize: TYPE.body, color: COLORS.textPrimary },
   primary: { minHeight: 48, justifyContent: "center", marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: "center" },
   primaryText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
