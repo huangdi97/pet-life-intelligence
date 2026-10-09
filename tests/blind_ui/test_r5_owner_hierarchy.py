@@ -958,3 +958,19 @@ def test_companion_living_stage_stays_pet_first_without_hiding_device_reality() 
     assert "frameTarget={0.48}" in web
     assert ".r2p-stage--companion.r2p-stage--3d" in css
     assert "min-height:470px" in css
+
+
+def test_life_view_restores_canonical_four_way_mode_rail_without_copying_timeline() -> None:
+    mobile_switcher = read("apps/mobile/src/components/life/LivingModeSwitcher.tsx")
+    mobile_view = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    navigation = read("apps/mobile/src/navigation.tsx")
+    web_switcher = read("apps/web/components/living-mode-switcher.tsx")
+
+    assert "此刻 / 趋势 / 时间线 / 外观" in mobile_switcher
+    assert 'testID="pli.lifeview.mode.timeline"' in mobile_switcher
+    assert 'navigation.navigate("Tabs", { screen: "Timeline" })' in mobile_view
+    assert "NavigatorScreenParams<TabParamList>" in navigation
+
+    assert "此刻 / 趋势 / 时间线 / 外观" in web_switcher
+    assert 'href="/timeline"' in web_switcher
+    assert 'data-testid="pli.lifeview.mode.timeline"' in web_switcher
