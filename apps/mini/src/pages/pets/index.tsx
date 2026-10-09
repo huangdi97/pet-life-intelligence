@@ -89,6 +89,7 @@ export default function Pets() {
   });
   const [busy, setBusy] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showMoreProfile, setShowMoreProfile] = useState(false);
   const [editBusy, setEditBusy] = useState(false);
   const [identifiers, setIdentifiers] = useState<IdentifierRow[]>([]);
   const [identifierType, setIdentifierType] = useState<IdentifierRow["identifier_type"]>("CHIP");
@@ -432,7 +433,21 @@ export default function Pets() {
         />
       ) : (
         <>
-          <PetHero pet={current} headline="它的生活，从这里看见" identity={identityLine(current)} />
+          <PetHero
+            pet={current}
+            headline="它的生活，从这里看见"
+            identity={identityLine(current)}
+            onPress={() => Taro.navigateTo({ url: "/pages/pets/life-view/index" })}
+          />
+
+          <View className="action-row" style={{ marginTop: 16 }}>
+            <View className="primary-action" onClick={() => Taro.navigateTo({ url: "/pages/pets/life-view/index" })}>
+              进入生命视图
+            </View>
+            <View className="secondary-action" onClick={() => Taro.switchTab({ url: "/pages/timeline/index" })}>
+              看时间线
+            </View>
+          </View>
 
           <View className="open-section" data-testid="pli.mini.pet.recent">
             <View className="section-title">
@@ -483,6 +498,18 @@ export default function Pets() {
             ))}
           </View>
 
+          <View className="open-section pet-management-toggle">
+            <View className="section-title" onClick={() => setShowMoreProfile((value) => !value)}>
+              更多档案与管理
+              <Text className="section-caption">{showMoreProfile ? "收起" : "头像、标识、饮食、常态…"}</Text>
+            </View>
+            <View className="life-empty-note">
+              这些是低频维护项。日常使用先围绕它的生活、变化和记忆展开，需要时再进入管理。
+            </View>
+          </View>
+
+          {showMoreProfile ? (
+            <>
           <View className="open-section" data-testid="pli.mini.pet.avatar">
             <View className="section-title">
               头像与视觉档案
@@ -685,6 +712,9 @@ export default function Pets() {
               查看生命视图
             </View>
           </View>
+
+            </>
+          ) : null}
 
           <View className="open-section">
             <View className="section-title">陪伴与在家</View>
