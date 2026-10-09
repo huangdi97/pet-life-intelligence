@@ -43,7 +43,8 @@ export default function Health() {
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
   const [rows, setRows] = useState<HealthEventRow[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
-  const [showCreate, setShowCreate] = useState(false);\n  const [reminderFormOpen, setReminderFormOpen] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [reminderFormOpen, setReminderFormOpen] = useState(false);
   const [complaint, setComplaint] = useState("");
   const [duration, setDuration] = useState("");
   const [busy, setBusy] = useState(false);
@@ -105,6 +106,7 @@ export default function Health() {
       });
       setReminderTitle("");
       setReminderDate("");
+      setReminderFormOpen(false);
       loadReminders(petId);
       load(petId);
       Taro.showToast({ title: "预防提醒已保存", icon: "success" });
