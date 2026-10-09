@@ -1683,3 +1683,19 @@ def test_android_evidence_debug_apk_disables_metro_devsupport() -> None:
     assert "getUseDeveloperSupport(): Boolean = false" in patcher
     assert "public boolean getUseDeveloperSupport() { return false; }" in patcher
     assert "assets/index.android.bundle" in workflow
+
+
+def test_android_evidence_api_reverse_is_real_and_post_install() -> None:
+    """The Android evidence app must be able to reach the host API itself."""
+    runner = read("scripts/r5-6/run-android-emulator-evidence.sh")
+
+    # A previous regression wrote literal "\\n" text into a comment, which
+    # commented out the tcp:8800 reverse command while host-side API probes
+    # still passed. Lock the actual shell command and ordering.
+    assert r"hosted-emulator\n" not in runner
+    assert r"deterministic.\n" not in runner
+    reverse = '"$ADB" -s "$SERIAL" reverse tcp:8800 tcp:8800'
+    install_gate = 'if [[ "$installed" -ne 1 ]]; then'
+    assert reverse in runner
+    assert runner.index(reverse) > runner.index(install_gate)
+    assert 'grep -q "tcp:8800 tcp:8800" /tmp/pli-adb-reverse.txt' in runner
