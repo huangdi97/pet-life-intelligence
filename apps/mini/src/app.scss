@@ -744,3 +744,55 @@ page { background:#F6F7F1; }
 }
 .life-view-support-danger { color: $color-danger; }
 
+
+
+/* R7.13 Life View time scrubber — historical scopes are truth boundaries.
+   Keep it horizontal and compact; the pet remains the visual lead. */
+.life-view-time-scrubber {
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+  padding: $space-2 $space-4;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.life-view-time-chip {
+  flex: 0 0 auto;
+  min-height: 64px;
+  padding: 0 $space-2;
+  border-radius: 999px;
+  border: 1px solid rgba(89,112,91,.12);
+  background: rgba(255,254,249,.88);
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.life-view-time-chip-active {
+  background: $color-brand-primary;
+  border-color: $color-brand-primary;
+  color: #fff;
+}
+.life-view-date-input {
+  flex: 0 0 250px;
+  min-width: 250px;
+  min-height: 64px;
+  box-sizing: border-box;
+  padding: 0 $space-2;
+  border-radius: 20px;
+  border: 1px solid rgba(89,112,91,.14);
+  background: rgba(255,254,249,.9);
+  color: $color-text-primary;
+  font-size: $font-size-sm;
+}
+.life-view-history-truth {
+  margin: $space-2 $space-4 0;
+  padding: $space-2 $space-3;
+  border-radius: 22px;
+  background: rgba(237,242,233,.9);
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  line-height: 1.55;
+}
