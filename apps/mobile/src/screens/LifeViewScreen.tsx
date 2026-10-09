@@ -94,6 +94,11 @@ export function LifeViewScreen() {
     ? `${pet.id}:${timeScope}:${timeScope === "date" ? selectedDate : ""}`
     : "";
   const currentFactScope = timeScope === "now" || timeScope === "today";
+  const stagePet = currentFactScope
+    ? pet
+    : pet
+      ? { ...pet, avatar_artifact_id: null }
+      : null;
   // Each fact and any open detail sheet belongs to one pet. Hide stale state
   // synchronously while React switches selected identity, before fetch effects.
   const scoped = !!pet?.id && loadedScopeKey === scopeKey;
@@ -419,7 +424,7 @@ export function LifeViewScreen() {
             <Text style={styles.metaText} testID="pli.lifeview.freshness">
               {lastEvent
                 ? `更新 ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
-                : "今天暂无新记录"}
+                : `${scopeLabel}暂无新记录`}
             </Text>
             <Text style={styles.metaDot}>·</Text>
             <Text style={styles.metaText} testID="pli.lifeview.model-status">
@@ -471,8 +476,8 @@ export function LifeViewScreen() {
 
         <View style={styles.stageWrap}>
           <PetLivingStage
-            pet={pet}
-            spec={resolvePetStage(pet)}
+            pet={stagePet}
+            spec={resolvePetStage(stagePet)}
             variant="life"
             anchors={anchors}
             headline={mode === "now" ? `${pet?.name ?? "宠物"} · ${scopeLabel}` : undefined}
@@ -571,8 +576,12 @@ export function LifeViewScreen() {
           {mode === "now" ? (
             <Text style={styles.panelText}>
               {petEvents.length > 0
-                ? "上面的数值来自今天真实的记录。点一下数值，可以看到事实、来源与更新时间。拖动宠物可以旋转，双指缩放。"
-                : `今天还没有足够记录，记下第一件事后，这里会围绕${pet?.name ?? "宠物"}展开。`}
+                ? currentFactScope
+                  ? "上面的数值来自今天真实的记录。点一下数值，可以看到事实、来源与更新时间。拖动宠物可以旋转，双指缩放。"
+                  : `${scopeLabel}的数值只汇总该时间范围内真实存在的记录；不会混入今天的任务、设备、健康或头像。`
+                : currentFactScope
+                  ? `今天还没有足够记录，记下第一件事后，这里会围绕${pet?.name ?? "宠物"}展开。`
+                  : scopeEmptyCopy}
             </Text>
           ) : null}
 
