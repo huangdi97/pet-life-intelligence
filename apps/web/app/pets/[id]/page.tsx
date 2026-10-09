@@ -119,6 +119,7 @@ export default function PetProfilePage() {
     : null;
   const twinMeta = (activeTwin?.metadata_json as Record<string, unknown> | undefined) ?? {};
   const demoTwin = twinMeta.demo_fixture === true;
+  const twinSourceMediaCount = ((twinDescriptor as { surface?: { observed_regions?: string[] } } | null)?.surface?.observed_regions ?? []).length;
 
   if (!id || pet.state === "denied") {
     return (
@@ -205,7 +206,8 @@ export default function PetProfilePage() {
             realityField="warm-living"
             demo={demoTwin || process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1"}
             twin={twinDescriptor}
-            frameTarget={0.34}
+            frameTarget={0.56}
+            sourceMediaCount={twinSourceMediaCount}
             anchors={anchors.length ? anchors : undefined}
             headline={petHeadline}
             caption={identityLine || undefined}
