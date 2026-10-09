@@ -12,15 +12,24 @@ interface Props {
   /** Evidence hint text (real rule label) shown as secondary. */
   evidenceHint?: string;
   onWhy?: () => void;
+  /** Today first-fold variant: same facts, less card chrome and vertical space. */
+  compact?: boolean;
 }
 
-export function ChangeNarrative({ summary, evidenceHint, onWhy }: Props) {
+export function ChangeNarrative({ summary, evidenceHint, onWhy, compact = false }: Props) {
   if (!summary) return null;
   return (
-    <View style={styles.block}>
-      <Text style={styles.summary}>{summary}</Text>
-      {evidenceHint ? <Text style={styles.evidence}>{evidenceHint}</Text> : null}
-      {onWhy ? (
+    <View style={[styles.block, compact && styles.blockCompact]}>
+      <View style={styles.summaryRow}>
+        <Text style={[styles.summary, compact && styles.summaryCompact]}>{summary}</Text>
+        {onWhy && compact ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="为什么" style={styles.whyCompact} onPress={onWhy}>
+            <Text style={styles.whyText}>为什么</Text>
+          </Pressable>
+        ) : null}
+      </View>
+      {evidenceHint ? <Text style={[styles.evidence, compact && styles.evidenceCompact]}>{evidenceHint}</Text> : null}
+      {onWhy && !compact ? (
         <Pressable accessibilityRole="button" accessibilityLabel="为什么" style={styles.why} onPress={onWhy}>
           <Text style={styles.whyText}>为什么</Text>
         </Pressable>
@@ -38,8 +47,18 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceRaised,
     borderRadius: RADIUS.xl,
   },
-  summary: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary },
+  blockCompact: {
+    marginTop: SPACE.s2,
+    paddingHorizontal: SPACE.s4,
+    paddingVertical: 9,
+    borderRadius: RADIUS.lg,
+    backgroundColor: "transparent",
+  },
+  summaryRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2 },
+  summary: { flex: 1, fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary },
+  summaryCompact: { fontSize: TYPE.sm, lineHeight: 19 },
   evidence: { fontSize: TYPE.meta, color: COLORS.textTertiary, marginTop: 2 },
+  evidenceCompact: { marginTop: 1, lineHeight: 16 },
   why: {
     alignSelf: "flex-start",
     marginTop: SPACE.s2,
@@ -49,5 +68,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     minHeight: 32,
   },
+  whyCompact: { minHeight: 32, justifyContent: "center", paddingHorizontal: 8 },
   whyText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
 });
