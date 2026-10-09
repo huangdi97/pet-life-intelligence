@@ -1493,3 +1493,28 @@ def test_health_and_welfare_keep_read_before_write_owner_order() -> None:
     assert welfare.index("<WelfareTrendCard") < welfare.index('data-testid="pli.welfare.enrichment"')
     assert "最近喜欢的活动" not in welfare
     assert "不能从事件频次自动推断" in welfare
+
+
+def test_web_pet_world_domain_rows_are_current_pet_meanings_not_static_menu_copy() -> None:
+    web = read("apps/web/app/pets/[id]/page.tsx")
+    mobile = read("apps/mobile/src/screens/PetScreen.tsx")
+    mini = read("apps/mini/src/pages/pets/index.tsx")
+
+    for endpoint in ("health-events", "behavior-events", "training-goals", "welfare-evidence"):
+        assert endpoint in web
+    assert "{domainRows.map((row) => (" in web
+    assert "healthMeaning.data.length" in web
+    assert "behaviorMeaning.data?.[0]" in web
+    assert "activeTrainingGoal.title" in web
+    assert "welfareObservationCount" in web
+    assert "关系记录暂时没有加载成功" in web
+
+    # Android and mini already use per-pet facts; keep all three clients on
+    # the same meaning-row model rather than a feature-grid menu.
+    assert "const healthMeaning" in mobile
+    assert "const behaviorMeaning" in mobile
+    assert "const trainingMeaning" in mobile
+    assert "const welfareMeaning" in mobile
+    assert "const domains:" in mini
+    assert "healthCount7d" in mini
+    assert "lastBehavior" in mini and "lastGoal" in mini and "lastWelfare" in mini
