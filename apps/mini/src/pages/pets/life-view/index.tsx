@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
-import { api, type LifeEvent } from "../../../services/api";
+import { api, type LifeEvent, type Task } from "../../../services/api";
 import { usePets } from "../../../utils/usePets";
 import { eventPayloadText, eventTypeLabel, sourceLabel } from "../../../utils/labels";
 import { PetHero } from "../../../components/pet_visual";
@@ -17,6 +17,8 @@ import { InlineError, PetContextGate } from "../../../components/feedback/Feedba
 
 type LifeMode = "now" | "trend" | "appearance";
 type DetailId = "water" | "meal" | "activity" | "sleep";
+
+interface DeviceMini { status: string; }
 
 interface VisualModelRow {
   status?: string;
@@ -90,6 +92,9 @@ export default function LifeView() {
   const [baselineState, setBaselineState] = useState<"loading" | "ready" | "error">("loading");
   const [mode, setMode] = useState<LifeMode>("now");
   const [detailId, setDetailId] = useState<DetailId | null>(null);
+  const [supportTasks, setSupportTasks] = useState<Task[]>([]);
+  const [supportDevices, setSupportDevices] = useState<DeviceMini[]>([]);
+  const [supportState, setSupportState] = useState<"loading" | "ready" | "partial-error">("loading");
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0];
 
@@ -141,6 +146,24 @@ export default function LifeView() {
         setBaseline([]);
         setBaselineState("error");
       });
+
+
+    setSupportTasks([]);
+    setSupportDevices([]);
+    setSupportState("loading");
+    Promise.allSettled([
+      api.get<Task[]>(`/pets/${petId}/tasks`),
+      api.get<DeviceMini[]>(`/pets/${petId}/devices`),
+    ]).then(([tasksResult, devicesResult]) => {
+      if (!alive) return;
+      setSupportTasks(tasksResult.status === "fulfilled" ? tasksResult.value : []);
+      setSupportDevices(devicesResult.status === "fulfilled" ? devicesResult.value : []);
+      setSupportState(
+        tasksResult.status === "fulfilled" && devicesResult.status === "fulfilled"
+          ? "ready"
+          : "partial-error",
+      );
+    });
 
     return () => {
       alive = false;
@@ -216,6 +239,21 @@ export default function LifeView() {
             ? "示例形象 · 仅用于体验"
             : "个体形象 · 已确认"
           : "暂无已确认个体 3D";
+  const openTaskCount = supportTasks.filter((task) => task.status === "OPEN").length;
+  const weightText = pet?.weight_note?.trim() || "未记录";
+  const deviceText =
+    supportState === "loading"
+      ? "读取中"
+      : supportState === "partial-error" && supportDevices.length === 0
+        ? "暂不可用"
+        : supportDevices.length === 0
+          ? "未连接"
+          : supportDevices.every((device) => ["connected", "online"].includes(String(device.status).toLowerCase()))
+            ? `${supportDevices.length} 个在线`
+            : supportDevices.some((device) => String(device.status).toLowerCase() === "offline")
+              ? "有设备离线"
+              : "状态待确认";
+
   const freshness = lastEvent
     ? `更新 ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
     : "今天暂无新记录";
@@ -261,6 +299,23 @@ export default function LifeView() {
             <Text className="life-view-anchor-label">{row.label}</Text>
           </View>
         ))}
+      </View>
+
+      <View className="life-view-support" data-testid="pli.mini.lifeview.support-facts">
+        <View className="life-view-support-item" data-testid="pli.mini.lifeview.support.weight">
+          <Text className="life-view-support-label">体重</Text>
+          <Text className="life-view-support-value">{weightText}</Text>
+        </View>
+        <View className="life-view-support-item" data-testid="pli.mini.lifeview.support.tasks">
+          <Text className="life-view-support-label">任务</Text>
+          <Text className="life-view-support-value">
+            {supportState === "loading" ? "读取中" : openTaskCount > 0 ? `${openTaskCount} 项待办` : "暂无待办"}
+          </Text>
+        </View>
+        <View className="life-view-support-item" data-testid="pli.mini.lifeview.support.devices">
+          <Text className="life-view-support-label">设备</Text>
+          <Text className="life-view-support-value">{deviceText}</Text>
+        </View>
       </View>
 
       <View className="life-view-modes" data-testid="pli.mini.lifeview.modebar">
