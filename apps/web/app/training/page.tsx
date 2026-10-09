@@ -231,61 +231,6 @@ export default function TrainingPage() {
         </>
       </State>
 
-      <section className="v4-sec v5-domain-create" data-form-open={formOpen ? "true" : "false"}>
-        <div className="v4-sec-head">
-          <div>
-            <h2 className="v4-sec-title">开始一个新目标</h2>
-            <p className="v4-sec-sub">先看当前目标与最近进展；需要时再添加一个新的小目标。</p>
-          </div>
-          <button
-            type="button"
-            className="btn"
-            data-testid="pli.training.action"
-            aria-expanded={formOpen}
-            aria-controls="pli-training-create-form"
-            onClick={() => setFormOpen((value) => !value)}
-          >
-            {formOpen ? "收起" : "+ 新训练目标"}
-          </button>
-        </div>
-        {formOpen ? (
-          <div id="pli-training-create-form" className="v5-form-surface v5-form-surface--inline">
-            <div className="grid2">
-              <label className="field">
-                目标名称
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="如：安静应对门铃"
-                />
-              </label>
-              <label className="field">
-                可观察目标行为
-                <input
-                  value={targetBehavior}
-                  onChange={(e) => setTargetBehavior(e.target.value)}
-                  placeholder="如：门铃响后能在垫子上停留 5 秒"
-                />
-              </label>
-            </div>
-            <label className="field" style={{ marginTop: 10 }}>
-              分解步骤（每行或分号一项）
-              <textarea
-                value={stepsText}
-                onChange={(e) => setStepsText(e.target.value)}
-                placeholder={"先练习看向垫子\n再练习走到垫子\n最后加入门铃声音"}
-                rows={3}
-              />
-            </label>
-            <p className="v4-note">步骤完全由你填写；系统不会自动把一次表现解释成“已掌握”。</p>
-            <button className="btn primary" onClick={createGoal} disabled={!petId || !title.trim()} data-testid="pli.training.action.submit">
-              创建目标
-            </button>
-            <ErrorNote message={error} />
-          </div>
-        ) : null}
-      </section>
-
       <section className="v4-sec" data-testid="pli.training.reward">
         <h2 className="v4-sec-title">奖励偏好</h2>
         <p className="muted" style={{ margin: 0 }}>只保存主人明确观察到有效、且愿意使用的正向奖励。本次训练未选择奖励时，记录里不会自动写“零食”。</p>
@@ -354,6 +299,61 @@ export default function TrainingPage() {
           {activeGoals.length > 0 ? `继续「${activeGoals[0].title}」：建议每次 3–5 分钟，结束后用奖励强化。` : "创建第一个训练目标，从 3–5 分钟的小目标开始。"}
         </p>
       </section>
+      <section className="v4-sec v5-domain-create" data-form-open={formOpen ? "true" : "false"}>
+        <div className="v4-sec-head">
+          <div>
+            <h2 className="v4-sec-title">开始一个新目标</h2>
+            <p className="v4-sec-sub">先看当前目标与最近进展；需要时再添加一个新的小目标。</p>
+          </div>
+          <button
+            type="button"
+            className="btn"
+            data-testid="pli.training.action"
+            aria-expanded={formOpen}
+            aria-controls="pli-training-create-form"
+            onClick={() => setFormOpen((value) => !value)}
+          >
+            {formOpen ? "收起" : "+ 新训练目标"}
+          </button>
+        </div>
+        {formOpen ? (
+          <div id="pli-training-create-form" className="v5-form-surface v5-form-surface--inline">
+            <div className="grid2">
+              <label className="field">
+                目标名称
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="如：安静应对门铃"
+                />
+              </label>
+              <label className="field">
+                可观察目标行为
+                <input
+                  value={targetBehavior}
+                  onChange={(e) => setTargetBehavior(e.target.value)}
+                  placeholder="如：门铃响后能在垫子上停留 5 秒"
+                />
+              </label>
+            </div>
+            <label className="field" style={{ marginTop: 10 }}>
+              分解步骤（每行或分号一项）
+              <textarea
+                value={stepsText}
+                onChange={(e) => setStepsText(e.target.value)}
+                placeholder={"先练习看向垫子\n再练习走到垫子\n最后加入门铃声音"}
+                rows={3}
+              />
+            </label>
+            <p className="v4-note">步骤完全由你填写；系统不会自动把一次表现解释成“已掌握”。</p>
+            <button className="btn primary" onClick={createGoal} disabled={!petId || !title.trim()} data-testid="pli.training.action.submit">
+              创建目标
+            </button>
+            <ErrorNote message={error} />
+          </div>
+        ) : null}
+      </section>
+
     </main>
   );
 }
