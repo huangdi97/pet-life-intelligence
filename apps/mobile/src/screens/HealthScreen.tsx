@@ -135,6 +135,7 @@ export function HealthScreen() {
       });
       setReminderTitle("");
       setReminderDate("");
+      setReminderFormOpen(false);
       setVersion((value) => value + 1);
     } catch {
       setReminderState("error");
