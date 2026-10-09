@@ -1386,3 +1386,18 @@ def test_pet_world_keeps_life_view_primary_and_management_progressive_on_web_and
     assert web.index('打开生命视图') < web.index('更多档案与管理')
     assert web.index('更多档案与管理') < web.index('基本信息')
     assert '.v5-pet-management > summary' in css
+
+
+def test_timeline_keeps_retrieval_tools_progressive_across_owner_clients() -> None:
+    mobile = read("apps/mobile/src/screens/TimelineScreen.tsx")
+    web = read("apps/web/app/timeline/page.tsx")
+    mini = read("apps/mini/src/pages/timeline/index.tsx")
+
+    assert 'testID="pli.timeline.filters.toggle"' in mobile
+    assert 'accessibilityState={{ expanded: showFilters }}' in mobile
+    assert 'showFilters ? (' in mobile
+    assert '<details className="v5-timeline-tools" data-testid="pli.timeline.filters">' in web
+    assert '筛选与搜索这段生活' in web
+    assert 'data-testid="pli.mini.timeline.filters-toggle"' in mini
+    assert 'showFilters ? (' in mini
+    assert '筛选这段生活' in mini
