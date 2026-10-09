@@ -61,6 +61,7 @@ export function TimelineScreen() {
   const navigation = useNavigation<StackNav>();
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   const [selected, setSelected] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -412,26 +413,38 @@ export function TimelineScreen() {
           </Pressable>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipRow}
-          accessibilityLabel="时间线筛选"
+        <Pressable
+          testID="pli.timeline.filters.toggle"
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showFilters }}
+          onPress={() => setShowFilters((value) => !value)}
+          style={styles.filterToggle}
         >
-          {TIMELINE_FILTERS.map((f, i) => (
-            <Pressable
-              key={f.key}
-              testID={i < 5 ? `pli.timeline.filter.${f.key}` : undefined}
-              accessibilityRole="button"
-              accessibilityLabel={`筛选：${f.zh}`}
-              accessibilityState={{ selected: f.key === "all" ? selected.length === 0 : selected.includes(f.key) }}
-              onPress={() => toggle(f.key)}
-              style={[styles.chip, (f.key === "all" ? selected.length === 0 : selected.includes(f.key)) && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, (f.key === "all" ? selected.length === 0 : selected.includes(f.key)) && styles.chipActiveText]}>{f.zh}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+          <Text style={styles.filterToggleText}>{selected.length ? `筛选这段生活 · ${selected.length} 项` : "筛选这段生活"}</Text>
+          <Ionicons name={showFilters ? "chevron-up" : "options-outline"} size={17} color={COLORS.textSecondary} />
+        </Pressable>
+        {showFilters ? (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.chipRow}
+                    accessibilityLabel="时间线筛选"
+                  >
+                    {TIMELINE_FILTERS.map((f, i) => (
+                      <Pressable
+                        key={f.key}
+                        testID={i < 5 ? `pli.timeline.filter.${f.key}` : undefined}
+                        accessibilityRole="button"
+                        accessibilityLabel={`筛选：${f.zh}`}
+                        accessibilityState={{ selected: f.key === "all" ? selected.length === 0 : selected.includes(f.key) }}
+                        onPress={() => toggle(f.key)}
+                        style={[styles.chip, (f.key === "all" ? selected.length === 0 : selected.includes(f.key)) && styles.chipActive]}
+                      >
+                        <Text style={[styles.chipText, (f.key === "all" ? selected.length === 0 : selected.includes(f.key)) && styles.chipActiveText]}>{f.zh}</Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+        ) : null}
 
         <View style={styles.livingLead}>
           <Text style={styles.livingLeadTitle}>它的每一天</Text>
@@ -708,5 +721,7 @@ const styles = StyleSheet.create({
   summaryAction: { minHeight: 40, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: 20, backgroundColor: COLORS.brandSoftGreen },
   summaryActionText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   summaryBody: { marginTop: SPACE.s3, gap: 4 },
+  filterToggle: { marginHorizontal: SPACE.s4, marginTop: SPACE.s2, minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: SPACE.s3, borderRadius: 22, backgroundColor: COLORS.surfaceRaised },
+  filterToggleText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
 });
