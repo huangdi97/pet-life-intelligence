@@ -499,3 +499,140 @@ page { background:#F6F7F1; }
 .secondary-action { background:#EEF3EA;color:#31563E;border-radius:25px; }
 .life-signal { padding:$space-3 0;margin-top:0; }
 .life-metric-value { font-size:44px; }
+
+
+// R7.2 Mini Life View — same Living Canvas hierarchy as Web / Android.
+// Photo stays dominant; state facts and four-way mode rail remain below it.
+.life-view-top {
+  padding: $space-4 $space-4 $space-3;
+}
+.life-view-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+  margin-top: $space-2;
+  color: $color-text-tertiary;
+  font-size: $font-caption;
+}
+.life-view-page .pet-hero {
+  margin-top: 0;
+}
+.life-view-anchor-row {
+  display: flex;
+  gap: $space-2;
+  padding: $space-3 $space-4 $space-2;
+}
+.life-view-anchor {
+  flex: 1;
+  min-width: 0;
+  min-height: 92px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24px;
+  background: rgba(255,254,249,.9);
+  border: 1px solid rgba(89,112,91,.12);
+}
+.life-view-anchor-active {
+  background: $color-brand-soft;
+  border-color: rgba(54,95,73,.34);
+}
+.life-view-anchor-value {
+  color: $color-text-primary;
+  font-size: 30px;
+  font-weight: $font-weight-bold;
+  white-space: nowrap;
+}
+.life-view-anchor-label {
+  margin-top: 4px;
+  color: $color-text-tertiary;
+  font-size: $font-caption;
+}
+.life-view-modes {
+  display: flex;
+  margin: $space-3 $space-4 0;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(255,254,249,.92);
+  border: 1px solid $color-divider-subtle;
+}
+.life-view-mode {
+  flex: 1;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+}
+.life-view-mode-active {
+  background: $color-brand-primary;
+  color: $color-surface;
+}
+.life-view-detail {
+  margin: $space-4 $space-4 0;
+  padding: $space-4;
+  border-radius: 30px;
+  background: rgba(255,254,249,.92);
+  border: 1px solid rgba(89,112,91,.14);
+}
+.life-view-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $space-3;
+}
+.life-view-detail-kicker {
+  display: block;
+  color: $color-text-tertiary;
+  font-size: $font-caption;
+  margin-bottom: 5px;
+}
+.life-view-detail-close {
+  color: $color-brand-primary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  padding: 12px 0 12px 18px;
+}
+.life-view-detail-grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: $space-3;
+}
+.life-view-detail-grid > View {
+  width: 50%;
+  box-sizing: border-box;
+  padding: $space-2 $space-2 $space-2 0;
+  color: $color-text-primary;
+  font-size: $font-size-sm;
+}
+.life-view-detail-key {
+  display: block;
+  color: $color-text-tertiary;
+  font-size: $font-caption;
+  margin-bottom: 4px;
+}
+.life-view-baseline {
+  margin-top: $space-3;
+}
+.life-view-baseline-row {
+  padding: $space-3 0;
+  border-bottom: 1px solid $color-divider-subtle;
+}
+.life-view-baseline-value {
+  display: block;
+  margin-top: 3px;
+  color: $color-text-primary;
+  font-size: $font-section;
+  font-weight: $font-weight-bold;
+}
+.life-view-baseline-meta {
+  display: block;
+  margin-top: 3px;
+  color: $color-text-tertiary;
+  font-size: $font-caption;
+}
