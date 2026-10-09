@@ -134,7 +134,7 @@ export default function TodayPage() {
         footer: "不会把未知状态显示成“没有风险”",
       };
     }
-    const rows = health.data ?? [];
+    const rows = Array.isArray(health.data) ? health.data : [];
     const danger = rows.find(
       (row) => row.latest_triage_level === "URGENT" || row.latest_triage_level === "EMERGENCY",
     );
