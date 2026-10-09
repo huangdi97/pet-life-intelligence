@@ -1906,3 +1906,43 @@ def test_web_day_back_uses_historical_model_active_interval_not_current_model() 
     assert "当天没有可确认的 3D 版本" in source
     assert "不会用现在的 3D 形象补画过去" in source
     assert 'm.activated_at.slice(0, 10) === day' not in source
+
+
+def test_life_view_time_scrubber_is_truthful_across_owner_clients() -> None:
+    mobile = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    web = read("apps/web/app/pets/[id]/life-view/page.tsx")
+    mini = read("apps/mini/src/pages/pets/life-view/index.tsx")
+    web_stage = read("apps/web/components/pet-living-stage.tsx")
+    mini_visual = read("apps/mini/src/components/pet_visual.tsx")
+
+    for source in (mobile, web, mini):
+        for label in ("现在", "今天", "7天", "30天", "某一天"):
+            assert label in source
+        assert "/today?date=" in source
+        assert "/events?limit=200" in source
+        assert "activated <= dayEnd" in source
+        assert "retired >= dayStart" in source
+        assert "历史常态未版本化，不用当前常态解释过去" in source
+        assert "不会" in source
+
+    assert 'testID="pli.lifeview.time-scrubber"' in mobile
+    assert 'data-testid="pli.lifeview.time-scrubber"' in web
+    assert 'data-testid="pli.mini.lifeview.time-scrubber"' in mini
+
+    # Historical scopes must never backfill current owner media or current state.
+    assert "avatar_artifact_id: null" in mobile
+    assert "allowOwnerPhoto={currentFactScope}" in web
+    assert "allowOwnerPhoto={currentFactScope}" in mini
+    assert "allowOwnerPhoto" in web_stage
+    assert "allowOwnerPhoto" in mini_visual
+    assert 'testID="pli.lifeview.history-truth"' in mobile
+    assert 'data-testid="pli.lifeview.history-truth"' in web
+    assert 'data-testid="pli.mini.lifeview.history-truth"' in mini
+
+    # Multi-day scopes intentionally refuse to use today's 3D as a historical proxy.
+    assert 'timeScope === "7d" || timeScope === "30d"' in mobile
+    assert 'timeScope === "7d" || timeScope === "30d"' in web
+    assert 'timeScope === "7d" || timeScope === "30d"' in mini
+    assert "时间范围汇总不使用当前 3D" in mobile
+    assert "时间范围汇总不使用当前 3D" in web
+    assert "时间范围汇总 · 不使用当前 3D" in mini
