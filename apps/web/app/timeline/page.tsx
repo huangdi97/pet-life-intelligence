@@ -237,21 +237,25 @@ export default function TimelinePage() {
 
       <div className="v4-grid">
         <div>
-          <FilterBar
-            filter={filter}
-            setFilter={setFilter}
-            domain={domain}
-            setDomain={setDomain}
-            source={source}
-            setSource={setSource}
-            mediaOnly={mediaOnly}
-            setMediaOnly={setMediaOnly}
-            search={search}
-            setSearch={setSearch}
-            day={day}
-            setDay={setDay}
-            onReload={timeline.reload}
-          />
+          <details className="v5-timeline-tools" data-testid="pli.timeline.filters">
+            <summary>筛选与搜索这段生活</summary>
+                      <FilterBar
+                        filter={filter}
+                        setFilter={setFilter}
+                        domain={domain}
+                        setDomain={setDomain}
+                        source={source}
+                        setSource={setSource}
+                        mediaOnly={mediaOnly}
+                        setMediaOnly={setMediaOnly}
+                        search={search}
+                        setSearch={setSearch}
+                        day={day}
+                        setDay={setDay}
+                        onReload={timeline.reload}
+                      />
+          </details>
+
 
           {timeline.state === "loading" ? (
             <div className="v4-loading" role="status">
