@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { Image, Text, View } from "@tarojs/components";
 import { api, type Pet } from "../services/api";
 
-function usePersistedAvatar(pet: Pet | null): string | null {
+function usePersistedAvatar(pet: Pet | null, enabled = true): string | null {
   // Store media with the owning pet id. State updates caused by a pet switch
   // run after render, so an unscoped uri would otherwise display one frame of
   // the previous pet's private avatar on the new owner's screen.
@@ -17,7 +17,7 @@ function usePersistedAvatar(pet: Pet | null): string | null {
     let alive = true;
     const id = pet?.id;
     setAvatar(null);
-    if (!id || !pet.avatar_artifact_id) return () => { alive = false; };
+    if (!enabled || !id || !pet.avatar_artifact_id) return () => { alive = false; };
     api
       .get<{ avatar_artifact_id: string | null; data_url: string | null }>(`/pets/${id}/avatar`)
       .then((row) => {
@@ -29,7 +29,7 @@ function usePersistedAvatar(pet: Pet | null): string | null {
     return () => {
       alive = false;
     };
-  }, [pet?.id, pet?.avatar_artifact_id]);
+  }, [pet?.id, pet?.avatar_artifact_id, enabled]);
   return avatar !== null && avatar.petId === pet?.id ? avatar.uri : null;
 }
 
@@ -78,10 +78,11 @@ export function PetHero(props: {
   demo?: boolean;
   mediaUri?: string | null;
   onPress?: () => void;
+  allowOwnerPhoto?: boolean;
 }) {
-  const { pet, headline = "今天怎么样？", identity, timeContext, demo = false, mediaUri = null, onPress } = props;
-  const protectedAvatar = usePersistedAvatar(pet);
-  const resolvedMediaUri = protectedAvatar ?? mediaUri;
+  const { pet, headline = "今天怎么样？", identity, timeContext, demo = false, mediaUri = null, onPress, allowOwnerPhoto = true } = props;
+  const protectedAvatar = usePersistedAvatar(pet, allowOwnerPhoto);
+  const resolvedMediaUri = allowOwnerPhoto ? (protectedAvatar ?? mediaUri) : null;
   const idLine =
     identity ?? (pet ? `${pet.breed || "宠物"} · ${pet.name}` : "宠物生活智能");
   const glyphSize = 300;
