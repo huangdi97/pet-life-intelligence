@@ -99,9 +99,16 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
 
   async function submit() {
     if (!petId) return;
-    const ids = Object.values(shots);
-    if (ids.length === 0) {
-      setError("至少上传一张照片。");
+    const canonicalShots = Object.fromEntries(
+      Object.entries(shots).map(([angle, artifactId]) => [
+        angle === "full" ? "full_body" : angle,
+        artifactId,
+      ]),
+    );
+    const ids = Object.values(canonicalShots);
+    const requiredReady = Boolean(canonicalShots.front && canonicalShots.full_body && canonicalShots.head);
+    if (!requiredReady) {
+      setError("请先完成正面、站立全身和清晰头部三张必需照片。");
       return;
     }
     setBusy(true);
@@ -111,6 +118,10 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
         artifact_ids: ids,
         capture_type: "PHOTO_SET",
         consent_visual_model_training: false,
+        coverage: Object.fromEntries(
+          ANGLES.map((a) => [a.key === "full" ? "full_body" : a.key, Boolean(shots[a.key])]),
+        ),
+        angle_artifact_ids: canonicalShots,
       });
       const qc = await api.post<CaptureResult>(
         `/pets/${petId}/visual-captures/${cap.capture_id}/qc`,
@@ -125,6 +136,7 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
   }
 
   const uploaded = Object.keys(shots).length;
+  const requiredReady = Boolean(shots.front && shots.full && shots.head);
 
   return (
     <main className="v4-main v5-domain-page v5-utility-page">
@@ -140,7 +152,7 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
       <section className="v5-form-surface" data-testid="pli.twincapture.preview">
         <h2>拍摄角度</h2>
         <p className="muted" style={{ margin: "0 0 10px" }}>
-          已上传 {uploaded}/6 · 也可以只传 1 张先试（推荐凑齐 4 张以上以提高相似度）。
+          已上传 {uploaded}/6 · 正面、站立全身、清晰头部为生成门禁；补齐左右侧与背部会提供更多个体外观证据。
         </p>
         <div className="v5-capture-grid">
           {ANGLES.map((a) => (
@@ -159,8 +171,8 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
             </label>
           ))}
         </div>
-        <button className="btn primary" onClick={submit} disabled={busy || uploaded === 0} data-testid="pli.twincapture.action">
-          {busy ? "上传并质检…" : "上传并质检"}
+        <button className="btn primary" onClick={submit} disabled={busy || !requiredReady} data-testid="pli.twincapture.action">
+          {busy ? "上传并质检…" : requiredReady ? "上传并质检" : "先完成正面、全身和头部"}
         </button>
       </section>
 
@@ -188,7 +200,7 @@ export default function CaptureWizard({ params }: { params: Promise<{ id: string
           <State state="ready" error={null} onRetry={() => {}} empty="">
             <p className="sub" style={{ margin: 0 }}>
               <span className={`badge ${result.qc_passed ? "MONITOR" : "EMERGENCY"}`}>
-                {result.qc_passed ? "质检通过" : "质检未通过（最少需要 1 张照片）"}
+                {result.qc_passed ? "质检通过" : "质检未通过（请按提示补齐必需角度）"}
               </span>
               <span className="badge">{captureStatusLabel(result.status)}</span>
             </p>
