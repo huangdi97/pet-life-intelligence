@@ -13,6 +13,7 @@ import { LifeStream, type LifeStreamDay } from "../../components/timeline/LifeSt
 import { PetHero } from "../../components/pet_visual";
 import { LifeSignal, type LifeSignalRow } from "../../components/life/LifeSignal";
 import { AttentionPanel } from "../../components/life/AttentionPanel";
+import { ChangeNarrative } from "../../components/life/ChangeNarrative";
 import { InlineError } from "../../components/feedback/Feedback";
 import {
   ATTENTION_LEVELS,
@@ -31,6 +32,8 @@ export default function Index() {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [healthRows, setHealthRows] = useState<HealthEventRow[]>([]);
   const [healthState, setHealthState] = useState<"loading" | "ready" | "error">("loading");
+  const [dayHint, setDayHint] = useState<{ hints: string[]; rule: string } | null>(null);
+  const [dayHintState, setDayHintState] = useState<"loading" | "ready" | "error">("loading");
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error" | "denied">("loading");
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -81,11 +84,27 @@ export default function Index() {
       });
   }, []);
 
+  const loadChange = useCallback((pid: string) => {
+    setDayHintState("loading");
+    setDayHint(null);
+    api
+      .get<{ hints: string[]; rule: string }>(`/pets/${pid}/abnormal-day-hint`)
+      .then((value) => {
+        setDayHint(value);
+        setDayHintState("ready");
+      })
+      .catch(() => {
+        setDayHint(null);
+        setDayHintState("error");
+      });
+  }, []);
+
   useDidShow(() => {
     // 回到 tab 时刷新任务与关注（首次加载由 petId effect 处理）
     if (petId) {
       loadTasks(petId);
       loadAttention(petId);
+      loadChange(petId);
     }
   });
 
@@ -94,8 +113,9 @@ export default function Index() {
       loadToday(petId);
       loadTasks(petId);
       loadAttention(petId);
+      loadChange(petId);
     }
-  }, [petId, loadToday, loadTasks, loadAttention]);
+  }, [petId, loadToday, loadTasks, loadAttention, loadChange]);
 
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
   const attention = healthRows.filter(
@@ -116,6 +136,7 @@ export default function Index() {
     { id: "meal", label: "进食", value: `${counts["daily.meal"] ?? 0} 次` },
     { id: "drink", label: "饮水", value: `${counts["daily.drink"] ?? 0} 次` },
     { id: "activity", label: "活动", value: `${activityMinutes} 分钟` },
+    { id: "sleep", label: "睡眠", value: `${counts["daily.sleep"] ?? 0} 次` },
   ];
   const memoryRows = todayEvents.slice(0, 5).map(eventRowFromEvent);
   const memoryDays: LifeStreamDay[] = memoryRows.length
@@ -124,6 +145,17 @@ export default function Index() {
 
   const danger = attention.find((h) => h.latest_triage_level === "URGENT" || h.latest_triage_level === "EMERGENCY");
   const focus = attention.find((h) => h.latest_triage_level !== "URGENT" && h.latest_triage_level !== "EMERGENCY");
+
+  const abnormalChange = dayHint?.hints.find((value) => !value.includes("无明显异常")) ?? null;
+  const changeUnknown = dayHintState !== "ready";
+  const changeSummary = changeUnknown
+    ? "今天的自身基线暂时没有完整读取到。"
+    : abnormalChange
+      ? abnormalChange
+      : "按当前规则，今天与它自己的近期常态相比暂未出现明显变化。";
+  const changeEvidence = changeUnknown
+    ? "不会把未知状态显示成“没有变化”"
+    : dayHint?.rule || "只比较已记录事实，不推断情绪或健康结论";
 
   function openSheet(t: (typeof QUICK_TYPES)[number]) {
     const form: Record<string, string> = {};
@@ -283,6 +315,12 @@ export default function Index() {
             rows={signalRows}
             empty={totalCount === 0}
             emptyNote="今天还没有足够记录"
+          />
+
+          <ChangeNarrative
+            summary={changeSummary}
+            evidence={changeEvidence}
+            unknown={changeUnknown}
           />
 
           {healthState !== "ready" ? (
