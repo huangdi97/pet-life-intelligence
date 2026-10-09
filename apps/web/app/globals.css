@@ -2587,3 +2587,31 @@ body{background:#FBF7F1}
   .v7-life-support-item{padding:10px 8px;min-height:70px;align-items:center;text-align:center}
   .v7-life-support-item strong{font-size:13px}
 }
+
+
+/* R7.3 Life View time scrubber — range selection is part of truth/provenance,
+   not a decorative filter. Historical scopes never inherit today's photo/state. */
+.v7-life-time-scrubber{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  max-width:760px;margin:0 auto 12px;
+}
+.v7-life-time-chip{
+  min-height:40px;padding:0 14px;border:1px solid #DDE7DB;border-radius:999px;
+  background:#FFFEF8;color:#52695A;font-size:13px;font-weight:650;cursor:pointer;
+}
+.v7-life-time-chip.is-active{background:#365F49;border-color:#365F49;color:#fff}
+.v7-life-date{display:flex;align-items:center;gap:8px;color:#667A6B;font-size:12px}
+.v7-life-date input{
+  min-height:40px;padding:0 12px;border:1px solid #DDE7DB;border-radius:14px;
+  background:#FFFEF8;color:#25382D;
+}
+.v7-life-history-truth{
+  max-width:760px;margin:12px auto 4px;padding:12px 14px;border-radius:18px;
+  background:#F1F4EC;color:#5A6D5F;font-size:13px;line-height:1.55;
+}
+@media(max-width:768px){
+  .v7-life-time-scrubber{margin:0 16px 10px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}
+  .v7-life-time-chip{flex:0 0 auto}
+  .v7-life-date{flex:0 0 auto}
+  .v7-life-history-truth{margin:12px 16px 4px}
+}
