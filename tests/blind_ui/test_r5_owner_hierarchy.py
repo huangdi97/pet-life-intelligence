@@ -1506,6 +1506,7 @@ def test_web_pet_world_domain_rows_are_current_pet_meanings_not_static_menu_copy
     assert "healthMeaning.data.length" in web
     assert "behaviorMeaning.data?.[0]" in web
     assert "activeTrainingGoal.title" in web
+    assert "Array.isArray(trainingMeaning.data)" in web
     assert "welfareObservationCount" in web
     assert "关系记录暂时没有加载成功" in web
 
