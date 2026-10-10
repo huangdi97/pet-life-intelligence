@@ -465,6 +465,7 @@ export function TimelineScreen() {
           <LifeStream
             days={days}
             onOpenMedia={(artifactIds) => navigation.navigate("MediaMemory", { artifactIds })}
+            onOpenDay={(date) => navigation.navigate("LifeView", { date })}
           />
         ) : (
           <EmptyState
