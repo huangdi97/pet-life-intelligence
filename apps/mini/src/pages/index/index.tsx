@@ -26,6 +26,29 @@ import {
 import { CompanionEntryCard, MonitorCard, QuickLogSheet, TodayTasks, TodayMemory } from "./_components";
 import { timeContextText, heroIdentity, eventRowFromEvent } from "./_lib";
 
+interface DayHintExplanation {
+  metric: string;
+  label: string;
+  unit: string;
+  current_value: number;
+  same_time_baseline: number | null;
+  sample_count: number;
+  window_days: number;
+  deviation_percent: number | null;
+  direction: "LOWER" | "HIGHER" | "SIMILAR" | "INSUFFICIENT";
+  notable: boolean;
+  fact: string;
+  comparison: string;
+  uncertainty: string;
+  next_step: string;
+}
+
+interface DayHintResponse {
+  hints: string[];
+  rule: string;
+  explanations?: DayHintExplanation[];
+}
+
 function ownerFacingHealthText(value: string | null | undefined, fallback: string): string {
   const text = value?.trim();
   if (!text || /^(?:BW|HE|EV)-[A-Za-z0-9_-]+$/i.test(text)) return fallback;
@@ -38,7 +61,7 @@ export default function Index() {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [healthRows, setHealthRows] = useState<HealthEventRow[]>([]);
   const [healthState, setHealthState] = useState<"loading" | "ready" | "error">("loading");
-  const [dayHint, setDayHint] = useState<{ hints: string[]; rule: string } | null>(null);
+  const [dayHint, setDayHint] = useState<DayHintResponse | null>(null);
   const [dayHintState, setDayHintState] = useState<"loading" | "ready" | "error">("loading");
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error" | "denied">("loading");
   const [flash, setFlash] = useState<string | null>(null);
@@ -94,7 +117,7 @@ export default function Index() {
     setDayHintState("loading");
     setDayHint(null);
     api
-      .get<{ hints: string[]; rule: string }>(`/pets/${pid}/abnormal-day-hint`)
+      .get<DayHintResponse>(`/pets/${pid}/abnormal-day-hint`)
       .then((value) => {
         setDayHint(value);
         setDayHintState("ready");
@@ -152,16 +175,23 @@ export default function Index() {
   const danger = attention.find((h) => h.latest_triage_level === "URGENT" || h.latest_triage_level === "EMERGENCY");
   const focus = attention.find((h) => h.latest_triage_level !== "URGENT" && h.latest_triage_level !== "EMERGENCY");
 
-  const abnormalChange = dayHint?.hints.find((value) => !value.includes("无明显异常")) ?? null;
+  const abnormalChange =
+    dayHint?.hints.find(
+      (value) => !value.includes("暂未出现需要突出显示的变化") && !value.includes("无明显异常"),
+    ) ?? null;
   const changeUnknown = dayHintState !== "ready";
+  const changeDetail =
+    dayHint?.explanations?.find((row) => row.notable) ??
+    dayHint?.explanations?.find((row) => row.direction !== "INSUFFICIENT") ??
+    dayHint?.explanations?.[0];
   const changeSummary = changeUnknown
     ? "今天的自身基线暂时没有完整读取到。"
     : abnormalChange
       ? abnormalChange
-      : "按当前规则，今天与它自己的近期常态相比暂未出现明显变化。";
+      : "与它自己相比：今天暂未出现需要突出显示的变化。";
   const changeEvidence = changeUnknown
     ? "不会把未知状态显示成“没有变化”"
-    : dayHint?.rule || "只比较已记录事实，不推断情绪或健康结论";
+    : changeDetail?.comparison ?? dayHint?.rule ?? "只比较同一时间点、同一指标口径的已记录事实";
 
   function openSheet(t: (typeof QUICK_TYPES)[number]) {
     const form: Record<string, string> = {};
@@ -326,6 +356,10 @@ export default function Index() {
           <ChangeNarrative
             summary={changeSummary}
             evidence={changeEvidence}
+            fact={changeUnknown ? "今天的同期基线暂时没有完整读取到。" : changeDetail?.fact}
+            comparison={changeDetail?.comparison}
+            uncertainty={changeUnknown ? "未知状态不会显示成“没有变化”。" : changeDetail?.uncertainty}
+            nextStep={changeDetail?.next_step}
             unknown={changeUnknown}
           />
 
@@ -350,7 +384,11 @@ export default function Index() {
               onPress={() => Taro.navigateTo({ url: "/pages/health/index" })}
             />
           ) : (
-            <AttentionPanel kind="calm" body="目前没有规则标记的健康变化。" />
+            <AttentionPanel
+              kind="calm"
+              body="目前没有健康记录被独立风险规则标记为需要立即关注。"
+              footer="仅表示当前已记录事实未触发规则，不等同于健康正常"
+            />
           )}
 
           {/* R5.4: ACTION immediately follows Attention; supporting tasks
