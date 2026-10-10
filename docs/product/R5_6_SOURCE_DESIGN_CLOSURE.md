@@ -32,7 +32,7 @@ Monitoring, Companion, Care, Health, Medication, Behavior, Training, Welfare, So
 ### Web
 
 - R5 Living Pet composition remains the reference implementation.
-- Life View uses only 此刻 / 趋势 / 外观; Timeline stays a first-level owner destination instead of being duplicated inside the Twin inspection space.
+- Life View uses the canonical four-way rail **此刻 / 趋势 / 时间线 / 外观**. Its 时间线 mode is a scoped replay inside this pet's Life View; the full cross-life Timeline remains a first-level owner destination rather than being replaced by the Twin inspection space.
 - Primary navigation keeps native link semantics and explicit `aria-current`.
 - The Pet destination receives an explicit current-pet accessible label.
 - The More menu exposes `aria-haspopup`, `aria-expanded`, `aria-controls`, menu labeling, route-close behavior and Escape-key dismissal.
@@ -42,7 +42,7 @@ Monitoring, Companion, Care, Health, Medication, Behavior, Training, Welfare, So
 
 - Five-tab canonical IA remains unchanged.
 - Today preserves PET → NOW → CHANGE → ATTENTION → ACTION → SUPPORT → MEMORY; health summary/tasks remain supporting content after the primary action.
-- Life View uses only 此刻 / 趋势 / 外观, matching the final R5.5 contract.
+- Life View uses the canonical four-way rail **此刻 / 趋势 / 时间线 / 外观**, matching v3.4-R1. The scoped 时间线 view does not replace the first-level Timeline tab.
 - All primary tabs now expose explicit accessibility labels describing their owner job-to-be-done.
 - The tab bar hides on keyboard presentation to avoid overlapping focused input flows.
 - High-fidelity Twin runtime, Life View camera interaction and Twin Review views remain product-source behavior.
@@ -238,3 +238,26 @@ STABLE_RELEASE = BLOCKED_UNTIL_HUMAN_APPROVAL
 
 Fresh runtime evidence after the last implementation commit supersedes every older R5.6 screenshot.
 
+
+
+## 15. Same-clock baseline explanation closure — 2026-10-10
+
+The Living Canvas **CHANGE / 为什么** layer now has one cross-client deterministic truth contract.
+
+- Count metrics and duration metrics may never share one aggregation rule. `meal_count_per_day` is counted in occurrences; `walk_minutes_per_day` and `sleep_minutes_per_day` sum validated `duration_minutes`.
+- “Today so far” is compared only with **the same local clock point** in historical recorded days. A morning partial day must never be compared with a full-day total.
+- Missing logs remain unknown rather than being silently converted into observed zero. Same-clock baseline samples therefore expose their actual comparable-day count.
+- A change becomes visually notable only after at least three comparable historical days and a deterministic ≥15% recorded difference. This is a product attention threshold, **not** a health or mood diagnosis.
+- The backend returns structured `fact / comparison / uncertainty / next_step` fields and the Web, Android and Mini Today surfaces render those fields in the contextual “为什么” explanation.
+- Baseline rows persist owner-readable metric units and group historical data using the same +08:00 product-day boundary as Today.
+- Every explanation states that missing logging, device gaps and not-yet-occurred activity can affect the result. Health Attention remains an independent layer.
+
+This closes a semantic bug where minute-based baselines could previously be compared with event counts. The correction belongs to the existing R5.6 truth contract; it does not create a new visual language.
+
+```text
+TODAY_CHANGE_METRIC_SEMANTICS = ALIGNED
+TODAY_CHANGE_CLOCK_SCOPE = SAME_LOCAL_CLOCK
+TODAY_CHANGE_EXPLAIN = STRUCTURED_DETERMINISTIC
+HEALTH_ATTENTION = SEPARATE
+HUMAN_VISUAL_ACCEPTANCE = PENDING
+```
