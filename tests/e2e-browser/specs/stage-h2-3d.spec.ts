@@ -78,7 +78,7 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
           const yaw = Number(m?.camera?.yaw);
           if (
             !m ||
-            m.representation !== "high-fidelity-glb-twin" ||
+            m.representation !== "rigged-glb-twin" ||\n            m.technicalRepresentationQuality !== "RIGGED_PBR_SKINNED" ||\n            m.visualFidelityTier !== "STYLIZED_REFERENCE" ||\n            m.individualIdentityEvidence !== false ||
             m.stageRole !== "review" ||
             m.pose !== "Stand" ||
             m.canonicalPose !== "Stand" ||
