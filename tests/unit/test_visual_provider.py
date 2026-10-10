@@ -70,6 +70,16 @@ def test_provider_status_honest_blocked():
     assert status["provider"] == "template_local"
     assert status["generative_status"] == "REAL_3D_PROVIDER_EXTERNAL_BLOCKED"
     assert status["local_pipeline"] == "READY"
+    assert status["local_candidate_fidelity"] == "TEMPLATE_PROVISIONAL"
+    assert status["individual_high_fidelity_status"] == "NOT_YET_QUALIFIED"
+    assert status["production_pipeline_candidate"] == {
+        "status": "DESIGN_ONLY_NOT_CONFIGURED",
+        "appearance_reconstruction": "trellis2",
+        "identity_gate": "OWNER_MEDIA_QC_PLUS_OWNER_REVIEW",
+        "rigging": "unirig",
+        "motion": "pli_motion_layer",
+        "runtime": "dual_lod_glb",
+    }
 
 
 def test_get_provider_singleton():
