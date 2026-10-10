@@ -315,7 +315,7 @@ class Android:
                 ensure_ascii=False,
                 sort_keys=True,
             )
-        raise CaptureError(f"required high-fidelity RUNTIME 3D manifest unavailable{suffix}{seen}")
+        raise CaptureError(f"required rigged RUNTIME 3D manifest unavailable{suffix}{seen}")
 
     @classmethod
     def _manifest_matches(
@@ -353,7 +353,9 @@ class Android:
         return (
             manifest.get("ready") is True
             and manifest.get("manifestOrigin") == "RUNTIME"
-            and manifest.get("representation") == "high-fidelity-glb-twin"
+            and manifest.get("representation") == "rigged-glb-twin"
+            and manifest.get("technicalRepresentationQuality") == "RIGGED_PBR_SKINNED"
+            and manifest.get("visualFidelityTier") in {"STYLIZED_REFERENCE", "OWNER_MEDIA_REFERENCED"}
             and manifest.get("generic") is not True
             and manifest.get("fallbackUsed") is not True
         )
