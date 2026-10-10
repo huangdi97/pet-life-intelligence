@@ -79,8 +79,10 @@ page {
 
 // ---- Now layer: LifeSignal ------------------------------------------- //
 .life-signal { display: flex; margin-top: $space-2; }
-.life-metric { flex: 1; padding: 0 $space-3; }
+.life-metric { flex: 1; padding: $space-2 $space-3; border-radius: $radius-lg; }
 .life-metric + .life-metric { border-left: 1px solid $color-divider-subtle; }
+.life-metric-action { transition: background-color 120ms ease, transform 120ms ease; }
+.life-metric-action:active { background: $color-brand-soft-green; transform: translateY(1px); }
 .life-metric-value { font-size: $font-metric; font-weight: $font-weight-bold; color: $color-text-primary; }
 .life-metric-label { font-size: $font-meta; color: $color-text-tertiary; margin-top: 2px; }
 .life-empty-note { font-size: $font-body; color: $color-text-tertiary; margin-top: $space-2; }
