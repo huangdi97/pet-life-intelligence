@@ -71,12 +71,24 @@ Capture QC
   - required angles
   - blur / exposure / occlusion
   - source ownership / consent
+  - pose compatibility is recorded, never assumed
+  ↓
+Identity Anchor Selection
+  - select one strongest identity-bearing source for the initial reconstruction
+  - other views remain immutable evidence, not automatic geometry-fusion truth
   ↓
 Segmentation / subject isolation
   ↓
 Appearance Reconstruction
-  - preferred candidate: TRELLIS.2 class high-fidelity image→3D
+  - preferred candidate: TRELLIS.2 class high-fidelity single-image→3D
   - output must contain textured/PBR geometry
+  - experimental multi-image providers stay behind benchmark/feature gates
+  ↓
+Cross-view Identity Gate / Surface Refinement
+  - reproject the candidate against held-out owner views
+  - compare silhouette / landmarks / coat regions / unique marks
+  - reject inconsistent candidates or request more capture
+  - held-out views may refine OBSERVED surface regions without claiming geometry truth
   ↓
 Identity Gate
   - multi-view reprojection consistency
@@ -114,7 +126,7 @@ ACTIVE Twin
 
 官方仓库当前明确：
 
-- high-fidelity image-to-3D；
+- high-fidelity **single-image-to-3D**；
 - 512³–1536³；
 - Base Color / Roughness / Metallic / Opacity 等 PBR surface attributes；
 - GLB export；
@@ -122,11 +134,18 @@ ACTIVE Twin
 - NVIDIA GPU ≥24GB；
 - model and code under MIT，依赖仍需逐项审计。
 
-因此它适合 **server/cloud reconstruction candidate**，不适合要求用户当前
-Windows + 16GB 主机强行本机运行。
+重要边界：截至 2026-10-10，官方 main 的产品入口仍是单图。GitHub 上存在
+multi-image conditioning 的开放 PR / 社区实现，但并非官方稳定能力；相关 PR
+也记录了多图融合可能带来形体比例偏差。因此 PLI 的 6 角度采集**默认不是**
+“把六图直接喂给 TRELLIS.2”。多角度首先用于 held-out identity/surface gate，
+只有经过宠物样本 benchmark 的多视图 Provider 才能 feature-flag 进入几何融合。
 
-Research source:
+因此 TRELLIS.2 适合 **server/cloud initial reconstruction candidate**，不适合要求用户当前
+Windows + 16GB 主机强行本机运行，也不能单独证明六视图个体一致性。
+
+Research sources:
 https://github.com/microsoft/TRELLIS.2
+https://github.com/microsoft/TRELLIS.2/pull/104
 
 ### SkinTokens / TokenRig
 
@@ -207,7 +226,9 @@ No catastrophic holes/self-intersections that break owner-facing review; bounds 
 PBR/base texture readable; coat/marking provenance retained; no template-default region presented as observed.
 
 ### G4 — Identity
-Cross-view geometry/surface consistency recorded. Automatic score may reject obvious failure but may never auto-approve identity.
+Cross-view geometry/surface consistency is measured against **held-out real owner views**.
+Those views are evidence, not assumed same-pose multi-view geometry. Automatic score may reject
+obvious failure but may never auto-approve identity.
 
 ### G5 — Rig
 Skeleton hierarchy and skin weights pass deformation QA for mandatory poses.
