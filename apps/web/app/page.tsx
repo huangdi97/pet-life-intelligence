@@ -305,7 +305,7 @@ export default function TodayPage() {
     <main className="v4-main">
       {flash && <div className="alert info">{flash}</div>}
 
-      <div data-testid="pli.today.identity">
+      <div data-testid="pli.today.identity" className="v7-today-hero-shell">
         <PetLivingStage
           name={current.name}
           petId={current.id}
@@ -327,6 +327,16 @@ export default function TodayPage() {
           anchorTestIdPrefix="pli.today.anchor"
           headlineTestId="pli.today.now-headline"
         />
+        <button
+          type="button"
+          className="v7-today-hero-quicklog"
+          onClick={() => setSheetPetId(current.id)}
+          aria-haspopup="dialog"
+          data-testid="pli.today.primary-action"
+        >
+          <Icon name="note" size={16} />
+          快速记录
+        </button>
       </div>
 
       <div className="v4-grid">
