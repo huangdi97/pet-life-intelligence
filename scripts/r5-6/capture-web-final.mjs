@@ -117,15 +117,29 @@ for (const surface of ["today", "pet", "lifeview", "twinreview", "companion"]) {
   if (!existsSync(visualPath)) throw new Error(`required final Web visual manifest missing: ${surface}`);
   const visual = JSON.parse(readFileSync(visualPath, "utf8"));
   const manifest = visual.manifest;
+  const sourceMediaCount = Number(manifest?.sourceMediaCount ?? 0);
+  const identityEvidence = manifest?.individualIdentityEvidence === true;
+  const fidelityConsistent =
+    (manifest?.visualFidelityTier === "STYLIZED_REFERENCE" &&
+      sourceMediaCount === 0 &&
+      !identityEvidence) ||
+    (manifest?.visualFidelityTier === "OWNER_MEDIA_REFERENCED" &&
+      sourceMediaCount > 0 &&
+      identityEvidence);
   if (
     !manifest ||
     manifest.ready !== true ||
     manifest.manifestOrigin !== "RUNTIME" ||
-    manifest.representation !== "high-fidelity-glb-twin" ||
+    manifest.representation !== "rigged-glb-twin" ||
+    manifest.technicalRepresentationQuality !== "RIGGED_PBR_SKINNED" ||
+    manifest.productCandidate !== true ||
+    !fidelityConsistent ||
     manifest.generic === true ||
     manifest.fallbackUsed === true
   ) {
-    throw new Error(`non-product Twin runtime on final Web surface: ${surface}`);
+    throw new Error(
+      `non-product Twin runtime on final Web surface: ${surface}; representation=${manifest?.representation}; technical=${manifest?.technicalRepresentationQuality}; fidelity=${manifest?.visualFidelityTier}; sourceMediaCount=${sourceMediaCount}`,
+    );
   }
   if (manifest.petId !== petId) {
     throw new Error(
