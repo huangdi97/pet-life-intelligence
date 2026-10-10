@@ -5,6 +5,13 @@
 > 决策：**零外部模型权重下载**（用户批准的战略），把「个体 Pet Twin」用
 > 仓内可商用确定性管线（模板族 + Morph 参数 + 真实媒体纹理投影）做成产品。
 
+> **2026-10-10 superseding fidelity note**：本文件的“最终生产候选”仅代表
+> 2026-09-28 零下载阶段的可运行主路径，不再代表“真实个体高保真已完成”。
+> `template_local` 的当前分类为 `TEMPLATE_PROVISIONAL`；真实个体高保真状态为
+> `NOT_YET_QUALIFIED`。新的生产候选拆为 TRELLIS.2 类外观重建 +
+> SkinTokens/TokenRig 类自动 Rig，均尚未配置。权威补充见
+> `PET_TWIN_PRODUCTION_FIDELITY_PLAN_2026-10-10.md`。
+
 ## 1. 结论分类法
 
 - **研究参考**: 只读方法启发，不进入本机运行/生产链。
