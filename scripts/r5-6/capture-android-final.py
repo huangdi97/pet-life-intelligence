@@ -600,21 +600,32 @@ def main() -> None:
     # resource-id on every emulator image while still exercising the real
     # PetsContext selection + persisted current-pet state.
     android.clear_runtime_manifest()
-    android.start_link(f"pli-demo://nav?screen=today&pet={primary_id}")
-    time.sleep(6)
     primary_select_dir = out / "_primary-select"
     primary_select_dir.mkdir(parents=True, exist_ok=True)
-    primary_select_xml = android.dump_xml(primary_select_dir / "ui.xml")
-    if "演示数据暂时没有连接成功" in primary_select_xml or "重试演示登录" in primary_select_xml:
-        raise CaptureError(
-            "demo owner session failed before Today/3D mounted; check evidence API reachability/authentication"
-        )
+    primary_select_xml = ""
+    # Hosted emulators can spend several seconds in RN view creation / GC after
+    # the first owner surface mounts. A single fixed sleep used to classify an
+    # otherwise healthy blank accessibility snapshot as navigation failure.
+    # Re-issue the SAME deterministic deep link while polling for the exact
+    # Today root. This does not relax any product gate: the required root and
+    # later rigged-RUNTIME manifest still must both be present.
+    for attempt in range(18):
+        if attempt in (0, 5, 10, 15):
+            android.start_link(f"pli-demo://nav?screen=today&pet={primary_id}")
+        time.sleep(1 if attempt else 3)
+        primary_select_xml = android.dump_xml(primary_select_dir / "ui.xml")
+        if "演示数据暂时没有连接成功" in primary_select_xml or "重试演示登录" in primary_select_xml:
+            raise CaptureError(
+                "demo owner session failed before Today/3D mounted; check evidence API reachability/authentication"
+            )
+        if "pli.today.living-stage" in primary_select_xml:
+            break
     if "pli.today.living-stage" not in primary_select_xml:
         observed_ids = sorted(
             set(re.findall(r'resource-id="(pli\\.[^"]+)"', primary_select_xml))
         )[:12]
         raise CaptureError(
-            "primary pet selection did not reach Today before 3D verification; "
+            "primary pet selection did not reach Today before 3D verification after deterministic retries; "
             f"observed_ui_ids={observed_ids}"
         )
     primary_manifest = android.read_runtime_manifest(
