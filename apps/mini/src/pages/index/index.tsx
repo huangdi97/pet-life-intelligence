@@ -175,10 +175,10 @@ export default function Index() {
     return `${Math.round((minutes / 60) * 10) / 10} 小时`;
   };
   const signalRows: LifeSignalRow[] = [
-    { id: "meal", label: "进食", value: `${counts["daily.meal"] ?? 0} 次` },
-    { id: "drink", label: "饮水", value: `${counts["daily.drink"] ?? 0} 次` },
-    { id: "activity", label: "活动", value: activityMinutes > 0 ? `${activityMinutes} 分钟` : "—" },
-    { id: "sleep", label: "睡眠", value: formatDuration(sleepMinutes) },
+    { id: "meal", label: "进食", value: `${counts["daily.meal"] ?? 0} 次`, onPress: () => Taro.navigateTo({ url: "/pages/pets/life-view/index?anchor=meal" }) },
+    { id: "drink", label: "饮水", value: `${counts["daily.drink"] ?? 0} 次`, onPress: () => Taro.navigateTo({ url: "/pages/pets/life-view/index?anchor=water" }) },
+    { id: "activity", label: "活动", value: activityMinutes > 0 ? `${activityMinutes} 分钟` : "—", onPress: () => Taro.navigateTo({ url: "/pages/pets/life-view/index?anchor=activity" }) },
+    { id: "sleep", label: "睡眠", value: formatDuration(sleepMinutes), onPress: () => Taro.navigateTo({ url: "/pages/pets/life-view/index?anchor=sleep" }) },
   ];
   const memoryRows = todayEvents.slice(0, 5).map(eventRowFromEvent);
   const memoryDays: LifeStreamDay[] = memoryRows.length
