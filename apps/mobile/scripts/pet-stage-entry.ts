@@ -315,11 +315,11 @@ function buildManifest(): Record<string, unknown> {
     // stylized reference, never an asserted likeness of the owner's pet.
     representationQuality: hdTwin ? "HIGH_FIDELITY_SKINNED" : "engineering",
     technicalRepresentationQuality: hdTwin ? "RIGGED_PBR_SKINNED" : "PROCEDURAL_ENGINEERING",
-    visualFidelityTier: injectedDemoTwin && hdTwin
-      ? "STYLIZED_REFERENCE"
-      : twinDescriptor && injectedSourceMediaCount > 0 && !injectedDemoTwin
+    visualFidelityTier: hdTwin
+      ? twinDescriptor && injectedSourceMediaCount > 0 && !injectedDemoTwin
         ? "OWNER_MEDIA_REFERENCED"
-        : "ENGINEERING_FALLBACK",
+        : "STYLIZED_REFERENCE"
+      : "ENGINEERING_FALLBACK",
     individualIdentityEvidence: Boolean(twinDescriptor && injectedSourceMediaCount > 0 && !injectedDemoTwin),
     productCandidate: hdTwin !== null,
     personalizedSkinnedTemplate: Boolean(hdTwin?.personalized),
