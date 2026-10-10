@@ -265,7 +265,6 @@ export function TodayScreen() {
               <ChangeNarrative
                 summary={change.summary}
                 evidenceHint={change.evidence}
-                onWhy={() => tabNav.navigate("Timeline")}
                 compact
               />
             </View>
