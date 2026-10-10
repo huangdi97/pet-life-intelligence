@@ -460,17 +460,21 @@ page { background:#fbf7f1; }
 .card { background:#fffdf8; border-radius:32px; }
 
 
-/* R7 Owner living canvas: editorial photo-first hero, no fictitious Mini 3D runtime. */
-page { background:#F6F7F1; }
+/* R7 Owner living canvas: editorial photo-first hero, no fictitious Mini 3D runtime.
+   Canonical Warm Living Intelligence uses cream/beige as the room itself;
+   sage remains an accent rather than flooding the full surface. */
+page { background:#FBF7F1; }
 .page { padding-top:0; }
 .pet-hero {
   height:650px;margin:0 -24px $space-2;border-radius:0 0 56px 56px;
-  background:linear-gradient(145deg,#EFF3E8,#DBE8D7 70%,#CFDECB);
-  box-shadow:0 14px 36px rgba(41,78,52,.06);
+  background:
+    radial-gradient(75% 58% at 72% 12%,rgba(255,252,244,.86),rgba(255,252,244,0) 68%),
+    linear-gradient(145deg,#FBF6EC 0%,#F2E6D5 62%,#E6D2B7 100%);
+  box-shadow:0 14px 36px rgba(83,61,39,.07);
 }
 .pet-hero::before {
   content:"";position:absolute;left:13%;top:-20%;width:20%;height:122%;
-  transform:skewX(-10deg);background:rgba(255,255,255,.15);pointer-events:none;
+  transform:skewX(-10deg);background:rgba(255,255,255,.24);pointer-events:none;
 }
 .pet-hero-no-photo {
   display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -478,21 +482,21 @@ page { background:#F6F7F1; }
 }
 .pet-hero-glyph { transform:scale(1.05);opacity:.86; }
 .pet-hero-no-photo-title {
-  max-width:530px;text-align:center;font-size:$font-caption;color:#536E5A;
+  max-width:530px;text-align:center;font-size:$font-caption;color:#756A5D;
   padding:14px $space-4 0;
 }
 .pet-hero-kicker {
   position:absolute;top:42px;left:36px;z-index:5;
-  font-size:24px;font-weight:700;color:#42634E;letter-spacing:3px;
+  font-size:24px;font-weight:700;color:#5A674F;letter-spacing:3px;
 }
 .pet-hero-scrim {
   height:285px;
-  background:linear-gradient(0deg,rgba(24,52,36,.52),rgba(24,52,36,0) 88%);
+  background:linear-gradient(0deg,rgba(43,36,29,.48),rgba(43,36,29,0) 88%);
 }
 .pet-hero-info { left:36px;right:36px;bottom:34px;z-index:4; }
 .pet-hero-name { font-size:76px;font-weight:800;letter-spacing:-2px; }
 .pet-hero-headline { font-size:31px;font-weight:600; }
-.pet-hero-timechip { background:#FFFFFFE8;color:#355C43; }
+.pet-hero-timechip { background:#FFFDF5E8;color:#4D6353; }
 .pet-hero-demo { top:36px;right:30px;z-index:5; }
 .primary-action {
   display:flex;align-items:center;justify-content:center;
