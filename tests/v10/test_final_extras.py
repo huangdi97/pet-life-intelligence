@@ -28,6 +28,21 @@ def test_abnormal_day_hint_deterministic(client, seeded):
     assert "非健康判断" in r.json()["rule"]
 
 
+def test_abnormal_day_hint_keeps_missing_baseline_unknown(client, seeded):
+    owner, mimi = seeded["owner_id"], seeded["mimi_id"]
+    response = client.get(
+        f"/api/v1/pets/{mimi}/abnormal-day-hint",
+        headers=auth(owner),
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    if not body["explanations"] or all(
+        row["direction"] == "INSUFFICIENT" for row in body["explanations"]
+    ):
+        assert body["status"] == "INSUFFICIENT"
+        assert "不能判断" in body["hints"][0]
+
+
 def test_abnormal_day_hint_uses_same_clock_duration_not_event_count(client, seeded):
     owner, coco = seeded["owner_id"], seeded["coco_id"]
     product_tz = timezone(timedelta(hours=8))
