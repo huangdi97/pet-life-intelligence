@@ -1974,3 +1974,44 @@ def test_android_runtime_evidence_requires_first_viewport_life_mode_rail() -> No
     assert 'screen == "lifeview"' in runner
     assert 'pli.lifeview.modebar' in runner
     assert 'visible_height < 44' in runner
+
+
+def test_timeline_days_open_truthful_historical_life_view_across_clients() -> None:
+    android_stream = read("apps/mobile/src/components/timeline/LifeStream.tsx")
+    android_group = read("apps/mobile/src/components/timeline/lifeStreamUtils.ts")
+    android_timeline = read("apps/mobile/src/screens/TimelineScreen.tsx")
+    android_nav = read("apps/mobile/src/navigation.tsx")
+    android_life = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    web_stream = read("apps/web/app/_components/timeline/EventList.tsx")
+    web_timeline = read("apps/web/app/timeline/page.tsx")
+    web_life = read("apps/web/app/pets/[id]/life-view/page.tsx")
+    mini_stream = read("apps/mini/src/components/timeline/LifeStream.tsx")
+    mini_timeline = read("apps/mini/src/pages/timeline/index.tsx")
+    mini_life = read("apps/mini/src/pages/pets/life-view/index.tsx")
+
+    # Android keeps the existing local-day grouping id for presentation, but
+    # carries an explicit ISO day into the historical navigation contract.
+    assert "date?: string;" in android_stream
+    assert "occurred_at?.slice(0, 10)" in android_group
+    assert 'onOpenDay={(date) => navigation.navigate("LifeView", { date })}' in android_timeline
+    assert 'LifeView: { date?: string } | undefined;' in android_nav
+    assert 'useRoute<RouteProp<StackParamList, "LifeView">>()' in android_life
+    assert 'requestedDate ? "date" : "now"' in android_life
+
+    # Web and Mini day headers directly enter the matching historical date.
+    assert '/life-view?date=${encodeURIComponent(day)}' in web_stream
+    assert "petId={current?.id}" in web_timeline
+    assert "searchParams: Promise<{ date?: string | string[] }>" in web_life
+    assert 'requestedDate ? "date" : "now"' in web_life
+    assert "onOpenDay" in mini_stream
+    assert '/pages/pets/life-view/index?date=${encodeURIComponent(date)}' in mini_timeline
+    assert "Taro.getCurrentInstance().router?.params?.date" in mini_life
+    assert 'requestedDate ? "date" : "now"' in mini_life
+
+    # Historical truth is a data boundary, not just a date label.
+    for source in (android_life, web_life, mini_life):
+        assert "currentFactScope" in source
+        assert "historicalTwin" in source
+    assert "avatar_artifact_id: null" in android_life
+    assert "allowOwnerPhoto={currentFactScope}" in web_life
+    assert "allowOwnerPhoto={currentFactScope}" in mini_life
