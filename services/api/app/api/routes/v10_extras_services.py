@@ -257,8 +257,19 @@ async def abnormal_day_hint(pet_id: uuid.UUID, db: DBSession,
             row["metric"],
         )
     )
+    comparable = any(row["direction"] != "INSUFFICIENT" for row in explanations)
+    if hints:
+        status = "NOTABLE"
+        owner_hints = hints
+    elif comparable:
+        status = "STABLE"
+        owner_hints = ["今天与自身同期的已记录常态相比，暂未出现需要突出显示的变化。"]
+    else:
+        status = "INSUFFICIENT"
+        owner_hints = ["还没有足够的同期基线记录，暂时不能判断今天是否发生了变化。"]
     return {
-        "hints": hints or ["今天与自身同期的已记录常态相比，暂未出现需要突出显示的变化。"],
+        "status": status,
+        "hints": owner_hints,
         "rule": "确定性同期对比（同一时间点、同一指标口径），仅比较已记录事实，非健康判断。",
         "as_of": now.isoformat(),
         "explanations": explanations,
