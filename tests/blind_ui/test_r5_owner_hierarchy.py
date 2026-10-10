@@ -2015,3 +2015,23 @@ def test_timeline_days_open_truthful_historical_life_view_across_clients() -> No
     assert "avatar_artifact_id: null" in android_life
     assert "allowOwnerPhoto={currentFactScope}" in web_life
     assert "allowOwnerPhoto={currentFactScope}" in mini_life
+
+
+def test_today_change_explains_facts_without_ai_or_medical_inference() -> None:
+    mobile = read("apps/mobile/src/components/life/ChangeNarrative.tsx")
+    web = read("apps/web/app/_components/today/ChangeCard.tsx")
+    mini = read("apps/mini/src/components/life/ChangeNarrative.tsx")
+    mobile_today = read("apps/mobile/src/screens/TodayScreen.tsx")
+
+    for source in (mobile, web, mini):
+        for label in ("事实", "比较依据", "不确定性", "下一步"):
+            assert label in source
+        assert "不能据此判断疾病、疼痛或情绪" in source
+        assert "继续记录饮水、进食、活动和睡眠" in source
+
+    # Android used to route Why to Timeline; the explanation now stays beside
+    # the fact so the owner does not lose context.
+    assert 'onWhy={() => tabNav.navigate("Timeline")}' not in mobile_today
+    assert 'testID="pli.today.change.explain"' in mobile
+    assert 'data-testid="pli.today.change.explain"' in web
+    assert 'data-testid="pli.mini.today.change.explain"' in mini
