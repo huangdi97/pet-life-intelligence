@@ -350,12 +350,22 @@ class Android:
 
     @staticmethod
     def _is_product_manifest(manifest: dict) -> bool:
+        tier = manifest.get("visualFidelityTier")
+        try:
+            source_media_count = int(manifest.get("sourceMediaCount") or 0)
+        except (TypeError, ValueError):
+            return False
+        identity_evidence = manifest.get("individualIdentityEvidence") is True
+        fidelity_consistent = (
+            (tier == "STYLIZED_REFERENCE" and source_media_count == 0 and not identity_evidence)
+            or (tier == "OWNER_MEDIA_REFERENCED" and source_media_count > 0 and identity_evidence)
+        )
         return (
             manifest.get("ready") is True
             and manifest.get("manifestOrigin") == "RUNTIME"
             and manifest.get("representation") == "rigged-glb-twin"
             and manifest.get("technicalRepresentationQuality") == "RIGGED_PBR_SKINNED"
-            and manifest.get("visualFidelityTier") in {"STYLIZED_REFERENCE", "OWNER_MEDIA_REFERENCED"}
+            and fidelity_consistent
             and manifest.get("generic") is not True
             and manifest.get("fallbackUsed") is not True
         )
