@@ -319,7 +319,7 @@ test("R7 Companion is a real pet Living Canvas on the owner phone", async ({ pag
       return (
         manifest?.ready === true &&
         manifest?.manifestOrigin === "RUNTIME" &&
-        manifest?.representation === "high-fidelity-glb-twin" &&
+        manifest?.representation === "rigged-glb-twin" &&\n        manifest?.technicalRepresentationQuality === "RIGGED_PBR_SKINNED" &&\n        manifest?.visualFidelityTier === "STYLIZED_REFERENCE" &&\n        manifest?.individualIdentityEvidence === false &&
         manifest?.petId === expectedPetId &&
         manifest?.stageRole === "companion" &&
         manifest?.generic !== true &&
