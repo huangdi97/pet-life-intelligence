@@ -1399,6 +1399,11 @@ def test_owner_3d_never_swaps_individual_descriptor_for_bundled_demo_glb() -> No
         assert '"STYLIZED_REFERENCE"' in gate
     assert '"high-fidelity-glb-twin"' not in capture
     assert '"high-fidelity-glb-twin"' not in validator
+    assert "fidelity_consistent" in capture
+    assert "source_media_count == 0 and not identity_evidence" in capture
+    assert "source_media_count > 0 and identity_evidence" in capture
+    assert "stylized/template runtime falsely claims individual identity evidence" in validator
+    assert "owner-media runtime lacks required individual identity evidence" in validator
     assert 'const photoFirstByDefault = Boolean(photoUri);' in web_stage
     assert 'const photoFirstByDefault = Boolean(photoUri && variant !== "review");' in mobile_stage
     assert "geo.computeVertexNormals()" in loader
