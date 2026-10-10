@@ -10,6 +10,7 @@ interface Props {
  * It stays visually quieter than health Attention because ordinary variance
  * is not itself a medical warning. */
 export function ChangeNarrative({ summary, evidence, unknown = false }: Props) {
+  const [expanded, setExpanded] = useState(false);
   return (
     <View
       className={`change-narrative${unknown ? " change-narrative-unknown" : ""}`}
