@@ -89,11 +89,25 @@ def test_abnormal_day_hint_uses_same_clock_duration_not_event_count(client, seed
     assert recompute.status_code == 201, recompute.text
 
     today = client.get(f"/api/v1/pets/{coco}/today", headers=auth(owner)).json()
+    # /abnormal-day-hint compares like-for-like at the current local clock: a
+    # 05:15 owner screen is never compared with a full-day total. A same-day walk
+    # that is only scheduled later in the morning must therefore not enter the
+    # expected value, and retracted rows are excluded because the endpoint
+    # reports recorded facts. Summing everything in /today's local day made this
+    # assertion fail whenever CI ran before the seeded morning walk (observed as
+    # 20.0 != 50.0 at 2026-10-10T21:20Z, i.e. 05:20 local).
+    clock = datetime.now(product_tz)
     expected_walk_minutes = sum(
         float((event.get("payload") or {}).get("duration_minutes") or 0)
         for event in today["events"]
         if event["event_type"] == "daily.walk"
+        and not event.get("retracted_at")
+        and datetime.fromisoformat(
+            str(event["occurred_at"]).replace("Z", "+00:00")
+        ).astimezone(product_tz) <= clock
     )
+    # The walk posted at ``current`` above must be part of the compared value.
+    assert expected_walk_minutes >= 20
 
     response = client.get(
         f"/api/v1/pets/{coco}/abnormal-day-hint",
