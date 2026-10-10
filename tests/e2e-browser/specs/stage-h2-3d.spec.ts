@@ -40,10 +40,10 @@ test.describe("Stage H.2 — Pet Living Model / 3D", () => {
     // an owner-confirmed real candidate, or the simplified fallback. None may
     // masquerade as LIVE or leak raw internal/provider terminology.
     await expect(
-      page.getByText(/示例 3D 形象|演示 3D 形象|第 \d+ 版 3D 形象|简化形象/).first(),
+      page.getByTestId("pli.lifeview.model-status"),
     ).toBeVisible();
     await expect(
-      page.getByText(/不把示例模板当作真实宠物身份|已通过你的确认|连接照片后|连接真实服务后/).first(),
+      page.getByText(/照片、记录与规则结论始终独立于外观|照片、记录与规则结论仍可独立使用/).first(),
     ).toBeVisible();
     await page.getByRole("tab", { name: "外观" }).click();
     await expect(
