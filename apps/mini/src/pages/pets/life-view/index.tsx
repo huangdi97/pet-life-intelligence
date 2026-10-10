@@ -5,7 +5,7 @@
  * 四段信息架构与 Web / Android 对齐：此刻 / 趋势 / 时间线 / 外观。
  * 所有状态锚点只展示真实记录；事实详情保留来源、更新时间和证据。
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api, type LifeEvent, type Task } from "../../../services/api";
@@ -99,11 +99,18 @@ function baselineLabel(metric: string): string | null {
 
 export default function LifeView() {
   const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
-  const routeDateRaw = Taro.getCurrentInstance().router?.params?.date;
+  const routeParams = Taro.getCurrentInstance().router?.params;
+  const routeDateRaw = routeParams?.date;
   const requestedDate =
     typeof routeDateRaw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(routeDateRaw)
       ? routeDateRaw
       : null;
+  const routeAnchorRaw = routeParams?.anchor;
+  const requestedAnchor: DetailId | null =
+    typeof routeAnchorRaw === "string" && ["water", "meal", "activity", "sleep"].includes(routeAnchorRaw)
+      ? (routeAnchorRaw as DetailId)
+      : null;
+  const initialAnchorRef = useRef<DetailId | null>(requestedDate ? null : requestedAnchor);
   const [today, setToday] = useState<{ events: LifeEvent[] } | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [models, setModels] = useState<VisualModelRow[] | null>(null);
@@ -111,7 +118,7 @@ export default function LifeView() {
   const [baseline, setBaseline] = useState<BaselineRow[]>([]);
   const [baselineState, setBaselineState] = useState<"loading" | "ready" | "error">("loading");
   const [mode, setMode] = useState<LifeMode>("now");
-  const [detailId, setDetailId] = useState<DetailId | null>(null);
+  const [detailId, setDetailId] = useState<DetailId | null>(() => initialAnchorRef.current);
   const [timeScope, setTimeScope] = useState<TimeScope>(requestedDate ? "date" : "now");
   const [selectedDate, setSelectedDate] = useState(() => requestedDate ?? new Date().toISOString().slice(0, 10));
   const [supportTasks, setSupportTasks] = useState<Task[]>([]);
@@ -140,7 +147,14 @@ export default function LifeView() {
     setVisualState("loading");
     setBaseline([]);
     setBaselineState("loading");
-    setDetailId(null);
+    // Consume a Today → Life View fact deep-link once. Later scope/pet changes
+    // clear the sheet rather than silently applying today's fact to history.
+    if (initialAnchorRef.current && timeScope === "now") {
+      setDetailId(initialAnchorRef.current);
+      initialAnchorRef.current = null;
+    } else {
+      setDetailId(null);
+    }
     setMode("now");
 
     const loadEvents = async (): Promise<{ events: LifeEvent[] }> => {
