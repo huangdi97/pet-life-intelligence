@@ -2226,3 +2226,11 @@ def test_demo_glb_does_not_require_backend_twin_descriptor() -> None:
     assert "twin && (demoTwin || supportsIndividualGlb)" not in web
     assert "if (!(twinDescriptor || injectedDemoTwin) || !(frameTarget > 0)) return;" in mobile
     assert "const productGlbRequested = injectedDemoTwin || supportsIndividualGlb;" in mobile
+    assert "stage.pet.visible = false;" in web
+    assert "stage.shadow.visible = false;" in web
+    assert "scene.remove(stage.shadow);" in web
+    assert "stage.pet.visible = false;" in mobile
+    assert "stage.shadow.visible = false;" in mobile
+    assert "scene.remove(stage.shadow);" in mobile
+    assert 'if (productGlbRequested) post({ type: "status", status: "ready" });' in mobile
+    assert 'if (productGlbRequested) post({ type: "status", status: "failed" });' in mobile
