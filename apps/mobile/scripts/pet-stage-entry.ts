@@ -237,7 +237,7 @@ function applyFit(): void {
     frameTarget,
     Math.max(1, Math.round(window.innerWidth || 1)),
     Math.max(1, Math.round(window.innerHeight || 1)),
-    { fitYaws: injectedStageRole === "review" ? [0, Math.PI / 2, Math.PI] : injectedStageRole === "life" ? [-0.35, 0, 0.35, Math.PI / 2, Math.PI] : undefined, canvasRect: renderer.domElement.getBoundingClientRect() },
+    { fitYaws: injectedStageRole === "review" ? [reviewPresetYaw ?? orbit.yaw] : injectedStageRole === "life" ? [-0.35, 0, 0.35, Math.PI / 2, Math.PI] : undefined, canvasRect: renderer.domElement.getBoundingClientRect() },
   );
   Object.assign(orbit, fit);
   zoomBounds.min = fit.radius * 0.5;
@@ -454,6 +454,10 @@ window.resetView = () => {
 window.__PLI_SET_VIEW = (yaw: number) => {
   reviewPresetYaw = yaw;
   Object.assign(orbit, { yaw, pitch: DEFAULT_ORBIT.pitch });
+  // Review presets are identity-inspection views. Re-fit the actual selected
+  // angle so a narrow front/back silhouette is not shrunk by the wider side
+  // view. fitOrbitRadius still enforces real canvas containment.
+  applyFit();
   applyOrbit(camera, STAGE_TARGET, orbit);
   post({ type: "manifest", manifest: buildManifest(), force: true });
 };
