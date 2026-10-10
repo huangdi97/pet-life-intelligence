@@ -55,7 +55,7 @@ Engineering/debug surfaces may still use a dark stage, but owner Hero surfaces m
 - Today uses the Living Pet composition;
 - Timeline is a compact life stream, not a dashboard;
 - Pet World is identity-first and now uses a current-life headline rather than repeating the pet name;
-- Life View is Twin-first with 此刻 / 趋势 / 外观 only;
+- Life View is Twin-first with the canonical **此刻 / 趋势 / 时间线 / 外观** rail; its 时间线 mode is pet-scoped replay while the full Timeline remains first-level;
 - Twin Review is a neutral identity studio;
 - Health/Behavior/Training/Welfare/Social/Care/Monitoring/Companion are contextual product surfaces;
 - Assistant keeps Ask / Brief / Find / Plan / Explain;
@@ -278,3 +278,24 @@ APPROVED_VISUAL_BASELINE = OLD
 PR_2 = OPEN
 MERGE = BLOCKED_UNTIL_HUMAN_APPROVAL
 ```
+
+
+## 15. 2026-10-10 contextual change-truth closure
+
+The final source audit found one semantic defect beneath an otherwise-correct Explain UI: minute-based baselines could be compared with event counts. That path is now closed across backend and all three owner clients.
+
+1. **Metric semantics:** meal baselines use occurrence count; walk/sleep baselines use validated `duration_minutes`.
+2. **Clock semantics:** Today compares the current partial day only with historical records available at the **same +08:00 local clock point**, never with a completed full-day total.
+3. **Missing-data honesty:** days without relevant recorded facts are not silently interpreted as observed zero; the actual comparable-day sample count is exposed.
+4. **Contextual Explain:** backend returns structured **事实 / 与它自己相比 / 不确定性 / 下一步** fields. Web, Android and Mini render those fields directly.
+5. **Attention separation:** a deterministic life-pattern deviation remains separate from Health Attention and cannot become a diagnosis, pain claim or mood inference.
+6. **Owner units:** baseline storage now persists `次` / `分钟` and groups events on the same product-day boundary as Today.
+7. **Regression gates:** API tests prove duration aggregation cannot regress to event counting; blind UI contracts require all three clients to consume the structured explanation.
+
+The current source model is therefore:
+
+```text
+PET → NOW → CHANGE(explainable same-clock facts) → ATTENTION(independent health rule) → ACTION → SUPPORT → MEMORY
+```
+
+This is the v3.4-R1 design expressed more faithfully in code, not a new design version. Runtime visual quality and real-pet likeness remain subject to fresh evidence and explicit user review.
