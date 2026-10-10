@@ -1,4 +1,5 @@
-import { useState } from "react";\nimport { Text, View } from "@tarojs/components";
+import { useState } from "react";
+import { Text, View } from "@tarojs/components";
 
 interface Props {
   summary: string;
