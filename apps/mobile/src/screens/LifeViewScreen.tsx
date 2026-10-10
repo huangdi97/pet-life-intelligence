@@ -250,8 +250,10 @@ export function LifeViewScreen() {
   const historicalTwin = useMemo<HistoricalTwin | null>(() => {
     if (timeScope !== "date" || historyPetId !== pet?.id || historyState !== "ready") return null;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) return null;
-    const dayStart = new Date(`${selectedDate}T00:00:00+08:00`).getTime();
-    const dayEnd = new Date(`${selectedDate}T23:59:59.999+08:00`).getTime();
+    // Interpret the owner's selected calendar day in the device's local timezone;
+    // a fixed UTC+08 offset can assign a Twin version to the wrong day abroad.
+    const dayStart = new Date(`${selectedDate}T00:00:00`).getTime();
+    const dayEnd = new Date(`${selectedDate}T23:59:59.999`).getTime();
     const candidates = historyModels
       .filter((model) => {
         const descriptor = model.artifact_map?.twin_descriptor;
