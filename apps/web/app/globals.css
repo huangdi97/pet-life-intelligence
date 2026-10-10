@@ -2303,7 +2303,7 @@ body{background:#FBF7F1}
   line-height: 1.5;
 }
 .v5-change-why {
-  min-height:36px;margin-top:8px;padding:6px 12px;border:0;border-radius:999px;
+  min-height:44px;margin-top:8px;padding:8px 14px;border:0;border-radius:999px;
   background:var(--v4-brand-soft,#E5EDE4);color:var(--v4-brand-primary,#365F49);
   font-size:12px;font-weight:700;cursor:pointer;
 }
