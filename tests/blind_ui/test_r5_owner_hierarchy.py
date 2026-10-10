@@ -1416,6 +1416,8 @@ def test_pet_world_keeps_life_view_primary_and_management_progressive_on_web_and
     css = read("apps/web/app/globals.css")
 
     assert mobile.index('testID="pli.pet.entry.lifeview"') < mobile.index('title={`${pet?.name ?? "宠物"}最近`}')
+    mobile_stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
+    assert "today: 440, pet: 540, life: 520" in mobile_stage
     assert 'testID="pli.pet.management.toggle"' in mobile
     assert 'accessibilityState={{ expanded: showManagement }}' in mobile
     assert mobile.index('testID="pli.pet.management.toggle"') < mobile.index('testID="pli.pet.caregivers"')
