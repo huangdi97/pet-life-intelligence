@@ -60,7 +60,7 @@ export default function PetLifeViewPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ date?: string | string[] }>;
+  searchParams: Promise<{ date?: string | string[]; anchor?: string | string[] }>;
 }) {
   const petId = use(params).id;
   const query = use(searchParams);
@@ -69,8 +69,16 @@ export default function PetLifeViewPage({
     rawRequestedDate && /^\d{4}-\d{2}-\d{2}$/.test(rawRequestedDate)
       ? rawRequestedDate
       : null;
+  const rawRequestedAnchor = Array.isArray(query.anchor) ? query.anchor[0] : query.anchor;
+  const requestedAnchor =
+    rawRequestedAnchor && ["water", "meal", "activity", "sleep"].includes(rawRequestedAnchor)
+      ? rawRequestedAnchor
+      : null;
   const [mode, setMode] = useState<LivingMode>("now");
-  const [detailId, setDetailId] = useState<string | null>(null);
+  // A Today anchor lands directly on the canonical Life View explanation.
+  // Invalid query values are ignored; historical/date routes never infer a
+  // current-state detail from an untrusted URL.
+  const [detailId, setDetailId] = useState<string | null>(requestedDate ? null : requestedAnchor);
   const [timeScope, setTimeScope] = useState<TimeScope>(requestedDate ? "date" : "now");
   const [selectedDate, setSelectedDate] = useState(() => requestedDate ?? new Date().toISOString().slice(0, 10));
   const currentFactScope = timeScope === "now" || timeScope === "today";
