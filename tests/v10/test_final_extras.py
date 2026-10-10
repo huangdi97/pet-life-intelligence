@@ -53,12 +53,12 @@ def test_abnormal_day_hint_uses_same_clock_duration_not_event_count(client, seed
     product_tz = timezone(timedelta(hours=8))
     now = datetime.now(product_tz)
 
-    # Three previous comparable days at the same early clock time establish a
-    # deterministic duration baseline. One event == N minutes, never 1 minute.
+    # Three previous comparable days at the same clock point establish a
+    # deterministic duration baseline. Use "now - 5 min" so the test remains
+    # valid even when CI happens to run just after local midnight.
+    current = now - timedelta(minutes=5)
     for days_ago, minutes in ((1, 10), (2, 20), (3, 30)):
-        occurred = (now - timedelta(days=days_ago)).replace(
-            hour=0, minute=30, second=0, microsecond=0
-        )
+        occurred = current - timedelta(days=days_ago)
         created = client.post(
             f"/api/v1/pets/{coco}/events",
             json={
@@ -70,7 +70,6 @@ def test_abnormal_day_hint_uses_same_clock_duration_not_event_count(client, seed
         )
         assert created.status_code == 201, created.text
 
-    current = now.replace(hour=0, minute=30, second=0, microsecond=0)
     created = client.post(
         f"/api/v1/pets/{coco}/events",
         json={
