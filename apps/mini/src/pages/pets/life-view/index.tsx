@@ -14,6 +14,7 @@ import { eventPayloadText, eventTypeLabel, sourceLabel } from "../../../utils/la
 import { PetHero } from "../../../components/pet_visual";
 import { LifeStream, type LifeStreamDay, type LifeStreamRow } from "../../../components/timeline/LifeStream";
 import { InlineError, PetContextGate } from "../../../components/feedback/Feedback";
+import { getPlatform } from "../../../platform";
 
 type LifeMode = "now" | "trend" | "appearance";
 type DetailId = "water" | "meal" | "activity" | "sleep";
@@ -48,6 +49,14 @@ interface LifeDetail {
   compare: string;
 }
 
+interface ArtifactMeta {
+  artifact_id: string;
+  kind: "IMAGE" | "VIDEO" | "AUDIO" | "DOCUMENT";
+  content_type: string;
+  original_filename: string;
+  size_bytes: number;
+}
+
 function rowFromEvent(e: LifeEvent): LifeStreamRow {
   const t = new Date(e.occurred_at);
   const hh = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
@@ -57,6 +66,8 @@ function rowFromEvent(e: LifeEvent): LifeStreamRow {
     typeLabel: eventTypeLabel(e.event_type),
     detail: eventPayloadText(e.payload),
     source: sourceLabel(e.source_type),
+    mediaCount: e.artifact_ids?.length ?? 0,
+    artifactIds: e.artifact_ids ?? [],
   };
 }
 
@@ -212,6 +223,26 @@ export default function LifeView() {
       alive = false;
     };
   }, [petId, timeScope, selectedDate]);
+
+  async function openHistoricalMedia(artifactIds: string[]) {
+    const ids = artifactIds.filter(Boolean);
+    if (!ids.length) return;
+    let index = 0;
+    if (ids.length > 1) {
+      const selected = await Taro.showActionSheet({
+        itemList: ids.map((_, i) => `原始媒体 ${i + 1}`),
+      }).catch(() => null);
+      if (!selected) return;
+      index = selected.tapIndex;
+    }
+    const artifactId = ids[index];
+    try {
+      const meta = await api.get<ArtifactMeta>(`/artifacts/${artifactId}`);
+      await getPlatform().media.openArtifact(artifactId, meta.kind);
+    } catch {
+      Taro.showToast({ title: "原始媒体暂时无法读取", icon: "none" });
+    }
+  }
 
   if (petContextState !== "ready" || !petId || !pets?.length) {
     return (
@@ -494,7 +525,7 @@ export default function LifeView() {
           <View className="open-section">
             <View className="section-title">最近片段</View>
             {streamDays.length ? (
-              <LifeStream days={streamDays} />
+              <LifeStream days={streamDays} onOpenMedia={(artifactIds) => void openHistoricalMedia(artifactIds)} />
             ) : (
               <Text className="life-empty-note">
                 {state === "error" ? "暂时连接不上，稍后重试。" : "从第一次喂食、散步或健康记录开始，轨迹会慢慢成形。"}
