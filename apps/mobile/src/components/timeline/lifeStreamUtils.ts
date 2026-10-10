@@ -82,8 +82,10 @@ export function groupEventsByDay(events: LifeEvent[]): LifeStreamDay[] {
     .sort((a, b) => (a[0] < b[0] ? 1 : -1))
     .map(([key, list]) => {
       const d = new Date(key);
+      const date = list[0]?.occurred_at?.slice(0, 10);
       return {
         id: key,
+        date: /^\d{4}-\d{2}-\d{2}$/.test(date ?? "") ? date : undefined,
         label: `${d.getMonth() + 1}月${d.getDate()}日`,
         isToday: key === nowKey,
         rows: list.map(eventRowFromEvent),
