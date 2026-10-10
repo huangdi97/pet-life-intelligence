@@ -462,7 +462,13 @@ export default function Timeline() {
         <EmptyState title={`${current?.name ?? "它"}的时间线还很安静`} body="第一次喂食、散步或健康记录会从这里开始。" />
       )}
 
-      <LifeStream days={days} onOpenMedia={(artifactIds) => void openMedia(artifactIds)} />
+      <LifeStream
+        days={days}
+        onOpenMedia={(artifactIds) => void openMedia(artifactIds)}
+        onOpenDay={(date) =>
+          Taro.navigateTo({ url: `/pages/pets/life-view/index?date=${encodeURIComponent(date)}` })
+        }
+      />
 
       {state === "loading" && <View className="state">加载中……</View>}
 
