@@ -78,8 +78,20 @@ def run(
     text: bool = True,
     timeout: float = ADB_TIMEOUT_SECONDS,
 ) -> subprocess.CompletedProcess:
+    run_kwargs: dict[str, object] = {
+        "cwd": ROOT,
+        "capture_output": True,
+        "text": text,
+        "timeout": timeout,
+    }
+    if text:
+        # Never let the host locale choose how adb output is decoded: on a
+        # Chinese Windows console (GBK) UIAutomator's UTF-8 payload raised
+        # UnicodeDecodeError and aborted the whole capture.
+        run_kwargs["encoding"] = "utf-8"
+        run_kwargs["errors"] = "replace"
     try:
-        result = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=text, timeout=timeout)
+        result = subprocess.run(cmd, **run_kwargs)  # type: ignore[arg-type]
     except subprocess.TimeoutExpired as exc:
         empty = "" if text else b""
         if check:
@@ -102,7 +114,8 @@ class Android:
         return run([self.adb, "-s", self.serial, *args], check=check, text=text)
 
     def shell(self, *args: str, check: bool = True) -> str:
-        return self.cmd("shell", *args, check=check).stdout.strip()
+        # ``stdout`` can be None when a child produced no decodable output.
+        return (self.cmd("shell", *args, check=check).stdout or "").strip()
 
     def start_link(self, uri: str) -> None:
         # adb shell concatenates remote command arguments and lets /system/bin/sh

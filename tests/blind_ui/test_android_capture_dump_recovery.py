@@ -119,3 +119,29 @@ def test_command_timeout_is_bounded_and_reported() -> None:
         [sys.executable, "-c", "import time; time.sleep(5)"], check=False, timeout=1
     )
     assert result.returncode == 124
+
+
+def test_text_output_is_decoded_as_utf8_regardless_of_host_locale() -> None:
+    """A GBK Windows console used to abort the whole capture.
+
+    `subprocess.run(..., text=True)` decoded adb's UTF-8 payload with the host
+    locale, so a Chinese Windows host raised UnicodeDecodeError and returned a
+    ``None`` stdout. Decoding is now pinned to UTF-8 with replacement.
+    """
+    payload = "UI hierchary dumped to: /sdcard/豆豆界面.xml"
+    program = f"import sys; sys.stdout.buffer.write({payload.encode('utf-8')!r})"
+    result = capture.run([sys.executable, "-c", program])
+    assert result.stdout.strip() == payload
+
+
+def test_shell_tolerates_missing_stdout() -> None:
+    android = ScriptedAndroid(dumps={})
+    original = android.cmd
+
+    def null_stdout(*args: str, check: bool = True, text: bool = True):
+        result = original(*args, check=check, text=text)
+        result.stdout = None
+        return result
+
+    android.cmd = null_stdout  # type: ignore[method-assign]
+    assert android.shell("cat", "/sdcard/pli_final_ui.xml", check=False) == ""
