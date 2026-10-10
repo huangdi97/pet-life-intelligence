@@ -96,6 +96,7 @@ export function Pet3DViewer({
   const canonicalFitRef = useRef<OrbitState>({ ...DEFAULT_ORBIT });
   /** Zoom clamp bounds derived from the fitted framing baseline. */
   const zoomBoundsRef = useRef<{ min: number; max: number }>({ min: 2.6, max: 7 });
+  const reviewFitRef = useRef<((yaw: number) => void) | null>(null);
 
   const draggingRef = useRef(false);
   const poseRef = useRef<PoseName | null>(pose);
@@ -330,6 +331,28 @@ export function Pet3DViewer({
       }
     };
     resize();
+    const fitReviewYaw = (yaw: number) => {
+      orbitRef.current = { ...orbitRef.current, yaw, pitch: DEFAULT_ORBIT.pitch };
+      if (stageRole === "review" && twin && frameTarget > 0 && camera) {
+        const fit = fitOrbitRadius(
+          petRoot,
+          camera,
+          { yaw, pitch: DEFAULT_ORBIT.pitch, radius: DEFAULT_ORBIT.radius },
+          frameTarget,
+          Math.max(1, Math.round(window.innerWidth)),
+          Math.max(1, Math.round(window.innerHeight)),
+          { fitYaws: [yaw], canvasRect: wrap.getBoundingClientRect() },
+        );
+        canonicalFitRef.current = { ...fit };
+        zoomBoundsRef.current = { min: fit.radius * 0.5, max: fit.radius * 2.5 };
+        orbitRef.current = { ...fit };
+      } else {
+        canonicalFitRef.current = { ...canonicalFitRef.current, yaw, pitch: DEFAULT_ORBIT.pitch };
+      }
+      if (camera) applyOrbit(camera, STAGE_TARGET, orbitRef.current);
+      syncOrientation();
+    };
+    reviewFitRef.current = fitReviewYaw;
     const ro = new ResizeObserver(resize);
     ro.observe(wrap);
     // Blind harness: publish the 3D runtime manifest to window (test/debug
@@ -519,6 +542,7 @@ export function Pet3DViewer({
           mesh.geometry?.dispose();
         }
       });
+      if (reviewFitRef.current === fitReviewYaw) reviewFitRef.current = null;
       renderer?.dispose();
       if (renderer?.domElement?.parentElement === wrap) wrap.removeChild(renderer.domElement);
     };
@@ -550,10 +574,14 @@ export function Pet3DViewer({
     win.__PLI_SET_ZOOM = (factor: number) => zoom(factor);
     win.__PLI_RESET_VIEW = () => reset();
     win.__PLI_SET_VIEW = (yawDeg: number) => {
-      orbitRef.current.yaw = yawDeg;
-      canonicalFitRef.current = { ...canonicalFitRef.current, yaw: yawDeg };
-      if (wrapRef.current) wrapRef.current.dataset.orientation = yawDeg.toFixed(2);
-      publishNow();
+      const fitReview = reviewFitRef.current;
+      if (fitReview) fitReview(yawDeg);
+      else {
+        orbitRef.current.yaw = yawDeg;
+        canonicalFitRef.current = { ...canonicalFitRef.current, yaw: yawDeg };
+        if (wrapRef.current) wrapRef.current.dataset.orientation = yawDeg.toFixed(2);
+        publishNow();
+      }
     };
     return () => {
       delete win.__PLI_SET_ZOOM;
@@ -584,15 +612,19 @@ export function Pet3DViewer({
   useEffect(() => {
     if (status !== "ready" || !view) return;
     const yaw = view === "side" ? Math.PI / 2 : view === "back" ? Math.PI : 0;
-    orbitRef.current.yaw = yaw;
-    orbitRef.current.pitch = DEFAULT_ORBIT.pitch;
-    canonicalFitRef.current = {
-      ...canonicalFitRef.current,
-      yaw,
-      pitch: DEFAULT_ORBIT.pitch,
-    };
-    if (wrapRef.current) wrapRef.current.dataset.orientation = yaw.toFixed(2);
-    publishNow();
+    const fitReview = reviewFitRef.current;
+    if (fitReview) fitReview(yaw);
+    else {
+      orbitRef.current.yaw = yaw;
+      orbitRef.current.pitch = DEFAULT_ORBIT.pitch;
+      canonicalFitRef.current = {
+        ...canonicalFitRef.current,
+        yaw,
+        pitch: DEFAULT_ORBIT.pitch,
+      };
+      if (wrapRef.current) wrapRef.current.dataset.orientation = yaw.toFixed(2);
+      publishNow();
+    }
   }, [view, viewRevision, status]);
 
   const meta = PET_3D_ASSETS[identity];
