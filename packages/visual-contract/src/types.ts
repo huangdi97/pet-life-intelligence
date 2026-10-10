@@ -171,8 +171,9 @@ export interface ManifestOriginCheckSpec {
   eq: "RUNTIME" | "SYNTHETIC_FALLBACK_EVIDENCE";
 }
 
-/** Identity gate: the candidate must be an individual twin bound to the
- * current pet, not a generic species glyph / procedural demo stage. */
+/** Identity-evidence gate: the runtime candidate must be bound to the
+ * current pet and, when sourceMediaMin is requested, carry real owner-media
+ * evidence. generic=false alone never proves visual likeness or high fidelity. */
 export interface IdentityCheckSpec {
   kind: "identity";
   generic?: false;
