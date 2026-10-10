@@ -44,6 +44,7 @@ interface DayHintExplanation {
 }
 
 interface DayHintResponse {
+  status: "INSUFFICIENT" | "STABLE" | "NOTABLE";
   hints: string[];
   rule: string;
   explanations?: DayHintExplanation[];
@@ -179,19 +180,26 @@ export default function Index() {
     dayHint?.hints.find(
       (value) => !value.includes("暂未出现需要突出显示的变化") && !value.includes("无明显异常"),
     ) ?? null;
-  const changeUnknown = dayHintState !== "ready";
   const changeDetail =
     dayHint?.explanations?.find((row) => row.notable) ??
     dayHint?.explanations?.find((row) => row.direction !== "INSUFFICIENT") ??
     dayHint?.explanations?.[0];
-  const changeSummary = changeUnknown
-    ? "今天的自身基线暂时没有完整读取到。"
-    : abnormalChange
-      ? abnormalChange
-      : "与它自己相比：今天暂未出现需要突出显示的变化。";
-  const changeEvidence = changeUnknown
-    ? "不会把未知状态显示成“没有变化”"
-    : changeDetail?.comparison ?? dayHint?.rule ?? "只比较同一时间点、同一指标口径的已记录事实";
+  const baselineInsufficient = dayHintState === "ready" && dayHint?.status === "INSUFFICIENT";
+  const changeUnknown = dayHintState !== "ready" || baselineInsufficient;
+  const changeSummary =
+    dayHintState !== "ready"
+      ? "今天的自身基线暂时没有完整读取到。"
+      : baselineInsufficient
+        ? "与它自己相比：同期基线记录还不够，暂时不能判断变化。"
+        : abnormalChange
+          ? abnormalChange
+          : "与它自己相比：今天暂未出现需要突出显示的变化。";
+  const changeEvidence =
+    dayHintState !== "ready"
+      ? "不会把未知状态显示成“没有变化”"
+      : baselineInsufficient
+        ? changeDetail?.comparison ?? "至少需要 3 天同一时间点的可比记录。"
+        : changeDetail?.comparison ?? dayHint?.rule ?? "只比较同一时间点、同一指标口径的已记录事实";
 
   function openSheet(t: (typeof QUICK_TYPES)[number]) {
     const form: Record<string, string> = {};
@@ -356,9 +364,9 @@ export default function Index() {
           <ChangeNarrative
             summary={changeSummary}
             evidence={changeEvidence}
-            fact={changeUnknown ? "今天的同期基线暂时没有完整读取到。" : changeDetail?.fact}
+            fact={dayHintState !== "ready" ? "今天的同期基线暂时没有完整读取到。" : changeDetail?.fact}
             comparison={changeDetail?.comparison}
-            uncertainty={changeUnknown ? "未知状态不会显示成“没有变化”。" : changeDetail?.uncertainty}
+            uncertainty={changeUnknown ? (changeDetail?.uncertainty ?? "记录不足或读取失败时，不会把未知状态显示成“没有变化”。") : changeDetail?.uncertainty}
             nextStep={changeDetail?.next_step}
             unknown={changeUnknown}
           />
