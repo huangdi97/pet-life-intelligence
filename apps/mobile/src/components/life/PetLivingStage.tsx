@@ -20,7 +20,7 @@ import { PetStateAnchor, type PetAnchor } from "./PetStateAnchor";
 
 export type StageVariant = "today" | "pet" | "life" | "review";
 
-const HEIGHTS: Record<StageVariant, number> = { today: 440, pet: 580, life: 590, review: 550 };
+const HEIGHTS: Record<StageVariant, number> = { today: 440, pet: 580, life: 520, review: 550 };
 const PET_WIDTHS: Record<StageVariant, number> = { today: 326, pet: 388, life: 414, review: 372 };
 
 // Today keeps the pet dominant while reserving enough first-fold room for Change → Attention → Action.\n// Pet/Life/Review remain deeper inspection canvases.\n// Life state facts belong in one quiet ribbon, not four HUD bubbles over the animal.
