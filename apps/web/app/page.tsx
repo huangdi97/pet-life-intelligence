@@ -332,10 +332,11 @@ export default function TodayPage() {
           className="v7-today-hero-quicklog"
           onClick={() => setSheetPetId(current.id)}
           aria-haspopup="dialog"
+          aria-label="记一笔生活记录"
           data-testid="pli.today.primary-action"
         >
           <Icon name="note" size={16} />
-          快速记录
+          记一笔
         </button>
       </div>
 
