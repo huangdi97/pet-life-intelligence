@@ -3,7 +3,7 @@
 import { use, useMemo, useState } from "react";
 
 import Link from "next/link";
-import { api } from "@pli/api-client";
+import { api, type LifeEvent } from "@pli/api-client";
 import { useAsync } from "../../../../lib/hooks";
 import { t } from "../../../../lib/i18n";
 import { Icon } from "../../../../components/icons";
@@ -45,12 +45,10 @@ interface VisualModelMini {
 }
 
 interface TodayMini {
-  events?: Array<{
-    event_type: string;
-    occurred_at: string;
-    payload?: Record<string, unknown>;
-    source_type?: string;
-  }>;
+  // /today and /events both return the canonical serialized LifeEvent shape.
+  // Keep this boundary truthful so historical media/provenance fields survive
+  // all the way into the shared timeline renderer.
+  events?: LifeEvent[];
   event_counts?: Record<string, number>;
 }
 
