@@ -28,6 +28,29 @@ interface TodayHealthEvent {
 
 type DayHintEntry = string | Record<string, string>;
 
+interface DayHintExplanation {
+  metric: string;
+  label: string;
+  unit: string;
+  current_value: number;
+  same_time_baseline: number | null;
+  sample_count: number;
+  window_days: number;
+  deviation_percent: number | null;
+  direction: "LOWER" | "HIGHER" | "SIMILAR" | "INSUFFICIENT";
+  notable: boolean;
+  fact: string;
+  comparison: string;
+  uncertainty: string;
+  next_step: string;
+}
+
+interface DayHintResponse {
+  hints?: DayHintEntry[];
+  rule?: string;
+  explanations?: DayHintExplanation[];
+}
+
 function ownerFacingHealthText(value: string | null | undefined, fallback: string): string {
   const text = value?.trim();
   if (!text) return fallback;
@@ -60,7 +83,7 @@ export default function TodayPage() {
         : Promise.reject(new Error("NO_PET_SELECTED")),
     [petId],
   );
-  const hint = useAsync<{ hints?: DayHintEntry[]; rule?: string }>(
+  const hint = useAsync<DayHintResponse>(
     () => (petId ? api.get(`/pets/${petId}/abnormal-day-hint`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [petId],
   );
@@ -125,17 +148,24 @@ export default function TodayPage() {
         : entry.message || entry.hint || entry.detail || "",
     )
     .filter((value): value is string => Boolean(value.trim()));
-  const abnormalChange = hintMessages.find((value) => !value.includes("无明显异常")) ?? null;
+  const abnormalChange =
+    hintMessages.find(
+      (value) => !value.includes("暂未出现需要突出显示的变化") && !value.includes("无明显异常"),
+    ) ?? null;
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
   const changeUnknown = hint.state !== "ready";
+  const changeDetail =
+    hint.data?.explanations?.find((row) => row.notable) ??
+    hint.data?.explanations?.find((row) => row.direction !== "INSUFFICIENT") ??
+    hint.data?.explanations?.[0];
   const changeSummary = changeUnknown
     ? "今天的自身基线暂时没有完整读取到。"
     : abnormalChange
       ? abnormalChange
-      : "按当前规则，今天与它自己的近期常态相比暂未出现明显变化。";
+      : "与它自己相比：今天暂未出现需要突出显示的变化。";
   const changeEvidence = changeUnknown
     ? "不会把未知状态显示成“没有变化”"
-    : hint.data?.rule || "只比较已记录事实，不推断情绪或健康结论";
+    : changeDetail?.comparison ?? hint.data?.rule ?? "只比较同一时间点、同一指标口径的已记录事实";
 
   const attentionState: TodayAttentionState = (() => {
     if (health.state !== "ready") {
@@ -293,7 +323,15 @@ export default function TodayPage() {
       <div className="v4-grid">
         <div>
           <NowCard lastEvent={lastEvent} counts={counts} />
-          <ChangeCard summary={changeSummary} evidence={changeEvidence} unknown={changeUnknown} />
+          <ChangeCard
+            summary={changeSummary}
+            evidence={changeEvidence}
+            fact={changeUnknown ? "今天的同期基线暂时没有完整读取到。" : changeDetail?.fact}
+            comparison={changeDetail?.comparison}
+            uncertainty={changeUnknown ? "未知状态不会显示成“没有变化”。" : changeDetail?.uncertainty}
+            nextStep={changeDetail?.next_step}
+            unknown={changeUnknown}
+          />
           <AttentionCard state={attentionState} />
           <ActionCard petId={current.id} onMore={() => setSheetPetId(current.id)} />
         </div>
