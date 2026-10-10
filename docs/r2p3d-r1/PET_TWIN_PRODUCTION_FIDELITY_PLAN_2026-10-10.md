@@ -85,7 +85,9 @@ Identity Gate
   - no machine score may self-activate
   ↓
 Rigging
-  - preferred candidate: UniRig class automatic skeleton + skinning
+  - preferred candidate: SkinTokens / TokenRig unified skeleton + skinning
+  - UniRig retained as predecessor/reference/fallback benchmark
+  - preserve source texture + scale when provider supports transfer
   - quadruped topology/weight QA
   ↓
 PLI Motion Layer
@@ -126,21 +128,42 @@ Windows + 16GB 主机强行本机运行。
 Research source:
 https://github.com/microsoft/TRELLIS.2
 
-### UniRig
+### SkinTokens / TokenRig
 
-当前公开实现提供：
+截至 2026-10-10，VAST-AI-Research 已公开 SkinTokens/TokenRig，并明确将其描述为
+UniRig 的 successor。它把 skeleton hierarchy 与 dense per-vertex skinning weights
+统一为一个 autoregressive rig sequence，而不是 UniRig 的两个独立阶段。
 
-- skeleton prediction；
-- per-vertex skinning prediction；
-- 面向 humans / animals / objects 的统一 rigging 方向；
-- current release 已公开 skeleton + skinning code/checkpoint；
-- repository license = MIT。
+官方仓库当前明确：
 
-它适合作为 **重建后的独立 Rig 阶段候选**，而不是外观重建器。
+- input = 一个 3D mesh；
+- output = skeleton hierarchy + skinning weights；
+- inference 需要 NVIDIA GPU ≥14GB；
+- `--use_transfer` 可保留原始 texture 与 scale；
+- repository license = MIT；
+- 官方 README 报告相对既有 baseline 的 skinning / bone prediction 改善，但这些数字
+  属于其论文/仓库声明，PLI 必须在宠物四足样本上独立 benchmark，不能直接当成产品准确率。
+
+因此 **SkinTokens / TokenRig 是当前首选 Rig Provider 候选**。它只解决 rigging，
+不解决宠物外观身份重建，也不能绕过主人 Review。
 
 Research source:
-https://github.com/Seed3D/UniRig
-（如官方组织/仓库迁移，以论文与官方发布页复核为准。）
+https://github.com/VAST-AI-Research/SkinTokens
+
+### UniRig
+
+UniRig 仍然是重要 predecessor / reference benchmark。官方仓库为：
+
+https://github.com/VAST-AI-Research/UniRig
+
+它同样覆盖自动 skeleton 与 skinning，但既然官方项目已把 SkinTokens 定义为 successor，
+PLI 新接入默认优先评估 SkinTokens；UniRig 保留为对照、回退与故障隔离候选。
+
+### Provider 许可与依赖边界
+
+TRELLIS.2 和 SkinTokens 仓库当前都标注 MIT，但生产接入仍必须单独审计：
+pretrained checkpoints、训练数据、运行依赖、第三方模型、部署条款与 owner media
+处理链。仓库 LICENSE = MIT 不自动把整条供应链判为 `LICENSE_AUDIT=PASS`。
 
 ### Hunyuan3D-2.1
 
