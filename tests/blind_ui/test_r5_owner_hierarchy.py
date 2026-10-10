@@ -1947,3 +1947,17 @@ def test_life_view_time_scrubber_is_truthful_across_owner_clients() -> None:
     assert "时间范围汇总不使用当前 3D" in mobile
     assert "时间范围汇总不使用当前 3D" in web
     assert "时间范围汇总 · 不使用当前 3D" in mini
+
+
+def test_twin_review_refits_each_real_camera_angle_without_cross_view_shrink() -> None:
+    """Front/back silhouettes must not inherit the widest side-view radius."""
+    web = read("apps/web/components/three/pet3d-viewer.tsx")
+    android = read("apps/mobile/scripts/pet-stage-entry.ts")
+
+    assert "reviewFitRef" in web
+    assert "{ fitYaws: [yaw], canvasRect: wrap.getBoundingClientRect() }" in web
+    assert "if (fitReview) fitReview(yaw);" in web
+    assert 'injectedStageRole === "review" ? [reviewPresetYaw ?? orbit.yaw]' in android
+    review_set = android[android.index("window.__PLI_SET_VIEW ="):android.index("const controls =")]
+    assert "applyFit();" in review_set
+    assert "post({ type: \"manifest\", manifest: buildManifest(), force: true });" in review_set
