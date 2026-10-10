@@ -59,7 +59,7 @@ export type StackParamList = {
   MediaMemory: { artifactIds: string[]; initialIndex?: number };
   Health: undefined;
   HealthDetail: { id: string };
-  LifeView: { date?: string } | undefined;
+  LifeView: { date?: string; anchor?: "water" | "meal" | "activity" | "sleep" } | undefined;
   Behavior: undefined;
   Training: undefined;
   Welfare: undefined;
