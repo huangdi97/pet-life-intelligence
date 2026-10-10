@@ -52,6 +52,7 @@ interface DayHintExplanation {
 }
 
 interface DayHintResponse {
+  status: "INSUFFICIENT" | "STABLE" | "NOTABLE";
   hints: string[];
   rule: string;
   as_of?: string;
@@ -153,6 +154,16 @@ export function TodayScreen() {
       explanations.find((row) => row.notable) ??
       explanations.find((row) => row.direction !== "INSUFFICIENT") ??
       explanations[0];
+    if (hint.status === "INSUFFICIENT") {
+      return {
+        summary: "与它自己相比：同期基线记录还不够，暂时不能判断变化。",
+        evidence: detail?.comparison ?? "至少需要 3 天同一时间点的可比记录。",
+        fact: detail?.fact,
+        comparison: detail?.comparison,
+        uncertainty: detail?.uncertainty ?? "记录不足时不会把未知状态显示成“没有变化”。",
+        nextStep: detail?.next_step ?? "继续记录真实发生的进食、活动和睡眠，积累可比同期事实。",
+      };
+    }
     const abnormal = hint.hints.find((x) => !x.includes("暂未出现需要突出显示的变化") && !x.includes("无明显异常"));
     return {
       summary: abnormal ?? "与它自己相比：今天暂未出现需要突出显示的变化。",
