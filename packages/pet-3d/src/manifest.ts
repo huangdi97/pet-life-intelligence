@@ -34,8 +34,9 @@ export interface ManifestBuildInput {
   representation: string;
   /**
    * Phase E: legacy R3-era label kept for backward-compatible readers; the
-   * canonical `representation` must describe the asset that is really on
-   * screen (e.g. high-fidelity-glb-twin), never a stale synthetic label.
+   * canonical `representation` describes the asset/rendering form that is
+   * really on screen (e.g. rigged-glb-twin), never its unproven identity
+   * fidelity. Visual/identity truth lives in the dedicated fields below.
    */
   legacyRepresentation?: string | null;
   fallbackUsed: boolean;
