@@ -523,6 +523,16 @@ def capture_review_views(
             expected_stage_role="review",
             expected_pose="Stand",
         )
+        # Product presence gate: a loaded GLB is not visually acceptable when
+        # the selected inspection angle shrinks into a small object. Narrow
+        # front/back silhouettes may be area-limited, so accept either a
+        # substantial viewport area OR a tall, readable silhouette.
+        area_ratio = float(manifest.get("projectedAreaRatio") or 0)
+        height_ratio = float(manifest.get("projectedPetHeightRatio") or 0)
+        if area_ratio < 0.20 and height_ratio < 0.68:
+            raise CaptureError(
+                f"Twin Review pet too small at {view}: area={area_ratio:.3f}, height={height_ratio:.3f}"
+            )
         save_manifest(directory / f"3d_view_{view}.json", manifest)
         android.screenshot(directory / f"{prefix}_{view}.png")
         xml = android.dump_xml(directory / "ui.xml")
