@@ -296,7 +296,6 @@ export function TodayScreen() {
               : anchors.map((a) => ({
                   ...a,
                   testID: `pli.today.anchor.${a.id}`,
-                  onPress: a.id === "activity" ? () => tabNav.navigate("Timeline") : undefined,
                 }))
           }
           headline={loading ? undefined : headline}
