@@ -23,7 +23,7 @@ export function ActionCard({ petId, onMore }: ActionCardProps) {
         className="v4-action v4-action--primary v5-today-primary"
         onClick={onMore}
         aria-haspopup="dialog"
-        data-testid="pli.today.primary-action"
+        data-testid="pli.today.action.quick-log"
       >
         <span className="v4-action-icon"><Icon name="note" size={17} /></span>
         快速记录
