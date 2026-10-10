@@ -90,6 +90,8 @@ def test_abnormal_day_hint_uses_same_clock_duration_not_event_count(client, seed
     assert walk["current_value"] == expected_walk_minutes
     assert walk["sample_count"] >= 3
     assert walk["same_time_baseline"] is not None
+    assert walk["source_scope"] == "RECORDED_LIFE_EVENTS"
+    assert isinstance(walk["deviation_percent"], int)
     assert "同一时间" in walk["comparison"]
     assert "不能据此判断疾病" in walk["uncertainty"]
     assert "同期对比" in body["rule"]
