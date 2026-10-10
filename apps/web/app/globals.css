@@ -2655,3 +2655,23 @@ body{background:#FBF7F1}
     bottom:68px;
   }
 }
+
+
+/* R7.12 Today hero action — preserve a large pet-first Living Canvas without
+   making the owner scroll past the fixed phone dock before they can log a
+   real event. The full ACTION section remains later in the canonical
+   PET→NOW→CHANGE→ATTENTION→ACTION reading sequence; this is only its shortcut. */
+.v7-today-hero-shell{position:relative}
+.v7-today-hero-quicklog{
+  position:absolute;right:18px;bottom:88px;z-index:9;
+  min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+  gap:7px;padding:9px 14px;border:1px solid rgba(255,255,255,.78);
+  border-radius:999px;background:rgba(255,253,247,.91);color:#365F49;
+  box-shadow:0 7px 20px rgba(60,68,56,.10);backdrop-filter:blur(12px);
+  font:700 13px/1.2 inherit;cursor:pointer;
+}
+.v7-today-hero-quicklog:hover{background:#FFFEFA}
+.v7-today-hero-quicklog:focus-visible{outline:3px solid rgba(54,95,73,.22);outline-offset:2px}
+@media(min-width:769px){
+  .v7-today-hero-quicklog{right:28px;bottom:92px}
+}
