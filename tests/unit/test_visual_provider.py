@@ -76,7 +76,8 @@ def test_provider_status_honest_blocked():
         "status": "DESIGN_ONLY_NOT_CONFIGURED",
         "appearance_reconstruction": "trellis2",
         "identity_gate": "OWNER_MEDIA_QC_PLUS_OWNER_REVIEW",
-        "rigging": "unirig",
+        "rigging": "skintokens_tokenrig",
+        "rigging_reference": "unirig",
         "motion": "pli_motion_layer",
         "runtime": "dual_lod_glb",
     }
