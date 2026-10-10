@@ -12,6 +12,8 @@ interface EventListProps {
   events: LifeEvent[];
   /** Current pet name for honest empty copy. */
   petName?: string;
+  /** Current pet id enables a day header to open historical Life View. */
+  petId?: string;
 }
 
 const TYPE_ICONS: Record<string, WebIconName> = {
@@ -55,7 +57,7 @@ function dayLabel(isoDay: string): { main: string; relative: string } {
 }
 
 /** OWN-003 Timeline — Life Stream：Day Group + time spine，不再逐条独立白卡。 */
-export function EventList({ events, petName = "它" }: EventListProps) {
+export function EventList({ events, petName = "它", petId }: EventListProps) {
   if (events.length === 0) {
     return (
       <div className="v4-sec">
@@ -93,8 +95,20 @@ export function EventList({ events, petName = "它" }: EventListProps) {
         return (
           <li key={day} className="ls-day" data-testid="pli.timeline.group">
             <div className="ls-day-title">
-              {main}
-              {relative && <span className="ls-day-relative">{relative}</span>}
+              <span>
+                {main}
+                {relative && <span className="ls-day-relative">{relative}</span>}
+              </span>
+              {petId ? (
+                <Link
+                  href={`/pets/${petId}/life-view?date=${encodeURIComponent(day)}`}
+                  className="ls-day-back"
+                  data-testid={`pli.timeline.day.${day}`}
+                  aria-label={`回到 ${main} 的生命视图`}
+                >
+                  回到这一天
+                </Link>
+              ) : null}
             </div>
             {rows.map((e) => {
               const label = eventTypeLabel(e.event_type);
