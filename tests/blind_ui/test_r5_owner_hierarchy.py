@@ -2035,3 +2035,21 @@ def test_today_change_explains_facts_without_ai_or_medical_inference() -> None:
     assert 'testID="pli.today.change.explain"' in mobile
     assert 'data-testid="pli.today.change.explain"' in web
     assert 'data-testid="pli.mini.today.change.explain"' in mini
+
+
+def test_historical_life_view_exposes_that_days_original_media_across_clients() -> None:
+    mobile = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    web = read("apps/web/app/pets/[id]/life-view/page.tsx")
+    mini = read("apps/mini/src/pages/pets/life-view/index.tsx")
+
+    assert 'testID="pli.lifeview.history-events"' in mobile
+    assert 'onOpenMedia={(artifactIds) => navigation.navigate("MediaMemory", { artifactIds })}' in mobile
+    assert 'data-testid="pli.lifeview.history-events"' in web
+    assert "<EventList events={events} petName={name} />" in web
+    assert "mediaCount: e.artifact_ids?.length ?? 0" in mini
+    assert "artifactIds: e.artifact_ids ?? []" in mini
+    assert "openHistoricalMedia" in mini
+    assert "getPlatform().media.openArtifact" in mini
+
+    for source in (mobile, web, mini):
+        assert "那一天" in source or "历史" in source
