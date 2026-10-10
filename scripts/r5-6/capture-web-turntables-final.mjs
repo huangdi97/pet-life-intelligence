@@ -91,14 +91,35 @@ async function capture(browser, userId, petId, folder, requiredViews) {
     if (!manifest || manifest.petId !== petId) {
       throw new Error(`runtime manifest pet mismatch for ${folder}/${name}`);
     }
+    const sourceMediaCount = Number(manifest.sourceMediaCount ?? 0);
+    const identityEvidence = manifest.individualIdentityEvidence === true;
+    const fidelityTier = manifest.visualFidelityTier;
+    const fidelityConsistent =
+      (fidelityTier === "STYLIZED_REFERENCE" && sourceMediaCount === 0 && !identityEvidence) ||
+      (fidelityTier === "OWNER_MEDIA_REFERENCED" && sourceMediaCount > 0 && identityEvidence);
     if (
       manifest.ready !== true ||
       manifest.manifestOrigin !== "RUNTIME" ||
-      manifest.representation !== "high-fidelity-glb-twin" ||
+      manifest.representation !== "rigged-glb-twin" ||
+      manifest.technicalRepresentationQuality !== "RIGGED_PBR_SKINNED" ||
+      manifest.productCandidate !== true ||
+      !fidelityConsistent ||
       manifest.generic === true ||
       manifest.fallbackUsed === true
     ) {
-      throw new Error(`non-product runtime representation for ${folder}/${name}`);
+      throw new Error(
+        `non-product runtime representation for ${folder}/${name}: ` +
+        JSON.stringify({
+          representation: manifest.representation,
+          technicalRepresentationQuality: manifest.technicalRepresentationQuality,
+          visualFidelityTier: fidelityTier,
+          sourceMediaCount,
+          individualIdentityEvidence: identityEvidence,
+          productCandidate: manifest.productCandidate,
+          generic: manifest.generic,
+          fallbackUsed: manifest.fallbackUsed,
+        }),
+      );
     }
     if (manifest.stageRole !== "life") {
       throw new Error(
