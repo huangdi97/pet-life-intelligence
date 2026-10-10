@@ -2024,7 +2024,7 @@ def test_today_change_explains_facts_without_ai_or_medical_inference() -> None:
     mobile_today = read("apps/mobile/src/screens/TodayScreen.tsx")
 
     for source in (mobile, web, mini):
-        for label in ("事实", "比较依据", "不确定性", "下一步"):
+        for label in ("事实", "与它自己相比", "不确定性", "下一步"):
             assert label in source
         assert "不能据此判断疾病、疼痛或情绪" in source
         assert "继续记录饮水、进食、活动和睡眠" in source
@@ -2038,6 +2038,22 @@ def test_today_change_explains_facts_without_ai_or_medical_inference() -> None:
     assert "minHeight: 44" in mobile
     assert "min-height:44px" in read("apps/web/app/globals.css")
     assert "min-height:44px" in read("apps/mini/src/app.scss")
+    # The product explanation must consume the backend's structured same-clock
+    # facts. Repeating a summary under "事实" is not sufficient.
+    web_today = read("apps/web/app/page.tsx")
+    mini_today = read("apps/mini/src/pages/index/index.tsx")
+    for source in (mobile_today, web_today, mini_today):
+        assert "explanations" in source
+        assert ".fact" in source
+        assert ".comparison" in source
+        assert ".uncertainty" in source
+        assert ".next_step" in source
+    backend = read("services/api/app/api/routes/v10_extras_services.py")
+    assert '"mode": "duration"' in backend
+    assert "duration_minutes" in backend
+    assert "same_time_baseline" in backend
+    assert "clock_seconds" in backend
+    assert "RECORDED_LIFE_EVENTS" in backend
 
 
 def test_historical_life_view_exposes_that_days_original_media_across_clients() -> None:
