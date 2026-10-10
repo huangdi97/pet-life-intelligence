@@ -13,7 +13,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { api, type DeviceRow, type HealthEventRow, type LifeEvent, type Task } from "../api";
 import { usePets } from "../context";
@@ -65,11 +65,16 @@ interface AnchorDetail {
 export function LifeViewScreen() {
   const { pets, petId } = usePets();
   const navigation = useNavigation<NativeStackNavigationProp<StackParamList>>();
+  const route = useRoute<RouteProp<StackParamList, "LifeView">>();
+  const requestedDate =
+    route.params?.date && /^\d{4}-\d{2}-\d{2}$/.test(route.params.date)
+      ? route.params.date
+      : null;
   const { twin, loading: twinLoading, error: twinError } = usePetTwin(petId);
   const [rawToday, setToday] = useState<{ events: LifeEvent[] } | null>(null);
   const [mode, setMode] = useState<LivingMode>("now");
-  const [timeScope, setTimeScope] = useState<TimeScope>("now");
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [timeScope, setTimeScope] = useState<TimeScope>(requestedDate ? "date" : "now");
+  const [selectedDate, setSelectedDate] = useState(() => requestedDate ?? new Date().toISOString().slice(0, 10));
   const [loadedScopeKey, setLoadedScopeKey] = useState<string | null>(null);
   const [historyPetId, setHistoryPetId] = useState<string | null>(null);
   const [historyModels, setHistoryModels] = useState<HistoricalVisualModel[]>([]);
@@ -107,6 +112,14 @@ export function LifeViewScreen() {
   const detail = detailPetId === pet?.id ? rawDetail : null;
   const baseline = baselinePetId === pet?.id ? rawBaseline : [];
   const scopedBaselineState = baselinePetId === pet?.id ? baselineState : "loading";
+
+  useEffect(() => {
+    if (!requestedDate) return;
+    setSelectedDate(requestedDate);
+    setTimeScope("date");
+    setMode("now");
+    setDetail(null);
+  }, [requestedDate]);
 
   useEffect(() => {
     if (!pet?.id) return;
