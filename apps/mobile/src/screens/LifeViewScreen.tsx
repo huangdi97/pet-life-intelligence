@@ -507,6 +507,13 @@ export function LifeViewScreen() {
           </View>
         ) : null}
 
+        {/* Keep interpretation mode reachable before the tall 3D field.
+            Owners choose what they want to understand, then inspect the pet;
+            they should not scroll through a full-stage renderer to find modes. */}
+        <View testID="pli.lifeview.control.modes">
+          <LivingModeSwitcher value={mode} onChange={setMode} onTimeline={() => navigation.navigate("Tabs", { screen: "Timeline" })} />
+        </View>
+
         <View style={styles.stageWrap}>
           <PetLivingStage
             pet={stagePet}
@@ -543,10 +550,6 @@ export function LifeViewScreen() {
         </View>
         ) : null}
 
-
-        <View testID="pli.lifeview.control.modes">
-          <LivingModeSwitcher value={mode} onChange={setMode} onTimeline={() => navigation.navigate("Tabs", { screen: "Timeline" })} />
-        </View>
 
         {currentFactScope ? (
         <View testID="pli.lifeview.support-facts" style={styles.supportFacts} accessibilityLabel="体重、任务与设备状态">
