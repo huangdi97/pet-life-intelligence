@@ -1384,6 +1384,21 @@ def test_owner_3d_never_swaps_individual_descriptor_for_bundled_demo_glb() -> No
     assert 'visualFidelityTier' in mobile_runtime
     assert 'individualIdentityEvidence' in manifest
     assert 'technicalRepresentationQuality' in manifest
+    # Rendering form and identity fidelity are deliberately separate truths.
+    # A bundled/skinned demo GLB may be technically complete while remaining
+    # TEMPLATE_PROVISIONAL / STYLIZED_REFERENCE.
+    assert '"rigged-glb-twin"' in web_viewer
+    assert '"rigged-glb-twin"' in mobile_runtime
+    assert '"high-fidelity-glb-twin"' not in web_viewer
+    assert '"high-fidelity-glb-twin"' not in mobile_runtime
+    capture = read("scripts/r5-6/capture-android-final.py")
+    validator = read("scripts/r5-6/validate-final-evidence.py")
+    for gate in (capture, validator):
+        assert '"rigged-glb-twin"' in gate
+        assert '"RIGGED_PBR_SKINNED"' in gate
+        assert '"STYLIZED_REFERENCE"' in gate
+    assert '"high-fidelity-glb-twin"' not in capture
+    assert '"high-fidelity-glb-twin"' not in validator
     assert 'const photoFirstByDefault = Boolean(photoUri);' in web_stage
     assert 'const photoFirstByDefault = Boolean(photoUri && variant !== "review");' in mobile_stage
     assert "geo.computeVertexNormals()" in loader
