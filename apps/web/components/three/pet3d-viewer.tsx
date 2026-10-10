@@ -431,11 +431,11 @@ export function Pet3DViewer({
         // real owner media participates in this pet's appearance pipeline.
         representationQuality: hdTwin ? "HIGH_FIDELITY_SKINNED" : "engineering",
         technicalRepresentationQuality: hdTwin ? "RIGGED_PBR_SKINNED" : "PROCEDURAL_ENGINEERING",
-        visualFidelityTier: demoTwin && hdTwin
-          ? "STYLIZED_REFERENCE"
-          : twin && sourceMediaCount > 0 && !demoTwin
+        visualFidelityTier: hdTwin
+          ? twin && sourceMediaCount > 0 && !demoTwin
             ? "OWNER_MEDIA_REFERENCED"
-            : "ENGINEERING_FALLBACK",
+            : "STYLIZED_REFERENCE"
+          : "ENGINEERING_FALLBACK",
         individualIdentityEvidence: Boolean(twin && sourceMediaCount > 0 && !demoTwin),
         productCandidate: hdTwin !== null,
         personalizedSkinnedTemplate: Boolean(hdTwin?.personalized),
