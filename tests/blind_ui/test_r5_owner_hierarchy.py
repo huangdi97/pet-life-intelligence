@@ -2153,3 +2153,14 @@ def test_today_life_anchors_open_canonical_fact_details_across_clients() -> None
     assert ' : "—"' in mini_today
     assert "const routeAnchorRaw = routeParams?.anchor;" in mini_life
     assert "initialAnchorRef" in mini_life
+
+
+def test_mini_living_canvas_uses_warm_room_not_green_flood() -> None:
+    css = read("apps/mini/src/app.scss")
+    block = css[css.index("/* R7 Owner living canvas"):css.index("// R7.2 Mini Life View")]
+    assert "#FBF6EC" in block
+    assert "#F2E6D5" in block
+    assert "#E6D2B7" in block
+    assert "#EFF3E8" not in block
+    assert "#DBE8D7" not in block
+    assert "no fictitious Mini 3D runtime" in block
