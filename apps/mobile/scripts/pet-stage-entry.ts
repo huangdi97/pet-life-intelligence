@@ -225,7 +225,10 @@ bundledTwin.then((twin) => {
 });
 // §31 aspect-aware auto-framing (mirrors web): fit the projected pet box onto frameTarget of the full viewport.
 function applyFit(): void {
-  if (!twinDescriptor || !(frameTarget > 0)) return;
+  // Bundled demo GLBs are real product-rendered geometry too. They still need
+  // the same aspect-aware camera fit even when no backend Twin descriptor is
+  // present; otherwise Android falls back to the old small demo framing.
+  if (!(twinDescriptor || injectedDemoTwin) || !(frameTarget > 0)) return;
   const fit = fitOrbitRadius(
     petRoot,
     camera,
