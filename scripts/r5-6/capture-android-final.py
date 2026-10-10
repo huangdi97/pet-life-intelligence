@@ -457,6 +457,25 @@ def capture_surface(
                 raise CaptureError(
                     f"broken owner state leaked into Android surface {screen}: {forbidden}"
                 )
+    if screen == "lifeview":
+        root = ET.fromstring(xml)
+        modebar = next(
+            (
+                node
+                for node in root.iter("node")
+                if "pli.lifeview.modebar" in node.attrib.get("resource-id", "")
+            ),
+            None,
+        )
+        if modebar is None:
+            raise CaptureError("Life View primary mode rail is missing from the real Android viewport")
+        bounds = modebar.attrib.get("bounds", "")
+        match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+        visible_height = (int(match.group(4)) - int(match.group(2))) if match else 0
+        if visible_height < 44:
+            raise CaptureError(
+                f"Life View primary mode rail is clipped in the first viewport: visible_height={visible_height}px"
+            )
     if needs_manifest:
         # Prove the high-fidelity runtime is ready before freezing the visual
         # frame. This prevents a screenshot of an earlier procedural/loading
