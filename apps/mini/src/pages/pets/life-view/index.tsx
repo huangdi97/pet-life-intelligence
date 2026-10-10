@@ -88,6 +88,11 @@ function baselineLabel(metric: string): string | null {
 
 export default function LifeView() {
   const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
+  const routeDateRaw = Taro.getCurrentInstance().router?.params?.date;
+  const requestedDate =
+    typeof routeDateRaw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(routeDateRaw)
+      ? routeDateRaw
+      : null;
   const [today, setToday] = useState<{ events: LifeEvent[] } | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [models, setModels] = useState<VisualModelRow[] | null>(null);
@@ -96,8 +101,8 @@ export default function LifeView() {
   const [baselineState, setBaselineState] = useState<"loading" | "ready" | "error">("loading");
   const [mode, setMode] = useState<LifeMode>("now");
   const [detailId, setDetailId] = useState<DetailId | null>(null);
-  const [timeScope, setTimeScope] = useState<TimeScope>("now");
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [timeScope, setTimeScope] = useState<TimeScope>(requestedDate ? "date" : "now");
+  const [selectedDate, setSelectedDate] = useState(() => requestedDate ?? new Date().toISOString().slice(0, 10));
   const [supportTasks, setSupportTasks] = useState<Task[]>([]);
   const [supportDevices, setSupportDevices] = useState<DeviceMini[]>([]);
   const [supportHealth, setSupportHealth] = useState<HealthMini[]>([]);
