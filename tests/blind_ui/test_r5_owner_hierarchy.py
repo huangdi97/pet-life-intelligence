@@ -1191,7 +1191,8 @@ def test_mini_life_view_is_photo_first_and_uses_canonical_four_way_rail() -> Non
     assert 'Taro.switchTab({ url: "/pages/timeline/index" })' in life
     assert 'data-testid="pli.mini.lifeview.anchor-detail"' in life
     assert "真实照片优先" in life
-    assert "小程序不使用静态贴图伪装 3D" in life
+    assert "小程序不使用静态贴图" in life
+    assert "伪装历史 3D" in life
     assert "/visual/status" not in life
     assert "/visual-models" in life
     assert "/baseline" in life
@@ -1451,7 +1452,7 @@ def test_cross_client_living_twin_keeps_pose_grounding_and_motion_safety() -> No
     assert "representativePose" in web_today
     assert "pose={twinDescriptor ? representativePose : null}" in web_today
     assert "poseForEvent" in web_life
-    assert "pose={twinDescriptor ? representativePose : null}" in web_life
+    assert "pose={displayDescriptor ? representativePose : null}" in web_life
 
     # Auto-fit establishes safe zoom bounds. Pinch zoom must use them, and
     # ambient motion must respect the OS reduced-motion preference.
@@ -1643,7 +1644,7 @@ def test_owner_life_view_copy_hides_model_versions_and_provider_language() -> No
 
     # Version/provenance remains in data plumbing; only owner-facing copy
     # is simplified. Dedicated TwinVersion management is the audit surface.
-    assert "twinVersion" in web
+    assert "displayVersion" in web
 
 
 def test_frequent_walk_quicklog_is_two_step_without_invented_duration() -> None:
