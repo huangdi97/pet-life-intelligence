@@ -25,9 +25,11 @@ export interface LifeStreamDay {
 export function LifeStream({
   days,
   onOpenMedia,
+  onOpenDay,
 }: {
   days: LifeStreamDay[];
   onOpenMedia?: (artifactIds: string[]) => void;
+  onOpenDay?: (date: string) => void;
 }) {
   if (!days.length) return null;
   return (
@@ -35,8 +37,16 @@ export function LifeStream({
       {days.map((d) => (
         <View className="life-day" key={d.id}>
           <View className="life-day-label">
-            {d.label}
-            {d.isToday ? " · 今天" : ""}
+            <Text>{d.label}{d.isToday ? " · 今天" : ""}</Text>
+            {onOpenDay && /^\d{4}-\d{2}-\d{2}$/.test(d.id) ? (
+              <Text
+                className="life-day-back"
+                data-testid={`pli.mini.timeline.day.${d.id}`}
+                onClick={() => onOpenDay(d.id)}
+              >
+                回到这一天 ›
+              </Text>
+            ) : null}
           </View>
           {d.rows.map((r) => (
             <View className="life-row" key={r.id}>
