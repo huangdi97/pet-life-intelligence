@@ -2077,3 +2077,30 @@ def test_historical_life_view_exposes_that_days_original_media_across_clients() 
 
     for source in (mobile, web, mini):
         assert "那一天" in source or "历史" in source
+
+
+def test_today_sleep_anchor_is_observed_duration_across_owner_clients() -> None:
+    """Living state says how long the pet slept, never how many log rows exist."""
+    android = read("apps/mobile/src/screens/TodayScreen.tsx")
+    android_helper = read("apps/mobile/src/screens/today_helpers.ts")
+    web = read("apps/web/app/page.tsx")
+    web_helper = read("apps/web/app/_components/today/activity.ts")
+    mini = read("apps/mini/src/pages/index/index.tsx")
+
+    assert 'observedDurationMinutes(todayEvents, "daily.sleep")' in android
+    assert 'formatObservedDuration(sleepMins)' in android
+    assert 'counts["daily.sleep"] ? `${counts["daily.sleep"]} 次`' not in android
+    assert "export function observedDurationMinutes" in android_helper
+    assert "export function formatObservedDuration" in android_helper
+
+    assert 'observedDurationMinutes(today.data?.events ?? [], "daily.sleep")' in web
+    assert 'formatObservedDuration(sleepMinutes)' in web
+    assert 'anchorValue(counts["daily.sleep"] ?? 0, "次")' not in web
+    assert "export function observedDurationMinutes" in web_helper
+    assert "export function formatObservedDuration" in web_helper
+
+    assert 'event.event_type === "daily.sleep"' in mini
+    assert "formatDuration(sleepMinutes)" in mini
+    assert 'value: `${counts["daily.sleep"] ?? 0} 次`' not in mini
+    for source in (android_helper, web_helper, mini):
+        assert "minutes > 24 * 60" in source
