@@ -1961,3 +1961,9 @@ def test_twin_review_refits_each_real_camera_angle_without_cross_view_shrink() -
     review_set = android[android.index("window.__PLI_SET_VIEW ="):android.index("const controls =")]
     assert "applyFit();" in review_set
     assert "post({ type: \"manifest\", manifest: buildManifest(), force: true });" in review_set
+
+
+def test_android_runtime_evidence_rejects_tiny_review_pet_presence() -> None:
+    runner = read("scripts/r5-6/capture-android-final.py")
+    assert 'area_ratio < 0.20 and height_ratio < 0.68' in runner
+    assert 'Twin Review pet too small at {view}' in runner
