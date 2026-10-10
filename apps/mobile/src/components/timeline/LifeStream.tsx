@@ -27,6 +27,8 @@ export interface LifeStreamRow {
 
 export interface LifeStreamDay {
   id: string;
+  /** Canonical YYYY-MM-DD used to open that exact historical Life View. */
+  date?: string;
   label: string;
   isToday?: boolean;
   rows: LifeStreamRow[];
@@ -35,20 +37,36 @@ export interface LifeStreamDay {
 export function LifeStream({
   days,
   onOpenMedia,
+  onOpenDay,
 }: {
   days: LifeStreamDay[];
   onOpenMedia?: (artifactIds: string[]) => void;
+  onOpenDay?: (date: string) => void;
 }) {
   return (
     <View testID="pli.timeline.stream" accessible accessibilityLabel="生活时间线">
       {days.map((day) => (
         <View key={day.id}>
           <View testID="pli.timeline.group" style={styles.dayHead}>
-            <Text style={styles.dayLabel}>{day.label}</Text>
-            {day.isToday ? (
-              <View style={styles.todayChip}>
-                <Text style={styles.todayChipText}>今天</Text>
-              </View>
+            <View style={styles.dayIdentity}>
+              <Text style={styles.dayLabel}>{day.label}</Text>
+              {day.isToday ? (
+                <View style={styles.todayChip}>
+                  <Text style={styles.todayChipText}>今天</Text>
+                </View>
+              ) : null}
+            </View>
+            {day.date && onOpenDay ? (
+              <Pressable
+                testID={`pli.timeline.day.${day.date}`}
+                accessibilityRole="button"
+                accessibilityLabel={`回到 ${day.label} 的生命视图`}
+                onPress={() => onOpenDay(day.date!)}
+                style={styles.dayBackAction}
+              >
+                <Text style={styles.dayBackText}>回到这一天</Text>
+                <Ionicons name="chevron-forward" size={14} color={COLORS.brandPrimaryDeep} />
+              </Pressable>
             ) : null}
           </View>
           <View style={styles.spine}>
@@ -126,7 +144,10 @@ function LifeStreamEvent({
 
 
 const styles = StyleSheet.create({
-  dayHead: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s5, paddingBottom: SPACE.s2 },
+  dayHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s5, paddingBottom: SPACE.s2 },
+  dayIdentity: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, flexShrink: 1 },
+  dayBackAction: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: SPACE.s2, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen },
+  dayBackText: { fontSize: TYPE.caption, color: COLORS.brandPrimaryDeep, fontWeight: "700" },
   dayLabel: { fontSize: TYPE.section, fontWeight: "600", color: COLORS.textPrimary },
   todayChip: { backgroundColor: COLORS.brandSoftGreen, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   todayChipText: { fontSize: TYPE.caption, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
