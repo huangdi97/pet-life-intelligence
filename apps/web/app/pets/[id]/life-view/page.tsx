@@ -146,7 +146,7 @@ export default function PetLifeViewPage({ params }: { params: Promise<{ id: stri
   const displayMeta = (displayModel?.metadata_json as Record<string, unknown> | undefined) ?? {};
   const isDemoTwin = displayMeta.demo_fixture === true;
   const scopeLabel =
-    timeScope === "now" ? "现在" :
+    timeScope === "now" ? "此刻" :
     timeScope === "today" ? "今天" :
     timeScope === "7d" ? "最近 7 天" :
     timeScope === "30d" ? "最近 30 天" :
