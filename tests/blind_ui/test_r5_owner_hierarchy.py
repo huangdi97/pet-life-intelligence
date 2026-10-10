@@ -1997,7 +1997,7 @@ def test_timeline_days_open_truthful_historical_life_view_across_clients() -> No
     assert "date?: string;" in android_stream
     assert "occurred_at?.slice(0, 10)" in android_group
     assert 'onOpenDay={(date) => navigation.navigate("LifeView", { date })}' in android_timeline
-    assert 'LifeView: { date?: string } | undefined;' in android_nav
+    assert 'LifeView: { date?: string; anchor?: "water" | "meal" | "activity" | "sleep" } | undefined;' in android_nav
     assert 'useRoute<RouteProp<StackParamList, "LifeView">>()' in android_life
     assert 'requestedDate ? "date" : "now"' in android_life
 
