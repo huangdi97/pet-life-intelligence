@@ -642,11 +642,25 @@ def main() -> None:
     secondary_today = out / "secondary-sanity"
     secondary_today.mkdir(parents=True, exist_ok=True)
     android.clear_runtime_manifest()
-    android.start_link(f"pli-demo://nav?screen=today&pet={secondary_id}")
-    time.sleep(6)
-    secondary_today_xml = android.dump_xml(secondary_today / "ui.xml")
+    secondary_today_xml = ""
+    # Pet selection and root reset are two asynchronous boundaries on the
+    # hosted emulator. Re-issue the SAME deterministic deep link while polling
+    # the exact Today root; never accept a stale prior surface.
+    for attempt in range(12):
+        if attempt in (0, 4, 8):
+            android.start_link(f"pli-demo://nav?screen=today&pet={secondary_id}")
+        time.sleep(1 if attempt else 3)
+        secondary_today_xml = android.dump_xml(secondary_today / "ui.xml")
+        if "pli.today.living-stage" in secondary_today_xml:
+            break
     if "pli.today.living-stage" not in secondary_today_xml:
-        raise CaptureError("secondary pet sanity capture is not on Today")
+        observed_ids = sorted(
+            set(re.findall(r'resource-id="(pli\\.[^"]+)"', secondary_today_xml))
+        )[:12]
+        raise CaptureError(
+            "secondary pet sanity capture is not on Today after deterministic retries; "
+            f"observed_ui_ids={observed_ids}"
+        )
     secondary_manifest = android.read_runtime_manifest(
         expected_pet_id=secondary_id,
         expected_stage_role="today",
