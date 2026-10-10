@@ -69,11 +69,14 @@ The capture mechanism may be a local agent or a small `miniprogram-automator` ru
 
 ## Deterministic post-capture gate
 
-Run:
+After the six native screenshots exist, stamp the exact repository and DevTools provenance, then build the contact sheet:
 
 ```bash
+node scripts/r5-6/stamp-mini-final.mjs --devtools-version "<actual WeChat DevTools version>"
 python scripts/r5-6/contact_sheets_ci.py --platform mini
 ```
+
+The complete all-platform package can then run `python scripts/r5-6/contact_sheets_final.py` followed by `python scripts/r5-6/validate-final-evidence.py`. The final validator repeats the native-WeChat provenance checks so the gate cannot be bypassed by supplying six arbitrary PNG files.
 
 The script fails loudly when:
 

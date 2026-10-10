@@ -192,6 +192,22 @@ def main() -> None:
     android_capture = load_json(ANDROID / "capture-manifest.json")
     mini_capture = load_json(MINI / "capture-manifest.json")
     turntable_capture = load_json(TURNTABLE / "capture-manifest.json")
+
+    # Native Mini truth: compile success or H5 screenshots are never accepted
+    # as WeChat Mini runtime evidence. This metadata is stamped only after the
+    # six screenshots have been captured in the actual WeChat DevTools runtime.
+    if mini_capture.get("platform") != "weapp":
+        raise ValueError("Mini evidence platform must be weapp")
+    if mini_capture.get("capture_method") != "WECHAT_DEVTOOLS_AUTOMATOR":
+        raise ValueError("Mini evidence must come from WeChat DevTools Automator")
+    if mini_capture.get("native_runtime") is not True:
+        raise ValueError("Mini evidence must declare native_runtime=true")
+    if mini_capture.get("vision_model_used") is not False:
+        raise ValueError("Mini evidence must declare vision_model_used=false")
+    if not str(mini_capture.get("devtools_version") or "").strip():
+        raise ValueError("Mini evidence must record the actual WeChat DevTools version")
+    if mini_capture.get("checkout_head") != mini_capture.get("source_head"):
+        raise ValueError("Mini evidence checkout_head must equal source_head")
     source_head = validate_capture_source([web_capture, android_capture, mini_capture, turntable_capture])
 
     web_primary_pet_id = str(web_capture.get("primary_pet_id") or "")

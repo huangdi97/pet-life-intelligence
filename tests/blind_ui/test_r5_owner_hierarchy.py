@@ -2188,10 +2188,28 @@ def test_mini_living_canvas_uses_warm_room_not_green_flood() -> None:
 def test_mini_native_visual_evidence_gate_rejects_browser_substitutes() -> None:
     """Mini final screenshots must be native WeChat DevTools evidence, never H5."""
     source = read("scripts/r5-6/contact_sheets_ci.py")
+    stamp = read("scripts/r5-6/stamp-mini-final.mjs")
+    final_gate = read("scripts/r5-6/validate-final-evidence.py")
+
     assert 'choices=("web", "android", "mini")' in source
     assert 'def build_mini()' in source
     assert '"WECHAT_DEVTOOLS_AUTOMATOR"' in source
     assert 'capture_manifest.get("native_runtime") is not True' in source
     assert 'capture_manifest.get("vision_model_used") is not False' in source
+
+    assert 'capture_method: "WECHAT_DEVTOOLS_AUTOMATOR"' in stamp
+    assert 'native_runtime: true' in stamp
+    assert 'platform: "weapp"' in stamp
+    assert 'devtools_version: devtoolsVersion' in stamp
+    assert 'checkout_head: git("rev-parse", "HEAD")' in stamp
+    assert '"--devtools-version"' in stamp
+
+    assert 'mini_capture.get("platform") != "weapp"' in final_gate
+    assert 'mini_capture.get("capture_method") != "WECHAT_DEVTOOLS_AUTOMATOR"' in final_gate
+    assert 'mini_capture.get("native_runtime") is not True' in final_gate
+    assert 'mini_capture.get("vision_model_used") is not False' in final_gate
+    assert 'mini_capture.get("checkout_head") != mini_capture.get("source_head")' in final_gate
+    assert 'mini_capture.get("devtools_version")' in final_gate
+
     for surface in ("today", "timeline", "pet", "health", "assistant", "me"):
         assert surface in source
