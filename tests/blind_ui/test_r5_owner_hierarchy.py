@@ -2183,3 +2183,15 @@ def test_mini_living_canvas_uses_warm_room_not_green_flood() -> None:
     assert "#EFF3E8" not in block
     assert "#DBE8D7" not in block
     assert "no fictitious Mini 3D runtime" in block
+
+
+def test_mini_native_visual_evidence_gate_rejects_browser_substitutes() -> None:
+    """Mini final screenshots must be native WeChat DevTools evidence, never H5."""
+    source = read("scripts/r5-6/contact_sheets_ci.py")
+    assert 'choices=("web", "android", "mini")' in source
+    assert 'def build_mini()' in source
+    assert '"WECHAT_DEVTOOLS_AUTOMATOR"' in source
+    assert 'capture_manifest.get("native_runtime") is not True' in source
+    assert 'capture_manifest.get("vision_model_used") is not False' in source
+    for surface in ("today", "timeline", "pet", "health", "assistant", "me"):
+        assert surface in source

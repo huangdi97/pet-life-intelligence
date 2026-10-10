@@ -7,6 +7,11 @@ Human Visual Acceptance PASS.
 Usage:
     python scripts/r5-6/contact_sheets_ci.py --platform web
     python scripts/r5-6/contact_sheets_ci.py --platform android
+    python scripts/r5-6/contact_sheets_ci.py --platform mini
+
+Mini is intentionally NOT captured by GitHub's Ubuntu runner. Its source
+screenshots must come from the native WeChat DevTools Automator runtime on a
+local Windows/macOS machine; H5/browser screenshots are rejected.
 """
 
 from __future__ import annotations
@@ -114,6 +119,20 @@ def build_android() -> list[dict[str, object]]:
     ]
 
 
+def build_mini() -> list[dict[str, object]]:
+    """Build the native WeChat Mini owner contact sheet from local DevTools evidence."""
+    mini = FINAL / "mini"
+    owner = ("today", "timeline", "pet", "health", "assistant", "me")
+    return [
+        sheet(
+            "PLI R5.6 Mini — Native WeChat owner surfaces",
+            [(x, mini / f"{x}.png") for x in owner],
+            OUT / "PLI_R5_6_MINI_OWNER.png",
+            3,
+        ),
+    ]
+
+
 def require_uncropped_product_twin(path: Path, label: str) -> None:
     """Reject real screenshot evidence whose projected Twin leaves its canvas.
 
@@ -152,6 +171,10 @@ def require_uncropped_product_twin(path: Path, label: str) -> None:
 
 
 def validate_ci_twin_bounds(platform: str) -> None:
+    # Mini deliberately has no local high-fidelity 3D runtime. Its gate is
+    # native DevTools provenance + required page screenshots, not Twin bounds.
+    if platform == "mini":
+        return
     if platform == "web":
         web, turn = FINAL / "web", FINAL / "turntable"
         for surface in ("today", "pet", "lifeview", "twinreview"):
@@ -179,10 +202,10 @@ def validate_ci_twin_bounds(platform: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--platform", required=True, choices=("web", "android"))
+    parser.add_argument("--platform", required=True, choices=("web", "android", "mini"))
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
-    generated = build_web() if args.platform == "web" else build_android()
+    generated = {"web": build_web, "android": build_android, "mini": build_mini}[args.platform]()
     validate_ci_twin_bounds(args.platform)
     capture_manifest_path = FINAL / args.platform / "capture-manifest.json"
     if not capture_manifest_path.exists():
@@ -190,6 +213,15 @@ def main() -> None:
     capture_manifest = json.loads(capture_manifest_path.read_text(encoding="utf-8-sig"))
     if not capture_manifest.get("source_head"):
         raise ValueError(f"capture provenance has no source_head: {capture_manifest_path}")
+    if args.platform == "mini":
+        if capture_manifest.get("capture_method") != "WECHAT_DEVTOOLS_AUTOMATOR":
+            raise ValueError("Mini native evidence must come from WeChat DevTools Automator; H5/browser capture is not accepted")
+        if capture_manifest.get("native_runtime") is not True:
+            raise ValueError("Mini capture-manifest must declare native_runtime=true")
+        if capture_manifest.get("vision_model_used") is not False:
+            raise ValueError("Mini evidence gate requires vision_model_used=false")
+        if not capture_manifest.get("devtools_version"):
+            raise ValueError("Mini native evidence must record the WeChat DevTools version")
     if args.platform == "web":
         turntable_manifest = json.loads(
             (FINAL / "turntable" / "capture-manifest.json").read_text(encoding="utf-8-sig")
@@ -205,6 +237,8 @@ def main() -> None:
                 "source_branch": capture_manifest.get("source_branch"),
                 "checkout_head": capture_manifest.get("checkout_head"),
                 "vision_model_used": False,
+                "capture_method": capture_manifest.get("capture_method"),
+                "native_runtime": capture_manifest.get("native_runtime"),
                 "human_visual_acceptance": "PENDING",
                 "sheets": generated,
             },
