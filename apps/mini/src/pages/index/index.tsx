@@ -162,11 +162,23 @@ export default function Index() {
       if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 24 * 60) return total;
       return total + minutes;
     }, 0);
+  const sleepMinutes = todayEvents
+    .filter((event) => event.event_type === "daily.sleep")
+    .reduce((total, event) => {
+      const minutes = Number((event.payload as Record<string, unknown>)?.duration_minutes);
+      if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 24 * 60) return total;
+      return total + minutes;
+    }, 0);
+  const formatDuration = (minutes: number) => {
+    if (!Number.isFinite(minutes) || minutes <= 0) return "—";
+    if (minutes < 60) return `${Math.round(minutes)} 分钟`;
+    return `${Math.round((minutes / 60) * 10) / 10} 小时`;
+  };
   const signalRows: LifeSignalRow[] = [
     { id: "meal", label: "进食", value: `${counts["daily.meal"] ?? 0} 次` },
     { id: "drink", label: "饮水", value: `${counts["daily.drink"] ?? 0} 次` },
-    { id: "activity", label: "活动", value: `${activityMinutes} 分钟` },
-    { id: "sleep", label: "睡眠", value: `${counts["daily.sleep"] ?? 0} 次` },
+    { id: "activity", label: "活动", value: activityMinutes > 0 ? `${activityMinutes} 分钟` : "—" },
+    { id: "sleep", label: "睡眠", value: formatDuration(sleepMinutes) },
   ];
   const memoryRows = todayEvents.slice(0, 5).map(eventRowFromEvent);
   const memoryDays: LifeStreamDay[] = memoryRows.length
