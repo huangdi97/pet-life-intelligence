@@ -70,7 +70,21 @@ export function navigateToDemoScreen(screen: string): void {
   const nav = navigationRef as unknown as { navigate: (name: string, params?: unknown) => void };
   const tab = TAB_SCREENS[screen];
   if (tab) {
-    nav.navigate("Tabs", { screen: tab });
+    // Demo evidence frequently jumps back to a primary tab from a stack-only
+    // surface such as Twin Review. navigate("Tabs") may focus an existing
+    // nested route without removing the stack route above it, so the visible
+    // screen can remain stale. Reset the DEMO root to exactly one Tabs route.
+    // Production navigation never calls this helper.
+    const deterministic = navigationRef as unknown as {
+      resetRoot: (state: {
+        index: number;
+        routes: Array<{ name: string; params?: unknown }>;
+      }) => void;
+    };
+    deterministic.resetRoot({
+      index: 0,
+      routes: [{ name: "Tabs", params: { screen: tab } }],
+    });
     return;
   }
   const stack = STACK_SCREENS[screen];
