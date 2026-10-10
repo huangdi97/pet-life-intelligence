@@ -27,8 +27,17 @@ export interface StageOptions {
   shadow?: boolean;
 }
 
-/** Camera target the pet should be centered on. */
-export const STAGE_TARGET = new THREE.Vector3(0, 0.85, 0);
+/**
+ * Camera target for the grounded pet.
+ *
+ * Runtime projection evidence showed the former 0.85 target pushed both dog
+ * and cat silhouettes toward the lower containment boundary. Auto-framing then
+ * had to zoom out to protect the paws, leaving a large dead area above the
+ * animal. 0.55 keeps the feet grounded while bringing the optical center of
+ * the complete body closer to the canvas center, so owner surfaces can use
+ * substantially more of the Living Canvas without crop or a fake CSS scale.
+ */
+export const STAGE_TARGET = new THREE.Vector3(0, 0.55, 0);
 
 /** Deterministic radial alpha mask: soft contact, never a solid decal/disc. */
 function createSoftContactAlphaMap(size = 64): THREE.DataTexture {
