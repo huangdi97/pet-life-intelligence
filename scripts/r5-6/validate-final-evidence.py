@@ -86,8 +86,12 @@ def require_product_manifest(
         raise ValueError(f"runtime manifest is not ready: {path}")
     if manifest.get("manifestOrigin") != "RUNTIME":
         raise ValueError(f"manifest is not runtime-origin: {path}")
-    if manifest.get("representation") != "high-fidelity-glb-twin":
-        raise ValueError(f"manifest is not high-fidelity GLB: {path}")
+    if manifest.get("representation") != "rigged-glb-twin":
+        raise ValueError(f"manifest is not the required rigged GLB runtime: {path}")
+    if manifest.get("technicalRepresentationQuality") != "RIGGED_PBR_SKINNED":
+        raise ValueError(f"runtime GLB is missing rigged/PBR technical quality: {path}")
+    if manifest.get("visualFidelityTier") not in {"STYLIZED_REFERENCE", "OWNER_MEDIA_REFERENCED"}:
+        raise ValueError(f"runtime visual-fidelity tier is missing or invalid: {path}")
     if manifest.get("generic") is True:
         raise ValueError(f"manifest is generic rather than an individual/demo Twin: {path}")
     if manifest.get("fallbackUsed") is True:
