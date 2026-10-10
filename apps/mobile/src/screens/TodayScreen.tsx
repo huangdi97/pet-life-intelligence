@@ -156,7 +156,7 @@ export function TodayScreen() {
     const abnormal = hint.hints.find((x) => !x.includes("暂未出现需要突出显示的变化") && !x.includes("无明显异常"));
     return {
       summary: abnormal ?? "与它自己相比：今天暂未出现需要突出显示的变化。",
-      evidence: detail?.comparison ?? hint.rule || "只比较同一时间点、同一指标口径的已记录事实",
+      evidence: detail?.comparison ?? hint.rule ?? "只比较同一时间点、同一指标口径的已记录事实",
       fact: detail?.fact,
       comparison: detail?.comparison,
       uncertainty: detail?.uncertainty,
