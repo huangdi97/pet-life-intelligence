@@ -11,6 +11,7 @@ import { PetLivingStage, type StageAnchor } from "../../../../components/pet-liv
 import { LivingModeSwitcher, type LivingMode } from "../../../../components/living-mode-switcher";
 import { RealPhotoCard } from "./_components/RealPhotoCard";
 import { EVENT_LABELS } from "../../../_components/today/constants";
+import { EventList } from "../../../_components/timeline/EventList";
 import { poseForEvent } from "@pli/pet-3d";
 import { observedActivityMinutes } from "../../../_components/today/activity";
 import { eventTypeLabel, provenanceLabel } from "../../../../lib/ownerLabels";
@@ -463,6 +464,16 @@ export default function PetLifeViewPage({
                     ? "今天还没有足够记录，记下第一件事后，这里会围绕它展开。"
                     : `${scopeLabel}没有已记录事件。`}
               </p>
+            </div>
+          ) : null}
+
+          {timeScope === "date" ? (
+            <div className="v4-sec" data-testid="pli.lifeview.history-events">
+              <h2 className="v4-sec-title">那一天的记录</h2>
+              <p className="v4-sec-sub" style={{ marginTop: 6 }}>
+                这里只展示 {selectedDate} 当天真实存在的事件、来源和原始媒体；不会用今天的内容补齐。
+              </p>
+              <EventList events={events} petName={name} />
             </div>
           ) : null}
 
