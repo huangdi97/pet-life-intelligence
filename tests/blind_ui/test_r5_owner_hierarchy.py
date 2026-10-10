@@ -2133,5 +2133,8 @@ def test_today_life_anchors_open_canonical_fact_details_across_clients() -> None
     assert "onPress?: () => void;" in mini_signal
     for detail in ("meal", "water", "activity", "sleep"):
         assert f"life-view/index?anchor={detail}" in mini_today
+    assert 'counts["daily.meal"] ?' in mini_today
+    assert 'counts["daily.drink"] ?' in mini_today
+    assert ' : "—"' in mini_today
     assert "const routeAnchorRaw = routeParams?.anchor;" in mini_life
     assert "initialAnchorRef" in mini_life
