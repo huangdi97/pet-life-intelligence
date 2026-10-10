@@ -2040,7 +2040,9 @@ def test_timeline_days_open_truthful_historical_life_view_across_clients() -> No
     assert 'requestedDate ? "date" : "now"' in web_life
     assert "onOpenDay" in mini_stream
     assert '/pages/pets/life-view/index?date=${encodeURIComponent(date)}' in mini_timeline
-    assert "const routeParams = Taro.getCurrentInstance().router?.params;" in mini_life\n    assert "const routeDateRaw = routeParams?.date;" in mini_life\n    assert "const routeAnchorRaw = routeParams?.anchor;" in mini_life
+    assert "const routeParams = Taro.getCurrentInstance().router?.params;" in mini_life
+    assert "const routeDateRaw = routeParams?.date;" in mini_life
+    assert "const routeAnchorRaw = routeParams?.anchor;" in mini_life
     assert 'requestedDate ? "date" : "now"' in mini_life
 
     # Historical truth is a data boundary, not just a date label.
