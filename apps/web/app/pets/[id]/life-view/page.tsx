@@ -382,6 +382,11 @@ export default function PetLifeViewPage({
         ) : null}
       </div>
 
+      {/* Time answers “when”; mode answers “what do I want to understand”.
+          Keep both controls reachable before the immersive stage so the fixed
+          owner nav can never cover the mode switcher on a 390×844 phone. */}
+      <LivingModeSwitcher value={mode} onChange={setMode} />
+
       <div className="r5-life-stage-shell">
       <PetLivingStage
         name={name}
@@ -407,8 +412,6 @@ export default function PetLifeViewPage({
         anchorTestIdPrefix="pli.lifeview.anchor"
       />
       </div>
-
-      <LivingModeSwitcher value={mode} onChange={setMode} />
 
       {currentFactScope ? (
       <div className="v7-life-support" data-testid="pli.lifeview.support-facts" aria-label="体重、任务与设备状态">
