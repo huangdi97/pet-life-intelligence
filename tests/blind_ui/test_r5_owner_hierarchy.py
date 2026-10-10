@@ -992,7 +992,7 @@ def test_companion_living_stage_stays_pet_first_without_hiding_device_reality() 
 
     assert "compact?: boolean" in mobile_stage
     assert "const height = compact ? 470 : HEIGHTS[variant];" in mobile_stage
-    assert "life: 590" in mobile_stage  # keep Life View rail reachable without shrinking its WebView pet
+    assert "life: 520" in mobile_stage  # keep Life View rail first-viewport reachable while preserving a larger-than-Today stage
     assert "compact" in mobile
     assert "frameTarget={0.48}" in mobile
     assert 'role === "companion" ? "r2p-stage--companion" : ""' in web_stage
@@ -1621,7 +1621,7 @@ def test_today_uses_a_compact_phone_living_canvas_without_shrinking_inspection_v
 
     assert "today: 440" in stage
     assert "pet: 580" in stage
-    assert "life: 590" in stage
+    assert "life: 520" in stage
     assert "petSlotToday" in stage
     assert "R7.9 Today first-fold truth" in css
     assert '[data-testid="pli.today.living-stage"].r2p-stage' in css
@@ -1967,3 +1967,10 @@ def test_android_runtime_evidence_rejects_tiny_review_pet_presence() -> None:
     runner = read("scripts/r5-6/capture-android-final.py")
     assert 'area_ratio < 0.20 and height_ratio < 0.68' in runner
     assert 'Twin Review pet too small at {view}' in runner
+
+
+def test_android_runtime_evidence_requires_first_viewport_life_mode_rail() -> None:
+    runner = read("scripts/r5-6/capture-android-final.py")
+    assert 'screen == "lifeview"' in runner
+    assert 'pli.lifeview.modebar' in runner
+    assert 'visible_height < 44' in runner
