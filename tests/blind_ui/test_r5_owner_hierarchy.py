@@ -2213,3 +2213,16 @@ def test_mini_native_visual_evidence_gate_rejects_browser_substitutes() -> None:
 
     for surface in ("today", "timeline", "pet", "health", "assistant", "me"):
         assert surface in source
+
+
+def test_demo_glb_does_not_require_backend_twin_descriptor() -> None:
+    """Bundled rigged demo assets must outrank the procedural bridge on capable clients."""
+    web = read("apps/web/components/three/pet3d-viewer.tsx")
+    mobile = read("apps/mobile/scripts/pet-stage-entry.ts")
+
+    assert "const requiresProductGlb = Boolean(demoTwin || supportsIndividualGlb);" in web
+    assert "if (demoTwin || supportsIndividualGlb)" in web
+    assert "if (twin || demoTwin)" in web
+    assert "twin && (demoTwin || supportsIndividualGlb)" not in web
+    assert "if (!(twinDescriptor || injectedDemoTwin) || !(frameTarget > 0)) return;" in mobile
+    assert "const productGlbRequested = injectedDemoTwin || supportsIndividualGlb;" in mobile
