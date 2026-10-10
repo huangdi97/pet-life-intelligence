@@ -70,7 +70,8 @@ def test_baseline_deterministic(client, seeded):
     assert walk["value"] == 95.0
     assert walk["samples"] == 2
     got = client.get(f"/api/v1/pets/{coco}/baseline", headers=auth(owner)).json()
-    assert any(b["metric"] == "walk_minutes_per_day" for b in got)
+    walk_row = next(b for b in got if b["metric"] == "walk_minutes_per_day")
+    assert walk_row["unit"] == "分钟"
 
 
 def test_baseline_algorithm_pure():
