@@ -202,7 +202,10 @@ Modes:
 
 - 此刻;
 - 趋势;
+- 时间线;
 - 外观.
+
+The Life View 时间线 is a pet-scoped replay of real recorded history and evidence. It does not replace the canonical first-level Timeline destination and must not reconstruct past state by applying the current Twin/avatar to historical dates.
 
 State anchors remain secondary to the pet.
 
