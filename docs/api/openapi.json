@@ -10246,6 +10246,7 @@
           "v10-extras"
         ],
         "summary": "Abnormal Day Hint",
+        "description": "Explain today against this pet's same-clock recorded history.\n\nBaseline rows define the approved metric/window. The comparison itself is\nrebuilt from raw LifeEvents at the current local clock so a 10:00 owner\nscreen is never compared with a full-day total. Count metrics stay counts;\nduration metrics sum duration_minutes. This endpoint describes *recorded\nfacts*, never disease, mood, or unobserved behaviour.",
         "operationId": "abnormal_day_hint_api_v1_pets__pet_id__abnormal_day_hint_get",
         "parameters": [
           {
