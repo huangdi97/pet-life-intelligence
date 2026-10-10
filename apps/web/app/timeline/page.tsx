@@ -266,7 +266,7 @@ export default function TimelinePage() {
               onRetry={timeline.reload}
               empty="暂无事件。去 Today 快速记录一条吧。"
             >
-              <EventList events={events} petName={current?.name} />
+              <EventList events={events} petName={current?.name} petId={current?.id} />
             </State>
           )}
         </div>
