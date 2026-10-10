@@ -62,8 +62,29 @@ class CaptureError(RuntimeError):
     pass
 
 
-def run(cmd: list[str], *, check: bool = True, text: bool = True) -> subprocess.CompletedProcess:
-    result = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=text)
+# Hosted emulators have been observed to stop answering adb while the job keeps
+# waiting forever (the failing run left a truncated logcat buffer next to empty
+# UIAutomator dumps). A bounded per-command budget keeps such a stall
+# diagnosable instead of blocking until the runner's 6h limit. This is a
+# liveness bound ONLY: every product gate below still requires the exact
+# expected UI root and the rigged RUNTIME 3D manifest.
+ADB_TIMEOUT_SECONDS = 60
+
+
+def run(
+    cmd: list[str],
+    *,
+    check: bool = True,
+    text: bool = True,
+    timeout: float = ADB_TIMEOUT_SECONDS,
+) -> subprocess.CompletedProcess:
+    try:
+        result = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=text, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        empty = "" if text else b""
+        if check:
+            raise CaptureError(f"command timed out after {timeout}s: {' '.join(cmd)}") from exc
+        return subprocess.CompletedProcess(cmd, returncode=124, stdout=empty, stderr=empty)
     if check and result.returncode != 0:
         stderr = result.stderr if text else result.stderr.decode("utf-8", "replace")
         stdout = result.stdout if text else result.stdout.decode("utf-8", "replace")
@@ -176,21 +197,53 @@ class Android:
         time.sleep(1)
         return True
 
-    def dump_xml(self, path: Path) -> str:
-        remote = "/sdcard/pli_final_ui.xml"
-        last_raw = ""
-        for _ in range(4):
-            self.shell("uiautomator", "dump", remote, check=False)
-            raw = self.shell("cat", remote, check=False)
-            last_raw = raw
-            if raw and self._dismiss_host_system_dialog(raw):
-                continue
-            if raw:
-                path.write_text(raw, encoding="utf-8")
-                return raw
+    # A stalled hosted emulator can leave the hierarchy file empty on every dump
+    # attempt while the app itself stays healthy (the failing hosted run left a
+    # truncated logcat buffer next to a 0-byte ui.xml). Two independent dump
+    # targets plus a device liveness probe separate that stall from a real
+    # navigation failure; the caller still enforces the exact expected UI root.
+    DUMP_REMOTE_PATHS = ("/sdcard/pli_final_ui.xml", "/data/local/tmp/pli_final_ui.xml")
+
+    def is_responsive(self) -> bool:
+        result = self.cmd("shell", "echo", "pli-alive", check=False)
+        return result.returncode == 0 and result.stdout.strip() == "pli-alive"
+
+    def _dump_once(self, remote: str) -> tuple[str, str]:
+        result = self.cmd("shell", "uiautomator", "dump", remote, check=False)
+        tool_output = " ".join(
+            part.strip()
+            for part in (result.stdout or "", result.stderr or "")
+            if part and part.strip()
+        )
+        raw = "" if result.returncode != 0 else self.shell("cat", remote, check=False)
+        return tool_output, raw
+
+    def dump_xml(self, path: Path, attempts: int = 5) -> str:
+        diagnostics: list[str] = []
+        for attempt in range(attempts):
+            for remote in self.DUMP_REMOTE_PATHS:
+                tool_output, raw = self._dump_once(remote)
+                if raw and self._dismiss_host_system_dialog(raw):
+                    diagnostics.append(f"attempt={attempt} remote={remote} host_dialog=dismissed")
+                    continue
+                if raw:
+                    path.write_text(raw, encoding="utf-8")
+                    return raw
+                diagnostics.append(
+                    f"attempt={attempt} remote={remote} tool={tool_output!r} hierarchy=empty"
+                )
+            if not self.is_responsive():
+                diagnostics.append(f"attempt={attempt} device=unresponsive")
+                self.cmd("wait-for-device", check=False)
             time.sleep(1)
-        path.write_text(last_raw, encoding="utf-8")
-        raise CaptureError(f"unable to obtain unobscured UIAutomator XML: {path}")
+        path.write_text("", encoding="utf-8")
+        (path.parent / "dump-diagnostics.txt").write_text(
+            "\n".join(diagnostics[-20:]) + "\n", encoding="utf-8"
+        )
+        raise CaptureError(
+            "unable to obtain unobscured UIAutomator XML: "
+            f"{path}; attempts={attempts}; diagnostics={diagnostics[-3:]}"
+        )
 
     def tap(self, xml: str, needle: str, attr: str) -> None:
         try:
