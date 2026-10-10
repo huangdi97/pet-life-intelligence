@@ -377,12 +377,12 @@ export function Pet3DViewer({
       const poseTruth = POSE_META[manifestPose]?.truth ?? "AMBIENT";
       (window as any).__PLI_3D_MANIFEST__ = buildManifestV2({
         ready: true,
-        // Phase E: canonical representation names the asset REALLY on screen
-        // (the HIGH_FIDELITY_SKINNED GLB twin when loaded); the V3 patch
-        // below carries the asset classification. legacyRepresentation keeps
-        // the R3-era label for backward-compatible readers.
+        // Canonical representation describes the RENDERING FORM, not visual
+        // fidelity. A rigged/skinned GLB can still be a stylized template with
+        // zero owner-media identity evidence. Fidelity truth lives below in
+        // visualFidelityTier / individualIdentityEvidence.
         representation: hdTwin
-          ? "high-fidelity-glb-twin"
+          ? "rigged-glb-twin"
           : twin
             ? "procedural-twin"
             : "procedural-demo-stage",
