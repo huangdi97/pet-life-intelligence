@@ -2256,3 +2256,12 @@ def test_rigged_zero_media_runtime_is_stylized_not_engineering() -> None:
     # when real media evidence exists; otherwise it remains stylized.
     assert 'visualFidelityTier: hdTwin' in web
     assert 'visualFidelityTier: hdTwin' in mobile
+
+
+def test_life_view_modes_precede_immersive_stage_on_web_and_android() -> None:
+    """Mode selection must be reachable before the tall 3D field on phones."""
+    web = read("apps/web/app/pets/[id]/life-view/page.tsx")
+    android = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+
+    assert web.index("<LivingModeSwitcher") < web.index('className="r5-life-stage-shell"')
+    assert android.index('testID="pli.lifeview.control.modes"') < android.index("styles.stageWrap")
