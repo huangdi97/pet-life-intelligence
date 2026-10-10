@@ -784,6 +784,16 @@ def test_android_demo_authenticates_before_owner_twin_mount() -> None:
     assert 'manifest.get("generic") is not True' in runner
 
 
+
+
+def test_android_today_all_life_anchors_open_their_evidence_detail() -> None:
+    source = read("apps/mobile/src/screens/TodayScreen.tsx")
+    for detail in ("meal", "water", "activity", "sleep"):
+        assert f'detail: "{detail}" as const' in source
+    assert 'onPress: () => stackNav.navigate("LifeView", { anchor: detail })' in source
+    assert 'onPress: a.id === "activity" ? () => tabNav.navigate("Timeline") : undefined' not in source
+    assert 'testID: `pli.today.anchor.${a.id}`' in source
+
 def test_android_activity_does_not_count_sleep_or_medication_duration() -> None:
     helper = read("apps/mobile/src/screens/today_helpers.ts")
     today = read("apps/mobile/src/screens/TodayScreen.tsx")
