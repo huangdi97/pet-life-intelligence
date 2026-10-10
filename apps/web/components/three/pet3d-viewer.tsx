@@ -226,14 +226,12 @@ export function Pet3DViewer({
     const supportsIndividualGlb = Boolean(
       twin && canPersonalizeTwinGLB(identity, twin),
     );
-    const requiresProductGlb = Boolean(
-      twin && (demoTwin || supportsIndividualGlb),
-    );
+    const requiresProductGlb = Boolean(demoTwin || supportsIndividualGlb);
     // Truth invariant: the procedural twin may temporarily bridge GLB loading,
     // but a requested product GLB that fails must report failure so the host
     // can fall back to the real owner photo rather than bless primitives.
     let hdLoadFailed = false;
-    if (twin && (demoTwin || supportsIndividualGlb)) {
+    if (demoTwin || supportsIndividualGlb) {
       setTwinAssetResolver(null);
       loadTwinGLB(identity, demoTwin ? null : twin)
         .then((twin3d) => {
@@ -297,8 +295,10 @@ export function Pet3DViewer({
       if (camera) {
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
-        if (twin) {
-          // Twin scenes are ground-anchored; use the shared orbit framing.
+        if (twin || demoTwin) {
+          // Individual and bundled demo GLB scenes are ground-anchored; use the
+          // shared orbit framing rather than re-framing against the temporary
+          // procedural bridge after the product asset has loaded.
           applyOrbit(camera, STAGE_TARGET, orbitRef.current);
           if (frameTarget > 0) {
             // §31 aspect-aware auto-framing: fit the projected pet box onto
