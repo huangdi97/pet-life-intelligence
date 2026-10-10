@@ -56,12 +56,24 @@ interface TodayMini {
 /** PET 3D LIFE VIEW — Pet Living Stage（R2-P §7.3 / v3.4 §46.8）。
  *  宠物是主视觉、状态锚点环绕、模式条切换内容；3D 诚实态只作为小字，不显示
  *  provider/model/raw key。无真实服务时诚实说明，不伪装成功、不把 blocker 设计成失败页。 */
-export default function PetLifeViewPage({ params }: { params: Promise<{ id: string }> }) {
+export default function PetLifeViewPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ date?: string | string[] }>;
+}) {
   const petId = use(params).id;
+  const query = use(searchParams);
+  const rawRequestedDate = Array.isArray(query.date) ? query.date[0] : query.date;
+  const requestedDate =
+    rawRequestedDate && /^\d{4}-\d{2}-\d{2}$/.test(rawRequestedDate)
+      ? rawRequestedDate
+      : null;
   const [mode, setMode] = useState<LivingMode>("now");
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [timeScope, setTimeScope] = useState<TimeScope>("now");
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [timeScope, setTimeScope] = useState<TimeScope>(requestedDate ? "date" : "now");
+  const [selectedDate, setSelectedDate] = useState(() => requestedDate ?? new Date().toISOString().slice(0, 10));
   const currentFactScope = timeScope === "now" || timeScope === "today";
   const historicalRange = timeScope === "7d" || timeScope === "30d";
 
