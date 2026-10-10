@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 interface ChangeCardProps {
   summary: string;
   evidence?: string;
@@ -9,6 +11,7 @@ interface ChangeCardProps {
 /** OWN-001 Change — compare this pet with its own recorded baseline.
  * A change is not a medical conclusion and must stay visually quieter than Attention. */
 export function ChangeCard({ summary, evidence, unknown = false }: ChangeCardProps) {
+  const [expanded, setExpanded] = useState(false);
   return (
     <section className="v4-sec v5-today-change" data-pli-type="section" data-testid="pli.today.change">
       <div className="v4-sec-head">
