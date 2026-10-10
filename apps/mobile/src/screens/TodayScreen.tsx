@@ -223,13 +223,19 @@ export function TodayScreen() {
     const activityMins = observedActivityMinutes(todayEvents);
     const sleepMins = observedDurationMinutes(todayEvents, "daily.sleep");
     const rows = [
-      { id: "food", label: "进食", value: counts["daily.meal"] ? `${counts["daily.meal"]} 次` : "—", icon: "restaurant-outline" as const },
-      { id: "water", label: "饮水", value: counts["daily.drink"] ? `${counts["daily.drink"]} 次` : "—", icon: "water-outline" as const },
-      { id: "activity", label: "活动", value: activityMins ? `${activityMins} 分钟` : "—", icon: "walk-outline" as const },
-      { id: "sleep", label: "睡眠", value: formatObservedDuration(sleepMins), icon: "moon-outline" as const },
+      { id: "food", detail: "meal" as const, label: "进食", value: counts["daily.meal"] ? `${counts["daily.meal"]} 次` : "—", icon: "restaurant-outline" as const },
+      { id: "water", detail: "water" as const, label: "饮水", value: counts["daily.drink"] ? `${counts["daily.drink"]} 次` : "—", icon: "water-outline" as const },
+      { id: "activity", detail: "activity" as const, label: "活动", value: activityMins ? `${activityMins} 分钟` : "—", icon: "walk-outline" as const },
+      { id: "sleep", detail: "sleep" as const, label: "睡眠", value: formatObservedDuration(sleepMins), icon: "moon-outline" as const },
     ];
-    return rows;
-  }, [counts, todayEvents]);
+    // §34.5 Explain Sheet: every ambient life fact is an entry into the same
+    // Life View fact model (fact / baseline / source / time / evidence).
+    // Today never owns a second explanation implementation.
+    return rows.map(({ detail, ...row }) => ({
+      ...row,
+      onPress: () => stackNav.navigate("LifeView", { anchor: detail }),
+    }));
+  }, [counts, todayEvents, stackNav]);
 
   const calm = attention.kind === "calm";
   // The Hero answers NOW only. CHANGE and ATTENTION have their own layers
