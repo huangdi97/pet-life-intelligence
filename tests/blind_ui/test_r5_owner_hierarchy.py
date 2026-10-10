@@ -1385,7 +1385,9 @@ def test_owner_3d_never_swaps_individual_descriptor_for_bundled_demo_glb() -> No
     loader = read("packages/pet-3d/src/loader.ts")
 
     assert "canPersonalizeTwinGLB(identity, twin)" in web_viewer
-    assert "twin && (demoTwin || supportsIndividualGlb)" in web_viewer
+    assert "const requiresProductGlb = Boolean(demoTwin || supportsIndividualGlb);" in web_viewer
+    assert "loadTwinGLB(identity, demoTwin ? null : twin)" in web_viewer
+    assert "supportsIndividualGlb = Boolean(" in web_viewer
     assert 'window.__PLI_DEMO_TWIN = ${demoTwin}' in mobile_host
     assert "canPersonalizeTwinGLB(identity, twinDescriptor)" in mobile_runtime
     assert "productGlbRequested = injectedDemoTwin || supportsIndividualGlb" in mobile_runtime
@@ -1591,7 +1593,9 @@ def test_web_product_glb_ready_means_product_asset_is_really_mounted() -> None:
     assert 'setStatus("boot");' in viewer
     assert "canPersonalizeTwinGLB(identity, twin)" in viewer
     assert "const requiresProductGlb = Boolean(" in viewer
-    assert "twin && (demoTwin || supportsIndividualGlb)" in viewer
+    assert "const requiresProductGlb = Boolean(demoTwin || supportsIndividualGlb);" in viewer
+    assert "loadTwinGLB(identity, demoTwin ? null : twin)" in viewer
+    assert "if (demoTwin || supportsIndividualGlb)" in viewer
     assert 'if (!requiresProductGlb) {' in viewer
     load = viewer.index("loadTwinGLB(identity, demoTwin ? null : twin)")
     ready = viewer.index('setStatus("ready");', load)
