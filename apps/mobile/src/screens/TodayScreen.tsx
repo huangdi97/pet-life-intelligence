@@ -29,7 +29,14 @@ import { todayTasks, type TodayResp } from "./today";
 import { usePetTwin } from "../hooks/usePetTwin";
 import { poseForEvent } from "@pli/pet-3d";
 import { TodayEmptyPet, TodayHealthSummary, TodayOffline } from "./today_sections";
-import { eventRowFromEvent, observedActivityMinutes, recentContext, timeContextText } from "./today_helpers";
+import {
+  eventRowFromEvent,
+  formatObservedDuration,
+  observedActivityMinutes,
+  observedDurationMinutes,
+  recentContext,
+  timeContextText,
+} from "./today_helpers";
 
 type TabNav = BottomTabNavigationProp<TabParamList>;
 type StackNav = NativeStackNavigationProp<StackParamList>;
@@ -214,11 +221,12 @@ export function TodayScreen() {
 
   const anchors = useMemo(() => {
     const activityMins = observedActivityMinutes(todayEvents);
+    const sleepMins = observedDurationMinutes(todayEvents, "daily.sleep");
     const rows = [
       { id: "food", label: "进食", value: counts["daily.meal"] ? `${counts["daily.meal"]} 次` : "—", icon: "restaurant-outline" as const },
       { id: "water", label: "饮水", value: counts["daily.drink"] ? `${counts["daily.drink"]} 次` : "—", icon: "water-outline" as const },
       { id: "activity", label: "活动", value: activityMins ? `${activityMins} 分钟` : "—", icon: "walk-outline" as const },
-      { id: "sleep", label: "睡眠", value: counts["daily.sleep"] ? `${counts["daily.sleep"]} 次` : "—", icon: "moon-outline" as const },
+      { id: "sleep", label: "睡眠", value: formatObservedDuration(sleepMins), icon: "moon-outline" as const },
     ];
     return rows;
   }, [counts, todayEvents]);
