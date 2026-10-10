@@ -227,6 +227,14 @@ export function Pet3DViewer({
       twin && canPersonalizeTwinGLB(identity, twin),
     );
     const requiresProductGlb = Boolean(demoTwin || supportsIndividualGlb);
+    // Never flash the procedural engineering bridge on a product/demo GLB
+    // path. The Living Canvas can remain calm/empty for a few frames while
+    // the real rigged asset resolves; failure switches the host to owner-photo
+    // fallback instead of revealing the engineering model.
+    if (requiresProductGlb) {
+      stage.pet.visible = false;
+      stage.shadow.visible = false;
+    }
     // Truth invariant: the procedural twin may temporarily bridge GLB loading,
     // but a requested product GLB that fails must report failure so the host
     // can fall back to the real owner photo rather than bless primitives.
@@ -244,6 +252,7 @@ export function Pet3DViewer({
             return undefined;
           }
           scene.remove(stage.pet);
+          scene.remove(stage.shadow);
           enableStageShadowCasters(twin3d.group);
           scene.add(twin3d.group);
           petRoot = twin3d.group;
