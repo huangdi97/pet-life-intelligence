@@ -2501,23 +2501,33 @@ body{background:#FBF7F1}
 @media(max-width:768px){
   [data-testid="pli.today.living-stage"].r2p-stage,
   [data-testid="pli.today.living-stage"].r2p-stage--3d{
-    min-height:410px;
+    min-height:380px;
   }
   [data-testid="pli.today.living-stage"].r2p-stage--3d .r2p-stage-pet--3d{
-    width:min(94%,350px);
-    height:330px;
-    bottom:68px;
+    width:min(92%,340px);
+    height:312px;
+    bottom:60px;
   }
   .v5-today-change{
-    padding-top:7px;
-    padding-bottom:6px;
+    padding-top:5px;
+    padding-bottom:4px;
+  }
+  .v5-today-change .v4-sec-head{
+    margin-bottom:3px;
+  }
+  .v5-change-line{
+    padding:8px 11px;
   }
   .v5-today-attention{
-    padding-top:6px;
-    padding-bottom:6px;
+    padding-top:4px;
+    padding-bottom:4px;
+  }
+  .v5-today-attention .v4-calm,
+  .v5-today-attention .v4-attn{
+    padding:8px 11px;
   }
   .v5-today-action{
-    padding-top:7px;
+    padding-top:5px;
     padding-bottom:10px;
   }
 }
