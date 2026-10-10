@@ -2047,10 +2047,12 @@ def test_today_change_explains_facts_without_ai_or_medical_inference() -> None:
     mini_today = read("apps/mini/src/pages/index/index.tsx")
     for source in (mobile_today, web_today, mini_today):
         assert "explanations" in source
+        assert "INSUFFICIENT" in source
         assert ".fact" in source
         assert ".comparison" in source
         assert ".uncertainty" in source
         assert ".next_step" in source
+        assert "暂时不能判断变化" in source
     backend = read("services/api/app/api/routes/v10_extras_services.py")
     assert '"mode": "duration"' in backend
     assert "duration_minutes" in backend
