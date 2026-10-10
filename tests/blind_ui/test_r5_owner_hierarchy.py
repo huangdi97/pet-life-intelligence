@@ -2035,6 +2035,9 @@ def test_today_change_explains_facts_without_ai_or_medical_inference() -> None:
     assert 'testID="pli.today.change.explain"' in mobile
     assert 'data-testid="pli.today.change.explain"' in web
     assert 'data-testid="pli.mini.today.change.explain"' in mini
+    assert "minHeight: 44" in mobile
+    assert "min-height:44px" in read("apps/web/app/globals.css")
+    assert "min-height:44px" in read("apps/mini/src/app.scss")
 
 
 def test_historical_life_view_exposes_that_days_original_media_across_clients() -> None:
