@@ -92,6 +92,13 @@ def require_product_manifest(
         raise ValueError(f"runtime GLB is missing rigged/PBR technical quality: {path}")
     if manifest.get("visualFidelityTier") not in {"STYLIZED_REFERENCE", "OWNER_MEDIA_REFERENCED"}:
         raise ValueError(f"runtime visual-fidelity tier is missing or invalid: {path}")
+    tier = manifest.get("visualFidelityTier")
+    source_media_count = int(manifest.get("sourceMediaCount") or 0)
+    identity_evidence = manifest.get("individualIdentityEvidence") is True
+    if tier == "STYLIZED_REFERENCE" and (source_media_count != 0 or identity_evidence):
+        raise ValueError(f"stylized/template runtime falsely claims individual identity evidence: {path}")
+    if tier == "OWNER_MEDIA_REFERENCED" and (source_media_count <= 0 or not identity_evidence):
+        raise ValueError(f"owner-media runtime lacks required individual identity evidence: {path}")
     if manifest.get("generic") is True:
         raise ValueError(f"manifest is generic rather than an individual/demo Twin: {path}")
     if manifest.get("fallbackUsed") is True:
