@@ -264,7 +264,7 @@ export function LifeViewScreen() {
         : null;
   const historicalRange = timeScope === "7d" || timeScope === "30d";
   const scopeLabel =
-    timeScope === "now" ? "现在" :
+    timeScope === "now" ? "此刻" :
     timeScope === "today" ? "今天" :
     timeScope === "7d" ? "最近 7 天" :
     timeScope === "30d" ? "最近 30 天" :
