@@ -2104,3 +2104,34 @@ def test_today_sleep_anchor_is_observed_duration_across_owner_clients() -> None:
     assert 'value: `${counts["daily.sleep"] ?? 0} 次`' not in mini
     for source in (android_helper, web_helper, mini):
         assert "minutes > 24 * 60" in source
+
+
+def test_today_life_anchors_open_canonical_fact_details_across_clients() -> None:
+    """Ambient Today facts must be evidence entry points, not decorative KPIs."""
+    mobile_today = read("apps/mobile/src/screens/TodayScreen.tsx")
+    mobile_life = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    mobile_nav = read("apps/mobile/src/navigation.tsx")
+    web_today = read("apps/web/app/page.tsx")
+    web_life = read("apps/web/app/pets/[id]/life-view/page.tsx")
+    mini_today = read("apps/mini/src/pages/index/index.tsx")
+    mini_signal = read("apps/mini/src/components/life/LifeSignal.tsx")
+    mini_life = read("apps/mini/src/pages/pets/life-view/index.tsx")
+
+    assert 'anchor?: "water" | "meal" | "activity" | "sleep"' in mobile_nav
+    assert 'stackNav.navigate("LifeView", { anchor: detail })' in mobile_today
+    for detail in ("meal", "water", "activity", "sleep"):
+        assert f'detail: "{detail}" as const' in mobile_today
+    assert "const requestedAnchor = route.params?.anchor ?? null;" in mobile_life
+    assert "target.onPress();" in mobile_life
+
+    for detail in ("meal", "water", "activity", "sleep"):
+        assert f"life-view?anchor={detail}" in web_today
+    assert "anchor?: string | string[]" in web_life
+    assert '["water", "meal", "activity", "sleep"].includes(rawRequestedAnchor)' in web_life
+    assert "requestedDate ? null : requestedAnchor" in web_life
+
+    assert "onPress?: () => void;" in mini_signal
+    for detail in ("meal", "water", "activity", "sleep"):
+        assert f"life-view/index?anchor={detail}" in mini_today
+    assert "const routeAnchorRaw = routeParams?.anchor;" in mini_life
+    assert "initialAnchorRef" in mini_life
