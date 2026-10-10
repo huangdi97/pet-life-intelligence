@@ -2302,6 +2302,17 @@ body{background:#FBF7F1}
   font-size: 12px;
   line-height: 1.5;
 }
+.v5-change-why {
+  min-height:36px;margin-top:8px;padding:6px 12px;border:0;border-radius:999px;
+  background:var(--v4-brand-soft,#E5EDE4);color:var(--v4-brand-primary,#365F49);
+  font-size:12px;font-weight:700;cursor:pointer;
+}
+.v5-change-explain {
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--v4-divider,#DDE7DB);
+  display:grid;grid-template-columns:72px minmax(0,1fr);gap:6px 10px;
+}
+.v5-change-explain strong { color:var(--v4-brand-primary,#365F49);font-size:12px; }
+.v5-change-explain p { margin:0;color:var(--v4-text-secondary,#52695A);font-size:13px;line-height:1.55; }
 .v4-attn--danger {
   background: #FFF0ED;
   border-color: rgba(173,63,45,.18);
