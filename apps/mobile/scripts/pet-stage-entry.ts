@@ -219,7 +219,7 @@ bundledTwin.then((twin) => {
   post({ type: "manifest", manifest: buildManifest() });
 }).catch(() => {
   // PROVIDER: GLB failure keeps the procedural stage, but never masquerades
-  // as the high-fidelity product representation.
+  // as a loaded rigged-GLB representation.
   hdLoadFailed = Boolean(productGlbRequested);
   post({ type: "manifest", manifest: buildManifest() });
 });
@@ -262,13 +262,12 @@ function buildManifest(): Record<string, unknown> {
   const poseTruth = POSE_META[manifestPose]?.truth ?? "AMBIENT";
   const m = buildManifestV2({
     ready: true,
-    // Phase E: canonical representation names the asset that is REALLY on
-    // screen — the embedded HIGH_FIDELITY_SKINNED GLB twin when loaded;
-    // legacyRepresentation keeps the R3-era procedural label for
-    // backward-compatible readers. No auditor should see HIGH_FIDELITY_SKINNED
-    // + "procedural-demo-stage" on the same line without an explanation.
+    // Canonical representation describes the RENDERING FORM, not visual
+    // fidelity. A rigged/skinned GLB may still be TEMPLATE_PROVISIONAL with
+    // zero owner-media identity evidence. Fidelity truth is carried by
+    // visualFidelityTier / individualIdentityEvidence below.
     representation: hdTwin
-      ? "high-fidelity-glb-twin"
+      ? "rigged-glb-twin"
       : twinDescriptor
         ? "procedural-twin"
         : "procedural-demo-stage",
