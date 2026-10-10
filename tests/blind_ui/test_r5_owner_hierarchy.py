@@ -1161,7 +1161,10 @@ def test_web_life_view_state_anchors_expose_truthful_fact_details() -> None:
     assert "onPress?: () => void;" in stage
     assert "r2p-anchor--button" in stage
     assert "查看${a.label}详情" in stage
-    assert 'source_type?: string;' in life
+    # Life View must consume the canonical API event contract rather than
+    # maintaining a lossy local event shape just to expose provenance.
+    assert 'api, type LifeEvent' in life
+    assert 'events?: LifeEvent[];' in life
     assert 'provenanceLabel(event.source_type)' in life
     assert "compare: comparisonFor(baselineMetric, current)" in life
     assert "/baseline" in life
