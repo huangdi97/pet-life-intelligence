@@ -21,6 +21,9 @@ import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
 import { PetLivingStage } from "../components/life/PetLivingStage";
 import type { Pet3DViewerHandle } from "../components/three/Pet3DViewer";
 import { LivingModeSwitcher, type LivingMode } from "../components/life/LivingModeSwitcher";
+import { OpenSection } from "../components/feedback/OpenSection";
+import { LifeStream } from "../components/timeline/LifeStream";
+import { groupEventsByDay } from "../components/timeline/lifeStreamUtils";
 import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { eventTypeLabel, sourceLabel } from "./ui_labels";
 import { observedActivityMinutes } from "./today_helpers";
@@ -585,6 +588,16 @@ export function LifeViewScreen() {
         )}
 
 
+        {timeScope === "date" && petEvents.length > 0 ? (
+          <OpenSection title="那一天的记录" caption={scopeLabel} testID="pli.lifeview.history-events">
+            <Text style={styles.historyMediaIntro}>只展示这一天真实存在的事件与原始媒体；点击媒体会打开原始证据。</Text>
+            <LifeStream
+              days={groupEventsByDay(petEvents)}
+              onOpenMedia={(artifactIds) => navigation.navigate("MediaMemory", { artifactIds })}
+            />
+          </OpenSection>
+        ) : null}
+
         <View testID="pli.lifeview.panel" style={styles.panel} accessibilityLiveRegion="polite">
           {mode === "now" ? (
             <Text style={styles.panelText}>
@@ -753,6 +766,7 @@ const styles = StyleSheet.create({
   sheetTitle: { flex: 1, fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
   sheetClose: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   sheetValue: { fontSize: TYPE.metric, fontWeight: "700", color: COLORS.brandPrimaryDeep, marginBottom: SPACE.s3 },
+  historyMediaIntro: { fontSize: TYPE.sm, color: COLORS.textTertiary, lineHeight: 19, marginBottom: SPACE.s2 },
   row: { flexDirection: "row", paddingVertical: 9, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.dividerSubtle },
   rowKey: { width: 92, fontSize: TYPE.body, color: COLORS.textTertiary },
   rowVal: { flex: 1, fontSize: TYPE.body, color: COLORS.textPrimary, lineHeight: 20 },
