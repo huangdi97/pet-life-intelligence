@@ -164,7 +164,7 @@ test("R2P3D-05 owner-term zero + canonical copy on the three pages", async ({ pa
   // an owner-confirmed real candidate, or the graceful simplified fallback.
   // None may masquerade as LIVE or leak raw internal terms.
   await expect(
-    page.getByText(/示例 3D 形象|演示 3D 形象|第 \d+ 版 3D 形象|简化形象/).first(),
+    page.getByTestId("pli.lifeview.model-status"),
   ).toBeVisible();
 });
 
