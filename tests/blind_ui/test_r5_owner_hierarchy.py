@@ -1655,12 +1655,12 @@ def test_today_uses_a_compact_phone_living_canvas_without_shrinking_inspection_v
     css = read("apps/web/app/globals.css")
 
     assert "today: 440" in stage
-    assert "pet: 580" in stage
+    assert "pet: 540" in stage
     assert "life: 520" in stage
     assert "petSlotToday" in stage
     assert "R7.9 Today first-fold truth" in css
     assert '[data-testid="pli.today.living-stage"].r2p-stage' in css
-    assert "min-height:410px" in css
+    assert "min-height:380px" in css
 
 
 def test_owner_life_view_copy_hides_model_versions_and_provider_language() -> None:
@@ -2036,7 +2036,7 @@ def test_timeline_days_open_truthful_historical_life_view_across_clients() -> No
     # Web and Mini day headers directly enter the matching historical date.
     assert '/life-view?date=${encodeURIComponent(day)}' in web_stream
     assert "petId={current?.id}" in web_timeline
-    assert "searchParams: Promise<{ date?: string | string[] }>" in web_life
+    assert "searchParams: Promise<{ date?: string | string[]; anchor?: string | string[] }>" in web_life
     assert 'requestedDate ? "date" : "now"' in web_life
     assert "onOpenDay" in mini_stream
     assert '/pages/pets/life-view/index?date=${encodeURIComponent(date)}' in mini_timeline
