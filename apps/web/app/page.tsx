@@ -17,7 +17,7 @@ import { NowCard } from "./_components/today/NowCard";
 import { RecentCard } from "./_components/today/RecentCard";
 import { TasksCard } from "./_components/today/TasksCard";
 import { SHEET_TYPES, type TodayData } from "./_components/today/constants";
-import { observedActivityMinutes } from "./_components/today/activity";
+import { formatObservedDuration, observedActivityMinutes, observedDurationMinutes } from "./_components/today/activity";
 import { poseForEvent } from "@pli/pet-3d";
 
 interface TodayHealthEvent {
@@ -142,6 +142,7 @@ export default function TodayPage() {
   const lastEvent = today.data?.events?.find((e) => e.event_type !== "today.viewed") ?? today.data?.events?.[0];
   const representativePose = poseForEvent(lastEvent?.event_type ?? null) ?? "Idle";
   const activityMinutes = observedActivityMinutes(today.data?.events ?? []);
+  const sleepMinutes = observedDurationMinutes(today.data?.events ?? [], "daily.sleep");
   const hintMessages = (hint.data?.hints ?? [])
     .map((entry) =>
       typeof entry === "string"
@@ -213,7 +214,7 @@ export default function TodayPage() {
     { id: "food", label: "进食", value: anchorValue(counts["daily.meal"] ?? 0, "次"), icon: "food" },
     { id: "water", label: "饮水", value: anchorValue(counts["daily.drink"] ?? 0, "次"), icon: "water" },
     { id: "activity", label: "活动", value: anchorValue(activityMinutes, "分钟"), icon: "walk" },
-    { id: "sleep", label: "睡眠", value: anchorValue(counts["daily.sleep"] ?? 0, "次"), icon: "sleep" },
+    { id: "sleep", label: "睡眠", value: formatObservedDuration(sleepMinutes), icon: "sleep" },
   ];
   // INVARIANT: all four state anchors always render ("—" when 0) so the
   // blind-UI contract can count pli.today.anchor.{water,food,activity,sleep}.
