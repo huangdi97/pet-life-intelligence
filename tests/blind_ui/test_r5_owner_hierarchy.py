@@ -2238,3 +2238,21 @@ def test_demo_glb_does_not_require_backend_twin_descriptor() -> None:
     assert "scene.remove(stage.shadow);" in mobile
     assert 'if (productGlbRequested) post({ type: "status", status: "ready" });' in mobile
     assert 'if (productGlbRequested) post({ type: "status", status: "failed" });' in mobile
+
+
+def test_rigged_zero_media_runtime_is_stylized_not_engineering() -> None:
+    """Technical GLB success without owner media is a stylized reference, never identity proof."""
+    web = read("apps/web/components/three/pet3d-viewer.tsx")
+    mobile = read("apps/mobile/scripts/pet-stage-entry.ts")
+
+    for source in (web, mobile):
+        assert 'visualFidelityTier:' in source
+        assert '? "OWNER_MEDIA_REFERENCED"' in source
+        assert ': "STYLIZED_REFERENCE"' in source
+        assert ': "ENGINEERING_FALLBACK"' in source
+        assert 'individualIdentityEvidence: Boolean(' in source
+
+    # The hierarchy is: a mounted rigged GLB chooses owner-media fidelity only
+    # when real media evidence exists; otherwise it remains stylized.
+    assert 'visualFidelityTier: hdTwin' in web
+    assert 'visualFidelityTier: hdTwin' in mobile
