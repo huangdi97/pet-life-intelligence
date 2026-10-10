@@ -202,6 +202,20 @@ class ExternalBlockedProvider(SandboxProvider):
     real = False
 
 
+# This is a capability/design recommendation, not an enabled provider.
+# It names the currently preferred separation of concerns for a production
+# individual Twin: appearance reconstruction and animation rigging are
+# different jobs. Nothing here may make the owner UI claim a real Twin exists.
+PRODUCTION_TWIN_PIPELINE_CANDIDATE = {
+    "status": "DESIGN_ONLY_NOT_CONFIGURED",
+    "appearance_reconstruction": "trellis2",
+    "identity_gate": "OWNER_MEDIA_QC_PLUS_OWNER_REVIEW",
+    "rigging": "unirig",
+    "motion": "pli_motion_layer",
+    "runtime": "dual_lod_glb",
+}
+
+
 _provider: VisualProvider | None = None
 
 
@@ -229,6 +243,11 @@ def provider_status() -> dict:
         # template-local pipeline is what actually produces candidate models.
         "generative_status": "REAL_3D_PROVIDER_EXTERNAL_BLOCKED",
         "local_pipeline": "READY" if p.name == "template_local" else "UNSET",
+        # The deterministic template path is useful for demo/fallback and
+        # provenance plumbing, but it is not proof of high-fidelity identity.
+        "local_candidate_fidelity": "TEMPLATE_PROVISIONAL" if p.name == "template_local" else "UNSET",
+        "individual_high_fidelity_status": "NOT_YET_QUALIFIED" if not p.real else "REQUIRES_OWNER_VALIDATION",
+        "production_pipeline_candidate": PRODUCTION_TWIN_PIPELINE_CANDIDATE,
         "status": "REAL_3D_PROVIDER_EXTERNAL_BLOCKED" if not p.real else "READY",
     }
 
