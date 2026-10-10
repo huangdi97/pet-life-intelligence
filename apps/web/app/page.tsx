@@ -211,10 +211,10 @@ export default function TodayPage() {
   })();
   const anchorValue = (n: number, unit: string) => (n > 0 ? `${n} ${unit}` : "—");
   const anchorsAll: StageAnchor[] = [
-    { id: "food", label: "进食", value: anchorValue(counts["daily.meal"] ?? 0, "次"), icon: "food" },
-    { id: "water", label: "饮水", value: anchorValue(counts["daily.drink"] ?? 0, "次"), icon: "water" },
-    { id: "activity", label: "活动", value: anchorValue(activityMinutes, "分钟"), icon: "walk" },
-    { id: "sleep", label: "睡眠", value: formatObservedDuration(sleepMinutes), icon: "sleep" },
+    { id: "food", label: "进食", value: anchorValue(counts["daily.meal"] ?? 0, "次"), icon: "food", href: `/pets/${current.id}/life-view?anchor=meal` },
+    { id: "water", label: "饮水", value: anchorValue(counts["daily.drink"] ?? 0, "次"), icon: "water", href: `/pets/${current.id}/life-view?anchor=water` },
+    { id: "activity", label: "活动", value: anchorValue(activityMinutes, "分钟"), icon: "walk", href: `/pets/${current.id}/life-view?anchor=activity` },
+    { id: "sleep", label: "睡眠", value: formatObservedDuration(sleepMinutes), icon: "sleep", href: `/pets/${current.id}/life-view?anchor=sleep` },
   ];
   // INVARIANT: all four state anchors always render ("—" when 0) so the
   // blind-UI contract can count pli.today.anchor.{water,food,activity,sleep}.
