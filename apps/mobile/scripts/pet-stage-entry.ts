@@ -201,27 +201,38 @@ const supportsIndividualGlb = Boolean(
   twinDescriptor && canPersonalizeTwinGLB(identity, twinDescriptor),
 );
 const productGlbRequested = injectedDemoTwin || supportsIndividualGlb;
+// Product/demo GLB paths must never expose the procedural engineering bridge
+// as a transient owner-facing pet while the real asset is still decoding.
+if (productGlbRequested) {
+  stage.pet.visible = false;
+  stage.shadow.visible = false;
+}
 const bundledTwin = productGlbRequested
   ? loadTwinGLB(identity, injectedDemoTwin ? null : twinDescriptor)
   : Promise.resolve(null);
 bundledTwin.then((twin) => {
   if (!twin) {
     hdLoadFailed = Boolean(productGlbRequested);
-    post({ type: "manifest", manifest: buildManifest() });
+    if (productGlbRequested) post({ type: "status", status: "failed" });
+    post({ type: "manifest", manifest: buildManifest(), force: true });
     return;
   }
   scene.remove(stage.pet);
+  scene.remove(stage.shadow);
   enableStageShadowCasters(twin.group);
   scene.add(twin.group);
   petRoot = twin.group;
   hdTwin = twin;
   applyFit();
-  post({ type: "manifest", manifest: buildManifest() });
+  if (productGlbRequested) post({ type: "status", status: "ready" });
+  post({ type: "manifest", manifest: buildManifest(), force: true });
 }).catch(() => {
-  // PROVIDER: GLB failure keeps the procedural stage, but never masquerades
-  // as a loaded rigged-GLB representation.
+  // A requested product GLB failure is a host-visible fallback event. The
+  // native owner stage then switches to the real photo/2.5D path rather than
+  // revealing the procedural engineering bridge.
   hdLoadFailed = Boolean(productGlbRequested);
-  post({ type: "manifest", manifest: buildManifest() });
+  if (productGlbRequested) post({ type: "status", status: "failed" });
+  post({ type: "manifest", manifest: buildManifest(), force: true });
 });
 // §31 aspect-aware auto-framing (mirrors web): fit the projected pet box onto frameTarget of the full viewport.
 function applyFit(): void {
@@ -472,7 +483,9 @@ if (interactive && stageTheme === "engineering") controls.classList.add("show");
 // Host-ready means both renderer AND imperative camera controls exist. Posting
 // ready earlier allowed the React Native host to issue the initial Review
 // preset before __PLI_SET_VIEW had been installed.
-post({ type: "status", status: "ready" });
-post({ type: "manifest", manifest: buildManifest(), force: true });
+if (!productGlbRequested) {
+  post({ type: "status", status: "ready" });
+  post({ type: "manifest", manifest: buildManifest(), force: true });
+}
 // Blind harness: keep the persisted runtime truth fresh.
 setInterval(() => post({ type: "manifest", manifest: buildManifest() }), 2000);
