@@ -34,6 +34,30 @@ import { eventRowFromEvent, observedActivityMinutes, recentContext, timeContextT
 type TabNav = BottomTabNavigationProp<TabParamList>;
 type StackNav = NativeStackNavigationProp<StackParamList>;
 
+interface DayHintExplanation {
+  metric: string;
+  label: string;
+  unit: string;
+  current_value: number;
+  same_time_baseline: number | null;
+  sample_count: number;
+  window_days: number;
+  deviation_percent: number | null;
+  direction: "LOWER" | "HIGHER" | "SIMILAR" | "INSUFFICIENT";
+  notable: boolean;
+  fact: string;
+  comparison: string;
+  uncertainty: string;
+  next_step: string;
+}
+
+interface DayHintResponse {
+  hints: string[];
+  rule: string;
+  as_of?: string;
+  explanations?: DayHintExplanation[];
+}
+
 function ownerFacingHealthText(value: string | null | undefined, fallback: string): string {
   const text = value?.trim();
   if (!text || /^(?:BW|HE|EV)-[A-Za-z0-9_-]+$/i.test(text)) return fallback;
@@ -51,7 +75,7 @@ export function TodayScreen() {
   const [loadedPetId, setLoadedPetId] = useState<string | null>(null);
   const [rawToday, setToday] = useState<TodayResp | null>(null);
   const [rawTasks, setTasks] = useState<Task[]>([]);
-  const [rawHint, setHint] = useState<{ hints: string[]; rule: string } | null>(null);
+  const [rawHint, setHint] = useState<DayHintResponse | null>(null);
   const [rawHealth, setHealth] = useState<HealthEventRow[]>([]);
   const [rawHealthState, setHealthState] = useState<"loading" | "ready" | "error">("loading");
   const [rawError, setError] = useState<string | null>(null);
@@ -85,7 +109,7 @@ export function TodayScreen() {
     Promise.allSettled([
       api.get<TodayResp>(`/pets/${petId}/today`),
       api.get<Task[]>(`/pets/${petId}/tasks`),
-      api.get<{ hints: string[]; rule: string }>(`/pets/${petId}/abnormal-day-hint`),
+      api.get<DayHintResponse>(`/pets/${petId}/abnormal-day-hint`),
       api.get<HealthEventRow[]>(`/pets/${petId}/health-events`),
     ]).then(([t, tk, h, he]) => {
       if (!alive) return;
@@ -118,18 +142,25 @@ export function TodayScreen() {
       return {
         summary: "与它自己相比：今天还没有足够的基线信息。",
         evidence: "继续记录后，才会比较它自己的同期常态。",
+        fact: "今天的同期基线暂时没有完整读取到。",
+        comparison: "目前没有足够的可比事实。",
+        uncertainty: "未知状态不会显示成“没有变化”。",
+        nextStep: "继续记录真实发生的进食、活动和睡眠，等可比记录足够后再判断变化。",
       };
     }
-    const abnormal = hint.hints.find((x) => !x.includes("无明显异常"));
-    if (abnormal) {
-      return {
-        summary: abnormal,
-        evidence: hint.rule || "基于今天已记录事实与它自己的近期基线比较",
-      };
-    }
+    const explanations = hint.explanations ?? [];
+    const detail =
+      explanations.find((row) => row.notable) ??
+      explanations.find((row) => row.direction !== "INSUFFICIENT") ??
+      explanations[0];
+    const abnormal = hint.hints.find((x) => !x.includes("暂未出现需要突出显示的变化") && !x.includes("无明显异常"));
     return {
-      summary: "与它自己相比：按当前规则，今天暂未出现明显变化。",
-      evidence: hint.rule || "只比较已记录事实，不推断情绪或健康结论",
+      summary: abnormal ?? "与它自己相比：今天暂未出现需要突出显示的变化。",
+      evidence: detail?.comparison ?? hint.rule || "只比较同一时间点、同一指标口径的已记录事实",
+      fact: detail?.fact,
+      comparison: detail?.comparison,
+      uncertainty: detail?.uncertainty,
+      nextStep: detail?.next_step,
     };
   }, [hint]);
 
@@ -265,6 +296,10 @@ export function TodayScreen() {
               <ChangeNarrative
                 summary={change.summary}
                 evidenceHint={change.evidence}
+                fact={change.fact}
+                comparison={change.comparison}
+                uncertainty={change.uncertainty}
+                nextStep={change.nextStep}
                 compact
               />
             </View>
