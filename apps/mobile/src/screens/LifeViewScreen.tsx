@@ -73,6 +73,8 @@ export function LifeViewScreen() {
     route.params?.date && /^\d{4}-\d{2}-\d{2}$/.test(route.params.date)
       ? route.params.date
       : null;
+  const requestedAnchor = route.params?.anchor ?? null;
+  const openedAnchorKey = useRef<string | null>(null);
   const { twin, loading: twinLoading, error: twinError } = usePetTwin(petId);
   const [rawToday, setToday] = useState<{ events: LifeEvent[] } | null>(null);
   const [mode, setMode] = useState<LivingMode>("now");
@@ -360,6 +362,21 @@ export function LifeViewScreen() {
     ];
     return list;
   }, [petEvents, pet?.id, baseline, scopedBaselineState, timeScope, historicalRange]);
+
+  useEffect(() => {
+    if (!requestedAnchor || !pet?.id || !scoped || !currentFactScope) return;
+    const key = `${pet.id}:${requestedAnchor}`;
+    if (openedAnchorKey.current === key) return;
+    // Today calls the owner-facing metric "water"; the internal Life View
+    // anchor historically used "drink". Keep the public route vocabulary
+    // stable without rewriting stored/tested anchor ids.
+    const anchorId = requestedAnchor === "water" ? "drink" : requestedAnchor;
+    const target = anchors.find((anchor) => anchor.id === anchorId);
+    if (!target?.onPress) return;
+    openedAnchorKey.current = key;
+    setMode("now");
+    target.onPress();
+  }, [requestedAnchor, pet?.id, scoped, currentFactScope, anchors]);
 
   const supportOwned = supportPetId === pet?.id;
   const openTaskCount = supportOwned && taskSupportState === "ready"
