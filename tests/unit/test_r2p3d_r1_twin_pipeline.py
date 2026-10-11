@@ -13,8 +13,10 @@ fixture media (tests/fixtures/media, DEMO_SYNTHETIC):
 
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "services" / "api"))
 
@@ -52,6 +54,22 @@ def test_segmentation_produces_mask_and_silhouette(dog_photos):
     assert 0 < seg["coverage"] <= 1
 
 
+def test_silhouette_box_measures_foreground_not_background_frame():
+    from app.services.twin_media import silhouette_box
+
+    mask = Image.new("L", (120, 80), 0)
+    for y in range(20, 60):
+        for x in range(30, 90):
+            mask.putpixel((x, y), 255)
+
+    sil = silhouette_box(mask)
+    assert sil["has_pet"] is True
+    assert (sil["x0"], sil["y0"], sil["x1"], sil["y1"]) == (30, 20, 90, 60)
+    assert sil["width"] == 60
+    assert sil["height"] == 40
+    assert sil["aspect"] == 1.5
+
+
 def test_identity_similarity_same_vs_cross(dog_photos, cat_photos):
     from app.services.twin_media import identity_similarity, segment_by_background
 
@@ -66,6 +84,55 @@ def test_identity_similarity_same_vs_cross(dog_photos, cat_photos):
     assert 0 <= same <= 1
     assert cross_dog >= cross_cat - 0.05  # dog vs dog >= dog vs cat (approx)
     assert same >= 0.5
+
+
+def test_head_closeup_never_distorts_body_or_leg_morph():
+    from app.services.twin_individual import _fit_morph
+
+    silhouettes = [
+        {"has_pet": True, "aspect": 0.8, "height": 100},  # full body
+        {"has_pet": True, "aspect": 2.4, "height": 100},  # tightly cropped head
+    ]
+    with_head = _fit_morph(
+        silhouettes,
+        "standard-cat",
+        {},
+        {"full_body": [0], "head": [1]},
+    )
+    body_only = _fit_morph(
+        silhouettes[:1],
+        "standard-cat",
+        {},
+        {"full_body": [0]},
+    )
+    assert with_head["body_height"] == body_only["body_height"]
+    assert with_head["leg_length_front"] == body_only["leg_length_front"]
+    assert with_head["leg_length_back"] == body_only["leg_length_back"]
+    assert with_head["tail_length"] == 1.4
+
+
+def test_angle_map_preserves_uuid_named_owner_capture_semantics():
+    from app.services.visual_pipeline import _angle_map_for_photos
+
+    front = "11111111-1111-1111-1111-111111111111"
+    head = "22222222-2222-2222-2222-222222222222"
+    full = "33333333-3333-3333-3333-333333333333"
+    capture = SimpleNamespace(
+        coverage={
+            "_angle_artifact_ids": {
+                "front": front,
+                "head": head,
+                "full_body": full,
+            }
+        }
+    )
+    photos = [
+        Path(f"/tmp/{front}.jpg"),
+        Path(f"/tmp/{head}.jpg"),
+        Path(f"/tmp/{full}.jpg"),
+    ]
+    result = _angle_map_for_photos(photos, [front, head, full], capture)
+    assert result == {"front": [0], "head": [1], "full_body": [2]}
 
 
 def test_build_individual_twin_dog(dog_photos):
@@ -84,6 +151,12 @@ def test_build_individual_twin_dog(dog_photos):
     assert r["identity"]["similarity_provider"] == "heuristic_histogram"
     assert r["identity"]["consistency"] is not None
     assert r["identity"]["gate"] in ("heuristic_only", "NEEDS_OWNER_CONFIRMATION")
+    # Missing media evidence must preserve the corgi-family silhouette instead
+    # of collapsing every unobserved morph dimension to generic 1.0.
+    assert r["morph"]["chest_width"] == 1.15
+    assert r["morph"]["neck_length"] == 0.8
+    assert r["morph"]["tail_length"] == 0.45
+    assert r["morph"]["head_width"] == 1.18
     # Morph contract completeness (§29 keys).
     for key in (
         "body_length", "body_height", "chest_width", "waist_width", "neck_length",
@@ -102,6 +175,11 @@ def test_build_individual_twin_cat(cat_photos):
     r = build_individual_twin(cat_photos, species="cat", breed="英短")
     assert r["family"] == "standard-cat"
     assert r["provenance"] == "DEMO_SYNTHETIC"
+    assert r["morph"]["waist_width"] == 0.8
+    # 英短 weak prior intentionally shortens the standard-cat family tail.
+    assert r["morph"]["tail_length"] == 1.2
+    assert r["morph"]["tail_thickness"] == 0.55
+    assert r["morph"]["paw_scale"] == 0.85
 
 
 def test_requires_photos():
@@ -124,26 +202,46 @@ def test_metadata_only_fallback_has_no_observed(cat_photos, dog_photos):
     assert "face" in d["surface"]["inferred_regions"]
     assert d["provenance"] == "NOT_YET_OBSERVED"
     assert d["morph"]["overall_scale"] >= 0.35
+    assert d["morph"]["chest_width"] == 1.15
+    assert d["morph"]["tail_length"] == 0.45
+    assert d["morph"]["leg_length_front"] == 0.52
 
 
-def test_pipeline_build_individual_uses_fixture_for_demo_pet():
+@pytest.mark.asyncio
+async def test_pipeline_build_individual_uses_fixture_for_demo_pet():
     """visual_pipeline media resolution: demo pet + capture -> fixtures."""
     from app.services.visual_pipeline import _resolve_photos
 
     class Pet:
+        id = "00000000-0000-0000-0000-0000000000aa"
         name = "豆豆"
         species = "dog"
         breed = "柯基"
 
     class Capture:
+        id = "00000000-0000-0000-0000-0000000000bb"
         artifact_ids = ["00000000-0000-0000-0000-000000000001"]
 
-    photos, prov = _resolve_photos(Capture(), Pet())
+    class Scalars:
+        def all(self):
+            return []
+
+    class Result:
+        def scalars(self):
+            return Scalars()
+
+    class DB:
+        async def execute(self, *_args, **_kwargs):
+            return Result()
+
+    photos, prov, artifact_ids = await _resolve_photos(DB(), Capture(), Pet())
     assert len(photos) == 6
     assert prov == "DEMO_SYNTHETIC"
+    assert artifact_ids == [None] * 6
 
 
-def test_pipeline_build_individual_nocapture_metadata_only():
+@pytest.mark.asyncio
+async def test_pipeline_build_individual_nocapture_metadata_only():
     from app.services.visual_pipeline import _build_individual
 
     class Pet:
@@ -151,9 +249,11 @@ def test_pipeline_build_individual_nocapture_metadata_only():
         species = "dog"
         breed = "柯基"
 
-    d = _build_individual(None, Pet())
+    d = await _build_individual(None, None, Pet())
     assert d["surface"]["observed_regions"] == []
     assert d["provenance"] == "NOT_YET_OBSERVED"
+    assert d["morph"]["tail_length"] == 0.45
+    assert d["morph"]["leg_length_front"] == 0.52
 
 
 def test_glb_qa_and_motion_manifest():

@@ -56,6 +56,7 @@ export function PetTwinVersionScreen() {
 
   const statusText = (s: string) => STATUS_LABEL[s] ?? "其他状态";
   const active = versions?.find((v) => v.status === "ACTIVE");
+  const activeIsDemo = active?.metadata_json?.demo_fixture === true;
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
@@ -87,7 +88,7 @@ export function PetTwinVersionScreen() {
             <OpenSection title="暂时连接不上">
               <View style={styles.loadErrorRow}>
                 <Text style={styles.emptyText}>暂时无法获取 3D 形象列表，请稍后重试。</Text>
-                <Pressable accessibilityRole="button" onPress={load} style={styles.cta}>
+                <Pressable accessibilityRole="button" accessibilityLabel="重试加载 3D 形象版本" onPress={load} style={styles.cta}>
                   <Text style={styles.ctaText}>重试</Text>
                 </Pressable>
               </View>
@@ -99,11 +100,21 @@ export function PetTwinVersionScreen() {
                   <OpenSection title="当前 3D 形象">
                     <View style={styles.activeRow}>
                       <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
-                      <Text testID="pli.twinversion.time" style={styles.activeText}>第 {active.version} 版 · 使用中 · {active.texture_version === "photo-projection-v1" ? "由照片生成" : "模板默认"}外观</Text>
+                      <Text testID="pli.twinversion.time" style={styles.activeText}>
+                        {activeIsDemo
+                          ? "示例 3D 形象 · 使用中 · 演示模板"
+                          : `第 ${active.version} 版 · 使用中 · ${active.texture_version === "photo-projection-v1" ? "由照片生成" : "模板默认"}外观`}
+                      </Text>
                     </View>
                     <View style={styles.badgeRow}>
-                      <Text testID="pli.twinversion.source" style={styles.badgeText}>来源素材 · {Object.keys(active.observed_surface_manifest ?? {}).length} 项</Text>
-                      <Text testID="pli.twinversion.verify" style={styles.badgeText}>{active.owner_verified ? "已通过主人确认" : "待主人确认"}</Text>
+                      <Text testID="pli.twinversion.source" style={styles.badgeText}>
+                        {activeIsDemo
+                          ? "来源 · 示例模板"
+                          : `来源素材 · ${Object.keys(active.observed_surface_manifest ?? {}).length} 项`}
+                      </Text>
+                      <Text testID="pli.twinversion.verify" style={styles.badgeText}>
+                        {activeIsDemo ? "示例体验 · 非真实宠物身份确认" : active.owner_verified ? "已通过主人确认" : "待主人确认"}
+                      </Text>
                     </View>
                   </OpenSection>
                 </View>
@@ -126,7 +137,7 @@ export function PetTwinVersionScreen() {
           )}
 
           <OpenSection title="版本说明" testID="pli.twinversion.info">
-            <Text style={styles.emptyText}>每个版本都记录生成时间、来源素材与确认状态；确认后才会显示，未确认版本不会覆盖已使用版本。</Text>
+            <Text style={styles.emptyText}>每个版本都记录生成时间、来源与确认状态；示例模板会明确标注，真实候选只有确认后才会成为当前形象。</Text>
           </OpenSection>
 
           <View testID="pli.twinversion.history">
@@ -139,12 +150,22 @@ export function PetTwinVersionScreen() {
                       <Text style={styles.versionTitle}>第 {v.version} 版</Text>
                       <Text style={styles.status}>{statusText(v.status)}</Text>
                     </View>
-                    <Text style={styles.versionMeta}>外形 {v.geometry_version} · 外观 {v.texture_version} · 动作 {v.rig_version}</Text>
                     <Text style={styles.versionMeta}>
-                      {observed.length ? `来自照片：${observed.join("、")}` : "外观由模板默认生成（无照片）"}
+                      {v.metadata_json?.demo_fixture === true
+                        ? "示例模板 · 仅用于产品体验"
+                        : observed.length
+                          ? `来源素材区域 · ${observed.length} 项`
+                          : "来源素材 · 未观察到"}
+                    </Text>
+                    <Text style={styles.versionMeta}>
+                      {v.metadata_json?.demo_fixture === true
+                        ? "非真实宠物身份确认"
+                        : v.owner_verified
+                          ? "已通过主人确认"
+                          : "待主人确认"}
                     </Text>
                     <View testID={`pli.twinversion.history.action.${v.version}`} style={styles.rowActions}>
-                      <Pressable testID={`pli.twinversion.history.${v.version}`} accessibilityRole="button" onPress={() => navigation.navigate("TwinReview", { version: v.version })} style={styles.smallBtn}>
+                      <Pressable testID={`pli.twinversion.history.${v.version}`} accessibilityRole="button" accessibilityLabel={`查看并确认第 ${v.version} 版 3D 形象`} onPress={() => navigation.navigate("TwinReview", { version: v.version })} style={styles.smallBtn}>
                         <Text style={styles.smallBtnText}>查看 / 确认</Text>
                       </Pressable>
                     </View>
@@ -165,14 +186,14 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: TYPE.body, color: COLORS.textSecondary, lineHeight: 22 },
   loadErrorRow: { alignItems: "flex-start", gap: SPACE.s3 },
   header: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2 },
-  back: { padding: 4 },
+  back: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   headerText: { flex: 1 },
   title: { fontSize: TYPE.pageTitle, color: COLORS.textPrimary, fontWeight: "700" },
   subtitle: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginTop: 2 },
-  add: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.brandPrimary, alignItems: "center", justifyContent: "center" },
+  add: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.brandPrimary, alignItems: "center", justifyContent: "center" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: SPACE.s3, paddingBottom: SPACE.s8 },
-  cta: { marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
+  cta: { minHeight: 48, justifyContent: "center", marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
   ctaText: { color: COLORS.textInverse, fontSize: TYPE.body, fontWeight: "700" },
   activeRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingVertical: 4 },
   activeText: { fontSize: TYPE.body, color: COLORS.textPrimary, flex: 1 },
@@ -184,6 +205,6 @@ const styles = StyleSheet.create({
   status: { fontSize: TYPE.sm, color: COLORS.textSecondary },
   versionMeta: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: 3 },
   rowActions: { marginTop: 8 },
-  smallBtn: { alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: COLORS.bgSurfaceMuted },
+  smallBtn: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: COLORS.bgSurfaceMuted },
   smallBtnText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
 });

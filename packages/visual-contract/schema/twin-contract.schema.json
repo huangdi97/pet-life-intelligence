@@ -2,47 +2,202 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://pli.local/visual-contract/twin-contract.schema.json",
   "title": "TwinManifest",
-  "description": "3D pet-twin runtime manifest exposed by test/debug builds. Production owner UI never shows this data.",
+  "description": "3D pet-twin runtime manifest exposed by test/debug builds. Production owner UI never shows this data. Rendering form, technical representation quality, and visual/identity fidelity are separate truths.",
   "type": "object",
-  "required": ["ready", "representation", "fallbackUsed", "wireframe", "screenBounds"],
+  "required": [
+    "ready",
+    "representation",
+    "fallbackUsed",
+    "wireframe",
+    "screenBounds"
+  ],
   "properties": {
-    "ready": { "type": "boolean" },
-    "representation": { "type": "string" },
-    "fallbackUsed": { "type": "boolean" },
-    "assetVersion": { "type": ["string", "number", "null"] },
-    "meshCount": { "type": "integer" },
-    "skinnedMeshCount": { "type": "integer" },
-    "skeleton": { "type": "boolean" },
-    "animationClips": { "type": "array", "items": { "type": "string" } },
-    "wireframe": { "type": "boolean" },
-    "materialMode": { "type": "string" },
-    "baseColorTexture": { "type": "boolean" },
+    "ready": {
+      "type": "boolean"
+    },
+    "manifestOrigin": {
+      "enum": [
+        "RUNTIME",
+        "SYNTHETIC_FALLBACK_EVIDENCE",
+        "SYNTHETIC_FIXTURE"
+      ]
+    },
+    "representation": {
+      "type": "string"
+    },
+    "fallbackUsed": {
+      "type": "boolean"
+    },
+    "generic": {
+      "type": "boolean"
+    },
+    "petId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sourceMediaCount": {
+      "type": "integer"
+    },
+    "assetVersion": {
+      "type": [
+        "string",
+        "number",
+        "null"
+      ]
+    },
+    "meshCount": {
+      "type": "integer"
+    },
+    "skinnedMeshCount": {
+      "type": "integer"
+    },
+    "skeleton": {
+      "type": "boolean"
+    },
+    "animationClips": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "wireframe": {
+      "type": "boolean"
+    },
+    "materialMode": {
+      "type": "string"
+    },
+    "baseColorTexture": {
+      "type": "boolean"
+    },
+    "projectedPetBounds": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        },
+        "viewportWidth": {
+          "type": "number"
+        },
+        "viewportHeight": {
+          "type": "number"
+        },
+        "areaRatio": {
+          "type": "number"
+        }
+      }
+    },
     "camera": {
       "type": "object",
       "properties": {
-        "fov": { "type": "number" },
-        "distance": { "type": "number" },
-        "yaw": { "type": "number" },
-        "pitch": { "type": "number" },
-        "radius": { "type": "number" }
+        "fov": {
+          "type": "number"
+        },
+        "distance": {
+          "type": "number"
+        },
+        "yaw": {
+          "type": "number"
+        },
+        "pitch": {
+          "type": "number"
+        },
+        "radius": {
+          "type": "number"
+        }
       }
     },
     "screenBounds": {
       "type": "object",
-      "required": ["x", "y", "width", "height"],
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
       "properties": {
-        "x": { "type": "number" },
-        "y": { "type": "number" },
-        "width": { "type": "number" },
-        "height": { "type": "number" }
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        }
       }
     },
-    "activeClip": { "type": ["string", "null"] },
-    "availableClips": { "type": "array", "items": { "type": "string" } },
-    "playbackState": { "type": "string" },
-    "reducedMotion": { "type": "boolean" },
-    "pose": { "type": ["string", "null"] },
-    "poseSource": { "enum": ["AMBIENT", "REPRESENTATIVE", "OBSERVED"] },
-    "poseConfidence": { "type": "number" }
+    "activeClip": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "availableClips": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "playbackState": {
+      "type": "string"
+    },
+    "reducedMotion": {
+      "type": "boolean"
+    },
+    "pose": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "poseSource": {
+      "enum": [
+        "AMBIENT",
+        "REPRESENTATIVE",
+        "OBSERVED"
+      ]
+    },
+    "poseConfidence": {
+      "type": "number"
+    },
+    "technicalRepresentationQuality": {
+      "enum": [
+        "RIGGED_PBR_SKINNED",
+        "PROCEDURAL_ENGINEERING"
+      ]
+    },
+    "visualFidelityTier": {
+      "enum": [
+        "STYLIZED_REFERENCE",
+        "OWNER_MEDIA_REFERENCED",
+        "ENGINEERING_FALLBACK"
+      ]
+    },
+    "individualIdentityEvidence": {
+      "type": "boolean"
+    },
+    "productCandidate": {
+      "type": "boolean"
+    },
+    "personalizedSkinnedTemplate": {
+      "type": "boolean"
+    },
+    "ownerCoatTintApplied": {
+      "type": "boolean"
+    }
   }
 }

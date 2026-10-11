@@ -932,6 +932,104 @@
         }
       }
     },
+    "/api/v1/pets/{pet_id}/avatar": {
+      "get": {
+        "tags": [
+          "pets",
+          "pets"
+        ],
+        "summary": "Get Pet Avatar",
+        "description": "Return the persisted avatar through the authenticated pet context.\n\nOwner clients use this compact JSON/data-url representation so the same\nprotected artifact can render on Web, native and Mini without creating a\npublic media URL or bypassing capability checks.",
+        "operationId": "get_pet_avatar_api_v1_pets__pet_id__avatar_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PetAvatarOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "pets",
+          "pets"
+        ],
+        "summary": "Set Pet Avatar",
+        "description": "Choose one already-uploaded image artifact as this pet's avatar.",
+        "operationId": "set_pet_avatar_api_v1_pets__pet_id__avatar_put",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PetAvatarSet"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PetOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{pet_id}/consents": {
       "get": {
         "tags": [
@@ -1765,6 +1863,51 @@
         }
       }
     },
+    "/api/v1/invitations/accept": {
+      "post": {
+        "tags": [
+          "care",
+          "care"
+        ],
+        "summary": "Accept Invitation By Token",
+        "description": "Accept a household invitation without exposing a household UUID.\n\nThe invitation token is a bearer secret but is also bound to the invited\naccount email, so forwarding a code cannot silently add another account.",
+        "operationId": "accept_invitation_by_token_api_v1_invitations_accept_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInvitation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Accept Invitation By Token Api V1 Invitations Accept Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/households/{household_id}/invitations/accept": {
       "post": {
         "tags": [
@@ -2119,6 +2262,61 @@
         }
       }
     },
+    "/api/v1/handoffs/{handoff_id}/checklist/{item_id}/complete": {
+      "post": {
+        "tags": [
+          "care",
+          "care"
+        ],
+        "summary": "Complete Handoff Checklist Item",
+        "operationId": "complete_handoff_checklist_item_api_v1_handoffs__handoff_id__checklist__item_id__complete_post",
+        "parameters": [
+          {
+            "name": "handoff_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Handoff Id"
+            }
+          },
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Complete Handoff Checklist Item Api V1 Handoffs  Handoff Id  Checklist  Item Id  Complete Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{pet_id}/care-cards": {
       "post": {
         "tags": [
@@ -2325,6 +2523,100 @@
         }
       }
     },
+    "/api/v1/notifications/{notification_id}/read": {
+      "post": {
+        "tags": [
+          "care",
+          "care"
+        ],
+        "summary": "Mark Notification Read",
+        "description": "Mark one visible notification read.\n\nIdempotent: a second call preserves the original read timestamp.",
+        "operationId": "mark_notification_read_api_v1_notifications__notification_id__read_post",
+        "parameters": [
+          {
+            "name": "notification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Notification Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Mark Notification Read Api V1 Notifications  Notification Id  Read Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/households/{household_id}/notifications/read-all": {
+      "post": {
+        "tags": [
+          "care",
+          "care"
+        ],
+        "summary": "Mark Household Notifications Read",
+        "description": "Mark the current user's visible notifications in one household read.",
+        "operationId": "mark_household_notifications_read_api_v1_households__household_id__notifications_read_all_post",
+        "parameters": [
+          {
+            "name": "household_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Household Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Mark Household Notifications Read Api V1 Households  Household Id  Notifications Read All Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{pet_id}/audit": {
       "get": {
         "tags": [
@@ -2385,6 +2677,54 @@
       }
     },
     "/api/v1/pets/{pet_id}/deletion-requests": {
+      "get": {
+        "tags": [
+          "care",
+          "care"
+        ],
+        "summary": "List Deletion Requests",
+        "description": "Owner-visible deletion request history.\n\nThis is status-only. It never executes deletion; execution remains an\nexplicit, manual, audited high-risk operation outside this automatic path.",
+        "operationId": "list_deletion_requests_api_v1_pets__pet_id__deletion_requests_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Deletion Requests Api V1 Pets  Pet Id  Deletion Requests Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
           "care",
@@ -3451,6 +3791,52 @@
         }
       }
     },
+    "/api/v1/artifacts/{artifact_id}": {
+      "get": {
+        "tags": [
+          "media"
+        ],
+        "summary": "Get Artifact Metadata",
+        "description": "Owner-safe artifact metadata for memory/evidence presentation.\n\nAccess control exactly mirrors content download. The response deliberately\nomits storage keys/backends so clients cannot infer object-store paths.",
+        "operationId": "get_artifact_metadata_api_v1_artifacts__artifact_id__get",
+        "parameters": [
+          {
+            "name": "artifact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Artifact Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Artifact Metadata Api V1 Artifacts  Artifact Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/artifacts/{artifact_id}/content": {
       "get": {
         "tags": [
@@ -3934,6 +4320,67 @@
         }
       }
     },
+    "/api/v1/pets/{pet_id}/daily-summaries": {
+      "get": {
+        "tags": [
+          "v02-identity-daily",
+          "v02-identity-daily"
+        ],
+        "summary": "List Daily Summaries",
+        "operationId": "list_daily_summaries_api_v1_pets__pet_id__daily_summaries_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 90,
+              "minimum": 1,
+              "default": 14,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Daily Summaries Api V1 Pets  Pet Id  Daily Summaries Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/care-cards/{card_id}/qr.svg": {
       "get": {
         "tags": [
@@ -4388,6 +4835,55 @@
                   "type": "object",
                   "additionalProperties": true,
                   "title": "Response Create Recovery Plan Api V1 Health Events  Health Event Id  Recovery Plan Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health-events/{health_event_id}/recovery-plans": {
+      "get": {
+        "tags": [
+          "v02-care-health",
+          "v02-care-health"
+        ],
+        "summary": "List Recovery Plans",
+        "operationId": "list_recovery_plans_api_v1_health_events__health_event_id__recovery_plans_get",
+        "parameters": [
+          {
+            "name": "health_event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Health Event Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Recovery Plans Api V1 Health Events  Health Event Id  Recovery Plans Get"
                 }
               }
             }
@@ -5174,6 +5670,83 @@
       }
     },
     "/api/v1/pets/{pet_id}/training-sessions": {
+      "get": {
+        "tags": [
+          "v02-behavior-training",
+          "v02-behavior-training"
+        ],
+        "summary": "List Training Sessions",
+        "description": "Return real recorded training sessions newest-first.\n\nR5.5 Training is Goal -> Session -> Progress -> Outcome. Progress cannot be\ngrounded if owner clients can write sessions but never read them back.\nFiltering remains scoped to the same pet so a goal id can never cross the\nhousehold/pet boundary.",
+        "operationId": "list_training_sessions_api_v1_pets__pet_id__training_sessions_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          },
+          {
+            "name": "goal_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Goal Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Training Sessions Api V1 Pets  Pet Id  Training Sessions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
           "v02-behavior-training",
@@ -7225,6 +7798,50 @@
       }
     },
     "/api/v1/pets/{pet_id}/field-privacy": {
+      "get": {
+        "tags": [
+          "v10-platform",
+          "v10-platform"
+        ],
+        "summary": "Get Field Privacy",
+        "operationId": "get_field_privacy_api_v1_pets__pet_id__field_privacy_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Field Privacy Api V1 Pets  Pet Id  Field Privacy Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "put": {
         "tags": [
           "v10-platform",
@@ -9629,6 +10246,7 @@
           "v10-extras"
         ],
         "summary": "Abnormal Day Hint",
+        "description": "Explain today against this pet's same-clock recorded history.\n\nBaseline rows define the approved metric/window. The comparison itself is\nrebuilt from raw LifeEvents at the current local clock so a 10:00 owner\nscreen is never compared with a full-day total. Count metrics stay counts;\nduration metrics sum duration_minutes. This endpoint describes *recorded\nfacts*, never disease, mood, or unobserved behaviour.",
         "operationId": "abnormal_day_hint_api_v1_pets__pet_id__abnormal_day_hint_get",
         "parameters": [
           {
@@ -11106,6 +11724,14 @@
               }
             ],
             "title": "Coverage"
+          },
+          "angle_artifact_ids": {
+            "additionalProperties": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "object",
+            "title": "Angle Artifact Ids"
           }
         },
         "type": "object",
@@ -11151,8 +11777,15 @@
           "coverage": {
             "additionalProperties": true,
             "type": "object",
-            "title": "Coverage",
-            "default": {}
+            "title": "Coverage"
+          },
+          "angle_artifact_ids": {
+            "additionalProperties": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "object",
+            "title": "Angle Artifact Ids"
           },
           "privacy_scan": {
             "additionalProperties": true,
@@ -11377,8 +12010,8 @@
           "text": {
             "type": "string",
             "maxLength": 5000,
-            "minLength": 1,
-            "title": "Text"
+            "title": "Text",
+            "default": ""
           },
           "entry_at": {
             "anyOf": [
@@ -11406,9 +12039,6 @@
           }
         },
         "type": "object",
-        "required": [
-          "text"
-        ],
         "title": "DiaryIn"
       },
       "DietProfileIn": {
@@ -11955,6 +12585,14 @@
             "type": "string",
             "title": "Reason",
             "default": ""
+          },
+          "checklist": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Checklist"
           }
         },
         "type": "object",
@@ -12634,6 +13272,63 @@
         ],
         "title": "OutcomeIn"
       },
+      "PetAvatarOut": {
+        "properties": {
+          "avatar_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Artifact Id"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "data_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "avatar_artifact_id"
+        ],
+        "title": "PetAvatarOut"
+      },
+      "PetAvatarSet": {
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Artifact Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "artifact_id"
+        ],
+        "title": "PetAvatarSet"
+      },
       "PetCreate": {
         "properties": {
           "name": {
@@ -12770,6 +13465,10 @@
             ],
             "title": "Avatar Artifact Id"
           },
+          "lifecycle_status": {
+            "type": "string",
+            "title": "Lifecycle Status"
+          },
           "is_demo": {
             "type": "boolean",
             "title": "Is Demo",
@@ -12799,6 +13498,7 @@
           "weight_note",
           "timezone",
           "avatar_artifact_id",
+          "lifecycle_status",
           "created_at"
         ],
         "title": "PetOut"

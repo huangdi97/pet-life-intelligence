@@ -135,8 +135,53 @@ async def create_recovery_plan(
         actor_id=user.id, source_type=enums.SourceType.OWNER_REPORTED,
         source_ref=f"recovery_plan:{plan.id}",
     )
+    await write_audit(
+        db,
+        action="recovery_plan.create",
+        actor_user_id=user.id,
+        household_id=pet.household_id,
+        pet_id=pet.id,
+        resource_type="RecoveryPlan",
+        resource_id=str(plan.id),
+    )
     await db.commit()
-    return {"plan_id": str(plan.id), "items": plan.items}
+    return {
+        "plan_id": str(plan.id),
+        "health_event_id": str(plan.health_event_id),
+        "items": plan.items,
+        "created_at": plan.created_at.isoformat(),
+        "updated_at": plan.updated_at.isoformat(),
+    }
+
+
+@router.get("/health-events/{health_event_id}/recovery-plans")
+async def list_recovery_plans(
+    health_event_id: uuid.UUID, db: DBSession, user: CurrentUser
+) -> list[dict]:
+    he = (
+        await db.execute(select(HealthEvent).where(HealthEvent.id == health_event_id))
+    ).scalar_one_or_none()
+    if he is None:
+        raise NotFound("Health event not found.")
+    pet = await perm.get_pet_or_404(db, he.pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.MEDICAL_READ)
+    rows = (
+        await db.execute(
+            select(RecoveryPlan)
+            .where(RecoveryPlan.health_event_id == he.id)
+            .order_by(RecoveryPlan.created_at.desc())
+        )
+    ).scalars().all()
+    return [
+        {
+            "plan_id": str(row.id),
+            "health_event_id": str(row.health_event_id),
+            "items": row.items,
+            "created_at": row.created_at.isoformat(),
+            "updated_at": row.updated_at.isoformat(),
+        }
+        for row in rows
+    ]
 
 
 @router.patch("/recovery-plans/{plan_id}/items/{index}")
@@ -159,8 +204,32 @@ async def update_recovery_item(
     plan.updated_at = datetime.now(timezone.utc)
     flag_modified(plan, "items")
     await db.flush()
+    await create_life_event(
+        db,
+        pet_id=pet.id,
+        event_type="recovery_plan.updated",
+        payload={"plan_id": str(plan.id), "items": len(plan.items)},
+        actor_id=user.id,
+        source_type=enums.SourceType.OWNER_REPORTED,
+        source_ref=f"recovery_plan:{plan.id}",
+    )
+    await write_audit(
+        db,
+        action="recovery_plan.item_update",
+        actor_user_id=user.id,
+        household_id=pet.household_id,
+        pet_id=pet.id,
+        resource_type="RecoveryPlan",
+        resource_id=str(plan.id),
+    )
     await db.commit()
-    return {"plan_id": str(plan.id), "items": plan.items}
+    return {
+        "plan_id": str(plan.id),
+        "health_event_id": str(plan.health_event_id),
+        "items": plan.items,
+        "created_at": plan.created_at.isoformat(),
+        "updated_at": plan.updated_at.isoformat(),
+    }
 
 
 # --- PLI-062: symptom trend ------------------------------------------------------------

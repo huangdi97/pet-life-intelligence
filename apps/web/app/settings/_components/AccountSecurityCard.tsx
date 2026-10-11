@@ -71,7 +71,7 @@ export function AccountSecurityCard() {
   }
 
   return (
-    <div className="card">
+    <section className="v5-me-section">
       <h2>账号与安全</h2>
       {meta && (
         <p className="muted">
@@ -133,6 +133,6 @@ export function AccountSecurityCard() {
       <button className="btn danger" onClick={deleteAccount} disabled={!delPw}>
         删除账号
       </button>
-    </div>
+    </section>
   );
 }

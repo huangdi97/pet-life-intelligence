@@ -70,7 +70,8 @@ def test_baseline_deterministic(client, seeded):
     assert walk["value"] == 95.0
     assert walk["samples"] == 2
     got = client.get(f"/api/v1/pets/{coco}/baseline", headers=auth(owner)).json()
-    assert any(b["metric"] == "walk_minutes_per_day" for b in got)
+    walk_row = next(b for b in got if b["metric"] == "walk_minutes_per_day")
+    assert walk_row["unit"] == "分钟"
 
 
 def test_baseline_algorithm_pure():
@@ -90,6 +91,85 @@ def test_diary_add_and_list(client, seeded):
     assert lst and "新朋友" in lst[0]["text"]
 
 
+def test_voice_diary_binds_real_audio_artifact_to_timeline(client, seeded):
+    owner, coco = seeded["owner_id"], seeded["coco_id"]
+    uploaded = client.post(
+        f"/api/v1/pets/{coco}/artifacts",
+        files={"file": ("voice-note.mp3", b"ID3-real-owner-voice", "audio/mpeg")},
+        headers=auth(owner),
+    )
+    assert uploaded.status_code == 201, uploaded.text
+    artifact_id = uploaded.json()["artifact_id"]
+    assert uploaded.json()["kind"] == "AUDIO"
+
+    created = client.post(
+        f"/api/v1/pets/{coco}/diary",
+        json={"text": "", "audio_artifact_id": artifact_id},
+        headers=auth(owner),
+    )
+    assert created.status_code == 201, created.text
+
+    diary = client.get(f"/api/v1/pets/{coco}/diary", headers=auth(owner))
+    assert diary.status_code == 200, diary.text
+    row = next(item for item in diary.json() if item["diary_id"] == created.json()["diary_id"])
+    assert row["text"] == ""
+    assert row["has_audio"] is True
+    assert row["audio_artifact_id"] == artifact_id
+
+    events = client.get(
+        f"/api/v1/pets/{coco}/events?event_type=diary.created",
+        headers=auth(owner),
+    )
+    assert events.status_code == 200, events.text
+    event = next(e for e in events.json()["events"] if e["payload"].get("diary_id") == created.json()["diary_id"])
+    assert event["artifact_ids"] == [artifact_id]
+    assert event["payload"]["has_audio"] is True
+    assert event["payload"]["text_present"] is False
+
+    meta = client.get(f"/api/v1/artifacts/{artifact_id}", headers=auth(owner))
+    assert meta.status_code == 200, meta.text
+    assert meta.json()["kind"] == "AUDIO"
+    assert meta.json()["original_filename"] == "voice-note.mp3"
+    assert "storage_key" not in meta.json()
+
+
+def test_voice_diary_rejects_wrong_pet_or_non_audio_artifact(client, seeded):
+    owner, coco, mimi = seeded["owner_id"], seeded["coco_id"], seeded["mimi_id"]
+
+    wrong_pet = client.post(
+        f"/api/v1/pets/{mimi}/artifacts",
+        files={"file": ("other.mp3", b"ID3-other-pet", "audio/mpeg")},
+        headers=auth(owner),
+    )
+    assert wrong_pet.status_code == 201, wrong_pet.text
+    rejected = client.post(
+        f"/api/v1/pets/{coco}/diary",
+        json={"text": "", "audio_artifact_id": wrong_pet.json()["artifact_id"]},
+        headers=auth(owner),
+    )
+    assert rejected.status_code == 422
+
+    image = client.post(
+        f"/api/v1/pets/{coco}/artifacts",
+        files={"file": ("photo.gif", b"GIF89a-owner-photo", "image/gif")},
+        headers=auth(owner),
+    )
+    assert image.status_code == 201, image.text
+    rejected_kind = client.post(
+        f"/api/v1/pets/{coco}/diary",
+        json={"text": "", "audio_artifact_id": image.json()["artifact_id"]},
+        headers=auth(owner),
+    )
+    assert rejected_kind.status_code == 422
+
+    empty = client.post(
+        f"/api/v1/pets/{coco}/diary",
+        json={"text": ""},
+        headers=auth(owner),
+    )
+    assert empty.status_code == 422
+
+
 def test_daily_summary_ai_provenance(client, seeded):
     owner, coco = seeded["owner_id"], seeded["coco_id"]
     client.post(f"/api/v1/pets/{coco}/events",
@@ -102,6 +182,32 @@ def test_daily_summary_ai_provenance(client, seeded):
     assert body["provider"] == "mock"
     assert body["fact_count"] >= 1
     assert "不构成诊断" in body["disclaimer"] or "仅供参考" in body["disclaimer"]
+
+
+def test_care_lists_expose_human_labels_not_raw_ids(client, seeded):
+    owner, sitter, coco = seeded["owner_id"], seeded["sitter_id"], seeded["coco_id"]
+    created = client.post(
+        f"/api/v1/pets/{coco}/handoffs",
+        json={
+            "caregiver_user_id": sitter,
+            "scopes": ["daily:read", "daily:write"],
+            "end_at": (NOW + timedelta(hours=2)).isoformat(),
+        },
+        headers=auth(owner),
+    )
+    assert created.status_code == 201
+
+    handoffs = client.get(f"/api/v1/pets/{coco}/handoffs", headers=auth(owner)).json()
+    row = next(h for h in handoffs if h["handoff_id"] == created.json()["handoff_id"])
+    assert row["caregiver_label"]
+    assert row["caregiver_label"] != sitter
+    assert sitter[:8] not in row["caregiver_label"]
+
+    grants = client.get(f"/api/v1/pets/{coco}/grants", headers=auth(owner)).json()
+    grant = next(g for g in grants if g["grant_id"] == created.json()["grant_id"])
+    assert grant["user_label"]
+    assert grant["user_label"] != sitter
+    assert sitter[:8] not in grant["user_label"]
 
 
 def test_handoff_checklist_flow(client, seeded):
@@ -202,3 +308,148 @@ def test_care_reminders_flow(client, seeded):
     assert lst[0]["status"] == "PENDING"
     done = client.post(f"/api/v1/reminders/{rid}/done", json={}, headers=auth(owner))
     assert done.json()["status"] == "DONE"
+
+
+def test_care_card_share_can_be_revoked_from_owner_surface_contract(client, seeded):
+    """Care Card creation returns the revocation handle required by owner UI."""
+    owner, coco = seeded["owner_id"], seeded["coco_id"]
+    created = client.post(
+        f"/api/v1/pets/{coco}/care-cards",
+        json={"expires_in_hours": 2},
+        headers=auth(owner),
+    )
+    assert created.status_code == 201, created.text
+    body = created.json()
+    assert body["token"]
+    assert body["token_id"]
+    assert body["expires_at"]
+
+    opened = client.get(f"/api/v1/care-card/{body['token']}")
+    assert opened.status_code == 200, opened.text
+
+    revoked = client.delete(
+        f"/api/v1/share-tokens/{body['token_id']}",
+        headers=auth(owner),
+    )
+    assert revoked.status_code == 200, revoked.text
+    assert revoked.json()["status"] == "REVOKED"
+
+    denied = client.get(f"/api/v1/care-card/{body['token']}")
+    assert denied.status_code == 403
+
+
+def test_notification_read_flow_is_scoped_and_idempotent(client, seeded):
+    owner = seeded["owner_id"]
+    outsider = seeded["sitter_id"]
+    coco = seeded["coco_id"]
+    household = seeded["household_id"]
+
+    created = client.post(
+        f"/api/v1/pets/{coco}/deletion-requests",
+        json={"reason": "notification-read-contract"},
+        headers=auth(owner),
+    )
+    assert created.status_code == 201, created.text
+
+    listed = client.get(
+        f"/api/v1/households/{household}/notifications",
+        headers=auth(owner),
+    )
+    assert listed.status_code == 200, listed.text
+    row = next(n for n in listed.json() if n["type"] == "DELETION_REQUESTED" and not n["read_at"])
+
+    denied = client.post(
+        f"/api/v1/notifications/{row['id']}/read",
+        json={},
+        headers=auth(outsider),
+    )
+    assert denied.status_code == 403
+
+    first = client.post(
+        f"/api/v1/notifications/{row['id']}/read",
+        json={},
+        headers=auth(owner),
+    )
+    assert first.status_code == 200, first.text
+    assert first.json()["read_at"]
+
+    replay = client.post(
+        f"/api/v1/notifications/{row['id']}/read",
+        json={},
+        headers=auth(owner),
+    )
+    assert replay.status_code == 200
+    assert replay.json()["read_at"] == first.json()["read_at"]
+
+    created2 = client.post(
+        f"/api/v1/pets/{seeded['mimi_id']}/deletion-requests",
+        json={"reason": "notification-read-all-contract"},
+        headers=auth(owner),
+    )
+    assert created2.status_code == 201
+    all_read = client.post(
+        f"/api/v1/households/{household}/notifications/read-all",
+        json={},
+        headers=auth(owner),
+    )
+    assert all_read.status_code == 200, all_read.text
+    assert all_read.json()["marked"] >= 1
+
+    final = client.get(
+        f"/api/v1/households/{household}/notifications",
+        headers=auth(owner),
+    ).json()
+    assert all(n["read_at"] is not None for n in final)
+
+
+def test_pet_identifier_and_lifecycle_round_trip(client, seeded):
+    owner = seeded["owner_id"]
+    coco = seeded["coco_id"]
+
+    pet = client.get(f"/api/v1/pets/{coco}", headers=auth(owner))
+    assert pet.status_code == 200, pet.text
+    assert pet.json()["lifecycle_status"] == "ACTIVE"
+
+    identifier = client.post(
+        f"/api/v1/pets/{coco}/identifiers",
+        json={
+            "identifier_type": "CHIP",
+            "value": "985141000000001",
+            "source_type": "OWNER_REPORTED",
+            "verify": False,
+        },
+        headers=auth(owner),
+    )
+    assert identifier.status_code == 201, identifier.text
+    assert identifier.json()["verified"] is False
+
+    identifiers = client.get(
+        f"/api/v1/pets/{coco}/identifiers",
+        headers=auth(owner),
+    )
+    assert identifiers.status_code == 200, identifiers.text
+    chip = next(row for row in identifiers.json() if row["identifier_id"] == identifier.json()["identifier_id"])
+    assert chip["identifier_type"] == "CHIP"
+    assert chip["value"] == "985141000000001"
+    assert chip["verified"] is False
+
+    changed = client.post(
+        f"/api/v1/pets/{coco}/status",
+        json={"status": "LOST", "note": "owner-confirmed test state"},
+        headers=auth(owner),
+    )
+    assert changed.status_code == 201, changed.text
+    assert changed.json()["lifecycle_status"] == "LOST"
+    assert changed.json()["previous"] == "ACTIVE"
+
+    refreshed = client.get(f"/api/v1/pets/{coco}", headers=auth(owner))
+    assert refreshed.status_code == 200, refreshed.text
+    assert refreshed.json()["lifecycle_status"] == "LOST"
+
+    timeline = client.get(
+        f"/api/v1/pets/{coco}/events?event_type=pet.status_changed",
+        headers=auth(owner),
+    )
+    assert timeline.status_code == 200, timeline.text
+    assert timeline.json()["events"][0]["payload"]["status"] == "LOST"
+    assert timeline.json()["events"][0]["provenance_level"] == "OWNER_REPORTED"

@@ -23,6 +23,18 @@ BASELINE_METRICS = {
     "walk_minutes_per_day": "daily.walk",
     "sleep_minutes_per_day": "daily.sleep",
 }
+BASELINE_UNITS = {
+    "meal_count_per_day": "次",
+    "walk_minutes_per_day": "分钟",
+    "sleep_minutes_per_day": "分钟",
+}
+PRODUCT_TZ = timezone(timedelta(hours=8))
+
+
+def _product_date(value: datetime) -> date:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(PRODUCT_TZ).date()
 
 
 def _baseline_algorithm(values: list[float]) -> float:
@@ -57,15 +69,18 @@ async def recompute_baseline(
         ).all()
         by_day: dict[date, float] = {}
         for occurred_at, payload in rows:
-            day = occurred_at.date()
+            day = _product_date(occurred_at)
             if metric in ("meal_count_per_day",):
                 by_day[day] = by_day.get(day, 0) + 1
             else:
                 minutes = payload.get("duration_minutes", 0)
                 try:
-                    by_day[day] = by_day.get(day, 0) + float(minutes)
+                    parsed = float(minutes)
                 except (TypeError, ValueError):
                     continue
+                if not 0 < parsed <= 24 * 60:
+                    continue
+                by_day[day] = by_day.get(day, 0) + parsed
         values = list(by_day.values())
         if not values:
             results[metric] = None
@@ -82,6 +97,7 @@ async def recompute_baseline(
             row = Baseline(pet_id=pet.id, metric=metric, value=str(value))
             db.add(row)
         row.value = str(value)
+        row.unit = BASELINE_UNITS[metric]
         row.sample_count = len(values)
         row.window_days = window_days
         row.algorithm = "trimmed_mean_v1"

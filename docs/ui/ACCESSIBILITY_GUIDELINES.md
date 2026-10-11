@@ -1,37 +1,74 @@
-# ACCESSIBILITY_GUIDELINES — Stage H 冻结版
+# ACCESSIBILITY_GUIDELINES — R5.6 Owner Experience Contract
 
-> 状态：`FROZEN（Stage H）` · 至少覆盖（§77）：Keyboard Navigation / Visible Focus / Contrast / ARIA Labels / Screen Reader Basics / Tap Target / Font Scaling / Reduced Motion
+> Authority: canonical v3.4-R1 + R5.5/R5.6.
+> Status: SOURCE DESIGN CLOSED / runtime accessibility evidence pending.
 
-## 1. 要求
+## 1. Core requirements
 
-| 项 | 规范 |
+| Area | R5.6 requirement |
 |---|---|
-| Keyboard Navigation | 所有交互元素 Tab 可达；Modal/Sheet 焦点陷阱 + Esc 关闭；顺序符合视觉 |
-| Visible Focus | `:focus-visible` 使用 `--pli-elev-focus`（3px ring）；不删除 outline |
-| Contrast | 正文 ≥4.5:1；大字 ≥3:1；语义色前景/背景对已按此校准 |
-| ARIA Labels | 图标按钮必须有 aria-label；状态容器 role=status/alert；Modal aria-modal |
-| Screen Reader Basics | 语义 HTML（nav/main/main/h1-h3/list）；时间线项目含时间/角色文本标注 |
-| Tap Target | ≥44×44px（tokens.touch） |
-| Font Scaling | 相对单位（rem/em 或 px+zoom 兼容）；支持浏览器字号缩放不破版 |
-| Reduced Motion | `@media (prefers-reduced-motion: reduce)` 关闭非必要动画/过渡 |
+| Keyboard | All Web interactions reachable in logical order; menus/sheets close with Escape where applicable |
+| Focus | Visible focus is never removed; focus does not disappear behind sticky/bottom navigation |
+| Semantics | Use native links/buttons/tabs first; current destination exposes `aria-current` / selected state |
+| Labels | Icon-only controls require explicit names; pet/Twin controls describe the owner action |
+| Screen reader | Meaningful landmarks/headings/lists; state changes use status/alert only when appropriate |
+| Touch | Primary mobile controls >=44dp; compact decorative elements are not fake controls |
+| Contrast | Body text >=4.5:1 and large text >=3:1; semantic color always has text/icon support |
+| Font scaling | Core tasks remain usable at enlarged system/browser text |
+| Motion | Reduced-motion removes non-essential motion without removing state information |
+| Error/state | Loading/empty/error/offline/permission are conveyed by text, not color/image alone |
 
-## 2. 组件级落实
+## 2. Canonical navigation
 
-- RiskBanner：颜色不是唯一表达（图标+中文标签+English secondary）。
-- TrendCard：方向=箭头+文字，不只颜色。
-- DeviceStatus：状态点+文字标签。
-- TimelineItem：AI 生成与真实记录的区分有文本徽章（不只颜色）。
-- QuickLogSheet/Sheet/Modal：aria-modal、焦点管理、Esc 关闭。
-- Toast：info→role=status；emergency→role=alert。
+### Web
 
-## 3. 验证记录
+Primary destinations remain Today / Timeline / Pet / Assistant / Me.
 
-见 `reports/STAGE_H_ACCESSIBILITY_AUDIT.md`（逐项检查 + 已知问题）。
+- links retain native link semantics;
+- active destination exposes `aria-current=page`;
+- More exposes popup state and supports Escape dismissal;
+- mobile-width Web/PWA bottom navigation remains reachable above safe-area insets.
 
-## 4. H.1 更新（2026-09-20）
+### Android / Mobile
 
-- **Reduced Motion 已全局实现**：`apps/web/app/globals.css` 与 `apps/mini/src/app.scss` 顶层增加
-  `@media (prefers-reduced-motion: reduce)` —— 关闭 animation / transition / scroll-behavior，
-  spinner 与 skeleton 静态化，btn:active 无位移；Mobile（Expo）无动画实现（N/A）。
-- 验证：web/mini typecheck 0 · mini build（Taro weapp）Compiled successfully · 审计见
-  `reports/STAGE_H_ACCESSIBILITY_AUDIT.md`（H.1 复查：LIMITATION 归零）。
+Five tabs expose labels that describe the owner job, selected state and minimum touch targets. Bottom navigation hides when the keyboard would overlap focused input flows.
+
+### Mini
+
+Navigation semantics mirror the five owner destinations while respecting platform-native capabilities.
+
+## 3. Pet Twin
+
+- The Pet/Twin Hero has a meaningful accessible name.
+- Camera controls have explicit labels: rotate context, zoom in/out, reset.
+- Twin Review front/side/rear exposes selected state.
+- “不像” disables activation in both behavior and accessibility state.
+- Motion is not the only way to communicate pose/state.
+- Generated/template identity is described honestly; screen-reader copy must not call it a scan.
+
+## 4. Risk, health and monitoring
+
+- urgency has icon + label + explanatory text;
+- trend has direction words, not color alone;
+- device state uses explicit connected/offline/no-device/cached/permission language;
+- Assistant citations/provenance are reachable as text.
+
+## 5. Forms and sheets
+
+- every input has a programmatic label;
+- validation explains the problem next to the field and in accessible text;
+- modal/sheet opening moves focus appropriately on Web;
+- closing restores focus where practical;
+- destructive actions require an explicit label and confirmation appropriate to impact.
+
+## 6. Acceptance evidence
+
+Before visual baseline promotion, fresh evidence should include:
+
+- keyboard navigation for Web primary IA and More;
+- selected/disabled semantics for mobile tabs and Twin Review;
+- 44dp primary controls on representative mobile screens;
+- reduced-motion behavior;
+- readable focus on warm Living/Review surfaces.
+
+Accessibility machine checks can prove semantics and geometry; they do not replace human usability review.

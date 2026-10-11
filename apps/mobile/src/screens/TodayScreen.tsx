@@ -19,6 +19,7 @@ import { COLORS, DEMO_ENV, SPACE, TYPE } from "../tokens";
 import type { StackParamList, TabParamList } from "../navigation";
 import { PetLivingStage } from "../components/life/PetLivingStage";
 import { AttentionPanel } from "../components/life/AttentionPanel";
+import { ChangeNarrative } from "../components/life/ChangeNarrative";
 import { PrimaryAction, SecondaryAction, ActionRow } from "../components/actions/QuickAction";
 import { Skeleton } from "../components/feedback/Feedback";
 import { OpenSection } from "../components/feedback/OpenSection";
@@ -28,23 +29,77 @@ import { todayTasks, type TodayResp } from "./today";
 import { usePetTwin } from "../hooks/usePetTwin";
 import { poseForEvent } from "@pli/pet-3d";
 import { TodayEmptyPet, TodayHealthSummary, TodayOffline } from "./today_sections";
-import { eventRowFromEvent, recentContext, timeContextText } from "./today_helpers";
+import {
+  eventRowFromEvent,
+  formatObservedDuration,
+  observedActivityMinutes,
+  observedDurationMinutes,
+  recentContext,
+  timeContextText,
+} from "./today_helpers";
 
 type TabNav = BottomTabNavigationProp<TabParamList>;
 type StackNav = NativeStackNavigationProp<StackParamList>;
+
+interface DayHintExplanation {
+  metric: string;
+  label: string;
+  unit: string;
+  current_value: number;
+  same_time_baseline: number | null;
+  sample_count: number;
+  window_days: number;
+  deviation_percent: number | null;
+  direction: "LOWER" | "HIGHER" | "SIMILAR" | "INSUFFICIENT";
+  notable: boolean;
+  fact: string;
+  comparison: string;
+  uncertainty: string;
+  next_step: string;
+}
+
+interface DayHintResponse {
+  status: "INSUFFICIENT" | "STABLE" | "NOTABLE";
+  hints: string[];
+  rule: string;
+  as_of?: string;
+  explanations?: DayHintExplanation[];
+}
+
+function ownerFacingHealthText(value: string | null | undefined, fallback: string): string {
+  const text = value?.trim();
+  if (!text || /^(?:BW|HE|EV)-[A-Za-z0-9_-]+$/i.test(text)) return fallback;
+  return text;
+}
 
 export function TodayScreen() {
   const { pets, petId, choose, reload } = usePets();
   const { twin } = usePetTwin(petId);
   const tabNav = useNavigation<TabNav>();
   const stackNav = useNavigation<StackNav>();
-  const [today, setToday] = useState<TodayResp | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [hint, setHint] = useState<{ hints: string[]; rule: string } | null>(null);
-  const [health, setHealth] = useState<HealthEventRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [cachedAt, setCachedAt] = useState<number | null>(null);
+  // API payloads are owned by a pet id. Mask the previous pet's facts during
+  // the FIRST render after switching pets, before useEffect gets a chance to
+  // clear them. Failed requests must not resurrect old owner data.
+  const [loadedPetId, setLoadedPetId] = useState<string | null>(null);
+  const [rawToday, setToday] = useState<TodayResp | null>(null);
+  const [rawTasks, setTasks] = useState<Task[]>([]);
+  const [rawHint, setHint] = useState<DayHintResponse | null>(null);
+  const [rawHealth, setHealth] = useState<HealthEventRow[]>([]);
+  const [rawHealthState, setHealthState] = useState<"loading" | "ready" | "error">("loading");
+  const [rawError, setError] = useState<string | null>(null);
+  const [rawLoading, setLoading] = useState(true);
+  const [rawCachedAt, setCachedAt] = useState<number | null>(null);
+  const [refreshCounter, setRefreshCounter] = useState(0);
+
+  const isOwnData = petId !== null && loadedPetId === petId;
+  const today = isOwnData ? rawToday : null;
+  const tasks = isOwnData ? rawTasks : [];
+  const hint = isOwnData ? rawHint : null;
+  const health = isOwnData ? rawHealth : [];
+  const healthState = isOwnData ? rawHealthState : "loading";
+  const error = isOwnData ? rawError : null;
+  const loading = rawLoading || !isOwnData;
+  const cachedAt = isOwnData ? rawCachedAt : null;
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
@@ -52,10 +107,17 @@ export function TodayScreen() {
     if (!petId) return;
     let alive = true;
     setLoading(true);
+    setToday(null);
+    setTasks([]);
+    setError(null);
+    setCachedAt(null);
+    setHint(null);
+    setHealth([]);
+    setHealthState("loading");
     Promise.allSettled([
       api.get<TodayResp>(`/pets/${petId}/today`),
       api.get<Task[]>(`/pets/${petId}/tasks`),
-      api.get<{ hints: string[]; rule: string }>(`/pets/${petId}/abnormal-day-hint`),
+      api.get<DayHintResponse>(`/pets/${petId}/abnormal-day-hint`),
       api.get<HealthEventRow[]>(`/pets/${petId}/health-events`),
     ]).then(([t, tk, h, he]) => {
       if (!alive) return;
@@ -68,33 +130,88 @@ export function TodayScreen() {
       }
       if (tk.status === "fulfilled") setTasks(tk.value);
       if (h.status === "fulfilled") setHint(h.value);
-      if (he.status === "fulfilled") setHealth(he.value);
+      if (he.status === "fulfilled") {
+        setHealth(he.value);
+        setHealthState("ready");
+      } else {
+        setHealth([]);
+        setHealthState("error");
+      }
+      setLoadedPetId(petId);
       setLoading(false);
     });
     return () => {
       alive = false;
     };
-  }, [petId]);
+  }, [petId, refreshCounter]);
+
+  const change = useMemo(() => {
+    if (hint === null) {
+      return {
+        summary: "与它自己相比：今天还没有足够的基线信息。",
+        evidence: "继续记录后，才会比较它自己的同期常态。",
+        fact: "今天的同期基线暂时没有完整读取到。",
+        comparison: "目前没有足够的可比事实。",
+        uncertainty: "未知状态不会显示成“没有变化”。",
+        nextStep: "继续记录真实发生的进食、活动和睡眠，等可比记录足够后再判断变化。",
+      };
+    }
+    const explanations = hint.explanations ?? [];
+    const detail =
+      explanations.find((row) => row.notable) ??
+      explanations.find((row) => row.direction !== "INSUFFICIENT") ??
+      explanations[0];
+    if (hint.status === "INSUFFICIENT") {
+      return {
+        summary: "与它自己相比：同期基线记录还不够，暂时不能判断变化。",
+        evidence: detail?.comparison ?? "至少需要 3 天同一时间点的可比记录。",
+        fact: detail?.fact,
+        comparison: detail?.comparison,
+        uncertainty: detail?.uncertainty ?? "记录不足时不会把未知状态显示成“没有变化”。",
+        nextStep: detail?.next_step ?? "继续记录真实发生的进食、活动和睡眠，积累可比同期事实。",
+      };
+    }
+    const abnormal = hint.hints.find((x) => !x.includes("暂未出现需要突出显示的变化") && !x.includes("无明显异常"));
+    return {
+      summary: abnormal ?? "与它自己相比：今天暂未出现需要突出显示的变化。",
+      evidence: detail?.comparison ?? hint.rule ?? "只比较同一时间点、同一指标口径的已记录事实",
+      fact: detail?.fact,
+      comparison: detail?.comparison,
+      uncertainty: detail?.uncertainty,
+      nextStep: detail?.next_step,
+    };
+  }, [hint]);
 
   const attention = useMemo(() => {
+    if (healthState !== "ready") {
+      return {
+        kind: "unknown" as const,
+        body: "健康关注状态暂时无法确认。",
+        footer: "健康记录没有完整读取到，不会把未知状态显示成“没有风险”",
+      };
+    }
     const danger = health.find((r) => r.latest_triage_level === "URGENT" || r.latest_triage_level === "EMERGENCY");
     if (danger) {
       return {
         kind: "danger" as const,
-        body: danger.chief_complaint || "有一条健康记录需要关注，请查看健康页。",
-        footer: "由风险规则引擎判定 · 查看健康页了解详情",
+        body: ownerFacingHealthText(danger.chief_complaint, "有一条健康记录需要关注，请查看健康页。"),
+        footer: "由独立风险分级规则判定 · 查看健康页了解详情",
       };
     }
-    const abnormal = hint?.hints.find((x) => !x.includes("无明显异常"));
-    if (abnormal) {
+    const focus = health.find((r) => r.status !== "CLOSED" && r.latest_triage_level);
+    if (focus) {
       return {
         kind: "attention" as const,
-        body: abnormal,
-        footer: hint?.rule ? "确定性对比（今日计数 vs 基线）" : undefined,
+        body: ownerFacingHealthText(focus.chief_complaint, "有一条健康记录值得查看。"),
+        footer: "来自已记录的健康事件；不是诊断结论",
       };
     }
-    return { kind: "calm" as const, body: "目前没有需要特别关注的变化。" };
-  }, [health, hint]);
+    return {
+      kind: "calm" as const,
+      body: "目前没有健康记录被独立风险规则标记为需要立即关注。",
+      footer: "仅表示当前已记录事实未触发规则，不等同于健康正常",
+    };
+  }, [health, healthState]);
 
   const counts = today?.event_counts ?? {};
   const todayEvents = (today?.events ?? []).filter((e) => e.event_type !== "today.viewed");
@@ -103,25 +220,31 @@ export function TodayScreen() {
   const representativePose = poseForEvent(todayEvents[0]?.event_type ?? null);
 
   const anchors = useMemo(() => {
-    const activityMins = todayEvents.reduce(
-      (a, e) => a + (Number((e.payload as Record<string, unknown>)?.duration_minutes) || 0),
-      0
-    );
+    const activityMins = observedActivityMinutes(todayEvents);
+    const sleepMins = observedDurationMinutes(todayEvents, "daily.sleep");
     const rows = [
-      { id: "food", label: "进食", value: counts["daily.meal"] ? `${counts["daily.meal"]} 次` : "—", icon: "restaurant-outline" as const },
-      { id: "water", label: "饮水", value: counts["daily.drink"] ? `${counts["daily.drink"]} 次` : "—", icon: "water-outline" as const },
-      { id: "activity", label: "活动", value: activityMins ? `${activityMins} 分钟` : "—", icon: "walk-outline" as const },
-      { id: "sleep", label: "睡眠", value: counts["daily.sleep"] ? `${counts["daily.sleep"]} 次` : "—", icon: "moon-outline" as const },
+      { id: "food", detail: "meal" as const, label: "进食", value: counts["daily.meal"] ? `${counts["daily.meal"]} 次` : "—", icon: "restaurant-outline" as const },
+      { id: "water", detail: "water" as const, label: "饮水", value: counts["daily.drink"] ? `${counts["daily.drink"]} 次` : "—", icon: "water-outline" as const },
+      { id: "activity", detail: "activity" as const, label: "活动", value: activityMins ? `${activityMins} 分钟` : "—", icon: "walk-outline" as const },
+      { id: "sleep", detail: "sleep" as const, label: "睡眠", value: formatObservedDuration(sleepMins), icon: "moon-outline" as const },
     ];
-    return rows;
-  }, [counts, todayEvents]);
+    // §34.5 Explain Sheet: every ambient life fact is an entry into the same
+    // Life View fact model (fact / baseline / source / time / evidence).
+    // Today never owns a second explanation implementation.
+    return rows.map(({ detail, ...row }) => ({
+      ...row,
+      onPress: () => stackNav.navigate("LifeView", { anchor: detail }),
+    }));
+  }, [counts, todayEvents, stackNav]);
 
   const calm = attention.kind === "calm";
-  const headline = !pet ? undefined : attention.kind === "danger"
-    ? "今天需要注意一下"
+  // The Hero answers NOW only. CHANGE and ATTENTION have their own layers
+  // below; duplicating warnings in the pet Hero collapses the canonical hierarchy.
+  const headline = !pet
+    ? undefined
     : todayEvents.length === 0
       ? "今天还没有新的记录"
-      : !calm ? "今天有值得留意的变化" : "今天整体稳定";
+      : `今天记录了 ${todayEvents.length} 件生活片段`;
 
   const memoryRows = useMemo(() => todayEvents.slice(0, 5).map(eventRowFromEvent), [todayEvents]);
   const memoryDays: LifeStreamDay[] = memoryRows.length
@@ -173,53 +296,80 @@ export function TodayScreen() {
               : anchors.map((a) => ({
                   ...a,
                   testID: `pli.today.anchor.${a.id}`,
-                  onPress: a.id === "activity" ? () => tabNav.navigate("Timeline") : undefined,
                 }))
           }
           headline={loading ? undefined : headline}
           caption={loading ? undefined : recentContext(todayEvents) ?? timeContextText()}
-          demo={DEMO_ENV}
+          demo={DEMO_ENV || twin?.demoFixture === true}
           onPressPet={pet ? () => stackNav.navigate("LifeView") : undefined}
           twin={twin?.descriptor ?? null}
+          sourceMediaCount={twin?.observedRegions.length ?? 0}
+          frameTarget={0.56}
           pose={twin ? representativePose ?? "Idle" : null}
         />
 
-        {loading || !pet ? null : <TodayHealthSummary health={health} hint={hint} />}
-
-        {error && !loading ? <TodayOffline cachedAt={cachedAt} onRetry={() => setLoading((v) => !v)} /> : null}
+        {error && !loading ? <TodayOffline cachedAt={cachedAt} onRetry={() => setRefreshCounter((v) => v + 1)} /> : null}
 
         {loading ? (
           <View style={styles.loadingWrap}>
             <Skeleton rows={2} />
           </View>
         ) : (
-          <View testID="pli.today.change">
+          <>
+            <View testID="pli.today.change">
+              <ChangeNarrative
+                summary={change.summary}
+                evidenceHint={change.evidence}
+                fact={change.fact}
+                comparison={change.comparison}
+                uncertainty={change.uncertainty}
+                nextStep={change.nextStep}
+                compact
+              />
+            </View>
             <View testID="pli.today.attention">
               {calm ? (
                 <View style={styles.calmRow}>
                   <Text style={styles.calmText}>{attention.body}</Text>
+                  {attention.footer ? <Text style={styles.calmMeta}>{attention.footer}</Text> : null}
                 </View>
               ) : (
-                <AttentionPanel kind={attention.kind} body={attention.body} footer={attention.footer} onPress={() => tabNav.navigate("Timeline")} />
+                <AttentionPanel kind={attention.kind} body={attention.body} footer={attention.footer} onPress={() => stackNav.navigate("Health")} />
               )}
             </View>
+
+            {/* Canonical hierarchy: PET → NOW → CHANGE → ATTENTION → ACTION.
+                Baseline change and health attention are deliberately distinct:
+                a changed life pattern is not itself a medical conclusion. */}
+            <PrimaryAction testID="pli.today.primary-action" label="快速记录" onPress={() => stackNav.navigate("QuickLog")} compact />
+            <ActionRow>
+              <SecondaryAction label="看看它" icon="eye-outline" onPress={() => stackNav.navigate("LifeView")} />
+              <SecondaryAction label="问助手" icon="chatbubble-ellipses-outline" onPress={() => tabNav.navigate("Assistant")} />
+            </ActionRow>
+
+            {pet ? (
+              <View testID="pli.today.support">
+                <TodayHealthSummary health={health} evidenceState={healthState} />
+              </View>
+            ) : null}
 
             {tasks.length > 0 ? (
               <OpenSection title="今天任务" caption={`${tasks.filter((t) => t.status === "OPEN").length} 项待办`}>
                 {todayTasks(tasks).map((t) => (
                   <View key={t.id} style={styles.taskRow}>
                     <Text style={styles.taskMark}>{t.status === "COMPLETED" ? "✓" : "○"}</Text>
-                    <Text style={styles.taskTitle}>{t.title}</Text>
+                    <View style={styles.taskBody}>
+                      <Text style={styles.taskTitle}>{t.title}</Text>
+                      {t.conflict_count > 0 ? (
+                        <Text style={styles.taskConflict} accessibilityLabel={`${t.conflict_count} 次重复完成冲突`}>
+                          已记录 {t.conflict_count} 次重复完成冲突 · 原完成记录未被覆盖
+                        </Text>
+                      ) : null}
+                    </View>
                   </View>
                 ))}
               </OpenSection>
             ) : null}
-
-            <PrimaryAction testID="pli.today.primary-action" label="快速记录" onPress={() => stackNav.navigate("QuickLog")} />
-            <ActionRow>
-              <SecondaryAction label="看看它" icon="eye-outline" onPress={() => stackNav.navigate("LifeView")} />
-              <SecondaryAction label="问助手" icon="chatbubble-ellipses-outline" onPress={() => tabNav.navigate("Assistant")} />
-            </ActionRow>
 
             <View testID="pli.today.memory-preview">
               <OpenSection title="最近发生" caption={todayEvents.length ? `今天 · ${todayEvents.length} 条` : undefined}>
@@ -232,7 +382,7 @@ export function TodayScreen() {
                 )}
               </OpenSection>
             </View>
-          </View>
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -245,8 +395,11 @@ const styles = StyleSheet.create({
   content: { paddingBottom: SPACE.s8 },
   chipRow: { flexDirection: "row", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s2 },
   chip: {
+    minHeight: 44,
     paddingHorizontal: SPACE.s4,
     paddingVertical: 6,
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 999,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
@@ -256,10 +409,13 @@ const styles = StyleSheet.create({
   chipText: { fontSize: TYPE.sm, color: COLORS.textTertiary },
   chipActiveText: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
-  calmRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
-  calmText: { fontSize: TYPE.sm, color: COLORS.textTertiary, lineHeight: 20 },
-  taskRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, paddingVertical: 6 },
+  calmRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s1, paddingVertical: 4 },
+  calmText: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 18 },
+  calmMeta: { fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 16, marginTop: 1 },
+  taskRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2, paddingVertical: 6 },
   taskMark: { fontSize: TYPE.body, color: COLORS.brandPrimaryDeep, width: 16 },
-  taskTitle: { fontSize: TYPE.body, color: COLORS.textPrimary, flex: 1 },
+  taskBody: { flex: 1 },
+  taskTitle: { fontSize: TYPE.body, color: COLORS.textPrimary },
+  taskConflict: { marginTop: 3, fontSize: TYPE.caption, color: COLORS.attention, lineHeight: 18 },
   memoryEmpty: { fontSize: TYPE.body, color: COLORS.textTertiary, lineHeight: 22, marginTop: SPACE.s1 },
 });

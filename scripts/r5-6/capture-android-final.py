@@ -1,0 +1,888 @@
+#!/usr/bin/env python3
+"""Cross-platform R5.6 Android runtime evidence capture.
+
+Designed for GitHub-hosted Linux emulators and local macOS/Linux agents.
+The existing PowerShell wrapper remains the Windows-first path.
+
+No vision model is used. Evidence comes from:
+- real emulator screenshots (adb screencap);
+- UIAutomator accessibility XML;
+- the embedded WebView runtime 3D manifest;
+- real Twin Review camera controls.
+
+The script starts from a clean repo-local output directory and fails if any
+required high-fidelity runtime manifest is missing/fallback.
+"""
+from __future__ import annotations
+
+import argparse
+import html
+import json
+import math
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import time
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+from xml.etree import ElementTree as ET
+
+ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_OUT = ROOT / "artifacts" / "r5-6-final" / "android"
+OWNER_ERROR_FREE_SURFACES = {"today", "timeline", "pet", "lifeview", "health", "me"}
+SURFACES = (
+    ("today", True, "today"),
+    ("timeline", False, None),
+    ("pet", True, "pet"),
+    ("lifeview", True, "life"),
+    ("twinreview", True, "review"),
+    ("health", False, None),
+    ("assistant", False, None),
+    ("companion", True, "companion"),
+    ("me", False, None),
+)
+
+SURFACE_ROOT_IDS = {
+    "today": "pli.today.living-stage",
+    "timeline": "pli.timeline.identity",
+    "pet": "pli.pet.hero-stage",
+    "lifeview": "pli.lifeview.identity",
+    "twinreview": "pli.twinreview.identity",
+    "health": "pli.health.identity",
+    "assistant": "pli.assistant.identity",
+    "companion": "pli.companion.living-stage",
+    "me": "pli.me.owner",
+}
+
+
+class CaptureError(RuntimeError):
+    pass
+
+
+# Hosted emulators have been observed to stop answering adb while the job keeps
+# waiting forever (the failing run left a truncated logcat buffer next to empty
+# UIAutomator dumps). A bounded per-command budget keeps such a stall
+# diagnosable instead of blocking until the runner's 6h limit. This is a
+# liveness bound ONLY: every product gate below still requires the exact
+# expected UI root and the rigged RUNTIME 3D manifest.
+ADB_TIMEOUT_SECONDS = 60
+
+
+def run(
+    cmd: list[str],
+    *,
+    check: bool = True,
+    text: bool = True,
+    timeout: float = ADB_TIMEOUT_SECONDS,
+) -> subprocess.CompletedProcess:
+    run_kwargs: dict[str, object] = {
+        "cwd": ROOT,
+        "capture_output": True,
+        "text": text,
+        "timeout": timeout,
+    }
+    if text:
+        # Never let the host locale choose how adb output is decoded: on a
+        # Chinese Windows console (GBK) UIAutomator's UTF-8 payload raised
+        # UnicodeDecodeError and aborted the whole capture.
+        run_kwargs["encoding"] = "utf-8"
+        run_kwargs["errors"] = "replace"
+    try:
+        result = subprocess.run(cmd, **run_kwargs)  # type: ignore[arg-type]
+    except subprocess.TimeoutExpired as exc:
+        empty = "" if text else b""
+        if check:
+            raise CaptureError(f"command timed out after {timeout}s: {' '.join(cmd)}") from exc
+        return subprocess.CompletedProcess(cmd, returncode=124, stdout=empty, stderr=empty)
+    if check and result.returncode != 0:
+        stderr = result.stderr if text else result.stderr.decode("utf-8", "replace")
+        stdout = result.stdout if text else result.stdout.decode("utf-8", "replace")
+        raise CaptureError(f"command failed ({result.returncode}): {' '.join(cmd)}\n{stderr or stdout}")
+    return result
+
+
+class Android:
+    def __init__(self, adb: str, serial: str, package: str) -> None:
+        self.adb = adb
+        self.serial = serial
+        self.package = package
+
+    def cmd(self, *args: str, check: bool = True, text: bool = True) -> subprocess.CompletedProcess:
+        return run([self.adb, "-s", self.serial, *args], check=check, text=text)
+
+    def shell(self, *args: str, check: bool = True) -> str:
+        # ``stdout`` can be None when a child produced no decodable output.
+        return (self.cmd("shell", *args, check=check).stdout or "").strip()
+
+    def start_link(self, uri: str) -> None:
+        # adb shell concatenates remote command arguments and lets /system/bin/sh
+        # parse them. Query separators such as '&' would otherwise background
+        # the am command and turn the Activity component into a second shell
+        # command. Quote both values for the remote shell.
+        self.cmd(
+            "shell",
+            "am",
+            "start",
+            "-W",
+            "-a",
+            "android.intent.action.VIEW",
+            "-d",
+            shlex.quote(uri),
+            shlex.quote(f"{self.package}/.MainActivity"),
+        )
+
+    def clear_runtime_manifest(self) -> None:
+        # A persisted manifest belongs to the WebView instance that wrote it.
+        # Delete it before every 3D navigation/camera command so a successful
+        # previous surface can never certify a still-loading current surface.
+        self.cmd(
+            "shell",
+            "run-as",
+            self.package,
+            "rm",
+            "-f",
+            "files/pli_manifest.json",
+            check=False,
+        )
+        self.cmd(
+            "shell",
+            "rm",
+            "-f",
+            f"/data/data/{self.package}/files/pli_manifest.json",
+            check=False,
+        )
+
+    def screenshot(self, path: Path) -> None:
+        result = self.cmd("exec-out", "screencap", "-p", text=False)
+        data = result.stdout
+        if len(data) < 1024 or not data.startswith(b"\x89PNG\r\n\x1a\n"):
+            raise CaptureError(f"invalid Android screenshot: {path}")
+        path.write_bytes(data)
+
+    @staticmethod
+    def _bounds_center(node: ET.Element) -> tuple[int, int] | None:
+        match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib.get("bounds", ""))
+        if not match:
+            return None
+        x1, y1, x2, y2 = map(int, match.groups())
+        return ((x1 + x2) // 2, (y1 + y2) // 2)
+
+    def _dismiss_host_system_dialog(self, raw: str) -> bool:
+        """Dismiss emulator-host launcher/SystemUI ANRs, never PLI app crashes.
+
+        GitHub-hosted Pixel emulators can surface a launcher ANR over an
+        otherwise healthy foreground app. That overlay hides all React Native
+        accessibility ids and used to make the final evidence job fail with
+        a misleading "target not found". Only known host-shell dialogs are
+        auto-dismissed; a PLI crash/ANR remains visible and therefore fails.
+        """
+        try:
+            root = ET.fromstring(raw)
+        except ET.ParseError:
+            return False
+
+        text_blob = " ".join(
+            node.attrib.get("text", "")
+            for node in root.iter("node")
+            if node.attrib.get("text")
+        )
+        host_dialog = (
+            "Pixel Launcher isn't responding" in text_blob
+            or "System UI isn't responding" in text_blob
+            or "Process system isn't responding" in text_blob
+        )
+        if not host_dialog:
+            return False
+
+        # Prefer "Wait" so the host shell can recover without changing app
+        # state. Fall back to Back if this emulator image exposes no button id.
+        for node in root.iter("node"):
+            if node.attrib.get("resource-id") == "android:id/aerr_wait":
+                center = self._bounds_center(node)
+                if center:
+                    self.shell("input", "tap", str(center[0]), str(center[1]), check=False)
+                    time.sleep(1)
+                    return True
+        self.shell("input", "keyevent", "4", check=False)
+        time.sleep(1)
+        return True
+
+    # A stalled hosted emulator can leave the hierarchy file empty on every dump
+    # attempt while the app itself stays healthy (the failing hosted run left a
+    # truncated logcat buffer next to a 0-byte ui.xml). Two independent dump
+    # targets plus a device liveness probe separate that stall from a real
+    # navigation failure; the caller still enforces the exact expected UI root.
+    DUMP_REMOTE_PATHS = ("/sdcard/pli_final_ui.xml", "/data/local/tmp/pli_final_ui.xml")
+
+    def is_responsive(self) -> bool:
+        result = self.cmd("shell", "echo", "pli-alive", check=False)
+        return result.returncode == 0 and result.stdout.strip() == "pli-alive"
+
+    def _dump_once(self, remote: str) -> tuple[str, str]:
+        result = self.cmd("shell", "uiautomator", "dump", remote, check=False)
+        tool_output = " ".join(
+            part.strip()
+            for part in (result.stdout or "", result.stderr or "")
+            if part and part.strip()
+        )
+        raw = "" if result.returncode != 0 else self.shell("cat", remote, check=False)
+        return tool_output, raw
+
+    def dump_xml(self, path: Path, attempts: int = 5) -> str:
+        diagnostics: list[str] = []
+        for attempt in range(attempts):
+            for remote in self.DUMP_REMOTE_PATHS:
+                tool_output, raw = self._dump_once(remote)
+                if raw and self._dismiss_host_system_dialog(raw):
+                    diagnostics.append(f"attempt={attempt} remote={remote} host_dialog=dismissed")
+                    continue
+                if raw:
+                    path.write_text(raw, encoding="utf-8")
+                    return raw
+                diagnostics.append(
+                    f"attempt={attempt} remote={remote} tool={tool_output!r} hierarchy=empty"
+                )
+            if not self.is_responsive():
+                diagnostics.append(f"attempt={attempt} device=unresponsive")
+                self.cmd("wait-for-device", check=False)
+            time.sleep(1)
+        path.write_text("", encoding="utf-8")
+        (path.parent / "dump-diagnostics.txt").write_text(
+            "\n".join(diagnostics[-20:]) + "\n", encoding="utf-8"
+        )
+        raise CaptureError(
+            "unable to obtain unobscured UIAutomator XML: "
+            f"{path}; attempts={attempts}; diagnostics={diagnostics[-3:]}"
+        )
+
+    def tap(self, xml: str, needle: str, attr: str) -> None:
+        try:
+            root = ET.fromstring(xml)
+        except ET.ParseError as exc:
+            raise CaptureError(f"invalid UIAutomator XML: {exc}") from exc
+        key = {"id": "resource-id", "desc": "content-desc", "text": "text"}.get(attr)
+        if key is None:
+            raise CaptureError(f"unsupported tap attribute: {attr}")
+        for node in root.iter("node"):
+            value = node.attrib.get(key, "")
+            if needle not in value:
+                continue
+            center = self._bounds_center(node)
+            if not center:
+                continue
+            self.shell("input", "tap", str(center[0]), str(center[1]))
+            return
+        raise CaptureError(f"UI target not found: {needle} ({attr})")
+
+    def _manifest_from_xml(self) -> dict | None:
+        remote = "/sdcard/pli_manifest_title.xml"
+        self.shell("uiautomator", "dump", remote, check=False)
+        raw = self.shell("cat", remote, check=False)
+        if not raw:
+            return None
+        try:
+            root = ET.fromstring(raw)
+            values: list[str] = []
+            for node in root.iter("node"):
+                values.extend(node.attrib.values())
+            for value in values:
+                decoded = html.unescape(value)
+                idx = decoded.find("PLI_MANIFEST:")
+                if idx < 0:
+                    continue
+                payload = decoded[idx + len("PLI_MANIFEST:") :].strip()
+                if payload.startswith("{"):
+                    candidate = json.loads(payload)
+                    if isinstance(candidate, dict):
+                        return candidate
+        except Exception:
+            return None
+        return None
+
+    def read_runtime_manifest(
+        self,
+        retries: int = 10,
+        expected_pet_id: str | None = None,
+        expected_yaw: float | None = None,
+        expected_stage_role: str | None = None,
+        expected_pose: str | None = None,
+    ) -> dict:
+        last_manifest: dict | None = None
+        for _ in range(retries):
+            candidates: list[str] = []
+            # Debug/demo builds: run-as is the most reliable app-private path.
+            result = self.cmd(
+                "shell",
+                "run-as",
+                self.package,
+                "cat",
+                "files/pli_manifest.json",
+                check=False,
+            )
+            if result.returncode == 0 and result.stdout.strip().startswith("{"):
+                candidates.append(result.stdout.strip())
+
+            # Compatibility path for rooted/emulator images.
+            result = self.cmd(
+                "shell",
+                "cat",
+                f"/data/data/{self.package}/files/pli_manifest.json",
+                check=False,
+            )
+            if result.returncode == 0 and result.stdout.strip().startswith("{"):
+                candidates.append(result.stdout.strip())
+
+            for raw in candidates:
+                try:
+                    manifest = json.loads(raw)
+                except json.JSONDecodeError:
+                    continue
+                last_manifest = manifest
+                if self._manifest_matches(
+                    manifest,
+                    expected_pet_id=expected_pet_id,
+                    expected_yaw=expected_yaw,
+                    expected_stage_role=expected_stage_role,
+                    expected_pose=expected_pose,
+                ):
+                    return manifest
+
+            xml_manifest = self._manifest_from_xml()
+            if xml_manifest is not None:
+                last_manifest = xml_manifest
+            if (
+                xml_manifest is not None
+                and self._manifest_matches(
+                    xml_manifest,
+                    expected_pet_id=expected_pet_id,
+                    expected_yaw=expected_yaw,
+                    expected_stage_role=expected_stage_role,
+                    expected_pose=expected_pose,
+                )
+            ):
+                return xml_manifest
+            time.sleep(2)
+        suffix = f" for pet {expected_pet_id}" if expected_pet_id else ""
+        if expected_yaw is not None:
+            suffix += f", yaw≈{expected_yaw:.3f}"
+        if expected_stage_role is not None:
+            suffix += f", stageRole={expected_stage_role}"
+        if expected_pose is not None:
+            suffix += f", pose={expected_pose}"
+        # Report only public metadata. Never print owner media or auth tokens.
+        seen = ""
+        if last_manifest is not None:
+            keys = ("ready", "manifestOrigin", "representation", "generic", "fallbackUsed", "petId", "stageRole", "sourceMediaCount")
+            seen = "; observed=" + json.dumps(
+                {key: last_manifest.get(key) for key in keys},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        raise CaptureError(f"required rigged RUNTIME 3D manifest unavailable{suffix}{seen}")
+
+    def peek_runtime_manifest(self) -> dict | None:
+        """Read the persisted runtime manifest without failing when it is absent.
+
+        Used by the demo pet-selection loops. The demo deep link switches the
+        active pet asynchronously and the WebView stage republishes its manifest
+        afterwards, so a manifest for the *previous* pet must not be mistaken for
+        the requested one (observed on a repeated local run where the emulator
+        still held the secondary pet's stage).
+        """
+        for args in (
+            ("run-as", self.package, "cat", "files/pli_manifest.json"),
+            ("cat", f"/data/data/{self.package}/files/pli_manifest.json"),
+        ):
+            result = self.cmd("shell", *args, check=False)
+            payload = (result.stdout or "").strip()
+            if result.returncode != 0 or not payload.startswith("{"):
+                continue
+            try:
+                manifest = json.loads(payload)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(manifest, dict):
+                return manifest
+        return None
+
+    @classmethod
+    def _manifest_matches(
+        cls,
+        manifest: dict,
+        *,
+        expected_pet_id: str | None,
+        expected_yaw: float | None,
+        expected_stage_role: str | None,
+        expected_pose: str | None,
+    ) -> bool:
+        if not cls._is_product_manifest(manifest):
+            return False
+        if expected_pet_id is not None and str(manifest.get("petId") or "") != expected_pet_id:
+            return False
+        if expected_stage_role is not None and str(manifest.get("stageRole") or "") != expected_stage_role:
+            return False
+        if expected_pose is not None:
+            if str(manifest.get("pose") or "") != expected_pose:
+                return False
+            if str(manifest.get("canonicalPose") or "") != expected_pose:
+                return False
+        if expected_yaw is not None:
+            try:
+                actual = float((manifest.get("camera") or {}).get("yaw"))
+            except (TypeError, ValueError):
+                return False
+            error = abs(math.atan2(math.sin(actual - expected_yaw), math.cos(actual - expected_yaw)))
+            if error > 0.08:
+                return False
+        return True
+
+    @staticmethod
+    def _is_product_manifest(manifest: dict) -> bool:
+        tier = manifest.get("visualFidelityTier")
+        try:
+            source_media_count = int(manifest.get("sourceMediaCount") or 0)
+        except (TypeError, ValueError):
+            return False
+        identity_evidence = manifest.get("individualIdentityEvidence") is True
+        fidelity_consistent = (
+            (tier == "STYLIZED_REFERENCE" and source_media_count == 0 and not identity_evidence)
+            or (tier == "OWNER_MEDIA_REFERENCED" and source_media_count > 0 and identity_evidence)
+        )
+        return (
+            manifest.get("ready") is True
+            and manifest.get("manifestOrigin") == "RUNTIME"
+            and manifest.get("representation") == "rigged-glb-twin"
+            and manifest.get("technicalRepresentationQuality") == "RIGGED_PBR_SKINNED"
+            and fidelity_consistent
+            and manifest.get("generic") is not True
+            and manifest.get("fallbackUsed") is not True
+        )
+
+
+def api_json(url: str, *, method: str = "GET", body: dict | None = None, headers: dict[str, str] | None = None):
+    data = None if body is None else json.dumps(body).encode("utf-8")
+    request_headers = {"content-type": "application/json", **(headers or {})}
+    req = urllib.request.Request(url, data=data, headers=request_headers, method=method)
+    with urllib.request.urlopen(req, timeout=15) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def resolve_demo_pets(api_url: str, login_email: str) -> tuple[dict, dict]:
+    auth = api_json(
+        f"{api_url.rstrip('/')}/api/v1/auth/dev/login",
+        method="POST",
+        body={"email": login_email},
+    )
+    user_id = auth.get("user_id")
+    if not user_id:
+        raise CaptureError("dev login returned no user_id")
+    pets = api_json(
+        f"{api_url.rstrip('/')}/api/v1/pets",
+        headers={"X-Dev-User-Id": str(user_id)},
+    )
+    dogs = [p for p in pets if str(p.get("species", "")).lower() == "dog"]
+    cats = [p for p in pets if str(p.get("species", "")).lower() == "cat"]
+    if len(dogs) != 1 or len(cats) != 1:
+        raise CaptureError("final Android evidence requires exactly one seeded dog and one seeded cat")
+    for pet in (dogs[0], cats[0]):
+        if not pet.get("id") or not pet.get("name"):
+            raise CaptureError("seeded evidence pet is missing id/name")
+    return dogs[0], cats[0]
+
+
+def git(*args: str) -> str:
+    return run(["git", *args]).stdout.strip()
+
+
+def source_identity() -> tuple[str, str]:
+    if os.environ.get("PLI_SOURCE_HEAD"):
+        return (
+            os.environ["PLI_SOURCE_HEAD"],
+            os.environ.get("PLI_SOURCE_BRANCH", ""),
+        )
+    event_path = os.environ.get("GITHUB_EVENT_PATH")
+    if event_path:
+        try:
+            event = json.loads(Path(event_path).read_text(encoding="utf-8"))
+            pull_request = event.get("pull_request") or {}
+            head = pull_request.get("head") or {}
+            if head.get("sha"):
+                return str(head["sha"]), str(head.get("ref") or "")
+        except Exception:
+            pass
+    return git("rev-parse", "HEAD"), git("branch", "--show-current")
+
+
+def save_manifest(path: Path, manifest: dict) -> None:
+    path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def capture_surface(
+    android: Android,
+    out: Path,
+    screen: str,
+    needs_manifest: bool,
+    expected_stage_role: str | None,
+    expected_pet_id: str | None = None,
+) -> None:
+    directory = out / screen
+    directory.mkdir(parents=True, exist_ok=True)
+    if needs_manifest:
+        android.clear_runtime_manifest()
+    android.start_link(f"pli-demo://nav?screen={screen}")
+    expected_root = SURFACE_ROOT_IDS.get(screen)
+    # Life View additionally requires its primary mode rail inside the first
+    # viewport. That rail mounts asynchronously after the identity root, so the
+    # SAME bounded poll has to cover it: a single snapshot rejected a healthy
+    # Life View and failed the whole evidence job (run 38095816809). The rail is
+    # still mandatory and still has to be at least 44px visible after the poll.
+    requires_modebar = screen == "lifeview"
+    xml = ""
+    # Navigation and RN layout completion are asynchronous on hosted emulators.
+    # Poll for the EXACT requested root instead of blessing whichever page
+    # happens to be visible after one arbitrary sleep.
+    attempts = 12 if (expected_root or requires_modebar) else 1
+    for attempt in range(attempts):
+        time.sleep(1 if attempt else 3)
+        xml = android.dump_xml(directory / "ui.xml")
+        if expected_root and expected_root not in xml:
+            continue
+        if requires_modebar and "pli.lifeview.modebar" not in xml:
+            continue
+        break
+    if expected_root and expected_root not in xml:
+        observed_ids = sorted(
+            set(re.findall(r'resource-id="(pli\.[^"]+)"', xml))
+        )[:12]
+        raise CaptureError(
+            f"wrong Android surface after demo navigation: requested={screen}; "
+            f"expected_ui_id={expected_root}; observed_ui_ids={observed_ids}"
+        )
+    if screen in OWNER_ERROR_FREE_SURFACES:
+        # Dedicated negative-state tests cover error/not-found behavior. A
+        # primary owner screen must not pass evidence while embedding a 404.
+        for forbidden in ("页面不存在", "出错了：未找到", "出错了：页面不存在"):
+            if forbidden in xml:
+                raise CaptureError(
+                    f"broken owner state leaked into Android surface {screen}: {forbidden}"
+                )
+    if screen == "lifeview":
+        root = ET.fromstring(xml)
+        modebar = next(
+            (
+                node
+                for node in root.iter("node")
+                if "pli.lifeview.modebar" in node.attrib.get("resource-id", "")
+            ),
+            None,
+        )
+        if modebar is None:
+            observed_ids = sorted(set(re.findall(r'resource-id="(pli\.[^"]+)"', xml)))[:12]
+            raise CaptureError(
+                "Life View primary mode rail is missing from the real Android viewport; "
+                f"observed_ui_ids={observed_ids}"
+            )
+        bounds = modebar.attrib.get("bounds", "")
+        match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+        visible_height = (int(match.group(4)) - int(match.group(2))) if match else 0
+        if visible_height < 44:
+            raise CaptureError(
+                f"Life View primary mode rail is clipped in the first viewport: visible_height={visible_height}px"
+            )
+    if needs_manifest:
+        # Prove the high-fidelity runtime is ready before freezing the visual
+        # frame. This prevents a screenshot of an earlier procedural/loading
+        # state from being paired with a later successful manifest.
+        save_manifest(
+            directory / "3d.json",
+            android.read_runtime_manifest(
+                expected_pet_id=expected_pet_id,
+                expected_stage_role=expected_stage_role,
+                expected_pose="Stand" if expected_stage_role == "review" else None,
+            ),
+        )
+        time.sleep(1)
+    android.screenshot(directory / f"{screen}.png")
+    extractor = ROOT / "scripts" / "blind-ui" / "android_extract.py"
+    run([os.environ.get("PYTHON", "python3"), str(extractor), str(directory)])
+
+
+def capture_distinct_view_frame(
+    android: Android,
+    path: Path,
+    previous: Path | None,
+    *,
+    attempts: int = 6,
+) -> None:
+    """Freeze a Twin Review frame that actually differs from the previous view.
+
+    The runtime manifest proves the commanded camera yaw, but the WebGL frame can
+    still be the previous one when the screenshot lands (observed on run
+    38102813215: the side and back PNGs were byte-identical while their manifests
+    reported different yaws). Re-capture within a bounded budget until the frame
+    changes; if it never does, the caller still fails - the three-view claim must
+    never rest on a highlight alone.
+    """
+    baseline = previous.read_bytes() if previous is not None and previous.exists() else None
+    for attempt in range(attempts):
+        android.screenshot(path)
+        current = path.read_bytes()
+        if baseline is None or current != baseline:
+            return
+        if attempt + 1 < attempts:
+            time.sleep(1)
+    raise CaptureError(
+        f"Twin Review view frame never changed from the previous view after {attempts} captures: {path}"
+    )
+
+
+def capture_review_views(
+    android: Android,
+    directory: Path,
+    prefix: str,
+    expected_pet_id: str,
+) -> None:
+    android.clear_runtime_manifest()
+    android.start_link(f"pli-demo://nav?screen=twinreview&pet={expected_pet_id}")
+
+    # This function runs *after* the surface sweep, whose last screen is Me.
+    # A fixed sleep can therefore freeze the previous tab while React
+    # Navigation is still applying the stack reset. Poll the exact Review
+    # controls, just like capture_surface() polls its exact surface root.
+    xml = ""
+    required_controls = (
+        "pli.twinreview.camera-controls",
+        "pli.twinreview.view.front",
+        "pli.twinreview.view.side",
+        "pli.twinreview.view.back",
+    )
+    for attempt in range(12):
+        time.sleep(1 if attempt else 3)
+        xml = android.dump_xml(directory / "ui.xml")
+        if all(control in xml for control in required_controls):
+            break
+    missing = [control for control in required_controls if control not in xml]
+    if missing:
+        observed_ids = sorted(
+            set(re.findall(r'resource-id="(pli\\.[^"]+)"', xml))
+        )[:12]
+        raise CaptureError(
+            "Twin Review controls unavailable after deterministic navigation: "
+            f"missing={missing}; observed_ui_ids={observed_ids}"
+        )
+    expected = {"front": 0.0, "side": 1.5707963267948966, "back": 3.141592653589793}
+    previous_frame: Path | None = None
+    for view, yaw in expected.items():
+        android.clear_runtime_manifest()
+        android.tap(xml, f"pli.twinreview.view.{view}", "id")
+        # Do not freeze a fixed sleep + first readable manifest: the RN bridge
+        # is asynchronous and the previous camera manifest can still be on
+        # disk. Poll until the SAME pet, Review stage, and commanded yaw agree.
+        manifest = android.read_runtime_manifest(
+            retries=15,
+            expected_pet_id=expected_pet_id,
+            expected_yaw=yaw,
+            expected_stage_role="review",
+            expected_pose="Stand",
+        )
+        # Product presence gate: a loaded GLB is not visually acceptable when
+        # the selected inspection angle shrinks into a small object. Narrow
+        # front/back silhouettes may be area-limited, so accept either a
+        # substantial viewport area OR a tall, readable silhouette.
+        area_ratio = float(manifest.get("projectedAreaRatio") or 0)
+        height_ratio = float(manifest.get("projectedPetHeightRatio") or 0)
+        if area_ratio < 0.20 and height_ratio < 0.68:
+            raise CaptureError(
+                f"Twin Review pet too small at {view}: area={area_ratio:.3f}, height={height_ratio:.3f}"
+            )
+        save_manifest(directory / f"3d_view_{view}.json", manifest)
+        frame = directory / f"{prefix}_{view}.png"
+        capture_distinct_view_frame(android, frame, previous_frame)
+        previous_frame = frame
+        xml = android.dump_xml(directory / "ui.xml")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out", default=str(DEFAULT_OUT.relative_to(ROOT)))
+    parser.add_argument("--adb", default="adb")
+    parser.add_argument("--serial", default="emulator-5554")
+    parser.add_argument("--package", default="com.pli.mobile")
+    parser.add_argument("--login-email", default="owner@pli.demo")
+    parser.add_argument("--api-url", default="http://localhost:8800")
+    args = parser.parse_args()
+
+    out = (ROOT / args.out).resolve()
+    try:
+        out.relative_to(ROOT)
+    except ValueError as exc:
+        raise CaptureError(f"output must remain inside current repository: {out}") from exc
+    shutil.rmtree(out, ignore_errors=True)
+    out.mkdir(parents=True, exist_ok=True)
+
+    android = Android(args.adb, args.serial, args.package)
+    primary_pet, secondary_pet = resolve_demo_pets(args.api_url, args.login_email)
+    primary_id = str(primary_pet["id"])
+    secondary_id = str(secondary_pet["id"])
+
+    android.start_link(f"pli-demo://login?email={args.login_email}")
+    time.sleep(6)
+
+    # Explicitly select the primary dog through a DEMO-ONLY deep link. This
+    # avoids depending on UIAutomator exposing React Native testID as a
+    # resource-id on every emulator image while still exercising the real
+    # PetsContext selection + persisted current-pet state.
+    android.clear_runtime_manifest()
+    primary_select_dir = out / "_primary-select"
+    primary_select_dir.mkdir(parents=True, exist_ok=True)
+    primary_select_xml = ""
+    # Hosted emulators can spend several seconds in RN view creation / GC after
+    # the first owner surface mounts. A single fixed sleep used to classify an
+    # otherwise healthy blank accessibility snapshot as navigation failure.
+    # Re-issue the SAME deterministic deep link while polling for the exact
+    # Today root. This does not relax any product gate: the required root and
+    # later rigged-RUNTIME manifest still must both be present.
+    for attempt in range(18):
+        if attempt in (0, 5, 10, 15):
+            android.start_link(f"pli-demo://nav?screen=today&pet={primary_id}")
+        time.sleep(1 if attempt else 3)
+        primary_select_xml = android.dump_xml(primary_select_dir / "ui.xml")
+        if "演示数据暂时没有连接成功" in primary_select_xml or "重试演示登录" in primary_select_xml:
+            raise CaptureError(
+                "demo owner session failed before Today/3D mounted; check evidence API reachability/authentication"
+            )
+        if "pli.today.living-stage" in primary_select_xml:
+            # Same asynchronous boundary as for the secondary pet: only accept
+            # the surface once the runtime manifest belongs to the requested pet
+            # (or has not been published yet, which read_runtime_manifest then
+            # waits for).
+            peeked = android.peek_runtime_manifest()
+            if peeked is None or str(peeked.get("petId") or "") == primary_id:
+                break
+    if "pli.today.living-stage" not in primary_select_xml:
+        observed_ids = sorted(
+            set(re.findall(r'resource-id="(pli\\.[^"]+)"', primary_select_xml))
+        )[:12]
+        raise CaptureError(
+            "primary pet selection did not reach Today before 3D verification after deterministic retries; "
+            f"observed_ui_ids={observed_ids}"
+        )
+    primary_manifest = android.read_runtime_manifest(
+        expected_pet_id=primary_id,
+        expected_stage_role="today",
+    )
+    save_manifest(primary_select_dir / "3d.json", primary_manifest)
+
+    for screen, manifest, stage_role in SURFACES:
+        capture_surface(
+            android,
+            out,
+            screen,
+            manifest,
+            stage_role,
+            primary_id if manifest else None,
+        )
+
+    review_dir = out / "twinreview"
+    capture_review_views(android, review_dir, "twin", primary_id)
+
+    # Switch to the secondary cat through the same DEMO-ONLY current-pet
+    # deep link. The pet id is resolved from the seeded API at runtime; no
+    # owner pet display name is hard-coded in production source.
+    secondary_today = out / "secondary-sanity"
+    secondary_today.mkdir(parents=True, exist_ok=True)
+    android.clear_runtime_manifest()
+    secondary_today_xml = ""
+    # Pet selection and root reset are two asynchronous boundaries on the
+    # hosted emulator. Re-issue the SAME deterministic deep link while polling
+    # the exact Today root; never accept a stale prior surface.
+    for attempt in range(12):
+        if attempt in (0, 4, 8):
+            android.start_link(f"pli-demo://nav?screen=today&pet={secondary_id}")
+        time.sleep(1 if attempt else 3)
+        secondary_today_xml = android.dump_xml(secondary_today / "ui.xml")
+        if "pli.today.living-stage" in secondary_today_xml:
+            # The deep link switches the active pet asynchronously and the
+            # WebView stage republishes its manifest after that switch, so a
+            # stale manifest for the previous pet must not be accepted here.
+            peeked = android.peek_runtime_manifest()
+            if peeked is None or str(peeked.get("petId") or "") == secondary_id:
+                break
+    if "pli.today.living-stage" not in secondary_today_xml:
+        observed_ids = sorted(
+            set(re.findall(r'resource-id="(pli\\.[^"]+)"', secondary_today_xml))
+        )[:12]
+        raise CaptureError(
+            "secondary pet sanity capture is not on Today after deterministic retries; "
+            f"observed_ui_ids={observed_ids}"
+        )
+    secondary_manifest = android.read_runtime_manifest(
+        expected_pet_id=secondary_id,
+        expected_stage_role="today",
+    )
+    save_manifest(secondary_today / "3d.json", secondary_manifest)
+    time.sleep(1)
+    android.screenshot(secondary_today / "secondary_today.png")
+
+    secondary_review = out / "secondary-review"
+    secondary_review.mkdir(parents=True, exist_ok=True)
+    android.clear_runtime_manifest()
+    android.start_link(f"pli-demo://nav?screen=twinreview&pet={secondary_id}")
+    secondary_review_xml = ""
+    required_secondary_controls = (
+        "pli.twinreview.camera-controls",
+        "pli.twinreview.view.front",
+        "pli.twinreview.view.side",
+        "pli.twinreview.view.back",
+    )
+    for attempt in range(12):
+        time.sleep(1 if attempt else 3)
+        secondary_review_xml = android.dump_xml(secondary_review / "ui.xml")
+        if all(control in secondary_review_xml for control in required_secondary_controls):
+            break
+    missing_secondary = [
+        control for control in required_secondary_controls if control not in secondary_review_xml
+    ]
+    if missing_secondary:
+        observed_ids = sorted(
+            set(re.findall(r'resource-id="(pli\\.[^"]+)"', secondary_review_xml))
+        )[:12]
+        raise CaptureError(
+            "secondary Twin Review did not reach the requested pet/review surface: "
+            f"missing={missing_secondary}; observed_ui_ids={observed_ids}"
+        )
+    save_manifest(
+        secondary_review / "3d.json",
+        android.read_runtime_manifest(
+            expected_pet_id=secondary_id,
+            expected_stage_role="review",
+            expected_pose="Stand",
+        ),
+    )
+    time.sleep(1)
+    android.screenshot(secondary_review / "secondary_twinreview.png")
+    capture_review_views(android, secondary_review, "secondary", secondary_id)
+
+    source_head, source_branch = source_identity()
+    capture_manifest = {
+        "captured_at": datetime.now(timezone.utc).isoformat(),
+        "source_head": source_head,
+        "source_branch": source_branch,
+        "checkout_head": git("rev-parse", "HEAD"),
+        "serial": args.serial,
+        "package": args.package,
+        "build_kind": "DEMO_EVIDENCE_BUILD",
+        "vision_model_used": False,
+        "required_secondary_pet": True,
+        "primary_pet_id": primary_id,
+        "secondary_pet_id": secondary_id,
+    }
+    save_manifest(out / "capture-manifest.json", capture_manifest)
+    print(f"R5.6 Android final evidence complete -> {out}")
+
+
+if __name__ == "__main__":
+    main()

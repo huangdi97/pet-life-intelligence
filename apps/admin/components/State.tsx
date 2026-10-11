@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import type { LoadState } from "../lib/useAsync";
 
 export function State({
@@ -12,9 +11,9 @@ export function State({
 }: {
   state: LoadState;
   error?: string | null;
-  empty?: ReactNode;
+  empty?: unknown;
   onRetry?: () => void;
-  children: ReactNode;
+  children: unknown;
 }) {
   if (state === "loading") return <div className="state">加载中……</div>;
   if (state === "denied")
@@ -39,6 +38,6 @@ export function State({
         )}
       </div>
     );
-  if (empty && !children) return <div className="state">{empty}</div>;
-  return <>{children}</>;
+  if (empty && !children) return <div className="state">{empty as any}</div>;
+  return <>{children as any}</>;
 }

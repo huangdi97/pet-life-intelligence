@@ -1,110 +1,177 @@
-import { useState } from "react";
-import { View, Text, Button } from "@tarojs/components";
+import { useEffect, useState } from "react";
+import { Text, View } from "@tarojs/components";
+import Taro from "@tarojs/taro";
+import { api, type LifeEvent } from "../../services/api";
 import { usePets } from "../../utils/usePets";
-import { speciesLabel } from "../../utils/format";
+import { PetContextGate } from "../../components/feedback/Feedback";
+import { eventTypeLabel } from "../../utils/labels";
+import { fmtTime } from "../../utils/format";
+import { PetHero } from "../../components/pet_visual";
 
-/** Companion（MIN-013）：feature-flagged 前端原型。
- *  开关：PLIDEBUG_COMPANION=1 时展示四层原型 UI；默认关闭时只显示 PROTOTYPE 门。
- *  所有控件只渲染 PROTOTYPE 标签，绝不伪造设备执行结果（无真实硬件集成）。 */
-const COMPANION_FLAG = process.env.PLIDEBUG_COMPANION === "1";
+interface DeviceRow {
+  device_id: string;
+  display_name?: string | null;
+  status: string;
+}
 
-const PROTOTYPE_GATE_TEXT = "陪伴为前端原型 · 硬件集成未激活";
-
-const LAYERS: Array<{ key: string; zh: string; en: string; desc: string; controls: string[] }> = [
-  {
-    key: "observe",
-    zh: "观察",
-    en: "Observe",
-    desc: "汇总设备观察到的活动与状态变化，只展示真实事件来源。",
-    controls: ["查看观察汇总", "记录一条观察"],
-  },
-  {
-    key: "presence",
-    zh: "在场",
-    en: "Presence",
-    desc: "家庭成员与宠物的在场时段（谁在、何时），来自真实交接与授权记录。",
-    controls: ["查看在场时段"],
-  },
-  {
-    key: "enrichment",
-    zh: "丰富化",
-    en: "Enrichment",
-    desc: "丰富化活动建议与执行记录；建议不等于诊断或训练处方。",
-    controls: ["查看活动建议", "开始一次活动"],
-  },
-  {
-    key: "learned",
-    zh: "习得互动",
-    en: "Learned Interaction",
-    desc: "从历史互动中总结的偏好与基线（provenance 可追踪）。",
-    controls: ["查看偏好与基线"],
-  },
+const LAYERS = [
+  { key: "observe", zh: "观察", desc: "在不打扰它的前提下，留意活动、休息与互动变化。" },
+  { key: "presence", zh: "在场", desc: "连接设备后，了解它是否来到附近、停留多久。" },
+  { key: "enrichment", zh: "丰富化", desc: "在合适的时候提供游戏与探索机会，由你控制节奏。" },
+  { key: "learned", zh: "习得互动", desc: "根据长期记录逐渐了解偏好，但不猜测情绪。" },
 ];
 
-export default function Companion() {
-  const { pets, petId } = usePets();
-  const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
-  // 原型提示：tap 只设置本地提示文案，绝不伪造设备执行成功。
-  const [protoNotice, setProtoNotice] = useState<string | null>(null);
-  const [activeLayer, setLayer] = useState<string | null>(null);
+function deviceStateLabel(status: string): string {
+  const normalized = status.toLowerCase();
+  if (normalized === "connected" || normalized === "online") return "在线";
+  if (normalized === "offline") return "离线";
+  if (normalized === "degraded") return "连接不稳定";
+  if (normalized === "permission_required") return "需要授权";
+  return "状态待确认";
+}
 
-  function tapControl(layerKey: string, control: string) {
-    setLayer(layerKey);
-    setProtoNotice(`PROTOTYPE · ${control}：该控件为原型演示，未连接硬件，未执行任何设备操作。`);
+export default function Companion() {
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
+  const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
+  const [devices, setDevices] = useState<DeviceRow[]>([]);
+  const [events, setEvents] = useState<LifeEvent[]>([]);
+  const [deviceState, setDeviceState] = useState<"loading" | "ready" | "error">("loading");
+  const [eventsState, setEventsState] = useState<"loading" | "ready" | "error">("loading");
+
+  useEffect(() => {
+    if (!petId) return;
+    setDeviceState("loading");
+    setEventsState("loading");
+    Promise.allSettled([
+      api.get<DeviceRow[]>(`/pets/${petId}/devices`),
+      api.get<{ events: LifeEvent[] }>(`/pets/${petId}/events?limit=5`),
+    ]).then(([d, e]) => {
+      if (d.status === "fulfilled") {
+        setDevices(d.value);
+        setDeviceState("ready");
+      } else {
+        setDevices([]);
+        setDeviceState("error");
+      }
+      if (e.status === "fulfilled") {
+        setEvents(e.value.events.filter((row) => row.event_type !== "today.viewed").slice(0, 4));
+        setEventsState("ready");
+      } else {
+        setEvents([]);
+        setEventsState("error");
+      }
+    });
+  }, [petId]);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">陪伴模式</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
   }
+
+  const onlineCount = devices.filter((device) => {
+    const status = device.status.toLowerCase();
+    return status === "connected" || status === "online";
+  }).length;
+  const lastEvent = events[0] ?? null;
+  const presenceHeadline =
+    deviceState === "error"
+      ? "先从它最近的生活继续了解它"
+      : onlineCount > 0
+        ? `${onlineCount} 个设备在线，可以了解它的此刻`
+        : "不在身边，也能继续看见它的生活";
 
   return (
     <View className="page">
-      <View className="h1">陪伴</View>
-      <View className="sub">
-        {current ? `${current.name} · ${speciesLabel(current.species)} · 四层陪伴原型` : "四层陪伴原型"}
+      <View className="h1">{current ? `${current.name} · 陪伴` : "陪伴"}</View>
+      <View className="sub">先看见这一只宠物，再决定是否需要设备。</View>
+
+      <PetHero
+        pet={current ?? null}
+        headline={presenceHeadline}
+        timeContext={lastEvent ? `最近 · ${eventTypeLabel(lastEvent.event_type)} · ${fmtTime(lastEvent.occurred_at)}` : "暂无新的生活记录"}
+        onPress={() => Taro.navigateTo({ url: "/pages/pets/life-view/index" })}
+      />
+
+      <View className="action-row" style={{ marginTop: 16 }}>
+        <View className="primary-action" onClick={() => Taro.navigateTo({ url: "/pages/pets/life-view/index" })}>看看它</View>
+        <View className="secondary-action" onClick={() => Taro.navigateTo({ url: "/pages/monitoring/index" })}>在家与设备</View>
       </View>
 
-      {!COMPANION_FLAG && (
-        <View className="state">
-          <Text>{PROTOTYPE_GATE_TEXT}</Text>
-          <View className="muted" style={{ marginTop: 12 }}>
-            陪伴能力为 feature-flagged 前端原型；需要 PLIDEBUG_COMPANION=1 且真实硬件集成后才会开放。
-            四层结构：观察 Observe / 在场 Presence / 丰富化 Enrichment / 习得互动 Learned Interaction。
-          </View>
+      <View className="open-section">
+        <View className="section-title">
+          真实设备状态
+          <Text className="section-caption" onClick={() => Taro.navigateTo({ url: "/pages/monitoring/index" })}>管理设备</Text>
         </View>
-      )}
+        {deviceState === "loading" ? (
+          <View className="state">正在读取设备状态……</View>
+        ) : deviceState === "error" ? (
+          <View className="state state-error">设备状态暂时没有加载成功；不会把未知状态显示成未连接。</View>
+        ) : devices.length === 0 ? (
+          <View className="empty-state">
+            <View className="empty-state-title">尚未连接设备</View>
+            <View className="empty-state-body">没有设备时，仍可通过真实照片、时间线和生活记录继续陪伴与理解它；不会模拟在线。</View>
+          </View>
+        ) : (
+          devices.map((device) => (
+            <View className="life-row" key={device.device_id}>
+              <View className="life-row-body">
+                <View className="life-row-head">
+                  <Text className="life-row-type">{device.display_name || "设备"}</Text>
+                  <Text className="life-row-time">{deviceStateLabel(device.status)}</Text>
+                </View>
+              </View>
+            </View>
+          ))
+        )}
+      </View>
 
-      {COMPANION_FLAG && (
-        <View>
-          <View className="card" style={{ background: "#fbf6ee" }}>
-            <View className="row">
-              <Text className="proto-tag">PROTOTYPE</Text>
-              <Text className="muted">前端原型 · 硬件集成未激活 · 不伪造设备执行</Text>
+      <View className="open-section">
+        <View className="section-title">
+          最近发生
+          <Text className="section-caption" onClick={() => Taro.switchTab({ url: "/pages/timeline/index" })}>完整时间线</Text>
+        </View>
+        {eventsState === "loading" ? (
+          <View className="state">正在读取最近记录……</View>
+        ) : eventsState === "error" ? (
+          <View className="state state-error">最近记录暂时没有加载成功；不会把加载失败显示成“没有活动”。</View>
+        ) : events.length ? events.map((event) => (
+          <View className="life-row" key={event.event_id}>
+            <View className="life-dot" />
+            <View className="life-row-body">
+              <View className="life-row-head">
+                <Text className="life-row-type">{eventTypeLabel(event.event_type)}</Text>
+                <Text className="life-row-time">{fmtTime(event.occurred_at)}</Text>
+              </View>
             </View>
           </View>
+        )) : (
+          <View className="life-empty-note">还没有可展示的最近活动。第一次散步、玩耍或生活记录会从这里开始。</View>
+        )}
+      </View>
 
-          {LAYERS.map((l) => (
-            <View className="layer-card" key={l.key}>
-              <View className="row">
-                <Text className="layer-name">{l.zh}</Text>
-                <Text className="layer-en">{l.en}</Text>
-                <Text className="proto-tag" style={{ marginLeft: "auto" }}>PROTOTYPE</Text>
+      <View className="open-section">
+        <View className="section-title">陪伴方式</View>
+        {LAYERS.map((layer) => (
+          <View className="life-row" key={layer.key} onClick={() => Taro.navigateTo({ url: "/pages/monitoring/index" })}>
+            <View className="life-dot" />
+            <View className="life-row-body">
+              <View className="life-row-head">
+                <Text className="life-row-type">{layer.zh}</Text>
               </View>
-              <View className="layer-desc">{l.desc}</View>
-              <View className="row">
-                {l.controls.map((c) => (
-                  <Button key={c} className="btn" size="mini" onClick={() => tapControl(l.key, c)}>
-                    {c}
-                  </Button>
-                ))}
-              </View>
-              {activeLayer === l.key && protoNotice && (
-                <View className="muted" style={{ marginTop: 8, color: "#9c5f22" }}>{protoNotice}</View>
-              )}
+              <View className="life-row-detail">{layer.desc}</View>
             </View>
-          ))}
-
-          <View className="muted" style={{ textAlign: "center", marginTop: 20 }}>
-            陪伴输出不用于医疗判断；行为与训练建议以真实事件与规则为准。
           </View>
-        </View>
-      )}
+        ))}
+      </View>
+
+      <View className="muted" style={{ textAlign: "center", marginTop: 24 }}>
+        陪伴模式不用于医疗判断；没有可确认的实时来源时不会显示成实时画面，互动节奏始终由你控制。
+      </View>
     </View>
   );
 }
+

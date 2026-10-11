@@ -3,11 +3,13 @@
  * spine, semantic event rows with source provenance, filter chips.
  * No per-event white Cards; "back to a day" shows only that day's data.
  */
-import React, { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
+import { Audio } from "expo-av";
 import { api, type LifeEvent } from "../api";
 import { usePets } from "../context";
 import { COLORS, SPACE, TYPE } from "../tokens";
@@ -15,7 +17,7 @@ import type { StackParamList } from "../navigation";
 import { LifeStream } from "../components/timeline/LifeStream";
 import { groupEventsByDay } from "../components/timeline/lifeStreamUtils";
 import { EmptyState, InlineError, Skeleton } from "../components/feedback/Feedback";
-import { TIMELINE_FILTERS } from "./ui_labels";
+import { eventTypeLabel, TIMELINE_FILTERS } from "./ui_labels";
 
 type StackNav = NativeStackNavigationProp<StackParamList>;
 
@@ -23,15 +25,87 @@ interface EventsResp {
   events: LifeEvent[];
   count: number;
 }
+interface DiaryRow {
+  diary_id: string;
+  entry_at: string;
+  text: string;
+  has_audio: boolean;
+  audio_artifact_id: string | null;
+}
+interface MilestoneRow {
+  milestone_id: string;
+  title: string;
+  kind: string;
+  occurred_at: string;
+}
+interface MemoryRow {
+  years_ago: number;
+  window: string;
+  events: number;
+  sample: string[];
+}
+interface DailySummaryRow {
+  summary_id: string;
+  date: string;
+  summary: string;
+  fact_count: number;
+  provider: string;
+  model: string;
+  prompt_version: string;
+  source_type: string;
+  disclaimer: string;
+}
 
 export function TimelineScreen() {
   const { pets, petId } = usePets();
   const navigation = useNavigation<StackNav>();
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   const [selected, setSelected] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showMilestoneComposer, setShowMilestoneComposer] = useState(false);
+  const [showDiaryComposer, setShowDiaryComposer] = useState(false);
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [milestones, setMilestones] = useState<MilestoneRow[]>([]);
+  const [milestoneState, setMilestoneState] = useState<"loading" | "ready" | "error">("loading");
+  const [milestoneTitle, setMilestoneTitle] = useState("");
+  const [milestoneDate, setMilestoneDate] = useState("");
+  const [milestoneBusy, setMilestoneBusy] = useState(false);
+  const [memories, setMemories] = useState<MemoryRow[]>([]);
+  const [memoryState, setMemoryState] = useState<"loading" | "ready" | "error">("loading");
+  const [diary, setDiary] = useState<DiaryRow[]>([]);
+  const [diaryState, setDiaryState] = useState<"loading" | "ready" | "error">("loading");
+  const [diaryText, setDiaryText] = useState("");
+  const [diaryAudioUri, setDiaryAudioUri] = useState<string | null>(null);
+  const [diaryRecording, setDiaryRecording] = useState(false);
+  const [diaryBusy, setDiaryBusy] = useState(false);
+  const [diaryErrorMessage, setDiaryErrorMessage] = useState("");
+  const diaryRecordingRef = useRef<Audio.Recording | null>(null);
+  const diaryPreviewSoundRef = useRef<Audio.Sound | null>(null);
+  const activePetRef = useRef(petId);
+  activePetRef.current = petId;
+  const recordingPetRef = useRef<string | null>(null);
+
+  // Voice notes and text are private drafts for a particular pet. Never carry
+  // an unsaved recording into the next pet after a household switch.
+  useEffect(() => {
+    setDiaryText("");
+    setDiaryAudioUri(null);
+    setDiaryRecording(false);
+    setDiaryErrorMessage("");
+    recordingPetRef.current = null;
+    const recording = diaryRecordingRef.current;
+    diaryRecordingRef.current = null;
+    if (recording) void recording.stopAndUnloadAsync().catch(() => {});
+    const sound = diaryPreviewSoundRef.current;
+    diaryPreviewSoundRef.current = null;
+    if (sound) void sound.unloadAsync().catch(() => {});
+    if (recording) void Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
+  }, [petId]);
+  const [summaries, setSummaries] = useState<DailySummaryRow[]>([]);
+  const [summaryState, setSummaryState] = useState<"loading" | "ready" | "error">("loading");
+  const [summaryBusy, setSummaryBusy] = useState(false);
 
   useEffect(() => {
     if (!petId) return;
@@ -60,6 +134,260 @@ export function TimelineScreen() {
     };
   }, [petId, selected]);
 
+  useEffect(() => {
+    if (!petId) return;
+    let alive = true;
+    setMilestoneState("loading");
+    setMemoryState("loading");
+    api.get<MilestoneRow[]>(`/pets/${petId}/milestones`)
+      .then((rows) => {
+        if (!alive) return;
+        setMilestones(rows);
+        setMilestoneState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setMilestones([]);
+        setMilestoneState("error");
+      });
+    api.get<MemoryRow[]>(`/pets/${petId}/memories?years_back=10`)
+      .then((rows) => {
+        if (!alive) return;
+        setMemories(rows);
+        setMemoryState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setMemories([]);
+        setMemoryState("error");
+      });
+    return () => { alive = false; };
+  }, [petId]);
+
+  useEffect(() => {
+    if (!petId) return;
+    let alive = true;
+    setDiaryState("loading");
+    api.get<DiaryRow[]>(`/pets/${petId}/diary?limit=5`)
+      .then((rows) => {
+        if (!alive) return;
+        setDiary(rows);
+        setDiaryState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setDiary([]);
+        setDiaryState("error");
+      });
+    return () => { alive = false; };
+  }, [petId]);
+
+  useEffect(() => {
+    if (!petId) return;
+    let alive = true;
+    setSummaryState("loading");
+    api.get<DailySummaryRow[]>(`/pets/${petId}/daily-summaries?limit=7`)
+      .then((rows) => {
+        if (!alive) return;
+        setSummaries(rows);
+        setSummaryState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setSummaries([]);
+        setSummaryState("error");
+      });
+    return () => { alive = false; };
+  }, [petId]);
+
+  useEffect(() => {
+    return () => {
+      const recording = diaryRecordingRef.current;
+      diaryRecordingRef.current = null;
+      if (recording) void recording.stopAndUnloadAsync().catch(() => {});
+      const sound = diaryPreviewSoundRef.current;
+      diaryPreviewSoundRef.current = null;
+      if (sound) void sound.unloadAsync().catch(() => {});
+      void Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
+    };
+  }, []);
+
+  async function addMilestone() {
+    const title = milestoneTitle.trim();
+    if (!petId || !title || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate) || milestoneBusy) return;
+    setMilestoneBusy(true);
+    try {
+      await api.post(`/pets/${petId}/milestones`, {
+        title,
+        kind: "OTHER",
+        occurred_at: new Date(`${milestoneDate}T12:00:00`).toISOString(),
+        note: "",
+      });
+      const [milestoneRows, memoryRows] = await Promise.all([
+        api.get<MilestoneRow[]>(`/pets/${petId}/milestones`),
+        api.get<MemoryRow[]>(`/pets/${petId}/memories?years_back=10`),
+      ]);
+      setMilestones(milestoneRows);
+      setMemories(memoryRows);
+      setMilestoneState("ready");
+      setMemoryState("ready");
+      setMilestoneTitle("");
+      setMilestoneDate("");
+      setShowMilestoneComposer(false);
+    } catch {
+      setMilestoneState("error");
+    } finally {
+      setMilestoneBusy(false);
+    }
+  }
+
+  async function generateDailySummary() {
+    if (!petId || summaryBusy) return;
+    setSummaryBusy(true);
+    try {
+      await api.post(`/pets/${petId}/daily-summary`, {});
+      const rows = await api.get<DailySummaryRow[]>(`/pets/${petId}/daily-summaries?limit=7`);
+      setSummaries(rows);
+      setSummaryState("ready");
+    } catch {
+      setSummaryState("error");
+    } finally {
+      setSummaryBusy(false);
+    }
+  }
+
+  async function startDiaryRecording() {
+    const recordingFor = petId;
+    if (!recordingFor || diaryRecording || diaryBusy) return;
+    setDiaryErrorMessage("");
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (activePetRef.current !== recordingFor) return;
+      if (!permission.granted) {
+        setDiaryErrorMessage("没有麦克风权限；仍然可以继续写文字日记。");
+        return;
+      }
+      await diaryPreviewSoundRef.current?.unloadAsync().catch(() => {});
+      diaryPreviewSoundRef.current = null;
+      setDiaryAudioUri(null);
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+        staysActiveInBackground: false,
+      });
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+      );
+      if (activePetRef.current !== recordingFor) {
+        await recording.stopAndUnloadAsync().catch(() => {});
+        return;
+      }
+      recordingPetRef.current = recordingFor;
+      diaryRecordingRef.current = recording;
+      setDiaryRecording(true);
+    } catch {
+      diaryRecordingRef.current = null;
+      recordingPetRef.current = null;
+      if (activePetRef.current === recordingFor) {
+        setDiaryRecording(false);
+        setDiaryErrorMessage("录音没有开始成功；仍然可以继续写文字日记。");
+      }
+    }
+  }
+
+  async function stopDiaryRecording() {
+    const recording = diaryRecordingRef.current;
+    const recordingFor = recordingPetRef.current;
+    if (!recording) return;
+    diaryRecordingRef.current = null;
+    recordingPetRef.current = null;
+    try {
+      await recording.stopAndUnloadAsync();
+      if (recordingFor && activePetRef.current === recordingFor) {
+        setDiaryAudioUri(recording.getURI());
+      }
+    } catch {
+      if (recordingFor && activePetRef.current === recordingFor) {
+        setDiaryAudioUri(null);
+        setDiaryErrorMessage("这段录音没有保存成功，请重试。");
+      }
+    } finally {
+      if (recordingFor && activePetRef.current === recordingFor) setDiaryRecording(false);
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
+    }
+  }
+
+  async function previewDiaryRecording() {
+    if (!diaryAudioUri || diaryRecording) return;
+    try {
+      await diaryPreviewSoundRef.current?.unloadAsync().catch(() => {});
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: diaryAudioUri },
+        { shouldPlay: true },
+      );
+      diaryPreviewSoundRef.current = sound;
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          void sound.unloadAsync().catch(() => {});
+          if (diaryPreviewSoundRef.current === sound) diaryPreviewSoundRef.current = null;
+        }
+      });
+    } catch {
+      setDiaryErrorMessage("这段录音暂时无法试听，但可以重新录制。");
+    }
+  }
+
+  async function addDiary() {
+    const text = diaryText.trim();
+    const recordingFor = petId;
+    if (!recordingFor || (!text && !diaryAudioUri) || diaryBusy || diaryRecording) return;
+    setDiaryBusy(true);
+    setDiaryErrorMessage("");
+    try {
+      let audioArtifactId: string | null = null;
+      if (diaryAudioUri) {
+        const uploaded = await api.upload<{ artifact_id: string; kind: string }>(
+          `/pets/${recordingFor}/artifacts`,
+          {
+            uri: diaryAudioUri,
+            name: `voice-diary-${Date.now()}.m4a`,
+            type: "audio/mp4",
+          },
+        );
+        if (uploaded.kind !== "AUDIO") throw new Error("NOT_AUDIO");
+        audioArtifactId = uploaded.artifact_id;
+      }
+      await api.post(`/pets/${recordingFor}/diary`, {
+        text,
+        audio_artifact_id: audioArtifactId,
+      });
+      // Upload and post always target the original pet even if navigation
+      // switched during the await. Never repaint the NEW pet with OLD results.
+      if (activePetRef.current !== recordingFor) return;
+      setDiaryText("");
+      setDiaryAudioUri(null);
+      const [diaryRows, eventRows] = await Promise.all([
+        api.get<DiaryRow[]>(`/pets/${recordingFor}/diary?limit=5`),
+        api.get<EventsResp>(`/pets/${recordingFor}/events?limit=200`),
+      ]);
+      if (activePetRef.current !== recordingFor) return;
+      setDiary(diaryRows);
+      setDiaryState("ready");
+      setShowDiaryComposer(false);
+      setEvents(eventRows.events.filter((event) => event.event_type !== "today.viewed"));
+      setError(false);
+    } catch {
+      if (activePetRef.current === recordingFor) {
+        setDiaryState("error");
+        setDiaryErrorMessage("这条日记暂时没有保存成功，原始录音不会被伪造成已保存。");
+      }
+    } finally {
+      setDiaryBusy(false);
+    }
+  }
+
   function toggle(key: string) {
     if (key === "all") {
       setSelected([]);
@@ -74,22 +402,59 @@ export function TimelineScreen() {
     <SafeAreaView style={styles.page} edges={["top"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.head} testID="pli.timeline.identity">
-          <Text style={styles.title}>时间线</Text>
-          <Text style={styles.sub}>记录每一天真实发生的事情</Text>
+          <View style={styles.headText}>
+            <Text style={styles.title}>{pet ? `${pet.name}的时间线` : "时间线"}</Text>
+            <Text style={styles.sub}>记录每一天真实发生的事情 · 每条都保留时间与来源</Text>
+          </View>
+          <Pressable
+            testID="pli.timeline.search"
+            accessibilityRole="button"
+            accessibilityLabel="搜索宠物记录"
+            onPress={() => navigation.navigate("Search")}
+            style={styles.searchAction}
+          >
+            <Text style={styles.searchActionText}>搜索</Text>
+          </Pressable>
         </View>
 
-        <View style={styles.chipRow}>
-          {TIMELINE_FILTERS.map((f, i) => (
-            <Pressable
-              key={f.key}
-              testID={i < 5 ? `pli.timeline.filter.${f.key}` : undefined}
-              onPress={() => toggle(f.key)}
-              style={[styles.chip, (f.key === "all" ? selected.length === 0 : selected.includes(f.key)) && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, (f.key === "all" ? selected.length === 0 : selected.includes(f.key)) && styles.chipActiveText]}>{f.zh}</Text>
-            </Pressable>
-          ))}
+        <Pressable
+          testID="pli.timeline.filters.toggle"
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showFilters }}
+          onPress={() => setShowFilters((value) => !value)}
+          style={styles.filterToggle}
+        >
+          <Text style={styles.filterToggleText}>{selected.length ? `筛选这段生活 · ${selected.length} 项` : "筛选这段生活"}</Text>
+          <Ionicons name={showFilters ? "chevron-up" : "options-outline"} size={17} color={COLORS.textSecondary} />
+        </Pressable>
+        {showFilters ? (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.chipRow}
+                    accessibilityLabel="时间线筛选"
+                  >
+                    {TIMELINE_FILTERS.map((f, i) => (
+                      <Pressable
+                        key={f.key}
+                        testID={i < 5 ? `pli.timeline.filter.${f.key}` : undefined}
+                        accessibilityRole="button"
+                        accessibilityLabel={`筛选：${f.zh}`}
+                        accessibilityState={{ selected: f.key === "all" ? selected.length === 0 : selected.includes(f.key) }}
+                        onPress={() => toggle(f.key)}
+                        style={[styles.chip, (f.key === "all" ? selected.length === 0 : selected.includes(f.key)) && styles.chipActive]}
+                      >
+                        <Text style={[styles.chipText, (f.key === "all" ? selected.length === 0 : selected.includes(f.key)) && styles.chipActiveText]}>{f.zh}</Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+        ) : null}
+
+        <View style={styles.livingLead}>
+          <Text style={styles.livingLeadTitle}>它的每一天</Text>
+          <Text style={styles.livingLeadSub}>按时间留下真实发生的事情，不需要填写更多表格才能回看。</Text>
         </View>
+
         {error ? <InlineError message="暂时连接不上，已展示已有内容" /> : null}
 
         {loading ? (
@@ -97,7 +462,11 @@ export function TimelineScreen() {
             <Skeleton rows={4} />
           </View>
         ) : days.length ? (
-          <LifeStream days={days} />
+          <LifeStream
+            days={days}
+            onOpenMedia={(artifactIds) => navigation.navigate("MediaMemory", { artifactIds })}
+            onOpenDay={(date) => navigation.navigate("LifeView", { date })}
+          />
         ) : (
           <EmptyState
             title={`${pet?.name ?? "宠物"}的时间线还很安静`}
@@ -106,22 +475,291 @@ export function TimelineScreen() {
             onAction={() => navigation.navigate("QuickLog")}
           />
         )}
+
+        <View style={styles.afterStream}>
+          <Text style={styles.afterStreamTitle}>收藏这一段生活</Text>
+          <Text style={styles.afterStreamSub}>回忆、里程碑和原始语音，留给想慢慢记录的时候。</Text>
+        </View>
+        <View style={styles.memorySection} testID="pli.timeline.milestones">
+          <Text style={styles.diaryTitle}>里程碑</Text>
+          <Text style={styles.diaryIntro}>只记录真实发生、值得长期保留的节点；保存后会进入同一条生命时间线。</Text>
+          <Pressable
+            testID="pli.timeline.milestones.compose"
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showMilestoneComposer }}
+            onPress={() => setShowMilestoneComposer((value) => !value)}
+            style={styles.composeToggle}
+          >
+            <Text style={styles.composeToggleText}>{showMilestoneComposer ? "收起记录" : "记录一个里程碑"}</Text>
+            <Ionicons name={showMilestoneComposer ? "chevron-up" : "add-circle-outline"} size={17} color={COLORS.brandPrimaryDeep} />
+          </Pressable>
+          {showMilestoneComposer ? (
+            <View style={styles.composerBody}>
+              <View style={styles.milestoneForm}>
+                <TextInput
+                  style={[styles.diaryInput, styles.milestoneDateInput]}
+                  value={milestoneDate}
+                  onChangeText={setMilestoneDate}
+                  placeholder="发生日期 YYYY-MM-DD"
+                  placeholderTextColor={COLORS.textTertiary}
+                  autoCapitalize="none"
+                />
+                <TextInput
+                  style={[styles.diaryInput, styles.milestoneTitleInput]}
+                  value={milestoneTitle}
+                  onChangeText={setMilestoneTitle}
+                  maxLength={200}
+                  placeholder="例如：第一次完成长途徒步"
+                  placeholderTextColor={COLORS.textTertiary}
+                />
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="记录里程碑"
+                accessibilityState={{ disabled: milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate) }}
+                disabled={milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate)}
+                onPress={() => void addMilestone()}
+                style={[styles.diaryButton, (milestoneBusy || !milestoneTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(milestoneDate)) && styles.diaryButtonDisabled]}
+              >
+                <Text style={styles.diaryButtonText}>{milestoneBusy ? "保存中…" : "记录里程碑"}</Text>
+              </Pressable>
+            </View>
+          ) : null}
+          {milestoneState === "ready" && milestones.length ? (
+            <View style={styles.diaryRecent}>
+              {milestones.slice(0, 3).map((row) => (
+                <View key={row.milestone_id} style={styles.diaryRow}>
+                  <Text style={styles.diaryRowText}>{row.title}</Text>
+                  <Text style={styles.diaryTime}>{new Date(row.occurred_at).toLocaleDateString("zh-CN")}</Text>
+                </View>
+              ))}
+            </View>
+          ) : milestoneState === "error" ? (
+            <Text style={styles.diaryError}>里程碑暂时没有加载成功；不会把未知状态显示成空。</Text>
+          ) : milestoneState === "ready" ? (
+            <Text style={styles.diaryTime}>还没有里程碑记录。</Text>
+          ) : (
+            <Text style={styles.diaryTime}>正在读取里程碑……</Text>
+          )}
+        </View>
+
+        <View style={styles.memorySection} testID="pli.timeline.memories">
+          <Text style={styles.diaryTitle}>往年今日</Text>
+          <Text style={styles.diaryIntro}>这里只回看历史上同一日期附近真实存在的事件；没有记录就不生成“回忆”。</Text>
+          {memoryState === "ready" && memories.length ? (
+            <View style={styles.diaryRecent}>
+              {memories.slice(0, 3).map((row) => (
+                <View key={row.years_ago} style={styles.diaryRow}>
+                  <Text style={styles.diaryRowText}>{row.years_ago} 年前 · {row.events} 条记录</Text>
+                  <Text style={styles.diaryTime}>{row.sample.slice(0, 3).map(eventTypeLabel).join(" · ")}</Text>
+                </View>
+              ))}
+            </View>
+          ) : memoryState === "error" ? (
+            <Text style={styles.diaryError}>历史回忆暂时没有读取到；不会用生成内容补齐。</Text>
+          ) : memoryState === "ready" ? (
+            <Text style={styles.diaryTime}>往年今天附近还没有真实记录。</Text>
+          ) : (
+            <Text style={styles.diaryTime}>正在读取历史回忆……</Text>
+          )}
+        </View>
+
+        <View style={styles.diarySection} testID="pli.timeline.diary">
+          <Text style={styles.diaryTitle}>今天想记下什么</Text>
+          <Text style={styles.diaryIntro}>可以写文字，也可以录一段真实声音。录音作为原始媒体保存，不会被自动解释成情绪或健康结论。</Text>
+          <Pressable
+            testID="pli.timeline.diary.compose"
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showDiaryComposer }}
+            onPress={() => setShowDiaryComposer((value) => !value)}
+            style={styles.composeToggle}
+          >
+            <Text style={styles.composeToggleText}>{showDiaryComposer ? "收起日记编辑" : "写一段日记"}</Text>
+            <Ionicons name={showDiaryComposer ? "chevron-up" : "create-outline"} size={17} color={COLORS.brandPrimaryDeep} />
+          </Pressable>
+          {showDiaryComposer ? (
+            <View style={styles.composerBody}>
+                        <TextInput
+                          style={styles.diaryInput}
+                          value={diaryText}
+                          onChangeText={setDiaryText}
+                          multiline
+                          maxLength={5000}
+                          placeholder="例如：今天散步时第一次主动去闻路边的花。"
+                          placeholderTextColor={COLORS.textTertiary}
+                        />
+                        <View style={styles.diaryAudioControls}>
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={diaryRecording ? "停止语音日记录音" : "开始语音日记录音"}
+                            onPress={() => void (diaryRecording ? stopDiaryRecording() : startDiaryRecording())}
+                            disabled={diaryBusy}
+                            style={[styles.diaryAudioButton, diaryRecording && styles.diaryAudioButtonActive]}
+                          >
+                            <Ionicons
+                              name={diaryRecording ? "stop-circle-outline" : "mic-outline"}
+                              size={17}
+                              color={diaryRecording ? COLORS.textInverse : COLORS.brandPrimaryDeep}
+                            />
+                            <Text style={[styles.diaryAudioButtonText, diaryRecording && styles.diaryAudioButtonTextActive]}>
+                              {diaryRecording ? "停止录音" : diaryAudioUri ? "重新录音" : "录一段声音"}
+                            </Text>
+                          </Pressable>
+                          {diaryAudioUri && !diaryRecording ? (
+                            <>
+                              <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="试听语音日记录音"
+                                onPress={() => void previewDiaryRecording()}
+                                style={styles.diaryAudioButton}
+                              >
+                                <Ionicons name="play-outline" size={17} color={COLORS.brandPrimaryDeep} />
+                                <Text style={styles.diaryAudioButtonText}>试听</Text>
+                              </Pressable>
+                              <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="移除语音日记录音"
+                                onPress={() => setDiaryAudioUri(null)}
+                                style={styles.diaryAudioButton}
+                              >
+                                <Ionicons name="close-outline" size={17} color={COLORS.textSecondary} />
+                                <Text style={styles.diaryAudioRemoveText}>移除</Text>
+                              </Pressable>
+                            </>
+                          ) : null}
+                        </View>
+                        {diaryRecording ? <Text style={styles.diaryAudioHint}>正在录音……完成后点“停止录音”。</Text> : null}
+                        {diaryAudioUri && !diaryRecording ? <Text style={styles.diaryAudioHint}>已准备一段原始录音；保存后会与这条日记一起进入时间线。</Text> : null}
+                        {diaryErrorMessage ? <Text style={styles.diaryError}>{diaryErrorMessage}</Text> : null}
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="保存生活日记"
+                          accessibilityState={{ disabled: diaryBusy || diaryRecording || (!diaryText.trim() && !diaryAudioUri) }}
+                          disabled={diaryBusy || diaryRecording || (!diaryText.trim() && !diaryAudioUri)}
+                          onPress={() => void addDiary()}
+                          style={[styles.diaryButton, (diaryBusy || diaryRecording || (!diaryText.trim() && !diaryAudioUri)) && styles.diaryButtonDisabled]}
+                        >
+                          <Text style={styles.diaryButtonText}>{diaryBusy ? "保存中…" : "保存日记"}</Text>
+                        </Pressable>
+              
+            </View>
+          ) : null}
+          {diaryState === "ready" && diary.length ? (
+            <View style={styles.diaryRecent}>
+              <Text style={styles.diaryRecentLabel}>最近日记</Text>
+              {diary.slice(0, 3).map((entry) => (
+                <View key={entry.diary_id} style={styles.diaryRow}>
+                  <Text style={styles.diaryRowText}>{entry.text || "语音日记"}</Text>
+                  <Text style={styles.diaryTime}>{new Date(entry.entry_at).toLocaleString("zh-CN")}{entry.has_audio ? " · 含原始录音" : ""}</Text>
+                  {entry.audio_artifact_id ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="播放这条语音日记"
+                      onPress={() => navigation.navigate("MediaMemory", { artifactIds: [entry.audio_artifact_id!] })}
+                      style={styles.memoryMediaButton}
+                    >
+                      <Ionicons name="play-circle-outline" size={16} color={COLORS.brandPrimaryDeep} />
+                      <Text style={styles.memoryMediaButtonText}>播放原始录音</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          ) : diaryState === "error" ? (
+            <Text style={styles.diaryError}>最近日记暂时没有加载成功；不会把未知状态显示成空。</Text>
+          ) : null}
+        </View>
+
+        <View style={styles.summarySection} testID="pli.timeline.daily-summary">
+          <View style={styles.summaryHead}>
+            <Text style={styles.diaryTitle}>今日回顾</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="自动整理今日回顾"
+              accessibilityState={{ disabled: summaryBusy }}
+              disabled={summaryBusy}
+              onPress={() => void generateDailySummary()}
+              style={styles.summaryAction}
+            >
+              <Text style={styles.summaryActionText}>{summaryBusy ? "整理中…" : "自动整理"}</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.diaryIntro}>AI 只整理已经记录的事实；不会把推测写成生活记录，也不会替代原始时间线。</Text>
+          {summaryState === "ready" && summaries.length ? (
+            <View style={styles.summaryBody}>
+              <Text style={styles.diaryRowText}>{summaries[0].summary}</Text>
+              <Text style={styles.diaryTime}>AI 自动整理 · {summaries[0].fact_count} 条已记录事实 · {summaries[0].date}</Text>
+              <Text style={styles.diaryTime}>{summaries[0].disclaimer}</Text>
+            </View>
+          ) : summaryState === "error" ? (
+            <Text style={styles.diaryError}>今日回顾暂时没有加载成功；原始记录仍以时间线为准。</Text>
+          ) : (
+            <Text style={styles.diaryTime}>还没有生成今日回顾。</Text>
+          )}
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  livingLead: { paddingHorizontal: SPACE.s5, marginTop: SPACE.s6, marginBottom: SPACE.s2 },
+  livingLeadTitle: { fontSize: 26, fontWeight: "700", letterSpacing: -0.6, color: COLORS.textPrimary },
+  livingLeadSub: { marginTop: 5, fontSize: TYPE.sm, lineHeight: 20, color: COLORS.textTertiary },
+  afterStream: { paddingHorizontal: SPACE.s5, marginTop: SPACE.s8, marginBottom: SPACE.s2 },
+  afterStreamTitle: { fontSize: 22, fontWeight: "700", color: COLORS.textPrimary },
+  afterStreamSub: { marginTop: 5, fontSize: TYPE.sm, lineHeight: 19, color: COLORS.textTertiary },
   page: { flex: 1, backgroundColor: COLORS.canvas },
   flex: { flex: 1 },
   content: { paddingBottom: SPACE.s8 },
-  head: { paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3 },
+  head: { paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: SPACE.s3 },
+  headText: { flex: 1 },
+  searchAction: { minHeight: 44, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen },
+  searchActionText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3 },
-  chip: { paddingHorizontal: SPACE.s3, paddingVertical: 6, borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
+  chipRow: { flexDirection: "row", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3, paddingRight: SPACE.s6 },
+  chip: { minHeight: 44, paddingHorizontal: SPACE.s3, paddingVertical: 6, alignItems: "center", justifyContent: "center", borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
   chipActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
   chipText: { fontSize: TYPE.sm, color: COLORS.textTertiary },
   chipActiveText: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  // Editorial continuation of the life stream — not a stack of feature cards.
+  memorySection: { marginHorizontal: SPACE.s5, marginTop: SPACE.s5, paddingTop: SPACE.s5, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.dividerSubtle },
+  milestoneForm: { marginTop: SPACE.s2, gap: SPACE.s2 },
+  milestoneDateInput: { minHeight: 48 },
+  milestoneTitleInput: { minHeight: 48 },
+  diarySection: { marginHorizontal: SPACE.s5, marginTop: SPACE.s5, paddingTop: SPACE.s5, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.dividerSubtle },
+  diaryTitle: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary },
+  composeToggle: { minHeight: 44, marginTop: SPACE.s2, paddingVertical: SPACE.s2, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.dividerSubtle },
+  composeToggleText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "700" },
+  composerBody: { marginTop: SPACE.s2 },
+  diaryIntro: { marginTop: 4, fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18 },
+  diaryInput: { minHeight: 96, marginTop: SPACE.s3, borderWidth: 1, borderColor: COLORS.dividerStrong, borderRadius: 14, backgroundColor: COLORS.surface, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s3, textAlignVertical: "top", fontSize: TYPE.body, color: COLORS.textPrimary },
+  diaryAudioControls: { marginTop: SPACE.s3, flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
+  diaryAudioButton: { minHeight: 40, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: SPACE.s3, borderRadius: 20, backgroundColor: COLORS.brandSoftGreen },
+  diaryAudioButtonActive: { backgroundColor: COLORS.brandPrimary },
+  diaryAudioButtonText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  diaryAudioButtonTextActive: { color: COLORS.textInverse },
+  diaryAudioRemoveText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
+  diaryAudioHint: { marginTop: SPACE.s2, fontSize: TYPE.caption, lineHeight: 18, color: COLORS.textTertiary },
+  diaryButton: { minHeight: 44, marginTop: SPACE.s3, alignSelf: "flex-start", justifyContent: "center", paddingHorizontal: SPACE.s4, borderRadius: 22, backgroundColor: COLORS.brandPrimary },
+  diaryButtonDisabled: { opacity: 0.5 },
+  diaryButtonText: { fontSize: TYPE.sm, color: COLORS.textInverse, fontWeight: "600" },
+  diaryRecent: { marginTop: SPACE.s4, gap: SPACE.s2 },
+  diaryRecentLabel: { fontSize: TYPE.sm, color: COLORS.textTertiary, fontWeight: "600" },
+  diaryRow: { paddingTop: SPACE.s2, borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
+  diaryRowText: { fontSize: TYPE.body, color: COLORS.textPrimary, lineHeight: 20 },
+  diaryTime: { marginTop: 3, fontSize: TYPE.caption, color: COLORS.textTertiary },
+  memoryMediaButton: { marginTop: SPACE.s2, minHeight: 38, alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: SPACE.s3, borderRadius: 19, backgroundColor: COLORS.brandSoftGreen },
+  memoryMediaButtonText: { fontSize: TYPE.caption, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  diaryError: { marginTop: SPACE.s3, fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18 },
+  summarySection: { marginHorizontal: SPACE.s5, marginTop: SPACE.s5, paddingTop: SPACE.s5, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.dividerSubtle },
+  summaryHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: SPACE.s3 },
+  summaryAction: { minHeight: 40, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: 20, backgroundColor: COLORS.brandSoftGreen },
+  summaryActionText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  summaryBody: { marginTop: SPACE.s3, gap: 4 },
+  filterToggle: { marginHorizontal: SPACE.s4, marginTop: SPACE.s2, minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: SPACE.s3, borderRadius: 22, backgroundColor: COLORS.surfaceRaised },
+  filterToggleText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
 });

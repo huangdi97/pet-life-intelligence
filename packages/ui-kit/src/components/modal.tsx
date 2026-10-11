@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import type { ReactNode } from "react";
 import { cx } from "../lib/cx";
 import { TokenIcon } from "./icons";
 
@@ -23,8 +22,8 @@ export function Modal({
   open: boolean;
   onClose: () => void;
   title: string;
-  children: ReactNode;
-  footer?: ReactNode;
+  children: unknown;
+  footer?: unknown;
   className?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -84,8 +83,8 @@ export function Modal({
             <TokenIcon name="x" size={16} />
           </button>
         </div>
-        <div className="pli-modal-body">{children}</div>
-        {footer ? <div className="pli-modal-foot">{footer}</div> : null}
+        <div className="pli-modal-body">{children as any}</div>
+        {footer ? <div className="pli-modal-foot">{footer as any}</div> : null}
       </div>
     </div>
   );

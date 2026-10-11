@@ -14,7 +14,7 @@ interface EmergencyProfileCardProps {
 /** PLI-014 紧急联系卡：可编辑的主人/医院联系方式与关键照护备注。 */
 export function EmergencyProfileCard({ profile, form, onFieldChange, onSave }: EmergencyProfileCardProps) {
   return (
-    <div className="card">
+    <section className="v5-me-section">
       <h2>紧急联系卡</h2>
       <State state={profile.state} error={profile.error} onRetry={profile.reload}>
         {(form ?? profile.data) && (
@@ -35,7 +35,7 @@ export function EmergencyProfileCard({ profile, form, onFieldChange, onSave }: E
                 />
               </label>
               <label className="field">
-                首选医院（文字，非地图）
+                首选医院
                 <input
                   value={form?.vet_clinic_name ?? profile.data?.vet_clinic_name ?? ""}
                   onChange={(e) => onFieldChange("vet_clinic_name", e.target.value)}
@@ -50,7 +50,7 @@ export function EmergencyProfileCard({ profile, form, onFieldChange, onSave }: E
               </label>
             </div>
             <label className="field">
-              医院地址（文字）
+              医院地址
               <textarea
                 rows={2}
                 value={form?.vet_clinic_address_text ?? profile.data?.vet_clinic_address_text ?? ""}
@@ -71,6 +71,6 @@ export function EmergencyProfileCard({ profile, form, onFieldChange, onSave }: E
           </>
         )}
       </State>
-    </div>
+    </section>
   );
 }

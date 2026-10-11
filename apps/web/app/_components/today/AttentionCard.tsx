@@ -3,55 +3,60 @@
 import Link from "next/link";
 import { Icon } from "../../../components/icons";
 
-interface AttentionCardProps {
-  hints: Array<Record<string, string>>;
+export interface TodayAttentionState {
+  kind: "danger" | "attention" | "calm" | "unknown";
+  body: string;
+  footer?: string;
 }
 
-/** OWN-001 Attention — 一屏一个 Attention 或 Calm 状态（Stage R.2 §24）。
- *  普通数据不用红色；只有 deterministic safety rule 才使用强 danger 视觉。 */
-export function AttentionCard({ hints }: AttentionCardProps) {
-  const visible = hints.slice(0, 1);
+/** OWN-001 Attention — one factual safety/attention state.
+ * Baseline change belongs to ChangeCard; this block is reserved for health
+ * evidence and deterministic risk handling so ordinary variance is never
+ * presented with medical-warning semantics. */
+export function AttentionCard({ state }: { state: TodayAttentionState }) {
+  const isCalm = state.kind === "calm" || state.kind === "unknown";
   return (
-    <div className="v4-sec" data-testid="pli.attention.panel" data-pli-type="card">
+    <section className={`v4-sec v5-today-attention v5-today-attention--${state.kind}`} data-testid="pli.attention.panel" data-pli-type="section">
       <div className="v4-sec-head">
         <h2 className="v4-sec-title">值得注意</h2>
       </div>
-      {visible.length > 0 ? (
-        visible.map((h, i) => {
-          const msg = h.message || h.hint || h.detail || "今天有 1 件事值得关注";
-          return (
-            <div key={i} className="v4-attn" style={i > 0 ? { marginTop: 10 } : undefined}>
-              <span className="v4-attn-icon">
-                <Icon name="alert" size={18} />
-              </span>
-              <div>
-                <p className="v4-attn-title">今天有值得关注的变化</p>
-                <p className="v4-attn-body" data-testid="pli.attention.evidence">{msg}</p>
-                <div className="v4-attn-actions">
-                  <Link
-                    href={`/agent?tab=explain&ctx=${encodeURIComponent("今日值得关注的事项")}`}
-                    className="v4-action v4-action--soft"
-                    style={{ minHeight: 32, padding: "6px 12px", fontSize: 13 }}
-                    data-testid="pli.attention.action"
-                  >
-                    查看依据
-                  </Link>
-                </div>
-              </div>
-            </div>
-          );
-        })
-      ) : (
-        <div className="v4-calm">
+      {isCalm ? (
+        <div className="v4-calm" data-testid="pli.today.health-summary">
           <span className="v4-calm-icon">
-            <Icon name="check" size={18} />
+            <Icon name={state.kind === "calm" ? "check" : "clock"} size={18} />
           </span>
           <div>
-            <p className="v4-calm-title">目前没有需要特别关注的变化</p>
-            <p className="v4-calm-body">有新记录或变化时会在这里提醒你。</p>
+            <p className="v4-calm-title">
+              {state.kind === "calm" ? "当前没有健康事项被规则标记为需要立即关注" : "健康关注状态暂时无法确认"}
+            </p>
+            <p className="v4-calm-body" data-testid="pli.attention.evidence">{state.body}</p>
+            {state.footer ? <p className="v4-calm-body" style={{ marginTop: 4 }}>{state.footer}</p> : null}
+          </div>
+        </div>
+      ) : (
+        <div className={`v4-attn${state.kind === "danger" ? " v4-attn--danger" : ""}`} data-testid="pli.today.health-summary">
+          <span className="v4-attn-icon">
+            <Icon name="alert" size={18} />
+          </span>
+          <div>
+            <p className="v4-attn-title">
+              {state.kind === "danger" ? "有一条健康记录需要尽快处理" : "有一条健康记录值得查看"}
+            </p>
+            <p className="v4-attn-body" data-testid="pli.attention.evidence">{state.body}</p>
+            {state.footer ? <p className="v4-attn-body" style={{ marginTop: 4 }}>{state.footer}</p> : null}
+            <div className="v4-attn-actions">
+              <Link
+                href="/health"
+                className="v4-action v4-action--soft"
+                style={{ minHeight: 32, padding: "6px 12px", fontSize: 13 }}
+                data-testid="pli.attention.action"
+              >
+                查看健康记录
+              </Link>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }

@@ -16,28 +16,12 @@ const NAV: Array<{ href: string; label: () => string; testId: string; icon: WebI
   { href: "/settings", label: () => t("nav.more"), testId: "pli.nav.me", icon: "user" },
 ];
 
-/** 次级入口（桌面端显示在 More 下拉/移动端"我的"页内） */
-export const MORE_LINKS = [
-  { href: "/tasks", label: "任务" },
-  { href: "/care", label: "照护协作" },
-  { href: "/behavior", label: "行为" },
-  { href: "/health", label: "健康" },
-  { href: "/training", label: "训练" },
-  { href: "/medication", label: "用药" },
-  { href: "/welfare", label: "福祉" },
-  { href: "/social", label: "社交" },
-  { href: "/monitoring", label: "在家" },
-  { href: "/companion", label: "陪伴" },
-  { href: "/notifications", label: "通知" },
-];
-
 export default function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { petId, choose } = useCurrentPet();
   const [pets, setPets] = useState<Pet[]>([]);
   const [user, setUser] = useState<string | null>(null);
-  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     setUser(getDevUserId());
@@ -93,7 +77,7 @@ export default function TopNav() {
               href={n.href}
               className={active ? "active" : ""}
               aria-current={active ? "page" : undefined}
-              role="button"
+              aria-label={n.href === "/pets" ? `宠物：${label}` : label}
               data-testid={n.testId}
             >
               <span className="nav-icon" aria-hidden="true">
@@ -103,26 +87,6 @@ export default function TopNav() {
             </Link>
           );
         })}
-        <div className="more-wrap">
-          <button
-            className={`btn more-btn ${moreOpen ? "active" : ""}`}
-            onClick={() => setMoreOpen((o) => !o)}
-            aria-haspopup="true"
-            aria-expanded={moreOpen}
-          >
-            更多
-            <Icon name="chevron" size={13} style={{ marginLeft: 3 }} />
-          </button>
-          {moreOpen && (
-            <div className="more-menu" role="menu">
-              {MORE_LINKS.map((l) => (
-                <Link key={l.href} href={l.href} role="menuitem" onClick={() => setMoreOpen(false)}>
-                  {l.label}
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
       <div className="petswitch">
         {user ? (
@@ -140,12 +104,12 @@ export default function TopNav() {
                 {pets.length === 0 && <option value="">（无）</option>}
                 {pets.map((p) => (
                   <option key={p.id} value={p.id} data-testid={p.id === petId ? "pli.multipet.current" : undefined}>
-                    {p.name}（{p.species}）
+                    {p.name}（{p.species === "dog" ? "犬" : p.species === "cat" ? "猫" : "宠物"}）
                   </option>
                 ))}
               </select>
             </label>
-            <button className="btn" onClick={logout}>
+            <button className="btn" onClick={logout} aria-label="退出当前账号">
               {t("nav.logout")}
             </button>
           </>

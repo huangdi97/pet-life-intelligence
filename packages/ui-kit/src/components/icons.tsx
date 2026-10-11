@@ -1,5 +1,3 @@
-import type { ReactElement } from "react";
-
 /** Stroke icon names matching tokens.icon (Lucide-style, 1.5px stroke, round caps). */
 export type IconName =
   | "circle"
@@ -13,7 +11,7 @@ export type IconName =
   | "check"
   | "x";
 
-const PATHS: Record<IconName, ReactElement> = {
+const PATHS: Record<IconName, any> = {
   circle: <circle cx="12" cy="12" r="9" />,
   info: (
     <>

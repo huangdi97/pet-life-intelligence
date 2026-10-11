@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { api, humanizeError } from "../api";
 import { usePets } from "../context";
 import { COLORS, SPACE, TYPE } from "../tokens";
@@ -33,12 +34,24 @@ export function QuickLogScreen() {
   const [diaryText, setDiaryText] = useState("");
   const [kind, setKind] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [mediaFiles, setMediaFiles] = useState<Array<{ uri: string; name: string; type: string }>>([]);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
   function pick(key: string) {
+    // Medication and structured behavior records have governed domain flows.
+    // Quick Log must never manufacture a GIVEN medication without a selected
+    // plan, nor collapse ABC behavior evidence into an empty generic event.
+    if (key === "medication") {
+      navigation.navigate("Medication");
+      return;
+    }
+    if (key === "behavior") {
+      navigation.navigate("Behavior");
+      return;
+    }
     setSelected(key);
     setSuccess(null);
     setError(null);
@@ -49,6 +62,7 @@ export function QuickLogScreen() {
     setBehavior("");
     setDiaryText("");
     setKind(null);
+    setMediaFiles([]);
   }
 
   function resetInputs() {
@@ -59,6 +73,28 @@ export function QuickLogScreen() {
     setBehavior("");
     setDiaryText("");
     setKind(null);
+  }
+
+  async function chooseEvidencePhotos() {
+    if (!current || mediaFiles.length >= 3) return;
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setError("需要相册权限才能添加照片；不授权也可以继续保存记录。");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: 3 - mediaFiles.length,
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    const picked = result.assets.slice(0, 3 - mediaFiles.length).map((asset, index) => ({
+      uri: asset.uri,
+      name: asset.fileName || `quicklog-${Date.now()}-${index + 1}.jpg`,
+      type: asset.mimeType || "image/jpeg",
+    }));
+    setMediaFiles((old) => [...old, ...picked].slice(0, 3));
   }
 
   const fields: QuickLogFields = {
@@ -76,12 +112,32 @@ export function QuickLogScreen() {
       let payload: Record<string, unknown> = {};
       let path = `/pets/${current.id}/events`;
       if (t.event_type === "daily.meal" || t.event_type === "daily.drink") {
+        if (amount.trim() && !unit.trim()) {
+          setError("填写数量时，请同时填写单位。");
+          return;
+        }
         if (amount.trim()) payload.amount = amount.trim();
         if (unit.trim()) payload.unit = unit.trim();
       } else if (t.event_type === "daily.elimination") {
         if (kind) payload.kind = kind;
       } else if (t.event_type === "daily.walk" || t.event_type === "daily.play" || t.event_type === "daily.sleep") {
-        payload = { duration_minutes: clampMinutes(minutes) };
+        const duration = clampMinutes(minutes);
+        if (t.event_type === "daily.walk") {
+          // Walking itself is a truthful event even when the owner did not
+          // time it. Keep the canonical two-tap frequent path: tap “散步”,
+          // then save. Never invent a default duration.
+          if (minutes.trim() && duration <= 0) {
+            setError("如果填写时长，请输入有效的分钟数。");
+            return;
+          }
+          payload = duration > 0 ? { duration_minutes: duration } : {};
+        } else {
+          if (!minutes.trim() || duration <= 0) {
+            setError("请填写实际时长（分钟）。");
+            return;
+          }
+          payload = { duration_minutes: duration };
+        }
       } else if (t.event_type === "daily.weight") {
         const w = parseFloat(weight);
         if (!Number.isFinite(w) || w <= 0) {
@@ -89,15 +145,8 @@ export function QuickLogScreen() {
           return;
         }
         payload = { weight_kg: String(w) };
-      } else if (t.event_type === "medication.administered") {
-        payload = { plan_id: "", administered_at: new Date().toISOString(), by_actor: "主人", status: "GIVEN" };
-      } else if (t.event_type === "behavior.observed") {
-        const b = behavior.trim();
-        if (!b) {
-          setError("请简单描述一下行为。");
-          return;
-        }
-        payload = { behavior: b, behavior_event_id: "", intensity_source: "OWNER_REPORTED" };
+      } else if (t.event_type === "medication.administered" || t.event_type === "behavior.observed") {
+        throw new Error("请从对应的完整记录页提交这类记录。");
       } else {
         const d = diaryText.trim();
         if (!d) {
@@ -111,9 +160,23 @@ export function QuickLogScreen() {
       if (t.event_type === "diary.created") {
         await api.post(path, payload);
       } else {
-        await api.post(path, { event_type: t.event_type, payload });
+        const artifactIds: string[] = [];
+        for (const file of mediaFiles.slice(0, 3)) {
+          const uploaded = await api.upload<{ artifact_id: string }>(
+            `/pets/${current.id}/artifacts`,
+            file,
+          );
+          artifactIds.push(uploaded.artifact_id);
+        }
+        await api.post(path, {
+          event_type: t.event_type,
+          payload,
+          artifact_ids: artifactIds,
+        });
       }
-      setSuccess(`已记录${t.zh}。`);
+      setSuccess(
+        `已记录${t.zh}。${t.event_type !== "diary.created" && mediaFiles.length ? ` 已绑定 ${mediaFiles.length} 张照片。` : ""}`,
+      );
       resetInputs();
       setSelected(null);
     } catch (e: unknown) {
@@ -141,9 +204,22 @@ export function QuickLogScreen() {
             <Text style={styles.noteText}>记录会保存来源与时间，可在时间线查看。</Text>
           </View>
         )}
+        {error ? (
+          <Text style={styles.errorText} accessibilityLiveRegion="assertive" testID="pli.quicklog.error">
+            {error}
+          </Text>
+        ) : null}
 
         {selectedType ? (
-          <QuickLogForm t={selectedType} fields={fields} saving={saving} onSave={() => void save()} />
+          <QuickLogForm
+            t={selectedType}
+            fields={fields}
+            saving={saving}
+            mediaCount={mediaFiles.length}
+            onAddMedia={() => void chooseEvidencePhotos()}
+            onClearMedia={() => setMediaFiles([])}
+            onSave={() => void save()}
+          />
         ) : (
           <QuickLogGrid onPick={pick} onOpenHealth={() => navigation.navigate("Health")} />
         )}

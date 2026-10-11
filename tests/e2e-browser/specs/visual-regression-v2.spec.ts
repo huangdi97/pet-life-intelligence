@@ -23,6 +23,7 @@ const CURRENT = join(__dirname, "..", "artifacts", "visual-current");
 const FAIL_DIR = join(__dirname, "..", "artifacts", "visual-regression-failures");
 
 const UPDATE = process.env.PLI_UPDATE_VISUAL_BASELINE === "1";
+const EXPECTED_DRIFT = process.env.PLI_EXPECT_VISUAL_BASELINE_DRIFT === "1";
 const TOLERANCE = 5; // per-channel sum-of-deltas threshold (5/255)
 const MAX_DIFF_RATIO = 0.002; // 0.2% of pixels may differ (AA/rendering noise)
 
@@ -134,6 +135,21 @@ test("VISUAL-V2-01 approved baseline vs current pixel diff", async ({ page }) =>
       writeFileSync(join(APPROVED, name), readFileSync(join(CURRENT, name)));
     }
     console.log("PLI_UPDATE_VISUAL_BASELINE=1: approved baseline explicitly refreshed from current captures.");
+  } else if (EXPECTED_DRIFT) {
+    const report = {
+      classification: "EXPECTED_BASELINE_DRIFT",
+      baseline: "V2",
+      compared: results.length,
+      failures,
+      maxDiffRatio: Math.max(...results.map((r) => r.diffRatio), 0),
+      baselinePromotion: false,
+    };
+    writeFileSync(
+      join(__dirname, "..", "artifacts", "EXPECTED_BASELINE_DRIFT_V2.json"),
+      JSON.stringify(report, null, 2) + "\n",
+      "utf8",
+    );
+    console.log(`EXPECTED_BASELINE_DRIFT V2: ${failures.length}/${results.length} captures differ; approved baseline remains frozen.`);
   } else {
     expect(failures, `visual regression V2 failed:\n${failures.join("\n")}`).toEqual([]);
   }

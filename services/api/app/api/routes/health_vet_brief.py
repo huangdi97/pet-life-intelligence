@@ -72,7 +72,12 @@ async def share_vet_brief(
                       household_id=pet.household_id, pet_id=pet.id,
                       resource_type="ShareToken", resource_id=str(st.id))
     await db.commit()
-    return {"share_token": raw, "token_prefix": prefix, "expires_at": expires.isoformat()}
+    return {
+        "token_id": str(st.id),
+        "share_token": raw,
+        "token_prefix": prefix,
+        "expires_at": expires.isoformat(),
+    }
 
 
 @router.get("/vet-briefs/shared/{token}")

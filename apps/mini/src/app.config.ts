@@ -2,7 +2,9 @@
   pages: [
     "pages/index/index",
     "pages/timeline/index",
+    "pages/search/index",
     "pages/health/index",
+    "pages/health/detail/index",
     "pages/agent/index",
     "pages/mine/index",
     // 二级页保留（从对应 tab 页内入口进入；IA §5）
@@ -15,18 +17,21 @@
     "pages/training/index",
     "pages/notifications/index",
     "pages/companion/index",
+    "pages/monitoring/index",
+    "pages/welfare/index",
+    "pages/social/index",
   ],
   window: {
     backgroundTextStyle: "light",
-    navigationBarBackgroundColor: "#4E6349",
+    navigationBarBackgroundColor: "#F6F7F1",
     navigationBarTitleText: "宠物生活",
-    navigationBarTextStyle: "white",
-    backgroundColor: "#F6F1E9",
+    navigationBarTextStyle: "black",
+    backgroundColor: "#F6F7F1",
   },
   tabBar: {
-    color: "#8A8074",
-    selectedColor: "#4E6349",
-    backgroundColor: "#FFFFFF",
+    color: "#6C7A70",
+    selectedColor: "#365F49",
+    backgroundColor: "#FFFEFA",
     borderStyle: "white",
     list: [
       { pagePath: "pages/index/index", text: "今天" },

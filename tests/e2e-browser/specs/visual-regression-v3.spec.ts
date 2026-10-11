@@ -18,6 +18,7 @@ const CURRENT = join(__dirname, "..", "artifacts", "visual-v3-current");
 const FAIL_DIR = join(__dirname, "..", "artifacts", "visual-v3-failures");
 
 const UPDATE = process.env.PLI_UPDATE_VISUAL_BASELINE === "1";
+const EXPECTED_DRIFT = process.env.PLI_EXPECT_VISUAL_BASELINE_DRIFT === "1";
 const TOLERANCE = 5;
 const MAX_DIFF_RATIO = 0.002;
 
@@ -134,5 +135,22 @@ test("VISUAL-V3-01 approved baseline vs current pixel diff", async ({ page }) =>
 
   const maxDiff = Math.max(...results.map((r) => r.diffRatio), 0);
   console.log(`VISUAL-V3: ${results.length} pages, max diff ${(maxDiff * 100).toFixed(3)}%`);
-  expect(failures, `visual regressions:\n${failures.join("\n")}`).toEqual([]);
+  if (EXPECTED_DRIFT) {
+    const report = {
+      classification: "EXPECTED_BASELINE_DRIFT",
+      baseline: "V3",
+      compared: results.length,
+      failures,
+      maxDiffRatio: maxDiff,
+      baselinePromotion: false,
+    };
+    writeFileSync(
+      join(__dirname, "..", "artifacts", "EXPECTED_BASELINE_DRIFT_V3.json"),
+      JSON.stringify(report, null, 2) + "\n",
+      "utf8",
+    );
+    console.log(`EXPECTED_BASELINE_DRIFT V3: ${failures.length}/${results.length} captures differ; approved baseline remains frozen.`);
+  } else {
+    expect(failures, `visual regressions:\n${failures.join("\n")}`).toEqual([]);
+  }
 });

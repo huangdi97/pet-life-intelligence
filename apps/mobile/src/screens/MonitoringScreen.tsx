@@ -11,7 +11,7 @@ import { api, type DeviceRow } from "../api";
 import { usePets } from "../context";
 import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
 
-type MonitorState = "LOADING" | "CONNECTED" | "NO_DEVICE" | "OFFLINE" | "ERROR" | "CACHED" | "PERMISSION_REQUIRED";
+type MonitorState = "LOADING" | "CONNECTED" | "NO_DEVICE" | "OFFLINE" | "DEGRADED" | "UNKNOWN" | "ERROR" | "CACHED" | "PERMISSION_REQUIRED";
 
 export function MonitoringScreen() {
   const { pets, petId } = usePets();
@@ -48,16 +48,23 @@ export function MonitoringScreen() {
 
   // State machine: exactly one state element is rendered at a time.
   let state: MonitorState;
+  const normalizedDeviceStates = devices.map((d) => String(d.status).toLowerCase());
   if (loading) state = "LOADING";
   else if (error) state = "ERROR";
-  else if (devices.length === 0) state = "NO_DEVICE";
-  else state = "CONNECTED";
+  else if (normalizedDeviceStates.length === 0) state = "NO_DEVICE";
+  else if (normalizedDeviceStates.some((status) => status === "permission_required")) state = "PERMISSION_REQUIRED";
+  else if (normalizedDeviceStates.some((status) => status === "offline")) state = "OFFLINE";
+  else if (normalizedDeviceStates.some((status) => status === "degraded")) state = "DEGRADED";
+  else if (normalizedDeviceStates.every((status) => status === "connected" || status === "online")) state = "CONNECTED";
+  else state = "UNKNOWN";
 
   const stateText: Record<MonitorState, string> = {
-    LOADING: "正在连接…",
+    LOADING: "正在读取设备状态",
     CONNECTED: "已连接设备",
     NO_DEVICE: "尚未连接设备",
     OFFLINE: "设备离线",
+    DEGRADED: "设备连接不稳定",
+    UNKNOWN: "设备状态待确认",
     ERROR: "暂时连接不上",
     CACHED: "使用缓存内容",
     PERMISSION_REQUIRED: "需要设备权限",
@@ -68,7 +75,7 @@ export function MonitoringScreen() {
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.head} testID="pli.monitoring.identity">
           <Text style={styles.title}>{pet ? `${pet.name} · 在家` : "在家"}</Text>
-          <Text style={styles.sub}>设备与当前环境</Text>
+          <Text style={styles.sub}>真实设备连接与最近一次同步状态；未知或离线不会显示成在线。</Text>
         </View>
 
         <View testID={`pli.monitoring.state.${state}`} style={styles.stateRow}>
@@ -81,7 +88,7 @@ export function MonitoringScreen() {
         </View>
 
         {state === "LOADING" ? (
-          <Text style={styles.emptyText}>正在连接…</Text>
+          <Text style={styles.emptyText}>正在读取最近一次设备状态…</Text>
         ) : state === "ERROR" ? (
           <View style={styles.empty}>
             <Text style={styles.emptyBody}>暂时无法获取设备状态，请稍后重试。</Text>
@@ -108,7 +115,21 @@ export function MonitoringScreen() {
         )}
 
         <Text testID="pli.monitoring.last" style={styles.lastSync}>
-          {state === "CONNECTED" || state === "NO_DEVICE" ? "状态为最近一次同步结果" : "还没有缓存内容"}
+          {state === "CONNECTED"
+            ? "设备状态来自最近一次同步结果"
+            : state === "OFFLINE"
+              ? "设备离线状态来自最近一次同步结果"
+              : state === "DEGRADED"
+                ? "最近一次同步显示连接不稳定；不会标成在线"
+                : state === "PERMISSION_REQUIRED"
+                  ? "当前没有权限确认设备状态"
+                  : state === "UNKNOWN"
+                    ? "设备状态待确认；不会推断在线或离线"
+                    : state === "NO_DEVICE"
+                      ? "尚未发现已连接设备；不会推断当前在线状态"
+                      : state === "ERROR"
+                        ? "当前没有可确认的设备状态"
+                        : "正在确认最近一次设备状态"}
         </Text>
 
         <Pressable
@@ -126,10 +147,12 @@ export function MonitoringScreen() {
 }
 
 function deviceStateLabel(status: string): string {
-  if (status === "connected") return "在线";
-  if (status === "offline") return "离线";
-  if (status === "degraded") return "降级";
-  return "状态未知";
+  const normalized = status.toLowerCase();
+  if (normalized === "connected" || normalized === "online") return "在线";
+  if (normalized === "offline") return "离线";
+  if (normalized === "degraded") return "连接不稳定";
+  if (normalized === "permission_required") return "需要授权";
+  return "状态待确认";
 }
 
 const styles = StyleSheet.create({
@@ -151,6 +174,6 @@ const styles = StyleSheet.create({
   devicePill: { backgroundColor: COLORS.brandSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   devicePillText: { fontSize: TYPE.caption, color: COLORS.textSecondary, fontWeight: "600" },
   lastSync: { fontSize: TYPE.caption, color: COLORS.textTertiary, paddingHorizontal: SPACE.s4, marginTop: SPACE.s3 },
-  refreshBtn: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3, paddingVertical: 10, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center" },
+  refreshBtn: { minHeight: 48, marginHorizontal: SPACE.s4, marginTop: SPACE.s3, paddingVertical: 10, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center", justifyContent: "center" },
   refreshText: { fontSize: TYPE.button, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
 });

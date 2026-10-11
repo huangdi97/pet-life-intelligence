@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Pet } from "@pli/api-client";
 
@@ -40,6 +40,7 @@ const PETS: Pet[] = [
     weight_note: "",
     timezone: "Asia/Shanghai",
     avatar_artifact_id: null,
+    lifecycle_status: "ACTIVE",
     created_at: "2026-01-01T00:00:00Z",
   },
 ];
@@ -68,8 +69,8 @@ describe("TodayPage (state rendering)", () => {
     render(<TodayPage />);
     // R2-P: the pet stage is the first visual — name + real-data headline.
     await waitFor(() => expect(screen.getByText("豆豆")).toBeTruthy());
-    expect(screen.getByText("今天整体稳定")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "喂食" })).toBeTruthy();
+    expect(screen.getByText("今天记录了 2 件生活片段")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /快速记录/ })).toBeTruthy();
     expect(screen.getByText("最近")).toBeTruthy();
   });
 
@@ -78,6 +79,15 @@ describe("TodayPage (state rendering)", () => {
     render(<TodayPage />);
     await waitFor(() => expect(screen.getByText(/还没有宠物/)).toBeTruthy());
     expect(screen.getByText("创建宠物档案")).toBeTruthy();
+  });
+
+  it("does not misrepresent an API failure as a pet-free household", async () => {
+    apiMock.get.mockRejectedValue(new Error("Failed to fetch"));
+    render(<TodayPage />);
+    await waitFor(() => expect(screen.getByTestId("pli.today.pets-error")).toBeTruthy());
+    expect(screen.queryByTestId("pli.empty.pet")).toBeNull();
+    expect(screen.getByTestId("pli.today.pets-retry")).toBeTruthy();
+    expect(document.body.textContent).not.toContain("Failed to fetch");
   });
 
   it("maps API failure to human language, never raw codes (error)", async () => {
@@ -92,4 +102,29 @@ describe("TodayPage (state rendering)", () => {
     await waitFor(() => expect(screen.getAllByText(/服务暂时不可用/).length).toBeGreaterThan(0));
     expect(document.body.textContent).not.toContain("Failed to fetch");
   });
+  it("closes the current Quick Log form immediately when switching to another pet", async () => {
+    apiMock.get.mockImplementation((path: string) => {
+      if (path === "/pets") return Promise.resolve([
+        PETS[0], { ...PETS[0], id: "pet-2", name: "咪咪" },
+      ]);
+      if (path.endsWith("/today")) return Promise.resolve({
+        pet: { id: "pet-1", name: "豆豆", species: "猫" },
+        date: "2026-10-08", event_counts: {}, events: [],
+      });
+      if (path.includes("/tasks")) return Promise.resolve([]);
+      if (path.includes("abnormal-day-hint")) return Promise.resolve({ hints: [] });
+      if (path.includes("visual-models")) return Promise.resolve({ models: [] });
+      return Promise.resolve({});
+    });
+    render(<TodayPage />);
+    const openButton = await screen.findByRole("button", { name: /快速记录/ });
+    fireEvent.click(openButton);
+    expect(screen.getByRole("dialog", { name: "快速记录" })).toBeTruthy();
+    await act(async () => {
+      window.localStorage.setItem("pli_current_pet", "pet-2");
+      window.dispatchEvent(new Event("pli-pet-changed"));
+    });
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "快速记录" })).toBeNull());
+  });
+
 });

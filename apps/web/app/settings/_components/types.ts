@@ -5,7 +5,7 @@ export interface EmergencyProfile {
   vet_clinic_phone: string;
   vet_clinic_address_text: string;
   critical_care_notes: string;
-  updated_at: string;
+  updated_at: string | null;
 }
 
 export interface AuditRow {

@@ -3,7 +3,7 @@
  * (记录互动 last). 真实互动学习，不做伪精确兼容度。
  */
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { usePets } from "../context";
 import { api, humanizeError, type LifeEvent, type Pet, type PetFriend, type SocialProfile } from "../api";
@@ -31,12 +31,16 @@ export function SocialScreen() {
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [profileState, setProfileState] = useState<"loading" | "ready" | "error">("loading");
+  const [friendsState, setFriendsState] = useState<"loading" | "ready" | "error">("loading");
+  const [eventsState, setEventsState] = useState<"loading" | "ready" | "error">("loading");
   const [friendPetId, setFriendPetId] = useState("");
   const [quality, setQuality] = useState("NEUTRAL");
   const [duration, setDuration] = useState("30");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
   const [version, setVersion] = useState(0);
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
@@ -45,6 +49,9 @@ export function SocialScreen() {
     if (!petId) return;
     let alive = true;
     setLoading(true);
+    setProfileState("loading");
+    setFriendsState("loading");
+    setEventsState("loading");
     Promise.allSettled([
       api.get<SocialProfile>(`/pets/${petId}/social-profile`),
       api.get<PetFriend[]>(`/pets/${petId}/friends`),
@@ -52,10 +59,25 @@ export function SocialScreen() {
       api.get<{ events: LifeEvent[] }>(`/pets/${petId}/events?limit=40${INTERACTION_EVENT_TYPES.map((w) => `&event_type=${w}`).join("")}`),
     ]).then(([p, f, ap, ev]) => {
       if (!alive) return;
-      if (p.status === "fulfilled") setProfile(p.value);
-      if (f.status === "fulfilled") setFriends(f.value);
+      if (p.status === "fulfilled") {
+        setProfile(p.value);
+        setProfileState("ready");
+      } else {
+        setProfileState("error");
+      }
+      if (f.status === "fulfilled") {
+        setFriends(f.value);
+        setFriendsState("ready");
+      } else {
+        setFriendsState("error");
+      }
       if (ap.status === "fulfilled") setAllPets(ap.value);
-      if (ev.status === "fulfilled") setEvents(ev.value.events);
+      if (ev.status === "fulfilled") {
+        setEvents(ev.value.events);
+        setEventsState("ready");
+      } else {
+        setEventsState("error");
+      }
       setLoading(false);
       setError(p.status === "rejected" && f.status === "rejected" && ev.status === "rejected");
     });
@@ -64,9 +86,17 @@ export function SocialScreen() {
     };
   }, [petId, version]);
 
-  const friendName = (id: string) => allPets.find((p) => p.id === id)?.name ?? id.slice(0, 8);
+  const friendName = (id: string) => allPets.find((p) => p.id === id)?.name ?? "宠物朋友";
   const friendCandidates = allPets.filter((p) => p.id !== petId);
   const p = profile?.profile;
+  const relationLabel = (value: string | undefined) => {
+    if (!value || value === "UNKNOWN") return "未知";
+    if (value === "GOOD") return "很好";
+    if (value === "OK") return "可以";
+    if (value === "CAUTION") return "需注意";
+    if (value === "NO") return "不适合";
+    return "已记录";
+  };
 
   async function recordInteraction() {
     if (!petId || !friendPetId || busy) return;
@@ -81,6 +111,7 @@ export function SocialScreen() {
       });
       setMsg("已记录互动。");
       setNotes("");
+      setFormOpen(false);
       setVersion((v) => v + 1);
     } catch (e: unknown) {
       setMsg(humanizeError(e));
@@ -105,11 +136,15 @@ export function SocialScreen() {
         ) : (
           <>
             <OpenSection title="关系" testID="pli.social.preferences">
-              {p ? (
+              {profileState === "loading" ? (
+                <Text style={styles.emptyText}>正在读取关系档案……</Text>
+              ) : profileState === "error" ? (
+                <Text style={styles.emptyText}>关系档案暂时没有加载成功；不会把加载失败显示成“尚未形成”。</Text>
+              ) : p ? (
                 PROFILE_LABELS.map((row) => (
                   <View key={row.key} style={styles.profileRow}>
                     <Text style={styles.profileLabel}>{row.label}</Text>
-                    <Text style={styles.profileValue}>{(p as Record<string, string | undefined>)[row.key] ?? "未知"}</Text>
+                    <Text style={styles.profileValue}>{relationLabel((p as Record<string, string | undefined>)[row.key])}</Text>
                   </View>
                 ))
               ) : (
@@ -122,7 +157,11 @@ export function SocialScreen() {
             </OpenSection>
 
             <OpenSection title="宠物好友" testID="pli.social.friends">
-              {friends.length === 0 ? (
+              {friendsState === "loading" ? (
+                <Text style={styles.emptyText}>正在读取宠物关系……</Text>
+              ) : friendsState === "error" ? (
+                <Text style={styles.emptyText}>宠物关系暂时没有加载成功；不会把未知关系显示成“没有好友”。</Text>
+              ) : friends.length === 0 ? (
                 <Text style={styles.emptyText}>还没有好友关系。</Text>
               ) : (
                 friends.map((f) => (
@@ -137,7 +176,11 @@ export function SocialScreen() {
             </OpenSection>
 
             <OpenSection title="最近互动" testID="pli.social.interactions">
-              {events.length === 0 ? (
+              {eventsState === "loading" ? (
+                <Text style={styles.emptyText}>正在读取最近互动……</Text>
+              ) : eventsState === "error" ? (
+                <Text style={styles.emptyText}>最近互动暂时没有加载成功；不会把加载失败显示成“没有互动”。</Text>
+              ) : events.length === 0 ? (
                 <EmptyState
                   title="还没有互动记录"
                   body="记录一起玩耍或散步，历史会从这里开始。"
@@ -152,22 +195,39 @@ export function SocialScreen() {
               )}
             </OpenSection>
 
-            <View style={styles.formSection} testID="pli.social.action">
-              <Text style={styles.formLabel}>记录互动</Text>
-              <SocialRecordForm
-                candidates={friendCandidates}
-                friendPetId={friendPetId}
-                onFriendChange={setFriendPetId}
-                quality={quality}
-                onQualityChange={setQuality}
-                duration={duration}
-                onDurationChange={setDuration}
-                notes={notes}
-                onNotesChange={setNotes}
-                busy={busy}
-                msg={msg}
-                onRecord={() => void recordInteraction()}
-              />
+            <View style={styles.formSection}>
+              <Pressable
+                testID="pli.social.action"
+                accessibilityRole="button"
+                accessibilityLabel={formOpen ? "收起互动记录表单" : "记录一次互动"}
+                accessibilityState={{ expanded: formOpen }}
+                onPress={() => setFormOpen((value) => !value)}
+                style={({ pressed }) => [styles.formToggle, pressed && styles.pressed]}
+              >
+                <View style={styles.formToggleCopy}>
+                  <Text style={styles.formLabel}>补充一次互动</Text>
+                  <Text style={styles.formHint}>先看关系与最近互动；需要时再记录真实发生的这一次。</Text>
+                </View>
+                <Text style={styles.formToggleAction}>{formOpen ? "收起" : "记录"}</Text>
+              </Pressable>
+              {formOpen ? (
+                <View style={styles.formWrap}>
+                  <SocialRecordForm
+                    candidates={friendCandidates}
+                    friendPetId={friendPetId}
+                    onFriendChange={setFriendPetId}
+                    quality={quality}
+                    onQualityChange={setQuality}
+                    duration={duration}
+                    onDurationChange={setDuration}
+                    notes={notes}
+                    onNotesChange={setNotes}
+                    busy={busy}
+                    msg={msg}
+                    onRecord={() => void recordInteraction()}
+                  />
+                </View>
+              ) : null}
             </View>
           </>
         )}
@@ -177,10 +237,11 @@ export function SocialScreen() {
 }
 
 function friendStatusLabel(status: string): string {
-  if (status === "ACCEPTED") return "已添加";
+  if (status === "ACTIVE" || status === "ACCEPTED") return "已添加";
   if (status === "PENDING") return "待确认";
   if (status === "BLOCKED") return "已屏蔽";
-  return status;
+  if (status === "DECLINED") return "已拒绝";
+  return "已记录";
 }
 
 const styles = StyleSheet.create({
@@ -205,5 +266,11 @@ const styles = StyleSheet.create({
   eventTime: { fontSize: TYPE.caption, color: COLORS.textTertiary },
   emptyText: { fontSize: TYPE.body, color: COLORS.textTertiary },
   formSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
-  formLabel: { fontSize: TYPE.section, fontWeight: "600", color: COLORS.textPrimary, marginBottom: SPACE.s2 },
+  formToggle: { minHeight: 66, borderRadius: 20, backgroundColor: COLORS.brandSoftGreen, paddingHorizontal: SPACE.s4, paddingVertical: SPACE.s3, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: SPACE.s3 },
+  formToggleCopy: { flex: 1 },
+  formLabel: { fontSize: TYPE.section, fontWeight: "700", color: COLORS.textPrimary },
+  formHint: { fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 18, marginTop: 3 },
+  formToggleAction: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "700" },
+  formWrap: { marginTop: SPACE.s3 },
+  pressed: { opacity: 0.84 },
 });

@@ -75,20 +75,37 @@
 | MIN-010 | Training | pages/training | 训练目标/进度 |
 | MIN-011 | Pets | pages/pets | 宠物切换/创建 |
 | MIN-012 | Notifications | pages/notifications | 通知列表 |
-| MIN-013 | Companion | pages/companion（新增，原型） | 四层原型（feature-flagged） |
+| MIN-013 | Companion | pages/companion | Observe / Presence / Enrichment / Learned；真实设备状态，空态不伪装在线 |
+| MIN-014 | Welfare | pages/welfare | 观察与证据优先的生活质量/舒适/压力恢复/环境/丰富化 |
+| MIN-015 | Social | pages/social | 关系与真实互动历史；不做伪精确兼容度 |
+| MIN-016 | Monitoring | pages/monitoring | 真实设备连接/离线/无设备状态；不伪装 LIVE |
 
 ## Mobile（apps/mobile）
 
 | Page ID | Name | Screen | JTBD |
 |---|---|---|---|
-| MOB-001 | Today | TodayScreen | 五问 + Quick Log + Companion/Monitoring 入口 |
-| MOB-002 | Quick Log | QuickLogScreen(modal) | ≤10 秒记录（11 类） |
-| MOB-003 | Timeline | TimelineScreen | 时间线 + 筛选 |
-| MOB-004 | Monitoring | MonitoringScreen | 在家状态/设备 |
-| MOB-005 | Companion | CompanionScreen(原型) | Observe/Presence/Enrichment |
-| MOB-006 | Notifications | NotificationsScreen | 通知 |
-| MOB-007 | Health | HealthScreen | 健康流程 |
-| MOB-008 | Me | MeScreen | 设置/家庭/隐私 |
+| MOB-001 | Today | TodayScreen | Pet-first 五问 + Quick Log + 当前状态/关注/最近记忆 |
+| MOB-002 | Quick Log | QuickLogScreen(modal) | ≤10 秒高频生活记录 |
+| MOB-003 | Timeline | TimelineScreen | 生命时间线 + 筛选 + 来源 |
+| MOB-004 | Monitoring | MonitoringScreen | 真实设备连接/无设备/离线/错误状态 |
+| MOB-005 | Companion | CompanionScreen | Observe/Presence/Enrichment/Learned；不伪装 LIVE |
+| MOB-006 | Notifications | NotificationsScreen | 统一通知与注意力入口 |
+| MOB-007 | Health | HealthScreen | 读先于写：近期状态/变化/记录/风险分级 |
+| MOB-008 | Me | MeScreen | 家庭/宠物/常用/隐私/数据/应用 |
+| MOB-009 | Pet World | PetScreen | 个体宠物主页 + 六生活域 + 朋友/照护/生命入口 |
+| MOB-010 | Assistant | AssistantScreen | Pet-aware Ask/Brief/Find/Plan/Explain |
+| MOB-011 | Life View | LifeViewScreen | Warm Reality Field + Individual Twin + 此刻/趋势/外观 |
+| MOB-012 | Behavior | BehaviorScreen | 真实行为观察；Owner 语言优先 |
+| MOB-013 | Training | TrainingScreen | 目标/训练记录/进展 |
+| MOB-014 | Welfare | WelfareScreen | Evidence/Trend/Uncertainty；不做情绪分数 |
+| MOB-015 | Social | SocialScreen | 关系/朋友/真实互动，不做伪精确兼容度 |
+| MOB-016 | Medication | MedicationScreen | 处方来源约束的计划/待给药/给药历史 |
+| MOB-017 | Care | CareScreen | 临时交接/限定权限/到期/最小照护卡 |
+| MOB-018 | Twin Capture | PetTwinCaptureScreen | 个体形象素材采集/状态 |
+| MOB-019 | Twin Review | PetTwinReviewScreen | Front/Side/Rear Identity Review + 不像阻断激活 |
+| MOB-020 | Twin Versions | PetTwinVersionScreen | 3D 形象版本/激活/回看 |
+| MOB-021 | Health Detail | HealthDetailScreen | 单条健康事件详情：症状/时间/分级/处置/证据/来源/结果 |
+| MOB-022 | Vet Brief | HealthDetailScreen 内 Vet Brief 流 | 从真实健康事件生成可分享就诊摘要；明确来源、撤销与时效 |
 
 ## H5 Share（apps/web/share）
 
@@ -96,3 +113,32 @@
 |---|---|---|---|
 | SHR-001 | Vet Brief Share | /share/vet-brief/[token] | 专业阅读（mobile-first/revocable/expiry/无 app） |
 | SHR-002 | Care Card Share | /share/care-card/[token] | 照护卡阅读（同上） |
+
+
+## R5.3 cross-client addendum（2026-10-04）
+
+Stage H 的 Page ID 与功能责任继续有效；R5.3 不重新编号既有页面，而是完成 Owner 体验跨端收口：
+
+- Web / Mobile / Mini 的一级 IA 均保持 **Today / Timeline / Pet / Assistant / Me**。
+- Welfare / Social / Monitoring / Companion 均为 Pet / Today 情境二级能力，不挤占一级导航。
+- Mini 的 Pet World 现在与 Web/Mobile 对齐六个生活域：Life / Health / Behavior / Training / Welfare / Social；Medication 归健康照护语境，Monitoring / Companion 归陪伴与在家语境。
+- Mini Life View 保持轻量模式：照片/物种视觉 + 此刻/生命轨迹；高保真交互 3D 在支持的 Web/Android 客户端呈现。本端不得声称已加载本地 3D。
+- Companion Owner UI 不再出现 feature flag、PROTOTYPE 或内部实现术语；没有硬件时显示诚实空态。
+- 以上为产品语义/页面覆盖补充，不改变 v3.4-R1 母版优先级，也不意味着 Human Visual Acceptance。
+
+
+## R5.4 final design closure addendum（2026-10-04）
+
+R5.4 does not renumber the Stage H catalog; it closes the final design semantics through `docs/product/R5_4_FINAL_DESIGN_CLOSURE.md`.
+
+- Owner primary IA is frozen at **Today / Timeline / Pet / Assistant / Me**.
+- Mobile now explicitly includes **Health Detail** and the **Vet Brief** flow as first-class implemented surfaces.
+- All owner pages inherit the same truthful state contract: Loading / Empty / Partial / Populated / Error / Offline / Permission / Not Found / External Unavailable / Safety Blocked as applicable.
+- Required final visual evidence is a release gate. A missing required screenshot/contact-sheet source is a failure, not a placeholder.
+- Product Twin capability remains full on capable Web/Android and lightweight/honest on Mini.
+- No page-inventory completion claim changes `HUMAN_VISUAL_ACCEPTANCE = PENDING`.
+
+
+## R5.5 implementation-master addendum（2026-10-04）
+
+The page catalog is now bound to `docs/product/R5_5_FINAL_PRODUCT_UI_IMPLEMENTATION_MASTER.md`. Every listed owner surface must satisfy the shared page-completion contract, truthful state model, one-primary-action hierarchy, accessibility requirements and fresh-evidence rule defined there. This addendum changes no Page IDs and does not imply Human Visual Acceptance.

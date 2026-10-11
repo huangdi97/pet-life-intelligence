@@ -10,9 +10,9 @@
 // ====================================================================== //
 // --- color V4: canvas / surface -------------------------------------- //
 // ====================================================================== //
-$color-canvas: #f6f1e9;
+$color-canvas: #f6f7f1;
 $color-surface: #ffffff;
-$color-surface-raised: #fffdf8;
+$color-surface-raised: #fffefa;
 $color-surface-glass: #ffffffcc;
 $color-surface-overlay: #fffffff2;
 $color-surface-dark: #2b2620;
@@ -26,12 +26,12 @@ $color-text-inverse: #fbf7f0;
 $color-text-on-dark: #efe8dd;
 
 // --- color V4: brand (warm plant green + amber, preserved direction) --- //
-$color-brand-primary: #6e8b5e;
-$color-brand-primary-deep: #4e6349;
+$color-brand-primary: #52765d;
+$color-brand-primary-deep: #365f49;
 $color-brand-primary-dark: #3d4f3a;
 $color-brand-secondary: #b9762a;
 $color-brand-soft: #e7e3d8;
-$color-brand-soft-green: #e4eae0;
+$color-brand-soft-green: #e1ece3;
 $color-brand-soft-amber: #f6ecdc;
 
 // --- color V4: semantic (display backend triage values only) ----------- //
@@ -54,7 +54,7 @@ $color-divider-subtle: #e9e2d6;
 $color-divider-strong: #d8d0c4;
 $color-line-default: #e9e2d6;
 $color-line-strong: #d8d0c4;
-$color-line-focus: #6e8b5e;
+$color-line-focus: #52765d;
 
 // ===================================================================== //
 // --- LEGACY alias block (Stage H tokens, now pointing at V4 values) --- //
@@ -70,12 +70,12 @@ $color-ink-muted: $color-text-tertiary;
 $color-ink-disabled: #b5aca0;
 
 $color-primary-50: #f3f6f2;
-$color-primary-100: #e4eae0;
+$color-primary-100: #e1ece3;
 $color-primary-200: #c9d4c3;
 $color-primary-300: #a6b7a0;
 $color-primary-400: #81977b;
-$color-primary-500: #6e8b5e;
-$color-primary-600: #4e6349;
+$color-primary-500: #52765d;
+$color-primary-600: #365f49;
 $color-primary-700: #3d4f3a;
 $color-primary-800: #2f3d2d;
 $color-primary-900: #222c21;

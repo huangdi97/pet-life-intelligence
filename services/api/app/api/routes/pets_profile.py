@@ -1,5 +1,6 @@
 """Pets: pet master record create/update/list (PLI-001/002)."""
 
+import base64
 import uuid
 from datetime import date, datetime
 
@@ -10,9 +11,10 @@ from sqlalchemy import select
 from app.api.deps import CurrentUser, DBSession
 from app.core.errors import ValidationFailed
 from app.domain import enums
-from app.models import Consent, EmergencyProfile, HouseholdMember, Pet, Relationship
+from app.models import Artifact, Consent, EmergencyProfile, HouseholdMember, Pet, Relationship
 from app.services import permissions as perm
 from app.services.eventlog import create_life_event, write_audit
+from app.services.storage import get_storage
 
 router = APIRouter(tags=["pets"])
 
@@ -38,6 +40,16 @@ class PetUpdate(BaseModel):
     timezone: str | None = None
 
 
+class PetAvatarSet(BaseModel):
+    artifact_id: uuid.UUID
+
+
+class PetAvatarOut(BaseModel):
+    avatar_artifact_id: uuid.UUID | None
+    content_type: str | None = None
+    data_url: str | None = None
+
+
 class PetOut(BaseModel):
     id: uuid.UUID
     household_id: uuid.UUID
@@ -50,6 +62,7 @@ class PetOut(BaseModel):
     weight_note: str
     timezone: str
     avatar_artifact_id: uuid.UUID | None
+    lifecycle_status: str
     # PLI-GW0 pilot isolation flags (visible in API for dashboards/debug)
     is_demo: bool = False
     is_internal: bool = False
@@ -156,6 +169,90 @@ async def get_pet(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -> dict:
     return data
 
 
+@router.get("/pets/{pet_id}/avatar")
+async def get_pet_avatar(
+    pet_id: uuid.UUID, db: DBSession, user: CurrentUser
+) -> PetAvatarOut:
+    """Return the persisted avatar through the authenticated pet context.
+
+    Owner clients use this compact JSON/data-url representation so the same
+    protected artifact can render on Web, native and Mini without creating a
+    public media URL or bypassing capability checks.
+    """
+    pet = await perm.get_pet_or_404(db, pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    if pet.avatar_artifact_id is None:
+        return PetAvatarOut(avatar_artifact_id=None)
+
+    artifact = (
+        await db.execute(
+            select(Artifact).where(
+                Artifact.id == pet.avatar_artifact_id,
+                Artifact.pet_id == pet.id,
+                Artifact.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if artifact is None or artifact.kind != "IMAGE":
+        # Do not silently substitute another image when the recorded avatar
+        # artifact is gone or invalid.
+        return PetAvatarOut(avatar_artifact_id=pet.avatar_artifact_id)
+
+    content = await get_storage().get(artifact.storage_key)
+    encoded = base64.b64encode(content).decode("ascii")
+    return PetAvatarOut(
+        avatar_artifact_id=artifact.id,
+        content_type=artifact.content_type,
+        data_url=f"data:{artifact.content_type};base64,{encoded}",
+    )
+
+
+@router.put("/pets/{pet_id}/avatar")
+async def set_pet_avatar(
+    pet_id: uuid.UUID, body: PetAvatarSet, db: DBSession, user: CurrentUser
+) -> PetOut:
+    """Choose one already-uploaded image artifact as this pet's avatar."""
+    pet = await perm.get_pet_or_404(db, pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.MANAGE_PET)
+    artifact = (
+        await db.execute(
+            select(Artifact).where(
+                Artifact.id == body.artifact_id,
+                Artifact.pet_id == pet.id,
+                Artifact.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if artifact is None:
+        raise ValidationFailed("Avatar artifact does not belong to this pet.")
+    if artifact.kind != "IMAGE" or not artifact.content_type.startswith("image/"):
+        raise ValidationFailed("Avatar must be an uploaded image artifact.")
+
+    pet.avatar_artifact_id = artifact.id
+    await db.flush()
+    await create_life_event(
+        db,
+        pet_id=pet.id,
+        event_type="pet.media_added",
+        payload={"artifact_id": str(artifact.id), "purpose": "avatar"},
+        actor_id=user.id,
+        source_type=enums.SourceType.OWNER_REPORTED,
+        source_ref=f"artifact:{artifact.id}",
+        artifact_ids=[artifact.id],
+    )
+    await write_audit(
+        db,
+        action="pet.avatar_set",
+        actor_user_id=user.id,
+        household_id=pet.household_id,
+        pet_id=pet.id,
+        resource_type="Artifact",
+        resource_id=str(artifact.id),
+    )
+    await db.commit()
+    return PetOut.model_validate(pet)
+
+
 @router.patch("/pets/{pet_id}")
 async def update_pet(
     pet_id: uuid.UUID, body: PetUpdate, db: DBSession, user: CurrentUser
@@ -163,8 +260,15 @@ async def update_pet(
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.MANAGE_PET)
     changed = []
+    nullable_fields = {"birth_date", "neutered"}
     for field, value in body.model_dump(exclude_unset=True).items():
-        if value is not None and getattr(pet, field) != value:
+        # birth_date/neutered explicitly support clearing back to "unknown".
+        # Other identity strings ignore null rather than erasing required data.
+        if field in nullable_fields:
+            if getattr(pet, field) != value:
+                setattr(pet, field, value)
+                changed.append(field)
+        elif value is not None and getattr(pet, field) != value:
             setattr(pet, field, value)
             changed.append(field)
     await db.flush()

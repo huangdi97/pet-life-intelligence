@@ -17,8 +17,15 @@ test("E2E-01 创建宠物 → Quick Log → Timeline（刷新后仍存在，后�
   await createPetViaUI(page, name);
   await expect(page.locator(".topnav select")).toContainText(name);
 
-  // 3. Today / Quick Log: add a meal
-  await page.getByRole("button", { name: "喂食" }).click();
+  // 3. Today / Quick Log: R5 uses one primary entry, then the concrete fact.
+  await page.getByRole("button", { name: "快速记录", exact: true }).click();
+  await page.getByRole("button", { name: "喂食", exact: true }).click();
+  // R5 fact-first UX: selecting a record type opens a confirmation form;
+  // the app must not invent food/amount or record an unconfirmed fact.
+  await page.getByTestId("pli.quicklog.field.food_type").fill("鸡肉配方粮");
+  await page.getByTestId("pli.quicklog.field.amount").fill("80");
+  await page.getByTestId("pli.quicklog.field.unit").fill("g");
+  await page.getByTestId("pli.quicklog.text-save").click();
   await expect(page.locator(".alert.info")).toContainText("已记录");
 
   // 4. Timeline shows the event with provenance + actor
@@ -59,9 +66,11 @@ test("E2E-02 家庭协作 / 权限（成员可完成，Owner-only 被拒，API 4
   await loginAsEmail(ownerPage, request, "owner@pli.demo");
   await useCurrentPet(ownerPage, coco.id);
   await ownerPage.goto("/tasks");
+  await ownerPage.getByTestId("pli.tasks.create.toggle").click();
+  await expect(ownerPage.locator("#pli-tasks-create-form")).toBeVisible();
   const title = `BW-task-${stamp}`;
   await ownerPage.getByPlaceholder("如：晚上喂食").fill(title);
-  await ownerPage.getByRole("button", { name: "创建", exact: true }).click();
+  await ownerPage.getByTestId("pli.tasks.create.submit").click();
   await expect(ownerPage.getByText(title).first()).toBeVisible();
   await ownerPage.close();
 
@@ -72,7 +81,7 @@ test("E2E-02 家庭协作 / 权限（成员可完成，Owner-only 被拒，API 4
   await useCurrentPet(famPage, coco.id);
   await famPage.goto("/tasks");
   await famPage.locator(".tl li", { hasText: title }).first().getByRole("button", { name: "完成" }).click();
-  await expect(famPage.locator(".tl li", { hasText: title }).first()).toContainText("COMPLETED");
+  await expect(famPage.locator(".tl li", { hasText: title }).first()).toContainText("已完成");
   await famPage.close();
 
   // completed_by visible via API
@@ -104,6 +113,10 @@ test("E2E-03 红旗 → EMERGENCY → Vet Brief（前端不降级、刷新一致
   await useCurrentPet(page, mimi.id);
 
   await page.goto("/health");
+  // R5.6 Health is read-first: recording is progressive disclosure so existing
+  // evidence remains the visual core. Open the composer, then exercise the
+  // same real create -> intake route.
+  await page.getByRole("button", { name: "记录健康事件" }).click();
   await page.getByLabel(/主诉/).fill("反复进猫砂盆但几乎尿不出来");
   await page.getByRole("button", { name: "打开健康事件" }).click();
   await expect(page).toHaveURL(urlReTail("/health/[0-9a-f-]{36}"));
@@ -133,10 +146,12 @@ test("E2E-04 Medication → 给药 → Outcome → Timeline（重复提交无重
   await useCurrentPet(page, coco.id);
 
   await page.goto("/medication");
+  await page.getByTestId("pli.medication.create.toggle").click();
+  await expect(page.locator("#pli-medication-create-form")).toBeVisible();
   const medName = `BW-Med-${stamp}`;
+  await page.getByLabel("药名").fill(medName);
   await page.getByPlaceholder("如 50mg").fill("10mg");
-  await page.locator("input").first().fill(medName);
-  await page.getByRole("button", { name: "创建计划" }).click();
+  await page.getByTestId("pli.medication.create.submit").click();
   await expect(page.getByText(medName).first()).toBeVisible();
 
   // give the first scheduled dose via UI
@@ -167,7 +182,9 @@ test("E2E-04 Medication → 给药 → Outcome → Timeline（重复提交无重
   await expect(page.locator("main select")).toBeVisible();
   await page.locator("main select").selectOption("IMPROVED");
   await page.getByRole("button", { name: "记录结局" }).click();
-  await expect(page.getByText("已记录：IMPROVED")).toBeVisible();
+  // Owner UI must localize the internal outcome enum instead of leaking IMPROVED.
+  await expect(page.getByText("已记录：有改善")).toBeVisible();
+  expect(await page.locator("main").innerText()).not.toContain("IMPROVED");
 
   // timeline links the outcome to the health event
   const tl = await (
@@ -189,14 +206,33 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
   await useCurrentPet(page, coco.id);
 
   await page.goto("/care");
-  await page.getByPlaceholder("uuid").fill(sitterId);
+  await page.getByTestId("pli.care.handoff.toggle").click();
+  await expect(page.locator("#pli-care-handoff-form")).toBeVisible();
+  // Care is now owner-facing: choose a known caregiver by readable person
+  // control instead of typing an implementation/user identifier into the UI.
+  // The option value remains a transport detail used only by this E2E.
+  const caregiverSelect = page.getByLabel("临时照护人", { exact: true });
+  await expect(caregiverSelect).toBeVisible();
+  await caregiverSelect.selectOption(sitterId);
+  await expect(caregiverSelect.locator("option:checked")).toContainText("Demo Sitter");
   await page.getByRole("button", { name: "创建交接" }).click();
-  await expect(page.locator(".tl li", { hasText: sitterId.slice(0, 8) }).first()).toContainText("ACTIVE");
+  // Owner UI intentionally no longer exposes raw caregiver/user IDs. Locate
+  // the active semantic handoff by its action, then assert the readable state.
+  const activeHandoff = page.locator(".tl li").filter({
+    has: page.getByRole("button", { name: "提前结束" }),
+  }).first();
+  await expect(activeHandoff).toContainText("生效中");
+  await expect(activeHandoff).not.toContainText(sitterId);
 
   // issue care card and read the shared link anonymously
   await page.getByRole("button", { name: "生成并获取链接" }).click();
-  const alert = await page.locator(".alert.info").textContent();
-  const token = alert!.match(/\/care-card\/([A-Za-z0-9_-]+)/)![1];
+  const card = page.getByText("照护卡已生成 · 72 小时有效").first();
+  await expect(card).toBeVisible();
+  // The productized Care page exposes a real link rather than a raw token/code
+  // block. Read the href the same way an owner would open/share the card.
+  const sharePath = await page.getByRole("link", { name: "打开照护卡" }).getAttribute("href");
+  expect(sharePath).toMatch(/\/share\/care-card\/[A-Za-z0-9_-]+/);
+  const token = sharePath!.match(/\/share\/care-card\/([A-Za-z0-9_-]+)/)![1];
   const shared = await request.get(`${API}/care-card/${token}`);
   expect(shared.status()).toBe(200);
   const cardBody = await shared.json();
@@ -214,9 +250,34 @@ test("E2E-05 Care Handoff / Care Card（最小字段、结束后权限收回）"
   expect([403, 404]).toContain(mimiDenied.status());
   await sitterPage.close();
 
-  // end handoff → scoped access revoked
-  await page.getByRole("button", { name: "提前结束" }).first().click();
-  await expect(page.locator(".tl li", { hasText: sitterId.slice(0, 8) }).first()).toContainText("ENDED");
+  // end handoff → scoped access revoked. Use the exact newly-created
+  // handoff as the truth anchor instead of counting every historical ENDED row:
+  // CI seed/history may contain other completed handoffs with the same label.
+  const handoffRows = await (
+    await request.get(`${API}/pets/${coco.id}/handoffs`, {
+      headers: { "X-Dev-User-Id": ownerId },
+    })
+  ).json();
+  const createdHandoff = handoffRows
+    .filter((h: { caregiver_user_id: string; status: string }) => h.caregiver_user_id === sitterId && h.status === "ACTIVE")
+    .sort((a: { start_at: string }, b: { start_at: string }) => Date.parse(b.start_at) - Date.parse(a.start_at))[0];
+  expect(createdHandoff).toBeTruthy();
+
+  await activeHandoff.getByRole("button", { name: "提前结束" }).click();
+
+  await expect
+    .poll(async () => {
+      const rows = await (
+        await request.get(`${API}/pets/${coco.id}/handoffs`, {
+          headers: { "X-Dev-User-Id": ownerId },
+        })
+      ).json();
+      return rows.find((h: { handoff_id: string }) => h.handoff_id === createdHandoff.handoff_id)?.status ?? null;
+    })
+    .toBe("ENDED");
+
+  await expect(page.locator(".tl li").filter({ hasText: createdHandoff.caregiver_label || "临时照护人" }).filter({ hasText: "已结束" }).first()).toBeVisible();
+
   const after = await request.get(`${API}/pets/${coco.id}`, {
     headers: { "X-Dev-User-Id": sitterId },
   });
@@ -232,6 +293,8 @@ test("E2E-06 Behavior ABC（中文+emoji 输入，Timeline 可见，页面不崩
 
   const behaviorText = `对门铃响连续吠叫📞然后躲到沙发下🛋️（BW-${stamp}）`;
   await page.goto("/behavior");
+  await page.getByTestId("pli.behavior.action").click();
+  await expect(page.locator("#pli-behavior-record-form")).toBeVisible();
   await page.getByPlaceholder(/门铃响 \/ 陌生狗经过/).fill("门铃响🔔");
   await page.getByPlaceholder(/连续吠叫/).fill(behaviorText);
   await page.getByPlaceholder(/主人安抚后自行出来/).fill("主人安抚后出来");
@@ -239,7 +302,10 @@ test("E2E-06 Behavior ABC（中文+emoji 输入，Timeline 可见，页面不崩
   await expect(page.locator(".tl li", { hasText: `BW-${stamp}` }).first()).toBeVisible();
 
   await page.goto("/timeline");
-  await page.locator("main select").selectOption("behavior.observed");
+  // Timeline keeps advanced filters behind intentional progressive disclosure;
+  // open it like an owner would before selecting a precise event type.
+  await page.locator(".v7-timeline-refine > summary").click();
+  await page.getByLabel("按事件类型过滤").selectOption("behavior.observed");
   await expect(page.locator(".v4-ls .ls-summary", { hasText: `BW-${stamp}` }).first()).toBeVisible();
   await expectNoFatalState(page);
 });

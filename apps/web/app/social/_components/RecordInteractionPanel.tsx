@@ -33,8 +33,9 @@ export function RecordInteractionPanel({
   onRecord,
 }: RecordInteractionPanelProps) {
   return (
-    <div className="card">
-      <h2>记录互动</h2>
+    <section className="v5-form-surface">
+      <h2>补充一次互动</h2>
+      <p className="v4-note" style={{ marginTop: -4 }}>已有关系与互动历史优先展示；需要时再补充这次真实发生的互动。</p>
       <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
         <select
           value={friendPetId}
@@ -69,7 +70,7 @@ export function RecordInteractionPanel({
         <input
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}
-          placeholder="备注（可选）"
+          placeholder="发生了什么（可选）"
           aria-label="备注"
           style={{ flex: 1, minWidth: 160 }}
         />
@@ -77,7 +78,7 @@ export function RecordInteractionPanel({
           记录互动
         </button>
       </div>
-      <p className="muted">安全：出现冲突或紧张时，双方 Owner 都会看到反馈；不会公开展示。</p>
-    </div>
+      <p className="muted">如果记录为紧张或冲突，只会用于双方宠物的照护与安全回顾，不会公开展示。</p>
+    </section>
   );
 }

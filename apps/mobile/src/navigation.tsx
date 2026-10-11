@@ -6,7 +6,8 @@
  */
 import React from "react";
 import { View } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, type NavigatorScreenParams } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { navigationRef } from "./demoNav";
@@ -34,6 +35,12 @@ import { CompanionScreen } from "./screens/CompanionScreen";
 import { PetTwinCaptureScreen } from "./screens/PetTwinCaptureScreen";
 import { PetTwinReviewScreen } from "./screens/PetTwinReviewScreen";
 import { PetTwinVersionScreen } from "./screens/PetTwinVersionScreen";
+import { MedicationScreen } from "./screens/MedicationScreen";
+import { CareScreen } from "./screens/CareScreen";
+import { HealthDetailScreen } from "./screens/HealthDetailScreen";
+import { SearchScreen } from "./screens/SearchScreen";
+import { PetProfileScreen } from "./screens/PetProfileScreen";
+import { MediaMemoryScreen } from "./screens/MediaMemoryScreen";
 
 export type TabParamList = {
   Today: undefined;
@@ -44,17 +51,23 @@ export type TabParamList = {
 };
 
 export type StackParamList = {
-  Tabs: undefined;
+  Tabs: NavigatorScreenParams<TabParamList> | undefined;
   QuickLog: undefined;
   Notifications: undefined;
+  Search: undefined;
+  PetProfile: { mode: "create" | "edit" };
+  MediaMemory: { artifactIds: string[]; initialIndex?: number };
   Health: undefined;
-  LifeView: undefined;
+  HealthDetail: { id: string };
+  LifeView: { date?: string; anchor?: "water" | "meal" | "activity" | "sleep" } | undefined;
   Behavior: undefined;
   Training: undefined;
   Welfare: undefined;
   Social: undefined;
   Monitoring: undefined;
   Companion: undefined;
+  Medication: undefined;
+  Care: undefined;
   TwinCapture: undefined;
   TwinReview: { version: number } | undefined;
   TwinVersion: undefined;
@@ -79,8 +92,17 @@ const TAB_TEST_IDS: Record<keyof TabParamList, string> = {
   Me: "pli.nav.me",
 };
 
+const TAB_A11Y_LABELS: Record<keyof TabParamList, string> = {
+  Today: "今天，查看宠物当前状态与需要关注的变化",
+  Timeline: "时间线，查看宠物的长期生活记录",
+  Pet: "宠物，进入宠物主页与生活领域",
+  Assistant: "助手，询问、查找、解释和规划",
+  Me: "我的，管理家庭、通知、隐私和设置",
+};
+
 function Tabs() {
   const { pets, petId } = usePets();
+  const insets = useSafeAreaInsets();
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
   return (
@@ -89,8 +111,21 @@ function Tabs() {
         headerShown: false,
         tabBarActiveTintColor: COLORS.brandPrimaryDeep,
         tabBarInactiveTintColor: COLORS.textTertiary,
-        tabBarStyle: { backgroundColor: COLORS.surface, borderTopColor: COLORS.dividerSubtle },
+        tabBarStyle: {
+          // R5.6 final craft: include the home-indicator area in the navigation
+          // surface so visual rhythm and touch targets stay stable on real devices.
+          height: 60 + Math.max(insets.bottom, 8),
+          paddingTop: 7,
+          paddingBottom: Math.max(insets.bottom, 8),
+          backgroundColor: "#FFFEFA",
+          borderTopWidth: 1, borderTopColor: "#DFE9DD",
+          shadowColor: "#365F49", shadowOpacity: 0.07, shadowRadius: 14, elevation: 6,
+        },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: "600", marginTop: 1 },
+        tabBarItemStyle: { minHeight: 44, borderRadius: 16, marginHorizontal: 2 },
         tabBarTestID: TAB_TEST_IDS[route.name as keyof TabParamList],
+        tabBarAccessibilityLabel: TAB_A11Y_LABELS[route.name as keyof TabParamList],
+        tabBarHideOnKeyboard: true,
         tabBarIcon: ({ color, size, focused }) => {
           // Pet tab shows the current pet's avatar (rounded); fallback paw icon.
           if (route.name === "Pet" && current) {
@@ -110,7 +145,11 @@ function Tabs() {
             );
           }
           const [on, off] = TAB_ICONS[route.name as keyof TabParamList];
-          return <Ionicons name={(focused ? on : off) as keyof typeof Ionicons.glyphMap} color={color} size={size} />;
+          return (
+            <View style={{ width: 44, height: 34, borderRadius: 16, backgroundColor: focused ? "#E1ECE3" : "transparent", alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name={(focused ? on : off) as keyof typeof Ionicons.glyphMap} color={focused ? "#365F49" : color} size={size} />
+            </View>
+          );
         },
       })}
     >
@@ -131,7 +170,11 @@ export function AppNavigation() {
         <Stack.Screen name="Tabs" component={Tabs} />
         <Stack.Screen name="QuickLog" component={QuickLogScreen} options={{ presentation: "modal", headerShown: false }} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
+        <Stack.Screen name="Search" component={SearchScreen} />
+        <Stack.Screen name="PetProfile" component={PetProfileScreen} />
+        <Stack.Screen name="MediaMemory" component={MediaMemoryScreen} />
         <Stack.Screen name="Health" component={HealthScreen} />
+        <Stack.Screen name="HealthDetail" component={HealthDetailScreen} />
         <Stack.Screen name="LifeView" component={LifeViewScreen} />
         <Stack.Screen name="Behavior" component={BehaviorScreen} />
         <Stack.Screen name="Training" component={TrainingScreen} />
@@ -139,6 +182,8 @@ export function AppNavigation() {
         <Stack.Screen name="Social" component={SocialScreen} />
         <Stack.Screen name="Monitoring" component={MonitoringScreen} />
         <Stack.Screen name="Companion" component={CompanionScreen} />
+        <Stack.Screen name="Medication" component={MedicationScreen} />
+        <Stack.Screen name="Care" component={CareScreen} />
         <Stack.Screen name="TwinCapture" component={PetTwinCaptureScreen} />
         <Stack.Screen name="TwinReview" component={PetTwinReviewScreen} />
         <Stack.Screen name="TwinVersion" component={PetTwinVersionScreen} />

@@ -22,6 +22,17 @@ export const EVENT_ICONS: Record<string, string> = {
   "social.interaction_logged": "people-outline",
 };
 
+const ELIMINATION_KIND_LABELS: Record<string, string> = {
+  urine: "尿",
+  stool: "便",
+  both: "尿和便",
+};
+const ELIMINATION_QUALITY_LABELS: Record<string, string> = {
+  normal: "和平时一样",
+  abnormal: "和平时不一样",
+  concerning: "明显需要关注",
+};
+
 function hourMinute(iso: string): string {
   try {
     return new Date(iso).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -38,7 +49,11 @@ export function eventRowFromEvent(e: LifeEvent): LifeStreamRow {
   else if (e.event_type === "daily.walk") meta = `户外 ${payload.duration_minutes ?? "—"} 分钟`;
   else if (e.event_type === "daily.play") meta = `${payload.duration_minutes ?? "—"} 分钟`;
   else if (e.event_type === "daily.weight") meta = `${payload.weight_kg ?? ""} kg`;
-  else if (e.event_type === "daily.elimination") meta = `${payload.kind ?? ""} · ${payload.quality ?? ""}`.replace(/·\s*$/, "");
+  else if (e.event_type === "daily.elimination") {
+    const kind = ELIMINATION_KIND_LABELS[String(payload.kind ?? "")] ?? "";
+    const quality = ELIMINATION_QUALITY_LABELS[String(payload.quality ?? "")] ?? "";
+    meta = [kind, quality].filter(Boolean).join(" · ");
+  }
   else if (e.event_type === "medication.administered") meta = `${payload.medicine_name ?? ""} ${payload.dose_text ?? ""}`.trim();
   return {
     id: e.event_id,
@@ -49,6 +64,8 @@ export function eventRowFromEvent(e: LifeEvent): LifeStreamRow {
     outcome: e.retracted_at ? "已撤回" : null,
     icon: (EVENT_ICONS[e.event_type] ?? "ellipse-outline") as LifeStreamRow["icon"],
     mediaUri: null,
+    mediaCount: e.artifact_ids?.length ?? 0,
+    artifactIds: e.artifact_ids ?? [],
   };
 }
 
@@ -65,8 +82,10 @@ export function groupEventsByDay(events: LifeEvent[]): LifeStreamDay[] {
     .sort((a, b) => (a[0] < b[0] ? 1 : -1))
     .map(([key, list]) => {
       const d = new Date(key);
+      const date = list[0]?.occurred_at?.slice(0, 10);
       return {
         id: key,
+        date: /^\d{4}-\d{2}-\d{2}$/.test(date ?? "") ? date : undefined,
         label: `${d.getMonth() + 1}月${d.getDate()}日`,
         isToday: key === nowKey,
         rows: list.map(eventRowFromEvent),

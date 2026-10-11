@@ -40,18 +40,6 @@ img { max-width: 100%; }
 .navlinks a.active { background: var(--pli-primary-100, #e4eae0); color: var(--pli-primary-800, #2f3d2d); font-weight: 600; }
 .nav-icon { font-size: 13px; opacity: 0.75; }
 
-.more-wrap { position: relative; }
-.more-btn { font-size: 14px; min-height: 36px; }
-.more-btn.active { background: var(--pli-primary-100, #e4eae0); }
-.more-menu {
-  position: absolute; right: 0; top: calc(100% + 6px);
-  background: #fff; border: 1px solid var(--pli-line-default, #e8e2d9);
-  border-radius: 12px; box-shadow: var(--pli-elev-lg, 0 8px 24px rgba(43,39,35,0.1));
-  padding: 6px; min-width: 150px; display: flex; flex-direction: column; gap: 2px;
-}
-.more-menu a { padding: 9px 12px; border-radius: 8px; font-size: 14px; color: var(--pli-ink-primary, #2b2723); text-decoration: none; }
-.more-menu a:hover { background: var(--pli-primary-50, #f3f6f2); }
-
 .petswitch { display: flex; align-items: center; gap: 8px; margin-left: auto; white-space: nowrap; }
 .pet-label { font-size: 13px; color: var(--pli-ink-muted, #7c7369); display: inline-flex; align-items: center; gap: 6px; }
 .pet-label select { font: inherit; font-size: 13px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--pli-line-default, #e8e2d9); background: #fff; }
@@ -201,11 +189,54 @@ label.field > input, label.field > select, label.field > textarea { margin-top: 
 
 /* ---- mobile bottom nav (PWA-like tab bar) ---- */
 @media (max-width: 768px) {
-  .topnav { flex-wrap: wrap; padding: 8px 10px; gap: 8px; }
-  .navlinks { order: 3; width: 100%; justify-content: space-around; border-top: 1px solid var(--pli-line-default, #e8e2d9); padding-top: 6px; }
-  .navlinks a { flex-direction: column; gap: 2px; font-size: 11px; padding: 4px 8px; min-height: 44px; }
-  .navlinks .more-wrap { display: none; }
-  .page { padding: 16px 12px 110px; }
+  /* R5.6 final craft: mobile Web now behaves like the canonical five-tab
+     product instead of wrapping the primary IA under the top header. */
+  .topnav {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .navlinks {
+    position: fixed;
+    z-index: 220;
+    left: 8px;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    width: auto;
+    min-height: 64px;
+    justify-content: space-around;
+    gap: 2px;
+    padding: 6px;
+    border: 1px solid rgba(218, 210, 199, 0.82);
+    border-radius: 22px;
+    background: rgba(255, 253, 249, 0.94);
+    box-shadow: 0 14px 38px rgba(55, 45, 35, 0.12);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+  .navlinks a {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 52px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 5px 3px;
+    border-radius: 16px;
+    font-size: 11px;
+  }
+  .navlinks a.active {
+    background: rgba(228, 234, 224, 0.9);
+  }
+  .navlinks .nav-icon { font-size: 14px; }
+  .navlinks .nav-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .page { padding: 16px 12px calc(104px + env(safe-area-inset-bottom, 0px)); }
   .petswitch .pet-label { display: none; }
   .topnav .brand { font-size: 14px; }
 }
@@ -390,8 +421,9 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
 .v4-ls { list-style: none; margin: 0; padding: 0; }
 .ls-day { margin: 0 0 4px; padding: 14px 2px 6px; }
 .ls-day + .ls-day { border-top: 1px solid var(--v4-divider); }
-.ls-day-title { display: flex; align-items: baseline; gap: 8px; font-size: 14px; font-weight: 700; color: var(--v4-text-primary); }
-.ls-day-relative { font-size: 12px; color: var(--v4-brand-primary); font-weight: 600; }
+.ls-day-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; font-weight: 700; color: var(--v4-text-primary); }
+.ls-day-relative { margin-left: 8px; font-size: 12px; color: var(--v4-brand-primary); font-weight: 600; }
+.ls-day-back { min-height: 36px; display: inline-flex; align-items: center; padding: 7px 12px; border-radius: 999px; background: var(--v4-brand-soft); color: var(--v4-brand-primary); font-size: 12px; font-weight: 700; text-decoration: none; white-space: nowrap; }
 .ls-item { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; padding: 10px 2px; }
 .ls-item .ls-dot {
   position: relative; width: 11px; height: 11px; border-radius: 999px; margin: 6px 0 0 auto;
@@ -434,6 +466,53 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
 }
 
 /* ---- assistant ---- */
+.v5-assistant-primary { margin-top: 2px; }
+.v5-assistant-primary-lead {
+  margin: 0 0 10px;
+  color: var(--v4-text-primary);
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+.v5-assistant-context { margin-top: 2px; }
+.v5-assistant-back {
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--v4-brand-primary);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 4px;
+  margin-bottom: 4px;
+}
+.v5-assistant-tools { margin-top: 24px; }
+.v5-assistant-tools-label {
+  margin: 0 0 8px;
+  color: var(--v4-text-tertiary);
+  font-size: 12px;
+  font-weight: 650;
+}
+.v5-assistant-tools-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.v5-assistant-tool {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 13px;
+  background: var(--v4-surface-raised);
+  color: var(--v4-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.v5-assistant-tool:hover,
+.v5-assistant-tool--active {
+  background: var(--v4-brand-soft);
+  color: var(--v4-brand-primary);
+}
 .v4-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 .v4-tab {
   display: inline-flex; align-items: center; gap: 7px; border: none; cursor: pointer;
@@ -521,7 +600,7 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
 .r2p-anchor {
   position: absolute; display: inline-flex; align-items: center; gap: 8px;
   background: rgba(255, 255, 255, 0.88); border: 1px solid #EDE3D2; border-radius: 999px;
-  padding: 7px 13px; min-height: 44px; box-shadow: 0 2px 10px rgba(43, 39, 35, 0.06);
+  padding: 4px 10px; min-height: 36px; box-shadow: 0 2px 10px rgba(43, 39, 35, 0.06);
   text-decoration: none; color: inherit;
 }
 .r2p-anchor--0 { top: 74px; left: 16px; }
@@ -531,12 +610,12 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
 .r2p-anchor--4 { top: 168px; left: 16px; }
 .r2p-anchor--5 { top: 168px; right: 16px; }
 .r2p-anchor-icon {
-  flex: none; width: 22px; height: 22px; border-radius: 50%;
+  flex: none; width: 17px; height: 17px; border-radius: 50%;
   background: var(--v4-brand-soft); display: inline-flex; align-items: center; justify-content: center;
   color: var(--v4-brand-primary);
 }
-.r2p-anchor-label { font-size: 11px; color: var(--v4-text-tertiary); line-height: 1.2; }
-.r2p-anchor-value { font-size: 14px; font-weight: 700; color: var(--v4-text-primary); line-height: 1.25; }
+.r2p-anchor-label { font-size: 10px; color: var(--v4-text-tertiary); line-height: 1.2; }
+.r2p-anchor-value { font-size: 13px; font-weight: 700; color: var(--v4-text-primary); line-height: 1.25; }
 
 /* 2.5D corgi（identity-specific demo visual，DEMO/SYNTHETIC） */
 .r2p-corgi { position: relative; width: 220px; height: 250px; }
@@ -557,6 +636,49 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
 .r2p-corgi .eye-l { width: 7px; height: 8px; left: 86px; top: 98px; background: #4A3A2C; border-radius: 4px; }
 .r2p-corgi .eye-r { width: 7px; height: 8px; left: 128px; top: 98px; background: #4A3A2C; border-radius: 4px; }
 .r2p-corgi .rim { width: 38px; height: 16px; left: 70px; top: 80px; background: rgba(255, 253, 246, 0.55); transform: rotate(-18deg); }
+
+/* Honest non-Corgi fallback. A failed/unsupported 3D runtime must never turn
+   a cat or another dog into the demo Corgi simply because that illustration
+   already exists. Keep the fallback quiet, species-level and presentation-only. */
+.r2p-species-fallback {
+  position: relative;
+  width: 220px;
+  height: 250px;
+  display: grid;
+  place-items: center;
+  color: #6D7D66;
+}
+.r2p-species-fallback-halo {
+  position: absolute;
+  width: 164px;
+  height: 164px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,253,247,0.92) 0%, rgba(245,233,214,0.48) 58%, rgba(245,233,214,0) 76%);
+}
+.r2p-species-fallback-glyph {
+  position: relative;
+  z-index: 1;
+  width: 118px;
+  height: 118px;
+  border-radius: 42%;
+  display: grid;
+  place-items: center;
+  background: rgba(255,253,248,0.64);
+  box-shadow: 0 18px 40px rgba(88,68,47,0.06);
+}
+.r2p-species-fallback--cat { color: #8A715E; }
+.r2p-species-fallback--dog { color: #687D62; }
+.r2p-species-fallback-label {
+  position: absolute;
+  z-index: 1;
+  bottom: 22px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255,253,248,0.74);
+  color: var(--v4-text-tertiary);
+  font-size: 11px;
+  font-weight: 650;
+}
 
 /* mode bar（Life View） */
 .r2p-modes {
@@ -581,47 +703,1975 @@ body { background: var(--v4-canvas); color: var(--v4-text-primary); }
   .r2p-stage, .r2p-sticky, .r2p-anchor { transition: none; animation: none; }
 }
 /* ==========================================================================
-   R2-P3D — warm-charcoal 3D living stage (shared demo pet asset)
+   R2P3D-R4 — Reality Field: warm living stage (open stage, NOT a viewer card)
    ========================================================================== */
 .r2p-stage--3d {
-  background: radial-gradient(120% 95% at 50% 26%, #3a2e24 0%, #241c16 46%, #171310 100%);
+  position: relative;
+  background:
+    radial-gradient(95% 70% at 20% 6%, rgba(255, 248, 234, 0.9) 0%, rgba(255, 248, 234, 0) 58%),
+    radial-gradient(60% 46% at 84% 10%, rgba(255, 243, 218, 0.55) 0%, rgba(255, 243, 218, 0) 72%),
+    linear-gradient(180deg, #F7E8D1 0%, #F1DDBF 58%, #EBCFA6 100%);
+}
+.r2p-stage--life.r2p-stage--3d {
+  background:
+    radial-gradient(95% 70% at 22% 6%, rgba(252, 246, 236, 0.8) 0%, rgba(252, 246, 236, 0) 58%),
+    linear-gradient(180deg, #F3E9D8 0%, #EAE0CF 60%, #E1D6C4 100%);
+}
+/* window light beam across the living field */
+.r2p-stage--3d::before {
+  content: "";
+  position: absolute; left: 10%; top: -12%; width: 30%; height: 124%;
+  background: linear-gradient(108deg, rgba(255, 252, 244, 0.6) 0%, rgba(255, 252, 244, 0.14) 58%, rgba(255, 252, 244, 0) 100%);
+  transform: rotate(8deg);
+  pointer-events: none;
+}
+/* potted plant + toy silhouettes (subtle, never stock) */
+.r2p-stage--3d::after {
+  content: "";
+  position: absolute; right: 18px; bottom: 22px; width: 104px; height: 126px;
+  background:
+    radial-gradient(42% 28% at 50% 6%, rgba(122, 98, 62, 0.34) 0%, rgba(122, 98, 62, 0) 72%),
+    radial-gradient(56% 42% at 24% 38%, rgba(94, 120, 68, 0.34) 0%, rgba(94, 120, 68, 0) 74%),
+    radial-gradient(64% 48% at 78% 40%, rgba(106, 130, 76, 0.36) 0%, rgba(106, 130, 76, 0) 76%),
+    radial-gradient(48% 32% at 52% 64%, rgba(122, 98, 62, 0.30) 0%, rgba(122, 98, 62, 0) 72%),
+    radial-gradient(30% 16% at 84% 78%, rgba(210, 146, 106, 0.42) 0%, rgba(210, 146, 106, 0) 70%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+/* soft ground plane the pet stands on */
+.r2p-stage-glow {
+  display: block;
+  position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%);
+  width: 320px; height: 92px; border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(124, 96, 60, 0.16) 0%, rgba(124, 96, 60, 0) 70%);
+  pointer-events: none;
 }
 .r2p-stage--3d .r2p-stage-wash { display: none; }
-.r2p-stage-glow { display: none; }
+.r2p-stage--3d { min-height: 430px; }
 .r2p-stage--3d .r2p-stage-pet--3d {
   position: absolute;
   left: 50%;
   bottom: 28px;
   transform: translateX(-50%);
-  width: 250px;
-  height: 296px;
+  width: 300px;
+  height: 352px;
   pointer-events: auto;
 }
-.r2p-stage--life .r2p-stage-pet--3d { width: 262px; height: 330px; }
-.r2p-stage--pet .r2p-stage-pet--3d { width: 256px; height: 306px; }
+.r2p-stage--life .r2p-stage-pet--3d { width: 300px; height: 372px; }
+.r2p-stage--pet .r2p-stage-pet--3d { width: 286px; height: 335px; }
 @media (min-width: 1024px) {
-  .r2p-stage--3d .r2p-stage-pet--3d { width: 330px; height: 360px; }
+  .r2p-stage--3d { min-height: 430px; }
+.r2p-stage--3d .r2p-stage-pet--3d { width: 380px; height: 410px; }
 }
 .pet3d-wrap { position: absolute; inset: 0; width: 100%; height: 100%; }
 .pet3d-wrap canvas { width: 100% !important; height: 100% !important; display: block; }
 .pet3d-controls { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; z-index: 2; }
 .pet3d-btn {
   width: 36px; height: 36px; border-radius: 50%;
-  border: 1px solid rgba(250, 246, 239, 0.3);
-  background: rgba(23, 19, 16, 0.55); color: #faf6ef; font-size: 16px;
+  border: 1px solid rgba(148, 118, 82, 0.3);
+  background: rgba(255, 251, 242, 0.82); color: #4A3A2C; font-size: 16px;
   cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 6px rgba(43, 39, 35, 0.08);
 }
-.pet3d-btn:hover { background: rgba(58, 46, 36, 0.8); }
-.r2p-stage--3d .r2p-stage-name, .r2p-stage--3d .r2p-stage-headline { color: #faf6ef; }
-.r2p-stage--3d .r2p-stage-caption { color: #c9bfb0; }
-.r2p-stage--3d .r2p-stage-note { color: #b8ac9c; }
-.r2p-stage--3d .r2p-stage-demo { background: rgba(250, 246, 239, 0.14); color: #c9bfb0; }
+.pet3d-btn:hover { background: rgba(250, 240, 228, 0.96); }
+/* light living-field chips: anchors stay readable on the warm surface */
 .r2p-stage--3d .r2p-anchor {
-  background: rgba(23, 19, 16, 0.62);
-  border-color: rgba(250, 246, 239, 0.3);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  background: rgba(255, 251, 242, 0.85);
+  border-color: rgba(148, 118, 82, 0.28);
+  box-shadow: 0 2px 10px rgba(43, 39, 35, 0.08);
 }
-.r2p-stage--3d .r2p-anchor-icon { background: rgba(250, 246, 239, 0.14); color: #faf6ef; }
-.r2p-stage--3d .r2p-anchor-label { color: #b8ac9c; }
-.r2p-stage--3d .r2p-anchor-value { color: #faf6ef; }
+.r2p-stage--3d .r2p-anchor-icon { background: var(--v4-brand-soft); color: var(--v4-brand-primary); }
+.r2p-stage--3d .r2p-anchor-label { color: var(--v4-text-tertiary); }
+.r2p-stage--3d .r2p-anchor-value { color: var(--v4-text-primary); }
 .pet3d-wrap canvas { pointer-events: none; }
+
+
+
+
+/* ==========================================================================
+   R5 product craft — responsive owner shell.
+   On phone-width web/PWA, canonical owner IA becomes a real bottom tab bar.
+   The top shell stays quiet (brand/session only) instead of compressing five
+   vertical labels into the header. Desktop remains a compact warm toolbar.
+   ========================================================================== */
+@media (min-width: 769px) {
+  .topnav {
+    min-height: 58px;
+    padding: 10px 20px;
+    box-shadow: 0 1px 0 rgba(43,39,35,0.02);
+  }
+  .navlinks { gap: 6px; }
+  .navlinks a {
+    border-radius: 999px;
+    padding: 8px 12px;
+  }
+  .navlinks a.active {
+    box-shadow: inset 0 0 0 1px rgba(78,99,73,0.06);
+  }
+}
+
+@media (max-width: 768px) {
+  .topnav {
+    position: sticky;
+    top: 0;
+    z-index: 120;
+    flex-wrap: nowrap;
+    min-height: 54px;
+    padding: 9px 14px;
+    gap: 8px;
+    background: rgba(255,253,249,0.94);
+    border-bottom: 1px solid rgba(232,226,217,0.72);
+    box-shadow: 0 3px 18px rgba(43,39,35,0.035);
+  }
+  .topnav .brand {
+    font-size: 15px;
+    gap: 7px;
+  }
+  .brand-icon { width: 25px; height: 25px; }
+  .petswitch {
+    margin-left: auto;
+    gap: 6px;
+  }
+  .petswitch .pet-label { display: none; }
+  .petswitch .btn {
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-color: rgba(216,208,196,0.72);
+    background: rgba(255,255,255,0.72);
+  }
+
+  .navlinks {
+    position: fixed;
+    z-index: 220;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    order: initial;
+    width: auto;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 2px;
+    padding: 7px max(8px, env(safe-area-inset-right))
+      calc(7px + env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+    border-top: 1px solid rgba(226,219,208,0.76);
+    background: rgba(255,253,249,0.94);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 -8px 28px rgba(43,39,35,0.055);
+  }
+  .navlinks a {
+    min-width: 0;
+    min-height: 52px;
+    padding: 6px 3px 5px;
+    border-radius: 16px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    font-size: 10px;
+    line-height: 1.1;
+    text-align: center;
+  }
+  .navlinks a.active {
+    background: rgba(228,234,224,0.84);
+  }
+  .nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 18px;
+    opacity: 0.82;
+  }
+  .nav-label {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .page {
+    padding: 14px 12px calc(94px + env(safe-area-inset-bottom));
+  }
+}
+
+
+/* R5 living-field craft: quieter data bubbles, stronger pet presence, and a
+   soft physical edge instead of a dashboard/viewer frame. */
+.r2p-stage--3d {
+  border: 1px solid rgba(216, 195, 162, 0.52);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    0 10px 32px rgba(101,75,47,0.045);
+}
+.r2p-stage--3d .r2p-anchor {
+  min-height: 34px;
+  padding: 4px 9px;
+  gap: 6px;
+  background: rgba(255, 253, 248, 0.78);
+  border-color: rgba(178, 150, 115, 0.20);
+  box-shadow: 0 2px 8px rgba(43,39,35,0.04);
+  backdrop-filter: blur(10px);
+}
+.r2p-stage--3d .r2p-anchor-icon {
+  width: 16px;
+  height: 16px;
+}
+.r2p-stage--3d .r2p-stage-glow {
+  opacity: 0.68;
+  filter: blur(2px);
+}
+.r2p-stage--3d .r2p-stage-pet--3d {
+  width: 326px;
+  height: 372px;
+}
+.r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d {
+  width: 310px;
+  height: 354px;
+}
+.r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d {
+  width: 332px;
+  height: 396px;
+}
+@media (min-width: 1024px) {
+  .r2p-stage--3d .r2p-stage-pet--3d {
+    width: 410px;
+    height: 430px;
+  }
+}
+
+
+/* ==========================================================================
+   R5.1 visual-closure — Life View is a Twin Space, not a card with overlays.
+   Reserve a lower information shelf so identity/caption/provenance never sit
+   on the pet's legs or the camera controls. Review gets its own neutral studio.
+   ========================================================================== */
+.r5-life-stage-shell {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.r2p-stage--life.r2p-stage--3d {
+  min-height: 520px;
+}
+.r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d {
+  bottom: 78px;
+  width: min(92%, 350px);
+  height: 382px;
+}
+.r2p-stage--life .r2p-stage-now {
+  left: 14px;
+  right: 14px;
+  bottom: 12px;
+  z-index: 5;
+  padding: 10px 12px;
+  border: 1px solid rgba(216, 203, 183, 0.54);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255,253,248,0.82), rgba(255,251,244,0.94));
+  box-shadow: 0 6px 18px rgba(74,55,34,0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.r2p-stage--life .r2p-anchor--2,
+.r2p-stage--life .r2p-anchor--3 {
+  bottom: 132px;
+}
+.r2p-stage--life .pet3d-controls {
+  bottom: 16px;
+}
+.r5-review-studio {
+  position: relative;
+  min-height: 440px;
+  overflow: hidden;
+  border: 1px solid rgba(218,211,199,0.78);
+  border-radius: 26px;
+  background:
+    radial-gradient(68% 58% at 50% 32%, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0) 74%),
+    linear-gradient(180deg, #F7F4ED 0%, #EFEAE0 100%);
+  box-shadow: 0 14px 36px rgba(65,54,43,0.055);
+}
+.r5-review-studio::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: 12%;
+  right: 12%;
+  bottom: 22px;
+  height: 84px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(93,82,69,0.13), rgba(93,82,69,0) 70%);
+  pointer-events: none;
+}
+.r5-review-studio [data-testid="pli.twinreview.twin"] {
+  z-index: 1;
+}
+@media (max-width: 768px) {
+  .r5-life-stage-shell {
+    max-width: none;
+  }
+  .r2p-stage--life.r2p-stage--3d {
+    min-height: 510px;
+  }
+  .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d {
+    bottom: 76px;
+    width: min(96%, 350px);
+    height: 374px;
+  }
+}
+
+/* ==========================================================================
+   R5.2 — Living Experience product-craft closure.
+   Reduce viewer/card chrome, strengthen pet presence, and keep review a calm
+   identity studio. Runtime truth stays machine-readable; visual approval stays
+   a human gate.
+   ========================================================================== */
+.r2p-stage--3d {
+  border: 0;
+  border-radius: 30px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.58),
+    0 18px 44px rgba(103,76,48,0.045);
+}
+.r2p-stage--3d::after {
+  opacity: 0.34;
+  filter: blur(0.4px);
+}
+.r2p-stage--3d .r2p-stage-pet--3d { bottom: 38px; }
+.r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d { bottom: 104px; }
+.r2p-stage--3d .r2p-anchor {
+  background: rgba(255,253,248,0.74);
+  border-color: rgba(174,145,110,0.16);
+  box-shadow: 0 4px 14px rgba(65,52,39,0.035);
+}
+.r2p-stage--3d .r2p-stage-now { max-width: min(78%, 360px); }
+
+.v5-review-page {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.v5-review-identity {
+  max-width: 720px;
+  margin: 12px 0 16px;
+}
+.v5-review-identity h1 { margin-bottom: 6px; }
+.v5-review-stage {
+  margin: 0;
+  min-height: 500px;
+}
+.v5-segmented {
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(86px, 1fr));
+  gap: 4px;
+  padding: 4px;
+  margin-top: 12px;
+  border: 1px solid var(--v4-divider, #e8e2d9);
+  border-radius: 999px;
+  background: rgba(255,253,249,0.86);
+}
+.v5-segmented .btn {
+  min-height: 38px;
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+}
+.v5-segmented .btn.primary {
+  background: var(--v4-brand-primary, #4e6349);
+  color: #fff;
+}
+.v5-review-confirm,
+.v5-review-status {
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid rgba(222,212,198,0.72);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(252,248,241,0.76));
+  box-shadow: 0 12px 32px rgba(65,52,39,0.035);
+}
+.v5-review-status { background: rgba(244,247,241,0.76); }
+.v5-review-hint {
+  margin: 6px 0 0;
+  color: var(--v4-text-tertiary, #7c7369);
+  font-size: 12px;
+}
+.v5-review-tools {
+  margin-top: 16px;
+}
+.v5-review-tools h2 {
+  margin: 0;
+  color: var(--v4-text-primary, #2b2723);
+  font-size: 16px;
+}
+.v5-review-issues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.v5-review-issues .btn { border-radius: 999px; }
+
+@media (max-width: 768px) {
+  .r2p-stage--3d {
+    margin-left: -2px;
+    margin-right: -2px;
+    border-radius: 28px;
+    min-height: 438px;
+  }
+  .r2p-stage--3d .r2p-stage-pet--3d {
+    width: min(96%, 342px);
+    height: 390px;
+  }
+  .r2p-stage--life.r2p-stage--3d { min-height: 520px; }
+  .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d {
+    width: min(98%, 366px);
+    height: 404px;
+  }
+  .v5-review-stage {
+    min-height: 470px;
+    border-radius: 28px;
+  }
+  .v5-segmented {
+    display: grid;
+    width: 100%;
+  }
+}
+
+/* R5.6 desktop Twin Space craft: on wide screens Life View should read as
+   a spatial pet surface, not a phone-sized viewer floating in empty canvas. */
+@media (min-width: 1024px) {
+  .r2p-stage--life.r2p-stage--3d {
+    min-height: 560px;
+    border-radius: 34px;
+  }
+  .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d {
+    width: min(72%, 500px);
+    height: 452px;
+    bottom: 104px;
+  }
+  .r2p-stage--life .r2p-stage-now {
+    max-width: 430px;
+    left: 18px;
+    right: auto;
+    width: min(58%, 430px);
+  }
+}
+
+/* R5.2 domain-surface hierarchy: owner pages read as calm living sections,
+   not a pile of generic admin cards. */
+.v5-domain-page {
+  --v5-panel: rgba(255,253,249,0.78);
+}
+.v5-page-lede {
+  max-width: 760px;
+  margin-bottom: 12px;
+}
+.v5-form-surface,
+.v5-progress-surface {
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid rgba(222,212,198,0.72);
+  border-radius: 22px;
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(248,242,230,0.78), rgba(248,242,230,0) 58%),
+    rgba(255,253,249,0.86);
+  box-shadow: 0 12px 32px rgba(65,52,39,0.032);
+}
+.v5-form-surface h2,
+.v5-progress-surface h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+.v5-goal-stack {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+.v5-goal-card {
+  margin: 10px 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(226,218,206,0.68);
+  border-radius: 18px;
+  background: rgba(255,253,249,0.72);
+}
+.v5-goal-card .tl-head { margin-top: 0; }
+.v5-domain-page .v4-sec {
+  scroll-margin-top: 84px;
+}
+@media (max-width: 768px) {
+  .v5-form-surface,
+  .v5-progress-surface {
+    padding: 16px;
+    border-radius: 20px;
+  }
+  .v5-goal-card {
+    padding: 13px 14px;
+    border-radius: 17px;
+  }
+}
+
+/* R5.2 utility/care surfaces — same warm owner language as the Living
+   Experience. Operational controls remain explicit, but no longer read as a
+   detached admin console. */
+.v5-utility-page .v5-page-lede {
+  margin-top: 10px;
+}
+.v5-utility-stack {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+.v5-utility-surface {
+  padding: 18px;
+  border: 1px solid rgba(222,212,198,0.70);
+  border-radius: 22px;
+  background: rgba(255,253,249,0.82);
+  box-shadow: 0 10px 28px rgba(65,52,39,0.03);
+}
+.v5-utility-surface--soft {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(242,247,239,0.74), rgba(242,247,239,0) 62%),
+    rgba(255,253,249,0.82);
+}
+.v5-utility-surface h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+.v5-plan-card {
+  margin: 12px 0;
+  padding: 16px;
+  border: 1px solid rgba(226,218,206,0.68);
+  border-radius: 20px;
+  background: rgba(255,253,249,0.74);
+}
+.v5-plan-card h3 { margin-top: 14px; }
+.v5-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+@media (max-width: 768px) {
+  .v5-utility-stack { gap: 12px; }
+  .v5-utility-surface,
+  .v5-plan-card {
+    padding: 15px;
+    border-radius: 19px;
+  }
+}
+
+/* R5.2 capture / identity utilities. */
+.v5-capture-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.v5-capture-tile {
+  display: block;
+  margin: 0 !important;
+  padding: 14px !important;
+  border: 1px solid rgba(222,212,198,0.72) !important;
+  border-radius: 18px !important;
+  background: rgba(255,253,249,0.76);
+}
+.v5-capture-tile:focus-within {
+  border-color: var(--v4-brand-primary, #4e6349) !important;
+  box-shadow: 0 0 0 3px rgba(78,99,73,0.10);
+}
+.v5-version-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.v5-version-row {
+  width: 100%;
+  padding: 12px 14px !important;
+  border: 1px solid rgba(226,218,206,0.68) !important;
+  border-radius: 16px !important;
+  background: rgba(255,253,249,0.72) !important;
+}
+@media (max-width: 640px) {
+  .v5-capture-grid { grid-template-columns: 1fr; }
+}
+
+
+
+/* R5.4 owner-domain closure — Welfare/Social should read like pet-life
+   narratives, not administration dashboards. */
+.v5-observation-list {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+}
+.v5-observation-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 2px;
+  border-bottom: 1px solid rgba(226,218,206,0.55);
+}
+.v5-observation-row:last-child { border-bottom: 0; }
+.v5-observation-label {
+  color: var(--v4-text-secondary, #5c554c);
+  font-size: 14px;
+}
+.v5-observation-value {
+  color: var(--v4-text-primary, #2b2723);
+  font-size: 15px;
+  font-weight: 650;
+  text-align: right;
+}
+.v5-inline-record {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(226,218,206,0.62);
+}
+.v5-people-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+.v5-domain-page > .v4-sec {
+  border-left: 0;
+  border-right: 0;
+}
+.v5-domain-page > .v4-sec + .v4-sec {
+  margin-top: 4px;
+}
+@media (max-width: 768px) {
+  .v5-observation-row {
+    padding: 9px 0;
+  }
+  .v5-inline-record .row {
+    align-items: stretch;
+  }
+  .v5-inline-record select,
+  .v5-inline-record .btn {
+    min-height: 44px;
+  }
+}
+
+
+.v5-interaction-list {
+  display: grid;
+  margin-top: 2px;
+}
+.v5-interaction-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 2px;
+  border-bottom: 1px solid rgba(226,218,206,0.56);
+}
+.v5-interaction-row:last-child { border-bottom: 0; }
+.v5-interaction-main {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.v5-interaction-main strong {
+  color: var(--v4-text-primary, #2b2723);
+  font-size: 14px;
+}
+.v5-interaction-main span,
+.v5-interaction-time {
+  color: var(--v4-text-tertiary, #7c7369);
+  font-size: 12px;
+}
+.v5-interaction-time {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* R5.6 final living-craft closure: touch targets + quiet field. */
+/* The owner Hero should read as one calm living field. The older decorative
+   pseudo-plant rendered as a soft green/brown blob at small sizes; the window
+   beam + grounded floor already provide enough environmental depth. */
+.r2p-stage--3d::after {
+  display: none;
+}
+
+/* R5.5 accessibility contract: interactive owner controls on phone-width Web
+   must expose a >=44px target. Keep data bubbles visually light while giving
+   their linked variants a reliable hit area. */
+.r2p-stage--3d .r2p-anchor {
+  min-height: 44px;
+  padding: 6px 11px;
+}
+.pet3d-btn {
+  width: 44px;
+  height: 44px;
+}
+
+/* Twin Review angle controls are primary identity-inspection controls, not
+   compact desktop chips on mobile. */
+@media (max-width: 768px) {
+  .btn,
+  .v5-segmented .btn {
+    min-height: 44px;
+  }
+  .petswitch .btn {
+    min-height: 44px;
+  }
+}
+
+/* R5.6 final responsive craft — dense mode rails stay one-dimensional on
+   phones, and progressive forms open inside the reading flow rather than as
+   a second nested card. */
+.v5-form-surface--inline {
+  margin: 10px 0 0;
+  box-shadow: none;
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(248,242,230,0.62), rgba(248,242,230,0) 58%),
+    rgba(255,253,249,0.62);
+}
+.v5-health-compose .v4-sec-head {
+  align-items: center;
+}
+@media (max-width: 768px) {
+  .v4-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    margin-right: -12px;
+    padding-right: 12px;
+  }
+  .v4-tabs::-webkit-scrollbar { display: none; }
+  .v4-tab {
+    flex: 0 0 auto;
+    min-height: 44px;
+  }
+  .v5-health-compose .v4-sec-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .v5-health-compose .v4-sec-head > .btn {
+    align-self: flex-start;
+    min-height: 44px;
+  }
+}
+
+/* R5.6 Timeline final craft — the filter surface reads in three clear layers:
+   life domain, fast find tools, then precision source/type filters. */
+.v5-timeline-filter-shell {
+  padding-top: 10px;
+  padding-bottom: 12px;
+}
+.v5-timeline-filter-group,
+.v5-timeline-source-block {
+  display: grid;
+  gap: 6px;
+}
+.v5-timeline-filter-label,
+.v5-timeline-field > span {
+  color: var(--v4-text-tertiary, #7c7369);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.v5-timeline-filter-rail {
+  gap: 6px;
+  margin: 0;
+  flex-wrap: wrap;
+}
+.v5-timeline-filter-rail .v4-chip {
+  min-height: 36px;
+  padding: 7px 13px;
+  cursor: pointer;
+}
+.v5-timeline-primary-tools {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.6fr) minmax(150px, 0.9fr) auto auto auto;
+  gap: 8px;
+  align-items: end;
+  margin-top: 12px;
+}
+.v5-timeline-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.v5-timeline-field input,
+.v5-timeline-field select {
+  min-height: 42px;
+  border-radius: 14px;
+  border: 1px solid var(--v4-divider);
+  background: rgba(255,255,255,0.78);
+}
+.v5-media-toggle {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid rgba(222,212,198,0.76);
+  border-radius: 14px;
+  background: rgba(255,253,249,0.78);
+  color: var(--v4-text-secondary, #5c554c);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.v5-media-toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--v4-brand-primary, #4e6349);
+}
+.v5-media-toggle--active {
+  border-color: rgba(78,99,73,0.26);
+  background: rgba(228,234,224,0.82);
+  color: var(--v4-brand-primary, #4e6349);
+}
+.v5-timeline-utility-btn {
+  min-height: 42px;
+  padding: 8px 12px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.v5-timeline-precision {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: end;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(226,218,206,0.56);
+}
+.v5-timeline-source-rail {
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .v5-timeline-filter-shell {
+    margin-top: 6px;
+    padding: 10px 0 12px;
+  }
+  .v5-timeline-filter-rail {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    margin-right: -12px;
+    padding-right: 12px;
+    padding-bottom: 2px;
+  }
+  .v5-timeline-filter-rail::-webkit-scrollbar { display: none; }
+  .v5-timeline-filter-rail .v4-chip {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding-inline: 14px;
+  }
+  .v5-timeline-primary-tools {
+    grid-template-columns: minmax(0, 1fr) minmax(138px, 0.82fr);
+    gap: 8px;
+    align-items: stretch;
+  }
+  .v5-timeline-search {
+    grid-column: 1 / -1;
+  }
+  .v5-timeline-field input,
+  .v5-timeline-field select,
+  .v5-media-toggle,
+  .v5-timeline-utility-btn {
+    min-height: 44px;
+  }
+  .v5-media-toggle,
+  .v5-timeline-utility-btn {
+    width: 100%;
+  }
+  .v5-timeline-precision {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .v5-timeline-source-rail {
+    margin-right: -12px;
+  }
+}
+
+/* R5.6 monitoring craft — device context is supporting life evidence, not an
+   IoT admin dashboard. */
+.v5-device-list {
+  display: grid;
+  margin-top: 4px;
+}
+.v5-device-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 2px;
+  border-bottom: 1px solid rgba(226,218,206,0.56);
+}
+.v5-device-row:last-child { border-bottom: 0; }
+.v5-device-main {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.v5-device-main strong {
+  color: var(--v4-text-primary, #2b2723);
+  font-size: 14px;
+}
+.v5-device-main span {
+  color: var(--v4-text-tertiary, #7c7369);
+  font-size: 12px;
+}
+.v5-device-state {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(237,243,238,0.88);
+  color: var(--v4-brand-primary, #4e6349);
+  font-size: 12px;
+  font-weight: 650;
+}
+.v5-last-seen {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 6px 0 2px;
+}
+.v5-last-seen strong {
+  color: var(--v4-text-primary, #2b2723);
+  font-size: 15px;
+}
+.v5-last-seen span {
+  color: var(--v4-text-tertiary, #7c7369);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.v5-monitoring-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 8px;
+}
+
+@media (min-width: 1024px) {
+  /* On wide screens the Living Pet field should still feel pet-first rather
+     than becoming a very wide empty banner around a small Twin. */
+  .r2p-stage--3d:not(.r2p-stage--life) {
+    max-width: 1040px;
+    margin-left: auto;
+    margin-right: auto;
+    min-height: 458px;
+  }
+  .r2p-stage--3d:not(.r2p-stage--life) .r2p-stage-pet--3d {
+    width: 470px;
+    height: 448px;
+  }
+  .r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d {
+    width: 450px;
+    height: 430px;
+  }
+}
+
+
+
+/* R5.6 final owner-flow craft -------------------------------------------------
+   Today keeps one dominant action instead of a six-tile dashboard. Me uses
+   open settings sections, matching the native client and the Living system. */
+.v5-today-primary {
+  width: min(100%, 320px);
+  justify-content: center;
+}
+.v5-today-secondary {
+  margin-top: 8px;
+}
+.v5-today-secondary .v4-action {
+  box-shadow: none;
+}
+
+.v5-me-page {
+  max-width: 920px;
+}
+.v5-me-page .v5-page-lede {
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(226, 218, 206, 0.72);
+}
+.v5-me-section {
+  padding: 20px 2px;
+  border: 0;
+  border-bottom: 1px solid rgba(226, 218, 206, 0.68);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.v5-me-section:last-child {
+  border-bottom-color: transparent;
+}
+.v5-me-section--soft {
+  margin: 8px -14px 0;
+  padding: 18px 16px;
+  border-radius: 20px;
+  border-bottom: 0;
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(242,247,239,0.72), rgba(242,247,239,0) 62%),
+    rgba(255,253,249,0.52);
+}
+.v5-me-section h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+.v5-me-section h3 {
+  margin-top: 18px;
+}
+.v5-me-sections {
+  display: grid;
+  gap: 0;
+}
+.v5-me-list {
+  display: grid;
+}
+.v5-me-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 56px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(226,218,206,0.55);
+}
+.v5-me-row:last-child {
+  border-bottom: 0;
+}
+.v5-me-row-main {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.v5-me-row-main strong {
+  color: var(--v4-text-primary);
+  font-size: 14px;
+}
+.v5-me-row-main span {
+  color: var(--v4-text-tertiary);
+  font-size: 12px;
+}
+@media (max-width: 640px) {
+  .v5-today-primary { width: 100%; }
+  .v5-today-secondary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .v5-today-secondary .v4-action {
+    width: 100%;
+    padding-inline: 12px;
+  }
+  .v5-me-section {
+    padding: 18px 0;
+  }
+  .v5-me-section--soft {
+    margin-inline: -8px;
+    padding-inline: 12px;
+  }
+  .v5-me-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .v5-me-row > .btn {
+    grid-column: 1 / -1;
+    justify-self: start;
+    min-height: 44px;
+  }
+}
+
+
+/* ======================================================================
+   R6: LIVING CANVAS RECONSTRUCTION / all five owner tabs.
+   This is a new composition layer over the historical V4/R5 declarations.
+   It does NOT replace the 3D runtime or claim pet identity validation.
+   ====================================================================== */
+:root {
+  --v4-canvas:#fbf7f1;
+  --v4-text-primary:#302d27;
+  --v4-text-secondary:#625a4e;
+  --v4-brand-primary:#4c664e;
+  --v4-divider:#e8dfd2;
+}
+body { background:var(--v4-canvas); }
+.topnav { background:rgba(251,247,241,.94); border-bottom:1px solid rgba(105,91,71,.10); box-shadow:none; }
+.navlinks a.active { background:#e5ecdf; color:#38563d; }
+.page:has(main.v4-main) { max-width:1240px; padding-top:0; }
+.v4-main { max-width:1240px; }
+.v4-topline { padding:24px 0 12px; margin-bottom:0; }
+.v4-topline h1 { font-size:clamp(26px,3.1vw,36px); letter-spacing:-.045em; }
+.v4-sec { padding:26px 0; }
+.v4-sec + .v4-sec { border-color:rgba(102,90,77,.12); }
+.v4-sec-title { font-size:19px; color:#342f29; letter-spacing:-.035em; }
+.v4-sec-sub,.v4-sec-foot { line-height:1.6; }
+.card,.v5-form-surface,.v5-progress-surface { border-color:rgba(140,116,85,.12); box-shadow:none; border-radius:20px; }
+.v4-action--primary,.btn.primary { background:#4a644c; border-color:#4a644c; }
+.v4-action,.btn { border-radius:999px; }
+
+/* The animal is the spatial subject. No 3D showroom card or floating HUD. */
+.r2p-stage,.r2p-stage--3d,.r2p-stage--life.r2p-stage--3d {
+  position:relative; min-height:540px; border:0; border-radius:0;
+  box-shadow:none; margin:0 0 22px;
+  background:
+    radial-gradient(ellipse 78% 64% at 52% 35%,#fff9ee 0%,rgba(255,248,237,.65) 48%,transparent 100%),
+    linear-gradient(168deg,#f9f2e9 0%,#f3e8d8 58%,#ead9c1 100%);
+}
+.r2p-stage--pet.r2p-stage--3d { min-height:580px; }
+.r2p-stage--life.r2p-stage--3d { min-height:660px; }
+.r2p-stage--3d::after { display:none; }
+.r2p-stage--3d::before { opacity:.5; }
+.r2p-stage-wash { display:none; }
+.r2p-stage-glow { bottom:60px; width:min(80%,480px); height:90px; }
+.r2p-stage-name { top:30px; left:30px; right:24px; font-size:clamp(32px,4vw,45px); letter-spacing:-.045em; }
+.r2p-stage-now,.r2p-stage--life .r2p-stage-now {
+  top:96px; left:30px; right:30px; bottom:auto; width:auto; max-width:none;
+  border:0; padding:0; border-radius:0; box-shadow:none; background:none;
+  backdrop-filter:none;
+}
+.r2p-stage-headline { font-size:16px; font-weight:600; color:#655c50; }
+.r2p-stage-caption { font-size:12px; line-height:1.6; }
+.r2p-stage--3d .r2p-stage-pet--3d,
+.r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d,
+.r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d {
+  bottom:64px; width:min(95%,510px); height:440px; z-index:1;
+}
+.r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d { bottom:84px; height:510px; }
+.r2p-stage-pet:not(.r2p-stage-pet--3d) { bottom:96px; }
+.r2p-stage--3d .r2p-anchor,.r2p-anchor {
+  top:auto; right:auto; bottom:8px; width:24%; min-height:48px;
+  flex-direction:column; justify-content:center; align-items:center;
+  padding:5px 6px; gap:3px; background:transparent;
+  border:0; box-shadow:none; border-radius:8px;
+}
+.r2p-stage:has(.r2p-anchor) { padding-bottom:68px; }
+.r2p-anchor--0 { left:1% !important; }
+.r2p-anchor--1 { left:26% !important; }
+.r2p-anchor--2 { left:51% !important; }
+.r2p-anchor--3 { left:76% !important; }
+.r2p-anchor-icon { display:none; }
+.r2p-anchor-label { font-size:11px; }
+.r2p-anchor-value { font-size:15px; white-space:nowrap; }
+.r2p-stage--life .pet3d-controls { bottom:22px; right:20px; }
+.r5-review-studio { border-radius:20px; border:0; box-shadow:none; }
+/* The in-page owner controls are part of the living world, not a form wall. */
+.v4-calm,.v4-attn { border-radius:18px; padding:18px 20px; }
+.v4-metric { padding:18px 6px 12px; }
+.v4-metric-value { font-size:27px; }
+.v4-action--secondary { background:#e4eadd; }
+.ls-item { padding:14px 0; }
+.ls-day { padding-top:18px; }
+@media (min-width:1024px) {
+  .r2p-stage--3d .r2p-stage-pet--3d,
+  .r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d,
+  .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d {
+    width:min(74%,620px); height:480px;
+  }
+  .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d { height:540px; }
+}
+@media(max-width:768px) {
+  .page:has(main.v4-main) { padding:0 0 calc(108px + env(safe-area-inset-bottom,0px)); }
+  .v4-main > :not(.r2p-stage) { margin-left:16px; margin-right:16px; }
+  .v4-topline { padding:20px 0 12px; }
+  .r2p-stage,.r2p-stage--3d { min-height:510px; }
+  .r2p-stage--pet.r2p-stage--3d { min-height:560px; }
+  .r2p-stage--life.r2p-stage--3d { min-height:600px; }
+  .r2p-stage-name { top:24px; left:20px; font-size:32px; }
+  .r2p-stage-now,.r2p-stage--life .r2p-stage-now { left:20px; right:20px; top:79px; }
+  .r2p-stage--3d .r2p-stage-pet--3d,
+  .r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d { width:min(100%,370px); height:390px; bottom:63px; }
+  .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d { width:min(100%,380px); height:470px; bottom:66px; }
+  .navlinks { background:rgba(255,253,248,.97); border-radius:24px; }
+  .navlinks a.active { background:#e3ecdf; }
+}
+
+/* R6 owner identity strip — never substitute a generic paw badge for the pet. */
+.v4-life-identity { padding:24px 24px 28px; background:linear-gradient(135deg,#f4e7d6,#f9f4eb); border-radius:18px; }
+.v4-life-identity-overline { color:#62715e; font-weight:700; font-size:11px; letter-spacing:.12em; }
+.v4-life-identity-name { font-size:clamp(25px,3vw,36px); color:#342f29; letter-spacing:-.045em; font-weight:750; margin-top:6px; }
+.v4-life-identity-desc { color:#72685e; font-size:13px; line-height:1.5; margin:6px 0 0; }
+@media(max-width:768px) { .v4-life-identity { border-radius:0; } }
+.r2p-stage--life .r2p-anchor--2,.r2p-stage--life .r2p-anchor--3 { bottom:8px; }
+
+/* R6 verified owner media — personal photographs before any generic glyph. */
+.r6-real-pet-photo {
+  width:min(88vw,420px);height:clamp(270px,37vw,445px);
+  display:block;object-fit:contain;object-position:bottom center;
+  border-radius:20px;filter:drop-shadow(0 22px 26px rgba(68,48,28,.13));
+}
+@media(max-width:768px) {
+  .r6-real-pet-photo { width:min(92vw,340px);height:350px; }
+}
+
+
+/* ==========================================================================
+   PLI R7 / Scene re-composition — human-first living space, pet-first hierarchy.
+   The pet remains an actual 3D runtime/owner media; no static picture posing as 3D.
+   ========================================================================== */
+:root{
+  --v4-canvas:#F6F7F1;--v4-brand-primary:#365F49;
+  --v4-brand-soft:#E5EDE4;--v4-text-primary:#25382D;
+  --v4-text-secondary:#52695A;--v4-divider:#DDE7DB;
+}
+body{background:#F6F7F1}
+.page:has(main.v4-main){max-width:1260px}
+.r2p-stage,.r2p-stage--3d,.r2p-stage--pet.r2p-stage--3d,
+.r2p-stage--life.r2p-stage--3d{
+  isolation:isolate;min-height:570px;border:0;border-radius:32px;
+  box-shadow:none;background:linear-gradient(151deg,#F0F5E9 0%,#E3ECDF 42%,#D2DFD2 100%);
+}
+.r2p-stage--3d::before{
+  content:"";position:absolute;inset:-12% auto auto 12%;width:25%;height:122%;
+  background:linear-gradient(100deg,rgba(255,255,255,.5),rgba(255,255,255,0));
+  transform:skew(-12deg);z-index:0;pointer-events:none;
+}
+.r2p-stage--3d::after{content:none}
+.r2p-stage--3d .r2p-stage-wash{display:block}
+.r2p-stage-wash{
+  width:58%;height:64%;top:-26%;right:-12%;opacity:.34;background:rgba(255,255,255,.16);
+}
+.r2p-stage-glow,.r2p-stage--3d .r2p-stage-glow{
+  left:50%;bottom:75px;width:min(72%,460px);height:64px;opacity:.4;filter:blur(16px);
+  background:radial-gradient(ellipse at center,rgba(47,81,57,.26),rgba(47,81,57,0) 76%);
+}
+.r2p-stage-name{
+  top:27px;left:32px;right:32px;z-index:4;
+  font-size:clamp(34px,4vw,47px);font-weight:780;letter-spacing:-.04em;color:#244330;
+}
+.r2p-stage-demo{background:#FFFFF1BF;color:#4D6D55;border:1px solid #FFFFFFA8;font-size:11px}
+.r2p-stage-now,.r2p-stage--life .r2p-stage-now{
+  left:32px;right:32px;top:92px;bottom:auto;z-index:4;
+  border:0;background:transparent;box-shadow:none;padding:0;backdrop-filter:none;
+}
+.r2p-stage-headline{font-size:16px;font-weight:680;color:#35533E}
+.r2p-stage-caption{font-size:12px;color:#5F7564;margin-top:6px}
+.r2p-stage--3d .r2p-stage-pet--3d,
+.r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d,
+.r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d{
+  left:50%;bottom:88px;width:min(94%,570px);height:440px;
+  transform:translateX(-50%);z-index:2;
+}
+.r2p-stage-pet:not(.r2p-stage-pet--3d){bottom:90px;z-index:2}
+.r2p-anchor,.r2p-stage--3d .r2p-anchor{
+  position:absolute;top:auto;bottom:12px;width:calc((100% - 60px)/4);
+  min-height:64px;display:flex;align-items:center;justify-content:center;
+  text-align:center;flex-direction:column;gap:3px;padding:8px 4px;
+  border-radius:17px;background:#FFFEF6DD;border:1px solid #FFFFFFD9;
+  box-shadow:none;z-index:6;backdrop-filter:blur(12px);
+}
+.r2p-anchor--0{left:16px;right:auto}
+.r2p-anchor--1{left:calc(16px + (100% - 60px)/4 + 8px);right:auto}
+.r2p-anchor--2{left:calc(16px + (100% - 60px)/2 + 16px);right:auto}
+.r2p-anchor--3{left:auto;right:16px}
+.r2p-stage--life .r2p-anchor--2,.r2p-stage--life .r2p-anchor--3{bottom:12px}
+.r2p-anchor-icon{display:none}
+.r2p-anchor-label{font-size:11px;line-height:1.25}
+.r2p-anchor-value{font-size:16px;font-weight:750;line-height:1.3}
+.v4-grid{gap:0 44px}
+.v4-sec{padding:25px 0}
+.v4-sec-title{font-size:17px;color:#294C37}
+.v4-action--primary{background:#365F49;border-color:#365F49;box-shadow:0 8px 18px #365F491B}
+.navlinks a.active{background:#E1EDE3;color:#234F37}
+@media(min-width:1024px){
+ .r2p-stage,.r2p-stage--3d,.r2p-stage--pet.r2p-stage--3d,
+ .r2p-stage--life.r2p-stage--3d{min-height:630px}
+ .r2p-stage--3d .r2p-stage-pet--3d,
+ .r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d,
+ .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d{width:min(70%,610px);height:485px}
+}
+@media(max-width:768px){
+ .page:has(main.v4-main){padding:0 0 calc(96px + env(safe-area-inset-bottom,0px))}
+ .r2p-stage,.r2p-stage--3d,.r2p-stage--pet.r2p-stage--3d,
+ .r2p-stage--life.r2p-stage--3d{min-height:540px;border-radius:0}
+ .r2p-stage-name{top:22px;left:22px;font-size:35px}
+ .r2p-stage-now,.r2p-stage--life .r2p-stage-now{top:79px;left:22px;right:22px}
+ .r2p-stage--3d .r2p-stage-pet--3d,
+ .r2p-stage--pet.r2p-stage--3d .r2p-stage-pet--3d,
+ .r2p-stage--life.r2p-stage--3d .r2p-stage-pet--3d{
+   width:min(100%,430px);height:400px;bottom:83px
+ }
+ .r2p-anchor,.r2p-stage--3d .r2p-anchor{bottom:10px;width:calc((100% - 48px)/4);min-height:62px}
+ .r2p-anchor--0{left:8px}
+ .r2p-anchor--1{left:calc(8px + (100% - 48px)/4 + 8px)}
+ .r2p-anchor--2{left:calc(8px + (100% - 48px)/2 + 16px)}
+ .r2p-anchor--3{right:8px}
+ .v4-main .v4-grid{padding:0 18px}
+ .navlinks{background:#FFFEFAF2;border-radius:24px 24px 0 0}
+}
+@media(prefers-reduced-motion:reduce){
+ .r2p-stage-pet,.r2p-stage-wash,.r2p-stage-glow{animation:none!important;transition:none!important}
+}
+
+/* R7.1 mobile viewport truth. A direct .v4-main child inherits 16px side
+   margins, so width:100% overflows the 390px phone by 32px. Constrain the
+   Life View shell to its available *content* width, never clip the pet on
+   the right or create a phantom horizontal scroll. */
+@media(max-width:768px){
+  .v4-main > .r5-life-stage-shell {
+    width:auto;
+    max-width:none;
+    margin-left:16px;
+    margin-right:16px;
+  }
+  .r5-life-stage-shell > .r2p-stage {
+    width:100%;
+    max-width:100%;
+    box-sizing:border-box;
+    margin-left:0;
+    margin-right:0;
+  }
+  /* The front / side / back selector is a 3-way control, not three
+     independent desktop-sized buttons. Make it fit 320–390px phones. */
+  .v5-review-page > .v5-segmented {
+    box-sizing:border-box;
+    display:grid;
+    width:auto;
+    margin-left:16px;
+    margin-right:16px;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .v5-review-page > .v5-segmented .btn {
+    min-width:0;
+    padding-left:8px;
+    padding-right:8px;
+  }
+}
+
+/* R7.2 Timeline: the stream is the first-class experience. Keep active
+   pet/domain/search discoverable; secondary filtering is a quiet disclosure. */
+.v5-timeline-filter-shell { padding-top:10px; padding-bottom:12px; }
+.v7-timeline-search { display:flex; flex-direction:column; gap:6px; margin-top:12px; }
+.v7-timeline-search input { width:100%; box-sizing:border-box; min-height:44px; }
+.v7-timeline-refine { margin-top:8px; border:0; }
+.v7-timeline-refine-summary {
+  display:flex; align-items:center; justify-content:space-between;
+  min-height:44px; cursor:pointer; list-style:none;
+  font-size:13px; font-weight:650; color:#42674E;
+}
+.v7-timeline-refine-summary::-webkit-details-marker { display:none; }
+.v7-timeline-refine-summary:focus-visible { outline:2px solid #42674E; outline-offset:2px; }
+.v7-timeline-refine-count {
+  font-size:11px; color:#52695A; background:#E5EDE4;
+  border-radius:999px; padding:3px 10px; min-width:28px; text-align:center;
+}
+.v7-timeline-refine[open] .v5-timeline-primary-tools { margin-top:10px; }
+.v7-timeline-refine[open] .v5-timeline-precision { margin-top:10px; }
+
+/* Owner photo reference belongs in the identity review, before accepting a
+   generic 3D candidate. This is source media, not the generated GLB. */
+.v5-review-reference {
+  display:flex;align-items:center;gap:14px;max-width:700px;
+  margin:8px 0 12px;padding:12px 14px;border-radius:18px;
+  background:var(--v4-brand-soft,#E5EDE4);color:var(--v4-text-secondary,#52695A);
+}
+.v5-review-reference img {
+  display:block;flex:none;width:82px;height:82px;object-fit:cover;border-radius:14px;
+  background:#fff;
+}
+.v5-review-reference strong {
+  display:block;margin:0 0 4px;font-size:14px;color:var(--v4-text-primary,#25382D);
+}
+.v5-review-reference p {margin:0;line-height:1.55;font-size:12px}
+@media(max-width:768px){
+  .v5-review-reference {margin:8px 16px 12px;padding:10px;gap:10px;}
+  .v5-review-reference img {width:72px;height:72px;}
+}
+
+/* R7.2: let the owner compare the REAL uploaded photo to the current 3D
+   representation without making the real image pass through the GLB provider. */
+.r2p-stage-photo-toggle{
+  position:absolute;top:164px;right:20px;z-index:12;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:36px;padding:7px 12px;border-radius:999px;
+  background:rgba(255,253,245,.91);border:1px solid rgba(255,255,255,.96);
+  box-shadow:0 3px 12px rgba(37,66,47,.08);color:#365F49;
+  font-size:12px;font-weight:700;cursor:pointer;
+}
+.r2p-stage-photo-toggle:focus-visible{outline:2px solid #365F49;outline-offset:2px}
+@media(max-width:768px){.r2p-stage-photo-toggle{top:154px;right:12px}}
+
+/* R7.3 actual phone nav containment fix.
+   CSS backdrop-filter creates a containing block for position:fixed
+   descendants. Keeping it on sticky .topnav made the five "bottom tabs"
+   position themselves within the 63px HEADER: screenshots showed y=2!
+   The real owner viewport must own the bottom navigation. */
+@media(max-width:768px){
+  .topnav{
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
+    transform:none;
+    filter:none;
+  }
+  .topnav .navlinks{
+    position:fixed;
+    inset:auto 0 0 0;
+    width:auto;
+    margin:0;
+    z-index:300;
+  }
+}
+
+
+/* ==========================================================================
+   R7.2 warm-lifestyle correction.
+   Canonical v3.4/R5.6 says Warm Lifestyle + Individual Pet Twin + subtle
+   holographic presence. The previous green field over-indexed on the brand
+   accent. Restore cream/beige as the room itself; keep sage only as an accent.
+   ========================================================================== */
+body{background:#FBF7F1}
+.r2p-stage,.r2p-stage--3d,.r2p-stage--pet.r2p-stage--3d,
+.r2p-stage--life.r2p-stage--3d{
+  background:
+    radial-gradient(75% 56% at 72% 12%,rgba(255,252,244,.78),rgba(255,252,244,0) 68%),
+    linear-gradient(151deg,#FBF6EC 0%,#F2E6D5 46%,#E7D4B9 100%);
+}
+.r2p-stage--3d::before{
+  background:linear-gradient(100deg,rgba(255,255,255,.60),rgba(255,248,236,0));
+  opacity:.72;
+}
+/* One quiet projection footprint under the real 3D pet: no blue wireframe,
+   no neon HUD, no giant decorative circle behind the animal. */
+.r2p-stage--3d::after{
+  content:"";position:absolute;left:50%;bottom:73px;
+  width:min(54%,360px);height:52px;transform:translateX(-50%);
+  border-radius:50%;z-index:1;pointer-events:none;
+  border:1px solid rgba(166,126,78,.22);
+  background:radial-gradient(ellipse at center,rgba(255,249,238,.80) 0%,rgba(224,198,159,.28) 54%,rgba(224,198,159,0) 78%);
+}
+.r2p-stage-glow,.r2p-stage--3d .r2p-stage-glow{
+  background:radial-gradient(ellipse at center,rgba(126,145,118,.17),rgba(126,145,118,0) 76%);
+}
+.r2p-stage-name{color:#3C4438}
+.r2p-stage-headline{color:#4E5546}
+.r2p-stage-caption{color:#746A5E}
+.r2p-anchor,.r2p-stage--3d .r2p-anchor{
+  background:rgba(255,253,247,.88);border-color:rgba(255,255,255,.82);
+}
+@media(max-width:768px){
+  .r2p-stage--3d::after{bottom:68px;width:min(66%,300px);height:46px}
+}
+
+/* R7.2 Companion is a relationship/device surface, not a second Pet World.
+   Keep one large individual pet, but let real device state enter the first
+   viewport instead of hiding below a 570–630px hero. */
+.r2p-stage--companion.r2p-stage--3d{
+  min-height:470px;
+}
+.r2p-stage--companion.r2p-stage--3d .r2p-stage-pet--3d{
+  width:min(88%,500px);
+  height:360px;
+  bottom:76px;
+}
+@media(min-width:1024px){
+  .r2p-stage--companion.r2p-stage--3d{min-height:500px}
+  .r2p-stage--companion.r2p-stage--3d .r2p-stage-pet--3d{
+    width:min(62%,540px);
+    height:390px;
+  }
+}
+@media(max-width:768px){
+  .r2p-stage--companion.r2p-stage--3d{min-height:470px}
+  .r2p-stage--companion.r2p-stage--3d .r2p-stage-pet--3d{
+    width:min(100%,390px);
+    height:342px;
+    bottom:76px;
+  }
+}
+
+/* Canonical four-way Life View rail may contain both buttons and a Link. */
+.r2p-mode{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-decoration:none;
+  box-sizing:border-box;
+}
+@media(max-width:768px){
+  .r2p-modes{display:flex;width:auto;margin-left:16px;margin-right:16px}
+  .r2p-mode{flex:1;min-width:0;padding-left:8px;padding-right:8px}
+}
+
+
+/* R7.2 Life View state inspection — the four pet-state anchors are tactile
+   facts, not decorative KPIs. Detail stays in the reading flow and exposes
+   fact / self-comparison / source / freshness / evidence without obscuring pet. */
+.r2p-anchor--button{
+  appearance:none;
+  -webkit-appearance:none;
+  font:inherit;
+  color:inherit;
+  cursor:pointer;
+}
+.r2p-anchor--button:focus-visible{
+  outline:3px solid rgba(54,95,73,.28);
+  outline-offset:2px;
+}
+.v7-life-detail{
+  margin:18px 0 2px;
+  padding:20px 22px;
+  border:1px solid rgba(84,112,91,.14);
+  border-radius:24px;
+  background:rgba(255,254,249,.86);
+}
+.v7-life-detail-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+.v7-life-detail-kicker{
+  margin:0 0 4px;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.1em;
+  color:#617766;
+}
+.v7-life-detail h2{
+  margin:0;
+  color:#284934;
+  font-size:20px;
+  letter-spacing:-.025em;
+}
+.v7-life-detail-grid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:0;
+  margin:18px 0;
+}
+.v7-life-detail-grid>div{
+  min-width:0;
+  padding:0 14px;
+  border-left:1px solid #E3EAE0;
+}
+.v7-life-detail-grid>div:first-child{padding-left:0;border-left:0}
+.v7-life-detail-grid dt{
+  color:#728276;
+  font-size:11px;
+  margin-bottom:5px;
+}
+.v7-life-detail-grid dd{
+  margin:0;
+  color:#314C3A;
+  font-size:13px;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+@media(max-width:768px){
+  .v7-life-detail{
+    margin:14px 16px 0;
+    padding:18px;
+    border-radius:20px;
+  }
+  .v7-life-detail-grid{
+    grid-template-columns:1fr 1fr;
+    gap:14px 0;
+  }
+  .v7-life-detail-grid>div{
+    padding:0 12px 0 0;
+    border-left:0;
+  }
+}
+
+
+/* R7.3 Today truth hierarchy — CHANGE is quieter than ATTENTION.
+   Baseline variance is not rendered as a medical warning. */
+.v5-today-change { padding-top: 20px; padding-bottom: 20px; }
+.v5-change-line {
+  padding: 15px 18px;
+  border-radius: 18px;
+  background: rgba(238,243,234,.86);
+  border: 1px solid rgba(54,95,73,.10);
+}
+.v5-change-line--unknown {
+  background: rgba(255,254,249,.82);
+  border-color: var(--v4-divider,#DDE7DB);
+}
+.v5-change-summary {
+  margin: 0;
+  color: var(--v4-text-primary,#25382D);
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 650;
+}
+.v5-change-evidence {
+  margin: 5px 0 0;
+  color: var(--v4-text-secondary,#52695A);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.v5-change-why {
+  min-height:44px;margin-top:8px;padding:8px 14px;border:0;border-radius:999px;
+  background:var(--v4-brand-soft,#E5EDE4);color:var(--v4-brand-primary,#365F49);
+  font-size:12px;font-weight:700;cursor:pointer;
+}
+.v5-change-explain {
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--v4-divider,#DDE7DB);
+  display:grid;grid-template-columns:72px minmax(0,1fr);gap:6px 10px;
+}
+.v5-change-explain strong { color:var(--v4-brand-primary,#365F49);font-size:12px; }
+.v5-change-explain p { margin:0;color:var(--v4-text-secondary,#52695A);font-size:13px;line-height:1.55; }
+.v4-attn--danger {
+  background: #FFF0ED;
+  border-color: rgba(173,63,45,.18);
+}
+.v4-attn--danger .v4-attn-title,
+.v4-attn--danger .v4-attn-icon {
+  color: #9C3D30;
+}
+
+
+/* R7.4 Pet World progressive management — life stays primary. */
+.v5-pet-management {
+  margin-top: 16px;
+  border-top: 1px solid rgba(54,95,73,.10);
+}
+.v5-pet-management > summary {
+  min-height: 64px;
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--v4-text-primary,#25382D);
+}
+.v5-pet-management > summary::-webkit-details-marker { display: none; }
+.v5-pet-management > summary strong { display: block; font-size: 15px; }
+.v5-pet-management > summary small {
+  display: block;
+  margin-top: 3px;
+  color: var(--v4-text-secondary,#52695A);
+  font-size: 12px;
+  font-weight: 400;
+}
+.v5-pet-management[open] > summary {
+  border-bottom: 1px solid rgba(54,95,73,.08);
+}
+
+
+/* R7.5 Timeline — retrieval tools stay available without reading like a database UI. */
+.v5-timeline-tools {
+  margin: 12px 0 18px;
+  border-bottom: 1px solid rgba(54,95,73,.10);
+}
+.v5-timeline-tools > summary {
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  color: var(--v4-text-secondary,#52695A);
+  font-size: 13px;
+  font-weight: 650;
+}
+.v5-timeline-tools > summary::-webkit-details-marker { display: none; }
+.v5-timeline-tools[open] > summary { color: var(--v4-brand-primary,#365F49); }
+
+
+/* R7.8 Today first-fold closure.
+   The hero already answers NOW. On owner phones do not repeat the same facts in
+   a second section before CHANGE → ATTENTION → ACTION. Preserve the large pet,
+   reclaim card padding/chrome instead. */
+@media(max-width:768px){
+  .r2p-stage--today,
+  .r2p-stage--today.r2p-stage--3d {
+    min-height:500px;
+  }
+  [data-testid="pli.today.now"] {
+    display:none;
+  }
+  .v5-today-change {
+    padding-top:10px;
+    padding-bottom:8px;
+  }
+  .v5-today-change .v4-sec-head {
+    margin-bottom:5px;
+  }
+  .v5-today-change .v4-sec-title {
+    font-size:14px;
+  }
+  .v5-change-line {
+    padding:10px 12px;
+    border-radius:14px;
+    background:rgba(238,243,234,.58);
+  }
+  .v5-change-summary {
+    font-size:14px;
+    line-height:1.4;
+  }
+  .v5-change-evidence {
+    margin-top:2px;
+    line-height:1.35;
+  }
+  .v5-today-attention--calm,
+  .v5-today-attention--unknown {
+    padding-top:5px;
+    padding-bottom:5px;
+  }
+  .v5-today-attention--calm .v4-sec-head,
+  .v5-today-attention--unknown .v4-sec-head {
+    display:none;
+  }
+  .v5-today-attention--calm .v4-calm,
+  .v5-today-attention--unknown .v4-calm {
+    padding:9px 12px;
+    gap:8px;
+    border-radius:14px;
+  }
+  .v5-today-attention--calm .v4-calm-title,
+  .v5-today-attention--unknown .v4-calm-title {
+    font-size:13px;
+  }
+  .v5-today-attention--calm .v4-calm-body,
+  .v5-today-attention--unknown .v4-calm-body {
+    font-size:12px;
+    line-height:1.35;
+  }
+  .v5-today-action {
+    padding-top:7px;
+    padding-bottom:16px;
+  }
+  .v5-today-action .v4-sec-head {
+    display:none;
+  }
+  .v5-today-action .v5-today-primary {
+    min-height:44px;
+    padding-block:10px;
+  }
+  .v5-today-action .v5-today-secondary {
+    margin-top:6px;
+  }
+  .v5-today-action .v4-sec-foot {
+    margin-top:6px;
+  }
+}
+
+
+/* R7.7 phone-first Today closure.
+   Keep the Living Canvas large, but stop explanatory sections from pushing the
+   primary "快速记录" action underneath the fixed five-tab navigation. */
+@media(max-width:768px){
+  [data-testid="pli.today.living-stage"].r2p-stage,
+  [data-testid="pli.today.living-stage"].r2p-stage--3d{
+    min-height:470px;
+  }
+  [data-testid="pli.today.living-stage"].r2p-stage--3d .r2p-stage-pet--3d{
+    height:372px;
+    bottom:74px;
+  }
+  .v5-today-change,
+  .v5-today-attention{
+    padding-top:10px;
+    padding-bottom:10px;
+  }
+  .v5-today-change .v4-sec-head,
+  .v5-today-attention .v4-sec-head{
+    margin-bottom:5px;
+  }
+  .v5-change-summary{line-height:1.38}
+  .v5-change-evidence{margin-top:2px;line-height:1.35}
+  .v5-today-attention .v4-calm,
+  .v5-today-attention .v4-attn{
+    gap:8px;
+    padding:10px 12px;
+    border-radius:16px;
+  }
+  .v5-today-attention .v4-calm-body,
+  .v5-today-attention .v4-attn-body{
+    line-height:1.35;
+  }
+  .v5-today-action{
+    padding-top:11px;
+  }
+  .v5-today-action .v4-sec-head{
+    margin-bottom:7px;
+  }
+}
+
+
+/* R7.9 Today first-fold truth.
+   On a 390x844 owner phone the fixed five-tab rail begins around y=784.
+   The Living Canvas must still make the pet the visual focus, but the primary
+   “快速记录” action also belongs to the initial PET→NOW→CHANGE→ATTENTION→ACTION
+   reading sequence rather than underneath navigation chrome. Pet/Life View keep
+   their larger inspection canvases; this override is Today-only. */
+@media(max-width:768px){
+  [data-testid="pli.today.living-stage"].r2p-stage,
+  [data-testid="pli.today.living-stage"].r2p-stage--3d{
+    min-height:380px;
+  }
+  [data-testid="pli.today.living-stage"].r2p-stage--3d .r2p-stage-pet--3d{
+    width:min(92%,340px);
+    height:312px;
+    bottom:60px;
+  }
+  .v5-today-change{
+    padding-top:5px;
+    padding-bottom:4px;
+  }
+  .v5-today-change .v4-sec-head{
+    margin-bottom:3px;
+  }
+  .v5-change-line{
+    padding:8px 11px;
+  }
+  .v5-today-attention{
+    padding-top:4px;
+    padding-bottom:4px;
+  }
+  .v5-today-attention .v4-calm,
+  .v5-today-attention .v4-attn{
+    padding:8px 11px;
+  }
+  .v5-today-action{
+    padding-top:5px;
+    padding-bottom:10px;
+  }
+}
+
+
+/* R7.10 Timeline create/edit actions are explicit, never permanent form chrome.
+   Reading the pet's life stays primary; composing a milestone or diary is a
+   deliberate secondary action. */
+.v7-timeline-compose{
+  margin-top:10px;
+  border-top:1px solid rgba(54,95,73,.10);
+}
+.v7-timeline-compose > summary{
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  list-style:none;
+  cursor:pointer;
+  color:#365F49;
+  font-size:13px;
+  font-weight:700;
+}
+.v7-timeline-compose > summary::-webkit-details-marker{display:none}
+.v7-timeline-compose > summary::after{content:"＋";font-size:18px;font-weight:500}
+.v7-timeline-compose[open] > summary::after{content:"−"}
+.v7-timeline-compose-body{padding:8px 0 4px}
+
+
+/* R7.11 Timeline secondary memories continue the life stream instead of
+   switching into boxed feature modules. */
+.v7-timeline-journal-item{
+  padding:12px 0;
+  border-top:1px solid rgba(54,95,73,.12);
+  background:transparent;
+}
+.v7-timeline-journal-item + .v7-timeline-journal-item{margin-top:0}
+.v7-timeline-journal-item .v4-calm-title{color:#294C37}
+.v7-timeline-journal-summary{margin-top:10px}
+
+
+/* R7.12 Assistant answer continuation — the answer is not a dead-end result.
+   Owner can inspect raw records/sources or continue into the active pet's
+   self-comparison surface without promoting those actions above Ask. */
+.v5-assistant-answer-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:16px;
+}
+.v5-assistant-answer-actions .v4-action{
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:9px 14px;
+  text-decoration:none;
+}
+@media(max-width:768px){
+  .v5-assistant-answer-actions .v4-action{flex:1 1 30%;min-width:96px}
+}
+
+/* R7.2 Life View support facts — real secondary state, subordinate to the pet. */
+.v7-life-support{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;
+  margin:14px auto 6px;max-width:760px;
+}
+.v7-life-support-item{
+  min-width:0;min-height:74px;padding:12px 14px;border-radius:18px;
+  background:rgba(255,254,248,.82);border:1px solid rgba(221,231,219,.95);
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  text-decoration:none;color:#25382D;
+}
+.v7-life-support-item strong{font-size:15px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.v7-life-support-label{font-size:11px;color:#667A6B;margin-bottom:4px;letter-spacing:.04em}
+.v7-life-support-danger{color:#A54038}
+@media(max-width:768px){
+  .v7-life-support{margin:12px 16px 4px;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .v7-life-support-item{padding:10px 8px;min-height:70px;align-items:center;text-align:center}
+  .v7-life-support-item strong{font-size:13px}
+}
+
+
+/* R7.3 Life View time scrubber — range selection is part of truth/provenance,
+   not a decorative filter. Historical scopes never inherit today's photo/state. */
+.v7-life-time-scrubber{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  max-width:760px;margin:0 auto 12px;
+}
+.v7-life-time-chip{
+  min-height:40px;padding:0 14px;border:1px solid #DDE7DB;border-radius:999px;
+  background:#FFFEF8;color:#52695A;font-size:13px;font-weight:650;cursor:pointer;
+}
+.v7-life-time-chip.is-active{background:#365F49;border-color:#365F49;color:#fff}
+.v7-life-date{display:flex;align-items:center;gap:8px;color:#667A6B;font-size:12px}
+.v7-life-date input{
+  min-height:40px;padding:0 12px;border:1px solid #DDE7DB;border-radius:14px;
+  background:#FFFEF8;color:#25382D;
+}
+.v7-life-history-truth{
+  max-width:760px;margin:12px auto 4px;padding:12px 14px;border-radius:18px;
+  background:#F1F4EC;color:#5A6D5F;font-size:13px;line-height:1.55;
+}
+@media(max-width:768px){
+  .v7-life-time-scrubber{margin:0 16px 10px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}
+  .v7-life-time-chip{flex:0 0 auto}
+  .v7-life-date{flex:0 0 auto}
+  .v7-life-history-truth{margin:12px 16px 4px}
+}
+
+
+/* R7.11 Today Living Canvas — restore pet-first mobile composition.
+   Runtime evidence at 390px showed the late compact override collapsing the
+   owner hero to 358x380, which makes the pet feel like a dashboard thumbnail.
+   Today should still expose NOW/CHANGE/ATTENTION/ACTION in the first reading
+   flow, but PET remains the spatial subject rather than a compressed card. */
+@media(max-width:768px){
+  [data-testid="pli.today.living-stage"].r2p-stage,
+  [data-testid="pli.today.living-stage"].r2p-stage--3d{
+    min-height:500px;
+  }
+  [data-testid="pli.today.living-stage"].r2p-stage--3d .r2p-stage-pet--3d{
+    width:min(100%,390px);
+    height:420px;
+    bottom:68px;
+  }
+}
+
+
+/* R7.12 Today hero action — preserve a large pet-first Living Canvas without
+   making the owner scroll past the fixed phone dock before they can log a
+   real event. The full ACTION section remains later in the canonical
+   PET→NOW→CHANGE→ATTENTION→ACTION reading sequence; this is only its shortcut. */
+.v7-today-hero-shell{position:relative}
+.v7-today-hero-quicklog{
+  position:absolute;right:18px;bottom:88px;z-index:9;
+  min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+  gap:7px;padding:9px 14px;border:1px solid rgba(255,255,255,.78);
+  border-radius:999px;background:rgba(255,253,247,.91);color:#365F49;
+  box-shadow:0 7px 20px rgba(60,68,56,.10);backdrop-filter:blur(12px);
+  font:700 13px/1.2 inherit;cursor:pointer;
+}
+.v7-today-hero-quicklog:hover{background:#FFFEFA}
+.v7-today-hero-quicklog:focus-visible{outline:3px solid rgba(54,95,73,.22);outline-offset:2px}
+@media(min-width:769px){
+  .v7-today-hero-quicklog{right:28px;bottom:92px}
+}
