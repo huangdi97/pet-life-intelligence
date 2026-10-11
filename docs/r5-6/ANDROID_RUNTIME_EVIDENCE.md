@@ -156,6 +156,30 @@ runtime evidence for this SHA is the hosted job in §1, which ran the same captu
 against the same tree (merge-ref tree identical to the head tree — see
 `CURRENT_HEAD_TRUTH.md` §4).
 
+## 4b. Local release-variant build — also PASS
+
+After the debug APK, the same space-free copy also produced the **release** variant locally:
+
+| Item | Value |
+| --- | --- |
+| Command | `gradlew --no-daemon -PreactNativeArchitectures=x86_64 assembleRelease` (the task the CI `android-apk` job runs) |
+| Result | `BUILD SUCCESSFUL in 20m 51s`, exit 0 |
+| APK | `C:\plibuild\apps\mobile\android\app\build\outputs\apk\release\app-release.apk`, 95 940 407 B, fresh (built this round) |
+| SHA-256 | `ac4880ee419773d58c392d15dfd4e55118a21c434eed8414b92e1a162f237796` |
+| Structure | `com.pli.mobile` vc4 vn0.2.0, ABIs arm64-v8a/armeabi-v7a/x86/x86_64, `assets/index.android.bundle` present, 1576 entries, V2 signer `CN=Android Debug …` (`fac61745…`) |
+| Runtime | `adb install -r` → `Success`; the process stayed alive with no `FATAL EXCEPTION`/ANR; the UI dump (37 203 B) contained the living stage, all five `pli.nav.*` ids and the four life anchors — real owner content, no demo-failure or error strings |
+| Evidence saved | `artifacts/r5-6-final/android-release/release_today.png` + `ui.xml` |
+
+**Why it failed before (real root cause, worth knowing):** the release variant needs two
+release-only React Native artifacts — `react-android-0.74.5-release.aar` (151 MB) and
+`hermes-android-0.74.5-release.aar` (65 MB) — that are not in this host's Gradle cache. Every
+attempt died silently inside `:app:checkReleaseAarMetadata` (no gradle conclusion, no JVM crash
+log); `--offline` revealed the two missing artifacts. Downloading them directly with
+`Invoke-WebRequest` worked (48 s + 21 s), so the failure was Gradle's own large-download path,
+not the network or the code. Fix used: seed a file-based Maven repository
+(`C:\plibuild\rn-local-repo\com\facebook\react\…`) with the AARs + POMs and point the
+throw-away copy's `build.gradle` at it. No repository file was changed.
+
 ## 5. Physical device
 
 No authorised phone was reachable over adb on this host (`adb devices` empty before the

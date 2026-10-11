@@ -68,7 +68,7 @@
 | Real AI provider | **EXTERNAL_BLOCKED** (sandbox answers; `/visual/status` reports `REAL_3D_PROVIDER_EXTERNAL_BLOCKED`) |
 | Real Pilot metrics / user validation | **NOT_YET_OBSERVED** |
 | Local Playwright re-run | **PASS** — `55 passed (3.6m)` against the local API + built Web app (the CI command) |
-| Local `assembleRelease` | **NOT_COMPLETED locally** (three aborted attempts, no gradle conclusion; stale APK on disk must not be counted) — CI builds/signs/verifies this variant for the final head |
+| Local `assembleRelease` | **PASS** (fresh `app-release.apk` `ac4880ee…`, installed and launched with no crash) after unblocking the release-only RN AAR downloads |
 | Local Admin / Mini (weapp, alipay, tt) / mobile-export builds | **PASS** (all exit 0; admin needed a stale `.next` cleanup) |
 
 ## 3. What changed for the better in this round
