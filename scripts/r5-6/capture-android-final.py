@@ -509,16 +509,25 @@ def capture_surface(
         android.clear_runtime_manifest()
     android.start_link(f"pli-demo://nav?screen={screen}")
     expected_root = SURFACE_ROOT_IDS.get(screen)
+    # Life View additionally requires its primary mode rail inside the first
+    # viewport. That rail mounts asynchronously after the identity root, so the
+    # SAME bounded poll has to cover it: a single snapshot rejected a healthy
+    # Life View and failed the whole evidence job (run 38095816809). The rail is
+    # still mandatory and still has to be at least 44px visible after the poll.
+    requires_modebar = screen == "lifeview"
     xml = ""
     # Navigation and RN layout completion are asynchronous on hosted emulators.
     # Poll for the EXACT requested root instead of blessing whichever page
     # happens to be visible after one arbitrary sleep.
-    attempts = 12 if expected_root else 1
+    attempts = 12 if (expected_root or requires_modebar) else 1
     for attempt in range(attempts):
         time.sleep(1 if attempt else 3)
         xml = android.dump_xml(directory / "ui.xml")
-        if not expected_root or expected_root in xml:
-            break
+        if expected_root and expected_root not in xml:
+            continue
+        if requires_modebar and "pli.lifeview.modebar" not in xml:
+            continue
+        break
     if expected_root and expected_root not in xml:
         observed_ids = sorted(
             set(re.findall(r'resource-id="(pli\.[^"]+)"', xml))
@@ -546,7 +555,11 @@ def capture_surface(
             None,
         )
         if modebar is None:
-            raise CaptureError("Life View primary mode rail is missing from the real Android viewport")
+            observed_ids = sorted(set(re.findall(r'resource-id="(pli\.[^"]+)"', xml)))[:12]
+            raise CaptureError(
+                "Life View primary mode rail is missing from the real Android viewport; "
+                f"observed_ui_ids={observed_ids}"
+            )
         bounds = modebar.attrib.get("bounds", "")
         match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
         visible_height = (int(match.group(4)) - int(match.group(2))) if match else 0
