@@ -610,6 +610,35 @@ def capture_surface(
     run([os.environ.get("PYTHON", "python3"), str(extractor), str(directory)])
 
 
+def capture_distinct_view_frame(
+    android: Android,
+    path: Path,
+    previous: Path | None,
+    *,
+    attempts: int = 6,
+) -> None:
+    """Freeze a Twin Review frame that actually differs from the previous view.
+
+    The runtime manifest proves the commanded camera yaw, but the WebGL frame can
+    still be the previous one when the screenshot lands (observed on run
+    38102813215: the side and back PNGs were byte-identical while their manifests
+    reported different yaws). Re-capture within a bounded budget until the frame
+    changes; if it never does, the caller still fails - the three-view claim must
+    never rest on a highlight alone.
+    """
+    baseline = previous.read_bytes() if previous is not None and previous.exists() else None
+    for attempt in range(attempts):
+        android.screenshot(path)
+        current = path.read_bytes()
+        if baseline is None or current != baseline:
+            return
+        if attempt + 1 < attempts:
+            time.sleep(1)
+    raise CaptureError(
+        f"Twin Review view frame never changed from the previous view after {attempts} captures: {path}"
+    )
+
+
 def capture_review_views(
     android: Android,
     directory: Path,
@@ -645,6 +674,7 @@ def capture_review_views(
             f"missing={missing}; observed_ui_ids={observed_ids}"
         )
     expected = {"front": 0.0, "side": 1.5707963267948966, "back": 3.141592653589793}
+    previous_frame: Path | None = None
     for view, yaw in expected.items():
         android.clear_runtime_manifest()
         android.tap(xml, f"pli.twinreview.view.{view}", "id")
@@ -669,7 +699,9 @@ def capture_review_views(
                 f"Twin Review pet too small at {view}: area={area_ratio:.3f}, height={height_ratio:.3f}"
             )
         save_manifest(directory / f"3d_view_{view}.json", manifest)
-        android.screenshot(directory / f"{prefix}_{view}.png")
+        frame = directory / f"{prefix}_{view}.png"
+        capture_distinct_view_frame(android, frame, previous_frame)
+        previous_frame = frame
         xml = android.dump_xml(directory / "ui.xml")
 
 
