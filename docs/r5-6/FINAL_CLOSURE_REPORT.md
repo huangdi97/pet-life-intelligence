@@ -67,7 +67,9 @@
 | Mini WeChat native screenshots | **EXTERNAL_BLOCKED** |
 | Real AI provider | **EXTERNAL_BLOCKED** (sandbox answers; `/visual/status` reports `REAL_3D_PROVIDER_EXTERNAL_BLOCKED`) |
 | Real Pilot metrics / user validation | **NOT_YET_OBSERVED** |
-| Local Playwright re-run, local `assembleRelease` | **NOT_RUN_LOCALLY** — CI PASS is the evidence |
+| Local Playwright re-run | **PASS** — `55 passed (3.6m)` against the local API + built Web app (the CI command) |
+| Local `assembleRelease` | **NOT_COMPLETED locally** (three aborted attempts, no gradle conclusion; stale APK on disk must not be counted) — CI builds/signs/verifies this variant for the final head |
+| Local Admin / Mini (weapp, alipay, tt) / mobile-export builds | **PASS** (all exit 0; admin needed a stale `.next` cleanup) |
 
 ## 3. What changed for the better in this round
 

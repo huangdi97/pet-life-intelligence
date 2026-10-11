@@ -35,8 +35,15 @@
 | Admin typecheck | `pnpm --dir apps/admin typecheck` | **PASS** (exit 0) | — |
 | Mini typecheck | `pnpm --dir apps/mini typecheck` | **PASS** (exit 0) | — |
 | Mobile typecheck | `pnpm --dir apps/mobile typecheck` | **PASS** (exit 0) | — |
-| New regression file | `.venv\Scripts\python.exe -m pytest tests/blind_ui/test_android_capture_dump_recovery.py -q` | **PASS** | `5 passed` |
+| New regression file | `.venv\Scripts\python.exe -m pytest tests/blind_ui/test_android_capture_dump_recovery.py -q` | **PASS** | `7 passed` (grew from 5 as the encoding and `None`-stdout cases were added) |
 | Focused fix check (run inside the failing 05:3x window) | `.venv\Scripts\python.exe -m pytest tests/v10/test_final_extras.py -q` | **PASS** | `6 passed` |
+| Browser E2E (Playwright), the CI command, local run | `pnpm exec playwright test --config=tests/e2e-browser/playwright.config.ts --grep-invert "STAGE-V-VISUAL\|VISUAL-V2\|VISUAL-V3"` against the local API (:8800) and the built Web app (:3100) | **PASS** (exit 0) | `55 passed (3.6m)` — includes seven-paths E2E-06/07 (behavior ABC, IDOR 403/404), stage-h-ux (welfare/social/monitoring "no fake online"/assistant ask-primary/companion honest empty state), stage-h2-3d (life-view honest state, no fake LIVE, real-photo fallback, Twin Review angle matches the runtime camera, Quick Log truthfulness + media evidence binding), stage-v-3d-runtime (GLB parse, WebGL smoke, reduced-motion guard) |
+| Android debug evidence APK (local) | `gradlew -PreactNativeArchitectures=x86_64 assembleDebug` in the space-free copy + `adb install -r` | **PASS** | 175 693 686 B, `sha256 42366e79…`, install `Success`, capture `exit 0` (71 files) |
+| Android `assembleRelease` (local) | `gradlew assembleRelease` in the space-free copy (the same task the CI android-apk job runs) | **NOT_COMPLETED locally** | three attempts: two aborted mid-build after `:app:checkReleaseAarMetadata` with **no** gradle conclusion and exit `-1`, one was terminated before the script could log its exit. No `BUILD SUCCESSFUL/FAILED` line was ever produced, and the `app-release.apk` on disk is a **stale 2026-10-03 file** (sha256 `6bca7eec…`) that must not be counted. Host had only ~4 GB free RAM at the time. The release variant is built, signed and verified by CI for the final head (see `ANDROID_RUNTIME_EVIDENCE.md` §3) |
+| Admin production build (local) | `pnpm --dir apps/admin build` | **PASS** | first attempt failed with `EPERM: scandir … apps/admin/.next/standalone/node_modules/.pnpm/node_modules/webpack`; the stale `.next` tree was removed (`rmdir /s /q`) and the rebuild exited 0 — a local filesystem artifact, not a product issue |
+| Mini production builds (local) | `pnpm --dir apps/mini build:weapp` / `build:alipay` / `build:tt` | **PASS** (all exit 0) | sass deprecation warnings only |
+| Mobile bundle export (local) | `pnpm --dir apps/mobile exec expo export --platform android` | **PASS** (exit 0) | "App exported to: dist" |
+| Local Android capture at the **final head** | the full capture chain via the local emulator + local demo API | **PASS** (exit 0) | `capture-manifest.json` `source_head = cfc8edca…`, three distinct Twin Review frames, 71 evidence files |
 
 Environment used for the local runs (the local demo stack, not production):
 
@@ -52,9 +59,9 @@ STORAGE_BACKEND   minio
 
 | Gate | Why | Status |
 | --- | --- | --- |
-| Playwright browser E2E | Hosted CI runs it green for this SHA; locally it needs the Playwright browsers + the web/API stack started on the exact ports the specs expect. Time was reserved for the Android evidence chain instead. | `NOT_RUN_LOCALLY` — CI PASS is the evidence |
+| Playwright browser E2E | Runs the CI command locally against the local API (:8800) and the built Web app (:3100). | **PASS** — `55 passed (3.6m)` |
 | Visual-regression baseline comparison | Deliberately not run with any baseline-updating flag. Candidate-only policy for this cycle. | `BASELINE_REVIEW_REQUIRED` if a human wants to compare |
-| Android `assembleRelease` locally | The local debug build hit environment issues (see `ANDROID_RUNTIME_EVIDENCE.md` §4); the hosted job builds and signs the APK for this SHA. | `NOT_RUN_LOCALLY` — CI PASS is the evidence |
+| Android `assembleRelease` locally | Three attempts never produced a gradle conclusion (no `BUILD SUCCESSFUL/FAILED`, exit `-1`, ~4 GB free RAM on the host); a stale 2026-10-03 APK is on disk and must not be counted. | **NOT_COMPLETED locally** — the hosted job builds/signs/verifies this variant for the final SHA |
 | WeChat DevTools native Mini screenshots | Needs the owner's desktop DevTools session. | `EXTERNAL_BLOCKED` |
 | Physical-device run | No authorised phone. | `REAL_DEVICE_QA_PENDING_USER` |
 

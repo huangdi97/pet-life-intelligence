@@ -24,7 +24,8 @@
 | 21:50 | CI round 2 failure triage (backend v10 test) | time-window test defect, not a regression |
 | 22:0x | Commit `3aacdf6c` pushed | all three workflows green; APK + evidence artifacts verified |
 | 22:17 | Local gate suite re-run (12 gates) | all PASS |
-| 22:02→ | Space-free copy build `C:\plibuild` | in progress; §4 |
+| 22:02→ | Space-free copy build `C:\plibuild` | **BUILD SUCCESSFUL in 15m 27s** — local debug APK, installed and driven on the emulator |
+| +1d 05:2x–08:4x | Post-closure local work: Playwright (55 passed), re-seed + full local capture at the final head (exit 0), Admin/Mini/mobile-export builds (PASS), local `assembleRelease` (3 attempts, never produced a gradle conclusion) | see `TEST_GATE_MATRIX.md` §2/§3 |
 
 ## 2. Local environment obstacles and the working solutions
 
