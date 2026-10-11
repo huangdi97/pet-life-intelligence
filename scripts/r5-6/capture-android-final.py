@@ -383,6 +383,31 @@ class Android:
             )
         raise CaptureError(f"required rigged RUNTIME 3D manifest unavailable{suffix}{seen}")
 
+    def peek_runtime_manifest(self) -> dict | None:
+        """Read the persisted runtime manifest without failing when it is absent.
+
+        Used by the demo pet-selection loops. The demo deep link switches the
+        active pet asynchronously and the WebView stage republishes its manifest
+        afterwards, so a manifest for the *previous* pet must not be mistaken for
+        the requested one (observed on a repeated local run where the emulator
+        still held the secondary pet's stage).
+        """
+        for args in (
+            ("run-as", self.package, "cat", "files/pli_manifest.json"),
+            ("cat", f"/data/data/{self.package}/files/pli_manifest.json"),
+        ):
+            result = self.cmd("shell", *args, check=False)
+            payload = (result.stdout or "").strip()
+            if result.returncode != 0 or not payload.startswith("{"):
+                continue
+            try:
+                manifest = json.loads(payload)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(manifest, dict):
+                return manifest
+        return None
+
     @classmethod
     def _manifest_matches(
         cls,
@@ -698,7 +723,13 @@ def main() -> None:
                 "demo owner session failed before Today/3D mounted; check evidence API reachability/authentication"
             )
         if "pli.today.living-stage" in primary_select_xml:
-            break
+            # Same asynchronous boundary as for the secondary pet: only accept
+            # the surface once the runtime manifest belongs to the requested pet
+            # (or has not been published yet, which read_runtime_manifest then
+            # waits for).
+            peeked = android.peek_runtime_manifest()
+            if peeked is None or str(peeked.get("petId") or "") == primary_id:
+                break
     if "pli.today.living-stage" not in primary_select_xml:
         observed_ids = sorted(
             set(re.findall(r'resource-id="(pli\\.[^"]+)"', primary_select_xml))
@@ -742,7 +773,12 @@ def main() -> None:
         time.sleep(1 if attempt else 3)
         secondary_today_xml = android.dump_xml(secondary_today / "ui.xml")
         if "pli.today.living-stage" in secondary_today_xml:
-            break
+            # The deep link switches the active pet asynchronously and the
+            # WebView stage republishes its manifest after that switch, so a
+            # stale manifest for the previous pet must not be accepted here.
+            peeked = android.peek_runtime_manifest()
+            if peeked is None or str(peeked.get("petId") or "") == secondary_id:
+                break
     if "pli.today.living-stage" not in secondary_today_xml:
         observed_ids = sorted(
             set(re.findall(r'resource-id="(pli\\.[^"]+)"', secondary_today_xml))
