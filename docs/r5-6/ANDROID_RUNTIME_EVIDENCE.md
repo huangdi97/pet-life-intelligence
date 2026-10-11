@@ -62,7 +62,7 @@ on 2026-10-11 07:17 (+08) and wrote 71 evidence files.
 | APK signing | V2 `CN=Android Debug …`, SHA-256 `fac61745…` → debug/internal |
 | APK contents | `assets/index.android.bundle` present (self-contained) |
 | Build provenance | space-free copy of the repo at `3aacdf6c`; the copy's app tree was hash-checked against the repo (`package.json`, `navigation.tsx`, `capture-android-final.py`, `manifest.ts` — all identical) |
-| Evidence manifest | `artifacts/r5-6-final/android/capture-manifest.json` → `source_head = checkout_head = 3aacdf6c…`, `vision_model_used = false` |
+| Evidence manifest | `artifacts/r5-6-final/android/capture-manifest.json` → `source_head = 3aacdf6c…` (first local run) and `fc334c63…` (second local run, after the evidence-tooling fixes). Both completed with exit 0; the commits in between touch only `scripts/r5-6/capture-android-final.py`, so the app tree is identical |
 | Install | `adb -s emulator-5554 install -r …` → `Success` |
 | Launch/navigation | real deep-link navigation through Today → Timeline → Pet → Life View → Twin Review → Health → Assistant → Companion → Me, plus the second pet |
 | Twin three-view hashes (local) | `twin_front.png` 305 975 B `D51E954D3817B45F…` · `twin_side.png` 271 990 B `D8F84EED7A614631…` · `twin_back.png` 284 542 B `81B34BE4D59F31C0…` — three distinct frames |

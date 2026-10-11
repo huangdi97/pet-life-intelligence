@@ -6,15 +6,20 @@
 > Invariants kept: `NO_VISION_MODEL_USED = TRUE`, `HUMAN_VISUAL_ACCEPTANCE = PENDING`,
 > `REAL_DEVICE_HUMAN_REVIEW = PENDING`.
 
-## 1. Repository / branch / PR
+| Commits pushed by this agent | `a03295c7` (evidence recovery + diagnostics), `3aacdf6c` (v10 time-window test), `253ffa55` (UTF-8 decode + §13 deliverable set), `fc334c63` (Life View mode-rail poll), `1be8888e` (requested-pet manifest before accepting a Today frame) |
+| Final branch head | `1be8888e…` — CI ✅ (run 38100446633), OpenAPI ✅ (38100446554), Android + Release Artifacts ✅ incl. runtime evidence (38100446555) |
+
+## 1b. Head of this round's first green verification (`3aacdf6c`)
+
+
 
 | Item | Value | How it was read |
 | --- | --- | --- |
 | Repository | `huangdi97/pet-life-intelligence` | `git remote -v` |
 | Working branch | `feat/r2p3d-r3-render-truth-ui-closure` | `git branch --show-current` |
-| Remote branch HEAD | `3aacdf6cfabd105f18b9197ce65d8981a15a48f4` | `git ls-remote origin refs/heads/...` |
-| Local HEAD | `3aacdf6cfabd105f18b9197ce65d8981a15a48f4` | `git rev-parse HEAD` |
-| PR #2 | `state=OPEN`, `isDraft=false`, `mergedAt=null`, base `main`, head = remote branch HEAD | `gh pr view 2 --json …` |
+| Remote branch HEAD at that verification | `3aacdf6cfabd105f18b9197ce65d8981a15a48f4` | `git ls-remote origin refs/heads/...` |
+| Local HEAD at that verification | `3aacdf6cfabd105f18b9197ce65d8981a15a48f4` | `git rev-parse HEAD` |
+| PR #2 | `state=OPEN`, `isDraft=false`, `mergedAt=null`, base `main`; its `headRefOid` always equals the live branch head (re-checked after every push) | `gh pr view 2 --json …` |
 | `main` | `2069d8a8c8b4df9752f7c65fb3ddaad831100010` — untouched by this agent | `git ls-remote origin refs/heads/main` |
 | Tags | 16 refs before and after this round (none created/modified) | `git ls-remote --tags origin` |
 | Releases | none created | `gh release list` |

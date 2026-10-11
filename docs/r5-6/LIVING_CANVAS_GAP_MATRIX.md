@@ -113,3 +113,13 @@
 2. **External — real individual 3D asset**: `3D_ASSET_QUALITY = BLOCKED_BY_SOURCE_ASSET`.
 3. **External — Mini native screenshots**: `EXTERNAL_BLOCKED`.
 4. **Pending human — visual acceptance** of the whole set: `HUMAN_VISUAL_ACCEPTANCE = PENDING`.
+5. **P2 — Pet switching across an app restart (observed, needs a product decision)**: on the
+   local emulator, relaunching the demo app while the **secondary** pet was the persisted
+   current pet and then sending `pli-demo://nav?screen=today&pet=<primary>` did not move the
+   living stage back to the primary pet within ~20 s — the stage kept republishing the
+   secondary pet's manifest (`petId` mismatch reported by the capture run). CI is unaffected
+   because it always installs fresh; the in-app switch (`pli.multipet.switch.<id>`) and the
+   primary→secondary direction both work in the same runs. The evidence tooling now detects and
+   waits for this instead of failing late, but the transition behaviour itself is a real
+   multi-pet identity question for the owner/design authority. Evidence: repeated local run log
+   + `ANDROID_RUNTIME_EVIDENCE.md` §2.

@@ -138,6 +138,32 @@ needed there and the Windows-first PowerShell wrapper remains untouched.
 | Full local capture on the API-36 emulator after the change | **exit 0**, 71 evidence files, `capture-manifest.json` `source_head = checkout_head = 3aacdf6c…` |
 | Hosted CI | re-run recorded in `FINAL_CLOSURE_REPORT.md` |
 
+## Commit 4 — `fix(android-evidence): poll the Life View mode rail inside the bounded surface wait`
+
+- Run 38095816809 failed with
+  `CaptureError: Life View primary mode rail is missing from the real Android viewport`
+  although the parent commit passed the same gate: the surface poll waited only for
+  `pli.lifeview.identity`, while `pli.lifeview.modebar` mounts afterwards.
+- `capture_surface()` now polls (same 12-attempt budget) until the root **and**, for Life
+  View, the mode rail are present. The rail stays mandatory, its bounds are still parsed,
+  and it still has to be ≥44px visible; a failure now reports `observed_ui_ids`.
+- Verified: hosted Android runtime-evidence job green at `fc334c63`
+  (run https://github.com/huangdi97/pet-life-intelligence/actions/runs/38097949218).
+
+## Commit 5 — `fix(android-evidence): require the requested pet's runtime manifest before accepting a Today frame`
+
+- Observed on a **repeated local run**: the app was relaunched with the secondary pet still
+  persisted, the primary-pet select loop broke out on the *previous* pet's Today surface, and
+  the run failed later with
+  `required rigged RUNTIME 3D manifest unavailable for pet <primary> … observed petId=<secondary>`.
+- The loop already re-issued the deterministic demo deep link; it simply never checked which
+  pet the stage had republished.
+- Added `Android.peek_runtime_manifest()` (non-raising read) and both select loops now keep
+  polling/re-issuing until the published manifest belongs to the requested pet, within the
+  existing bounded budget. No product gate changed and the app is untouched.
+- Verified: local capture `exit 0` from a clean app state; hosted Android runtime-evidence job
+  green at `1be8888e` (run https://github.com/huangdi97/pet-life-intelligence/actions/runs/38100446555).
+
 ## Not changed (deliberately)
 
 - Owner five-tab IA, page hierarchy and visual system: no rewrite. The tab label `我的`

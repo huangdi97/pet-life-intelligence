@@ -12,6 +12,7 @@
 | Item | Value |
 | --- | --- |
 | Code head with full green CI + attached artifacts | `3aacdf6cfabd105f18b9197ce65d8981a15a48f4` |
+| Final branch head after the follow-up evidence fixes | `1be8888efc…` — CI/OpenAPI/Android all **success** (runs 38100446633 / 38100446554 / 38100446555); its Android runtime-evidence job is green too. Only evidence tooling and docs changed after `3aacdf6`; the app tree is identical |
 | CI | https://github.com/huangdi97/pet-life-intelligence/actions/runs/38088783213 — Backend, Frontend, Blind Visual Contract, Playwright all **PASS** |
 | OpenAPI sync | run 38088783712 — **PASS** |
 | Android + Release Artifacts | run 38088783190 — APK, Web standalone, **runtime evidence all PASS** |
