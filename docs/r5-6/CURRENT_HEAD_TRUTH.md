@@ -6,8 +6,8 @@
 > Invariants kept: `NO_VISION_MODEL_USED = TRUE`, `HUMAN_VISUAL_ACCEPTANCE = PENDING`,
 > `REAL_DEVICE_HUMAN_REVIEW = PENDING`.
 
-| Commits pushed by this agent | `a03295c7` (evidence recovery + diagnostics), `3aacdf6c` (v10 time-window test), `253ffa55` (UTF-8 decode + §13 deliverable set), `fc334c63` (Life View mode-rail poll), `1be8888e` (requested-pet manifest before accepting a Today frame) |
-| Final branch head | `1be8888e…` — CI ✅ (run 38100446633), OpenAPI ✅ (38100446554), Android + Release Artifacts ✅ incl. runtime evidence (38100446555) |
+| Commits pushed by this agent | `a03295c7` (evidence recovery + diagnostics), `3aacdf6c` (v10 time-window test), `253ffa55` (UTF-8 decode + §13 deliverable set), `fc334c63` (Life View mode-rail poll), `1be8888e` (requested-pet manifest before accepting a Today frame), `87eec64d` (docs sync), `e5d38e80` (no two identical Twin Review view frames) |
+| Final branch head | `e5d38e80f647d8d42c2c32e347a3922bf0685d77` — CI ✅ (run 38108483530), OpenAPI ✅ (38108483529), Android + Release Artifacts ✅ incl. runtime evidence (38108483572); artifacts `pli-mobile-apk` id 11690916840, `pli-web-standalone` id 11691215951, `r5-6-android-runtime-evidence` id 11690821647 (none expired), APK sha256 `c81dd474c7b414d87fa57acf33ac3d3b8ec91f2e1c2332a17e4d27f11fca1892` |
 
 ## 1b. Head of this round's first green verification (`3aacdf6c`)
 
