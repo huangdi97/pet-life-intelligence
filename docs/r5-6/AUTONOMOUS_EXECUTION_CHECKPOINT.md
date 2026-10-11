@@ -43,6 +43,7 @@ None of these touch the repository; all are host-side and reversible.
 | `ninja: manifest 'build.ninja' still dirty after 100 tries` (expo-av) | project path contains spaces | build from a **space-free copy** of the source |
 | Gradle release variant died silently in `:app:checkReleaseAarMetadata` | `react-android-0.74.5-release.aar` (151 MB) + `hermes-android-0.74.5-release.aar` (65 MB) were absent from the local cache and Gradle's own download of them never completed | seed `C:\plibuild\rn-local-repo\com\facebook\react\…` from Maven Central (AAR + POM) and add that file repo to the throw-away copy's `build.gradle`; `--offline` is the fastest way to prove which artifact is missing |
 | Junction `C:\plirepo` fixed CMake but broke bundling | pnpm/Node resolve the physical path → "different roots" | used a real copy instead of a junction |
+| Running the Playwright suite locally rewrote **tracked** evidence screenshots | some functional specs capture into `artifacts/r2p/playwright/` and `artifacts/r2p3d/web/`, which are committed files | restore them before committing anything: `git checkout -- artifacts/r2p/playwright artifacts/r2p3d/web` (never commit the new renders over the historical evidence) |
 
 Recovery commands (run one after another to rebuild the whole local evidence stack):
 
