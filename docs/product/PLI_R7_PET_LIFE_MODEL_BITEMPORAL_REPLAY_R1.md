@@ -36,3 +36,7 @@ The product distinction is not another activity dashboard. A pet has a continuou
 ## Next R7 implementation gates
 
 A. Backend: unit + integration PASS, OpenAPI deterministic sync, security & idempotency not weakened. B. Android: historical Life View consumes `life-replay` and allows comparison of both perspectives, while every shown fact retains source/time. C. Historical media: original artifact identities and permissions; no synthetic thumbnail replacing missing evidence. D. Explainable signals: compare recorded personal baseline over aligned clock windows with explicit sample count, missingness, thresholds and uncertainty; no disease inference. E. Owner review of real device before declaring UI visually accepted.
+
+## Android integration (R7-R2)
+
+Android LifeView date scope now calls the R7 endpoint with a source-preserving selector `现有记录 / 当时所知`. The fetch result is bound to pet ID, selected day and knowledge perspective; late responses cannot render another pet's facts. Web/Mini still use the legacy date route; no parity claim is made until their independent evidence. Physical-device and visual gates remain PENDING.

@@ -1698,6 +1698,17 @@ def test_life_view_places_the_pet_before_advanced_time_filters() -> None:
     assert 'testID="pli.lifeview.time.date-input"' in life
 
 
+def test_android_life_replay_has_pet_scoped_truthful_dual_perspective() -> None:
+    life = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    api = read("services/api/app/api/routes/events.py")
+    assert 'type ReplayPerspective = "verified_now" | "as_known_then";' in life
+    assert '/life-replay?date=${selectedDate}&perspective=${replayPerspective}' in life
+    assert "replayScopeKey === scopeKey" in life
+    assert 'testID="pli.lifeview.replay.perspective"' in life
+    assert "当时所知" in life and "现有记录" in life
+    assert '@router.get("/pets/{pet_id}/life-replay")' in api
+
+
 def test_living_hero_preserves_a_pet_scoped_first_paint_fallback() -> None:
     """A ready manifest is not equivalent to a visible Android first frame."""
     stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
@@ -2002,7 +2013,7 @@ def test_life_view_time_scrubber_is_truthful_across_owner_clients() -> None:
     for source in (mobile, web, mini):
         for label in ("现在", "今天", "7天", "30天", "某一天"):
             assert label in source
-        assert "/today?date=" in source
+        assert ("/life-replay?date=" if source is mobile else "/today?date=") in source
         assert "/events?limit=200" in source
         assert "activated <= dayEnd" in source
         assert "retired >= dayStart" in source

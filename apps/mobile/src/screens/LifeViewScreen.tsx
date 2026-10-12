@@ -40,6 +40,14 @@ interface BaselineRow {
 }
 
 type TimeScope = "now" | "today" | "7d" | "30d" | "date";
+type ReplayPerspective = "verified_now" | "as_known_then";
+interface LifeReplayMeta {
+  perspective: ReplayPerspective;
+  knowledge_cutoff: string;
+  truth_note: string;
+  exclusions: { retracted: number; superseded: number; reported_later: number };
+  model_status: string;
+}
 interface HistoricalVisualModel {
   version: number;
   status: string;
@@ -80,6 +88,9 @@ export function LifeViewScreen() {
   const [mode, setMode] = useState<LivingMode>("now");
   const [timeScope, setTimeScope] = useState<TimeScope>(requestedDate ? "date" : "now");
   const [selectedDate, setSelectedDate] = useState(() => requestedDate ?? new Date().toISOString().slice(0, 10));
+  const [replayPerspective, setReplayPerspective] = useState<ReplayPerspective>("verified_now");
+  const [rawReplay, setRawReplay] = useState<LifeReplayMeta | null>(null);
+  const [replayScopeKey, setReplayScopeKey] = useState<string | null>(null);
   const [loadedScopeKey, setLoadedScopeKey] = useState<string | null>(null);
   const [historyPetId, setHistoryPetId] = useState<string | null>(null);
   const [historyModels, setHistoryModels] = useState<HistoricalVisualModel[]>([]);
@@ -101,7 +112,7 @@ export function LifeViewScreen() {
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   const scopeKey = pet?.id
-    ? `${pet.id}:${timeScope}:${timeScope === "date" ? selectedDate : ""}`
+    ? `${pet.id}:${timeScope}:${timeScope === "date" ? `${selectedDate}:${replayPerspective}` : ""}`
     : "";
   const currentFactScope = timeScope === "now" || timeScope === "today";
   const stagePet = currentFactScope
@@ -113,6 +124,7 @@ export function LifeViewScreen() {
   // synchronously while React switches selected identity, before fetch effects.
   const scoped = !!pet?.id && loadedScopeKey === scopeKey;
   const today = scoped ? rawToday : null;
+  const replay = scoped && replayScopeKey === scopeKey ? rawReplay : null;
   const error = scoped ? rawError : false;
   const detail = detailPetId === pet?.id ? rawDetail : null;
   const baseline = baselinePetId === pet?.id ? rawBaseline : [];
@@ -132,13 +144,17 @@ export function LifeViewScreen() {
     const targetScopeKey = scopeKey;
     let alive = true;
     setToday(null);
+    setRawReplay(null);
+    setReplayScopeKey(null);
     setError(false);
     setDetail(null);
 
-    const loadEvents = async (): Promise<{ events: LifeEvent[] }> => {
+    const loadEvents = async (): Promise<{ events: LifeEvent[]; replay?: LifeReplayMeta }> => {
       if (timeScope === "date") {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) return { events: [] };
-        return api.get<{ events: LifeEvent[] }>(`/pets/${targetPetId}/today?date=${selectedDate}`);
+        return api.get<{ events: LifeEvent[] } & LifeReplayMeta>(
+          `/pets/${targetPetId}/life-replay?date=${selectedDate}&perspective=${replayPerspective}`,
+        ).then((response) => ({ events: response.events, replay: response }));
       }
       if (timeScope === "7d" || timeScope === "30d") {
         const days = timeScope === "7d" ? 7 : 30;
@@ -158,6 +174,8 @@ export function LifeViewScreen() {
       .then((r) => {
         if (!alive) return;
         setToday(r);
+        setRawReplay(r.replay ?? null);
+        setReplayScopeKey(r.replay ? targetScopeKey : null);
         setError(false);
         setLoadedScopeKey(targetScopeKey);
       })
@@ -170,7 +188,7 @@ export function LifeViewScreen() {
     return () => {
       alive = false;
     };
-  }, [pet?.id, scopeKey, timeScope, selectedDate]);
+  }, [pet?.id, scopeKey, timeScope, selectedDate, replayPerspective]);
 
   useEffect(() => {
     if (!pet?.id) return;
@@ -537,6 +555,33 @@ export function LifeViewScreen() {
           </View>
         ) : null}
 
+        {timeScope === "date" ? (
+          <View style={styles.replayPanel} testID="pli.lifeview.replay.perspective">
+            <Text style={styles.replayTitle}>这一天的记录，按什么时间看？</Text>
+            <View style={styles.replayControls}>
+              {([
+                ["verified_now", "现有记录"],
+                ["as_known_then", "当时所知"],
+              ] as const).map(([value, label]) => (
+                <Pressable
+                  key={value}
+                  accessibilityRole="button"
+                  testID={`pli.lifeview.replay.${value}`}
+                  accessibilityState={{ selected: replayPerspective === value }}
+                  onPress={() => setReplayPerspective(value)}
+                  style={[styles.replayChip, replayPerspective === value && styles.replayChipActive]}
+                >
+                  <Text style={[styles.replayChipText, replayPerspective === value && styles.replayChipTextActive]}>{label}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={styles.replayNote}>
+              {error ? "这一天的记录暂时无法读取；不会用模拟数据补齐。"
+                : replay?.truth_note ?? "只回放有来源的生活事件，记录时间与发生时间会分别核验。"}
+            </Text>
+          </View>
+        ) : null}
+
         {displayTwin ? (
         <View testID="pli.lifeview.control.zoom" style={styles.controlRow} accessibilityLabel="3D 视图控制">
           <Pressable accessibilityRole="button" onPress={() => viewerRef.current?.zoomOut()} style={styles.controlBtn}>
@@ -722,6 +767,14 @@ const styles = StyleSheet.create({
   dateRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s2, flexDirection: "row", alignItems: "center", gap: SPACE.s2 },
   dateLabel: { fontSize: TYPE.sm, color: COLORS.textTertiary },
   dateInput: { flex: 1, minHeight: 44, borderRadius: 16, paddingHorizontal: SPACE.s3, backgroundColor: COLORS.surfaceRaised, color: COLORS.textPrimary },
+  replayPanel: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3, gap: SPACE.s2, padding: SPACE.s3, borderRadius: 16, backgroundColor: COLORS.surfaceRaised },
+  replayTitle: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary },
+  replayControls: { flexDirection: "row", gap: SPACE.s2 },
+  replayChip: { minHeight: 44, paddingHorizontal: SPACE.s3, borderRadius: 22, justifyContent: "center", alignItems: "center", backgroundColor: COLORS.brandSoft },
+  replayChipActive: { backgroundColor: COLORS.brandPrimaryDeep },
+  replayChipText: { color: COLORS.textSecondary, fontSize: TYPE.sm },
+  replayChipTextActive: { color: COLORS.textInverse, fontWeight: "700" },
+  replayNote: { color: COLORS.textSecondary, fontSize: TYPE.caption, lineHeight: 18 },
   historyTruth: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3, flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2, padding: SPACE.s3, borderRadius: 18, backgroundColor: COLORS.surfaceRaised },
   historyTruthText: { flex: 1, fontSize: TYPE.sm, lineHeight: 20, color: COLORS.textSecondary },
   panel: { marginHorizontal: SPACE.s4, marginTop: SPACE.s4 },

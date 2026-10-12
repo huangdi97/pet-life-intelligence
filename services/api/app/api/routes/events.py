@@ -267,13 +267,20 @@ async def life_replay(
         actors = _actor_names_map(list((await db.execute(
             select(User).where(User.id.in_(actor_ids))
         )).scalars().all()))
+    serialized = _serialize(projection.events, actors)
+    if perspective == "as_known_then":
+        # Later withdrawal cannot retroactively appear in an earlier knowledge view.
+        for source_event in serialized:
+            withdrawn = source_event["retracted_at"]
+            if withdrawn and datetime.fromisoformat(withdrawn) >= cutoff:
+                source_event["retracted_at"] = None
     return {
         "pet_id": str(pet.id),
         "date": date.isoformat(),
         "perspective": perspective,
         "time_policy": "CST_UTC_PLUS_08_FALLBACK",
         "knowledge_cutoff": cutoff.isoformat(),
-        "events": _serialize(projection.events, actors),
+        "events": serialized,
         "count": len(projection.events),
         "event_counts": projection.event_counts,
         "provenance_counts": projection.provenance_counts,
