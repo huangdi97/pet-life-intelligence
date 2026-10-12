@@ -1571,6 +1571,40 @@
               "default": "verified_now",
               "title": "Perspective"
             }
+          },
+          {
+            "name": "day_start_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Day Start At"
+            }
+          },
+          {
+            "name": "day_end_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Day End At"
+            }
           }
         ],
         "responses": {
