@@ -155,7 +155,7 @@ function Tabs() {
     >
       <Tab.Screen name="Today" component={TodayScreen} options={{ tabBarLabel: "今天" }} />
       <Tab.Screen name="Timeline" component={TimelineScreen} options={{ tabBarLabel: "时间线" }} />
-      <Tab.Screen name="Pet" component={PetScreen} options={{ tabBarLabel: current?.name ?? "宠物" }} />
+      <Tab.Screen name="Pet" component={PetScreen} options={{ tabBarLabel: "宠物" }} />
       <Tab.Screen name="Assistant" component={AssistantScreen} options={{ tabBarLabel: "助手" }} />
       <Tab.Screen name="Me" component={MeScreen} options={{ tabBarLabel: "我的" }} />
     </Tab.Navigator>
