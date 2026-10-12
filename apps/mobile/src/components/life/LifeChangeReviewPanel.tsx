@@ -59,19 +59,21 @@ const METRIC_UNIT: Record<LifeMetric, string> = {
 // Keep machine event identity/provenance intact while showing useful Chinese
 // labels to the pet owner. The accessibility label has the FULL immutable ID;
 // the short one in the visual row is only a compact reading aid.
-const ownerEventType = (type: string): string => ({
+const EVENT_LABELS: Record<string, string> = {
   "daily.walk": "散步",
   "daily.meal": "进食",
   "daily.sleep": "睡眠",
   "daily.play": "玩耍",
-}[type] ?? "生活记录");
-const ownerSourceType = (source: string): string => ({
+};
+const SOURCE_LABELS: Record<string, string> = {
   "OWNER_REPORTED": "主人记录",
   "CAREGIVER_REPORTED": "照护者记录",
   "DEVICE_DERIVED": "设备记录",
   "PROFESSIONAL_CONFIRMED": "专业人员确认",
   "LAB_CONFIRMED": "检测机构确认",
-}[source] ?? "其他来源");
+};
+const ownerEventType = (type: string): string => EVENT_LABELS[type] ?? "生活记录";
+const ownerSourceType = (source: string): string => SOURCE_LABELS[source] ?? "其他来源";
 
 export function LifeChangeReviewPanel({
   petId, change, onRecord,
