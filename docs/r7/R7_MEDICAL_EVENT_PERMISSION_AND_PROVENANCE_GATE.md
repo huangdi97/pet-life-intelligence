@@ -1,0 +1,26 @@
+# R7: Medical event privacy & trusted provenance
+
+**Scope:** implementation on PR #2 only, Android first, no main/Release/baseline/visual promotions.
+
+## Confirmed vulnerability in the prior version
+
+- `health.event_opened` stores `chief_complaint` directly in a `LifeEvent.payload`.
+- Domain health endpoints require medical:read/medical:write; generic LifeEvent list, single-event, Today and Life Replay originally checked only daily:read.
+- A short-lived caregiver delegated daily:read could read medical payloads, even without medical:read.
+- Generic daily:write could also append an event classified as clinical, and untrusted caller-provided source/provenance values were not restricted to owner/caregiver reports.
+
+## Code-level mitigation
+
+1. `MEDICAL_EVENT_TYPES` is calculated from canonical `EVENT_REGISTRY` domains health and medication, including nonprefix types such as `ai.observation`.
+2. Every generic event reading surface checks user capabilities. For daily-only readers, filter sensitive records in SQL **before pagination and serialization**, and on both the day event query and any following correction-chain queries. Exact sensitive event ID requires medical:read.
+3. Manual generic event writers cannot write health/medication domain event types. They must use specialized domain APIs enforcing medical:write, clinical schema and audits.
+4. Manual event writes may claim only OWNER_REPORTED/CAREGIVER_REPORTED, and must not override `provenance_level` to imply professional, lab, AI, device or system verification. Trusted internal adapters retain validated high-level source types.
+5. Integration regressions verify a daily-only caregiver can read normal life events and append their own daily event, but cannot see a clinical complaint in `events`, `today`, `life-replay`, filtered list or direct ID.
+
+## Remaining product-security boundaries
+
+- The source label OWNER_REPORTED versus CAREGIVER_REPORTED needs server-side role attribution; today it is still client-selected within those two trusted-low categories.
+- Free-text diary and nonclinical domain entries may themselves contain sensitive details; finer-grained consent and data classification will require their own policy.
+- Multi-domain event correction chains and artifact-backed clinical media demand an additional privacy audit.
+- Android runtime must be checked on a real emulator/phone with daily-only and medical-readable profiles.
+- `NO_VISION_MODEL_USED = TRUE` · `HUMAN_VISUAL_ACCEPTANCE = PENDING`.
