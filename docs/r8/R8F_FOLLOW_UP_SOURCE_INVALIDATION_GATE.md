@@ -26,3 +26,7 @@ Android must display the new effective state and avoid prompting a stale Case as
 ## R8F Android owner experience
 
 The Android Today LifeChangeReviewPanel now distinguishes a saved owner decision from valid follow-up observation evidence. When the API returns `FOLLOW_UP_EVIDENCE_INVALIDATED`, an explicit warm warning appears: the old feedback remains preserved, its cited observation has since been withdrawn/corrected, and a new real observation is required before concluding anything. Existing `补充真实观察` QuickLog stays reachable. This is only source/UI wiring until exact-HEAD runtime and human visual gates succeed.
+
+## R8F owner navigation refresh
+
+Android Today now refetches current pet-scoped Today, baseline hint and Review list when its screen regains focus after QuickLog/other owner flows. The first focus is already served by initial `petId` fetching; it is not needlessly double-loaded. This prevents a successfully recorded post-Case observation (or correction/retraction made in another screen) from leaving the old explanatory Review visible until app restart. The 3D/WebView bootstrap identity key is untouched; true on-device behavior still requires same-HEAD Android runtime evidence.

@@ -41,3 +41,16 @@ def test_owner_review_marks_withdrawn_followup_source_without_erasing_history():
     assert "FOLLOW_UP_EVIDENCE_INVALIDATED" in backend
     assert "related_sources_valid" in backend
     assert "follow_up_source_valid" in backend
+
+
+def test_today_refetches_source_scoped_owner_review_after_quicklog_return():
+    """The feedback loop must not depend on restarting Today or changing pets."""
+    today = read("apps/mobile/src/screens/TodayScreen.tsx")
+    quicklog = read("apps/mobile/src/screens/QuickLogScreen.tsx")
+    assert 'import { useFocusEffect, useNavigation }' in today
+    assert "const hasHadFocus = useRef(false)" in today
+    assert "useFocusEffect(useCallback(() => {" in today
+    assert "setRefreshCounter((counter) => counter + 1)" in today
+    assert "petId, refreshCounter]" in today
+    assert 'navigation.goBack()' in quicklog
+    assert "linkedCase" in quicklog and "RECORD_OBSERVATION" in quicklog

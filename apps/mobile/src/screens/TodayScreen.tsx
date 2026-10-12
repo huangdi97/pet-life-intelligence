@@ -7,10 +7,10 @@
  * action + light entries → life stream preview. All copy derives from real API
  * facts; nothing invents mood or health state.
  */
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { api, type HealthEventRow, type Task } from "../api";
@@ -95,6 +95,17 @@ export function TodayScreen() {
   const [rawLoading, setLoading] = useState(true);
   const [rawCachedAt, setCachedAt] = useState<number | null>(null);
   const [refreshCounter, setRefreshCounter] = useState(0);
+  const hasHadFocus = useRef(false);
+  // Today remains mounted below QuickLog in the owner navigation stack.
+  // Returning after a real observation/review must reload source-backed
+  // evidence. First focus is covered by the initial petId fetch already.
+  useFocusEffect(useCallback(() => {
+    if (hasHadFocus.current) {
+      setRefreshCounter((counter) => counter + 1);
+    } else {
+      hasHadFocus.current = true;
+    }
+  }, []));
 
   const isOwnData = petId !== null && loadedPetId === petId;
   const today = isOwnData ? rawToday : null;
