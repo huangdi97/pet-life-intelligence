@@ -1,5 +1,7 @@
 """v1.0 final-extras tests (PLI-030/034/048/081)."""
 
+import asyncio
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from tests.conftest import auth
@@ -192,3 +194,92 @@ def test_missing_today_is_unknown_not_a_false_100_percent_decline(client, seeded
     assert "未知" in metric["comparison"]
     assert "零" in metric["fact"]
     assert body["status"] == "INSUFFICIENT"
+
+
+def test_personal_baseline_uses_life_replay_corrections_not_obsolete_events(client, seeded):
+    """A corrected walk must not be counted twice or kept in the old baseline."""
+    from app.core.db import get_session_factory
+    from app.domain import enums
+    from app.services.eventlog import create_life_event
+
+    owner = seeded["owner_id"]
+    created = client.post(
+        "/api/v1/pets",
+        json={"name": "Correction Truth Pet", "species": "dog"},
+        headers=auth(owner),
+    )
+    assert created.status_code == 201, created.text
+    pet = created.json()["id"]
+    midnight = datetime.now(timezone(timedelta(hours=8))).replace(
+        hour=0, minute=0, second=0, microsecond=0,
+    )
+    for days_back in (1, 2, 3):
+        response = client.post(
+            f"/api/v1/pets/{pet}/events",
+            json={"event_type": "daily.walk",
+                  "payload": {"duration_minutes": 30},
+                  "occurred_at": (midnight - timedelta(days=days_back)).isoformat()},
+            headers=auth(owner),
+        )
+        assert response.status_code == 201, response.text
+    initial = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk",
+              "payload": {"duration_minutes": 90},
+              "occurred_at": midnight.isoformat()},
+        headers=auth(owner),
+    )
+    assert initial.status_code == 201, initial.text
+    old_id = initial.json()["event_id"]
+    recompute = client.post(
+        f"/api/v1/pets/{pet}/baseline/recompute?window_days=14",
+        json={}, headers=auth(owner),
+    )
+    assert recompute.status_code == 201, recompute.text
+
+    async def correct_and_commit():
+        async with get_session_factory()() as db:
+            corrected, _ = await create_life_event(
+                db,
+                pet_id=uuid.UUID(pet),
+                event_type="daily.walk",
+                payload={"duration_minutes": 20},
+                actor_id=uuid.UUID(owner),
+                occurred_at=midnight,
+                source_type=enums.SourceType.OWNER_REPORTED,
+                supersedes_event_id=uuid.UUID(old_id),
+            )
+            await db.commit()
+            return str(corrected.id)
+
+    new_id = asyncio.run(correct_and_commit())
+    today = client.get(f"/api/v1/pets/{pet}/today", headers=auth(owner))
+    hint = client.get(f"/api/v1/pets/{pet}/abnormal-day-hint", headers=auth(owner))
+    assert today.status_code == 200 and hint.status_code == 200
+    current_walk_ids = [
+        item["event_id"] for item in today.json()["events"]
+        if item["event_type"] == "daily.walk"
+    ]
+    assert new_id in current_walk_ids and old_id not in current_walk_ids
+    walk = next(
+        row for row in hint.json()["explanations"]
+        if row["metric"] == "walk_minutes_per_day"
+    )
+    assert walk["current_recorded"] is True
+    assert walk["current_event_ids"] == [new_id]
+    assert walk["current_value"] == 20
+    assert walk["sample_count"] == 3
+    assert walk["same_time_baseline"] == 30
+
+    retracted = client.post(f"/api/v1/events/{new_id}/retract", headers=auth(owner))
+    assert retracted.status_code == 200
+    after = client.get(f"/api/v1/pets/{pet}/abnormal-day-hint", headers=auth(owner))
+    assert after.status_code == 200
+    corrected_walk = next(
+        row for row in after.json()["explanations"]
+        if row["metric"] == "walk_minutes_per_day"
+    )
+    assert corrected_walk["current_recorded"] is False
+    assert corrected_walk["current_event_ids"] == []
+    assert corrected_walk["deviation_percent"] is None
+    assert corrected_walk["direction"] == "INSUFFICIENT"

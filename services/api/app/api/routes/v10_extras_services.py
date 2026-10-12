@@ -14,6 +14,7 @@ from app.domain import enums
 from app.models import BehaviorEvent, LifeEvent
 from app.services import permissions as perm
 from app.services.eventlog import create_notification
+from app.services.life_replay import RECORD_FACT_SOURCES, project_life_replay
 
 router = APIRouter(tags=["v10-extras"])
 
@@ -157,17 +158,45 @@ async def abnormal_day_hint(pet_id: uuid.UUID, db: DBSession,
 
         window_days = max(3, int(baseline.window_days or 14))
         history_start = day_start - timedelta(days=window_days)
-        rows = (
+        raw_metric_events = list((
             await db.execute(
                 select(LifeEvent).where(
                     LifeEvent.pet_id == pet.id,
                     LifeEvent.event_type == spec["event_type"],
                     LifeEvent.occurred_at >= history_start,
                     LifeEvent.occurred_at < day_end,
-                    LifeEvent.retracted_at.is_(None),
-                ).order_by(LifeEvent.occurred_at.asc())
+                )
             )
-        ).scalars().all()
+        ).scalars().all())
+        # A later correction may occur outside this historical window or
+        # change event type. Check its original-event link, not merely the
+        # original row's retracted_at: Today/Life Replay already interpret
+        # supersession as replacing the earlier recorded fact.
+        superseders: list[LifeEvent] = []
+        if raw_metric_events:
+            superseders = list((
+                await db.execute(
+                    select(LifeEvent).where(
+                        LifeEvent.pet_id == pet.id,
+                        LifeEvent.supersedes_event_id.in_(
+                            [event.id for event in raw_metric_events]
+                        ),
+                        LifeEvent.recorded_at < now.astimezone(timezone.utc),
+                    )
+                )
+            ).scalars().all())
+        projection = project_life_replay(
+            [*raw_metric_events, *superseders],
+            pet_id=pet.id,
+            day_start=history_start,
+            day_end=day_end,
+            knowledge_cutoff=now.astimezone(timezone.utc),
+        )
+        rows = [
+            event for event in projection.events
+            if event.event_type == spec["event_type"]
+            and event.source_type in RECORD_FACT_SOURCES
+        ]
 
         today_events: list[LifeEvent] = []
         by_day: dict[object, list[LifeEvent]] = {}
