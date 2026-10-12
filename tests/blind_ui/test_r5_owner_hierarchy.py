@@ -154,7 +154,7 @@ def test_mobile_primary_navigation_is_exactly_five_owner_destinations() -> None:
     assert source.count('<Tab.Screen name=') == 5
     for name in ("Today", "Timeline", "Pet", "Assistant", "Me"):
         assert f'<Tab.Screen name="{name}"' in source
-    for label in ("今天", "时间线", "助手", "我的"):
+    for label in ("今天", "时间线", "宠物", "助手", "我的"):
         assert f'tabBarLabel: "{label}"' in source
 
 
