@@ -52,24 +52,46 @@ def test_sleep_quick_log_and_today_counts(client, seeded):
 
 def test_baseline_deterministic(client, seeded):
     """trimmed_mean_v1: with 4 samples drops min and max → deterministic."""
-    owner, coco = seeded["owner_id"], seeded["coco_id"]
-    at = NOW - timedelta(days=1)
+    owner = seeded["owner_id"]
+    created = client.post(
+        "/api/v1/pets", json={"name": "Baseline Deterministic Dog", "species": "dog"},
+        headers=auth(owner),
+    )
+    assert created.status_code == 201, created.text
+    pet = created.json()["id"]
+    # Own fixture with exactly two ALREADY OCCURRED local calendar days.
+    # Do not depend on seeded Coco's fixed 10:00 AM walk, which is a FUTURE
+    # event when CI runs between midnight and 10:00 in the product timezone.
+    local_midnight = datetime.now(timezone(timedelta(hours=8))).replace(
+        hour=0, minute=0, second=0, microsecond=0,
+    )
+    yesterday = local_midnight - timedelta(days=1)
     for minutes in (30, 10, 50, 70):
-        client.post(f"/api/v1/pets/{coco}/events",
-                    json={"event_type": "daily.walk",
-                          "payload": {"duration_minutes": minutes},
-                          "occurred_at": (at + timedelta(minutes=minutes)).isoformat()},
-                    headers=auth(owner))
-    r = client.post(f"/api/v1/pets/{coco}/baseline/recompute?window_days=14",
+        r = client.post(
+            f"/api/v1/pets/{pet}/events",
+            json={"event_type": "daily.walk",
+                  "payload": {"duration_minutes": minutes},
+                  "occurred_at": (yesterday + timedelta(hours=8, minutes=minutes)).isoformat()},
+            headers=auth(owner),
+        )
+        assert r.status_code == 201, r.text
+    today = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 30},
+              "occurred_at": local_midnight.isoformat()},
+        headers=auth(owner),
+    )
+    assert today.status_code == 201, today.text
+    r = client.post(f"/api/v1/pets/{pet}/baseline/recompute?window_days=14",
                     json={}, headers=auth(owner))
     assert r.status_code == 201, r.text
     walk = r.json()["baselines"]["walk_minutes_per_day"]
     assert walk is not None
-    # per-day sums: yesterday 30+10+50+70=160, today (seeded) 30 → mean = 95
-    # (< 4 daily samples so no trimming at the day level)
+    # Per-day sums: yesterday 30+10+50+70=160, today 30 -> mean=95.
+    # No future activity or extra seeded-pet observation participates.
     assert walk["value"] == 95.0
     assert walk["samples"] == 2
-    got = client.get(f"/api/v1/pets/{coco}/baseline", headers=auth(owner)).json()
+    got = client.get(f"/api/v1/pets/{pet}/baseline", headers=auth(owner)).json()
     walk_row = next(b for b in got if b["metric"] == "walk_minutes_per_day")
     assert walk_row["unit"] == "分钟"
 
