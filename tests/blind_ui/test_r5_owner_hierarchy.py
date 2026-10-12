@@ -1725,9 +1725,9 @@ def test_living_hero_preserves_a_pet_scoped_first_paint_fallback() -> None:
     """A ready manifest is not equivalent to a visible Android first frame."""
     stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
     today = read("apps/mobile/src/screens/TodayScreen.tsx")
-    assert "paintReadyKey !== visualKey" in stage
-    assert 'const pet3d = renderStatus?.key === visualKey' in stage
-    assert 'onStatus={(status) => setRenderStatus({ key: visualKey, status })}' in stage
+    assert "paintReadyKey !== viewerKey" in stage
+    assert 'const pet3d = renderStatus?.key === viewerKey' in stage
+    assert 'onStatus={(status) => setRenderStatus({ key: viewerKey, status })}' in stage
     assert 'testID={`pli.${variant}.pet-boot-fallback`}' in stage
     assert 'spec={photoUri ? { mode: "photo", uri: photoUri } : spec}' in stage
     assert "headline={undefined}" in today
