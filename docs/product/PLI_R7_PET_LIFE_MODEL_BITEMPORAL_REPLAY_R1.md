@@ -44,3 +44,7 @@ Android LifeView date scope now calls the R7 endpoint with a source-preserving s
 ## Today alignment (R7-R3)
 
 Legacy `GET /pets/{id}/today` now reuses the same per-pet current-truth event projection, while retaining its existing JSON shape and the existing `today.viewed` telemetry write. Retracted, superseded, or future events are not treated as current-day observations. The integer count of a source event is **not a health judgement**; zero because nothing is recorded remains *unknown*, not `normal`. This eliminates contradictory event counts between Android Today and Life Replay. 
+
+## R7-R4 · historic visual truth boundary
+
+Until per-pet timezone support exists, the historical Twin version selector must use the **same explicit UTC+08 day boundary** as the historical event API, rather than the device timezone. A Twin's activation interval alone cannot prove it was *recorded/known* to the owner at that time: the `as_known_then` perspective therefore hides unverified historical 3D. The historical 3D pose stays neutral `Idle`, never a fabricated recreation of a walk or play event. This is deliberately distinct from real owner-sourced motion reconstruction, which is not implemented.

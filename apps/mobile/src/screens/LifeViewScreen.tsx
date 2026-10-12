@@ -268,10 +268,10 @@ export function LifeViewScreen() {
   const historicalTwin = useMemo<HistoricalTwin | null>(() => {
     if (timeScope !== "date" || historyPetId !== pet?.id || historyState !== "ready") return null;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) return null;
-    // Interpret the owner's selected calendar day in the device's local timezone;
-    // a fixed UTC+08 offset can assign a Twin version to the wrong day abroad.
-    const dayStart = new Date(`${selectedDate}T00:00:00`).getTime();
-    const dayEnd = new Date(`${selectedDate}T23:59:59.999`).getTime();
+    // The historic visual version must share the UTC+08 day boundary used by
+    // /today and /life-replay, regardless of the phone's timezone.
+    const dayStart = new Date(`${selectedDate}T00:00:00+08:00`).getTime();
+    const dayEnd = dayStart + 24 * 60 * 60 * 1000 - 1;
     const candidates = historyModels
       .filter((model) => {
         const descriptor = model.artifact_map?.twin_descriptor;
@@ -294,10 +294,13 @@ export function LifeViewScreen() {
     };
   }, [timeScope, selectedDate, historyPetId, historyState, historyModels, pet?.id]);
 
+  // Recorded knowledge of an old 3D version is not independently timestamped.
+  // Under as-known-then, suppress it rather than imply its earlier existence.
+  const asKnownThen = timeScope === "date" && replayPerspective === "as_known_then";
   const displayTwin =
     timeScope === "now" || timeScope === "today"
       ? twin
-      : timeScope === "date"
+      : timeScope === "date" && !asKnownThen
         ? historicalTwin
         : null;
   const historicalRange = timeScope === "7d" || timeScope === "30d";
@@ -439,7 +442,9 @@ export function LifeViewScreen() {
         : `${pet?.name ?? "宠物"}今天安安静静的。`;
   const scopeModelStatus =
     timeScope === "date"
-      ? historyState === "loading"
+      ? asKnownThen
+        ? "当时所知 · 只回放记录，不推断历史 3D"
+        : historyState === "loading"
         ? "历史 3D 版本读取中"
         : historyState === "error"
           ? "历史 3D 版本暂不可用"
@@ -508,7 +513,7 @@ export function LifeViewScreen() {
             sourceMediaCount={displayTwin?.observedRegions.length ?? 0}
             frameTarget={0.54}
             viewerRef={viewerRef}
-            pose={displayTwin ? representativePose : null}
+            pose={displayTwin ? (timeScope === "date" ? "Idle" : representativePose) : null}
           />
         </View>
 
@@ -701,8 +706,10 @@ export function LifeViewScreen() {
               <Ionicons name="cube-outline" size={18} color={COLORS.textTertiary} />
               <Text style={styles.panelText}>
                 {timeScope === "date"
-                  ? historicalTwin
-                    ? `这一天使用当时有效的第 ${historicalTwin.version} 版 3D 形象；不会使用后来版本替代。`
+                  ? asKnownThen
+                    ? "当时所知只回放彼时已经记录的事件；没有足够建模记录时间证据，不展示历史 3D。"
+                    : historicalTwin
+                      ? `这一天使用当时有效的第 ${historicalTwin.version} 版 3D 形象；不会使用后来版本替代。`
                     : "这一天没有可确认的历史 3D 版本；不会用现在的样子补画过去。"
                   : historicalRange
                     ? "该时间范围跨越多个日期，不使用当前 3D 形象代表整个历史区间。"

@@ -1698,6 +1698,15 @@ def test_life_view_places_the_pet_before_advanced_time_filters() -> None:
     assert 'testID="pli.lifeview.time.date-input"' in life
 
 
+def test_android_life_replay_does_not_reenact_historical_pose_or_backdate_3d() -> None:
+    life = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    assert 'const dayStart = new Date(`${selectedDate}T00:00:00+08:00`).getTime();' in life
+    assert 'const asKnownThen = timeScope === "date" && replayPerspective === "as_known_then";' in life
+    assert 'timeScope === "date" && !asKnownThen' in life
+    assert 'pose={displayTwin ? (timeScope === "date" ? "Idle" : representativePose) : null}' in life
+    assert "当时所知 · 只回放记录，不推断历史 3D" in life
+
+
 def test_android_life_replay_has_pet_scoped_truthful_dual_perspective() -> None:
     life = read("apps/mobile/src/screens/LifeViewScreen.tsx")
     api = read("services/api/app/api/routes/events.py")
