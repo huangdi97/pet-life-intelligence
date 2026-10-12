@@ -16,6 +16,8 @@ export interface NotableRecordedChange {
   sample_count: number;
   notable: boolean;
   current_recorded?: boolean;
+  current_event_ids?: string[];
+  historical_event_ids?: string[];
 }
 
 interface LifeCase {
@@ -88,6 +90,13 @@ export function LifeChangeReviewPanel({
   const [evidence, setEvidence] = useState<EvidenceEvent[] | null>(null);
   const [evidenceError, setEvidenceError] = useState<string | null>(null);
   const [showEvidence, setShowEvidence] = useState(false);
+  // Values alone do not identify a LifeChangeCase. A different day's
+  // 20-minute walk can have the same 90-minute historical baseline, but is
+  // NOT the old Case's frozen source evidence. Match immutable event IDs.
+  const sourceIdsKey = [
+    ...(change.current_event_ids ?? []),
+    ...(change.historical_event_ids ?? []),
+  ].sort().join("|");
 
   useEffect(() => {
     let alive = true;
@@ -98,16 +107,21 @@ export function LifeChangeReviewPanel({
     api.get<{ cases: LifeCase[] }>(`/pets/${petId}/life-change-cases`)
       .then((result) => {
         if (!alive) return;
+        const sourceIds = new Set(sourceIdsKey.split("|").filter(Boolean));
         const matched = result.cases.find((c) =>
+          c.pet_id === petId &&
           c.metric === change.metric && c.source_valid &&
           c.current_value === change.current_value &&
-          c.baseline_value === change.same_time_baseline,
+          c.baseline_value === change.same_time_baseline &&
+          sourceIds.size > 0 &&
+          c.evidence_event_ids.length === sourceIds.size &&
+          c.evidence_event_ids.every((id) => sourceIds.has(id)),
         );
         if (matched) setRecord(matched);
       })
       .catch(() => { /* No old Case required to show the owner invitation. */ });
     return () => { alive = false; };
-  }, [petId, change.metric, change.current_value, change.same_time_baseline]);
+  }, [petId, change.metric, change.current_value, change.same_time_baseline, sourceIdsKey]);
 
   const create = async () => {
     if (loading) return;

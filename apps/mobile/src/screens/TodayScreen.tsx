@@ -50,6 +50,7 @@ interface DayHintExplanation {
   current_value: number;
   current_recorded?: boolean;
   current_event_ids?: string[];
+  historical_event_ids?: string[];
   same_time_baseline: number | null;
   sample_count: number;
   window_days: number;
@@ -349,7 +350,10 @@ export function TodayScreen() {
             </View>
             {petId && notableChange ? (
               <LifeChangeReviewPanel
-                key={`${petId}:${notableChange.metric}`}
+                key={`${petId}:${notableChange.metric}:${[
+                  ...(notableChange.current_event_ids ?? []),
+                  ...(notableChange.historical_event_ids ?? []),
+                ].sort().join("|")}`}
                 petId={petId}
                 change={notableChange}
                 onRecord={(caseId, metric) => stackNav.navigate("QuickLog", {
