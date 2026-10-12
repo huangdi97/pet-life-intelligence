@@ -2392,3 +2392,19 @@ def test_r8_android_runtime_evidence_requires_real_owner_taps_and_persisted_foll
     assert '"api-truth.json"' in script
     assert '"all_actions_from_real_android_ui": True' in script
     assert "vision_model_used" in script
+
+
+def test_second_pet_recreates_webview_with_bounded_native_recovery() -> None:
+    """A stale first-pet WebView must never certify the next animal's stage."""
+    living = read("apps/mobile/src/components/life/PetLivingStage.tsx")
+    capture = read("scripts/r5-6/capture-android-final.py")
+    assert 'const viewerKey = `${visualKey}:attempt-${viewerAttempt}`;' in living
+    assert "<Pet3DViewer key={viewerKey}" in living
+    assert 'onStatus={(status) => setRenderStatus({ key: viewerKey, status })}' in living
+    assert 'paintReadyKey !== viewerKey' in living
+    assert 'if (viewerAttempt < 2)' in living
+    assert 'setRenderStatus({ key: viewerKey, status: "failed" })' in living
+    assert 'secondary_today_before_manifest.png' in capture
+    assert 'retries=55' in capture
+    assert 'expected_pet_id=secondary_id' in capture
+    assert 'expected_stage_role="today"' in capture

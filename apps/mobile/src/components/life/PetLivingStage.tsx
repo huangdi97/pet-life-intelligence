@@ -107,14 +107,19 @@ export function PetLivingStage({
   const identity = pet ? resolvePet3DIdentity({ name: pet.name, species: pet.species, breed: pet.breed }) : null;
   // Prevent a stale WebView status for pet A from unlocking pet B's visual.
   const visualKey = [pet?.id ?? "none", twin?.version ?? "demo", variant, stageRole ?? variant, frameTarget, sourceMediaCount, view ?? "ambient"].join(":");
-  const pet3d = renderStatus?.key === visualKey ? renderStatus.status : "boot";
+  // WebView bootstrap can stall after a long QuickLog/owner review flow or a
+  // second-pet switch. A changing child WebView key alone leaves this wrapper's
+  // bridge state alive; remount the ENTIRE Pet3DViewer at a new pet/attempt.
+  const [viewerRetry, setViewerRetry] = useState<{ key: string; attempt: number }>({ key: "", attempt: 0 });
+  const viewerAttempt = viewerRetry.key === visualKey ? viewerRetry.attempt : 0;
+  const viewerKey = `${visualKey}:attempt-${viewerAttempt}`;
+  const pet3d = renderStatus?.key === viewerKey ? renderStatus.status : "boot";
   useEffect(() => {
     if (pet3d !== "ready") return;
-    // The manifest can precede a composited frame: keep truthful media present
-    // during the first-paint interval. No sleep is added to the capture gate.
-    const handle = setTimeout(() => setPaintReadyKey(visualKey), 1100);
+    // A successful bridge readiness report still needs a first-paint interval.
+    const handle = setTimeout(() => setPaintReadyKey(viewerKey), 1100);
     return () => clearTimeout(handle);
-  }, [pet3d, visualKey]);
+  }, [pet3d, viewerKey]);
   // R4.2: the stage is a warm living reality field (today/pet/life) or a
   // neutral identity studio (review). The 3D page paints its own themed
   // surface, so the host card must never flip to a dark viewer.
@@ -129,6 +134,20 @@ export function PetLivingStage({
   const explicitPhotoChoice = photoView && photoView.petId === pet?.id ? photoView.enabled : null;
   const showPhoto = Boolean(photoUri && (explicitPhotoChoice ?? photoFirstByDefault));
   const use3d = canShow3d && !showPhoto;
+  useEffect(() => {
+    if (!use3d || pet3d !== "boot") return;
+    // Bounded recovery for a native WebView that was mounted but never emitted
+    // its ready message. Every attempt MUST still publish a real rigged runtime
+    // manifest; this does not turn a fallback into an accepted 3D render.
+    const handle = setTimeout(() => {
+      if (viewerAttempt < 2) {
+        setViewerRetry({ key: visualKey, attempt: viewerAttempt + 1 });
+      } else {
+        setRenderStatus({ key: viewerKey, status: "failed" });
+      }
+    }, 22000);
+    return () => clearTimeout(handle);
+  }, [use3d, pet3d, viewerAttempt, viewerKey, visualKey]);
   const reviewStudio = variant === "review";
   const stageTheme = reviewStudio ? ("review" as const) : ("living" as const);
   const height = compact ? 470 : HEIGHTS[variant];
@@ -156,8 +175,8 @@ export function PetLivingStage({
   const runtimeStageRole = stageRole ?? variant;
   const petLayer = use3d ? (
     <View style={{ width: petWidth, height: Math.round(petWidth * 1.12) }}>
-      <Pet3DViewer ref={viewerRef} identity={identity} displayName={pet?.name ?? undefined} demoTwin={demo} twin={twin} pose={pose} interactive={interactive} frameTarget={frameTarget} view={view} stageRole={runtimeStageRole} stageTheme={stageTheme} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={(status) => setRenderStatus({ key: visualKey, status })} />
-      {paintReadyKey !== visualKey ? (
+      <Pet3DViewer key={viewerKey} ref={viewerRef} identity={identity} displayName={pet?.name ?? undefined} demoTwin={demo} twin={twin} pose={pose} interactive={interactive} frameTarget={frameTarget} view={view} stageRole={runtimeStageRole} stageTheme={stageTheme} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={(status) => setRenderStatus({ key: viewerKey, status })} />
+      {paintReadyKey !== viewerKey ? (
         <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.bootFallback} testID={`pli.${variant}.pet-boot-fallback`}>
           <PetStageRenderer pet={pet} spec={photoUri ? { mode: "photo", uri: photoUri } : spec} width={petWidth} />
         </View>

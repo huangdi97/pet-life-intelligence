@@ -1137,7 +1137,13 @@ def main() -> None:
             "secondary pet sanity capture is not on Today after deterministic retries; "
             f"observed_ui_ids={observed_ids}"
         )
+    # This is a TRUE bootstrap gate: the secondary RN identity and WebView
+    # node alone are not sufficient. Preserve a diagnostic before waiting for
+    # the actual rigged pet-scoped RUNTIME manifest, including bounded native
+    # WebView restart (not a forged or previous-pet manifest).
+    android.screenshot(secondary_today / "secondary_today_before_manifest.png")
     secondary_manifest = android.read_runtime_manifest(
+        retries=55,
         expected_pet_id=secondary_id,
         expected_stage_role="today",
     )
