@@ -21,3 +21,7 @@ At `1a47ef2ced8615a6959e2b13a3c7c457a87f8c06`:
 ## Release boundary
 
 No merge to main, no tag, no Release, no visual reference acceptance. `NO_VISION_MODEL_USED = TRUE`, `HUMAN_VISUAL_ACCEPTANCE = PENDING`, individual pet 3D source evidence still absent.
+
+## R8D owner source-expansion gate root cause (run 38241236170)
+
+The newer 1bde46f8 Android runtime failed at `R8 native raw-source expansion did not show real event identity`, **before reaching the second pet**. The diagnostic `raw-sources.png` and `source-ui.xml` explicitly showed the owner tapped and expanded the panel. A case had five source rows; the phone's first fold exposed only three rows, while the script immediately asserted the fourth, most recent seeded ID. This was a clipped accessibility viewport, NOT an absent source in the API. The fix keeps strict provenance: Android owner text becomes human-readable Chinese, each row exposes its **full immutable event ID** through accessibility labels/resource ids, and UIAutomator swipes until *all four* seeded full IDs were observed in the real native hierarchy. It saves both initial and completed source screenshots. No API-only substitute or weakened source assertion is allowed.

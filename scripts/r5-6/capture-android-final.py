@@ -943,10 +943,33 @@ def capture_r8_owner_review(
     case_ui = find_control("pli.r8.owner-review.sources", "case-ui.xml")
     android.tap(case_ui, "pli.r8.owner-review.sources", "id")
     source_ui = find_control("pli.r8.owner-review.evidence", "source-ui.xml")
+    android.screenshot(directory / "raw-sources-initial.png")
+    # React Native/Android exposes only VISIBLE children of a long source
+    # panel. A fixed first-fold dump misses the fourth source even when the
+    # panel is genuinely expanded. Swipe through it and require EVERY seeded
+    # event's FULL immutable ID in the real UIAutomator resource-id or
+    # accessibility description; do not substitute API data for native proof.
+    observed_source_ids: set[str] = set()
+    for attempt in range(16):
+        nodes = ET.fromstring(source_ui).iter("node")
+        accessible = " ".join(
+            f'{n.attrib.get("text", "")} {n.attrib.get("content-desc", "")} {n.attrib.get("resource-id", "")}'
+            for n in nodes
+        )
+        observed_source_ids.update(
+            event_id for event_id in planted_ids if event_id in accessible
+        )
+        if all(event_id in observed_source_ids for event_id in planted_ids):
+            break
+        android.shell("input", "swipe", "765", "1850", "765", "1120", "320")
+        time.sleep(0.7)
+        source_ui = android.dump_xml(directory / f"source-scroll-{attempt + 1}.xml")
+    if any(event_id not in observed_source_ids for event_id in planted_ids):
+        raise CaptureError(
+            "R8 native raw-source list did not expose every real full event identity "
+            f"after scrolling; observed={len(observed_source_ids)}/{len(planted_ids)}"
+        )
     android.screenshot(directory / "raw-sources.png")
-    source_text = " ".join(n.attrib.get("text", "") for n in ET.fromstring(source_ui).iter("node"))
-    if planted_ids[-1][:8] not in source_text:
-        raise CaptureError("R8 native raw-source expansion did not show real event identity")
 
     later_ui = find_control("pli.r8.owner-review.later", "later-ui.xml")
     android.tap(later_ui, "pli.r8.owner-review.later", "id")

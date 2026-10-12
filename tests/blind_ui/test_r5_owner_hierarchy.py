@@ -2408,3 +2408,17 @@ def test_second_pet_recreates_webview_with_bounded_native_recovery() -> None:
     assert 'retries=55' in capture
     assert 'expected_pet_id=secondary_id' in capture
     assert 'expected_stage_role="today"' in capture
+
+
+def test_r8_source_rows_keep_full_event_id_accessible_and_scrollable() -> None:
+    panel = read("apps/mobile/src/components/life/LifeChangeReviewPanel.tsx")
+    script = read("scripts/r5-6/capture-android-final.py")
+    assert 'testID={`pli.r8.owner-review.event.${e.event_id}`}' in panel
+    assert "完整事件标识 ${e.event_id}" in panel
+    for translation in ("主人记录", "照护者记录", "设备记录", "散步", "睡眠"):
+        assert translation in panel
+    assert "observed_source_ids: set[str] = set()" in script
+    assert "all(event_id in observed_source_ids for event_id in planted_ids)" in script
+    assert '"raw-sources-initial.png"' in script
+    assert '"raw-sources.png"' in script
+    assert 'f"source-scroll-{attempt + 1}.xml"' in script
