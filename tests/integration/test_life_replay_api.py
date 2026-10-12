@@ -61,3 +61,34 @@ def test_life_replay_rejects_future_as_recorded_history(client, seeded):
     future = (datetime.now(TZ) + timedelta(days=3)).date().isoformat()
     r = client.get(f"/api/v1/pets/{pet}/life-replay?date={future}", headers=auth(owner))
     assert r.status_code == 422
+
+
+def test_today_and_current_replay_agree_after_retraction(client, seeded):
+    owner, pet = seeded["owner_id"], seeded["coco_id"]
+    at = datetime.now(TZ) - timedelta(minutes=1)
+    date = at.date().isoformat()
+    created = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 13},
+              "occurred_at": at.isoformat()},
+        headers=auth(owner),
+    )
+    assert created.status_code == 201, created.text
+    event_id = created.json()["event_id"]
+    before = client.get(f"/api/v1/pets/{pet}/today?date={date}", headers=auth(owner))
+    assert before.status_code == 200
+    assert event_id in [e["event_id"] for e in before.json()["events"]]
+    count_before = before.json()["event_counts"]["daily.walk"]
+    retract = client.post(f"/api/v1/events/{event_id}/retract", headers=auth(owner))
+    assert retract.status_code == 200
+
+    today = client.get(f"/api/v1/pets/{pet}/today?date={date}", headers=auth(owner))
+    replay = client.get(
+        f"/api/v1/pets/{pet}/life-replay?date={date}&perspective=verified_now",
+        headers=auth(owner),
+    )
+    assert today.status_code == 200 and replay.status_code == 200
+    assert today.json()["event_counts"]["daily.walk"] == count_before - 1
+    assert event_id not in [e["event_id"] for e in today.json()["events"]]
+    assert event_id not in [e["event_id"] for e in replay.json()["events"]]
+    assert today.json()["event_counts"]["daily.walk"] == replay.json()["event_counts"].get("daily.walk", 0)

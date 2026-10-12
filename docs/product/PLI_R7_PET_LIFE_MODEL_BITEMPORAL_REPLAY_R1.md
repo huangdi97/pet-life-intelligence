@@ -40,3 +40,7 @@ A. Backend: unit + integration PASS, OpenAPI deterministic sync, security & idem
 ## Android integration (R7-R2)
 
 Android LifeView date scope now calls the R7 endpoint with a source-preserving selector `现有记录 / 当时所知`. The fetch result is bound to pet ID, selected day and knowledge perspective; late responses cannot render another pet's facts. Web/Mini still use the legacy date route; no parity claim is made until their independent evidence. Physical-device and visual gates remain PENDING.
+
+## Today alignment (R7-R3)
+
+Legacy `GET /pets/{id}/today` now reuses the same per-pet current-truth event projection, while retaining its existing JSON shape and the existing `today.viewed` telemetry write. Retracted, superseded, or future events are not treated as current-day observations. The integer count of a source event is **not a health judgement**; zero because nothing is recorded remains *unknown*, not `normal`. This eliminates contradictory event counts between Android Today and Life Replay. 

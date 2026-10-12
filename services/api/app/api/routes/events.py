@@ -194,6 +194,45 @@ async def retract_event(
 
 # --- R7 Life Replay (bitemporal owner-readable view) -----------------------
 
+async def _replay_day_candidates(
+    db: DBSession, pet_id: uuid.UUID, start: datetime, end: datetime,
+    cutoff: datetime,
+) -> list[LifeEvent]:
+    """Load every occurrence in a day and its later correction chain.
+
+    Shared by /today and /life-replay to prevent different retraction,
+    supersession or future-event counting rules on the owner surfaces.
+    """
+    from app.core.errors import ValidationFailed
+
+    day_events = list((await db.execute(
+        select(LifeEvent).where(
+            LifeEvent.pet_id == pet_id,
+            LifeEvent.occurred_at >= start,
+            LifeEvent.occurred_at < end,
+            LifeEvent.event_type.not_in(["today.viewed", "audit.accessed"]),
+        )
+    )).scalars().all())
+    events_by_id = {row.id: row for row in day_events}
+    pending = set(events_by_id)
+    for _ in range(32):
+        if not pending:
+            break
+        superseders = list((await db.execute(
+            select(LifeEvent).where(
+                LifeEvent.pet_id == pet_id,
+                LifeEvent.supersedes_event_id.in_(pending),
+                LifeEvent.recorded_at < cutoff,
+            )
+        )).scalars().all())
+        pending = {row.id for row in superseders if row.id not in events_by_id}
+        for row in superseders:
+            events_by_id[row.id] = row
+    else:
+        raise ValidationFailed("Correction chain exceeds the supported replay depth.")
+    return list(events_by_id.values())
+
+
 @router.get("/pets/{pet_id}/life-replay")
 async def life_replay(
     pet_id: uuid.UUID,
@@ -220,41 +259,9 @@ async def life_replay(
     if start > now:
         raise ValidationFailed("Life Replay cannot present a future day as recorded history.")
     cutoff = min(end, now) if perspective == "as_known_then" else now
-    # Query the complete local day; late-recorded rows are needed to explain
-    # why a historical knowledge view contains fewer facts. This is a bounded
-    # *day* query, not a full-household timeline scan.
-    day_events = list((await db.execute(
-        select(LifeEvent).where(
-            LifeEvent.pet_id == pet.id,
-            LifeEvent.occurred_at >= start,
-            LifeEvent.occurred_at < end,
-        )
-    )).scalars().all())
-
-    # Follow corrections beyond this day. A correction may have been entered
-    # tomorrow, or corrected again; its ID must suppress the old fact without
-    # replaying its new-day event on the requested historic day.
-    events_by_id = {row.id: row for row in day_events}
-    pending = set(events_by_id)
-    for _ in range(32):
-        if not pending:
-            break
-        superseders = list((await db.execute(
-            select(LifeEvent).where(
-                LifeEvent.pet_id == pet.id,
-                LifeEvent.supersedes_event_id.in_(pending),
-                LifeEvent.recorded_at < cutoff,
-            )
-        )).scalars().all())
-        pending = {row.id for row in superseders if row.id not in events_by_id}
-        for row in superseders:
-            events_by_id[row.id] = row
-    else:
-        # Never issue a possibly incomplete "verified" snapshot as complete.
-        raise ValidationFailed("Correction chain exceeds the supported replay depth.")
-
+    candidates = await _replay_day_candidates(db, pet.id, start, end, cutoff)
     projection = project_life_replay(
-        list(events_by_id.values()),
+        candidates,
         pet_id=pet.id,
         day_start=start,
         day_end=end,
@@ -312,18 +319,13 @@ async def today(
     day_start = datetime(day.year, day.month, day.day, tzinfo=tz)
     day_end = day_start + timedelta(days=1)
 
-    rows = (
-        await db.execute(
-            select(LifeEvent)
-            .where(
-                LifeEvent.pet_id == pet.id,
-                LifeEvent.occurred_at >= day_start,
-                LifeEvent.occurred_at < day_end,
-                LifeEvent.event_type.not_in(["audit.accessed"]),
-            )
-            .order_by(LifeEvent.occurred_at.desc())
-        )
-    ).scalars().all()
+    now = datetime.now(UTC)
+    candidates = await _replay_day_candidates(db, pet.id, day_start, day_end, now)
+    projection = project_life_replay(
+        candidates, pet_id=pet.id, day_start=day_start, day_end=day_end,
+        knowledge_cutoff=now,
+    )
+    rows = projection.events
     actors = {}
     if rows:
         users = (
@@ -336,9 +338,9 @@ async def today(
         t for t in EVENT_REGISTRY if t.startswith("daily.")
     )
     counts: dict[str, int] = {t: 0 for t in daily_types}
-    for e in rows:
-        if e.event_type in counts:
-            counts[e.event_type] += 1
+    for event_type, count in projection.event_counts.items():
+        if event_type in counts:
+            counts[event_type] = count
 
     await create_life_event(
         db, pet_id=pet.id, event_type="today.viewed",
