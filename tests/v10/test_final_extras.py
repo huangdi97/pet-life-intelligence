@@ -283,3 +283,74 @@ def test_personal_baseline_uses_life_replay_corrections_not_obsolete_events(clie
     assert corrected_walk["current_event_ids"] == []
     assert corrected_walk["deviation_percent"] is None
     assert corrected_walk["direction"] == "INSUFFICIENT"
+
+
+def test_stored_baseline_and_care_feedback_obey_corrected_event_truth(client, seeded):
+    """The persisted baseline and seven-day feedback cannot retain a replaced event."""
+    from app.core.db import get_session_factory
+    from app.domain import enums
+    from app.services.eventlog import create_life_event
+
+    owner = seeded["owner_id"]
+    new_pet = client.post(
+        "/api/v1/pets", json={"name": "One Correctable Walk", "species": "dog"},
+        headers=auth(owner),
+    )
+    assert new_pet.status_code == 201, new_pet.text
+    pet = new_pet.json()["id"]
+    observed_at = datetime.now(timezone.utc) - timedelta(minutes=4)
+    recorded = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 90},
+              "occurred_at": observed_at.isoformat()},
+        headers=auth(owner),
+    )
+    assert recorded.status_code == 201, recorded.text
+    old_id = recorded.json()["event_id"]
+
+    def recompute():
+        return client.post(
+            f"/api/v1/pets/{pet}/baseline/recompute?window_days=14",
+            json={}, headers=auth(owner),
+        )
+
+    before = recompute()
+    assert before.status_code == 201, before.text
+    assert before.json()["baselines"]["walk_minutes_per_day"]["value"] == 90
+
+    async def append_correction():
+        async with get_session_factory()() as db:
+            replacement, replayed = await create_life_event(
+                db, pet_id=uuid.UUID(pet), actor_id=uuid.UUID(owner),
+                event_type="daily.walk", payload={"duration_minutes": 20},
+                occurred_at=observed_at,
+                supersedes_event_id=uuid.UUID(old_id),
+                source_type=enums.SourceType.OWNER_REPORTED,
+            )
+            assert not replayed
+            await db.commit()
+            return str(replacement.id)
+
+    new_id = asyncio.run(append_correction())
+    after = recompute()
+    assert after.status_code == 201, after.text
+    assert after.json()["baselines"]["walk_minutes_per_day"]["value"] == 20
+
+    saved = client.get(f"/api/v1/pets/{pet}/baseline", headers=auth(owner))
+    assert saved.status_code == 200
+    assert next(r for r in saved.json() if r["metric"] == "walk_minutes_per_day")["value"] == "20.0"
+
+    feedback = client.get(f"/api/v1/pets/{pet}/care-feedback", headers=auth(owner))
+    assert feedback.status_code == 200
+    walk = next(r for r in feedback.json()["feedback"] if r["event_type"] == "daily.walk")
+    assert walk["count_7d"] == 1 and walk["source_event_ids"] == [new_id]
+
+    retract = client.post(f"/api/v1/events/{new_id}/retract", headers=auth(owner))
+    assert retract.status_code == 200
+    no_facts = recompute()
+    assert no_facts.status_code == 201, no_facts.text
+    assert no_facts.json()["baselines"]["walk_minutes_per_day"] is None
+    later_baseline = client.get(f"/api/v1/pets/{pet}/baseline", headers=auth(owner))
+    assert all(r["metric"] != "walk_minutes_per_day" for r in later_baseline.json())
+    later_feedback = client.get(f"/api/v1/pets/{pet}/care-feedback", headers=auth(owner))
+    assert not any(r["event_type"] == "daily.walk" for r in later_feedback.json()["feedback"])

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
 from app.core.errors import ValidationFailed
@@ -330,25 +330,42 @@ async def abnormal_day_hint(pet_id: uuid.UUID, db: DBSession,
 async def care_feedback(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -> dict:
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
-    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    counts = (
-        await db.execute(
-            select(LifeEvent.event_type, func.count()).where(
-                LifeEvent.pet_id == pet.id,
-                LifeEvent.occurred_at >= week_ago,
-                LifeEvent.event_type.in_(["daily.meal", "daily.walk", "daily.play",
-                                          "daily.sleep"]),
-                LifeEvent.retracted_at.is_(None),
-            ).group_by(LifeEvent.event_type)
+    now = datetime.now(timezone.utc)
+    week_ago = now - timedelta(days=7)
+    observed_types = ("daily.meal", "daily.walk", "daily.play", "daily.sleep")
+    originals = list((await db.execute(
+        select(LifeEvent).where(
+            LifeEvent.pet_id == pet.id,
+            LifeEvent.occurred_at >= week_ago,
+            LifeEvent.occurred_at < now,
+            LifeEvent.event_type.in_(observed_types),
         )
-    ).all()
+    )).scalars().all())
+    successors: list[LifeEvent] = []
+    if originals:
+        successors = list((await db.execute(
+            select(LifeEvent).where(
+                LifeEvent.pet_id == pet.id,
+                LifeEvent.supersedes_event_id.in_([event.id for event in originals]),
+                LifeEvent.recorded_at < now,
+            )
+        )).scalars().all())
+    candidates = {event.id: event for event in [*originals, *successors]}
+    projection = project_life_replay(
+        list(candidates.values()), pet_id=pet.id,
+        day_start=week_ago, day_end=now, knowledge_cutoff=now,
+    )
+    event_ids: dict[str, list[str]] = {}
+    for event in projection.events:
+        if event.event_type in observed_types and event.source_type in RECORD_FACT_SOURCES:
+            event_ids.setdefault(event.event_type, []).append(str(event.id))
     feedback = [
-        {"event_type": t, "count_7d": c,
-         "status": "active" if c > 0 else "quiet"}
-        for t, c in counts
+        {"event_type": kind, "count_7d": len(ids), "status": "active",
+         "source_event_ids": ids}
+        for kind, ids in sorted(event_ids.items())
     ]
     return {"feedback": feedback,
-            "note": "轻量连续照护反馈：近 7 天记录活跃度（记录层）。"}
+            "note": "近 7 天有来源的照护记录次数；未记录不代表没有发生，且已撤回或被修正的旧版本不计入。"}
 
 
 # --- PLI-081 behavior consultation package (JSON bundle) ------------------------------
