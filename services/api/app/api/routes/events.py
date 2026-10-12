@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
-from app.core.errors import NotFound
+from app.core.errors import NotFound, PermissionDenied, ValidationFailed
 from app.domain import enums
 from app.domain.event_types import EVENT_REGISTRY
 from app.models import LifeEvent, User
@@ -18,6 +18,21 @@ from app.services.eventlog import create_life_event, write_audit
 from app.services.life_replay import project_life_replay
 
 router = APIRouter(tags=["events"])
+
+# Registry domains classify clinical sensitivity; client payloads may not.
+MEDICAL_EVENT_TYPES = frozenset(
+    name for name, definition in EVENT_REGISTRY.items()
+    if definition.domain in {"health", "medication"}
+)
+MANUAL_REPORT_SOURCES = frozenset({
+    enums.SourceType.OWNER_REPORTED,
+    enums.SourceType.CAREGIVER_REPORTED,
+})
+
+
+def _can_read_medical(capabilities: set[str]) -> bool:
+    return enums.Capability.MEDICAL_READ.value in capabilities
+
 
 
 class EventCreate(BaseModel):
@@ -91,6 +106,18 @@ async def create_event(
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_WRITE)
 
+    # Daily event authoring is not a back door to clinical events/provenance.
+    if body.event_type in MEDICAL_EVENT_TYPES:
+        raise ValidationFailed("Use dedicated medical or medication endpoints.")
+    try:
+        manual_source = enums.SourceType(body.source_type)
+    except ValueError as exc:
+        raise ValidationFailed("Unknown manual event source.") from exc
+    if manual_source not in MANUAL_REPORT_SOURCES:
+        raise ValidationFailed("Manual events cannot claim verified, device, AI or system provenance.")
+    if body.provenance_level is not None and body.provenance_level != manual_source.value:
+        raise ValidationFailed("Manual provenance must equal its source type.")
+
     event, replayed = await create_life_event(
         db,
         pet_id=pet.id,
@@ -98,7 +125,7 @@ async def create_event(
         payload=body.payload,
         actor_id=user.id,
         occurred_at=body.occurred_at,
-        source_type=enums.SourceType(body.source_type),
+        source_type=manual_source,
         provenance_level=body.provenance_level,
         source_ref=body.source_ref,
         artifact_ids=body.artifact_ids,
@@ -127,9 +154,11 @@ async def list_events(
     before: datetime | None = None,
 ) -> dict:
     pet = await perm.get_pet_or_404(db, pet_id)
-    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    capabilities = await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
 
     stmt = select(LifeEvent).where(LifeEvent.pet_id == pet.id)
+    if not _can_read_medical(capabilities):
+        stmt = stmt.where(LifeEvent.event_type.not_in(MEDICAL_EVENT_TYPES))
     if event_type:
         for t in event_type:
             if t not in EVENT_REGISTRY:
@@ -158,7 +187,9 @@ async def get_event(event_id: uuid.UUID, db: DBSession, user: CurrentUser) -> di
     if event is None:
         raise NotFound(f"Event {event_id} not found.")
     pet = await perm.get_pet_or_404(db, event.pet_id)
-    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    capabilities = await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    if event.event_type in MEDICAL_EVENT_TYPES and not _can_read_medical(capabilities):
+        raise PermissionDenied("Medical event requires medical:read.")
     actor = (
         await db.execute(select(User).where(User.id == event.actor_id))
     ).scalar_one_or_none()
@@ -196,7 +227,7 @@ async def retract_event(
 
 async def _replay_day_candidates(
     db: DBSession, pet_id: uuid.UUID, start: datetime, end: datetime,
-    cutoff: datetime,
+    cutoff: datetime, *, medical_read: bool,
 ) -> list[LifeEvent]:
     """Load every occurrence in a day and its later correction chain.
 
@@ -205,26 +236,28 @@ async def _replay_day_candidates(
     """
     from app.core.errors import ValidationFailed
 
-    day_events = list((await db.execute(
-        select(LifeEvent).where(
-            LifeEvent.pet_id == pet_id,
-            LifeEvent.occurred_at >= start,
-            LifeEvent.occurred_at < end,
-            LifeEvent.event_type.not_in(["today.viewed", "audit.accessed"]),
-        )
-    )).scalars().all())
+    stmt = select(LifeEvent).where(
+        LifeEvent.pet_id == pet_id,
+        LifeEvent.occurred_at >= start,
+        LifeEvent.occurred_at < end,
+        LifeEvent.event_type.not_in(["today.viewed", "audit.accessed"]),
+    )
+    if not medical_read:
+        stmt = stmt.where(LifeEvent.event_type.not_in(MEDICAL_EVENT_TYPES))
+    day_events = list((await db.execute(stmt)).scalars().all())
     events_by_id = {row.id: row for row in day_events}
     pending = set(events_by_id)
     for _ in range(32):
         if not pending:
             break
-        superseders = list((await db.execute(
-            select(LifeEvent).where(
-                LifeEvent.pet_id == pet_id,
-                LifeEvent.supersedes_event_id.in_(pending),
-                LifeEvent.recorded_at < cutoff,
-            )
-        )).scalars().all())
+        next_stmt = select(LifeEvent).where(
+            LifeEvent.pet_id == pet_id,
+            LifeEvent.supersedes_event_id.in_(pending),
+            LifeEvent.recorded_at < cutoff,
+        )
+        if not medical_read:
+            next_stmt = next_stmt.where(LifeEvent.event_type.not_in(MEDICAL_EVENT_TYPES))
+        superseders = list((await db.execute(next_stmt)).scalars().all())
         pending = {row.id for row in superseders if row.id not in events_by_id}
         for row in superseders:
             events_by_id[row.id] = row
@@ -253,7 +286,7 @@ async def life_replay(
     from app.core.errors import ValidationFailed
 
     pet = await perm.get_pet_or_404(db, pet_id)
-    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    capabilities = await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
     tz = timezone(timedelta(hours=8))
     if (day_start_at is None) != (day_end_at is None):
         raise ValidationFailed("Both local-day boundaries are required together.")
@@ -274,7 +307,10 @@ async def life_replay(
     if start > now:
         raise ValidationFailed("Life Replay cannot present a future day as recorded history.")
     cutoff = min(end, now) if perspective == "as_known_then" else now
-    candidates = await _replay_day_candidates(db, pet.id, start, end, cutoff)
+    candidates = await _replay_day_candidates(
+        db, pet.id, start, end, cutoff,
+        medical_read=_can_read_medical(capabilities),
+    )
     projection = project_life_replay(
         candidates,
         pet_id=pet.id,
@@ -333,14 +369,17 @@ async def today(
     date: date | None = Query(default=None),
 ) -> dict:
     pet = await perm.get_pet_or_404(db, pet_id)
-    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    capabilities = await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
     tz = timezone(timedelta(hours=8))  # pet.timezone offset for v0.1 (CST default)
     day = date or datetime.now(tz).date()
     day_start = datetime(day.year, day.month, day.day, tzinfo=tz)
     day_end = day_start + timedelta(days=1)
 
     now = datetime.now(UTC)
-    candidates = await _replay_day_candidates(db, pet.id, day_start, day_end, now)
+    candidates = await _replay_day_candidates(
+        db, pet.id, day_start, day_end, now,
+        medical_read=_can_read_medical(capabilities),
+    )
     projection = project_life_replay(
         candidates, pet_id=pet.id, day_start=day_start, day_end=day_end,
         knowledge_cutoff=now,
