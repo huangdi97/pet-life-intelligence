@@ -185,8 +185,12 @@ async def abnormal_day_hint(pet_id: uuid.UUID, db: DBSession,
                     )
                 )
             ).scalars().all())
+        # A correction with the same event type and day can appear in BOTH
+        # queries. Deduplicate by immutable LifeEvent ID before projection,
+        # otherwise the corrected duration would be counted twice.
+        candidates = {event.id: event for event in [*raw_metric_events, *superseders]}
         projection = project_life_replay(
-            [*raw_metric_events, *superseders],
+            list(candidates.values()),
             pet_id=pet.id,
             day_start=history_start,
             day_end=day_end,
