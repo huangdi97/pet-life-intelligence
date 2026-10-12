@@ -2,8 +2,7 @@
 
 import uuid
 from datetime import UTC, date, datetime, timedelta, timezone
-from typing import Literal
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Header, Query
 from pydantic import BaseModel, Field

@@ -5,7 +5,6 @@ from uuid import uuid4
 
 from app.services.life_replay import project_life_replay
 
-
 T0 = datetime(2026, 10, 1, tzinfo=UTC)
 
 
