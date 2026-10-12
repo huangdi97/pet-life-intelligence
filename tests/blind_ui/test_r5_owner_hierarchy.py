@@ -1434,7 +1434,7 @@ def test_pet_world_keeps_life_view_primary_and_management_progressive_on_web_and
 
     assert mobile.index('testID="pli.pet.entry.lifeview"') < mobile.index('title={`${pet?.name ?? "宠物"}最近`}')
     mobile_stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
-    assert "today: 440, pet: 540, life: 520" in mobile_stage
+    assert "today: 368, pet: 488, life: 520" in mobile_stage
     assert 'testID="pli.pet.management.toggle"' in mobile
     assert 'accessibilityState={{ expanded: showManagement }}' in mobile
     assert mobile.index('testID="pli.pet.management.toggle"') < mobile.index('testID="pli.pet.caregivers"')
@@ -1613,8 +1613,8 @@ def test_today_living_canvas_reserves_phone_first_fold_for_action_without_small_
     web_stage = read("apps/web/components/pet-living-stage.tsx")
     css = read("apps/web/app/globals.css")
 
-    assert "today: 440" in stage
-    assert "PET_WIDTHS" in stage and "today: 326" in stage
+    assert "today: 368" in stage
+    assert "PET_WIDTHS" in stage and "today: 290" in stage
     assert "<ChangeNarrative" in today and "compact" in today
     assert 'label="快速记录"' in today and 'compact />' in today
     assert "blockCompact" in change
@@ -1658,13 +1658,26 @@ def test_today_uses_a_compact_phone_living_canvas_without_shrinking_inspection_v
     stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
     css = read("apps/web/app/globals.css")
 
-    assert "today: 440" in stage
-    assert "pet: 540" in stage
+    assert "today: 368" in stage
+    assert "pet: 488" in stage
     assert "life: 520" in stage
     assert "petSlotToday" in stage
     assert "R7.9 Today first-fold truth" in css
     assert '[data-testid="pli.today.living-stage"].r2p-stage' in css
     assert "min-height:380px" in css
+
+
+def test_living_hero_preserves_a_pet_scoped_first_paint_fallback() -> None:
+    """A ready manifest is not equivalent to a visible Android first frame."""
+    stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
+    today = read("apps/mobile/src/screens/TodayScreen.tsx")
+    assert "paintReadyKey !== visualKey" in stage
+    assert 'const pet3d = renderStatus?.key === visualKey' in stage
+    assert 'onStatus={(status) => setRenderStatus({ key: visualKey, status })}' in stage
+    assert 'testID={`pli.${variant}.pet-boot-fallback`}' in stage
+    assert 'spec={photoUri ? { mode: "photo", uri: photoUri } : spec}' in stage
+    assert "headline={undefined}" in today
+    assert 'testID="pli.today.now-story"' in today
 
 
 def test_owner_life_view_copy_hides_model_versions_and_provider_language() -> None:

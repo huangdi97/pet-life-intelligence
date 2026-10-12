@@ -37,6 +37,7 @@ import {
   recentContext,
   timeContextText,
 } from "./today_helpers";
+import { eventTypeLabel } from "./ui_labels";
 
 type TabNav = BottomTabNavigationProp<TabParamList>;
 type StackNav = NativeStackNavigationProp<StackParamList>;
@@ -244,7 +245,7 @@ export function TodayScreen() {
     ? undefined
     : todayEvents.length === 0
       ? "今天还没有新的记录"
-      : `今天记录了 ${todayEvents.length} 件生活片段`;
+      : `最近一次 · ${eventTypeLabel(todayEvents[0].event_type)}`;
 
   const memoryRows = useMemo(() => todayEvents.slice(0, 5).map(eventRowFromEvent), [todayEvents]);
   const memoryDays: LifeStreamDay[] = memoryRows.length
@@ -298,8 +299,9 @@ export function TodayScreen() {
                   testID: `pli.today.anchor.${a.id}`,
                 }))
           }
-          headline={loading ? undefined : headline}
-          caption={loading ? undefined : recentContext(todayEvents) ?? timeContextText()}
+          // Owner media must be unobscured; today's factual narrative follows below.
+          headline={undefined}
+          caption={undefined}
           demo={DEMO_ENV || twin?.demoFixture === true}
           onPressPet={pet ? () => stackNav.navigate("LifeView") : undefined}
           twin={twin?.descriptor ?? null}
@@ -308,6 +310,12 @@ export function TodayScreen() {
           pose={twin ? representativePose ?? "Idle" : null}
         />
 
+        {pet && !loading && !error ? (
+          <View style={styles.nowStory} testID="pli.today.now-story">
+            <Text style={styles.nowStoryTitle}>{headline}</Text>
+            <Text style={styles.nowStoryContext}>{recentContext(todayEvents) ?? timeContextText()}</Text>
+          </View>
+        ) : null}
         {error && !loading ? <TodayOffline cachedAt={cachedAt} onRetry={() => setRefreshCounter((v) => v + 1)} /> : null}
 
         {loading ? (
@@ -409,6 +417,9 @@ const styles = StyleSheet.create({
   chipText: { fontSize: TYPE.sm, color: COLORS.textTertiary },
   chipActiveText: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  nowStory: { paddingHorizontal: SPACE.s5, paddingVertical: SPACE.s3, flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: SPACE.s2 },
+  nowStoryTitle: { flexShrink: 1, color: COLORS.textPrimary, fontSize: TYPE.bodyStrong, fontWeight: "700" },
+  nowStoryContext: { color: COLORS.textTertiary, fontSize: TYPE.caption },
   calmRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s1, paddingVertical: 4 },
   calmText: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 18 },
   calmMeta: { fontSize: TYPE.caption, color: COLORS.textTertiary, lineHeight: 16, marginTop: 1 },

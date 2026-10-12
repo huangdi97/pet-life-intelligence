@@ -20,8 +20,9 @@ import { PetStateAnchor, type PetAnchor } from "./PetStateAnchor";
 
 export type StageVariant = "today" | "pet" | "life" | "review";
 
-const HEIGHTS: Record<StageVariant, number> = { today: 440, pet: 540, life: 520, review: 550 };
-const PET_WIDTHS: Record<StageVariant, number> = { today: 326, pet: 388, life: 414, review: 372 };
+// R6: the animal stays prominent without using the entire first fold.
+const HEIGHTS: Record<StageVariant, number> = { today: 368, pet: 488, life: 520, review: 550 };
+const PET_WIDTHS: Record<StageVariant, number> = { today: 290, pet: 366, life: 414, review: 372 };
 
 // Today keeps the pet dominant while reserving enough first-fold room for Change → Attention → Action.\n// Pet/Life/Review remain deeper inspection canvases.\n// Life state facts belong in one quiet ribbon, not four HUD bubbles over the animal.
 
@@ -81,7 +82,9 @@ export function PetLivingStage({
   frameTarget = 0,
   onPressPet,
 }: Props) {
-  const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
+  // Never show a blank owner hero merely because the WebView has not painted yet.
+  const [renderStatus, setRenderStatus] = useState<{ key: string; status: Pet3DStatus } | null>(null);
+  const [paintReadyKey, setPaintReadyKey] = useState<string | null>(null);
   // Real owner photo must outrank the generic species glyph when no verified
   // individual 3D twin exists. The keyed value makes previous-pet media
   // invisible synchronously on the render that switches active identity.
@@ -102,6 +105,16 @@ export function PetLivingStage({
   }, [pet?.id, pet?.avatar_artifact_id]);
   const photoUri = pet?.avatar_artifact_id && avatar?.petId === pet?.id ? avatar.uri : null;
   const identity = pet ? resolvePet3DIdentity({ name: pet.name, species: pet.species, breed: pet.breed }) : null;
+  // Prevent a stale WebView status for pet A from unlocking pet B's visual.
+  const visualKey = [pet?.id ?? "none", twin?.version ?? "demo", variant, stageRole ?? variant, frameTarget, sourceMediaCount, view ?? "ambient"].join(":");
+  const pet3d = renderStatus?.key === visualKey ? renderStatus.status : "boot";
+  useEffect(() => {
+    if (pet3d !== "ready") return;
+    // The manifest can precede a composited frame: keep truthful media present
+    // during the first-paint interval. No sleep is added to the capture gate.
+    const handle = setTimeout(() => setPaintReadyKey(visualKey), 1100);
+    return () => clearTimeout(handle);
+  }, [pet3d, visualKey]);
   // R4.2: the stage is a warm living reality field (today/pet/life) or a
   // neutral identity studio (review). The 3D page paints its own themed
   // surface, so the host card must never flip to a dark viewer.
@@ -143,7 +156,12 @@ export function PetLivingStage({
   const runtimeStageRole = stageRole ?? variant;
   const petLayer = use3d ? (
     <View style={{ width: petWidth, height: Math.round(petWidth * 1.12) }}>
-      <Pet3DViewer ref={viewerRef} identity={identity} displayName={pet?.name ?? undefined} demoTwin={demo} twin={twin} pose={pose} interactive={interactive} frameTarget={frameTarget} view={view} stageRole={runtimeStageRole} stageTheme={stageTheme} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={setPet3d} />
+      <Pet3DViewer ref={viewerRef} identity={identity} displayName={pet?.name ?? undefined} demoTwin={demo} twin={twin} pose={pose} interactive={interactive} frameTarget={frameTarget} view={view} stageRole={runtimeStageRole} stageTheme={stageTheme} petId={pet?.id ?? null} sourceMediaCount={sourceMediaCount} onStatus={(status) => setRenderStatus({ key: visualKey, status })} />
+      {paintReadyKey !== visualKey ? (
+        <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.bootFallback} testID={`pli.${variant}.pet-boot-fallback`}>
+          <PetStageRenderer pet={pet} spec={photoUri ? { mode: "photo", uri: photoUri } : spec} width={petWidth} />
+        </View>
+      ) : null}
     </View>
   ) : (
     <View pointerEvents={onPressPet ? "none" : undefined}>
@@ -359,16 +377,17 @@ const styles = StyleSheet.create({
   },
   pressPet: { position: "absolute", left: 0, right: 0, bottom: 89, alignItems: "center" },
   petSlot: { position: "absolute", left: 0, right: 0, bottom: 89, alignItems: "center" },
-  petSlotToday: { bottom: 74 },
+  petSlotToday: { bottom: 48, transform: [{ translateX: 28 }] },
   petSlotLife: { bottom: 118 },
+  bootFallback: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.stageWarmBase },
   lifeRibbon: { position: "absolute", bottom: 12, left: SPACE.s4, right: SPACE.s4, flexDirection: "row", borderRadius: 21, paddingVertical: 9, backgroundColor: "#FFFEF6EC", borderWidth: StyleSheet.hairlineWidth, borderColor: "#EAF2E7" },
   lifeRibbonItem: { flex: 1, minWidth: 0 },
   photoSwitch: { position: "absolute", top: 167, right: SPACE.s4, zIndex: 11, minHeight: 36, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, borderRadius: 18, backgroundColor: "#FFFDF0E8", borderWidth: StyleSheet.hairlineWidth, borderColor: "#DDE7DB" },
   photoSwitchText: { fontSize: TYPE.caption, color: "#365F49", fontWeight: "700" },
-  head: { position: "absolute", top: SPACE.s8, left: SPACE.s6, right: SPACE.s6, flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2 },
+  head: { position: "absolute", top: SPACE.s5, left: SPACE.s5, right: SPACE.s5, flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2 },
   identityCopy: { flex: 1 },
   eyebrow: { fontSize: 12, letterSpacing: 2, fontWeight: "700", color: "#547563", marginBottom: 6 },
-  name: { fontSize: 43, fontWeight: "800", letterSpacing: -1.3, color: "#294837" },
+  name: { fontSize: 36, fontWeight: "800", letterSpacing: -1.0, color: "#294837" },
   demoChip: { backgroundColor: COLORS.surfaceOverlay, borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 3 },
   demoChipText: { fontSize: TYPE.caption, color: COLORS.textSecondary, fontWeight: "600" },
   nowBlock: { position: "absolute", left: SPACE.s6, right: SPACE.s6, top: 122 },

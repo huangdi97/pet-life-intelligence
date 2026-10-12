@@ -272,7 +272,7 @@ export function PetScreen() {
         >
           <View>
             <Text style={styles.lifeViewCtaKicker}>生命视图</Text>
-            <Text style={styles.lifeViewCtaText}>进入它的此刻、趋势与外观</Text>
+            <Text style={styles.lifeViewCtaText}>看看它的此刻、变化和生命轨迹</Text>
           </View>
           <Ionicons name="arrow-forward" size={20} color={COLORS.textInverse} />
         </Pressable>
