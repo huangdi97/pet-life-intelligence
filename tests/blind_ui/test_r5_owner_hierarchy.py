@@ -1230,7 +1230,7 @@ def test_timeline_pet_identity_precedes_the_stream_across_owner_clients() -> Non
     mini = read("apps/mini/src/pages/timeline/index.tsx")
 
     assert web.index('data-testid="pli.timeline.identity"') < web.index('<div className="v4-grid">')
-    assert '${pet.name}的时间线' in mobile
+    assert '${pet.name}的每一天' in mobile
     assert '<PetContextHeader pet={current ?? null} title="时间线"' in mini
 
 
