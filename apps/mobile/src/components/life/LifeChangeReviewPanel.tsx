@@ -1,7 +1,7 @@
 /** R8 owner-reviewed change: never a diagnosis or an automatic owner action. */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { api, humanizeError } from "../../api";
+import { ApiError, api, humanizeError } from "../../api";
 import { COLORS, SPACE, TYPE } from "../../tokens";
 
 export type LifeMetric =
@@ -47,6 +47,16 @@ interface EvidenceEvent {
 }
 
 type Decision = "FOLLOW_UP_LATER" | "NOT_RELEVANT" | "CORRECT_SOURCE";
+type ReviewPostBody = {
+  decision: Decision;
+  expected_latest_review_id: string | null;
+  idempotency_key: string;
+};
+type PendingReviewIntent = {
+  caseId: string;
+  decision: Decision;
+  payload: ReviewPostBody;
+};
 
 const METRIC_TITLE: Record<LifeMetric, string> = {
   walk_minutes_per_day: "散步记录",
@@ -91,6 +101,9 @@ export function LifeChangeReviewPanel({
   const [evidence, setEvidence] = useState<EvidenceEvent[] | null>(null);
   const [evidenceError, setEvidenceError] = useState<string | null>(null);
   const [showEvidence, setShowEvidence] = useState(false);
+  // Preserve the very same human instruction if POST succeeded but its reply
+  // was lost. A fresh optimistic token would otherwise append a second Review.
+  const pendingReview = useRef<PendingReviewIntent | null>(null);
   // Values alone do not identify a LifeChangeCase. A different day's
   // 20-minute walk can have the same 90-minute historical baseline, but is
   // NOT the old Case's frozen source evidence. Match immutable event IDs.
@@ -101,6 +114,7 @@ export function LifeChangeReviewPanel({
 
   useEffect(() => {
     let alive = true;
+    pendingReview.current = null;
     setRecord(null);
     setMessage(null);
     setEvidence(null);
@@ -143,25 +157,47 @@ export function LifeChangeReviewPanel({
 
   const review = async (decision: Decision) => {
     if (!record || loading) return;
+    const pending = pendingReview.current;
+    // After a network timeout we do not know whether the original decision
+    // persisted. Require a same-intent retry before authoring another choice.
+    if (pending && (pending.caseId !== record.case_id || pending.decision !== decision)) {
+      setMessage("上一条主人决定尚未确认，请先重试原操作，再选择新的处理方式。");
+      return;
+    }
     setLoading(true);
     setMessage(null);
     try {
-      const details = await api.get<LifeCaseDetail>(
-        `/pets/${petId}/life-change-cases/${record.case_id}`,
-      );
-      if (!details.source_valid || details.pet_id !== petId) {
-        setMessage("原始记录已经变化，请刷新后重新核对。");
-        return;
+      let payload = pending?.payload;
+      if (!payload) {
+        const details = await api.get<LifeCaseDetail>(
+          `/pets/${petId}/life-change-cases/${record.case_id}`,
+        );
+        if (!details.source_valid || details.pet_id !== petId) {
+          setMessage("原始记录已经变化，请刷新后重新核对。");
+          return;
+        }
+        const last = details.reviews[details.reviews.length - 1];
+        // Unique per Case + actor (the server's key scope) and optimistic
+        // Review predecessor. It is NOT a security credential or pet identity.
+        payload = {
+          decision,
+          expected_latest_review_id: last?.review_id ?? null,
+          idempotency_key: `r8-${decision}-${last?.review_id ?? "initial"}`,
+        };
+        pendingReview.current = { caseId: record.case_id, decision, payload };
       }
-      const last = details.reviews[details.reviews.length - 1];
       await api.post(
         `/pets/${petId}/life-change-cases/${record.case_id}/reviews`,
-        { decision, expected_latest_review_id: last?.review_id ?? null },
+        payload,
       );
       const updated = await api.get<LifeCaseDetail>(
         `/pets/${petId}/life-change-cases/${record.case_id}`,
       );
+      if (updated.pet_id !== petId || updated.case_id !== record.case_id) {
+        throw new Error("CASE_PET_MISMATCH");
+      }
       setRecord(updated);
+      pendingReview.current = null;
       setMessage(
         decision === "NOT_RELEVANT"
           ? "已记录你的判断；不代表宠物健康状态已被证明正常。"
@@ -170,6 +206,12 @@ export function LifeChangeReviewPanel({
             : "已记录稍后观察；没有自动创建医疗任务。",
       );
     } catch (e: unknown) {
+      // A server-side definitive conflict/validation/permission rejection
+      // cannot have saved this instruction. Network and 5xx outcomes CAN be
+      // ambiguous, so keep the same idempotency key for retry.
+      if (e instanceof ApiError && [400, 401, 403, 404, 409, 422].includes(e.status)) {
+        pendingReview.current = null;
+      }
       setMessage(humanizeError(e));
     } finally {
       setLoading(false);
