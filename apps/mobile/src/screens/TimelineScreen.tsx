@@ -450,11 +450,6 @@ export function TimelineScreen() {
                   </ScrollView>
         ) : null}
 
-        <View style={styles.livingLead}>
-          <Text style={styles.livingLeadTitle}>它的每一天</Text>
-          <Text style={styles.livingLeadSub}>按时间留下真实发生的事情，不需要填写更多表格才能回看。</Text>
-        </View>
-
         {error ? <InlineError message="暂时连接不上，已展示已有内容" /> : null}
 
         {loading ? (

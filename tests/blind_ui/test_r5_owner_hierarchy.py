@@ -1678,6 +1678,18 @@ def test_current_pet_selection_outlives_async_bootstrap_storage_reads() -> None:
     assert "selectedInSession.current = null" in context
 
 
+def test_life_stream_uses_local_iso_dates_not_weekday_strings_for_history_order() -> None:
+    """Chronology is a pet-life truth rule: Tue must never sort before Fri by name."""
+    utils = read("apps/mobile/src/components/timeline/lifeStreamUtils.ts")
+    timeline = read("apps/mobile/src/screens/TimelineScreen.tsx")
+    assert "export function localLifeDayKey(iso: string): string" in utils
+    assert '.sort(([a], [b]) => b.localeCompare(a))' in utils
+    assert "Date.parse(b.occurred_at) - Date.parse(a.occurred_at)" in utils
+    assert "date: key," in utils
+    assert "const key = new Date(e.occurred_at).toDateString()" not in utils
+    assert "livingLeadTitle" not in timeline.split("return (", 1)[-1] or "它的每一天</Text>" not in timeline
+
+
 def test_living_hero_preserves_a_pet_scoped_first_paint_fallback() -> None:
     """A ready manifest is not equivalent to a visible Android first frame."""
     stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")

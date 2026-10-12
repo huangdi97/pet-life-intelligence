@@ -69,26 +69,37 @@ export function eventRowFromEvent(e: LifeEvent): LifeStreamRow {
   };
 }
 
+/** Group by local calendar day, then display the most recent *actual* time first.
+ * Sorting the English `Date.toDateString()` labels alphabetically put weekdays
+ * before dates and could silently reorder a pet's life history.
+ */
+export function localLifeDayKey(iso: string): string {
+  const date = new Date(iso);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export function groupEventsByDay(events: LifeEvent[]): LifeStreamDay[] {
   const groups = new Map<string, LifeEvent[]>();
-  for (const e of events) {
-    const key = new Date(e.occurred_at).toDateString();
+  for (const event of events) {
+    const key = localLifeDayKey(event.occurred_at);
     const list = groups.get(key) ?? [];
-    list.push(e);
+    list.push(event);
     groups.set(key, list);
   }
-  const nowKey = new Date().toDateString();
+  const today = localLifeDayKey(new Date().toISOString());
   return [...groups.entries()]
-    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .sort(([a], [b]) => b.localeCompare(a))
     .map(([key, list]) => {
-      const d = new Date(key);
-      const date = list[0]?.occurred_at?.slice(0, 10);
+      const d = new Date(`${key}T12:00:00`);
       return {
         id: key,
-        date: /^\d{4}-\d{2}-\d{2}$/.test(date ?? "") ? date : undefined,
+        date: key,
         label: `${d.getMonth() + 1}月${d.getDate()}日`,
-        isToday: key === nowKey,
-        rows: list.map(eventRowFromEvent),
+        isToday: key === today,
+        rows: [...list].sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at)).map(eventRowFromEvent),
       };
     });
 }
