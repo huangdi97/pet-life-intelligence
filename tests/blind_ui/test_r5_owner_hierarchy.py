@@ -2075,7 +2075,7 @@ def test_timeline_days_open_truthful_historical_life_view_across_clients() -> No
     # Android keeps the existing local-day grouping id for presentation, but
     # carries an explicit ISO day into the historical navigation contract.
     assert "date?: string;" in android_stream
-    assert "occurred_at?.slice(0, 10)" in android_group
+    assert "localLifeDayKey(event.occurred_at)" in android_group
     assert 'onOpenDay={(date) => navigation.navigate("LifeView", { date })}' in android_timeline
     assert 'LifeView: { date?: string; anchor?: "water" | "meal" | "activity" | "sleep" } | undefined;' in android_nav
     assert 'useRoute<RouteProp<StackParamList, "LifeView">>()' in android_life
