@@ -16,7 +16,6 @@ from app.models.care import (
     ShareToken,
 )
 from app.models.events import Artifact, LifeEvent
-from app.models.life_changes import LifeChangeCase, LifeChangeReview
 from app.models.health import (
     AIInferenceLog,
     AuditEntry,
@@ -40,6 +39,7 @@ from app.models.identity import (
     Relationship,
     User,
 )
+from app.models.life_changes import LifeChangeCase, LifeChangeReview
 from app.models.pilot import PilotFeedback, PilotInviteCode, PilotOrg, PilotUserProfile
 from app.models.v02 import (  # noqa: F401 — v0.2 models register on the same metadata
     AnalyticsCounter,

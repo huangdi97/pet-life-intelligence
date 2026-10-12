@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, timezone
 
 from tests.conftest import auth, create_user
 
-
 PRODUCT_TZ = timezone(timedelta(hours=8))
 
 
