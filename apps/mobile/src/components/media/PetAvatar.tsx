@@ -45,6 +45,7 @@ export function PetAvatar({
         pet={pet}
         uri={persistedUri ?? uri ?? null}
         variant="square"
+        compactSize={size}
         radius={RADIUS.pill}
         accessibilityLabel={`${pet?.name ?? "宠物"}的头像`}
       />

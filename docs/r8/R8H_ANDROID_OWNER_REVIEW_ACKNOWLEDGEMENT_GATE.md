@@ -19,3 +19,7 @@ The R8G Android owner-review panel preserved an in-memory Case+decision+optimist
 Exact-HEAD TypeScript, blind source contracts, backend idempotency tests, real Android R8 owner review capture and full GitHub CI. A forced stale-GET / timed-out-POST physical-device fault-injection test is a separate follow-up gate. App-restart persistence of unconfirmed human intent is also separate.
 
 `NO_VISION_MODEL_USED=TRUE`; `HUMAN_VISUAL_ACCEPTANCE=PENDING`; no owner review is auto-created or rewritten.
+
+## R8H Android real-screenshot pet-tab avatar sizing (follow-on)
+
+The previously green `41b9ce3c` real Today screenshot showed the third bottom navigation pet avatar as an almost blank sage circle. Source diagnosis: `PetAvatar` constrains the parent to ~28dp while `PetMedia variant="square"` paints a 120dp frame with a 96dp fallback dog/cat glyph; clipping removes the subject. Introduce an optional exact `compactSize` only for avatar usage, scaling both the image frame and honest species fallback within the tab bounds. Other portrait/hero/timeline media variants retain their current dimensions. This addresses a demonstrated visual problem, but **a new current-HEAD emulator screenshot is required** before declaring the tab icon visibly fixed. Source-based blind tests do not replace pixel evidence or the owner's final review.
