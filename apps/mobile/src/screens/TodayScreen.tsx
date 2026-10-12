@@ -20,6 +20,7 @@ import type { StackParamList, TabParamList } from "../navigation";
 import { PetLivingStage } from "../components/life/PetLivingStage";
 import { AttentionPanel } from "../components/life/AttentionPanel";
 import { ChangeNarrative } from "../components/life/ChangeNarrative";
+import { LifeChangeReviewPanel, type LifeMetric } from "../components/life/LifeChangeReviewPanel";
 import { PrimaryAction, SecondaryAction, ActionRow } from "../components/actions/QuickAction";
 import { Skeleton } from "../components/feedback/Feedback";
 import { OpenSection } from "../components/feedback/OpenSection";
@@ -188,6 +189,12 @@ export function TodayScreen() {
     };
   }, [hint]);
 
+  const notableChange = hint?.explanations?.find(
+    (row): row is DayHintExplanation & { metric: LifeMetric } =>
+      row.notable && row.current_recorded === true && row.sample_count >= 3 &&
+      ["walk_minutes_per_day", "meal_count_per_day", "sleep_minutes_per_day"].includes(row.metric),
+  ) ?? null;
+
   const attention = useMemo(() => {
     if (healthState !== "ready") {
       return {
@@ -340,6 +347,16 @@ export function TodayScreen() {
                 compact
               />
             </View>
+            {petId && notableChange ? (
+              <LifeChangeReviewPanel
+                key={`${petId}:${notableChange.metric}`}
+                petId={petId}
+                change={notableChange}
+                onRecord={(caseId, metric) => stackNav.navigate("QuickLog", {
+                  lifeChangeCaseId: caseId, lifeChangeMetric: metric, lifeChangePetId: petId,
+                })}
+              />
+            ) : null}
             <View testID="pli.today.attention">
               {calm ? (
                 <View style={styles.calmRow}>

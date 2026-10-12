@@ -4,10 +4,11 @@
  * writes go to the same canonical endpoints as before; success/error copy is
  * user language only.
  */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -25,6 +26,10 @@ type StackNav = NativeStackNavigationProp<StackParamList>;
 export function QuickLogScreen() {
   const { pets, petId } = usePets();
   const navigation = useNavigation<StackNav>();
+  const route = useRoute<RouteProp<StackParamList, "QuickLog">>();
+  const linkedCase = route.params?.lifeChangeCaseId ?? null;
+  const linkedMetric = route.params?.lifeChangeMetric ?? null;
+  const linkedPetId = route.params?.lifeChangePetId ?? null;
   const [selected, setSelected] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [unit, setUnit] = useState("");
@@ -39,6 +44,11 @@ export function QuickLogScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
+
+  useEffect(() => {
+    const key = linkedMetric === "walk_minutes_per_day" ? "walk" : linkedMetric === "meal_count_per_day" ? "meal" : linkedMetric === "sleep_minutes_per_day" ? "sleep" : null;
+    if (key) setSelected(key);
+  }, [linkedMetric]);
 
   function pick(key: string) {
     // Medication and structured behavior records have governed domain flows.
@@ -157,6 +167,7 @@ export function QuickLogScreen() {
         payload = { text: d };
       }
 
+      let savedEventId: string | null = null;
       if (t.event_type === "diary.created") {
         await api.post(path, payload);
       } else {
@@ -168,14 +179,50 @@ export function QuickLogScreen() {
           );
           artifactIds.push(uploaded.artifact_id);
         }
-        await api.post(path, {
+        const created = await api.post<{ event_id: string }>(path, {
           event_type: t.event_type,
           payload,
           artifact_ids: artifactIds,
         });
+        savedEventId = created.event_id;
+      }
+      // The LifeEvent is successfully saved before we attempt the optional
+      // owner Review. A review failure must NEVER imply the real record failed.
+      let followupMessage = "";
+      const expectedType = linkedMetric === "walk_minutes_per_day" ? "daily.walk"
+        : linkedMetric === "meal_count_per_day" ? "daily.meal"
+          : linkedMetric === "sleep_minutes_per_day" ? "daily.sleep" : null;
+      if (linkedCase && linkedPetId === current.id) {
+        if (savedEventId && expectedType === t.event_type) {
+          try {
+            const detail = await api.get<{ source_valid: boolean; reviews: Array<{ review_id: string }> }>(
+              `/pets/${current.id}/life-change-cases/${linkedCase}`,
+            );
+            if (!detail.source_valid) {
+              followupMessage = "原始变化依据已更新，新记录已保存但尚未关联核对。";
+            } else {
+              const previous = detail.reviews[detail.reviews.length - 1];
+              await api.post(
+                `/pets/${current.id}/life-change-cases/${linkedCase}/reviews`,
+                {
+                  decision: "RECORD_OBSERVATION",
+                  related_event_ids: [savedEventId],
+                  expected_latest_review_id: previous?.review_id ?? null,
+                },
+              );
+              followupMessage = " 这条真实记录已关联到主人核对。";
+            }
+          } catch {
+            followupMessage = " 记录已保存，但核对关联未完成，请稍后查看。";
+          }
+        } else {
+          followupMessage = " 这次记录与核对指标不同，尚未关联到案例。";
+        }
+      } else if (linkedCase) {
+        followupMessage = " 当前宠物已切换，本次记录未关联此前宠物的案例。";
       }
       setSuccess(
-        `已记录${t.zh}。${t.event_type !== "diary.created" && mediaFiles.length ? ` 已绑定 ${mediaFiles.length} 张照片。` : ""}`,
+        `已记录${t.zh}。${t.event_type !== "diary.created" && mediaFiles.length ? ` 已绑定 ${mediaFiles.length} 张照片。` : ""}${followupMessage}`,
       );
       resetInputs();
       setSelected(null);
@@ -194,6 +241,11 @@ export function QuickLogScreen() {
         <PetContextHeader pet={current} title={current ? `为${current.name}记录` : "快速记录"} mediaUri={resolvePetMediaUri(current)} onPress={() => navigation.goBack()} />
       </View>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {linkedCase && linkedPetId === current?.id ? (
+          <View style={styles.feedback} testID="pli.r8.quicklog-followup">
+            <Text style={styles.noteText}>补充真实观察后才会关联到核对；保存不会自动判断健康状况。</Text>
+          </View>
+        ) : null}
         {success ? (
           <View style={styles.feedback} accessibilityLiveRegion="polite" testID="pli.quicklog.feedback">
             <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />

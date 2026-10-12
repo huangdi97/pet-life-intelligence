@@ -2356,3 +2356,23 @@ def test_historical_owner_empty_state_never_claims_unobserved_absence() -> None:
     assert 'testID="pli.lifeview.freshness"' in life
     assert 'flexDirection: "column", alignItems: "flex-start", gap: 3' in life
     assert 'verified_note = "截至目前的记录"' in evidence_script
+
+
+def test_android_r8_owner_review_requires_real_user_action_and_record_link() -> None:
+    today = read("apps/mobile/src/screens/TodayScreen.tsx")
+    panel = read("apps/mobile/src/components/life/LifeChangeReviewPanel.tsx")
+    quick = read("apps/mobile/src/screens/QuickLogScreen.tsx")
+    nav = read("apps/mobile/src/navigation.tsx")
+    assert 'testID="pli.r8.owner-review.create"' in panel
+    assert 'testID="pli.r8.owner-review.sources"' in panel
+    assert 'testID="pli.r8.owner-review.record"' in panel
+    assert "source_valid" in panel and "evidence_event_ids" in panel
+    assert 'testID="pli.r8.owner-review"' in panel
+    assert "row.notable && row.current_recorded === true && row.sample_count >= 3" in today
+    assert 'stackNav.navigate("QuickLog", {' in today
+    assert "lifeChangeCaseId?: string" in nav
+    assert 'testID="pli.r8.quicklog-followup"' in quick
+    assert 'decision: "RECORD_OBSERVATION"' in quick
+    assert "related_event_ids: [savedEventId]" in quick
+    assert "linkedPetId === current.id" in quick
+    assert "已保存，但核对关联未完成" in quick

@@ -52,7 +52,7 @@ export type TabParamList = {
 
 export type StackParamList = {
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
-  QuickLog: undefined;
+  QuickLog: { lifeChangeCaseId?: string; lifeChangeMetric?: "walk_minutes_per_day" | "meal_count_per_day" | "sleep_minutes_per_day"; lifeChangePetId?: string } | undefined;
   Notifications: undefined;
   Search: undefined;
   PetProfile: { mode: "create" | "edit" };
