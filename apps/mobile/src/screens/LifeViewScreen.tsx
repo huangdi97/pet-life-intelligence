@@ -543,7 +543,9 @@ export function LifeViewScreen() {
                 <Text style={styles.historyCoverFoot}>
                   {asKnownThen
                     ? "只展示当时已经知道的记录；没有足够证据时不还原历史形象。"
-                    : "原始事件与照片在下方；不会用现在的模型补画过去。"}
+                    : historicalRange
+                      ? "时间范围汇总不使用当前 3D 形象；原始记录与来源在下方。"
+                      : "原始事件与照片在下方；不会用现在的模型补画过去。"}
                 </Text>
               </View>
               <View style={styles.historyCoverMark} accessible={false}>
