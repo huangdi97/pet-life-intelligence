@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import UTC, date, datetime, timedelta, timezone
+from typing import Literal
 from typing import Any
 
 from fastapi import APIRouter, Header, Query
@@ -15,6 +16,7 @@ from app.domain.event_types import EVENT_REGISTRY
 from app.models import LifeEvent, User
 from app.services import permissions as perm
 from app.services.eventlog import create_life_event, write_audit
+from app.services.life_replay import project_life_replay
 
 router = APIRouter(tags=["events"])
 
@@ -189,6 +191,104 @@ async def retract_event(
     )
     await db.commit()
     return {"event_id": str(event.id), "retracted_at": event.retracted_at.isoformat()}
+
+
+# --- R7 Life Replay (bitemporal owner-readable view) -----------------------
+
+@router.get("/pets/{pet_id}/life-replay")
+async def life_replay(
+    pet_id: uuid.UUID,
+    db: DBSession,
+    user: CurrentUser,
+    date: date = Query(..., description="Local calendar day YYYY-MM-DD"),
+    perspective: Literal["verified_now", "as_known_then"] = Query(default="verified_now"),
+) -> dict:
+    """Read-only event-sourced replay. It does not invent historical 3D states.
+
+    Date uses the same fixed CST fallback as /today, pending individual-pet
+    timezone support. "as_known_then" includes only records known by that day's
+    end. "verified_now" includes later backfilled owner records and honors
+    subsequent retractions/supersession. Neither is a medical judgement.
+    """
+    from app.core.errors import ValidationFailed
+
+    pet = await perm.get_pet_or_404(db, pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    tz = timezone(timedelta(hours=8))
+    start = datetime(date.year, date.month, date.day, tzinfo=tz)
+    end = start + timedelta(days=1)
+    now = datetime.now(UTC)
+    if start > now:
+        raise ValidationFailed("Life Replay cannot present a future day as recorded history.")
+    cutoff = min(end, now) if perspective == "as_known_then" else now
+    # Query the complete local day; late-recorded rows are needed to explain
+    # why a historical knowledge view contains fewer facts. This is a bounded
+    # *day* query, not a full-household timeline scan.
+    day_events = list((await db.execute(
+        select(LifeEvent).where(
+            LifeEvent.pet_id == pet.id,
+            LifeEvent.occurred_at >= start,
+            LifeEvent.occurred_at < end,
+        )
+    )).scalars().all())
+
+    # Follow corrections beyond this day. A correction may have been entered
+    # tomorrow, or corrected again; its ID must suppress the old fact without
+    # replaying its new-day event on the requested historic day.
+    events_by_id = {row.id: row for row in day_events}
+    pending = set(events_by_id)
+    for _ in range(32):
+        if not pending:
+            break
+        superseders = list((await db.execute(
+            select(LifeEvent).where(
+                LifeEvent.pet_id == pet.id,
+                LifeEvent.supersedes_event_id.in_(pending),
+                LifeEvent.recorded_at < cutoff,
+            )
+        )).scalars().all())
+        pending = {row.id for row in superseders if row.id not in events_by_id}
+        for row in superseders:
+            events_by_id[row.id] = row
+    else:
+        # Never issue a possibly incomplete "verified" snapshot as complete.
+        raise ValidationFailed("Correction chain exceeds the supported replay depth.")
+
+    projection = project_life_replay(
+        list(events_by_id.values()),
+        pet_id=pet.id,
+        day_start=start,
+        day_end=end,
+        knowledge_cutoff=cutoff,
+    )
+    actor_ids = {row.actor_id for row in projection.events}
+    actors = {}
+    if actor_ids:
+        actors = _actor_names_map(list((await db.execute(
+            select(User).where(User.id.in_(actor_ids))
+        )).scalars().all()))
+    return {
+        "pet_id": str(pet.id),
+        "date": date.isoformat(),
+        "perspective": perspective,
+        "time_policy": "CST_UTC_PLUS_08_FALLBACK",
+        "knowledge_cutoff": cutoff.isoformat(),
+        "events": _serialize(projection.events, actors),
+        "count": len(projection.events),
+        "event_counts": projection.event_counts,
+        "provenance_counts": projection.provenance_counts,
+        "exclusions": {
+            "retracted": projection.excluded_retracted,
+            "superseded": projection.excluded_superseded,
+            "reported_later": projection.excluded_late_reported,
+        },
+        "truth_note": (
+            "仅回放当时已记录的事实；后来补录、撤回与修正不回写当时已知内容。"
+            if perspective == "as_known_then"
+            else "当前已核实记录；包含事后补录，并排除已撤回或被替代的旧版本。"
+        ),
+        "model_status": "RECORDED_EVENTS_ONLY_NO_HISTORICAL_3D_INFERENCE",
+    }
 
 
 # --- Today (PLI-017) ------------------------------------------------------
