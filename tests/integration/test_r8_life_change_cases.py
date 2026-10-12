@@ -232,3 +232,30 @@ def test_case_requires_source_coverage_not_zero_or_missing_day(client, seeded):
     assert client.get(
         f"/api/v1/pets/{pet}/life-change-cases", headers=auth(owner),
     ).json()["cases"] == []
+
+
+def test_daily_read_family_sees_review_decision_but_not_private_owner_note(client, seeded):
+    """An owner's free text is not a DAILY_READ capability."""
+    owner, family = seeded["owner_id"], seeded["family_id"]
+    pet, _, _ = _create_change(client, owner)
+    case = _case(client, owner, pet)
+    path = f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}"
+    secret_note = "owner-private-observation-with-clinical-context-4815"
+    saved = client.post(
+        path + "/reviews",
+        json={"decision": "FOLLOW_UP_LATER", "note": secret_note},
+        headers=auth(owner),
+    )
+    assert saved.status_code == 201, saved.text
+    assert saved.json()["note"] == secret_note
+
+    owner_view = client.get(path, headers=auth(owner))
+    family_view = client.get(path, headers=auth(family))
+    assert owner_view.status_code == 200
+    assert family_view.status_code == 200
+    assert owner_view.json()["reviews"][0]["note"] == secret_note
+    assert family_view.json()["reviews"][0]["decision"] == "FOLLOW_UP_LATER"
+    assert family_view.json()["reviews"][0]["note"] == ""
+    assert family_view.json()["reviews"][0]["related_task_id"] is None
+    assert secret_note not in family_view.text
+    assert family_view.json()["case_id"] == case["case_id"]

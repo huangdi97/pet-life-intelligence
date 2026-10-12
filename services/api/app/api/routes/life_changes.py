@@ -15,7 +15,7 @@ from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
 from app.api.routes.v10_extras_services import abnormal_day_hint
-from app.core.errors import ConflictError, NotFound, ValidationFailed
+from app.core.errors import ConflictError, NotFound, PermissionDenied, ValidationFailed
 from app.domain import enums
 from app.models import CareTask, LifeChangeCase, LifeChangeReview, LifeEvent, Pet
 from app.services import permissions as perm
@@ -104,13 +104,19 @@ def _case_response(case: LifeChangeCase, current: bool) -> dict:
     }
 
 
-def _review_response(row: LifeChangeReview) -> dict:
+def _review_response(row: LifeChangeReview, *, owner_view: bool = True) -> dict:
+    # Life-change progress is shareable within DAILY_READ; the owner's free
+    # text and linked task ID are not. A note may contain symptoms or private
+    # context, and some tasks are clinical despite the Case being daily-only.
     return {
         "review_id": str(row.id), "case_id": str(row.case_id),
         "pet_id": str(row.pet_id), "actor_id": str(row.actor_id),
         "reviewed_at": row.reviewed_at.isoformat(), "decision": row.decision,
-        "note": row.note, "related_event_ids": row.related_event_ids,
-        "related_task_id": str(row.related_task_id) if row.related_task_id else None,
+        "note": row.note if owner_view else "",
+        "related_event_ids": row.related_event_ids,
+        "related_task_id": (
+            str(row.related_task_id) if owner_view and row.related_task_id else None
+        ),
         "prior_review_id": str(row.prior_review_id) if row.prior_review_id else None,
     }
 
@@ -215,8 +221,13 @@ async def get_case(
         select(LifeChangeReview).where(LifeChangeReview.case_id == case.id)
         .order_by(LifeChangeReview.reviewed_at.asc(), LifeChangeReview.id.asc())
     )).scalars().all())
+    try:
+        await perm.require_owner(db, pet, user.id)
+        owner_view = True
+    except PermissionDenied:
+        owner_view = False
     return {**_case_response(case, await _case_current(db, case)),
-            "reviews": [_review_response(r) for r in reviews]}
+            "reviews": [_review_response(r, owner_view=owner_view) for r in reviews]}
 
 
 @router.post("/pets/{pet_id}/life-change-cases/{case_id}/reviews", status_code=201)
