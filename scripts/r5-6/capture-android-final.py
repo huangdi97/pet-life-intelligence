@@ -808,7 +808,7 @@ def capture_r7_life_replay(
         root = ET.fromstring(xml)
         return " ".join(node.attrib.get("text", "") for node in root.iter("node"))
 
-    verified_note = "当前已核实记录"
+    verified_note = "截至目前的记录"
     prior_note = "仅回放当时已记录的事实"
     verified_xml = ready_xml
     for _ in range(15):

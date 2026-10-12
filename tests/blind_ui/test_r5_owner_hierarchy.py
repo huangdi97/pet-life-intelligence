@@ -2345,3 +2345,14 @@ def test_history_without_a_verified_twin_uses_short_truthful_living_cover() -> N
     assert "只展示当时已经知道的记录" in life
     assert "不会用现在的模型补画过去" in life
     assert "pose={displayTwin ? (timeScope === \"date\" ? \"Idle\" : representativePose) : null}" in life
+
+
+def test_historical_owner_empty_state_never_claims_unobserved_absence() -> None:
+    life = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    evidence_script = read("scripts/r5-6/capture-android-final.py")
+    assert "当天结束时没有已知记录；不代表那天什么都没发生。" in life
+    assert "记录缺失不代表那天没有活动" in life
+    assert "今天安安静静的" not in life
+    assert 'testID="pli.lifeview.freshness"' in life
+    assert 'flexDirection: "column", alignItems: "flex-start", gap: 3' in life
+    assert 'verified_note = "截至目前的记录"' in evidence_script

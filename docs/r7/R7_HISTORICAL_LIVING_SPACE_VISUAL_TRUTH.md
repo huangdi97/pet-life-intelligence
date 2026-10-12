@@ -17,3 +17,7 @@ The exact `e3fab18a` Android evidence artifact `11733568579` included real `veri
 1. New HEAD CI, Android build and R7 demo real-interaction capture both states.
 2. Runtime screenshot should show the compact cover, meaningful recorded facts and both perspective buttons; no overlapping giant fallback illustration.
 3. Human visual acceptance remains PENDING. No baseline update, release, merge or tag. `NO_VISION_MODEL_USED = TRUE` in automated gates.
+
+## R7 visual truth / source-label follow-up
+
+The real `d92fd852` Android screenshots show the smaller historical cover works and the Android two-time switch is reachable. The top line was still overly crowded, and `verified_now` was described as `当前已核实记录`, implying independent verification despite mixed owner/caregiver/device provenance. The next pass uses two separate header metadata rows, explicitly calls the view `截至目前的记录`, and states that **absence of recorded activity never proves absence of activity**. API copy, native copy, deterministic blind test, and UIAutomator text wait are updated together. The visual gate remains subject to a new exact-HEAD real emulator capture and human review.

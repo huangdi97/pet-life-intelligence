@@ -445,10 +445,12 @@ export function LifeViewScreen() {
 
   const scopeEmptyCopy =
     timeScope === "date"
-      ? `${selectedDate} 没有已记录事件。`
+      ? asKnownThen
+        ? "当天结束时没有已知记录；不代表那天什么都没发生。"
+        : "目前没有关于这一天的记录；不能推断那天没有活动。"
       : historicalRange
-        ? `${scopeLabel}还没有足够记录。`
-        : `${pet?.name ?? "宠物"}今天安安静静的。`;
+        ? `${scopeLabel}还没有可用记录；不能推断没有活动。`
+        : "今天尚未记录生活事件；不代表没有发生。";
   const scopeModelStatus =
     timeScope === "date"
       ? asKnownThen
@@ -489,11 +491,12 @@ export function LifeViewScreen() {
           <Text style={styles.identityText}>{pet?.name ?? "宠物"} · 生命视图</Text>
           <View style={styles.metaRow}>
             <Text style={styles.metaText} testID="pli.lifeview.freshness">
-              {lastEvent
-                ? `更新 ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
-                : `${scopeLabel}暂无新记录`}
+              {timeScope === "date"
+                ? `回看 ${selectedDate}`
+                : lastEvent
+                  ? `最近记录 · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+                  : `${scopeLabel} · 尚无已记录事件`}
             </Text>
-            <Text style={styles.metaDot}>·</Text>
             <Text style={styles.metaText} testID="pli.lifeview.model-status">
               {scopeModelStatus}
             </Text>
@@ -537,15 +540,20 @@ export function LifeViewScreen() {
                 <Text style={styles.historyCoverSummary} testID="pli.lifeview.history-cover.summary">
                   {!scoped ? "正在读取有来源的生活记录…"
                     : error ? "历史记录暂时无法读取"
-                    : petEvents.length === 0 ? "目前没有当时已记录的生活片段"
-                    : `已找到 ${petEvents.length} 条有来源的生活记录`}
+                    : petEvents.length === 0
+                      ? asKnownThen
+                        ? "当天结束时尚无已知记录"
+                        : "目前没有关于这一天的记录"
+                      : `已找到 ${petEvents.length} 条有来源的生活记录`}
                 </Text>
                 <Text style={styles.historyCoverFoot}>
-                  {asKnownThen
-                    ? "只展示当时已经知道的记录；没有足够证据时不还原历史形象。"
-                    : historicalRange
-                      ? "时间范围汇总不使用当前 3D 形象；原始记录与来源在下方。"
-                      : "原始事件与照片在下方；不会用现在的模型补画过去。"}
+                  {petEvents.length === 0
+                    ? "记录缺失不代表那天没有活动；不补造事件或历史形象。"
+                    : asKnownThen
+                      ? "只展示当时已经知道的记录；没有足够证据时不还原历史形象。"
+                      : historicalRange
+                        ? "时间范围汇总不使用当前 3D 形象；原始记录与来源在下方。"
+                        : "原始事件与照片在下方；不会用现在的模型补画过去。"}
                 </Text>
               </View>
               <View style={styles.historyCoverMark} accessible={false}>
@@ -883,7 +891,7 @@ const styles = StyleSheet.create({
   controlBtnText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
   identityRow: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
   identityText: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
-  metaRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6, marginTop: 4 },
+  metaRow: { flexDirection: "column", alignItems: "flex-start", gap: 3, marginTop: 5 },
   metaText: { fontSize: TYPE.caption, color: COLORS.textTertiary },
   metaDot: { fontSize: TYPE.caption, color: COLORS.dividerStrong },
   controlRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginTop: SPACE.s3 },

@@ -123,3 +123,17 @@ def test_life_replay_accepts_owner_local_day_boundaries(client, seeded):
         headers=auth(owner),
     )
     assert bad.status_code == 422
+
+
+def test_life_replay_current_labels_observations_not_as_independently_verified(client, seeded):
+    owner, pet = seeded["owner_id"], seeded["coco_id"]
+    day = datetime.now(TZ).date().isoformat()
+    response = client.get(
+        f"/api/v1/pets/{pet}/life-replay?date={day}&perspective=verified_now",
+        headers=auth(owner),
+    )
+    assert response.status_code == 200, response.text
+    note = response.json()["truth_note"]
+    assert "截至目前的记录" in note
+    assert "具体事实需按来源判断" in note
+    assert "当前已核实记录" not in note

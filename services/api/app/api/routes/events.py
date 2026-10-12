@@ -385,7 +385,7 @@ async def life_replay(
         "truth_note": (
             "仅回放当时已记录的事实；后来补录、撤回与修正不回写当时已知内容。"
             if perspective == "as_known_then"
-            else "当前已核实记录；包含事后补录，并排除已撤回或被替代的旧版本。"
+            else "截至目前的记录；包含事后补录，并排除已撤回或被替代的旧版本。具体事实需按来源判断。"
         ),
         "model_status": "RECORDED_EVENTS_ONLY_NO_HISTORICAL_3D_INFERENCE",
     }
