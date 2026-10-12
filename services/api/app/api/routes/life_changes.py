@@ -266,8 +266,15 @@ async def review_case(
         related_rows = list((await db.execute(
             select(LifeEvent).where(LifeEvent.pet_id == pet.id, LifeEvent.id.in_(body.related_event_ids))
         )).scalars().all())
+        # Bitemporal causality: merely ENTERING a backfilled observation
+        # after opening the Case does not make the underlying event a follow-up.
+        # A valid follow-up must BOTH happen and be recorded after the Case.
         if any(e.recorded_at <= case.computed_at for e in related_rows):
-            raise ValidationFailed("Owner follow-up evidence must be recorded AFTER the case was created.")
+            raise ValidationFailed("Follow-up must be recorded after Case creation.")
+        if any(e.occurred_at <= case.computed_at for e in related_rows):
+            raise ValidationFailed("Backfilled past events are history, not follow-up observations.")
+        if any(e.occurred_at > datetime.now(UTC) for e in related_rows):
+            raise ValidationFailed("Future-dated events cannot be follow-up observations.")
     if body.related_task_id:
         task = (await db.execute(
             select(CareTask).where(

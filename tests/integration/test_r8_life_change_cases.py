@@ -259,3 +259,73 @@ def test_daily_read_family_sees_review_decision_but_not_private_owner_note(clien
     assert family_view.json()["reviews"][0]["related_task_id"] is None
     assert secret_note not in family_view.text
     assert family_view.json()["case_id"] == case["case_id"]
+
+
+def test_follow_up_rejects_late_backfilled_past_but_accepts_truly_later_observation(client, seeded):
+    """Recorded later is not equivalent to happened later (R8 causal boundary)."""
+    owner = seeded["owner_id"]
+    pet, _, _ = _create_change(client, owner)
+    case = _case(client, owner, pet)
+    endpoint = f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}/reviews"
+
+    # User enters a past walk AFTER opening the change Case.
+    past = (datetime.now(PRODUCT_TZ) - timedelta(days=2, minutes=13))
+    backfilled = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 17},
+              "occurred_at": past.isoformat()},
+        headers=auth(owner),
+    )
+    assert backfilled.status_code == 201, backfilled.text
+    past_id = backfilled.json()["event_id"]
+    refused = client.post(
+        endpoint, json={"decision": "RECORD_OBSERVATION",
+                        "related_event_ids": [past_id]},
+        headers=auth(owner),
+    )
+    assert refused.status_code == 422, refused.text
+    assert "Backfilled past events" in refused.text
+
+    # Real observation happened after this Case; owner can append it.
+    actual = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 12}},
+        headers=auth(owner),
+    )
+    assert actual.status_code == 201, actual.text
+    accepted = client.post(
+        endpoint, json={"decision": "RECORD_OBSERVATION",
+                        "related_event_ids": [actual.json()["event_id"]]},
+        headers=auth(owner),
+    )
+    assert accepted.status_code == 201, accepted.text
+    assert accepted.json()["related_event_ids"] == [actual.json()["event_id"]]
+    case_after = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}",
+        headers=auth(owner),
+    )
+    assert case_after.status_code == 200
+    assert len(case_after.json()["reviews"]) == 1
+    assert past_id not in case_after.json()["reviews"][0]["related_event_ids"]
+
+
+def test_follow_up_rejects_future_occurred_at_even_if_it_was_recorded_now(client, seeded):
+    owner = seeded["owner_id"]
+    pet, _, _ = _create_change(client, owner)
+    case = _case(client, owner, pet)
+    later = datetime.now(PRODUCT_TZ) + timedelta(days=3)
+    future = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 11},
+              "occurred_at": later.isoformat()},
+        headers=auth(owner),
+    )
+    assert future.status_code == 201, future.text
+    reviewed = client.post(
+        f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}/reviews",
+        json={"decision": "RECORD_OBSERVATION",
+              "related_event_ids": [future.json()["event_id"]]},
+        headers=auth(owner),
+    )
+    assert reviewed.status_code == 422, reviewed.text
+    assert "Future-dated events" in reviewed.text
