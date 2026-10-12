@@ -30,3 +30,9 @@ The Android Today LifeChangeReviewPanel now distinguishes a saved owner decision
 ## R8F owner navigation refresh
 
 Android Today now refetches current pet-scoped Today, baseline hint and Review list when its screen regains focus after QuickLog/other owner flows. The first focus is already served by initial `petId` fetching; it is not needlessly double-loaded. This prevents a successfully recorded post-Case observation (or correction/retraction made in another screen) from leaving the old explanatory Review visible until app restart. The 3D/WebView bootstrap identity key is untouched; true on-device behavior still requires same-HEAD Android runtime evidence.
+
+## R8F Android decision visible-state gate — 2026-10-13
+
+Exact HEAD `37e99f1a` failed the Android R8 owner-review capture despite API `POST /reviews` returning 201. The failed artifact `11752159857` contains `r8-owner-review/later-ui.xml`: the source evidence panel was still expanded, and its six rows pushed the existing decision message (rendered after the action controls) below the viewport. The XML already showed `已有主人反馈` and the backend log showed the new Review, so the failure was **visibility of owner confirmation**, not evidence of a failed write.
+
+This fix renders the human-readable decision confirmation in an explicit `pli.r8.owner-review.decision-status` region BEFORE the action row. The real emulator capture collapses the source disclosure after proving all immutable event IDs, taps `稍后关注`, requires a *visible* confirmation with that test ID, and separately checks the stored exact Review sequence `[FOLLOW_UP_LATER]` and later linked QuickLog `RECORD_OBSERVATION`. No screenshot threshold, source privacy, or real-tap gate is waived. Same-HEAD Android runtime and actual screenshot remain required; `HUMAN_VISUAL_ACCEPTANCE = PENDING`.

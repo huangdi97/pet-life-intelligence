@@ -260,6 +260,11 @@ export function LifeChangeReviewPanel({
             </View>
           ) : null}
           {evidenceError ? <Text style={styles.error}>{evidenceError}</Text> : null}
+          {message ? (
+            <Text style={styles.decisionStatus} testID="pli.r8.owner-review.decision-status" accessibilityLiveRegion="polite">
+              {message}
+            </Text>
+          ) : null}
           <View style={styles.actions}>
             <Pressable
               accessibilityRole="button"
@@ -300,7 +305,7 @@ export function LifeChangeReviewPanel({
           </View>
         </>
       )}
-      {message ? <Text style={styles.meta} accessibilityLiveRegion="polite">{message}</Text> : null}
+      {!record && message ? <Text style={styles.error} accessibilityLiveRegion="polite">{message}</Text> : null}
     </View>
   );
 }
@@ -324,4 +329,5 @@ const styles = StyleSheet.create({
   evidenceText: { fontSize: TYPE.caption, lineHeight: 18, color: COLORS.textSecondary },
   error: { fontSize: TYPE.sm, color: COLORS.danger },
   warning: { fontSize: TYPE.sm, lineHeight: 21, color: COLORS.textPrimary, backgroundColor: COLORS.brandSoft, padding: SPACE.s3, borderRadius: 12 },
+  decisionStatus: { fontSize: TYPE.sm, lineHeight: 21, color: COLORS.brandPrimaryDeep, backgroundColor: COLORS.brandSoft, padding: SPACE.s3, borderRadius: 12 },
 });

@@ -971,16 +971,49 @@ def capture_r8_owner_review(
         )
     android.screenshot(directory / "raw-sources.png")
 
+    # Source inspection is user-controlled; close the long panel before making
+    # a decision so the confirmation remains on-screen, not silently below fold.
+    collapse_ui = find_control("pli.r8.owner-review.sources", "source-collapse-ui.xml")
+    android.tap(collapse_ui, "pli.r8.owner-review.sources", "id")
+    for _ in range(12):
+        time.sleep(0.6)
+        closed = android.dump_xml(directory / "source-collapsed-ui.xml")
+        if "pli.r8.owner-review.evidence" not in closed:
+            break
+    else:
+        raise CaptureError("R8 source list did not collapse before owner decision")
+
     later_ui = find_control("pli.r8.owner-review.later", "later-ui.xml")
     android.tap(later_ui, "pli.r8.owner-review.later", "id")
     after_later = ""
-    for _ in range(18):
-        time.sleep(1)
+    for _ in range(22):
+        time.sleep(0.8)
         after_later = android.dump_xml(directory / "later-ui.xml")
-        if "已记录稍后观察" in after_later:
+        if (
+            'resource-id="pli.r8.owner-review.decision-status"' in after_later
+            and "已记录稍后观察" in after_later
+        ):
             break
-    if "已记录稍后观察" not in after_later:
-        raise CaptureError("R8 native owner FOLLOW_UP_LATER decision did not finish")
+        # Android may keep the card anchored below the viewport after a scroll.
+        android.shell("input", "swipe", "840", "1740", "840", "1050", "250")
+    if (
+        'resource-id="pli.r8.owner-review.decision-status"' not in after_later
+        or "已记录稍后观察" not in after_later
+    ):
+        raise CaptureError(
+            "R8 native owner decision confirmation is not visible after tap; "
+            "a successful API POST alone does not satisfy the Android UI gate"
+        )
+    after_case = api_json(
+        f"{root}/pets/{pet_id}/life-change-cases/{case_id}",
+        headers=owner_header,
+    )
+    after_decisions = [r.get("decision") for r in after_case.get("reviews", [])]
+    if after_decisions != ["FOLLOW_UP_LATER"]:
+        raise CaptureError(
+            "R8 native owner FOLLOW_UP_LATER did not persist exactly one review: "
+            f"{after_decisions}"
+        )
     android.screenshot(directory / "owner-decision.png")
 
     record_ui = find_control("pli.r8.owner-review.record", "record-ui.xml")

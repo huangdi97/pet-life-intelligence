@@ -2366,6 +2366,8 @@ def test_android_r8_owner_review_requires_real_user_action_and_record_link() -> 
     assert 'testID="pli.r8.owner-review.create"' in panel
     assert 'testID="pli.r8.owner-review.sources"' in panel
     assert 'testID="pli.r8.owner-review.record"' in panel
+    assert 'testID="pli.r8.owner-review.decision-status"' in panel
+    assert panel.index('testID="pli.r8.owner-review.decision-status"') < panel.index('testID="pli.r8.owner-review.record"')
     assert "source_valid" in panel and "evidence_event_ids" in panel
     assert 'testID="pli.r8.owner-review"' in panel
     assert "row.notable && row.current_recorded === true && row.sample_count >= 3" in today
@@ -2389,6 +2391,9 @@ def test_r8_android_runtime_evidence_requires_real_owner_taps_and_persisted_foll
     assert '"RECORD_OBSERVATION"' in script
     assert '"source-backed-case.png"' in script
     assert '"linked-follow-up.png"' in script
+    assert '"source-collapsed-ui.xml"' in script
+    assert 'resource-id="pli.r8.owner-review.decision-status"' in script
+    assert 'after_decisions != ["FOLLOW_UP_LATER"]' in script
     assert '"api-truth.json"' in script
     assert '"all_actions_from_real_android_ui": True' in script
     assert "vision_model_used" in script
