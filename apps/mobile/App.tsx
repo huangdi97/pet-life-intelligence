@@ -67,18 +67,21 @@ let demoNavGeneration = 0;
 
 function applyDemoNav(screen: string | null, date: string | null = null): void {
   if (!screen) return;
-  // Navigation can be unready immediately after mount, so retry briefly.
-  // IMPORTANT: every new deep link invalidates all retries scheduled by the
-  // previous link. Without this generation guard, a late Timeline retry can
-  // switch the app back after a subsequent Pet deep link and produce a
-  // screenshot/3D-manifest pair from two different tabs.
+  // Retry ONLY until React Navigation is ready. Previously this scheduled
+  // ten unconditional resetRoot calls over 4.5 s EVEN AFTER success: each
+  // reset can unmount an active 3D WebView while its runtime manifest is
+  // being persisted. This is particularly risky after R8 owner-review
+  // QuickLog flows followed by primary-to-secondary pet switching.
+  // Each new link still invalidates any pending retry from an older link.
   const generation = ++demoNavGeneration;
-  for (let i = 0; i < 10; i++) {
-    setTimeout(() => {
-      if (generation !== demoNavGeneration) return;
-      navigateToDemoScreen(screen, date);
-    }, i * 500);
-  }
+  const attemptNavigation = (attempt: number): void => {
+    if (generation !== demoNavGeneration) return;
+    if (navigateToDemoScreen(screen, date)) return;
+    if (attempt < 19) {
+      setTimeout(() => attemptNavigation(attempt + 1), 400);
+    }
+  };
+  setTimeout(() => attemptNavigation(0), 0);
 }
 
 /** A demo session is a prerequisite of mounting owner screens, not a

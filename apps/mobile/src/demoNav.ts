@@ -62,8 +62,11 @@ const STACK_SCREENS: Record<string, keyof StackParamList> = {
   twinversion: "TwinVersion",
 };
 
-export function navigateToDemoScreen(screen: string, date: string | null = null): void {
-  if (!navigationRef.isReady()) return;
+/** Returns true only when a reset was actually dispatched. The caller may
+ * retry while the NavigationContainer mounts, but must never reset an already
+ * ready WebView repeatedly just to make a UI screenshot eventually appear. */
+export function navigateToDemoScreen(screen: string, date: string | null = null): boolean {
+  if (!navigationRef.isReady()) return false;
   // TYPE ESCAPE (bounded, WHY): resetRoot's discriminated route types cannot
   // express a route name selected from our demo-only lookup tables. Production
   // code never calls this deterministic evidence-navigation helper.
@@ -84,7 +87,7 @@ export function navigateToDemoScreen(screen: string, date: string | null = null)
       index: 0,
       routes: [{ name: "Tabs", params: { screen: tab } }],
     });
-    return;
+    return true;
   }
   const stack = STACK_SCREENS[screen];
   if (stack) {
@@ -98,5 +101,7 @@ export function navigateToDemoScreen(screen: string, date: string | null = null)
       index: 1,
       routes: [{ name: "Tabs" }, { name: stack, params: stack === "LifeView" && date ? { date } : undefined }],
     });
+    return true;
   }
+  return false;
 }
