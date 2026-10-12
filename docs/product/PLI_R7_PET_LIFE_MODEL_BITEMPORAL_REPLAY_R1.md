@@ -47,7 +47,7 @@ Legacy `GET /pets/{id}/today` now reuses the same per-pet current-truth event pr
 
 ## R7-R4 · historic visual truth boundary
 
-Until per-pet timezone support exists, the historical Twin version selector must use the **same explicit UTC+08 day boundary** as the historical event API, rather than the device timezone. A Twin's activation interval alone cannot prove it was *recorded/known* to the owner at that time: the `as_known_then` perspective therefore hides unverified historical 3D. The historical 3D pose stays neutral `Idle`, never a fabricated recreation of a walk or play event. This is deliberately distinct from real owner-sourced motion reconstruction, which is not implemented.
+Until per-pet timezone support exists, Android supplies **explicit owner-local day start/end instants** to Life Replay and uses the same local calendar boundaries to select historical Twin versions. The legacy UTC+08 fallback applies only when a client omits these bounds. A Twin's activation interval alone cannot prove it was *recorded/known* to the owner at that time: the `as_known_then` perspective therefore hides unverified historical 3D. The historical 3D pose stays neutral `Idle`, never a fabricated recreation of a walk or play event. This is deliberately distinct from real owner-sourced motion reconstruction, which is not implemented.
 
 ## Local calendar day correction (R7-R5)
 
