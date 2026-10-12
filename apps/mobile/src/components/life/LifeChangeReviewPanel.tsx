@@ -30,6 +30,7 @@ interface LifeCase {
   evidence_event_ids: string[];
   source_valid: boolean;
   state: string;
+  follow_up_source_valid?: boolean | null;
   human_question: string;
 }
 
@@ -219,8 +220,17 @@ export function LifeChangeReviewPanel({
             已记录 {record.current_value} {METRIC_UNIT[record.metric]} · 个人同期记录 {record.baseline_value} {METRIC_UNIT[record.metric]}
           </Text>
           <Text style={styles.meta}>
-            {record.sample_days} 天可比记录 · {record.evidence_event_ids.length} 条来源 · {record.state === "PROPOSED" ? "等待主人确认" : "已有主人反馈"}
+            {record.sample_days} 天可比记录 · {record.evidence_event_ids.length} 条来源 · {record.state === "PROPOSED"
+              ? "等待主人确认"
+              : record.state === "FOLLOW_UP_EVIDENCE_INVALIDATED"
+                ? "后续记录已失效 · 需要重新核对"
+                : "已有主人反馈"}
           </Text>
+          {record.state === "FOLLOW_UP_EVIDENCE_INVALIDATED" ? (
+            <Text style={styles.warning} testID="pli.r8.owner-review.followup-invalid">
+              之前的主人反馈仍已保存，但其引用的后续记录已被撤回或修正。请重新核对，不能据此确认宠物状况已改变。
+            </Text>
+          ) : null}
           <Text style={styles.question}>{record.human_question}</Text>
           <Pressable
             testID="pli.r8.owner-review.sources"
@@ -313,4 +323,5 @@ const styles = StyleSheet.create({
   evidenceList: { gap: SPACE.s1, padding: SPACE.s3, borderRadius: 12, backgroundColor: COLORS.surfaceRaised },
   evidenceText: { fontSize: TYPE.caption, lineHeight: 18, color: COLORS.textSecondary },
   error: { fontSize: TYPE.sm, color: COLORS.danger },
+  warning: { fontSize: TYPE.sm, lineHeight: 21, color: COLORS.textPrimary, backgroundColor: COLORS.brandSoft, padding: SPACE.s3, borderRadius: 12 },
 });

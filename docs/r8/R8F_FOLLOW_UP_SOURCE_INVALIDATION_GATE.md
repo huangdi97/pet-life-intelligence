@@ -22,3 +22,7 @@ HTTP integration tests: one real changed pet Case, real post-Case owner observat
 ## Deliberately open
 
 Android must display the new effective state and avoid prompting a stale Case as normal FOLLOW_UP, then obtain same-HEAD emulator proof. Privacy and follow-up timestamps remain as enforced in R8D/R8E. Actor/date-policy and revised current evidence refresh remain separate gates.
+
+## R8F Android owner experience
+
+The Android Today LifeChangeReviewPanel now distinguishes a saved owner decision from valid follow-up observation evidence. When the API returns `FOLLOW_UP_EVIDENCE_INVALIDATED`, an explicit warm warning appears: the old feedback remains preserved, its cited observation has since been withdrawn/corrected, and a new real observation is required before concluding anything. Existing `补充真实观察` QuickLog stays reachable. This is only source/UI wiring until exact-HEAD runtime and human visual gates succeed.

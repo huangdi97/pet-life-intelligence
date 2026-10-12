@@ -29,3 +29,15 @@ def test_review_panel_cannot_reuse_old_case_with_equal_numbers_but_other_events(
     assert "c.evidence_event_ids.every((id) => sourceIds.has(id))" in panel
     assert "sourceIds.size > 0" in panel
     assert "sourceIdsKey]" in panel
+
+
+def test_owner_review_marks_withdrawn_followup_source_without_erasing_history():
+    panel = read("apps/mobile/src/components/life/LifeChangeReviewPanel.tsx")
+    backend = read("services/api/app/api/routes/life_changes.py")
+    assert 'follow_up_source_valid?: boolean | null' in panel
+    assert 'record.state === "FOLLOW_UP_EVIDENCE_INVALIDATED"' in panel
+    assert 'testID="pli.r8.owner-review.followup-invalid"' in panel
+    assert "之前的主人反馈仍已保存" in panel
+    assert "FOLLOW_UP_EVIDENCE_INVALIDATED" in backend
+    assert "related_sources_valid" in backend
+    assert "follow_up_source_valid" in backend
