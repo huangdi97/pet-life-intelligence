@@ -26,9 +26,10 @@ import shutil
 import subprocess
 import time
 import urllib.request
-from datetime import datetime, time as clock_time, timedelta, timezone
-from urllib.parse import urlencode
+from datetime import datetime, timedelta, timezone
+from datetime import time as clock_time
 from pathlib import Path
+from urllib.parse import urlencode
 from xml.etree import ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]

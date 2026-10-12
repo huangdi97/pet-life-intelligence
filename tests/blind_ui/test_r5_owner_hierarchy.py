@@ -762,7 +762,8 @@ def test_android_demo_stack_deeplink_resets_to_requested_surface() -> None:
     """Evidence deep links must not remain on the prior tab surface."""
     source = read("apps/mobile/src/demoNav.ts")
     assert "deterministic.resetRoot" in source
-    assert 'routes: [{ name: "Tabs" }, { name: stack }]' in source
+    assert 'routes: [{ name: "Tabs" }, { name: stack, params: stack === "LifeView" && date ? { date } : undefined }]' in source
+    assert 'stack === "LifeView" && date ? { date } : undefined' in source
     assert source.index("const tab = TAB_SCREENS[screen]") < source.index("const stack = STACK_SCREENS[screen]")
 
 
