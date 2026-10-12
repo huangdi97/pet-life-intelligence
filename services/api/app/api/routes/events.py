@@ -240,6 +240,8 @@ async def life_replay(
     user: CurrentUser,
     date: date = Query(..., description="Local calendar day YYYY-MM-DD"),
     perspective: Literal["verified_now", "as_known_then"] = Query(default="verified_now"),
+    day_start_at: datetime | None = Query(default=None),
+    day_end_at: datetime | None = Query(default=None),
 ) -> dict:
     """Read-only event-sourced replay. It does not invent historical 3D states.
 
@@ -253,8 +255,21 @@ async def life_replay(
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
     tz = timezone(timedelta(hours=8))
-    start = datetime(date.year, date.month, date.day, tzinfo=tz)
-    end = start + timedelta(days=1)
+    if (day_start_at is None) != (day_end_at is None):
+        raise ValidationFailed("Both local-day boundaries are required together.")
+    if day_start_at is not None and day_end_at is not None:
+        # Physical local calendar days can last 23/24/25 h around DST changes.
+        # Explicit UTC instants preserve the selected owner's own day instead
+        # of forcing a fixed CST day on an overseas phone.
+        if day_start_at.utcoffset() is None or day_end_at.utcoffset() is None:
+            raise ValidationFailed("Local-day boundaries must include a timezone.")
+        start, end = day_start_at, day_end_at
+        duration = (end - start).total_seconds()
+        if not 23 * 3600 <= duration <= 25 * 3600:
+            raise ValidationFailed("The supplied boundaries are not a local calendar day.")
+    else:
+        start = datetime(date.year, date.month, date.day, tzinfo=tz)
+        end = start + timedelta(days=1)
     now = datetime.now(UTC)
     if start > now:
         raise ValidationFailed("Life Replay cannot present a future day as recorded history.")
@@ -284,7 +299,12 @@ async def life_replay(
         "pet_id": str(pet.id),
         "date": date.isoformat(),
         "perspective": perspective,
-        "time_policy": "CST_UTC_PLUS_08_FALLBACK",
+        "time_policy": (
+            "CLIENT_EXPLICIT_LOCAL_DAY_BOUNDS"
+            if day_start_at is not None else "CST_UTC_PLUS_08_FALLBACK"
+        ),
+        "day_start_at": start.isoformat(),
+        "day_end_at": end.isoformat(),
         "knowledge_cutoff": cutoff.isoformat(),
         "events": serialized,
         "count": len(projection.events),

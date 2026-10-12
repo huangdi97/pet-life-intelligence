@@ -92,3 +92,34 @@ def test_today_and_current_replay_agree_after_retraction(client, seeded):
     assert event_id not in [e["event_id"] for e in today.json()["events"]]
     assert event_id not in [e["event_id"] for e in replay.json()["events"]]
     assert today.json()["event_counts"]["daily.walk"] == replay.json()["event_counts"].get("daily.walk", 0)
+
+
+def test_life_replay_accepts_owner_local_day_boundaries(client, seeded):
+    owner, pet = seeded["owner_id"], seeded["coco_id"]
+    # A past Pacific local calendar day explicitly maps to UTC instants.
+    start = datetime(2026, 10, 1, 7, 0, tzinfo=timezone.utc)
+    end = start + timedelta(hours=24)
+    occurred = start + timedelta(hours=3)
+    created = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 12},
+              "occurred_at": occurred.isoformat()},
+        headers=auth(owner),
+    )
+    assert created.status_code == 201, created.text
+    resp = client.get(
+        f"/api/v1/pets/{pet}/life-replay",
+        params={"date": "2026-10-01", "perspective": "verified_now",
+                "day_start_at": start.isoformat(), "day_end_at": end.isoformat()},
+        headers=auth(owner),
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["time_policy"] == "CLIENT_EXPLICIT_LOCAL_DAY_BOUNDS"
+    assert created.json()["event_id"] in [x["event_id"] for x in body["events"]]
+    bad = client.get(
+        f"/api/v1/pets/{pet}/life-replay",
+        params={"date": "2026-10-01", "day_start_at": start.isoformat()},
+        headers=auth(owner),
+    )
+    assert bad.status_code == 422

@@ -152,8 +152,13 @@ export function LifeViewScreen() {
     const loadEvents = async (): Promise<{ events: LifeEvent[]; replay?: LifeReplayMeta }> => {
       if (timeScope === "date") {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) return { events: [] };
+        const localStart = new Date(`${selectedDate}T00:00:00`);
+        const localEnd = new Date(`${selectedDate}T23:59:59.999`);
+        if (!Number.isFinite(localStart.getTime()) || !Number.isFinite(localEnd.getTime())) return { events: [] };
+        const dayStartAt = encodeURIComponent(localStart.toISOString());
+        const dayEndAt = encodeURIComponent(new Date(localEnd.getTime() + 1).toISOString());
         return api.get<{ events: LifeEvent[] } & LifeReplayMeta>(
-          `/pets/${targetPetId}/life-replay?date=${selectedDate}&perspective=${replayPerspective}`,
+          `/pets/${targetPetId}/life-replay?date=${selectedDate}&perspective=${replayPerspective}&day_start_at=${dayStartAt}&day_end_at=${dayEndAt}`,
         ).then((response) => ({ events: response.events, replay: response }));
       }
       if (timeScope === "7d" || timeScope === "30d") {
@@ -268,10 +273,10 @@ export function LifeViewScreen() {
   const historicalTwin = useMemo<HistoricalTwin | null>(() => {
     if (timeScope !== "date" || historyPetId !== pet?.id || historyState !== "ready") return null;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) return null;
-    // The historic visual version must share the UTC+08 day boundary used by
-    // /today and /life-replay, regardless of the phone's timezone.
-    const dayStart = new Date(`${selectedDate}T00:00:00+08:00`).getTime();
-    const dayEnd = dayStart + 24 * 60 * 60 * 1000 - 1;
+    // Historical identity uses the owner's selected LOCAL calendar day,
+    // including DST transitions. Life Replay receives these exact instants.
+    const dayStart = new Date(`${selectedDate}T00:00:00`).getTime();
+    const dayEnd = new Date(`${selectedDate}T23:59:59.999`).getTime();
     const candidates = historyModels
       .filter((model) => {
         const descriptor = model.artifact_map?.twin_descriptor;

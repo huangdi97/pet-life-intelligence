@@ -1700,7 +1700,9 @@ def test_life_view_places_the_pet_before_advanced_time_filters() -> None:
 
 def test_android_life_replay_does_not_reenact_historical_pose_or_backdate_3d() -> None:
     life = read("apps/mobile/src/screens/LifeViewScreen.tsx")
-    assert 'const dayStart = new Date(`${selectedDate}T00:00:00+08:00`).getTime();' in life
+    assert 'const dayStart = new Date(`${selectedDate}T00:00:00`).getTime();' in life
+    assert 'const localEnd = new Date(`${selectedDate}T23:59:59.999`);' in life
+    assert "&day_start_at=${dayStartAt}&day_end_at=${dayEndAt}" in life
     assert 'const asKnownThen = timeScope === "date" && replayPerspective === "as_known_then";' in life
     assert 'timeScope === "date" && !asKnownThen' in life
     assert 'pose={displayTwin ? (timeScope === "date" ? "Idle" : representativePose) : null}' in life
