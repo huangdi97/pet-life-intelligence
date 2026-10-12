@@ -12,7 +12,7 @@ from app.api.deps import CurrentUser, DBSession
 from app.core.errors import NotFound, PermissionDenied, ValidationFailed
 from app.domain import enums
 from app.domain.event_types import EVENT_REGISTRY
-from app.models import LifeEvent, User
+from app.models import Artifact, LifeEvent, User
 from app.services import permissions as perm
 from app.services.eventlog import create_life_event, write_audit
 from app.services.life_replay import project_life_replay
@@ -28,6 +28,11 @@ MANUAL_REPORT_SOURCES = frozenset({
     enums.SourceType.OWNER_REPORTED,
     enums.SourceType.CAREGIVER_REPORTED,
 })
+# Generic event append is a personal life-log interface. Domain actions,
+# clinical workflow and computed/AI events must come from their guarded APIs.
+MANUAL_EVENT_TYPES = frozenset(
+    name for name in EVENT_REGISTRY if name.startswith("daily.")
+) | {"milestone.recorded"}
 
 
 def _can_read_medical(capabilities: set[str]) -> bool:
@@ -109,14 +114,40 @@ async def create_event(
     # Daily event authoring is not a back door to clinical events/provenance.
     if body.event_type in MEDICAL_EVENT_TYPES:
         raise ValidationFailed("Use dedicated medical or medication endpoints.")
+    if body.event_type not in MANUAL_EVENT_TYPES:
+        raise ValidationFailed("This event type must use its dedicated domain API.")
     try:
         manual_source = enums.SourceType(body.source_type)
     except ValueError as exc:
         raise ValidationFailed("Unknown manual event source.") from exc
     if manual_source not in MANUAL_REPORT_SOURCES:
         raise ValidationFailed("Manual events cannot claim verified, device, AI or system provenance.")
+    # Existing clients default to OWNER_REPORTED even during a caregiver handoff.
+    # The server must assign the correct LOW-trust reporter class from roles,
+    # never allow a temporary sitter to impersonate an owner report.
+    try:
+        await perm.require_owner(db, pet, user.id)
+    except PermissionDenied:
+        manual_source = enums.SourceType.CAREGIVER_REPORTED
     if body.provenance_level is not None and body.provenance_level != manual_source.value:
-        raise ValidationFailed("Manual provenance must equal its source type.")
+        raise ValidationFailed("Manual provenance must equal the verified reporter role.")
+
+    # An event referencing another pet's media, a deleted artifact or a
+    # sensitive clinical file would otherwise pollute a public daily timeline.
+    if len(body.artifact_ids) > 10 or len(set(body.artifact_ids)) != len(body.artifact_ids):
+        raise ValidationFailed("Invalid manual event artifact list.")
+    if body.artifact_ids:
+        media_rows = list((await db.execute(
+            select(Artifact).where(
+                Artifact.id.in_(body.artifact_ids),
+                Artifact.pet_id == pet.id,
+                Artifact.deleted_at.is_(None),
+                Artifact.sensitive.is_(False),
+                Artifact.kind.in_(["IMAGE", "VIDEO"]),
+            )
+        )).scalars().all())
+        if {item.id for item in media_rows} != set(body.artifact_ids):
+            raise ValidationFailed("Manual event evidence must be non-sensitive media from this pet.")
 
     event, replayed = await create_life_event(
         db,

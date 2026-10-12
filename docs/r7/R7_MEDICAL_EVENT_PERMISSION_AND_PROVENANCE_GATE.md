@@ -24,3 +24,7 @@
 - Multi-domain event correction chains and artifact-backed clinical media demand an additional privacy audit.
 - Android runtime must be checked on a real emulator/phone with daily-only and medical-readable profiles.
 - `NO_VISION_MODEL_USED = TRUE` · `HUMAN_VISUAL_ACCEPTANCE = PENDING`.
+
+## Manual event fabric additional hardening
+
+Only direct daily.* quick logs and milestone.recorded are permitted through generic user append. Privileged status/consent/grant/system/behavior/medical events use their dedicated APIs. A daily caregiver who uses older clients sending default OWNER_REPORTED is server-normalized to CAREGIVER_REPORTED based on owner relationship checks; any explicitly contradictory high provenance marker is rejected. Attached `artifact_ids` are now verified against the same active pet, non-deleted, non-sensitive IMAGE/VIDEO media; cross-pet and medical-sensitive uploads cannot be published as ordinary life-event evidence. Future fine-grained privacy policies for free-text and nonstandard media remain separate gates.

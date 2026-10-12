@@ -1,3 +1,4 @@
+import io
 """LifeEvent authorization must be consistent across ALL reading surfaces."""
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
@@ -95,3 +96,81 @@ def test_caregiver_daily_writer_cannot_forge_medical_or_verified_source(client, 
     )
     assert allowed.status_code == 201, allowed.text
     assert allowed.json()["provenance_level"] == "CAREGIVER_REPORTED"
+
+
+def test_untrusted_daily_writer_cannot_forge_system_event_or_owner_identity(client, seeded):
+    owner, sitter, pet = _daily_only_caregiver(client, seeded)
+    for event_type in ("grant.created", "consent.changed", "summary.generated",
+                       "visual.model_activated", "diary.created", "behavior.observed"):
+        forged = client.post(
+            f"/api/v1/pets/{pet}/events",
+            json={"event_type": event_type, "payload": {}},
+            headers=auth(sitter),
+        )
+        assert forged.status_code == 422, (event_type, forged.text)
+
+    # Compatibility: older QuickLog clients omit source_type entirely.
+    default_event = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 11}},
+        headers=auth(sitter),
+    )
+    assert default_event.status_code == 201, default_event.text
+    assert default_event.json()["source_type"] == "CAREGIVER_REPORTED"
+    assert default_event.json()["provenance_level"] == "CAREGIVER_REPORTED"
+
+    owner_event = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 12}},
+        headers=auth(owner),
+    )
+    assert owner_event.status_code == 201
+    assert owner_event.json()["source_type"] == "OWNER_REPORTED"
+
+
+def test_manual_event_media_rejects_cross_pet_and_sensitive_artifacts(client, seeded):
+    owner, pet, other = seeded["owner_id"], seeded["coco_id"], seeded["mimi_id"]
+    png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
+    upload_other = client.post(
+        f"/api/v1/pets/{other}/artifacts",
+        files={"file": ("foreign.png", io.BytesIO(png), "image/png")},
+        headers=auth(owner),
+    )
+    assert upload_other.status_code == 201, upload_other.text
+    foreign_id = upload_other.json()["artifact_id"]
+    forbidden = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {},
+              "artifact_ids": [foreign_id]},
+        headers=auth(owner),
+    )
+    assert forbidden.status_code == 422, forbidden.text
+
+    private = client.post(
+        f"/api/v1/pets/{pet}/artifacts?sensitive=true",
+        files={"file": ("private.png", io.BytesIO(png), "image/png")},
+        headers=auth(owner),
+    )
+    assert private.status_code == 201, private.text
+    blocked = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {},
+              "artifact_ids": [private.json()["artifact_id"]]},
+        headers=auth(owner),
+    )
+    assert blocked.status_code == 422, blocked.text
+
+    permitted = client.post(
+        f"/api/v1/pets/{pet}/artifacts",
+        files={"file": ("memory.png", io.BytesIO(png), "image/png")},
+        headers=auth(owner),
+    )
+    assert permitted.status_code == 201, permitted.text
+    published = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {},
+              "artifact_ids": [permitted.json()["artifact_id"]]},
+        headers=auth(owner),
+    )
+    assert published.status_code == 201, published.text
+    assert published.json()["artifact_ids"] == [permitted.json()["artifact_id"]]
