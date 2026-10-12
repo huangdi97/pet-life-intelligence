@@ -2376,3 +2376,19 @@ def test_android_r8_owner_review_requires_real_user_action_and_record_link() -> 
     assert "related_event_ids: [savedEventId]" in quick
     assert "linkedPetId === current.id" in quick
     assert "已保存，但核对关联未完成" in quick
+
+
+def test_r8_android_runtime_evidence_requires_real_owner_taps_and_persisted_followup() -> None:
+    script = read("scripts/r5-6/capture-android-final.py")
+    assert "def capture_r8_owner_review(" in script
+    assert '"pli.r8.owner-review.create"' in script
+    assert '"pli.r8.owner-review.sources"' in script
+    assert '"pli.r8.owner-review.later"' in script
+    assert '"pli.r8.owner-review.record"' in script
+    assert '"pli.quicklog.save"' in script
+    assert '"RECORD_OBSERVATION"' in script
+    assert '"source-backed-case.png"' in script
+    assert '"linked-follow-up.png"' in script
+    assert '"api-truth.json"' in script
+    assert '"all_actions_from_real_android_ui": True' in script
+    assert "vision_model_used" in script

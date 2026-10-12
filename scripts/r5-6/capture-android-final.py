@@ -844,6 +844,167 @@ def capture_r7_life_replay(
     })
 
 
+def capture_r8_owner_review(
+    android: Android,
+    out: Path,
+    *,
+    api_url: str,
+    owner_id: str,
+    pet_id: str,
+) -> None:
+    """Prove owner action through real Android taps and persisted event IDs.
+
+    Seed a real, recorded-only same-clock pattern. A human-facing Case is
+    created only after tapping the React Native button. A follow-up Review
+    must reference the *new* QuickLog event, not any AI-generated summary.
+    """
+    root = api_url.rstrip("/") + "/api/v1"
+    owner_header = {"X-Dev-User-Id": owner_id}
+    product_tz = timezone(timedelta(hours=8))
+    current_clock = datetime.now(product_tz) - timedelta(seconds=2)
+    planted_ids: list[str] = []
+    for days_back, minutes in ((3, 90), (2, 90), (1, 90), (0, 20)):
+        observed_at = current_clock - timedelta(days=days_back)
+        created = api_json(
+            f"{root}/pets/{pet_id}/events",
+            method="POST",
+            headers=owner_header,
+            body={
+                "event_type": "daily.walk",
+                "payload": {"duration_minutes": minutes},
+                "occurred_at": observed_at.isoformat(),
+                "allow_duplicate": True,
+            },
+        )
+        if created.get("pet_id") != pet_id or not created.get("event_id"):
+            raise CaptureError("R8 fixture failed to create a real pet-scoped LifeEvent")
+        planted_ids.append(str(created["event_id"]))
+    baseline = api_json(
+        f"{root}/pets/{pet_id}/baseline/recompute?window_days=14",
+        method="POST", headers=owner_header, body={},
+    )
+    hint = api_json(
+        f"{root}/pets/{pet_id}/abnormal-day-hint",
+        headers=owner_header,
+    )
+    walk = next(
+        (x for x in hint.get("explanations", [])
+         if x.get("metric") == "walk_minutes_per_day"), None,
+    )
+    if (
+        walk is None or not walk.get("notable")
+        or not walk.get("current_recorded")
+        or int(walk.get("sample_count") or 0) < 3
+    ):
+        raise CaptureError(
+            "R8 recorded-only owner observation did not satisfy a real "
+            f"same-clock reviewable criterion: {walk}"
+        )
+    directory = out / "r8-owner-review"
+    directory.mkdir(parents=True, exist_ok=True)
+
+    def find_control(name: str, filename: str, *, attempts: int = 21) -> str:
+        latest = ""
+        for attempt in range(attempts):
+            time.sleep(1 if attempt else 2)
+            latest = android.dump_xml(directory / filename)
+            if name in latest:
+                return latest
+            # A tall pet Living Stage can put this contextual panel below fold.
+            android.shell("input", "swipe", "960", "1750", "960", "650", "360")
+        raise CaptureError(
+            f"R8 real Android control not reachable after scroll: {name}; "
+            f"observed_ids={sorted(set(re.findall(r'resource-id=\"(pli\\.[^\"]+)\"', latest)))[:16]}"
+        )
+
+    android.start_link(f"pli-demo://nav?screen=today&pet={pet_id}")
+    invitation = find_control("pli.r8.owner-review.create", "invitation-ui.xml")
+    android.screenshot(directory / "invitation.png")
+    android.tap(invitation, "pli.r8.owner-review.create", "id")
+
+    case_ui = find_control("pli.r8.owner-review.sources", "case-ui.xml")
+    android.screenshot(directory / "source-backed-case.png")
+    cases = api_json(
+        f"{root}/pets/{pet_id}/life-change-cases",
+        headers=owner_header,
+    ).get("cases", [])
+    case = next(
+        (c for c in cases if c.get("metric") == "walk_minutes_per_day"
+         and c.get("source_valid") and planted_ids[-1] in c.get("evidence_event_ids", [])),
+        None,
+    )
+    if not case:
+        raise CaptureError("R8 native Case tap did not persist a source-backed owner case")
+    case_id = str(case["case_id"])
+    case_source_ids = case.get("evidence_event_ids", [])
+    if not all(event_id in case_source_ids for event_id in planted_ids):
+        raise CaptureError("R8 case failed to cite every real planted event")
+
+    case_ui = find_control("pli.r8.owner-review.sources", "case-ui.xml")
+    android.tap(case_ui, "pli.r8.owner-review.sources", "id")
+    source_ui = find_control("pli.r8.owner-review.evidence", "source-ui.xml")
+    android.screenshot(directory / "raw-sources.png")
+    source_text = " ".join(n.attrib.get("text", "") for n in ET.fromstring(source_ui).iter("node"))
+    if planted_ids[-1][:8] not in source_text:
+        raise CaptureError("R8 native raw-source expansion did not show real event identity")
+
+    later_ui = find_control("pli.r8.owner-review.later", "later-ui.xml")
+    android.tap(later_ui, "pli.r8.owner-review.later", "id")
+    after_later = ""
+    for _ in range(18):
+        time.sleep(1)
+        after_later = android.dump_xml(directory / "later-ui.xml")
+        if "已记录稍后观察" in after_later:
+            break
+    if "已记录稍后观察" not in after_later:
+        raise CaptureError("R8 native owner FOLLOW_UP_LATER decision did not finish")
+    android.screenshot(directory / "owner-decision.png")
+
+    record_ui = find_control("pli.r8.owner-review.record", "record-ui.xml")
+    android.tap(record_ui, "pli.r8.owner-review.record", "id")
+    save_ui = find_control("pli.quicklog.save", "quicklog-ui.xml")
+    android.screenshot(directory / "owner-observation-form.png")
+    android.tap(save_ui, "pli.quicklog.save", "id")
+    linked_ui = ""
+    for _ in range(20):
+        time.sleep(1)
+        linked_ui = android.dump_xml(directory / "linked-ui.xml")
+        if "这条真实记录已关联到主人核对" in linked_ui:
+            break
+    if "这条真实记录已关联到主人核对" not in linked_ui:
+        raise CaptureError("R8 native QuickLog event was not confirmed as a real linked Review")
+    android.screenshot(directory / "linked-follow-up.png")
+
+    final_case = api_json(
+        f"{root}/pets/{pet_id}/life-change-cases/{case_id}",
+        headers=owner_header,
+    )
+    decisions = [r.get("decision") for r in final_case.get("reviews", [])]
+    if decisions != ["FOLLOW_UP_LATER", "RECORD_OBSERVATION"]:
+        raise CaptureError(f"R8 owner review history differs from native taps: {decisions}")
+    followup_event_ids = final_case["reviews"][-1].get("related_event_ids", [])
+    if len(followup_event_ids) != 1 or followup_event_ids[0] in case_source_ids:
+        raise CaptureError("R8 follow-up did not cite a distinct newly saved LifeEvent")
+    source = api_json(
+        f"{root}/events/{followup_event_ids[0]}", headers=owner_header,
+    )
+    if source.get("pet_id") != pet_id or source.get("event_type") != "daily.walk":
+        raise CaptureError("R8 linked follow-up is not this pet's real walking event")
+    save_manifest(directory / "api-truth.json", {
+        "pet_id": pet_id,
+        "metric": "walk_minutes_per_day",
+        "initial_event_ids": planted_ids,
+        "baseline": baseline.get("baselines", {}).get("walk_minutes_per_day"),
+        "case_id": case_id,
+        "case_source_event_ids": case_source_ids,
+        "review_decisions": decisions,
+        "newly_recorded_followup_event_id": followup_event_ids[0],
+        "all_actions_from_real_android_ui": True,
+        "human_visual_acceptance": "PENDING",
+        "vision_model_used": False,
+    })
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default=str(DEFAULT_OUT.relative_to(ROOT)))
@@ -936,6 +1097,12 @@ def main() -> None:
         body={"email": args.login_email},
     )
     capture_r7_life_replay(
+        android, out, api_url=args.api_url,
+        owner_id=str(owner_auth["user_id"]), pet_id=primary_id,
+    )
+    # R8: record, owner-acknowledge and follow-up on an actual Android screen.
+    # Source event IDs + audit responses accompany the real screenshots.
+    capture_r8_owner_review(
         android, out, api_url=args.api_url,
         owner_id=str(owner_auth["user_id"]), pet_id=primary_id,
     )
