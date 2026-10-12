@@ -22,6 +22,7 @@ from app.api.routes import (
     care,
     events,
     health,
+    life_changes,
     medication,
     pets,
     system,
@@ -138,7 +139,7 @@ async def request_context(request: Request, call_next):
 
 
 for router in (
-    system.router, auth.router, pets.router, events.router, tasks.router,
+    system.router, auth.router, pets.router, events.router, life_changes.router, tasks.router,
     care.router, behavior.router, health.router, medication.router,
     artifacts.router, v02_identity_daily.router, v02_care_health.router,
     v02_behavior_training.router, v02_social_platform.router,

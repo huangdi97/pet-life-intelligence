@@ -16,6 +16,7 @@ from app.models.care import (
     ShareToken,
 )
 from app.models.events import Artifact, LifeEvent
+from app.models.life_changes import LifeChangeCase, LifeChangeReview
 from app.models.health import (
     AIInferenceLog,
     AuditEntry,
@@ -131,6 +132,8 @@ __all__ = [
     "HouseholdMember",
     "Invitation",
     "LifeEvent",
+    "LifeChangeCase",
+    "LifeChangeReview",
     "MedicationDose",
     "MedicationPlan",
     "Notification",
