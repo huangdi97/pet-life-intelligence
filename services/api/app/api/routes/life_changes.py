@@ -77,7 +77,42 @@ async def _case_current(db: DBSession, case: LifeChangeCase) -> bool:
     )
 
 
-def _case_response(case: LifeChangeCase, current: bool) -> dict:
+async def _follow_up_current(
+    db: DBSession, case: LifeChangeCase, review: LifeChangeReview,
+) -> bool:
+    """Check whether a previously accepted real follow-up remains evidence.
+
+    A source correction/retraction does not erase an append-only owner Review,
+    but the UX must stop showing that Review as a valid observation loop.
+    """
+    if review.decision != "RECORD_OBSERVATION" or not review.related_event_ids:
+        return False
+    if not await _evidence_current(
+        db, case.pet_id, review.related_event_ids, METRICS[case.metric],
+    ):
+        return False
+    ids = [uuid.UUID(item) for item in review.related_event_ids]
+    events = list((await db.execute(select(LifeEvent).where(
+        LifeEvent.pet_id == case.pet_id, LifeEvent.id.in_(ids),
+    ))).scalars().all())
+    now = datetime.now(UTC)
+    return len(events) == len(ids) and all(
+        event.recorded_at > case.computed_at
+        and case.computed_at < event.occurred_at <= now
+        for event in events
+    )
+
+
+def _case_response(
+    case: LifeChangeCase, current: bool, *,
+    follow_up_source_valid: bool | None = None,
+) -> dict:
+    # The *case* source and the *follow-up* source are independent. Preserve
+    # historical owner reviews, but never mislabel a withdrawn follow-up as a
+    # completed observation cycle.
+    state = case.state if current else "INVALIDATED"
+    if current and case.state == "FOLLOW_UP" and follow_up_source_valid is False:
+        state = "FOLLOW_UP_EVIDENCE_INVALIDATED"
     return {
         "case_id": str(case.id), "pet_id": str(case.pet_id),
         "metric": case.metric, "insight_kind": case.insight_kind,
@@ -94,8 +129,9 @@ def _case_response(case: LifeChangeCase, current: bool) -> dict:
         "uncertainty": case.uncertainty,
         "human_question": case.human_question,
         "recorded_state": case.state,
-        "state": case.state if current else "INVALIDATED",
+        "state": state,
         "source_valid": current,
+        "follow_up_source_valid": follow_up_source_valid,
         "truth_note": (
             "仅是有来源记录的描述性变化，不代表疾病、情绪或未记录的真实活动。"
             if current else
@@ -207,7 +243,33 @@ async def list_cases(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -> dic
         select(LifeChangeCase).where(LifeChangeCase.pet_id == pet.id)
         .order_by(LifeChangeCase.created_at.desc()).limit(50)
     )).scalars().all())
-    return {"cases": [_case_response(c, await _case_current(db, c)) for c in rows]}
+    # One bounded query for the latest accepted observation for each case.
+    # A later "follow up later" message does not make a withdrawn previously
+    # accepted observation valid again.
+    observation_by_case: dict[uuid.UUID, LifeChangeReview] = {}
+    if rows:
+        reviews = list((await db.execute(
+            select(LifeChangeReview).where(
+                LifeChangeReview.case_id.in_([case.id for case in rows]),
+                LifeChangeReview.decision == "RECORD_OBSERVATION",
+            ).order_by(
+                LifeChangeReview.reviewed_at.desc(),
+                LifeChangeReview.id.desc(),
+            )
+        )).scalars().all())
+        for review in reviews:
+            observation_by_case.setdefault(review.case_id, review)
+    responses = []
+    for case in rows:
+        accepted = observation_by_case.get(case.id)
+        followup_valid = (
+            await _follow_up_current(db, case, accepted) if accepted else None
+        )
+        responses.append(_case_response(
+            case, await _case_current(db, case),
+            follow_up_source_valid=followup_valid,
+        ))
+    return {"cases": responses}
 
 
 @router.get("/pets/{pet_id}/life-change-cases/{case_id}")
@@ -226,8 +288,29 @@ async def get_case(
         owner_view = True
     except PermissionDenied:
         owner_view = False
-    return {**_case_response(case, await _case_current(db, case)),
-            "reviews": [_review_response(r, owner_view=owner_view) for r in reviews]}
+    followup_states: dict[uuid.UUID, bool] = {}
+    for review in reviews:
+        if review.decision == "RECORD_OBSERVATION":
+            followup_states[review.id] = await _follow_up_current(db, case, review)
+    last_followup = next(
+        (review for review in reversed(reviews) if review.id in followup_states),
+        None,
+    )
+    followup_valid = (
+        followup_states[last_followup.id] if last_followup else None
+    )
+    review_payloads = []
+    for review in reviews:
+        detail = _review_response(review, owner_view=owner_view)
+        detail["related_sources_valid"] = followup_states.get(review.id)
+        review_payloads.append(detail)
+    return {
+        **_case_response(
+            case, await _case_current(db, case),
+            follow_up_source_valid=followup_valid,
+        ),
+        "reviews": review_payloads,
+    }
 
 
 @router.post("/pets/{pet_id}/life-change-cases/{case_id}/reviews", status_code=201)

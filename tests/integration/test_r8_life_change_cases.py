@@ -329,3 +329,66 @@ def test_follow_up_rejects_future_occurred_at_even_if_it_was_recorded_now(client
     )
     assert reviewed.status_code == 422, reviewed.text
     assert "Future-dated events" in reviewed.text
+
+
+def test_followup_retraction_invalidates_effective_loop_not_append_only_review(client, seeded):
+    """A completed review is historical, not proof that withdrawn evidence survives."""
+    owner = seeded["owner_id"]
+    pet, _, _ = _create_change(client, owner)
+    original = _case(client, owner, pet)
+    case_id = original["case_id"]
+    next_walk = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 19}},
+        headers=auth(owner),
+    )
+    assert next_walk.status_code == 201, next_walk.text
+    follow_id = next_walk.json()["event_id"]
+    review = client.post(
+        f"/api/v1/pets/{pet}/life-change-cases/{case_id}/reviews",
+        json={"decision": "RECORD_OBSERVATION", "related_event_ids": [follow_id],
+              "note": "Owner observation preserved after later withdrawal"},
+        headers=auth(owner),
+    )
+    assert review.status_code == 201, review.text
+    url = f"/api/v1/pets/{pet}/life-change-cases/{case_id}"
+    before = client.get(url, headers=auth(owner))
+    assert before.status_code == 200, before.text
+    assert before.json()["state"] == "FOLLOW_UP"
+    assert before.json()["follow_up_source_valid"] is True
+    assert before.json()["reviews"][0]["related_sources_valid"] is True
+
+    withdrawn = client.post(f"/api/v1/events/{follow_id}/retract", headers=auth(owner))
+    assert withdrawn.status_code == 200, withdrawn.text
+    after = client.get(url, headers=auth(owner))
+    assert after.status_code == 200, after.text
+    data = after.json()
+    assert data["source_valid"] is True  # Original change facts still valid.
+    assert data["recorded_state"] == "FOLLOW_UP"  # Never rewrite history.
+    assert data["state"] == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+    assert data["follow_up_source_valid"] is False
+    assert data["reviews"][0]["review_id"] == review.json()["review_id"]
+    assert data["reviews"][0]["related_sources_valid"] is False
+    assert data["reviews"][0]["note"] == "Owner observation preserved after later withdrawal"
+    listed = client.get(f"/api/v1/pets/{pet}/life-change-cases", headers=auth(owner))
+    assert listed.status_code == 200
+    case_in_list = next(item for item in listed.json()["cases"] if item["case_id"] == case_id)
+    assert case_in_list["state"] == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+    assert case_in_list["follow_up_source_valid"] is False
+
+
+def test_review_history_only_does_not_become_invalidated_followup(client, seeded):
+    owner = seeded["owner_id"]
+    pet, _, _ = _create_change(client, owner)
+    case = _case(client, owner, pet)
+    url = f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}"
+    review = client.post(
+        url + "/reviews", json={"decision": "FOLLOW_UP_LATER"},
+        headers=auth(owner),
+    )
+    assert review.status_code == 201, review.text
+    current = client.get(url, headers=auth(owner))
+    assert current.status_code == 200
+    assert current.json()["state"] == "FOLLOW_UP"
+    assert current.json()["follow_up_source_valid"] is None
+    assert current.json()["reviews"][0]["related_sources_valid"] is None
