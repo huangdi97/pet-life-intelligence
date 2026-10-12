@@ -149,3 +149,46 @@ def test_consultation_package_bundle(client, seeded):
     body = r.json()
     assert body["recent_behaviors"]
     assert "不构成诊断" in body["disclaimer"]
+
+
+def test_missing_today_is_unknown_not_a_false_100_percent_decline(client, seeded):
+    owner = seeded["owner_id"]
+    made = client.post(
+        "/api/v1/pets",
+        json={"name": "Baseline Missingness Pet", "species": "dog"},
+        headers=auth(owner),
+    )
+    assert made.status_code == 201, made.text
+    pet = made.json()["id"]
+    clock = datetime.now(timezone(timedelta(hours=8)))
+    early = clock - timedelta(minutes=5)
+    # Three comparable past days, but NO current-day observation.
+    for days_back in (1, 2, 3):
+        occurred = early - timedelta(days=days_back)
+        created = client.post(
+            f"/api/v1/pets/{pet}/events",
+            json={"event_type": "daily.walk", "payload": {"duration_minutes": 30},
+                  "occurred_at": occurred.isoformat()},
+            headers=auth(owner),
+        )
+        assert created.status_code == 201, created.text
+    rebaseline = client.post(
+        f"/api/v1/pets/{pet}/baseline/recompute?window_days=14",
+        json={}, headers=auth(owner),
+    )
+    assert rebaseline.status_code == 201, rebaseline.text
+    result = client.get(
+        f"/api/v1/pets/{pet}/abnormal-day-hint", headers=auth(owner),
+    )
+    assert result.status_code == 200, result.text
+    body = result.json()
+    metric = next(x for x in body["explanations"] if x["metric"] == "walk_minutes_per_day")
+    assert metric["sample_count"] >= 3
+    assert metric["current_recorded"] is False
+    assert metric["current_event_ids"] == []
+    assert metric["deviation_percent"] is None
+    assert metric["direction"] == "INSUFFICIENT"
+    assert metric["notable"] is False
+    assert "未知" in metric["comparison"]
+    assert "零" in metric["fact"]
+    assert body["status"] == "INSUFFICIENT"

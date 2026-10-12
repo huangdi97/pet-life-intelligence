@@ -193,8 +193,14 @@ async def abnormal_day_hint(pet_id: uuid.UUID, db: DBSession,
             if historical_values
             else None
         )
+        current_recorded = bool(today_events)
         current_value = round(_metric_value(baseline.metric, today_events), 2)
-        comparable = same_time_baseline is not None and len(historical_values) >= 3 and same_time_baseline > 0
+        # No log is NOT a measured zero. Unless a zero-observation source exists,
+        # today's missing records cannot justify a -100% "decline" warning.
+        comparable = (
+            current_recorded and same_time_baseline is not None
+            and len(historical_values) >= 3 and same_time_baseline > 0
+        )
         deviation_percent = (
             round(((current_value - same_time_baseline) / same_time_baseline) * 100)
             if comparable and same_time_baseline
@@ -203,7 +209,10 @@ async def abnormal_day_hint(pet_id: uuid.UUID, db: DBSession,
         if deviation_percent is None:
             direction = "INSUFFICIENT"
             comparison = (
-                f"过去 {window_days} 天同一时间的可比记录还不足，暂不判断变化。"
+                f"今天截至 {now.strftime('%H:%M')} 尚未记录{spec['label']}；"
+                "未知不等于零，不推断减少。"
+                if not current_recorded
+                else f"过去 {window_days} 天同一时间的可比记录还不足，暂不判断变化。"
             )
         elif abs(deviation_percent) < 15:
             direction = "SIMILAR"
@@ -222,6 +231,9 @@ async def abnormal_day_hint(pet_id: uuid.UUID, db: DBSession,
         fact = (
             f"今天截至 {now.strftime('%H:%M')} 已记录{spec['label']} "
             f"{_fmt_value(current_value)} {spec['unit']}。"
+            if current_recorded
+            else f"今天截至 {now.strftime('%H:%M')} 尚无{spec['label']}记录；"
+                 "不能据此认为实际发生次数或时长为零。"
         )
         uncertainty = (
             "这里只比较已经记录的事实；漏记、设备离线或当天尚未发生的活动都可能影响结果，"
@@ -233,6 +245,8 @@ async def abnormal_day_hint(pet_id: uuid.UUID, db: DBSession,
             "label": spec["label"],
             "unit": spec["unit"],
             "current_value": current_value,
+            "current_recorded": current_recorded,
+            "current_event_ids": [str(event.id) for event in today_events],
             "stored_daily_baseline": stored_baseline,
             "same_time_baseline": same_time_baseline,
             "sample_count": len(historical_values),
@@ -266,7 +280,7 @@ async def abnormal_day_hint(pet_id: uuid.UUID, db: DBSession,
         owner_hints = ["今天与自身同期的已记录常态相比，暂未出现需要突出显示的变化。"]
     else:
         status = "INSUFFICIENT"
-        owner_hints = ["还没有足够的同期基线记录，暂时不能判断今天是否发生了变化。"]
+        owner_hints = ["当前记录或同期基线不足，不能判断今天是否发生了变化；未记录不等于实际为零。"]
     return {
         "status": status,
         "hints": owner_hints,
