@@ -19,6 +19,7 @@ def upgrade() -> None:
     op.create_table(
         "life_change_cases",
         sa.Column("id", sa.UUID(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("pet_id", sa.UUID(), nullable=False),
         sa.Column("created_by_user_id", sa.UUID(), nullable=False),
         sa.Column("metric", sa.String(length=50), nullable=False),
