@@ -52,6 +52,12 @@ type ReviewPostBody = {
   expected_latest_review_id: string | null;
   idempotency_key: string;
 };
+type ReviewAcknowledgement = {
+  review_id: string;
+  case_id: string;
+  pet_id: string;
+  decision: Decision;
+};
 type PendingReviewIntent = {
   caseId: string;
   decision: Decision;
@@ -186,15 +192,31 @@ export function LifeChangeReviewPanel({
         };
         pendingReview.current = { caseId: record.case_id, decision, payload };
       }
-      await api.post(
+      const accepted = await api.post<ReviewAcknowledgement>(
         `/pets/${petId}/life-change-cases/${record.case_id}/reviews`,
         payload,
       );
+      // A successful HTTP response is not evidence of WHICH owner Review
+      // was saved. Check its immutable identity before trusting the follow-up.
+      if (!accepted.review_id ||
+          accepted.pet_id !== petId ||
+          accepted.case_id !== record.case_id ||
+          accepted.decision !== decision) {
+        throw new Error("REVIEW_ACK_MISMATCH");
+      }
       const updated = await api.get<LifeCaseDetail>(
         `/pets/${petId}/life-change-cases/${record.case_id}`,
       );
       if (updated.pet_id !== petId || updated.case_id !== record.case_id) {
         throw new Error("CASE_PET_MISMATCH");
+      }
+      // A stale GET may return the correct Case yet omit the just-committed
+      // Review. Preserve the SAME human intent and idempotency key until its
+      // exact review ID is visible. Do not announce "已记录" prematurely.
+      if (!updated.reviews.some((entry) =>
+        entry.review_id === accepted.review_id && entry.decision === decision
+      )) {
+        throw new Error("REVIEW_CONFIRMATION_PENDING");
       }
       setRecord(updated);
       pendingReview.current = null;
@@ -212,7 +234,12 @@ export function LifeChangeReviewPanel({
       if (e instanceof ApiError && [400, 401, 403, 404, 409, 422].includes(e.status)) {
         pendingReview.current = null;
       }
-      setMessage(humanizeError(e));
+      setMessage(
+        e instanceof Error &&
+        (e.message === "REVIEW_ACK_MISMATCH" || e.message === "REVIEW_CONFIRMATION_PENDING")
+          ? "主人决定尚未在最新记录中确认，请重试刚才同一个操作；不会自动新建第二次决定。"
+          : humanizeError(e),
+      );
     } finally {
       setLoading(false);
     }
