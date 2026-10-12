@@ -102,7 +102,8 @@ def test_caregiver_daily_writer_cannot_forge_medical_or_verified_source(client, 
 def test_untrusted_daily_writer_cannot_forge_system_event_or_owner_identity(client, seeded):
     owner, sitter, pet = _daily_only_caregiver(client, seeded)
     for event_type in ("grant.created", "consent.changed", "summary.generated",
-                       "visual.model_activated", "diary.created", "behavior.observed"):
+                       "visual.model_activated", "diary.created", "behavior.observed",
+                       "milestone.recorded"):
         forged = client.post(
             f"/api/v1/pets/{pet}/events",
             json={"event_type": event_type, "payload": {}},

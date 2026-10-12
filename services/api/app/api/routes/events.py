@@ -32,7 +32,7 @@ MANUAL_REPORT_SOURCES = frozenset({
 # clinical workflow and computed/AI events must come from their guarded APIs.
 MANUAL_EVENT_TYPES = frozenset(
     name for name in EVENT_REGISTRY if name.startswith("daily.")
-) | {"milestone.recorded"}
+)
 
 
 def _can_read_medical(capabilities: set[str]) -> bool:
