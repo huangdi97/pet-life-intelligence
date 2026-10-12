@@ -1527,6 +1527,78 @@
         }
       }
     },
+    "/api/v1/pets/{pet_id}/life-replay": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Life Replay",
+        "description": "Read-only event-sourced replay. It does not invent historical 3D states.\n\nDate uses the same fixed CST fallback as /today, pending individual-pet\ntimezone support. \"as_known_then\" includes only records known by that day's\nend. \"verified_now\" includes later backfilled owner records and honors\nsubsequent retractions/supersession. Neither is a medical judgement.",
+        "operationId": "life_replay_api_v1_pets__pet_id__life_replay_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Local calendar day YYYY-MM-DD",
+              "title": "Date"
+            },
+            "description": "Local calendar day YYYY-MM-DD"
+          },
+          {
+            "name": "perspective",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "verified_now",
+                "as_known_then"
+              ],
+              "type": "string",
+              "default": "verified_now",
+              "title": "Perspective"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Life Replay Api V1 Pets  Pet Id  Life Replay Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{pet_id}/today": {
       "get": {
         "tags": [
