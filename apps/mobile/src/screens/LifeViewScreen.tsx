@@ -468,6 +468,34 @@ export function LifeViewScreen() {
           </View>
         </View>
 
+        {/* Keep interpretation mode reachable before the tall 3D field.
+            Owners choose what they want to understand, then inspect the pet;
+            they should not scroll through a full-stage renderer to find modes. */}
+        <View testID="pli.lifeview.control.modes">
+          <LivingModeSwitcher value={mode} onChange={setMode} onTimeline={() => navigation.navigate("Tabs", { screen: "Timeline" })} />
+        </View>
+
+        <View style={styles.stageWrap}>
+          <PetLivingStage
+            pet={stagePet}
+            spec={resolvePetStage(stagePet)}
+            variant="life"
+            anchors={anchors}
+            headline={mode === "now" ? `${pet?.name ?? "宠物"} · ${scopeLabel}` : undefined}
+            caption={mode === "now" ? nowLine : undefined}
+            note={historicalRange ? "时间范围汇总不使用当前 3D 形象冒充历史。" : timeScope === "date" && !historicalTwin ? "该日没有可确认的历史 3D 版本；保留真实记录与照片。" : undefined}
+            demo={displayTwin ? (DEMO_ENV || displayTwin.demoFixture === true) : false}
+            interactive={Boolean(displayTwin)}
+            twin={displayTwin?.descriptor ?? null}
+            sourceMediaCount={displayTwin?.observedRegions.length ?? 0}
+            frameTarget={0.54}
+            viewerRef={viewerRef}
+            pose={displayTwin ? representativePose : null}
+          />
+        </View>
+
+        {/* Historical inspection remains available but the living subject
+            appears first. Its selected scope is always visible in the header. */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -508,32 +536,6 @@ export function LifeViewScreen() {
             />
           </View>
         ) : null}
-
-        {/* Keep interpretation mode reachable before the tall 3D field.
-            Owners choose what they want to understand, then inspect the pet;
-            they should not scroll through a full-stage renderer to find modes. */}
-        <View testID="pli.lifeview.control.modes">
-          <LivingModeSwitcher value={mode} onChange={setMode} onTimeline={() => navigation.navigate("Tabs", { screen: "Timeline" })} />
-        </View>
-
-        <View style={styles.stageWrap}>
-          <PetLivingStage
-            pet={stagePet}
-            spec={resolvePetStage(stagePet)}
-            variant="life"
-            anchors={anchors}
-            headline={mode === "now" ? `${pet?.name ?? "宠物"} · ${scopeLabel}` : undefined}
-            caption={mode === "now" ? nowLine : undefined}
-            note={historicalRange ? "时间范围汇总不使用当前 3D 形象冒充历史。" : timeScope === "date" && !historicalTwin ? "该日没有可确认的历史 3D 版本；保留真实记录与照片。" : undefined}
-            demo={displayTwin ? (DEMO_ENV || displayTwin.demoFixture === true) : false}
-            interactive={Boolean(displayTwin)}
-            twin={displayTwin?.descriptor ?? null}
-            sourceMediaCount={displayTwin?.observedRegions.length ?? 0}
-            frameTarget={0.54}
-            viewerRef={viewerRef}
-            pose={displayTwin ? representativePose : null}
-          />
-        </View>
 
         {displayTwin ? (
         <View testID="pli.lifeview.control.zoom" style={styles.controlRow} accessibilityLabel="3D 视图控制">

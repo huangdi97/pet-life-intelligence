@@ -1690,6 +1690,14 @@ def test_life_stream_uses_local_iso_dates_not_weekday_strings_for_history_order(
     assert "livingLeadTitle" not in timeline.split("return (", 1)[-1] or "它的每一天</Text>" not in timeline
 
 
+def test_life_view_places_the_pet_before_advanced_time_filters() -> None:
+    """A first-fold Life View is an animal, not a row of date editors."""
+    life = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    assert life.index('testID="pli.lifeview.control.modes"') < life.index('variant="life"')
+    assert life.index('variant="life"') < life.index('testID="pli.lifeview.time-scrubber"')
+    assert 'testID="pli.lifeview.time.date-input"' in life
+
+
 def test_living_hero_preserves_a_pet_scoped_first_paint_fallback() -> None:
     """A ready manifest is not equivalent to a visible Android first frame."""
     stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
