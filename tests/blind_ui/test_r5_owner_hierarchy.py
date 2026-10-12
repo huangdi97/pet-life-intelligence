@@ -1667,6 +1667,17 @@ def test_today_uses_a_compact_phone_living_canvas_without_shrinking_inspection_v
     assert "min-height:380px" in css
 
 
+def test_current_pet_selection_outlives_async_bootstrap_storage_reads() -> None:
+    """A persisted old pet must not override a newer owner/deep-link choice."""
+    context = read("apps/mobile/src/context.tsx")
+    assert "const selectedInSession = useRef<string | null>(null)" in context
+    assert "const preferred = selectedInSession.current ?? stored" in context
+    assert "selectedInSession.current = id" in context
+    assert "const write = persistQueue.current.then(() => setCurrentPet(id))" in context
+    assert "if (!alive) return;" in context
+    assert "selectedInSession.current = null" in context
+
+
 def test_living_hero_preserves_a_pet_scoped_first_paint_fallback() -> None:
     """A ready manifest is not equivalent to a visible Android first frame."""
     stage = read("apps/mobile/src/components/life/PetLivingStage.tsx")
