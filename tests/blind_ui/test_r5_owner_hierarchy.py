@@ -2332,3 +2332,16 @@ def test_life_view_modes_precede_immersive_stage_on_web_and_android() -> None:
 
     assert web.index("<LivingModeSwitcher") < web.index('className="r5-life-stage-shell"')
     assert android.index('testID="pli.lifeview.control.modes"') < android.index("styles.stageWrap")
+
+
+def test_history_without_a_verified_twin_uses_short_truthful_living_cover() -> None:
+    """Do not force a massive empty 3D stage or a fake pet on historic days."""
+    life = read("apps/mobile/src/screens/LifeViewScreen.tsx")
+    assert "const showLivingStage = currentFactScope || Boolean(displayTwin);" in life
+    assert "{showLivingStage ? (" in life
+    assert 'testID="pli.lifeview.history-cover"' in life
+    assert 'testID="pli.lifeview.history-cover.summary"' in life
+    assert "已找到 ${petEvents.length} 条有来源的生活记录" in life
+    assert "只展示当时已经知道的记录" in life
+    assert "不会用现在的模型补画过去" in life
+    assert "pose={displayTwin ? (timeScope === \"date\" ? \"Idle\" : representativePose) : null}" in life

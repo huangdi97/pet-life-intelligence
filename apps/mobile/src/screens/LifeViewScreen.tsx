@@ -309,6 +309,10 @@ export function LifeViewScreen() {
         ? historicalTwin
         : null;
   const historicalRange = timeScope === "7d" || timeScope === "30d";
+  // Historical dates and ranges without an authenticated historical visual
+  // should be legible lived memories, not an enormous empty/mascot 3D stage.
+  // Present-day Live View and actually available historic Twins keep 3D.
+  const showLivingStage = currentFactScope || Boolean(displayTwin);
   const scopeLabel =
     timeScope === "now" ? "此刻" :
     timeScope === "today" ? "今天" :
@@ -504,22 +508,49 @@ export function LifeViewScreen() {
         </View>
 
         <View style={styles.stageWrap}>
-          <PetLivingStage
-            pet={stagePet}
-            spec={resolvePetStage(stagePet)}
-            variant="life"
-            anchors={anchors}
-            headline={mode === "now" ? `${pet?.name ?? "宠物"} · ${scopeLabel}` : undefined}
-            caption={mode === "now" ? nowLine : undefined}
-            note={historicalRange ? "时间范围汇总不使用当前 3D 形象冒充历史。" : timeScope === "date" && !historicalTwin ? "该日没有可确认的历史 3D 版本；保留真实记录与照片。" : undefined}
-            demo={displayTwin ? (DEMO_ENV || displayTwin.demoFixture === true) : false}
-            interactive={Boolean(displayTwin)}
-            twin={displayTwin?.descriptor ?? null}
-            sourceMediaCount={displayTwin?.observedRegions.length ?? 0}
-            frameTarget={0.54}
-            viewerRef={viewerRef}
-            pose={displayTwin ? (timeScope === "date" ? "Idle" : representativePose) : null}
-          />
+          {showLivingStage ? (
+            <PetLivingStage
+              pet={stagePet}
+              spec={resolvePetStage(stagePet)}
+              variant="life"
+              anchors={anchors}
+              headline={mode === "now" ? `${pet?.name ?? "宠物"} · ${scopeLabel}` : undefined}
+              caption={mode === "now" ? nowLine : undefined}
+              note={timeScope === "date" ? "历史形象仅展示确实存在的版本，不重演未经观察的动作。" : undefined}
+              demo={displayTwin ? (DEMO_ENV || displayTwin.demoFixture === true) : false}
+              interactive={Boolean(displayTwin)}
+              twin={displayTwin?.descriptor ?? null}
+              sourceMediaCount={displayTwin?.observedRegions.length ?? 0}
+              frameTarget={0.54}
+              viewerRef={viewerRef}
+              pose={displayTwin ? (timeScope === "date" ? "Idle" : representativePose) : null}
+            />
+          ) : (
+            <View style={styles.historyCover} testID="pli.lifeview.history-cover">
+              <View style={styles.historyCoverText}>
+                <Text style={styles.historyCoverEyebrow}>
+                  {timeScope === "date" ? "它生命中的这一天" : "它的生活记录"}
+                </Text>
+                <Text style={styles.historyCoverTitle}>
+                  {timeScope === "date" ? selectedDate : scopeLabel}
+                </Text>
+                <Text style={styles.historyCoverSummary} testID="pli.lifeview.history-cover.summary">
+                  {!scoped ? "正在读取有来源的生活记录…"
+                    : error ? "历史记录暂时无法读取"
+                    : petEvents.length === 0 ? "目前没有当时已记录的生活片段"
+                    : `已找到 ${petEvents.length} 条有来源的生活记录`}
+                </Text>
+                <Text style={styles.historyCoverFoot}>
+                  {asKnownThen
+                    ? "只展示当时已经知道的记录；没有足够证据时不还原历史形象。"
+                    : "原始事件与照片在下方；不会用现在的模型补画过去。"}
+                </Text>
+              </View>
+              <View style={styles.historyCoverMark} accessible={false}>
+                <Ionicons name="albums-outline" size={29} color={COLORS.brandPrimaryDeep} />
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Historical inspection remains available but the living subject
@@ -771,6 +802,27 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingBottom: SPACE.s8 },
   stageWrap: { alignSelf: "center", width: "100%", maxWidth: 430 },
+  historyCover: {
+    marginHorizontal: SPACE.s4,
+    marginTop: SPACE.s3,
+    padding: SPACE.s5,
+    backgroundColor: COLORS.stageWarmBase,
+    borderRadius: 24,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: SPACE.s3,
+    minHeight: 164,
+  },
+  historyCoverText: { flex: 1, gap: SPACE.s2 },
+  historyCoverEyebrow: { color: COLORS.brandPrimaryDeep, fontSize: TYPE.meta, fontWeight: "700" },
+  historyCoverTitle: { color: COLORS.textPrimary, fontSize: 26, fontWeight: "800", letterSpacing: -0.5 },
+  historyCoverSummary: { color: COLORS.textPrimary, fontSize: TYPE.bodyStrong, fontWeight: "600", lineHeight: 23 },
+  historyCoverFoot: { color: COLORS.textSecondary, fontSize: TYPE.sm, lineHeight: 20 },
+  historyCoverMark: {
+    width: 52, height: 52, borderRadius: 18,
+    justifyContent: "center", alignItems: "center",
+    backgroundColor: COLORS.brandSoft,
+  },
   timeScopeRow: { paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3, gap: SPACE.s2 },
   timeScopeChip: { minHeight: 40, paddingHorizontal: 14, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.surfaceRaised },
   timeScopeChipActive: { backgroundColor: COLORS.brandPrimary },
