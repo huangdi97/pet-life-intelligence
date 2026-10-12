@@ -62,7 +62,7 @@ const STACK_SCREENS: Record<string, keyof StackParamList> = {
   twinversion: "TwinVersion",
 };
 
-export function navigateToDemoScreen(screen: string): void {
+export function navigateToDemoScreen(screen: string, date: string | null = null): void {
   if (!navigationRef.isReady()) return;
   // TYPE ESCAPE (bounded, WHY): resetRoot's discriminated route types cannot
   // express a route name selected from our demo-only lookup tables. Production
@@ -96,7 +96,7 @@ export function navigateToDemoScreen(screen: string): void {
     // production navigation never calls this helper.
     deterministic.resetRoot({
       index: 1,
-      routes: [{ name: "Tabs" }, { name: stack }],
+      routes: [{ name: "Tabs" }, { name: stack, params: stack === "LifeView" && date ? { date } : undefined }],
     });
   }
 }

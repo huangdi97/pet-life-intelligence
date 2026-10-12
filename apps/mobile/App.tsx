@@ -40,6 +40,19 @@ function demoNavFromUrl(url: string | null): string | null {
   }
 }
 
+function demoDateFromUrl(url: string | null): string | null {
+  if (!url || !url.startsWith("pli-demo://")) return null;
+  try {
+    const parsed = new URL(url);
+    const date = parsed.searchParams.get("date");
+    // DEMO-ONLY date parameter: a real Life View calendar scope, no fake facts.
+    if (parsed.hostname !== "nav" || !date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+    return date;
+  } catch {
+    return null;
+  }
+}
+
 function demoPetFromUrl(url: string | null): string | null {
   if (!url || !url.startsWith("pli-demo://")) return null;
   try {
@@ -52,7 +65,7 @@ function demoPetFromUrl(url: string | null): string | null {
 
 let demoNavGeneration = 0;
 
-function applyDemoNav(screen: string | null): void {
+function applyDemoNav(screen: string | null, date: string | null = null): void {
   if (!screen) return;
   // Navigation can be unready immediately after mount, so retry briefly.
   // IMPORTANT: every new deep link invalidates all retries scheduled by the
@@ -63,7 +76,7 @@ function applyDemoNav(screen: string | null): void {
   for (let i = 0; i < 10; i++) {
     setTimeout(() => {
       if (generation !== demoNavGeneration) return;
-      navigateToDemoScreen(screen);
+      navigateToDemoScreen(screen, date);
     }, i * 500);
   }
 }
@@ -99,7 +112,7 @@ function DemoSession() {
         if (pet) await choose(pet);
         if (!alive) return;
         setReady(true);
-        applyDemoNav(demoNavFromUrl(url));
+        applyDemoNav(demoNavFromUrl(url), demoDateFromUrl(url));
       } catch {
         if (alive) setFailure(true);
       }
@@ -128,7 +141,7 @@ function DemoSession() {
           if (pet) await choose(pet);
           if (!alive) return;
           setReady(true);
-          applyDemoNav(demoNavFromUrl(url));
+          applyDemoNav(demoNavFromUrl(url), demoDateFromUrl(url));
         } catch {
           if (alive) setFailure(true);
         }

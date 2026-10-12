@@ -26,7 +26,8 @@ import shutil
 import subprocess
 import time
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, time as clock_time, timedelta, timezone
+from urllib.parse import urlencode
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -705,6 +706,143 @@ def capture_review_views(
         xml = android.dump_xml(directory / "ui.xml")
 
 
+def capture_r7_life_replay(
+    android: Android,
+    out: Path,
+    *,
+    api_url: str,
+    owner_id: str,
+    pet_id: str,
+) -> None:
+    """Observe BOTH historical perspectives through the real Android UI.
+
+    A backfilled event is a true, persisted demo record with a historical
+    occurred_at and a current recorded_at. The API proves that it must appear
+    under verified-now but cannot appear under as-known-then. ADB clicks the
+    real selector, then freezes each distinct response and accessibility tree.
+    No fake DOM, no screenshot synthesis and NO vision models.
+    """
+    local_day_raw = android.shell("date", "+%Y-%m-%d")
+    offset_raw = android.shell("date", "+%z")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", local_day_raw):
+        raise CaptureError(f"invalid Android local date: {local_day_raw!r}")
+    if not re.fullmatch(r"[+-]\d{4}", offset_raw):
+        raise CaptureError(f"invalid Android timezone offset: {offset_raw!r}")
+    hours = int(offset_raw[1:3])
+    minutes = int(offset_raw[3:])
+    offset_seconds = (hours * 60 + minutes) * 60 * (1 if offset_raw[0] == "+" else -1)
+    owner_zone = timezone(timedelta(seconds=offset_seconds))
+    historical_day = datetime.strptime(local_day_raw, "%Y-%m-%d").date() - timedelta(days=3)
+    recorded_day = historical_day.isoformat()
+    occurred_at = datetime.combine(historical_day, clock_time(hour=12), tzinfo=owner_zone)
+    owner_header = {"X-Dev-User-Id": owner_id}
+    api = api_url.rstrip("/") + "/api/v1"
+    created = api_json(
+        f"{api}/pets/{pet_id}/events",
+        method="POST",
+        headers=owner_header,
+        body={
+            "event_type": "daily.walk",
+            "payload": {"duration_minutes": 17},
+            "occurred_at": occurred_at.isoformat(),
+            "allow_duplicate": True,
+        },
+    )
+    event_id = created.get("event_id")
+    if not event_id or created.get("pet_id") != pet_id:
+        raise CaptureError("R7 backfill fixture did not persist for the selected pet")
+    day_start = datetime.combine(historical_day, clock_time.min, tzinfo=owner_zone)
+    next_start = day_start + timedelta(days=1)
+    def replay_query(perspective: str) -> dict:
+        qs = urlencode({
+            "date": recorded_day,
+            "perspective": perspective,
+            "day_start_at": day_start.isoformat(),
+            "day_end_at": next_start.isoformat(),
+        })
+        return api_json(f"{api}/pets/{pet_id}/life-replay?{qs}", headers=owner_header)
+
+    current = replay_query("verified_now")
+    then = replay_query("as_known_then")
+    current_ids = [row["event_id"] for row in current.get("events", [])]
+    prior_ids = [row["event_id"] for row in then.get("events", [])]
+    if event_id not in current_ids or event_id in prior_ids:
+        raise CaptureError(
+            "R7 API bitemporal truth failed for a real late-recorded LifeEvent: "
+            f"event={event_id} verified={event_id in current_ids} as_known={event_id in prior_ids}"
+        )
+    if current.get("time_policy") != "CLIENT_EXPLICIT_LOCAL_DAY_BOUNDS":
+        raise CaptureError("R7 replay did not respect explicit owner-local calendar bounds")
+
+    evidence = out / "r7-life-replay"
+    evidence.mkdir(parents=True, exist_ok=True)
+    save_manifest(evidence / "api-truth.json", {
+        "pet_id": pet_id,
+        "day": recorded_day,
+        "timezone_offset": offset_raw,
+        "backfilled_event_id": event_id,
+        "created_at": created.get("recorded_at"),
+        "occurred_at": created.get("occurred_at"),
+        "verified_now_event_ids": current_ids,
+        "as_known_then_event_ids": prior_ids,
+        "time_policy": current.get("time_policy"),
+        "vision_model_used": False,
+    })
+
+    android.start_link(f"pli-demo://nav?screen=lifeview&pet={pet_id}&date={recorded_day}")
+    # The editor's real portrait precedes the advanced history controls.
+    # Scroll the native owner screen; a demo deep link only sets a valid
+    # route date, never changes returned facts or selected UI perspective.
+    ready_xml = ""
+    for attempt in range(18):
+        time.sleep(1 if attempt else 3)
+        ready_xml = android.dump_xml(evidence / "verified-ui.xml")
+        if "pli.lifeview.replay.verified_now" in ready_xml:
+            break
+        android.shell("input", "swipe", "960", "1820", "960", "650", "420")
+    if "pli.lifeview.replay.verified_now" not in ready_xml:
+        raise CaptureError("R7 Android historical date controls are not reachable by real vertical swipes")
+
+    def screen_text(xml: str) -> str:
+        root = ET.fromstring(xml)
+        return " ".join(node.attrib.get("text", "") for node in root.iter("node"))
+
+    verified_note = "当前已核实记录"
+    prior_note = "仅回放当时已记录的事实"
+    verified_xml = ready_xml
+    for _ in range(15):
+        if verified_note in screen_text(verified_xml):
+            break
+        time.sleep(1)
+        verified_xml = android.dump_xml(evidence / "verified-ui.xml")
+    if verified_note not in screen_text(verified_xml):
+        raise CaptureError("R7 Android verified_now response did not render, or wrong pet/date is visible")
+    android.screenshot(evidence / "verified-now.png")
+
+    android.tap(verified_xml, "pli.lifeview.replay.as_known_then", "id")
+    known_xml = ""
+    for _ in range(20):
+        time.sleep(1)
+        known_xml = android.dump_xml(evidence / "as-known-ui.xml")
+        if prior_note in screen_text(known_xml):
+            break
+    if prior_note not in screen_text(known_xml):
+        raise CaptureError("R7 Android as_known_then response did not render after UIAutomator tap")
+    if "pli.lifeview.replay.perspective" not in known_xml:
+        raise CaptureError("R7 perspective controls vanished during switch")
+    android.screenshot(evidence / "as-known-then.png")
+    save_manifest(evidence / "capture-summary.json", {
+        "pet_id": pet_id,
+        "historical_day": recorded_day,
+        "source_event_id": event_id,
+        "verified_now_note": verified_note,
+        "as_known_then_note": prior_note,
+        "both_real_android_states_observed": True,
+        "vision_model_used": False,
+        "human_visual_acceptance": "PENDING",
+    })
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default=str(DEFAULT_OUT.relative_to(ROOT)))
@@ -788,6 +926,18 @@ def main() -> None:
 
     review_dir = out / "twinreview"
     capture_review_views(android, review_dir, "twin", primary_id)
+
+    # R7: keep a real late-recorded event + API truth + two screenshots from
+    # actual touch interaction, not source-only acceptance.
+    owner_auth = api_json(
+        f"{args.api_url.rstrip('/')}/api/v1/auth/dev/login",
+        method="POST",
+        body={"email": args.login_email},
+    )
+    capture_r7_life_replay(
+        android, out, api_url=args.api_url,
+        owner_id=str(owner_auth["user_id"]), pet_id=primary_id,
+    )
 
     # Switch to the secondary cat through the same DEMO-ONLY current-pet
     # deep link. The pet id is resolved from the seeded API at runtime; no
