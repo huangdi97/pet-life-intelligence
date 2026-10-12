@@ -1,5 +1,6 @@
-import io
 """LifeEvent authorization must be consistent across ALL reading surfaces."""
+
+import io
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
