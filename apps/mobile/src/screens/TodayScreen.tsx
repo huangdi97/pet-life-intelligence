@@ -47,6 +47,8 @@ interface DayHintExplanation {
   label: string;
   unit: string;
   current_value: number;
+  current_recorded?: boolean;
+  current_event_ids?: string[];
   same_time_baseline: number | null;
   sample_count: number;
   window_days: number;
@@ -163,8 +165,11 @@ export function TodayScreen() {
       explanations.find((row) => row.direction !== "INSUFFICIENT") ??
       explanations[0];
     if (hint.status === "INSUFFICIENT") {
+      const missingTodayRecord = detail?.current_recorded === false;
       return {
-        summary: "与它自己相比：同期基线记录还不够，暂时不能判断变化。",
+        summary: missingTodayRecord
+          ? "与它自己相比：今天缺少相关记录，不能推断活动减少。"
+          : "与它自己相比：当前记录或同期基线不足，暂时不能判断变化。",
         evidence: detail?.comparison ?? "至少需要 3 天同一时间点的可比记录。",
         fact: detail?.fact,
         comparison: detail?.comparison,
