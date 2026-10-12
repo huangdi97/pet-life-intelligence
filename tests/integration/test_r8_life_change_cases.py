@@ -392,3 +392,88 @@ def test_review_history_only_does_not_become_invalidated_followup(client, seeded
     assert current.json()["state"] == "FOLLOW_UP"
     assert current.json()["follow_up_source_valid"] is None
     assert current.json()["reviews"][0]["related_sources_valid"] is None
+
+
+def test_repeated_case_creation_keeps_invalidated_followup_effective_state(client, seeded):
+    """POST Case retry must not resurrect a withdrawn follow-up after list/detail invalidate it."""
+    owner = seeded["owner_id"]
+    pet, _, _ = _create_change(client, owner)
+    first_case = _case(client, owner, pet)
+    case_id = first_case["case_id"]
+    new_observation = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 16}},
+        headers=auth(owner),
+    )
+    assert new_observation.status_code == 201, new_observation.text
+    evidence_id = new_observation.json()["event_id"]
+    reviewed = client.post(
+        f"/api/v1/pets/{pet}/life-change-cases/{case_id}/reviews",
+        json={"decision": "RECORD_OBSERVATION",
+              "related_event_ids": [evidence_id]},
+        headers=auth(owner),
+    )
+    assert reviewed.status_code == 201, reviewed.text
+    withdrawn = client.post(
+        f"/api/v1/events/{evidence_id}/retract", headers=auth(owner),
+    )
+    assert withdrawn.status_code == 200, withdrawn.text
+
+    detail = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases/{case_id}", headers=auth(owner),
+    )
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["state"] == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+    assert detail.json()["recorded_state"] == "FOLLOW_UP"
+
+    repeated = _case(client, owner, pet)
+    assert repeated["replayed"] is True
+    assert repeated["case_id"] == case_id
+    assert repeated["recorded_state"] == "FOLLOW_UP"
+    assert repeated["state"] == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+    assert repeated["follow_up_source_valid"] is False
+    listed = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases", headers=auth(owner),
+    )
+    assert listed.status_code == 200, listed.text
+    assert next(c for c in listed.json()["cases"] if c["case_id"] == case_id)["state"] == repeated["state"]
+
+
+def test_reused_review_idempotency_key_cannot_change_owner_decision(client, seeded):
+    """Identical retry succeeds; different action or payload must conflict without append."""
+    owner = seeded["owner_id"]
+    pet, _, _ = _create_change(client, owner)
+    case = _case(client, owner, pet)
+    endpoint = f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}/reviews"
+    key = "single-human-intent-review-008"
+    body = {
+        "decision": "FOLLOW_UP_LATER",
+        "note": "Will observe again",
+        "idempotency_key": key,
+    }
+    first = client.post(endpoint, json=body, headers=auth(owner))
+    assert first.status_code == 201, first.text
+    same = client.post(endpoint, json=body, headers=auth(owner))
+    assert same.status_code == 201, same.text
+    assert same.json()["replayed"] is True
+    assert same.json()["review_id"] == first.json()["review_id"]
+
+    for changes in (
+        {"decision": "NOT_RELEVANT"},
+        {"note": "Different private note"},
+        {"expected_latest_review_id": first.json()["review_id"]},
+    ):
+        conflicting = client.post(
+            endpoint, json={**body, **changes}, headers=auth(owner),
+        )
+        assert conflicting.status_code == 409, conflicting.text
+    details = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}",
+        headers=auth(owner),
+    )
+    assert details.status_code == 200
+    assert [x["review_id"] for x in details.json()["reviews"]] == [
+        first.json()["review_id"],
+    ]
+    assert details.json()["reviews"][0]["decision"] == "FOLLOW_UP_LATER"
+    assert details.json()["reviews"][0]["note"] == "Will observe again"

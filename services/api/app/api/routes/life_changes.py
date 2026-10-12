@@ -205,8 +205,29 @@ async def create_case(
         LifeChangeCase.pet_id == pet.id, LifeChangeCase.fingerprint == fingerprint,
     ))).scalar_one_or_none()
     if existing:
-        return {**_case_response(existing, await _case_current(db, existing)),
-                "replayed": True}
+        # POST retries must agree with list/detail on the EFFECTIVE status.
+        # The stored FOLLOW_UP review remains append-only, but a withdrawn
+        # follow-up source can no longer be represented as still valid.
+        last_observation = (await db.execute(
+            select(LifeChangeReview).where(
+                LifeChangeReview.case_id == existing.id,
+                LifeChangeReview.decision == "RECORD_OBSERVATION",
+            ).order_by(
+                LifeChangeReview.reviewed_at.desc(),
+                LifeChangeReview.id.desc(),
+            ).limit(1)
+        )).scalar_one_or_none()
+        followup_valid = (
+            await _follow_up_current(db, existing, last_observation)
+            if last_observation else None
+        )
+        return {
+            **_case_response(
+                existing, await _case_current(db, existing),
+                follow_up_source_valid=followup_valid,
+            ),
+            "replayed": True,
+        }
     now = datetime.now(UTC)
     case = LifeChangeCase(
         pet_id=pet.id, created_by_user_id=user.id,
@@ -331,6 +352,21 @@ async def review_case(
             )
         )).scalar_one_or_none()
         if existing:
+            # An idempotency key identifies ONE human instruction, not an
+            # arbitrary sequence of possibly contradictory instructions.
+            # The latest-review token is part of that original instruction.
+            submitted_ids = sorted(str(item) for item in body.related_event_ids)
+            saved_ids = sorted(existing.related_event_ids)
+            if (
+                existing.decision != body.decision
+                or existing.note != body.note
+                or saved_ids != submitted_ids
+                or existing.related_task_id != body.related_task_id
+                or existing.prior_review_id != body.expected_latest_review_id
+            ):
+                raise ConflictError(
+                    "Idempotency key already belongs to a different owner review."
+                )
             return {**_review_response(existing), "replayed": True}
     if not await _case_current(db, case):
         raise ConflictError("Case evidence has changed; this review cannot be attached to an invalidated case.")
