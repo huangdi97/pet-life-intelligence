@@ -1695,6 +1695,224 @@
         }
       }
     },
+    "/api/v1/pets/{pet_id}/life-change-cases": {
+      "post": {
+        "tags": [
+          "life-intelligence"
+        ],
+        "summary": "Create Case",
+        "operationId": "create_case_api_v1_pets__pet_id__life_change_cases_post",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaseCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Create Case Api V1 Pets  Pet Id  Life Change Cases Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "life-intelligence"
+        ],
+        "summary": "List Cases",
+        "operationId": "list_cases_api_v1_pets__pet_id__life_change_cases_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List Cases Api V1 Pets  Pet Id  Life Change Cases Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pets/{pet_id}/life-change-cases/{case_id}": {
+      "get": {
+        "tags": [
+          "life-intelligence"
+        ],
+        "summary": "Get Case",
+        "operationId": "get_case_api_v1_pets__pet_id__life_change_cases__case_id__get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          },
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Case Api V1 Pets  Pet Id  Life Change Cases  Case Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pets/{pet_id}/life-change-cases/{case_id}/reviews": {
+      "post": {
+        "tags": [
+          "life-intelligence"
+        ],
+        "summary": "Review Case",
+        "operationId": "review_case_api_v1_pets__pet_id__life_change_cases__case_id__reviews_post",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          },
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Review Case Api V1 Pets  Pet Id  Life Change Cases  Case Id  Reviews Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{pet_id}/tasks": {
       "post": {
         "tags": [
@@ -11935,6 +12153,24 @@
         "type": "object",
         "title": "CareCardCreate"
       },
+      "CaseCreate": {
+        "properties": {
+          "metric": {
+            "type": "string",
+            "enum": [
+              "walk_minutes_per_day",
+              "meal_count_per_day",
+              "sleep_minutes_per_day"
+            ],
+            "title": "Metric"
+          }
+        },
+        "type": "object",
+        "required": [
+          "metric"
+        ],
+        "title": "CaseCreate"
+      },
       "ChangePasswordIn": {
         "properties": {
           "current_password": {
@@ -13972,6 +14208,77 @@
           "email"
         ],
         "title": "ResetRequestIn"
+      },
+      "ReviewCreate": {
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "RECORD_OBSERVATION",
+              "FOLLOW_UP_LATER",
+              "NOT_RELEVANT",
+              "CORRECT_SOURCE"
+            ],
+            "title": "Decision"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 240,
+            "title": "Note",
+            "default": ""
+          },
+          "related_event_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 12,
+            "title": "Related Event Ids"
+          },
+          "related_task_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related Task Id"
+          },
+          "expected_latest_review_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Latest Review Id"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 96,
+                "minLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "decision"
+        ],
+        "title": "ReviewCreate"
       },
       "RuleIn": {
         "properties": {
