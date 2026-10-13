@@ -112,6 +112,11 @@ export function LifeChangeReviewPanel({
   // Preserve the very same human instruction if POST succeeded but its reply
   // was lost. A fresh optimistic token would otherwise append a second Review.
   const pendingReview = useRef<PendingReviewIntent | null>(null);
+  // Async evidence/Review responses are scoped to the live mounted pet+Case.
+  // A request from pet A must never repopulate pet B after a tab switch.
+  const requestGeneration = useRef(0);
+  const activeOwnerScope = useRef({ petId, caseId: "" });
+  activeOwnerScope.current = { petId, caseId: record?.case_id ?? "" };
   // Values alone do not identify a LifeChangeCase. A different day's
   // 20-minute walk can have the same 90-minute historical baseline, but is
   // NOT the old Case's frozen source evidence. Match immutable event IDs.
@@ -122,6 +127,7 @@ export function LifeChangeReviewPanel({
 
   useEffect(() => {
     let alive = true;
+    requestGeneration.current += 1;
     pendingReview.current = null;
     setRestoring(true);
     setRecord(null);
@@ -277,6 +283,13 @@ export function LifeChangeReviewPanel({
     if (showEvidence) { setShowEvidence(false); return; }
     setShowEvidence(true);
     if (evidence) return;
+    const requestedPetId = petId;
+    const requestedCaseId = record.case_id;
+    const generation = requestGeneration.current;
+    const stillCurrent = () =>
+      requestGeneration.current === generation &&
+      activeOwnerScope.current.petId === requestedPetId &&
+      activeOwnerScope.current.caseId === requestedCaseId;
     setEvidenceError(null);
     setLoading(true);
     try {
@@ -285,11 +298,12 @@ export function LifeChangeReviewPanel({
           api.get<EvidenceEvent>(`/events/${id}`),
         ),
       );
+      if (!stillCurrent()) return;
       setEvidence(rows);
     } catch (e: unknown) {
-      setEvidenceError(humanizeError(e));
+      if (stillCurrent()) setEvidenceError(humanizeError(e));
     } finally {
-      setLoading(false);
+      if (stillCurrent()) setLoading(false);
     }
   };
 

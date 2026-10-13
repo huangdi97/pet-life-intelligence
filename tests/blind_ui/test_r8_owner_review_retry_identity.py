@@ -180,3 +180,18 @@ def test_r8m_primary_owner_review_never_drops_uncertain_request_on_http_conflict
     assert post.index("entry.review_id === accepted.review_id") < post.index(
         "const cleared = await clearOwnerIntentIfUnchanged({"
     )
+
+
+def test_r8n_owner_evidence_async_result_cannot_cross_pet_or_case() -> None:
+    """Slow event-source GETs are not allowed to paint another selected pet."""
+    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
+    section = panel.split("const inspectEvidence = async", 1)[1].split("  return (", 1)[0]
+    assert "const requestGeneration = useRef(0)" in panel
+    assert "requestGeneration.current += 1" in panel
+    assert "const requestedPetId = petId" in section
+    assert "const requestedCaseId = record.case_id" in section
+    assert "activeOwnerScope.current.petId === requestedPetId" in section
+    assert "activeOwnerScope.current.caseId === requestedCaseId" in section
+    assert "if (!stillCurrent()) return;" in section
+    assert "if (stillCurrent()) setEvidenceError(humanizeError(e))" in section
+    assert "if (stillCurrent()) setLoading(false)" in section
