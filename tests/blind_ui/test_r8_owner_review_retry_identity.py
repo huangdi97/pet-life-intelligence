@@ -33,3 +33,22 @@ def test_r8_android_does_not_clear_ambiguous_intent_before_exact_review_is_seen(
     assert 'throw new Error("REVIEW_CONFIRMATION_PENDING")' in code
     assert "主人决定尚未在最新记录中确认" in code
     assert code.index("entry.review_id === accepted.review_id") < code.index("pendingReview.current = null;", code.index("const accepted = await api.post"))
+
+
+def test_r8i_android_pending_owner_intent_survives_restart_and_is_account_scoped() -> None:
+    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
+    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text()
+    session = (ROOT / "apps/mobile/src/storage/session.ts").read_text()
+    assert 'import * as SecureStore from "expo-secure-store"' in store
+    assert 'const KEY = "pli_r8_unconfirmed_owner_review_v1"' in store
+    assert "sourceIdsKey === sourceIdsKey" not in store
+    assert "x.petId === petId && x.caseId === caseId && x.sourceIdsKey === sourceIdsKey" in store
+    assert "await saveOwnerIntent({ petId, caseId: record.case_id, sourceIdsKey, decision, payload });" in panel
+    assert panel.index("await saveOwnerIntent(") < panel.index("const accepted = await api.post")
+    assert "const saved = await restoreOwnerIntent(petId, matched.case_id, sourceIdsKey);" in panel
+    assert "不会自动重试" in panel
+    assert panel.index("entry.review_id === accepted.review_id") < panel.index("await clearOwnerIntent(")
+    assert "clearAllOwnerIntents()" in session
+    assert "if (current !== token)" in session
+    assert "if (current !== id)" in session
+    assert "disabled={loading || restoring}" in panel

@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ApiError, api, humanizeError } from "../../api";
+import { clearOwnerIntent, restoreOwnerIntent, saveOwnerIntent } from "../../storage/pendingOwnerReview";
 import { COLORS, SPACE, TYPE } from "../../tokens";
 
 export type LifeMetric =
@@ -103,6 +104,7 @@ export function LifeChangeReviewPanel({
 }) {
   const [record, setRecord] = useState<LifeCase | null>(null);
   const [loading, setLoading] = useState(false);
+  const [restoring, setRestoring] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [evidence, setEvidence] = useState<EvidenceEvent[] | null>(null);
   const [evidenceError, setEvidenceError] = useState<string | null>(null);
@@ -121,12 +123,13 @@ export function LifeChangeReviewPanel({
   useEffect(() => {
     let alive = true;
     pendingReview.current = null;
+    setRestoring(true);
     setRecord(null);
     setMessage(null);
     setEvidence(null);
     setShowEvidence(false);
     api.get<{ cases: LifeCase[] }>(`/pets/${petId}/life-change-cases`)
-      .then((result) => {
+      .then(async (result) => {
         if (!alive) return;
         const sourceIds = new Set(sourceIdsKey.split("|").filter(Boolean));
         const matched = result.cases.find((c) =>
@@ -138,14 +141,23 @@ export function LifeChangeReviewPanel({
           c.evidence_event_ids.length === sourceIds.size &&
           c.evidence_event_ids.every((id) => sourceIds.has(id)),
         );
-        if (matched) setRecord(matched);
+        if (matched) {
+          const saved = await restoreOwnerIntent(petId, matched.case_id, sourceIdsKey);
+          if (!alive) return;
+          if (saved) {
+            pendingReview.current = { caseId: saved.caseId, decision: saved.decision, payload: saved.payload };
+            setMessage("发现一条跨重启未确认的主人决定，请重新点击原选择核对；不会自动重试。");
+          }
+          setRecord(matched);
+        }
       })
-      .catch(() => { /* No old Case required to show the owner invitation. */ });
+      .catch(() => { if (alive) setMessage("未确认操作暂时无法安全核对，请检查网络后重试。"); })
+      .finally(() => { if (alive) setRestoring(false); });
     return () => { alive = false; };
   }, [petId, change.metric, change.current_value, change.same_time_baseline, sourceIdsKey]);
 
   const create = async () => {
-    if (loading) return;
+    if (loading || restoring) return;
     setLoading(true);
     setMessage(null);
     try {
@@ -162,7 +174,7 @@ export function LifeChangeReviewPanel({
   };
 
   const review = async (decision: Decision) => {
-    if (!record || loading) return;
+    if (!record || loading || restoring) return;
     const pending = pendingReview.current;
     // After a network timeout we do not know whether the original decision
     // persisted. Require a same-intent retry before authoring another choice.
@@ -190,6 +202,9 @@ export function LifeChangeReviewPanel({
           expected_latest_review_id: last?.review_id ?? null,
           idempotency_key: `r8-${decision}-${last?.review_id ?? "initial"}`,
         };
+        // Persist BEFORE the HTTP POST. A failed secure-storage write is a
+        // fail-closed stop, not permission to submit an unrepeatable decision.
+        await saveOwnerIntent({ petId, caseId: record.case_id, sourceIdsKey, decision, payload });
         pendingReview.current = { caseId: record.case_id, decision, payload };
       }
       const accepted = await api.post<ReviewAcknowledgement>(
@@ -219,6 +234,8 @@ export function LifeChangeReviewPanel({
         throw new Error("REVIEW_CONFIRMATION_PENDING");
       }
       setRecord(updated);
+      // Only the precise immutable Review acknowledgement resolves the intent.
+      await clearOwnerIntent(petId, record.case_id, sourceIdsKey);
       pendingReview.current = null;
       setMessage(
         decision === "NOT_RELEVANT"
@@ -232,6 +249,7 @@ export function LifeChangeReviewPanel({
       // cannot have saved this instruction. Network and 5xx outcomes CAN be
       // ambiguous, so keep the same idempotency key for retry.
       if (e instanceof ApiError && [400, 401, 403, 404, 409, 422].includes(e.status)) {
+        await clearOwnerIntent(petId, record.case_id, sourceIdsKey).catch(() => {});
         pendingReview.current = null;
       }
       setMessage(
@@ -246,7 +264,7 @@ export function LifeChangeReviewPanel({
   };
 
   const inspectEvidence = async () => {
-    if (!record || loading) return;
+    if (!record || loading || restoring) return;
     if (showEvidence) { setShowEvidence(false); return; }
     setShowEvidence(true);
     if (evidence) return;
@@ -278,7 +296,7 @@ export function LifeChangeReviewPanel({
           testID="pli.r8.owner-review.create"
           accessibilityRole="button"
           onPress={() => void create()}
-          disabled={loading}
+          disabled={loading || restoring}
           style={styles.primary}
         >
           <Text style={styles.primaryText}>{loading ? "读取记录中…" : "核对这次记录变化"}</Text>
@@ -306,7 +324,7 @@ export function LifeChangeReviewPanel({
             accessibilityRole="button"
             onPress={() => void inspectEvidence()}
             style={styles.sourceAction}
-            disabled={loading}
+            disabled={loading || restoring}
           >
             <Text style={styles.sourceText}>{showEvidence ? "收起记录来源" : "查看原始记录来源"}</Text>
           </Pressable>
@@ -340,7 +358,7 @@ export function LifeChangeReviewPanel({
               testID="pli.r8.owner-review.record"
               style={styles.primary}
               onPress={() => onRecord(record.case_id, record.metric)}
-              disabled={loading}
+              disabled={loading || restoring}
             >
               <Text style={styles.primaryText}>补充真实观察</Text>
             </Pressable>
@@ -349,7 +367,7 @@ export function LifeChangeReviewPanel({
               testID="pli.r8.owner-review.later"
               style={styles.secondary}
               onPress={() => void review("FOLLOW_UP_LATER")}
-              disabled={loading}
+              disabled={loading || restoring}
             >
               <Text style={styles.secondaryText}>稍后关注</Text>
             </Pressable>
@@ -358,7 +376,7 @@ export function LifeChangeReviewPanel({
               testID="pli.r8.owner-review.correct"
               style={styles.secondary}
               onPress={() => void review("CORRECT_SOURCE")}
-              disabled={loading}
+              disabled={loading || restoring}
             >
               <Text style={styles.secondaryText}>来源不准确</Text>
             </Pressable>
@@ -367,7 +385,7 @@ export function LifeChangeReviewPanel({
               testID="pli.r8.owner-review.dismiss"
               style={styles.secondary}
               onPress={() => void review("NOT_RELEVANT")}
-              disabled={loading}
+              disabled={loading || restoring}
             >
               <Text style={styles.secondaryText}>暂不关注</Text>
             </Pressable>
