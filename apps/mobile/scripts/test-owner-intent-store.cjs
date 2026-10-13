@@ -164,6 +164,21 @@ async function run() {
   await exports.saveOwnerIntent(first);
   assert.equal((await exports.listOwnerIntentsForPet(key)).length, 1,
     "valid records still recover after a corrupt snapshot is explicitly resolved");
+  // Exact CAS must refer to the same originally selected owner instruction.
+  // A caller-owned object may mutate while SecureStore's queued read waits.
+  const staleClear = {
+    ...first, payload: { ...first.payload },
+  };
+  let casReadStarted; const casStarted = new Promise(r => { casReadStarted = r; });
+  let releaseCas; const casAllowed = new Promise(r => { releaseCas = r; });
+  pauseNextRead = { started: casReadStarted, release: casAllowed };
+  const exactClear = exports.clearOwnerIntentIfUnchanged(staleClear);
+  await casStarted;
+  staleClear.caseId = "case-not-original";
+  staleClear.payload.idempotency_key = "cas-changed-after-call";
+  releaseCas();
+  assert.equal(await exactClear, true, "CAS must use pre-I/O immutable owner identity");
+  assert.equal((await exports.listOwnerIntentsForPet(key)).length, 0);
   await exports.clearAllOwnerIntents();
   console.log("R8Q/R8U/R8V PASS: linearized get/CAS, immutable write snapshot, ambiguity/privacy rejection, multi-pet isolation");
 }

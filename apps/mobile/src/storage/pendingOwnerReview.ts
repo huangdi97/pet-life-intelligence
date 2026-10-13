@@ -98,13 +98,12 @@ export function restoreOwnerIntent(
   );
 }
 
-export async function saveOwnerIntent(intent: SavedOwnerIntent): Promise<void> {
-  // Fail before ANY SecureStore write if a caller smuggles a private note,
-  // untrusted key, extra payload, or malformed owner identity into the object.
-  // Copy the validated fields synchronously: the original mutable argument
-  // must not be able to change while a queued SecureStore read is pending.
+/** Freeze the exact owner instruction before any queued asynchronous I/O.
+ * Recovery/case callbacks can retain mutable JS objects across renders.
+ */
+function snapshotIntent(intent: SavedOwnerIntent): SavedOwnerIntent {
   const checked = validateRows([intent])[0];
-  const snapshot: SavedOwnerIntent = {
+  return {
     petId: checked.petId,
     caseId: checked.caseId,
     sourceIdsKey: checked.sourceIdsKey,
@@ -115,6 +114,14 @@ export async function saveOwnerIntent(intent: SavedOwnerIntent): Promise<void> {
       idempotency_key: checked.payload.idempotency_key,
     },
   };
+}
+
+export async function saveOwnerIntent(intent: SavedOwnerIntent): Promise<void> {
+  // Fail before ANY SecureStore write if a caller smuggles a private note,
+  // untrusted key, extra payload, or malformed owner identity into the object.
+  // Copy the validated fields synchronously: the original mutable argument
+  // must not be able to change while a queued SecureStore read is pending.
+  const snapshot = snapshotIntent(intent);
   return serialized(async () => {
     const existing = await read();
     const previous = existing.find((x) =>
@@ -152,20 +159,21 @@ export async function clearOwnerIntent(
  * Replaced decisions with the same pet+Case+evidence are never removed.
  */
 export async function clearOwnerIntentIfUnchanged(intent: SavedOwnerIntent): Promise<boolean> {
+  const snapshot = snapshotIntent(intent);
   let removed = false;
   await serialized(async () => {
     const rows = await read();
     const index = rows.findIndex((x) =>
-      x.petId === intent.petId &&
-      x.caseId === intent.caseId &&
-      x.sourceIdsKey === intent.sourceIdsKey
+      x.petId === snapshot.petId &&
+      x.caseId === snapshot.caseId &&
+      x.sourceIdsKey === snapshot.sourceIdsKey
     );
     if (index < 0) return;
     const saved = rows[index];
-    if (saved.decision !== intent.decision ||
-        saved.payload.decision !== intent.payload.decision ||
-        saved.payload.idempotency_key !== intent.payload.idempotency_key ||
-        saved.payload.expected_latest_review_id !== intent.payload.expected_latest_review_id) {
+    if (saved.decision !== snapshot.decision ||
+        saved.payload.decision !== snapshot.payload.decision ||
+        saved.payload.idempotency_key !== snapshot.payload.idempotency_key ||
+        saved.payload.expected_latest_review_id !== snapshot.payload.expected_latest_review_id) {
       return;
     }
     const rest = rows.filter((_, i) => i !== index);

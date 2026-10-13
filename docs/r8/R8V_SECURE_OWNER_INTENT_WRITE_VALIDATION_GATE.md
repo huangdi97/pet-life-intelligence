@@ -17,3 +17,7 @@
 ## Non-goals / gates
 
 No native device Keystore fault-injection proof; no cross-account credential change; no UI redesign. Frontend typecheck/test lane, complete CI and same-HEAD Android emulator evidence remain required. Do not promote visuals or claim personalization. `NO_VISION_MODEL_USED = TRUE`, `HUMAN_VISUAL_ACCEPTANCE = PENDING`.
+
+### CAS snapshot amendment
+
+The exact-intent CAS delete now also snapshots the caller's validated instruction synchronously before async SecureStore I/O; a later object mutation cannot change which owner decision will be deleted. A deterministic blocked-read test mutates the caller's case and idempotency token while a CAS operation waits and confirms that only the originally selected instruction is cleared. No bypass of prior conflicts or automatic acknowledgment is introduced.
