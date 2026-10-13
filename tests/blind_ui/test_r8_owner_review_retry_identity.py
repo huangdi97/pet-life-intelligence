@@ -349,4 +349,11 @@ def test_r8t_actual_owner_recovery_handler_executable_gate_runs_in_mobile_ci() -
     assert 'lost acknowledgement must preserve durable owner intent' in node
     assert 'two-step opt-out must never create server Review' in node
     assert 'newer owner instruction must survive CAS' in node
+    assert 'screen.slice(guardStart, guardEnd)' in node
+    assert 'h.changeBackToA()' in node
+    assert 'Old A response cannot resume after A→B→A before effect cleanup' in node
+    production = (root / 'apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx').read_text()
+    assert 'if (activeRecoveryPet.current !== petId) {' in production
+    assert 'const effectGeneration = recoveryGeneration.current;' in production
+    assert 'stillOnPet(petId, effectGeneration)' in production
 
