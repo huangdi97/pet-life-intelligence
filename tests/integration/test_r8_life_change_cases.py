@@ -477,3 +477,74 @@ def test_reused_review_idempotency_key_cannot_change_owner_decision(client, seed
     ]
     assert details.json()["reviews"][0]["decision"] == "FOLLOW_UP_LATER"
     assert details.json()["reviews"][0]["note"] == "Will observe again"
+
+
+def test_r8j_recovery_same_owner_instruction_after_case_source_withdrawal(client, seeded):
+    """After the original evidence is withdrawn, replaying an accepted
+    idempotent owner Review must return THAT Review, not append a new one.
+    A previously unaccepted Review for an invalid Case still cannot be posted.
+    """
+    owner = seeded["owner_id"]
+    pet, current, _ = _create_change(client, owner)
+    case = _case(client, owner, pet)
+    detail_url = f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}"
+    review_url = detail_url + "/reviews"
+    intent = {
+        "decision": "FOLLOW_UP_LATER",
+        "expected_latest_review_id": None,
+        "idempotency_key": "r8j-recover-original-owner-intent",
+    }
+    first = client.post(review_url, json=intent, headers=auth(owner))
+    assert first.status_code == 201, first.text
+    first_id = first.json()["review_id"]
+    assert first.json()["replayed"] is False
+
+    withdraw = client.post(f"/api/v1/events/{current}/retract", headers=auth(owner))
+    assert withdraw.status_code == 200, withdraw.text
+    invalidated = client.get(detail_url, headers=auth(owner))
+    assert invalidated.status_code == 200
+    assert invalidated.json()["source_valid"] is False
+    assert invalidated.json()["state"] == "INVALIDATED"
+
+    # Replayed original instruction is resolvable even when original evidence
+    # no longer qualifies for a new owner review.
+    replay = client.post(review_url, json=intent, headers=auth(owner))
+    assert replay.status_code == 201, replay.text
+    assert replay.json()["review_id"] == first_id
+    assert replay.json()["replayed"] is True
+    after = client.get(detail_url, headers=auth(owner))
+    assert [r["review_id"] for r in after.json()["reviews"]] == [first_id]
+
+    different = client.post(
+        review_url,
+        json={
+            "decision": "NOT_RELEVANT",
+            "expected_latest_review_id": first_id,
+            "idempotency_key": "r8j-different-action-after-invalidity",
+        },
+        headers=auth(owner),
+    )
+    assert different.status_code == 409
+    assert len(client.get(detail_url, headers=auth(owner)).json()["reviews"]) == 1
+
+
+def test_r8j_recovery_cannot_create_review_after_source_invalidated(client, seeded):
+    owner = seeded["owner_id"]
+    pet, current, _ = _create_change(client, owner)
+    case = _case(client, owner, pet)
+    review_url = f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}/reviews"
+    assert client.post(f"/api/v1/events/{current}/retract", headers=auth(owner)).status_code == 200
+    attempted = client.post(
+        review_url,
+        json={"decision": "FOLLOW_UP_LATER",
+              "expected_latest_review_id": None,
+              "idempotency_key": "r8j-not-previously-accepted"},
+        headers=auth(owner),
+    )
+    assert attempted.status_code == 409
+    case_detail = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}",
+        headers=auth(owner),
+    )
+    assert case_detail.status_code == 200
+    assert case_detail.json()["reviews"] == []

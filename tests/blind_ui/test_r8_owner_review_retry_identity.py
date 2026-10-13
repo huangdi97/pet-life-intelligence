@@ -61,8 +61,9 @@ def test_r8j_unconfirmed_owner_review_recovery_survives_loss_of_notable_card() -
     assert "listOwnerIntentsForPet(petId)" in recovery
     assert "entry.petId === petId" in store
     assert "PendingOwnerReviewRecovery" in today
-    assert "hideSourceIdsKey={notableChange ?" in today
-    assert "if (!visible.length && !warning) return null;" in recovery
+    assert "refreshKey={refreshCounter}" in today
+    assert "hideSourceIdsKey" not in recovery
+    assert "if (!intents.length && !warning) return null;" in recovery
     assert "onPress={() => void recover(intent)}" in recovery
     assert recovery.index("const detail = await api.get<CaseDetail>(path)") < recovery.index(
         "const accepted = await api.post<ReviewAck>"

@@ -23,11 +23,10 @@ const DECISION_LABELS: Record<SavedOwnerIntent["decision"], string> = {
 };
 
 export function PendingOwnerReviewRecovery({
-  petId, refreshKey, hideSourceIdsKey,
+  petId, refreshKey,
 }: {
   petId: string;
   refreshKey: number;
-  hideSourceIdsKey: string | null;
 }) {
   const [intents, setIntents] = useState<SavedOwnerIntent[]>([]);
   const [loadingCaseId, setLoadingCaseId] = useState<string | null>(null);
@@ -95,15 +94,16 @@ export function PendingOwnerReviewRecovery({
     }
   };
 
-  const visible = intents.filter((x) => x.sourceIdsKey !== hideSourceIdsKey);
-  if (!visible.length && !warning) return null;
+  // A matching evidence fingerprint does not prove another panel has
+  // loaded the exact Case. Never hide the only recovery option on a guess.
+  if (!intents.length && !warning) return null;
   return (
     <View style={styles.root} testID="pli.r8.pending-review-recovery">
       <Text style={styles.title}>待核对的主人决定</Text>
       <Text style={styles.note}>
         这些决定可能已到达服务器，但确认结果中断。必须由你主动核对；不会自动替你决定或补发。
       </Text>
-      {visible.map((intent) => (
+      {intents.map((intent) => (
         <View key={`${intent.caseId}:${intent.sourceIdsKey}`} style={styles.item}>
           <Text style={styles.itemText}>
             {DECISION_LABELS[intent.decision]} · 记录 ${intent.caseId.slice(0, 8)}

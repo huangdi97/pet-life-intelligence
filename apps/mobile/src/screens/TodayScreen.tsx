@@ -378,10 +378,6 @@ export function TodayScreen() {
                 key={petId}
                 petId={petId}
                 refreshKey={refreshCounter}
-                hideSourceIdsKey={notableChange ? [
-                  ...(notableChange.current_event_ids ?? []),
-                  ...(notableChange.historical_event_ids ?? []),
-                ].sort().join("|") : null}
               />
             ) : null}
             <View testID="pli.today.attention">
