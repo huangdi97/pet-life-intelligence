@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ApiError, api, humanizeError } from "../../api";
-import { clearOwnerIntent, restoreOwnerIntent, saveOwnerIntent } from "../../storage/pendingOwnerReview";
+import { clearOwnerIntentIfUnchanged, restoreOwnerIntent, saveOwnerIntent } from "../../storage/pendingOwnerReview";
 import { COLORS, SPACE, TYPE } from "../../tokens";
 
 export type LifeMetric =
@@ -234,9 +234,17 @@ export function LifeChangeReviewPanel({
         throw new Error("REVIEW_CONFIRMATION_PENDING");
       }
       setRecord(updated);
-      // Only the precise immutable Review acknowledgement resolves the intent.
-      await clearOwnerIntent(petId, record.case_id, sourceIdsKey);
+      // Even after the exact Review acknowledgement, a second owner panel may
+      // have changed the local reminder. Delete only this exact immutable
+      // decision, optimistic predecessor and idempotency key.
+      const cleared = await clearOwnerIntentIfUnchanged({
+        petId, caseId: record.case_id, sourceIdsKey, decision, payload,
+      });
       pendingReview.current = null;
+      if (!cleared) {
+        setMessage("服务器已确认这次主人决定；本机提醒可能已更新，新决定没有被清除，请在待核对记录中重新确认。");
+        return;
+      }
       setMessage(
         decision === "NOT_RELEVANT"
           ? "已记录你的判断；不代表宠物健康状态已被证明正常。"
@@ -245,18 +253,19 @@ export function LifeChangeReviewPanel({
             : "已记录稍后观察；没有自动创建医疗任务。",
       );
     } catch (e: unknown) {
-      // A server-side definitive conflict/validation/permission rejection
-      // cannot have saved this instruction. Network and 5xx outcomes CAN be
-      // ambiguous, so keep the same idempotency key for retry.
-      if (e instanceof ApiError && [400, 401, 403, 404, 409, 422].includes(e.status)) {
-        await clearOwnerIntent(petId, record.case_id, sourceIdsKey).catch(() => {});
-        pendingReview.current = null;
-      }
+      // A 409 or validation error on a RETRY does not prove a prior
+      // request was never saved. Preserve the exact original owner instruction
+      // across ambiguous responses; only verified ack or explicit two-step
+      // local opt-out can safely remove it.
       setMessage(
-        e instanceof Error &&
-        (e.message === "REVIEW_ACK_MISMATCH" || e.message === "REVIEW_CONFIRMATION_PENDING")
-          ? "主人决定尚未在最新记录中确认，请重试刚才同一个操作；不会自动新建第二次决定。"
-          : humanizeError(e),
+        e instanceof Error && e.message === "R8_UNCONFIRMED_INTENT_CONFLICT"
+          ? "本机已有另一条尚未核对的主人决定，请先核实或明确放弃原提醒；新决定没有自动提交。"
+          : e instanceof Error &&
+            (e.message === "REVIEW_ACK_MISMATCH" || e.message === "REVIEW_CONFIRMATION_PENDING")
+            ? "主人决定尚未在最新记录中确认，请重试刚才同一个操作；不会自动新建第二次决定。"
+            : e instanceof ApiError && [400, 401, 403, 404, 409, 422].includes(e.status)
+              ? `服务器暂未确认这次操作（${e.status}）；原决定仍在本机待核对，不能据此认定先前请求失败。`
+              : humanizeError(e),
       );
     } finally {
       setLoading(false);

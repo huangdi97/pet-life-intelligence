@@ -16,6 +16,8 @@ def test_owner_review_android_retries_keep_original_decision_and_optimistic_toke
     assert 'idempotency_key: `r8-${decision}-${last?.review_id ?? "initial"}`' in code
     assert "pendingReview.current = { caseId: record.case_id, decision, payload }" in code
     assert "pendingReview.current = null;" in code
+    assert "const cleared = await clearOwnerIntentIfUnchanged({" in code
+    assert "if (!cleared) {" in code
     assert "const updated = await api.get<LifeCaseDetail>" in code
     assert "if (updated.pet_id !== petId || updated.case_id !== record.case_id)" in code
     assert "e instanceof ApiError" in code
@@ -32,7 +34,10 @@ def test_r8_android_does_not_clear_ambiguous_intent_before_exact_review_is_seen(
     assert "entry.review_id === accepted.review_id && entry.decision === decision" in code
     assert 'throw new Error("REVIEW_CONFIRMATION_PENDING")' in code
     assert "主人决定尚未在最新记录中确认" in code
-    assert code.index("entry.review_id === accepted.review_id") < code.index("pendingReview.current = null;", code.index("const accepted = await api.post"))
+    assert code.index("entry.review_id === accepted.review_id") < code.index(
+        "const cleared = await clearOwnerIntentIfUnchanged({",
+        code.index("const accepted = await api.post")
+    )
 
 
 def test_r8i_android_pending_owner_intent_survives_restart_and_is_account_scoped() -> None:
@@ -47,7 +52,9 @@ def test_r8i_android_pending_owner_intent_survives_restart_and_is_account_scoped
     assert panel.index("await saveOwnerIntent(") < panel.index("const accepted = await api.post")
     assert "const saved = await restoreOwnerIntent(petId, matched.case_id, sourceIdsKey);" in panel
     assert "不会自动重试" in panel
-    assert panel.index("entry.review_id === accepted.review_id") < panel.index("await clearOwnerIntent(")
+    assert panel.index("entry.review_id === accepted.review_id") < panel.index(
+        "const cleared = await clearOwnerIntentIfUnchanged({"
+    )
     assert "clearAllOwnerIntents()" in session
     assert "if (current !== token)" in session
     assert "if (current !== id)" in session
@@ -158,3 +165,18 @@ def test_r8_owner_review_recovery_ack_can_only_clear_same_immutable_intent() -> 
         "const cleared = await clearOwnerIntentIfUnchanged(intent);"
     )
     assert "新决定未被清除" in success_flow
+
+
+def test_r8m_primary_owner_review_never_drops_uncertain_request_on_http_conflict() -> None:
+    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
+    post = panel.split("const review = async", 1)[1].split("const inspectEvidence = async", 1)[0]
+    assert "await clearOwnerIntent(petId, record.case_id, sourceIdsKey)" not in post
+    assert "const cleared = await clearOwnerIntentIfUnchanged({" in post
+    assert "if (!cleared) {" in post
+    assert "新决定没有被清除" in post
+    assert "409, 422" in post
+    assert "原决定仍在本机待核对" in post
+    assert "R8_UNCONFIRMED_INTENT_CONFLICT" in post
+    assert post.index("entry.review_id === accepted.review_id") < post.index(
+        "const cleared = await clearOwnerIntentIfUnchanged({"
+    )
