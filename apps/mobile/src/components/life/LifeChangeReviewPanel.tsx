@@ -124,11 +124,16 @@ export function LifeChangeReviewPanel({
     ...(change.current_event_ids ?? []),
     ...(change.historical_event_ids ?? []),
   ].sort().join("|");
+  // The live change identity refreshes DURING render, before effect cleanup:
+  // an old create()/review() reply cannot paint the next pet or changed Case.
+  const activeChangeScope = useRef({ petId, metric: change.metric, sourceIdsKey });
+  activeChangeScope.current = { petId, metric: change.metric, sourceIdsKey };
 
   useEffect(() => {
     let alive = true;
     requestGeneration.current += 1;
     pendingReview.current = null;
+    setLoading(false);
     setRestoring(true);
     setRecord(null);
     setMessage(null);
@@ -136,7 +141,9 @@ export function LifeChangeReviewPanel({
     setShowEvidence(false);
     api.get<{ cases: LifeCase[] }>(`/pets/${petId}/life-change-cases`)
       .then(async (result) => {
-        if (!alive) return;
+        if (!alive || activeChangeScope.current.petId !== petId ||
+            activeChangeScope.current.metric !== change.metric ||
+            activeChangeScope.current.sourceIdsKey !== sourceIdsKey) return;
         const sourceIds = new Set(sourceIdsKey.split("|").filter(Boolean));
         const matched = result.cases.find((c) =>
           c.pet_id === petId &&
@@ -149,7 +156,9 @@ export function LifeChangeReviewPanel({
         );
         if (matched) {
           const saved = await restoreOwnerIntent(petId, matched.case_id, sourceIdsKey);
-          if (!alive) return;
+          if (!alive || activeChangeScope.current.petId !== petId ||
+              activeChangeScope.current.metric !== change.metric ||
+              activeChangeScope.current.sourceIdsKey !== sourceIdsKey) return;
           if (saved) {
             pendingReview.current = { caseId: saved.caseId, decision: saved.decision, payload: saved.payload };
             setMessage("发现一条跨重启未确认的主人决定，请重新点击原选择核对；不会自动重试。");
@@ -157,25 +166,50 @@ export function LifeChangeReviewPanel({
           setRecord(matched);
         }
       })
-      .catch(() => { if (alive) setMessage("未确认操作暂时无法安全核对，请检查网络后重试。"); })
-      .finally(() => { if (alive) setRestoring(false); });
+      .catch(() => {
+        if (alive && activeChangeScope.current.petId === petId &&
+            activeChangeScope.current.metric === change.metric &&
+            activeChangeScope.current.sourceIdsKey === sourceIdsKey) {
+          setMessage("未确认操作暂时无法安全核对，请检查网络后重试。");
+        }
+      })
+      .finally(() => {
+        if (alive && activeChangeScope.current.petId === petId &&
+            activeChangeScope.current.metric === change.metric &&
+            activeChangeScope.current.sourceIdsKey === sourceIdsKey) setRestoring(false);
+      });
     return () => { alive = false; };
   }, [petId, change.metric, change.current_value, change.same_time_baseline, sourceIdsKey]);
 
   const create = async () => {
     if (loading || restoring) return;
+    const generation = requestGeneration.current;
+    const requestedPetId = petId;
+    const requestedMetric = change.metric;
+    const requestedSources = sourceIdsKey;
+    const stillCurrent = () =>
+      requestGeneration.current === generation &&
+      activeChangeScope.current.petId === requestedPetId &&
+      activeChangeScope.current.metric === requestedMetric &&
+      activeChangeScope.current.sourceIdsKey === requestedSources;
     setLoading(true);
     setMessage(null);
     try {
       const saved = await api.post<LifeCase>(
         `/pets/${petId}/life-change-cases`, { metric: change.metric },
       );
-      if (saved.pet_id !== petId) throw new Error("CASE_PET_MISMATCH");
+      if (!stillCurrent()) return;
+      if (saved.pet_id !== petId || saved.metric !== change.metric ||
+          !saved.source_valid ||
+          saved.evidence_event_ids.length !== requestedSources.split("|").filter(Boolean).length ||
+          !saved.evidence_event_ids.every((id) => requestedSources.split("|").includes(id))) {
+        throw new Error("CASE_SOURCE_SCOPE_MISMATCH");
+      }
       setRecord(saved);
     } catch (e: unknown) {
-      setMessage(humanizeError(e));
+      if (stillCurrent()) setMessage(humanizeError(e));
     } finally {
-      setLoading(false);
+      if (stillCurrent()) setLoading(false);
     }
   };
 
@@ -188,6 +222,18 @@ export function LifeChangeReviewPanel({
       setMessage("上一条主人决定尚未确认，请先重试原操作，再选择新的处理方式。");
       return;
     }
+    const requestedPetId = petId;
+    const requestedCaseId = record.case_id;
+    const requestedMetric = change.metric;
+    const requestedSources = sourceIdsKey;
+    const generation = requestGeneration.current;
+    const stillCurrent = () =>
+      requestGeneration.current === generation &&
+      activeChangeScope.current.petId === requestedPetId &&
+      activeChangeScope.current.metric === requestedMetric &&
+      activeChangeScope.current.sourceIdsKey === requestedSources &&
+      activeOwnerScope.current.petId === requestedPetId &&
+      activeOwnerScope.current.caseId === requestedCaseId;
     setLoading(true);
     setMessage(null);
     try {
@@ -196,7 +242,9 @@ export function LifeChangeReviewPanel({
         const details = await api.get<LifeCaseDetail>(
           `/pets/${petId}/life-change-cases/${record.case_id}`,
         );
-        if (!details.source_valid || details.pet_id !== petId) {
+        if (!stillCurrent()) return;
+        if (!details.source_valid || details.pet_id !== petId ||
+            details.case_id !== record.case_id) {
           setMessage("原始记录已经变化，请刷新后重新核对。");
           return;
         }
@@ -211,12 +259,17 @@ export function LifeChangeReviewPanel({
         // Persist BEFORE the HTTP POST. A failed secure-storage write is a
         // fail-closed stop, not permission to submit an unrepeatable decision.
         await saveOwnerIntent({ petId, caseId: record.case_id, sourceIdsKey, decision, payload });
+        // If the owner switched pets during the SecureStore write, preserve
+        // the saved intent for recovery from its ORIGINAL pet. Do not POST.
+        if (!stillCurrent()) return;
         pendingReview.current = { caseId: record.case_id, decision, payload };
       }
+      if (!stillCurrent()) return;
       const accepted = await api.post<ReviewAcknowledgement>(
         `/pets/${petId}/life-change-cases/${record.case_id}/reviews`,
         payload,
       );
+      if (!stillCurrent()) return;
       // A successful HTTP response is not evidence of WHICH owner Review
       // was saved. Check its immutable identity before trusting the follow-up.
       if (!accepted.review_id ||
@@ -228,6 +281,7 @@ export function LifeChangeReviewPanel({
       const updated = await api.get<LifeCaseDetail>(
         `/pets/${petId}/life-change-cases/${record.case_id}`,
       );
+      if (!stillCurrent()) return;
       if (updated.pet_id !== petId || updated.case_id !== record.case_id) {
         throw new Error("CASE_PET_MISMATCH");
       }
@@ -243,9 +297,11 @@ export function LifeChangeReviewPanel({
       // Even after the exact Review acknowledgement, a second owner panel may
       // have changed the local reminder. Delete only this exact immutable
       // decision, optimistic predecessor and idempotency key.
+      if (!stillCurrent()) return;
       const cleared = await clearOwnerIntentIfUnchanged({
         petId, caseId: record.case_id, sourceIdsKey, decision, payload,
       });
+      if (!stillCurrent()) return;
       pendingReview.current = null;
       if (!cleared) {
         setMessage("服务器已确认这次主人决定；本机提醒可能已更新，新决定没有被清除，请在待核对记录中重新确认。");
@@ -259,6 +315,7 @@ export function LifeChangeReviewPanel({
             : "已记录稍后观察；没有自动创建医疗任务。",
       );
     } catch (e: unknown) {
+      if (!stillCurrent()) return;
       // A 409 or validation error on a RETRY does not prove a prior
       // request was never saved. Preserve the exact original owner instruction
       // across ambiguous responses; only verified ack or explicit two-step
@@ -274,7 +331,7 @@ export function LifeChangeReviewPanel({
               : humanizeError(e),
       );
     } finally {
-      setLoading(false);
+      if (stillCurrent()) setLoading(false);
     }
   };
 

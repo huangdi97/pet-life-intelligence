@@ -195,3 +195,39 @@ def test_r8n_owner_evidence_async_result_cannot_cross_pet_or_case() -> None:
     assert "if (!stillCurrent()) return;" in section
     assert "if (stillCurrent()) setEvidenceError(humanizeError(e))" in section
     assert "if (stillCurrent()) setLoading(false)" in section
+
+
+def test_r8o_life_change_case_create_is_guarded_by_live_pet_and_frozen_source() -> None:
+    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
+    create = panel.split("const create = async", 1)[1].split("const review = async", 1)[0]
+    assert "const activeChangeScope = useRef({ petId, metric: change.metric, sourceIdsKey });" in panel
+    assert "activeChangeScope.current = { petId, metric: change.metric, sourceIdsKey };" in panel
+    assert "const generation = requestGeneration.current" in create
+    assert "const stillCurrent = () =>" in create
+    assert "activeChangeScope.current.sourceIdsKey === requestedSources" in create
+    assert create.index("if (!stillCurrent()) return;") < create.index("setRecord(saved)")
+    assert 'throw new Error("CASE_SOURCE_SCOPE_MISMATCH")' in create
+    assert "if (stillCurrent()) setMessage(humanizeError(e))" in create
+    assert "if (stillCurrent()) setLoading(false)" in create
+
+
+def test_r8o_async_review_post_never_paints_new_pet_or_erases_its_intent() -> None:
+    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
+    review = panel.split("const review = async", 1)[1].split("const inspectEvidence = async", 1)[0]
+    assert "activeOwnerScope.current.caseId === requestedCaseId" in review
+    assert "activeChangeScope.current.petId === requestedPetId" in review
+    assert "activeChangeScope.current.sourceIdsKey === requestedSources" in review
+    assert "const accepted = await api.post<ReviewAcknowledgement>" in review
+    assert review.index("if (!stillCurrent()) return;", review.index("await saveOwnerIntent(")) < review.index(
+        "const accepted = await api.post<ReviewAcknowledgement>"
+    )
+    assert "if (!stillCurrent()) return;" in review.split("const accepted = await api.post<ReviewAcknowledgement>", 1)[1]
+    assert review.index("if (!stillCurrent()) return;", review.index("const updated = await api.get<LifeCaseDetail>")) < review.index(
+        "setRecord(updated)"
+    )
+    assert review.index("if (!stillCurrent()) return;", review.index("const updated = await api.get<LifeCaseDetail>")) < review.index(
+        "const cleared = await clearOwnerIntentIfUnchanged({"
+    )
+    assert "if (!stillCurrent()) return;" in review.split("const cleared = await clearOwnerIntentIfUnchanged({", 1)[1]
+    assert "if (stillCurrent()) setLoading(false)" in review
+    assert "if (!stillCurrent()) return;" in review.split("} catch (e: unknown)", 1)[1]
