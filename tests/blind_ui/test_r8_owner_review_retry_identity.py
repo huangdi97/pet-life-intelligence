@@ -52,3 +52,26 @@ def test_r8i_android_pending_owner_intent_survives_restart_and_is_account_scoped
     assert "if (current !== token)" in session
     assert "if (current !== id)" in session
     assert "disabled={loading || restoring}" in panel
+
+
+def test_r8j_unconfirmed_owner_review_recovery_survives_loss_of_notable_card() -> None:
+    today = (ROOT / "apps/mobile/src/screens/TodayScreen.tsx").read_text()
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text()
+    assert "listOwnerIntentsForPet(petId)" in recovery
+    assert "entry.petId === petId" in store
+    assert "PendingOwnerReviewRecovery" in today
+    assert "hideSourceIdsKey={notableChange ?" in today
+    assert "if (!visible.length && !warning) return null;" in recovery
+    assert "onPress={() => void recover(intent)}" in recovery
+    assert recovery.index("const detail = await api.get<CaseDetail>(path)") < recovery.index(
+        "const accepted = await api.post<ReviewAck>"
+    )
+    assert "fromServer !== intent.sourceIdsKey" in recovery
+    assert "${path}/reviews" in recovery
+    assert "intent.payload" in recovery
+    assert "row.review_id === accepted.review_id && row.decision === intent.decision" in recovery
+    assert recovery.index("row.review_id === accepted.review_id") < recovery.index("await clearOwnerIntent(")
+    assert "不会自动替你决定或补发" in recovery
+    assert "原决定仍安全保留" in recovery
+    assert "if (loadingCaseId) return;" in recovery

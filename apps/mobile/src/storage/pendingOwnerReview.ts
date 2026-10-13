@@ -51,6 +51,12 @@ async function read(): Promise<SavedOwnerIntent[]> {
   return decoded as SavedOwnerIntent[];
 }
 
+/** Read only intents belonging to this pet. Never enumerate another pet in UI. */
+export async function listOwnerIntentsForPet(petId: string): Promise<SavedOwnerIntent[]> {
+  await queue;
+  return (await read()).filter((entry) => entry.petId === petId);
+}
+
 export async function restoreOwnerIntent(
   petId: string, caseId: string, sourceIdsKey: string,
 ): Promise<SavedOwnerIntent | null> {

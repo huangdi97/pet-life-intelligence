@@ -21,6 +21,7 @@ import { PetLivingStage } from "../components/life/PetLivingStage";
 import { AttentionPanel } from "../components/life/AttentionPanel";
 import { ChangeNarrative } from "../components/life/ChangeNarrative";
 import { LifeChangeReviewPanel, type LifeMetric } from "../components/life/LifeChangeReviewPanel";
+import { PendingOwnerReviewRecovery } from "../components/life/PendingOwnerReviewRecovery";
 import { PrimaryAction, SecondaryAction, ActionRow } from "../components/actions/QuickAction";
 import { Skeleton } from "../components/feedback/Feedback";
 import { OpenSection } from "../components/feedback/OpenSection";
@@ -370,6 +371,17 @@ export function TodayScreen() {
                 onRecord={(caseId, metric) => stackNav.navigate("QuickLog", {
                   lifeChangeCaseId: caseId, lifeChangeMetric: metric, lifeChangePetId: petId,
                 })}
+              />
+            ) : null}
+            {petId ? (
+              <PendingOwnerReviewRecovery
+                key={petId}
+                petId={petId}
+                refreshKey={refreshCounter}
+                hideSourceIdsKey={notableChange ? [
+                  ...(notableChange.current_event_ids ?? []),
+                  ...(notableChange.historical_event_ids ?? []),
+                ].sort().join("|") : null}
               />
             ) : null}
             <View testID="pli.today.attention">
