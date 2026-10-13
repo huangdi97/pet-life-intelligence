@@ -41,7 +41,7 @@ def test_r8i_android_pending_owner_intent_survives_restart_and_is_account_scoped
     session = (ROOT / "apps/mobile/src/storage/session.ts").read_text()
     assert 'import * as SecureStore from "expo-secure-store"' in store
     assert 'const KEY = "pli_r8_unconfirmed_owner_review_v1"' in store
-    assert "sourceIdsKey === sourceIdsKey" not in store
+    assert "x.petId === petId && x.caseId === caseId && x.sourceIdsKey === sourceIdsKey" in store
     assert "x.petId === petId && x.caseId === caseId && x.sourceIdsKey === sourceIdsKey" in store
     assert "await saveOwnerIntent({ petId, caseId: record.case_id, sourceIdsKey, decision, payload });" in panel
     assert panel.index("await saveOwnerIntent(") < panel.index("const accepted = await api.post")
