@@ -19,3 +19,7 @@ The Android QuickLog originally captured the pet at Save tap, uploaded multiple 
 2. Existing two-pet Android runtime selection, QuickLog, Owner Review, 3D stage and full CI still pass.
 3. New fault-injection gate (not yet implemented): throttle each photo upload, Case GET and Review POST and switch A→B→A, including unmount; verify no pet B photo/old Case UI leak and no duplicate LifeEvent or Review. This requires a controlled network proxy/device run, not a VLM.
 4. No automatic medical conclusions or cross-pet identity impersonation; no baseline promotion, merge, tag or release; `NO_VISION_MODEL_USED = TRUE`, `HUMAN_VISUAL_ACCEPTANCE = PENDING`.
+
+## R8R executable regression, not merely source assertions
+
+`apps/mobile/scripts/test-quicklog-pet-scope.cjs` transpiles and executes **the actual TS QuickLog save() function** with controllably delayed upload/event promises. The CI mobile lane now runs `pnpm --dir apps/mobile test:quicklog-pet-scope` and exercises: double tap during upload, A→B while upload is unresolved (no LifeEvent POST), A→B while LifeEvent POST is in flight (the original write may finish, but no stale Review nor B UI success), correct owner-triggered event-ID idempotency on stable pet, invalid Review ack, and wrong-pet Case detail. This is a deterministic asynchronous functional test, **not** an Android device rendering or network-proxy test. The latter remains a separate gate.

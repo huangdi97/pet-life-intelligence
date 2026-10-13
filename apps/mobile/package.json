@@ -9,6 +9,7 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "test:owner-intent-store": "node scripts/test-owner-intent-store.cjs",
+    "test:quicklog-pet-scope": "node scripts/test-quicklog-pet-scope.cjs",
     "doctor": "expo-doctor",
     "build:3d-page": "node scripts/build-3d-page.mjs"
   },
