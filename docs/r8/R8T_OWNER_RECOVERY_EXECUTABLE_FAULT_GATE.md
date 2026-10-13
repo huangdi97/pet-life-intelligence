@@ -18,6 +18,7 @@ Test cases:
 6. First local opt-out tap: shows two-step warning, never writes.
 7. Second local opt-out tap held at CAS: duplicate taps and overlapping recovery are excluded, and server receives no Review.
 8. A newer local owner choice arrives before CAS: stale acknowledgment cannot remove the newer instruction.
+9. A→B→A between render and passive-effect cleanup while initial GET is held: execute the actual render-time identity-generation guard, verify two synchronous generation increments, and prohibit the now-stale A callback from sending a Review. A harmless re-render of A cannot increment generation.
 
 The mobile Frontend CI job executes `pnpm --dir apps/mobile test:owner-review-recovery`. The blind source contract requires the runner, production-source extraction and CI integration. This **is a deterministic production-handler test**, not a native Android accessibility/screenshot test. Existing backend HTTP idempotency tests remain separate.
 
