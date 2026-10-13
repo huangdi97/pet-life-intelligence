@@ -4,7 +4,7 @@
  * writes go to the same canonical endpoints as before; success/error copy is
  * user language only.
  */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -43,12 +43,45 @@ export function QuickLogScreen() {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const current = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
+  // A selected but unavailable pet must not fall back to another animal.
+  // Identity changes invalidate async picker/upload/event/review completions.
+  const current = petId ? pets?.find((p) => p.id === petId) ?? null : pets?.[0] ?? null;
+  const livePetScope = useRef<{ petId: string | null; generation: number }>({
+    petId: current?.id ?? null, generation: 0,
+  });
+  if (livePetScope.current.petId !== (current?.id ?? null)) {
+    livePetScope.current = {
+      petId: current?.id ?? null, generation: livePetScope.current.generation + 1,
+    };
+  }
+  const activeSaveScope = useRef<typeof livePetScope.current | null>(null);
+
+  useEffect(() => () => {
+    // A finished network request cannot set state on a popped modal.
+    livePetScope.current = { petId: null, generation: livePetScope.current.generation + 1 };
+  }, []);
 
   useEffect(() => {
-    const key = linkedMetric === "walk_minutes_per_day" ? "walk" : linkedMetric === "meal_count_per_day" ? "meal" : linkedMetric === "sleep_minutes_per_day" ? "sleep" : null;
-    if (key) setSelected(key);
-  }, [linkedMetric]);
+    // On pet switch, never carry photos, duration or a previously linked
+    // Case form into the next pet's QuickLog.
+    const key = linkedPetId === current?.id
+      ? linkedMetric === "walk_minutes_per_day" ? "walk"
+        : linkedMetric === "meal_count_per_day" ? "meal"
+          : linkedMetric === "sleep_minutes_per_day" ? "sleep" : null
+      : null;
+    setSelected(key);
+    setAmount("");
+    setUnit("");
+    setMinutes("");
+    setWeight("");
+    setBehavior("");
+    setDiaryText("");
+    setKind(null);
+    setMediaFiles([]);
+    setSuccess(null);
+    setError(null);
+    setSaving(false);
+  }, [current?.id, linkedMetric, linkedPetId]);
 
   function pick(key: string) {
     // Medication and structured behavior records have governed domain flows.
@@ -87,7 +120,9 @@ export function QuickLogScreen() {
 
   async function chooseEvidencePhotos() {
     if (!current || mediaFiles.length >= 3) return;
+    const pickerScope = livePetScope.current;
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (livePetScope.current !== pickerScope) return;
     if (!permission.granted) {
       setError("需要相册权限才能添加照片；不授权也可以继续保存记录。");
       return;
@@ -98,7 +133,7 @@ export function QuickLogScreen() {
       selectionLimit: 3 - mediaFiles.length,
       quality: 0.8,
     });
-    if (result.canceled) return;
+    if (result.canceled || livePetScope.current !== pickerScope) return;
     const picked = result.assets.slice(0, 3 - mediaFiles.length).map((asset, index) => ({
       uri: asset.uri,
       name: asset.fileName || `quicklog-${Date.now()}-${index + 1}.jpg`,
@@ -114,8 +149,14 @@ export function QuickLogScreen() {
 
   async function save() {
     if (!current || !selected || saving) return;
+    const saveScope = livePetScope.current;
+    if (activeSaveScope.current === saveScope) return;
+    const stillOnOriginalPet = () => livePetScope.current === saveScope;
+    const savePetId = current.id;
     const t: LogType | undefined = LOG_TYPES.find((x) => x.key === selected);
     if (!t) return;
+    // A double tap can arrive before React's saving state re-renders.
+    activeSaveScope.current = saveScope;
     setSaving(true);
     setError(null);
     try {
@@ -173,12 +214,17 @@ export function QuickLogScreen() {
       } else {
         const artifactIds: string[] = [];
         for (const file of mediaFiles.slice(0, 3)) {
+          if (!stillOnOriginalPet()) return;
           const uploaded = await api.upload<{ artifact_id: string }>(
-            `/pets/${current.id}/artifacts`,
+            `/pets/${savePetId}/artifacts`,
             file,
           );
+          if (!stillOnOriginalPet()) return;
           artifactIds.push(uploaded.artifact_id);
         }
+        // An upload may have finished for pet A after the owner selected B:
+        // never publish that media into B's daily record or send a stale review.
+        if (!stillOnOriginalPet()) return;
         const created = await api.post<{ event_id: string }>(path, {
           event_type: t.event_type,
           payload,
@@ -186,30 +232,44 @@ export function QuickLogScreen() {
         });
         savedEventId = created.event_id;
       }
+      if (!stillOnOriginalPet()) return;
       // The LifeEvent is successfully saved before we attempt the optional
       // owner Review. A review failure must NEVER imply the real record failed.
       let followupMessage = "";
       const expectedType = linkedMetric === "walk_minutes_per_day" ? "daily.walk"
         : linkedMetric === "meal_count_per_day" ? "daily.meal"
           : linkedMetric === "sleep_minutes_per_day" ? "daily.sleep" : null;
-      if (linkedCase && linkedPetId === current.id) {
+      if (linkedCase && linkedPetId === savePetId) {
         if (savedEventId && expectedType === t.event_type) {
           try {
-            const detail = await api.get<{ source_valid: boolean; reviews: Array<{ review_id: string }> }>(
-              `/pets/${current.id}/life-change-cases/${linkedCase}`,
+            const detail = await api.get<{ pet_id: string; case_id: string; source_valid: boolean; reviews: Array<{ review_id: string }> }>(
+              `/pets/${savePetId}/life-change-cases/${linkedCase}`,
             );
-            if (!detail.source_valid) {
+            if (!stillOnOriginalPet()) return;
+            if (detail.pet_id !== savePetId || detail.case_id !== linkedCase || !detail.source_valid) {
               followupMessage = "原始变化依据已更新，新记录已保存但尚未关联核对。";
             } else {
               const previous = detail.reviews[detail.reviews.length - 1];
-              await api.post(
-                `/pets/${current.id}/life-change-cases/${linkedCase}/reviews`,
+              if (!stillOnOriginalPet()) return;
+              const accepted = await api.post<{
+                review_id: string; pet_id: string; case_id: string; decision: string;
+              }>(
+                `/pets/${savePetId}/life-change-cases/${linkedCase}/reviews`,
                 {
                   decision: "RECORD_OBSERVATION",
                   related_event_ids: [savedEventId],
                   expected_latest_review_id: previous?.review_id ?? null,
+                  // Exactly one follow-up Review per saved event; the server
+                  // rejects changing this immutable human instruction.
+                  idempotency_key: `r8-observation-${savedEventId}`,
                 },
               );
+              if (!stillOnOriginalPet()) return;
+              if (!accepted.review_id || accepted.pet_id !== savePetId ||
+                  accepted.case_id !== linkedCase ||
+                  accepted.decision !== "RECORD_OBSERVATION") {
+                throw new Error("FOLLOWUP_REVIEW_ACK_MISMATCH");
+              }
               followupMessage = " 这条真实记录已关联到主人核对。";
             }
           } catch {
@@ -221,15 +281,17 @@ export function QuickLogScreen() {
       } else if (linkedCase) {
         followupMessage = " 当前宠物已切换，本次记录未关联此前宠物的案例。";
       }
+      if (!stillOnOriginalPet()) return;
       setSuccess(
         `已记录${t.zh}。${t.event_type !== "diary.created" && mediaFiles.length ? ` 已绑定 ${mediaFiles.length} 张照片。` : ""}${followupMessage}`,
       );
       resetInputs();
       setSelected(null);
     } catch (e: unknown) {
-      setError(humanizeError(e));
+      if (stillOnOriginalPet()) setError(humanizeError(e));
     } finally {
-      setSaving(false);
+      if (activeSaveScope.current === saveScope) activeSaveScope.current = null;
+      if (stillOnOriginalPet()) setSaving(false);
     }
   }
 

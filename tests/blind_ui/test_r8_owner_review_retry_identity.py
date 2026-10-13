@@ -293,3 +293,25 @@ def test_r8p_discard_is_not_applied_to_a_different_active_pet() -> None:
     )[1]
     assert "if (stillCurrent()) setLoadingCaseId(null)" in discard
     assert "const visibleIntents = intents.filter((entry) => entry.petId === petId);" in recovery
+
+def test_r8r_quicklog_does_not_reuse_pet_a_media_or_review_for_pet_b() -> None:
+    """Source contract: async photo/save/review completions must stay on original pet."""
+    code = (ROOT / "apps/mobile/src/screens/QuickLogScreen.tsx").read_text()
+    assert "const livePetScope = useRef<" in code
+    assert "livePetScope.current.petId !== (current?.id ?? null)" in code
+    assert "const saveScope = livePetScope.current;" in code
+    assert "activeSaveScope.current === saveScope" in code
+    assert "const stillOnOriginalPet = () => livePetScope.current === saveScope" in code
+    assert "if (livePetScope.current !== pickerScope) return;" in code
+    assert "if (result.canceled || livePetScope.current !== pickerScope) return;" in code
+    assert "if (!stillOnOriginalPet()) return;" in code
+    assert "if (linkedCase && linkedPetId === savePetId)" in code
+    assert "detail.pet_id !== savePetId || detail.case_id !== linkedCase" in code
+    assert "idempotency_key: `r8-observation-${savedEventId}`" in code
+    assert "accepted.pet_id !== savePetId" in code
+    assert "accepted.case_id !== linkedCase" in code
+    assert "if (stillOnOriginalPet()) setError(humanizeError(e));" in code
+    assert "if (stillOnOriginalPet()) setSaving(false);" in code
+    assert "setMediaFiles([]);" in code
+
+
