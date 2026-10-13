@@ -2376,7 +2376,11 @@ def test_android_r8_owner_review_requires_real_user_action_and_record_link() -> 
     assert 'testID="pli.r8.quicklog-followup"' in quick
     assert 'decision: "RECORD_OBSERVATION"' in quick
     assert "related_event_ids: [savedEventId]" in quick
-    assert "linkedPetId === current.id" in quick
+    assert "linkedPetId === savePetId" in quick
+    assert "const stillOnOriginalPet = () => livePetScope.current === saveScope;" in quick
+    assert "detail.pet_id !== savePetId || detail.case_id !== linkedCase" in quick
+    assert "accepted.pet_id !== savePetId" in quick
+    assert "idempotency_key: `r8-observation-${savedEventId}`" in quick
     assert "已保存，但核对关联未完成" in quick
 
 
