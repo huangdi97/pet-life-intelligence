@@ -362,3 +362,21 @@ def test_r8t_actual_owner_recovery_handler_executable_gate_runs_in_mobile_ci() -
     assert 'const effectGeneration = recoveryGeneration.current;' in production
     assert 'stillOnPet(petId, effectGeneration)' in production
 
+
+
+def test_r8w_secure_owner_intents_fail_before_oversized_native_keychain_write() -> None:
+    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text()
+    script = (ROOT / "apps/mobile/scripts/test-owner-intent-store.cjs").read_text()
+    assert "const MAX_SECURESTORE_BYTES = 1900;" in store
+    assert "const MAX_EVIDENCE_KEY_CHARS = 1200;" in store
+    assert "const PRINTABLE_TOKEN =" in store
+    assert "encoded.length > MAX_SECURESTORE_BYTES" in store
+    assert 'throw new Error("R8_SECURE_INTENT_STORAGE_LIMIT")' in store
+    assert store.index("encoded.length > MAX_SECURESTORE_BYTES") < store.index(
+        "SecureStore.setItemAsync(KEY, encoded)"
+    )
+    assert 'idempotency_key: "         "' in script
+    assert 'sourceIdsKey: "s".repeat(1201)' in script
+    assert "const beforeCapacity = data.get(storeKey);" in script
+    assert "assert.equal(data.get(storeKey), beforeCapacity," in script
+    assert "await exports.clearAllOwnerIntents();" in script

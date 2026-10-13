@@ -136,6 +136,10 @@ async function run() {
     { ...first, petId: " " },
     { ...first, sourceIdsKey: "" },
     { ...first, payload: { ...first.payload, expected_latest_review_id: "" } },
+    { ...first, payload: { ...first.payload, idempotency_key: "         " } },
+    { ...first, payload: { ...first.payload, idempotency_key: "x".repeat(129) } },
+    { ...first, sourceIdsKey: "s".repeat(1201) },
+    { ...first, caseId: "case-id-with-\\n-newline\n" },
   ]) {
     await assert.rejects(exports.saveOwnerIntent(unsafe), /R8_SECURE_INTENT_CORRUPTED/);
     assert.equal(data.has(storeKey), false, "unsafe write must not change encrypted storage");
@@ -180,7 +184,29 @@ async function run() {
   assert.equal(await exactClear, true, "CAS must use pre-I/O immutable owner identity");
   assert.equal((await exports.listOwnerIntentsForPet(key)).length, 0);
   await exports.clearAllOwnerIntents();
-  console.log("R8Q/R8U/R8V PASS: linearized get/CAS, immutable write snapshot, ambiguity/privacy rejection, multi-pet isolation");
+  // A valid payload can still exceed the native Keychain item budget when
+  // several concurrent unknown-ack instructions aggregate under one key.
+  // A rejected third write must leave BOTH earlier owner choices intact.
+  const longEvidence = "s".repeat(625);
+  for (const n of [1, 2]) {
+    await exports.saveOwnerIntent({
+      ...first, caseId: "case-sized-" + n, sourceIdsKey: longEvidence + n,
+      payload: { ...first.payload, idempotency_key: "size-token-" + n },
+    });
+  }
+  const beforeCapacity = data.get(storeKey);
+  await assert.rejects(
+    exports.saveOwnerIntent({
+      ...first, caseId: "case-sized-3", sourceIdsKey: longEvidence + "3",
+      payload: { ...first.payload, idempotency_key: "size-token-3" },
+    }),
+    /R8_SECURE_INTENT_STORAGE_LIMIT/,
+  );
+  assert.equal(data.get(storeKey), beforeCapacity,
+    "size rejection must not overwrite unresolved owner intent bytes");
+  assert.equal((await exports.listOwnerIntentsForPet(key)).length, 2);
+  await exports.clearAllOwnerIntents();
+  console.log("R8Q/R8U/R8V/R8W PASS: serial storage, immutable owner intents, bounded native item and rejected spoofed tokens");
 }
 run().catch(error => {
   console.error(error);

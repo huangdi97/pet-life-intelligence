@@ -6,6 +6,14 @@ import * as SecureStore from "expo-secure-store";
 
 const KEY = "pli_r8_unconfirmed_owner_review_v1";
 const MAX_PENDING = 4;
+// Expo SecureStore is intended for small secrets. Older iOS Keychain builds
+// may refuse values around 2 KB; reject an oversized new aggregate BEFORE
+// making a native storage call, without deleting existing pending decisions.
+// Stored identities and tokens are restricted to printable ASCII, so JSON
+// string length equals UTF-8 byte length for this wire format.
+const MAX_SECURESTORE_BYTES = 1900;
+const MAX_EVIDENCE_KEY_CHARS = 1200;
+const PRINTABLE_TOKEN = /^[\x21-\x7e]+$/;
 
 export type SavedOwnerIntent = {
   petId: string;
@@ -42,16 +50,24 @@ function validateRows(decoded: unknown): SavedOwnerIntent[] {
   for (const item of decoded) {
     if (!item || typeof item !== "object"
         || typeof item.petId !== "string" || !item.petId.trim()
+        || item.petId.length > 128 || !PRINTABLE_TOKEN.test(item.petId)
         || typeof item.caseId !== "string" || !item.caseId.trim()
+        || item.caseId.length > 128 || !PRINTABLE_TOKEN.test(item.caseId)
         || typeof item.sourceIdsKey !== "string" || !item.sourceIdsKey.trim()
+        || item.sourceIdsKey.length > MAX_EVIDENCE_KEY_CHARS
+        || !PRINTABLE_TOKEN.test(item.sourceIdsKey)
         || !["FOLLOW_UP_LATER", "NOT_RELEVANT", "CORRECT_SOURCE"].includes(item.decision)
         || !item.payload || typeof item.payload !== "object"
         || Array.isArray(item.payload) || item.payload.decision !== item.decision
         || typeof item.payload.idempotency_key !== "string"
         || item.payload.idempotency_key.length < 8
+        || item.payload.idempotency_key.length > 128
+        || !PRINTABLE_TOKEN.test(item.payload.idempotency_key)
         || (item.payload.expected_latest_review_id !== null
           && (typeof item.payload.expected_latest_review_id !== "string"
-            || !item.payload.expected_latest_review_id.trim()))) {
+            || !item.payload.expected_latest_review_id.trim()
+            || item.payload.expected_latest_review_id.length > 128
+            || !PRINTABLE_TOKEN.test(item.payload.expected_latest_review_id)))) {
       throw new Error("R8_SECURE_INTENT_CORRUPTED");
     }
     // Never interpret two locally persisted decisions for the same Case and
@@ -139,7 +155,10 @@ export async function saveOwnerIntent(intent: SavedOwnerIntent): Promise<void> {
       return;
     }
     if (existing.length >= MAX_PENDING) throw new Error("R8_UNCONFIRMED_INTENT_CAPACITY");
-    await SecureStore.setItemAsync(KEY, JSON.stringify([...existing, snapshot]));
+    const encoded = JSON.stringify([...existing, snapshot]);
+    if (encoded.length > MAX_SECURESTORE_BYTES)
+      throw new Error("R8_SECURE_INTENT_STORAGE_LIMIT");
+    await SecureStore.setItemAsync(KEY, encoded);
   });
 }
 
