@@ -54,3 +54,19 @@ def test_today_refetches_source_scoped_owner_review_after_quicklog_return():
     assert "petId, refreshCounter]" in today
     assert 'navigation.goBack()' in quicklog
     assert "linkedCase" in quicklog and "RECORD_OBSERVATION" in quicklog
+
+
+def test_r8y_primary_owner_review_validates_frozen_evidence_before_post_and_cas():
+    """Recovery checks alone cannot secure the normal human tap path."""
+    panel = read("apps/mobile/src/components/life/LifeChangeReviewPanel.tsx")
+    action = panel.split("const review = async", 1)[1].split("const inspectEvidence = async", 1)[0]
+    helper = panel.split("function caseMatchesFrozenSources(", 1)[1].split("export function", 1)[0]
+    assert "detail.source_valid === true" in helper
+    assert "detail.evidence_event_ids.length === sourceIds.size" in helper
+    assert "detail.evidence_event_ids.every((id) => sourceIds.has(id))" in helper
+    assert "caseMatchesFrozenSources(details, requestedPetId, requestedCaseId, requestedSources)" in action
+    assert "caseMatchesFrozenSources(updated, requestedPetId, requestedCaseId, requestedSources)" in action
+    assert action.index("caseMatchesFrozenSources(details") < action.index("await saveOwnerIntent(")
+    assert action.index("caseMatchesFrozenSources(updated") < action.index("const cleared = await clearOwnerIntentIfUnchanged({")
+    assert 'throw new Error("CASE_SOURCE_INVALIDATED_AFTER_REVIEW")' in action
+    assert "本机原决定仍保留" in action

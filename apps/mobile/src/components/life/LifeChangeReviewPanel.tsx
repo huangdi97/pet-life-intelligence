@@ -95,6 +95,24 @@ const SOURCE_LABELS: Record<string, string> = {
 const ownerEventType = (type: string): string => EVENT_LABELS[type] ?? "生活记录";
 const ownerSourceType = (source: string): string => SOURCE_LABELS[source] ?? "其他来源";
 
+// A server Case can keep the same ID even after its evidence changes.
+// Never accept a normal Review or clear a saved human intent by comparing
+// only the Case ID: verify the immutable source set at BOTH read boundaries.
+function caseMatchesFrozenSources(
+  detail: LifeCase,
+  petId: string,
+  caseId: string,
+  sourceIdsKey: string,
+): boolean {
+  const sourceIds = new Set(sourceIdsKey.split("|").filter(Boolean));
+  return detail.source_valid === true &&
+    detail.pet_id === petId &&
+    detail.case_id === caseId &&
+    sourceIds.size > 0 &&
+    detail.evidence_event_ids.length === sourceIds.size &&
+    detail.evidence_event_ids.every((id) => sourceIds.has(id));
+}
+
 export function LifeChangeReviewPanel({
   petId, change, onRecord,
 }: {
@@ -243,9 +261,8 @@ export function LifeChangeReviewPanel({
           `/pets/${petId}/life-change-cases/${record.case_id}`,
         );
         if (!stillCurrent()) return;
-        if (!details.source_valid || details.pet_id !== petId ||
-            details.case_id !== record.case_id) {
-          setMessage("原始记录已经变化，请刷新后重新核对。");
+        if (!caseMatchesFrozenSources(details, requestedPetId, requestedCaseId, requestedSources)) {
+          setMessage("原始记录已经失效或证据发生变化；不会提交旧的主人决定。请刷新后重新核对。");
           return;
         }
         const last = details.reviews[details.reviews.length - 1];
@@ -282,8 +299,10 @@ export function LifeChangeReviewPanel({
         `/pets/${petId}/life-change-cases/${record.case_id}`,
       );
       if (!stillCurrent()) return;
-      if (updated.pet_id !== petId || updated.case_id !== record.case_id) {
-        throw new Error("CASE_PET_MISMATCH");
+      if (!caseMatchesFrozenSources(updated, requestedPetId, requestedCaseId, requestedSources)) {
+        // POST may already be accepted. Keep the durable instruction pending
+        // until an owner can verify the *same* evidence and review identity.
+        throw new Error("CASE_SOURCE_INVALIDATED_AFTER_REVIEW");
       }
       // A stale GET may return the correct Case yet omit the just-committed
       // Review. Preserve the SAME human intent and idempotency key until its
@@ -321,7 +340,9 @@ export function LifeChangeReviewPanel({
       // across ambiguous responses; only verified ack or explicit two-step
       // local opt-out can safely remove it.
       setMessage(
-        e instanceof Error && e.message === "R8_UNCONFIRMED_INTENT_CONFLICT"
+        e instanceof Error && e.message === "CASE_SOURCE_INVALIDATED_AFTER_REVIEW"
+          ? "请求可能已经保存，但对应来源失效或变化；本机原决定仍保留，请先核对证据。"
+          : e instanceof Error && e.message === "R8_UNCONFIRMED_INTENT_CONFLICT"
           ? "本机已有另一条尚未核对的主人决定，请先核实或明确放弃原提醒；新决定没有自动提交。"
           : e instanceof Error &&
             (e.message === "REVIEW_ACK_MISMATCH" || e.message === "REVIEW_CONFIRMATION_PENDING")
