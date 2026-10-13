@@ -315,3 +315,17 @@ def test_r8r_quicklog_does_not_reuse_pet_a_media_or_review_for_pet_b() -> None:
     assert "setMediaFiles([]);" in code
 
 
+
+
+def test_r8s_recovery_panel_synchronously_serializes_owner_actions() -> None:
+    """Two taps before React state commits must not post twice or race a discard."""
+    code = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    assert "const activeOwnerAction = useRef<string | null>(null);" in code
+    assert code.count("if (loadingCaseId || activeOwnerAction.current) return;") == 2
+    assert 'activeOwnerAction.current = actionKey;' in code
+    assert code.count("if (activeOwnerAction.current === actionKey) activeOwnerAction.current = null;") == 2
+    assert 'const actionKey = `recover:${petId}:${intent.caseId}`;' in code
+    assert 'const actionKey = `discard:${petId}:${intent.caseId}`;' in code
+    assert "if (discardCandidate !== intentKey)" in code
+    assert "const accepted = await api.post<ReviewAck>" in code
+    assert "const removed = await clearOwnerIntentIfUnchanged(intent);" in code

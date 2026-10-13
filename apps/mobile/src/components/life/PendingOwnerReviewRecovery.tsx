@@ -30,6 +30,9 @@ export function PendingOwnerReviewRecovery({
 }) {
   const [intents, setIntents] = useState<SavedOwnerIntent[]>([]);
   const [loadingCaseId, setLoadingCaseId] = useState<string | null>(null);
+  // React state is not a synchronous double-tap barrier. A single panel may
+  // only perform one owner-authorized verification OR local dismissal at once.
+  const activeOwnerAction = useRef<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [warningPetId, setWarningPetId] = useState(petId);
   const activeRecoveryPet = useRef(petId);
@@ -71,8 +74,10 @@ export function PendingOwnerReviewRecovery({
   }, [petId, refreshKey]);
 
   const recover = async (intent: SavedOwnerIntent) => {
-    if (loadingCaseId) return;
+    if (loadingCaseId || activeOwnerAction.current) return;
     if (intent.petId !== petId) return;
+    const actionKey = `recover:${petId}:${intent.caseId}`;
+    activeOwnerAction.current = actionKey;
     const requestedPet = petId;
     const generation = recoveryGeneration.current;
     const stillCurrent = () => stillOnPet(requestedPet, generation);
@@ -143,12 +148,13 @@ export function PendingOwnerReviewRecovery({
           : `核对尚未完成：${humanizeError(error)}。原决定仍安全保留；不会自动重新提交。`,
       );
     } finally {
+      if (activeOwnerAction.current === actionKey) activeOwnerAction.current = null;
       if (stillCurrent()) setLoadingCaseId(null);
     }
   };
 
   const discardLocalReminder = async (intent: SavedOwnerIntent) => {
-    if (loadingCaseId) return;
+    if (loadingCaseId || activeOwnerAction.current) return;
     if (intent.petId !== petId) return;
     const requestedPet = petId;
     const generation = recoveryGeneration.current;
@@ -162,6 +168,8 @@ export function PendingOwnerReviewRecovery({
       );
       return;
     }
+    const actionKey = `discard:${petId}:${intent.caseId}`;
+    activeOwnerAction.current = actionKey;
     setLoadingCaseId(intent.caseId);
     try {
       if (!stillCurrent()) return;
@@ -185,6 +193,7 @@ export function PendingOwnerReviewRecovery({
     } catch {
       if (stillCurrent()) warn("本机提醒清理未完成，原决定仍保留，请稍后再试。");
     } finally {
+      if (activeOwnerAction.current === actionKey) activeOwnerAction.current = null;
       if (stillCurrent()) setLoadingCaseId(null);
     }
   };
