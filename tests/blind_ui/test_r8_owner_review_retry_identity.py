@@ -87,7 +87,7 @@ def test_r8j_unconfirmed_owner_review_recovery_survives_loss_of_notable_card() -
     assert "await reloadForPet(requestedPet, generation);" in recovery
     assert "不会自动替你决定或补发" in recovery
     assert "原决定仍安全保留" in recovery
-    assert "if (loadingCaseId) return;" in recovery
+    assert "if (loadingCaseId || activeOwnerAction.current) return;" in recovery
 
 
 def test_r8k_orphaned_owner_review_intent_has_only_explicit_twostep_local_exit() -> None:
