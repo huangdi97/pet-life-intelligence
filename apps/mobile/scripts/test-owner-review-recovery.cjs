@@ -26,6 +26,17 @@ const source = [
   screen.slice(start, end),
   "return {recover, discardLocalReminder}; } exports.build = build;",
 ].join("\n");
+// Execute the ACTUAL render-time generation guard too: otherwise A→B→A
+// can restore the old pet name while leaving an old generation uninvalidated.
+const guardStart = screen.indexOf("  if (activeRecoveryPet.current !== petId) {");
+const guardEnd = screen.indexOf("  const stillOnPet", guardStart);
+assert.ok(guardStart >= 0 && guardEnd > guardStart, "Missing real render-generation guard");
+const guard = {};
+vm.runInNewContext(
+  "exports.renderPet = function(petId, activeRecoveryPet, recoveryGeneration) {"
+    + screen.slice(guardStart, guardEnd) + "};",
+  { exports: guard },
+);
 const compiled = {};
 vm.runInNewContext(ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
@@ -93,7 +104,9 @@ function setup({ getGate, postGate, clearGate, lostAck = false, wrongPet = false
     },
   };
   return { intent, saved, calls, notices, state, ...compiled.build(ctx),
-    changePet() { pet.current = "pet-B"; generation.current++; },
+    changePet() { guard.renderPet("pet-B", pet, generation); },
+    changeBackToA() { guard.renderPet("pet-A", pet, generation); },
+    samePetRender() { guard.renderPet("pet-A", pet, generation); },
     restoreNetwork() { failPost = false; } };
 }
 const count = (h, op) => h.calls.filter(x => Array.isArray(x) ? x[0] === op : x === op).length;
@@ -115,6 +128,23 @@ async function test() {
     h.changePet(); gate.resolve(); await original;
     assert.equal(count(h,"POST"),0,"A→B during GET cannot POST old intent");
     assert.equal(count(h,"CAS"),0);
+    assert.equal(h.saved.length,1);
+  }
+  {
+    const gate = delay(), h = setup({getGate:gate});
+    const initialGeneration = h.ctx.recoveryGeneration.current;
+    const first = h.recover(h.intent);
+    h.changePet();
+    h.changeBackToA();
+    assert.equal(h.ctx.activeRecoveryPet.current, "pet-A");
+    assert.equal(h.ctx.recoveryGeneration.current, initialGeneration + 2,
+      "A→B→A must invalidate the original A generation synchronously");
+    h.samePetRender();
+    assert.equal(h.ctx.recoveryGeneration.current, initialGeneration + 2,
+      "Re-rendering same pet must not invalidate a legitimate in-flight operation");
+    gate.resolve(); await first;
+    assert.equal(count(h,"POST"),0,
+      "Old A response cannot resume after A→B→A before effect cleanup");
     assert.equal(h.saved.length,1);
   }
   {
@@ -168,6 +198,6 @@ async function test() {
     assert.equal(h.saved[0].decision,"NOT_RELEVANT");
     assert.ok(h.notices.some(x=>x[0]==="warning" && x[1]?.includes("新决定未被清除")));
   }
-  console.log("R8T: 8 executable production recovery concurrency gates PASS");
+  console.log("R8T: 9 executable production recovery concurrency gates PASS");
 }
 test().catch(e=>{console.error(e);process.exitCode=1;});
