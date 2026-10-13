@@ -106,7 +106,9 @@ async function run() {
   assert.equal(a.calls.filter(x => x.kind === "post").length, 0,
     "Pet A's completed upload cannot publish an event under newly selected pet B");
   assert.deepEqual(a.statuses.successes, []);
-  assert.deepEqual(a.statuses.errors, []);
+  // save() always clears the previous error at tap time; after switching
+  // pets, no NEW error about pet A may be shown on pet B.
+  assert.equal(a.statuses.errors.filter(Boolean).length, 0);
   assert.equal(a.ctx.activeSaveScope.current, null);
 
   // If event POST already reached the server for A, never issue an old Case
