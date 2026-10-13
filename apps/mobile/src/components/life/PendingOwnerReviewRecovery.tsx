@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { api, humanizeError } from "../../api";
-import { clearOwnerIntent, clearOwnerIntentIfUnchanged, listOwnerIntentsForPet, type SavedOwnerIntent } from "../../storage/pendingOwnerReview";
+import { clearOwnerIntentIfUnchanged, listOwnerIntentsForPet, type SavedOwnerIntent } from "../../storage/pendingOwnerReview";
 import { COLORS, SPACE, TYPE } from "../../tokens";
 
 type CaseDetail = {
@@ -83,10 +83,16 @@ export function PendingOwnerReviewRecovery({
           )) {
         throw new Error("R8_RECOVERY_NOT_YET_CONFIRMED");
       }
-      await clearOwnerIntent(petId, intent.caseId, intent.sourceIdsKey);
-      setIntents((rows) => rows.filter((row) =>
-        !(row.caseId === intent.caseId && row.sourceIdsKey === intent.sourceIdsKey)
-      ));
+      // Only the EXACT instruction acknowledged above can be removed.
+      // A different owner intent cannot be lost if another panel wrote one
+      // while the GET/POST/GET recovery sequence was in flight.
+      const cleared = await clearOwnerIntentIfUnchanged(intent);
+      if (!cleared) {
+        setIntents(await listOwnerIntentsForPet(petId));
+        setWarning("服务器已核实原决定，但本机提醒可能被另一操作更新；新决定未被清除，请再次核对。");
+        return;
+      }
+      setIntents(await listOwnerIntentsForPet(petId));
       setWarning("服务器已确认原来的主人决定；没有新建第二条不同的决定。");
     } catch (error: unknown) {
       // Including 409 and timeouts: never erase an uncertain local intent.

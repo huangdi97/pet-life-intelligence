@@ -72,7 +72,11 @@ def test_r8j_unconfirmed_owner_review_recovery_survives_loss_of_notable_card() -
     assert "${path}/reviews" in recovery
     assert "intent.payload" in recovery
     assert "row.review_id === accepted.review_id && row.decision === intent.decision" in recovery
-    assert recovery.index("row.review_id === accepted.review_id") < recovery.index("await clearOwnerIntent(")
+    assert recovery.index("row.review_id === accepted.review_id") < recovery.index(
+        "const cleared = await clearOwnerIntentIfUnchanged(intent);"
+    )
+    assert "if (!cleared) {" in recovery
+    assert "setIntents(await listOwnerIntentsForPet(petId));" in recovery
     assert "不会自动替你决定或补发" in recovery
     assert "原决定仍安全保留" in recovery
     assert "if (loadingCaseId) return;" in recovery
@@ -88,10 +92,16 @@ def test_r8k_orphaned_owner_review_intent_has_only_explicit_twostep_local_exit()
     assert "const [discardCandidate, setDiscardCandidate]" in recovery
     assert "if (discardCandidate !== intentKey)" in recovery
     assert "setDiscardCandidate(intentKey)" in recovery
-    assert "await clearOwnerIntent(petId, intent.caseId, intent.sourceIdsKey)" in recovery
-    assert recovery.index("if (discardCandidate !== intentKey)") < recovery.index(
-        "await clearOwnerIntent(petId, intent.caseId, intent.sourceIdsKey)"
+    # This TWO-STEP gate applies to the user-initiated local opt-out,
+    # not the different path that clears an exactly acknowledged server Review.
+    discard_flow = recovery.split("const discardLocalReminder = async", 1)[1].split(
+        "  // A matching evidence fingerprint", 1
+    )[0]
+    assert "const removed = await clearOwnerIntentIfUnchanged(intent);" in discard_flow
+    assert discard_flow.index("if (discardCandidate !== intentKey)") < discard_flow.index(
+        "const removed = await clearOwnerIntentIfUnchanged(intent);"
     )
+    assert "if (!removed) {" in discard_flow
     assert "不再在本机提醒" in recovery
     assert "确认仅清除本机提醒" in recovery
     assert "取消清理" in recovery
@@ -133,3 +143,18 @@ def test_r8k_secure_store_rejects_overwriting_a_different_unconfirmed_owner_choi
     assert recovery.index("setDiscardCandidate(null);", recovery.index("const recover = async")) < recovery.index(
         "setLoadingCaseId(intent.caseId);", recovery.index("const recover = async")
     )
+
+
+def test_r8_owner_review_recovery_ack_can_only_clear_same_immutable_intent() -> None:
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    success_flow = recovery.split("const recover = async", 1)[1].split(
+        "  const discardLocalReminder = async", 1
+    )[0]
+    assert "const cleared = await clearOwnerIntentIfUnchanged(intent);" in success_flow
+    assert "if (!cleared) {" in success_flow
+    assert "setIntents(await listOwnerIntentsForPet(petId));" in success_flow
+    assert "await clearOwnerIntent(petId, intent.caseId, intent.sourceIdsKey)" not in success_flow
+    assert success_flow.index("row.review_id === accepted.review_id") < success_flow.index(
+        "const cleared = await clearOwnerIntentIfUnchanged(intent);"
+    )
+    assert "新决定未被清除" in success_flow
