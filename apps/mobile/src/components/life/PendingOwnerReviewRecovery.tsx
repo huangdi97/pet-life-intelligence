@@ -37,9 +37,13 @@ export function PendingOwnerReviewRecovery({
   const [warningPetId, setWarningPetId] = useState(petId);
   const activeRecoveryPet = useRef(petId);
   const recoveryGeneration = useRef(0);
-  // Refresh DURING render: switching pets must invalidate old callbacks
-  // before effect cleanup can run (and also on full component unmount).
-  activeRecoveryPet.current = petId;
+  // Invalidate synchronously when the rendered identity changes. Only
+  // assigning the pet ID allowed a quick A→B→A before passive effects to
+  // accidentally re-authorize the original A callback (ABA identity hazard).
+  if (activeRecoveryPet.current !== petId) {
+    activeRecoveryPet.current = petId;
+    recoveryGeneration.current += 1;
+  }
   const stillOnPet = (requestedPet: string, generation: number) =>
     activeRecoveryPet.current === requestedPet &&
     recoveryGeneration.current === generation;
@@ -58,6 +62,7 @@ export function PendingOwnerReviewRecovery({
   useEffect(() => {
     let alive = true;
     recoveryGeneration.current += 1;
+    const effectGeneration = recoveryGeneration.current;
     setIntents([]);
     setLoadingCaseId(null);
     setWarning(null);
@@ -65,9 +70,11 @@ export function PendingOwnerReviewRecovery({
     setDiscardCandidate(null);
     // SecureStore-only discovery: no GET, POST, or automated owner action.
     listOwnerIntentsForPet(petId)
-      .then((rows) => { if (alive && activeRecoveryPet.current === petId) setIntents(rows); })
+      .then((rows) => {
+        if (alive && stillOnPet(petId, effectGeneration)) setIntents(rows);
+      })
       .catch(() => {
-        if (alive && activeRecoveryPet.current === petId)
+        if (alive && stillOnPet(petId, effectGeneration))
           warn("暂时无法读取本机待核对决定；数据未被自动清除，请稍后重试。");
       });
     return () => { alive = false; recoveryGeneration.current += 1; };
