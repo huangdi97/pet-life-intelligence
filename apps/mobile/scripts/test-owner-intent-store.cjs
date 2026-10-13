@@ -139,7 +139,7 @@ async function run() {
     { ...first, payload: { ...first.payload, idempotency_key: "         " } },
     { ...first, payload: { ...first.payload, idempotency_key: "x".repeat(129) } },
     { ...first, sourceIdsKey: "s".repeat(1201) },
-    { ...first, caseId: "case-id-with-\\n-newline\n" },
+    { ...first, caseId: "case-id-with-\n-newline" },
   ]) {
     await assert.rejects(exports.saveOwnerIntent(unsafe), /R8_SECURE_INTENT_CORRUPTED/);
     assert.equal(data.has(storeKey), false, "unsafe write must not change encrypted storage");
