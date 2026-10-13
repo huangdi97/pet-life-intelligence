@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test:owner-intent-store": "node scripts/test-owner-intent-store.cjs",
     "test:quicklog-pet-scope": "node scripts/test-quicklog-pet-scope.cjs",
+    "test:owner-review-recovery": "node scripts/test-owner-review-recovery.cjs",
     "doctor": "expo-doctor",
     "build:3d-page": "node scripts/build-3d-page.mjs"
   },
