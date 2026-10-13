@@ -123,6 +123,8 @@ jobs:
         run: pnpm --dir apps/mobile test:owner-intent-store
       - name: QuickLog pet-switch and follow-up async fault injection
         run: pnpm --dir apps/mobile test:quicklog-pet-scope
+      - name: Owner Review recovery delayed IO (execute production handlers)
+        run: pnpm --dir apps/mobile test:owner-review-recovery
       - name: Mobile bundle (android)
         run: pnpm --dir apps/mobile exec expo export --platform android
       - name: Mobile bundle (ios)
