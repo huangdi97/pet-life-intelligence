@@ -128,11 +128,44 @@ async function run() {
     assert.equal(data.get(storeKey), raw, "validation must not erase an unresolved owner intent");
   }
   data.delete(storeKey);
+  // The write boundary must reject malformed/untrusted fields BEFORE they
+  // reach SecureStore, rather than letting the next read discover the poison.
+  for (const unsafe of [
+    { ...first, note: "private note must never enter SecureStore" },
+    { ...first, payload: { ...first.payload, health_note: "medical secret" } },
+    { ...first, petId: " " },
+    { ...first, sourceIdsKey: "" },
+    { ...first, payload: { ...first.payload, expected_latest_review_id: "" } },
+  ]) {
+    await assert.rejects(exports.saveOwnerIntent(unsafe), /R8_SECURE_INTENT_CORRUPTED/);
+    assert.equal(data.has(storeKey), false, "unsafe write must not change encrypted storage");
+  }
+  // Snapshot the original immutable decision BEFORE an asynchronous queued
+  // read. An unrelated component mutating its JS object cannot change the
+  // eventual durable instruction during SecureStore I/O.
+  const changing = {
+    ...first, caseId: "case-snapshot",
+    payload: { ...first.payload, idempotency_key: "snapshot-stable-id" },
+  };
+  let readBegun; const began = new Promise(resolve => { readBegun = resolve; });
+  let unlock; const unlocked = new Promise(resolve => { unlock = resolve; });
+  pauseNextRead = { started: readBegun, release: unlocked };
+  const writing = exports.saveOwnerIntent(changing);
+  await began;
+  changing.caseId = "case-tampered";
+  changing.payload.idempotency_key = "tampered-after-call";
+  unlock();
+  await writing;
+  const frozen = await exports.listOwnerIntentsForPet(key);
+  assert.equal(frozen.length, 1);
+  assert.equal(frozen[0].caseId, "case-snapshot");
+  assert.equal(frozen[0].payload.idempotency_key, "snapshot-stable-id");
+  await exports.clearAllOwnerIntents();
   await exports.saveOwnerIntent(first);
   assert.equal((await exports.listOwnerIntentsForPet(key)).length, 1,
     "valid records still recover after a corrupt snapshot is explicitly resolved");
   await exports.clearAllOwnerIntents();
-  console.log("R8Q/R8U PASS: linearized get/CAS, exact retry, ambiguity rejection, multi-pet isolation");
+  console.log("R8Q/R8U/R8V PASS: linearized get/CAS, immutable write snapshot, ambiguity/privacy rejection, multi-pet isolation");
 }
 run().catch(error => {
   console.error(error);

@@ -31,27 +31,27 @@ function serialized<T>(work: () => Promise<T>): Promise<T> {
   return pending;
 }
 
-async function read(): Promise<SavedOwnerIntent[]> {
-  const raw = await SecureStore.getItemAsync(KEY);
-  if (!raw) return [];
-  let decoded: unknown;
-  try { decoded = JSON.parse(raw); } catch {
-    throw new Error("R8_SECURE_INTENT_CORRUPTED");
-  }
+/** Validate the persisted wire shape BEFORE reading OR storing it.
+ * TS annotations cannot prevent a JS caller from supplying extra private
+ * fields, malformed IDs or a mutable object to the storage boundary.
+ */
+function validateRows(decoded: unknown): SavedOwnerIntent[] {
   if (!Array.isArray(decoded) || decoded.length > MAX_PENDING)
     throw new Error("R8_SECURE_INTENT_CORRUPTED");
   const seen = new Set<string>();
   for (const item of decoded) {
     if (!item || typeof item !== "object"
-        || typeof item.petId !== "string"
-        || typeof item.caseId !== "string"
-        || typeof item.sourceIdsKey !== "string"
+        || typeof item.petId !== "string" || !item.petId.trim()
+        || typeof item.caseId !== "string" || !item.caseId.trim()
+        || typeof item.sourceIdsKey !== "string" || !item.sourceIdsKey.trim()
         || !["FOLLOW_UP_LATER", "NOT_RELEVANT", "CORRECT_SOURCE"].includes(item.decision)
-        || !item.payload || item.payload.decision !== item.decision
+        || !item.payload || typeof item.payload !== "object"
+        || Array.isArray(item.payload) || item.payload.decision !== item.decision
         || typeof item.payload.idempotency_key !== "string"
         || item.payload.idempotency_key.length < 8
         || (item.payload.expected_latest_review_id !== null
-          && typeof item.payload.expected_latest_review_id !== "string")) {
+          && (typeof item.payload.expected_latest_review_id !== "string"
+            || !item.payload.expected_latest_review_id.trim()))) {
       throw new Error("R8_SECURE_INTENT_CORRUPTED");
     }
     // Never interpret two locally persisted decisions for the same Case and
@@ -69,6 +69,16 @@ async function read(): Promise<SavedOwnerIntent[]> {
     }
   }
   return decoded as SavedOwnerIntent[];
+}
+
+async function read(): Promise<SavedOwnerIntent[]> {
+  const raw = await SecureStore.getItemAsync(KEY);
+  if (!raw) return [];
+  let decoded: unknown;
+  try { decoded = JSON.parse(raw); } catch {
+    throw new Error("R8_SECURE_INTENT_CORRUPTED");
+  }
+  return validateRows(decoded);
 }
 
 /** Read only intents belonging to this pet. Never enumerate another pet in UI. */
@@ -89,25 +99,40 @@ export function restoreOwnerIntent(
 }
 
 export async function saveOwnerIntent(intent: SavedOwnerIntent): Promise<void> {
+  // Fail before ANY SecureStore write if a caller smuggles a private note,
+  // untrusted key, extra payload, or malformed owner identity into the object.
+  // Copy the validated fields synchronously: the original mutable argument
+  // must not be able to change while a queued SecureStore read is pending.
+  const checked = validateRows([intent])[0];
+  const snapshot: SavedOwnerIntent = {
+    petId: checked.petId,
+    caseId: checked.caseId,
+    sourceIdsKey: checked.sourceIdsKey,
+    decision: checked.decision,
+    payload: {
+      decision: checked.payload.decision,
+      expected_latest_review_id: checked.payload.expected_latest_review_id,
+      idempotency_key: checked.payload.idempotency_key,
+    },
+  };
   return serialized(async () => {
     const existing = await read();
     const previous = existing.find((x) =>
-      x.petId === intent.petId && x.caseId === intent.caseId && x.sourceIdsKey === intent.sourceIdsKey
+      x.petId === snapshot.petId && x.caseId === snapshot.caseId &&
+      x.sourceIdsKey === snapshot.sourceIdsKey
     );
     if (previous) {
-      // The same instruction can be durably retried, but a different decision
-      // or predecessor cannot silently overwrite a still-unconfirmed choice.
-      // Resolve the previous one through exact server ack or explicit opt-out.
-      if (previous.decision !== intent.decision ||
-          previous.payload.decision !== intent.payload.decision ||
-          previous.payload.idempotency_key !== intent.payload.idempotency_key ||
-          previous.payload.expected_latest_review_id !== intent.payload.expected_latest_review_id) {
+      // Allow an exact retry, never silently overwrite an unresolved choice.
+      if (previous.decision !== snapshot.decision ||
+          previous.payload.decision !== snapshot.payload.decision ||
+          previous.payload.idempotency_key !== snapshot.payload.idempotency_key ||
+          previous.payload.expected_latest_review_id !== snapshot.payload.expected_latest_review_id) {
         throw new Error("R8_UNCONFIRMED_INTENT_CONFLICT");
       }
       return;
     }
     if (existing.length >= MAX_PENDING) throw new Error("R8_UNCONFIRMED_INTENT_CAPACITY");
-    await SecureStore.setItemAsync(KEY, JSON.stringify([...existing, intent]));
+    await SecureStore.setItemAsync(KEY, JSON.stringify([...existing, snapshot]));
   });
 }
 
