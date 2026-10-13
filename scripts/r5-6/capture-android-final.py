@@ -522,6 +522,84 @@ def save_manifest(path: Path, manifest: dict) -> None:
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+
+def first_paint_gate_state(xml: str, expected_root: str) -> tuple[bool, list[str]]:
+    """Inspect REAL Android accessibility hierarchy, not WebView metadata.
+
+    A 3D runtime manifest can be ready before React Native removes the honest
+    pet illustration that occludes the actual WebGL canvas. Only a completely
+    absent fallback overlay can certify the end of that first-paint transition.
+    """
+    root = ET.fromstring(xml)
+    resource_ids = [
+        node.attrib.get("resource-id", "")
+        for node in root.iter("node")
+    ]
+    fallback_ids = [
+        rid for rid in resource_ids
+        if rid.startswith("pli.") and rid.endswith(".pet-boot-fallback")
+    ]
+    return expected_root in resource_ids, fallback_ids
+
+
+def await_owner_3d_first_paint(
+    android: Android,
+    directory: Path,
+    *,
+    screen: str,
+    expected_root: str,
+    attempts: int = 14,
+) -> None:
+    """Require a mounted owner surface and two consecutive overlay-free dumps.
+
+    On failure keep the exact UI, early screenshot and observation trace.
+    Do NOT treat a ready manifest, a fixed sleep or a generic species icon
+    as evidence that the 3D subject was visible in the final screenshot.
+    """
+    trace: list[dict[str, object]] = []
+    clear_streak = 0
+    photographed_overlay = False
+    for attempt in range(attempts):
+        xml = android.dump_xml(directory / "ui.xml")
+        right_root, fallback_ids = first_paint_gate_state(xml, expected_root)
+        trace.append({
+            "poll": attempt + 1,
+            "expected_surface_visible": right_root,
+            "blocking_fallback_ids": fallback_ids,
+        })
+        if fallback_ids and not photographed_overlay:
+            # Keep one raw screenshot instead of silently discarding evidence
+            # of the interim placeholder that caused a false green Today shot.
+            android.screenshot(directory / "first-paint-pending.png")
+            photographed_overlay = True
+        clear_streak = clear_streak + 1 if right_root and not fallback_ids else 0
+        if clear_streak >= 2:
+            save_manifest(directory / "first-paint-gate.json", {
+                "screen": screen,
+                "status": "RN_FALLBACK_CLEARED",
+                "ready_runtime_manifest_already_verified": True,
+                "stable_overlay_free_ui_dumps": clear_streak,
+                "trace": trace,
+                "vision_model_used": False,
+                "pixel_level_3d_acceptance": "NOT_ASSERTED",
+            })
+            return
+        time.sleep(1)
+    save_manifest(directory / "first-paint-gate.json", {
+        "screen": screen,
+        "status": "BLOCKED_BY_FIRST_PAINT",
+        "ready_runtime_manifest_already_verified": True,
+        "trace": trace,
+        "vision_model_used": False,
+    })
+    android.screenshot(directory / "first-paint-failed.png")
+    raise CaptureError(
+        "RUNTIME 3D manifest ready but owner stage still blocked by first-paint "
+        f"fallback or wrong root: {screen}, polls={len(trace)}; "
+        f"last={trace[-1]}"
+    )
+
+
 def capture_surface(
     android: Android,
     out: Path,
@@ -606,7 +684,15 @@ def capture_surface(
                 expected_pose="Stand" if expected_stage_role == "review" else None,
             ),
         )
-        time.sleep(1)
+        # A ready WebView manifest does not certify visible 3D: the first
+        # screenshot of 9c42fa58 still contained pli.today.pet-boot-fallback.
+        # Wait for real RN overlay removal, with exact surface identity and a
+        # bounded failure artifact; never approve the interim species glyph.
+        if screen in {"today", "pet", "lifeview", "companion"}:
+            await_owner_3d_first_paint(
+                android, directory, screen=screen,
+                expected_root=expected_root or SURFACE_ROOT_IDS[screen],
+            )
     android.screenshot(directory / f"{screen}.png")
     extractor = ROOT / "scripts" / "blind-ui" / "android_extract.py"
     run([os.environ.get("PYTHON", "python3"), str(extractor), str(directory)])
