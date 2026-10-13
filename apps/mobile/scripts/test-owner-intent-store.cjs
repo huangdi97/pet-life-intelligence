@@ -108,7 +108,31 @@ async function run() {
   await exports.clearAllOwnerIntents();
   assert.equal((await exports.listOwnerIntentsForPet(key)).length, 0);
   assert.equal((await exports.listOwnerIntentsForPet("pet-B")).length, 0);
-  console.log("R8Q PASS: linearized get/CAS, exact retry, conflict, multi-pet isolation, cleanup");
+  // Fail closed on ambiguous or privacy-unsafe SecureStore records. Reads
+  // must reject without deleting or modifying the raw pending owner choices.
+  const storeKey = "pli_r8_unconfirmed_owner_review_v1";
+  for (const corrupted of [
+    [first, { ...first, decision: "NOT_RELEVANT",
+      payload: { ...first.payload, decision: "NOT_RELEVANT" } }],
+    [first, { ...first, note: "must not persist private owner note" }],
+    Array.from({ length: 5 }, (_, i) => ({
+      ...first, caseId: "case-" + i, sourceIdsKey: "source-" + i,
+    })),
+  ]) {
+    const raw = JSON.stringify(corrupted);
+    data.set(storeKey, raw);
+    await assert.rejects(
+      exports.listOwnerIntentsForPet(key), /R8_SECURE_INTENT_CORRUPTED/,
+      "ambiguous/capacity/secret-bearing storage must not be trusted"
+    );
+    assert.equal(data.get(storeKey), raw, "validation must not erase an unresolved owner intent");
+  }
+  data.delete(storeKey);
+  await exports.saveOwnerIntent(first);
+  assert.equal((await exports.listOwnerIntentsForPet(key)).length, 1,
+    "valid records still recover after a corrupt snapshot is explicitly resolved");
+  await exports.clearAllOwnerIntents();
+  console.log("R8Q/R8U PASS: linearized get/CAS, exact retry, ambiguity rejection, multi-pet isolation");
 }
 run().catch(error => {
   console.error(error);

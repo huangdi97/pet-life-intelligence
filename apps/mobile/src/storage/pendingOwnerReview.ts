@@ -38,7 +38,9 @@ async function read(): Promise<SavedOwnerIntent[]> {
   try { decoded = JSON.parse(raw); } catch {
     throw new Error("R8_SECURE_INTENT_CORRUPTED");
   }
-  if (!Array.isArray(decoded)) throw new Error("R8_SECURE_INTENT_CORRUPTED");
+  if (!Array.isArray(decoded) || decoded.length > MAX_PENDING)
+    throw new Error("R8_SECURE_INTENT_CORRUPTED");
+  const seen = new Set<string>();
   for (const item of decoded) {
     if (!item || typeof item !== "object"
         || typeof item.petId !== "string"
@@ -50,6 +52,19 @@ async function read(): Promise<SavedOwnerIntent[]> {
         || item.payload.idempotency_key.length < 8
         || (item.payload.expected_latest_review_id !== null
           && typeof item.payload.expected_latest_review_id !== "string")) {
+      throw new Error("R8_SECURE_INTENT_CORRUPTED");
+    }
+    // Never interpret two locally persisted decisions for the same Case and
+    // source fingerprint as two valid owner instructions. Preserve the raw
+    // SecureStore value for explicit recovery; do not silently pick or delete.
+    const identity = JSON.stringify([item.petId, item.caseId, item.sourceIdsKey]);
+    if (seen.has(identity)) throw new Error("R8_SECURE_INTENT_CORRUPTED");
+    seen.add(identity);
+    // This store must never become a cache for private note/media/payload data.
+    const keys = Object.keys(item).sort().join("|");
+    const payloadKeys = Object.keys(item.payload).sort().join("|");
+    if (keys !== "caseId|decision|payload|petId|sourceIdsKey" ||
+        payloadKeys !== "decision|expected_latest_review_id|idempotency_key") {
       throw new Error("R8_SECURE_INTENT_CORRUPTED");
     }
   }
