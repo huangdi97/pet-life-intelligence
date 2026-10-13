@@ -160,7 +160,15 @@ def test_r8_owner_review_recovery_ack_can_only_clear_same_immutable_intent() -> 
     )[0]
     assert "const cleared = await clearOwnerIntentIfUnchanged(intent);" in success_flow
     assert "if (!cleared) {" in success_flow
-    assert "setIntents(await listOwnerIntentsForPet(petId));" in success_flow
+    # R8P still refreshes the same pet's durable intent list after exact
+    # acknowledgement, but may render it ONLY if the active-pet generation
+    # has not changed during the SecureStore read.
+    assert "await reloadForPet(requestedPet, generation);" in success_flow
+    assert "const rows = await listOwnerIntentsForPet(requestedPet);" in recovery
+    assert "if (stillOnPet(requestedPet, generation)) setIntents(rows);" in recovery
+    assert success_flow.index("const cleared = await clearOwnerIntentIfUnchanged(intent);") < success_flow.index(
+        "await reloadForPet(requestedPet, generation);"
+    )
     assert "await clearOwnerIntent(petId, intent.caseId, intent.sourceIdsKey)" not in success_flow
     assert success_flow.index("row.review_id === accepted.review_id") < success_flow.index(
         "const cleared = await clearOwnerIntentIfUnchanged(intent);"
