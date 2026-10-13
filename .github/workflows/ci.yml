@@ -119,6 +119,8 @@ jobs:
         run: pnpm --dir apps/mini build:alipay && pnpm --dir apps/mini build:tt
       - name: Mobile typecheck
         run: pnpm --dir apps/mobile typecheck
+      - name: Owner Review SecureStore concurrency (real async IO simulation)
+        run: pnpm --dir apps/mobile test:owner-intent-store
       - name: Mobile bundle (android)
         run: pnpm --dir apps/mobile exec expo export --platform android
       - name: Mobile bundle (ios)

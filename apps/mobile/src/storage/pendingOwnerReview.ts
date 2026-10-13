@@ -19,10 +19,15 @@ export type SavedOwnerIntent = {
   };
 };
 
+// All SecureStore reads AND writes participate in one queue. Waiting for
+// queue and reading outside it allows another component to overwrite/remove
+// an instruction during the async getItemAsync (stale-snapshot race).
 let queue: Promise<void> = Promise.resolve();
-function serialized(work: () => Promise<void>): Promise<void> {
+function serialized<T>(work: () => Promise<T>): Promise<T> {
   const pending = queue.then(work);
-  queue = pending.catch(() => {});
+  // Keep the queue live even if a read or write fails; propagate the failure
+  // only to the original caller, never silently consider it an acknowledgement.
+  queue = pending.then(() => undefined, () => undefined);
   return pending;
 }
 
@@ -52,18 +57,20 @@ async function read(): Promise<SavedOwnerIntent[]> {
 }
 
 /** Read only intents belonging to this pet. Never enumerate another pet in UI. */
-export async function listOwnerIntentsForPet(petId: string): Promise<SavedOwnerIntent[]> {
-  await queue;
-  return (await read()).filter((entry) => entry.petId === petId);
+export function listOwnerIntentsForPet(petId: string): Promise<SavedOwnerIntent[]> {
+  return serialized(async () =>
+    (await read()).filter((entry) => entry.petId === petId)
+  );
 }
 
-export async function restoreOwnerIntent(
+export function restoreOwnerIntent(
   petId: string, caseId: string, sourceIdsKey: string,
 ): Promise<SavedOwnerIntent | null> {
-  await queue;
-  return (await read()).find((x) =>
-    x.petId === petId && x.caseId === caseId && x.sourceIdsKey === sourceIdsKey
-  ) ?? null;
+  return serialized(async () =>
+    (await read()).find((x) =>
+      x.petId === petId && x.caseId === caseId && x.sourceIdsKey === sourceIdsKey
+    ) ?? null
+  );
 }
 
 export async function saveOwnerIntent(intent: SavedOwnerIntent): Promise<void> {

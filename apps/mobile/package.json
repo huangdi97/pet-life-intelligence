@@ -8,6 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
+    "test:owner-intent-store": "node scripts/test-owner-intent-store.cjs",
     "doctor": "expo-doctor",
     "build:3d-page": "node scripts/build-3d-page.mjs"
   },

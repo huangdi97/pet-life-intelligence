@@ -176,6 +176,21 @@ def test_r8_owner_review_recovery_ack_can_only_clear_same_immutable_intent() -> 
     assert "新决定未被清除" in success_flow
 
 
+def test_r8q_securestore_reader_is_in_same_serialized_queue_and_ci_executes_race() -> None:
+    """The source contract supplements (does not replace) executable Node race tests."""
+    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text()
+    workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+    script = (ROOT / "apps/mobile/scripts/test-owner-intent-store.cjs").read_text()
+    assert "function serialized<T>(work: () => Promise<T>): Promise<T>" in store
+    assert "return serialized(async () =>" in store
+    assert "await queue;\n  return (await read())" not in store
+    assert 'Owner Review SecureStore concurrency (real async IO simulation)' in workflow
+    assert "pnpm --dir apps/mobile test:owner-intent-store" in workflow
+    assert "CAS deletion overtook in-flight SecureStore read" in script
+    assert "await exports.saveOwnerIntent(another)" in script
+    assert "R8_UNCONFIRMED_INTENT_CONFLICT" in script
+
+
 def test_r8m_primary_owner_review_never_drops_uncertain_request_on_http_conflict() -> None:
     panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
     post = panel.split("const review = async", 1)[1].split("const inspectEvidence = async", 1)[0]
