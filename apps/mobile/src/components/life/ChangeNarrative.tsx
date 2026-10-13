@@ -33,6 +33,13 @@ export function ChangeNarrative({
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   if (!summary) return null;
+  // The R7 hint sometimes repeats the entire comparison already embedded in
+  // the one-sentence summary. Reprinting it as a second line looks like a
+  // second observation when it is actually the SAME source calculation.
+  // Keep the "为什么" drill-down and full provenance text intact.
+  const repeatedEvidence = Boolean(
+    compact && evidenceHint && summary.includes(evidenceHint.trim()),
+  );
   const openWhy = () => {
     if (onWhy) onWhy();
     else setExpanded((value) => !value);
@@ -47,7 +54,9 @@ export function ChangeNarrative({
           </Pressable>
         ) : null}
       </View>
-      {evidenceHint ? <Text style={[styles.evidence, compact && styles.evidenceCompact]}>{evidenceHint}</Text> : null}
+      {evidenceHint && !repeatedEvidence ? (
+        <Text style={[styles.evidence, compact && styles.evidenceCompact]}>{evidenceHint}</Text>
+      ) : null}
       {(onWhy || evidenceHint) && !compact ? (
         <Pressable accessibilityRole="button" accessibilityLabel="为什么" accessibilityState={{ expanded }} style={styles.why} onPress={openWhy}>
           <Text style={styles.whyText}>为什么</Text>

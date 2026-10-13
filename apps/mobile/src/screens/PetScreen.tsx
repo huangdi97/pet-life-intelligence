@@ -252,8 +252,10 @@ export function PetScreen() {
             pet={pet}
             spec={resolvePetStage(pet)}
             variant="pet"
-            headline={lastActivity ? `最近记录了${eventTypeLabel(lastActivity.event_type)}` : "今天还没有记录"}
-            caption={identityLine || undefined}
+            // The face/subject owns the stage. Fact copy and profile attributes
+            // must never cover the visible head of a real photo or 3D pet.
+            headline={undefined}
+            caption={undefined}
             demo={DEMO_ENV || twin?.demoFixture === true}
             onPressPet={pet ? () => navigation.navigate("LifeView") : undefined}
             twin={twin?.descriptor ?? null}
@@ -261,6 +263,11 @@ export function PetScreen() {
             frameTarget={0.56}
             pose={twin ? representativePose : null}
           />
+          {identityLine ? (
+            <View style={styles.identitySubline} testID="pli.pet.identity-subline">
+              <Text style={styles.identitySublineText}>{identityLine}</Text>
+            </View>
+          ) : null}
         </View>
 
         <Pressable
@@ -441,6 +448,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingBottom: SPACE.s8 },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  identitySubline: { paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3, paddingBottom: SPACE.s1 },
+  identitySublineText: { color: COLORS.textSecondary, fontSize: TYPE.sm, lineHeight: 20 },
   lifeViewCta: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3, minHeight: 76, borderRadius: 26, backgroundColor: COLORS.brandPrimary, paddingHorizontal: SPACE.s4, paddingVertical: SPACE.s3, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   lifeViewCtaKicker: { fontSize: TYPE.caption, color: COLORS.textInverse, opacity: 0.78, fontWeight: "700", letterSpacing: 1.2 },
   lifeViewCtaText: { fontSize: TYPE.bodyStrong, color: COLORS.textInverse, fontWeight: "700", marginTop: 3 },
