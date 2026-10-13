@@ -19,3 +19,7 @@ R8J rightly keeps an ambiguous owner Review after network failure, app restart, 
 2. Device fault injection: original POST reaches server but ack is lost; reboot, show orphan, verify idempotent original Review; second scenario server never accepted and Case is invalidated, then test two-tap local opt-out plus cancel route, no remote Review mutation.
 3. Multi-pet and account switch: no other pet’s intents listed; token/dev user changes must clear records, no background writes.
 4. Human visual approval of the real Android UI remains PENDING. No merge, tag, Release, approved screenshot baseline change or activation of a demo Twin as the individual pet.
+
+## R8K second pass — scoped compare-before-delete
+
+A per-intent inline, accessible warning is rendered beside the **exact** confirmation button, not only below a possibly long list where the warning can be out of view. Under the single serialized SecureStore write queue, `clearOwnerIntentIfUnchanged` atomically compares pet ID, Case ID, source-event signature, original human decision, idempotency key and original optimistic predecessor before removal. If another Review panel has replaced the instruction during the two taps, removal refuses and the directory reloads. No server Review POST/DELETE is issued by local opt-out. Device fault injection and human visual approval remain separate open gates.

@@ -100,3 +100,20 @@ def test_r8k_orphaned_owner_review_intent_has_only_explicit_twostep_local_exit()
     assert 'onPress={() => void discardLocalReminder(intent)}' in recovery
     assert "NEVER POST/DELETE a server Review here" in recovery
     assert "clearAllOwnerIntents()" not in recovery
+
+
+def test_r8k_confirmed_local_optout_does_not_erase_a_newer_decision_for_same_case() -> None:
+    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text()
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    assert "export async function clearOwnerIntentIfUnchanged(intent: SavedOwnerIntent)" in store
+    assert "await serialized(async () => {" in store
+    assert "saved.payload.idempotency_key !== intent.payload.idempotency_key" in store
+    assert "saved.payload.expected_latest_review_id !== intent.payload.expected_latest_review_id" in store
+    assert "saved.decision !== intent.decision" in store
+    assert "const removed = await clearOwnerIntentIfUnchanged(intent);" in recovery
+    assert "if (!removed) {" in recovery
+    assert "setIntents(await listOwnerIntentsForPet(petId));" in recovery
+    assert "原决定可能已在服务器生效" in recovery
+    assert "不撤销服务器上的记录" in recovery
+    assert 'testID={`pli.r8.pending-review-recovery.discard-warning.${intent.caseId}`}' in recovery
+    assert 'inlineDiscardWarning: { width: "100%"' in recovery

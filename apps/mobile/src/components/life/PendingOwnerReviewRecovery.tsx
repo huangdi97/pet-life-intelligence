@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { api, humanizeError } from "../../api";
-import { clearOwnerIntent, listOwnerIntentsForPet, type SavedOwnerIntent } from "../../storage/pendingOwnerReview";
+import { clearOwnerIntent, clearOwnerIntentIfUnchanged, listOwnerIntentsForPet, type SavedOwnerIntent } from "../../storage/pendingOwnerReview";
 import { COLORS, SPACE, TYPE } from "../../tokens";
 
 type CaseDetail = {
@@ -112,7 +112,15 @@ export function PendingOwnerReviewRecovery({
     setLoadingCaseId(intent.caseId);
     try {
       // Explicit owner opt-out only: NEVER POST/DELETE a server Review here.
-      await clearOwnerIntent(petId, intent.caseId, intent.sourceIdsKey);
+      const removed = await clearOwnerIntentIfUnchanged(intent);
+      if (!removed) {
+        // A second owner panel might have replaced the pending instruction
+        // while this local two-step warning was visible.
+        setIntents(await listOwnerIntentsForPet(petId));
+        setDiscardCandidate(null);
+        setWarning("本机原决定已被其他操作更新或确认，本次未清理任何新决定。");
+        return;
+      }
       setIntents((rows) => rows.filter((row) =>
         !(row.caseId === intent.caseId && row.sourceIdsKey === intent.sourceIdsKey)
       ));
@@ -165,6 +173,15 @@ export function PendingOwnerReviewRecovery({
             </Text>
           </Pressable>
           {discardCandidate === `${intent.caseId}:${intent.sourceIdsKey}` ? (
+            <Text
+              style={styles.inlineDiscardWarning}
+              testID={`pli.r8.pending-review-recovery.discard-warning.${intent.caseId}`}
+              accessibilityLiveRegion="polite"
+            >
+              原决定可能已在服务器生效。确认后仅删除本机提醒，不撤销服务器上的记录。
+            </Text>
+          ) : null}
+          {discardCandidate === `${intent.caseId}:${intent.sourceIdsKey}` ? (
             <Pressable
               testID={`pli.r8.pending-review-recovery.cancel-discard.${intent.caseId}`}
               accessibilityRole="button"
@@ -197,4 +214,5 @@ const styles = StyleSheet.create({
   warning: { color: COLORS.textPrimary, backgroundColor: COLORS.brandSoft, padding: SPACE.s3, borderRadius: 12, fontSize: TYPE.sm, lineHeight: 20 },
   discardButton: { minHeight: 44, paddingHorizontal: SPACE.s2, justifyContent: "center", borderRadius: 12 },
   discardText: { color: COLORS.textSecondary, fontSize: TYPE.sm, fontWeight: "600" },
+  inlineDiscardWarning: { width: "100%", color: COLORS.textPrimary, fontSize: TYPE.sm, lineHeight: 20, padding: SPACE.s2, borderRadius: 12, backgroundColor: COLORS.brandSoft },
 });

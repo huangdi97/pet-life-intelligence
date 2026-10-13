@@ -88,6 +88,34 @@ export async function clearOwnerIntent(
   });
 }
 
+/** Remove this EXACT owner intent only if it is still the one the owner saw.
+ * Replaced decisions with the same pet+Case+evidence are never removed.
+ */
+export async function clearOwnerIntentIfUnchanged(intent: SavedOwnerIntent): Promise<boolean> {
+  let removed = false;
+  await serialized(async () => {
+    const rows = await read();
+    const index = rows.findIndex((x) =>
+      x.petId === intent.petId &&
+      x.caseId === intent.caseId &&
+      x.sourceIdsKey === intent.sourceIdsKey
+    );
+    if (index < 0) return;
+    const saved = rows[index];
+    if (saved.decision !== intent.decision ||
+        saved.payload.decision !== intent.payload.decision ||
+        saved.payload.idempotency_key !== intent.payload.idempotency_key ||
+        saved.payload.expected_latest_review_id !== intent.payload.expected_latest_review_id) {
+      return;
+    }
+    const rest = rows.filter((_, i) => i !== index);
+    if (rest.length) await SecureStore.setItemAsync(KEY, JSON.stringify(rest));
+    else await SecureStore.deleteItemAsync(KEY);
+    removed = true;
+  });
+  return removed;
+}
+
 export async function clearAllOwnerIntents(): Promise<void> {
   await serialized(() => SecureStore.deleteItemAsync(KEY));
 }
