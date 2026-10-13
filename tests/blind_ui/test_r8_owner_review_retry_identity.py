@@ -124,10 +124,13 @@ def test_r8k_confirmed_local_optout_does_not_erase_a_newer_decision_for_same_cas
     store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text()
     recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
     assert "export async function clearOwnerIntentIfUnchanged(intent: SavedOwnerIntent)" in store
+    assert "const snapshot = snapshotIntent(intent);" in store
+    assert "function snapshotIntent(intent: SavedOwnerIntent): SavedOwnerIntent" in store
+    assert "const checked = validateRows([intent])[0];" in store
     assert "await serialized(async () => {" in store
-    assert "saved.payload.idempotency_key !== intent.payload.idempotency_key" in store
-    assert "saved.payload.expected_latest_review_id !== intent.payload.expected_latest_review_id" in store
-    assert "saved.decision !== intent.decision" in store
+    assert "saved.payload.idempotency_key !== snapshot.payload.idempotency_key" in store
+    assert "saved.payload.expected_latest_review_id !== snapshot.payload.expected_latest_review_id" in store
+    assert "saved.decision !== snapshot.decision" in store
     assert "const removed = await clearOwnerIntentIfUnchanged(intent);" in recovery
     assert "if (!removed) {" in recovery
     assert "await reloadForPet(requestedPet, generation);" in recovery
@@ -141,12 +144,14 @@ def test_r8k_secure_store_rejects_overwriting_a_different_unconfirmed_owner_choi
     store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text()
     recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
     assert "const previous = existing.find((x) =>" in store
-    assert "previous.decision !== intent.decision" in store
-    assert "previous.payload.idempotency_key !== intent.payload.idempotency_key" in store
-    assert "previous.payload.expected_latest_review_id !== intent.payload.expected_latest_review_id" in store
+    assert "const snapshot = snapshotIntent(intent);" in store
+    assert "const checked = validateRows([intent])[0];" in store
+    assert "previous.decision !== snapshot.decision" in store
+    assert "previous.payload.idempotency_key !== snapshot.payload.idempotency_key" in store
+    assert "previous.payload.expected_latest_review_id !== snapshot.payload.expected_latest_review_id" in store
     assert 'throw new Error("R8_UNCONFIRMED_INTENT_CONFLICT")' in store
     assert "if (existing.length >= MAX_PENDING)" in store
-    assert "JSON.stringify([...existing, intent])" in store
+    assert "JSON.stringify([...existing, snapshot])" in store
     assert "setDiscardCandidate(null);" in recovery
     assert recovery.index("setDiscardCandidate(null);", recovery.index("const recover = async")) < recovery.index(
         "setLoadingCaseId(intent.caseId);", recovery.index("const recover = async")
