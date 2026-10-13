@@ -103,7 +103,7 @@ function setup({ getGate, postGate, clearGate, lostAck = false, wrongPet = false
       },
     },
   };
-  return { intent, saved, calls, notices, state, ...compiled.build(ctx),
+  return { intent, saved, calls, notices, state, ctx, ...compiled.build(ctx),
     changePet() { guard.renderPet("pet-B", pet, generation); },
     changeBackToA() { guard.renderPet("pet-A", pet, generation); },
     samePetRender() { guard.renderPet("pet-A", pet, generation); },
