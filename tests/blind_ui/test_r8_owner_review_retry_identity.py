@@ -117,3 +117,19 @@ def test_r8k_confirmed_local_optout_does_not_erase_a_newer_decision_for_same_cas
     assert "不撤销服务器上的记录" in recovery
     assert 'testID={`pli.r8.pending-review-recovery.discard-warning.${intent.caseId}`}' in recovery
     assert 'inlineDiscardWarning: { width: "100%"' in recovery
+
+
+def test_r8k_secure_store_rejects_overwriting_a_different_unconfirmed_owner_choice() -> None:
+    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text()
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    assert "const previous = existing.find((x) =>" in store
+    assert "previous.decision !== intent.decision" in store
+    assert "previous.payload.idempotency_key !== intent.payload.idempotency_key" in store
+    assert "previous.payload.expected_latest_review_id !== intent.payload.expected_latest_review_id" in store
+    assert 'throw new Error("R8_UNCONFIRMED_INTENT_CONFLICT")' in store
+    assert "if (existing.length >= MAX_PENDING)" in store
+    assert "JSON.stringify([...existing, intent])" in store
+    assert "setDiscardCandidate(null);" in recovery
+    assert recovery.index("setDiscardCandidate(null);", recovery.index("const recover = async")) < recovery.index(
+        "setLoadingCaseId(intent.caseId);", recovery.index("const recover = async")
+    )

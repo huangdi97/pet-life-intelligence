@@ -23,3 +23,7 @@ R8J rightly keeps an ambiguous owner Review after network failure, app restart, 
 ## R8K second pass — scoped compare-before-delete
 
 A per-intent inline, accessible warning is rendered beside the **exact** confirmation button, not only below a possibly long list where the warning can be out of view. Under the single serialized SecureStore write queue, `clearOwnerIntentIfUnchanged` atomically compares pet ID, Case ID, source-event signature, original human decision, idempotency key and original optimistic predecessor before removal. If another Review panel has replaced the instruction during the two taps, removal refuses and the directory reloads. No server Review POST/DELETE is issued by local opt-out. Device fault injection and human visual approval remain separate open gates.
+
+## R8K third pass — fail-closed save rather than overwrite
+
+`saveOwnerIntent` no longer silently replaces an unresolved decision on the same pet/Case/evidence key. An identical decision/idempotency key/predecessor is safely idempotent. Any different instruction is rejected with `R8_UNCONFIRMED_INTENT_CONFLICT`, leaving the earlier durable choice untouched for explicit verification or local-only opt-out. Tapping primary `主动核对原决定` cancels a pending two-tap discard confirmation, so an old first tap cannot remain armed after the user returns to verification. These are secure-storage integrity rules; current static blind contract does not replace fault-injected device tests.

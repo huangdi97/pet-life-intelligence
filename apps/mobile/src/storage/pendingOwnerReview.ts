@@ -68,11 +68,24 @@ export async function restoreOwnerIntent(
 
 export async function saveOwnerIntent(intent: SavedOwnerIntent): Promise<void> {
   return serialized(async () => {
-    const others = (await read()).filter((x) => !(
+    const existing = await read();
+    const previous = existing.find((x) =>
       x.petId === intent.petId && x.caseId === intent.caseId && x.sourceIdsKey === intent.sourceIdsKey
-    ));
-    if (others.length >= MAX_PENDING) throw new Error("R8_UNCONFIRMED_INTENT_CAPACITY");
-    await SecureStore.setItemAsync(KEY, JSON.stringify([...others, intent]));
+    );
+    if (previous) {
+      // The same instruction can be durably retried, but a different decision
+      // or predecessor cannot silently overwrite a still-unconfirmed choice.
+      // Resolve the previous one through exact server ack or explicit opt-out.
+      if (previous.decision !== intent.decision ||
+          previous.payload.decision !== intent.payload.decision ||
+          previous.payload.idempotency_key !== intent.payload.idempotency_key ||
+          previous.payload.expected_latest_review_id !== intent.payload.expected_latest_review_id) {
+        throw new Error("R8_UNCONFIRMED_INTENT_CONFLICT");
+      }
+      return;
+    }
+    if (existing.length >= MAX_PENDING) throw new Error("R8_UNCONFIRMED_INTENT_CAPACITY");
+    await SecureStore.setItemAsync(KEY, JSON.stringify([...existing, intent]));
   });
 }
 

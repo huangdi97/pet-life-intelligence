@@ -51,6 +51,9 @@ export function PendingOwnerReviewRecovery({
 
   const recover = async (intent: SavedOwnerIntent) => {
     if (loadingCaseId) return;
+    // A recovery tap cancels an unconfirmed local-discard prompt. The owner
+    // must explicitly start two-step opt-out again if verification fails.
+    setDiscardCandidate(null);
     setLoadingCaseId(intent.caseId);
     setWarning(null);
     try {
