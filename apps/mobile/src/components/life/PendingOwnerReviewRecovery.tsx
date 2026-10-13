@@ -31,11 +31,15 @@ export function PendingOwnerReviewRecovery({
   const [intents, setIntents] = useState<SavedOwnerIntent[]>([]);
   const [loadingCaseId, setLoadingCaseId] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  // Explicit two-step opt-out for an orphaned local intent. This is NOT a
+  // server Review deletion or an implicit approval/denial.
+  const [discardCandidate, setDiscardCandidate] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     setIntents([]);
     setWarning(null);
+    setDiscardCandidate(null);
     // SecureStore-only discovery: no GET, POST, or automated owner action.
     listOwnerIntentsForPet(petId)
       .then((rows) => { if (alive) setIntents(rows); })
@@ -94,6 +98,33 @@ export function PendingOwnerReviewRecovery({
     }
   };
 
+  const discardLocalReminder = async (intent: SavedOwnerIntent) => {
+    if (loadingCaseId) return;
+    const intentKey = `${intent.caseId}:${intent.sourceIdsKey}`;
+    if (discardCandidate !== intentKey) {
+      setDiscardCandidate(intentKey);
+      setWarning(
+        "请再次确认：只删除这台设备的待核对提醒，不会撤销服务器上可能已保存的主人决定；" +
+        "原始请求可能已经成功，放弃本机核对后无法凭这条提醒再次确认。",
+      );
+      return;
+    }
+    setLoadingCaseId(intent.caseId);
+    try {
+      // Explicit owner opt-out only: NEVER POST/DELETE a server Review here.
+      await clearOwnerIntent(petId, intent.caseId, intent.sourceIdsKey);
+      setIntents((rows) => rows.filter((row) =>
+        !(row.caseId === intent.caseId && row.sourceIdsKey === intent.sourceIdsKey)
+      ));
+      setDiscardCandidate(null);
+      setWarning("已按你的确认，仅清除此设备上的提醒；服务器历史决定没有被修改。");
+    } catch {
+      setWarning("本机提醒清理未完成，原决定仍保留，请稍后再试。");
+    } finally {
+      setLoadingCaseId(null);
+    }
+  };
+
   // A matching evidence fingerprint does not prove another panel has
   // loaded the exact Case. Never hide the only recovery option on a guess.
   if (!intents.length && !warning) return null;
@@ -120,6 +151,30 @@ export function PendingOwnerReviewRecovery({
               {loadingCaseId === intent.caseId ? "核对中…" : "主动核对原决定"}
             </Text>
           </Pressable>
+          <Pressable
+            testID={`pli.r8.pending-review-recovery.discard.${intent.caseId}`}
+            accessibilityRole="button"
+            accessibilityLabel="放弃本机这条未确认提醒，不撤销服务器决定"
+            disabled={loadingCaseId !== null}
+            onPress={() => void discardLocalReminder(intent)}
+            style={styles.discardButton}
+          >
+            <Text style={styles.discardText}>
+              {discardCandidate === `${intent.caseId}:${intent.sourceIdsKey}`
+                ? "确认仅清除本机提醒" : "不再在本机提醒"}
+            </Text>
+          </Pressable>
+          {discardCandidate === `${intent.caseId}:${intent.sourceIdsKey}` ? (
+            <Pressable
+              testID={`pli.r8.pending-review-recovery.cancel-discard.${intent.caseId}`}
+              accessibilityRole="button"
+              onPress={() => { setDiscardCandidate(null); setWarning(null); }}
+              disabled={loadingCaseId !== null}
+              style={styles.discardButton}
+            >
+              <Text style={styles.discardText}>取消清理</Text>
+            </Pressable>
+          ) : null}
         </View>
       ))}
       {warning ? (
@@ -140,4 +195,6 @@ const styles = StyleSheet.create({
   button: { minHeight: 44, paddingHorizontal: SPACE.s3, justifyContent: "center", backgroundColor: COLORS.brandPrimaryDeep, borderRadius: 14 },
   buttonText: { color: COLORS.textInverse, fontSize: TYPE.sm, fontWeight: "700" },
   warning: { color: COLORS.textPrimary, backgroundColor: COLORS.brandSoft, padding: SPACE.s3, borderRadius: 12, fontSize: TYPE.sm, lineHeight: 20 },
+  discardButton: { minHeight: 44, paddingHorizontal: SPACE.s2, justifyContent: "center", borderRadius: 12 },
+  discardText: { color: COLORS.textSecondary, fontSize: TYPE.sm, fontWeight: "600" },
 });

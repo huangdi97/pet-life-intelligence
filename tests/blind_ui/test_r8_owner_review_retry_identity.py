@@ -76,3 +76,27 @@ def test_r8j_unconfirmed_owner_review_recovery_survives_loss_of_notable_card() -
     assert "不会自动替你决定或补发" in recovery
     assert "原决定仍安全保留" in recovery
     assert "if (loadingCaseId) return;" in recovery
+
+
+def test_r8k_orphaned_owner_review_intent_has_only_explicit_twostep_local_exit() -> None:
+    """An invalid Case can leave an unaccepted intent stranded after HTTP 409.
+
+    The UI must allow owner-controlled local cleanup without changing remote
+    append-only Review history or silently dropping a possibly accepted choice.
+    """
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    assert "const [discardCandidate, setDiscardCandidate]" in recovery
+    assert "if (discardCandidate !== intentKey)" in recovery
+    assert "setDiscardCandidate(intentKey)" in recovery
+    assert "await clearOwnerIntent(petId, intent.caseId, intent.sourceIdsKey)" in recovery
+    assert recovery.index("if (discardCandidate !== intentKey)") < recovery.index(
+        "await clearOwnerIntent(petId, intent.caseId, intent.sourceIdsKey)"
+    )
+    assert "不再在本机提醒" in recovery
+    assert "确认仅清除本机提醒" in recovery
+    assert "取消清理" in recovery
+    assert "不会撤销服务器上可能已保存的主人决定" in recovery
+    assert "服务器历史决定没有被修改" in recovery
+    assert 'onPress={() => void discardLocalReminder(intent)}' in recovery
+    assert "NEVER POST/DELETE a server Review here" in recovery
+    assert "clearAllOwnerIntents()" not in recovery
