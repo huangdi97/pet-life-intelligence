@@ -380,3 +380,24 @@ def test_r8w_secure_owner_intents_fail_before_oversized_native_keychain_write() 
     assert "const beforeCapacity = data.get(storeKey);" in script
     assert "assert.equal(data.get(storeKey), beforeCapacity," in script
     assert "await exports.clearAllOwnerIntents();" in script
+
+
+def test_r8x_owner_recovery_rejects_source_invalidation_before_and_after_post() -> None:
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    fault = (ROOT / "apps/mobile/scripts/test-owner-review-recovery.cjs").read_text()
+    assert "detail.source_valid !== true" in recovery
+    assert "confirmed.source_valid !== true" in recovery
+    assert '[...confirmed.evidence_event_ids].sort().join("|") !== intent.sourceIdsKey' in recovery
+    assert recovery.index("detail.source_valid !== true") < recovery.index(
+        "const accepted = await api.post<ReviewAck>"
+    )
+    assert recovery.index("confirmed.source_valid !== true") < recovery.index(
+        "const cleared = await clearOwnerIntentIfUnchanged(intent);"
+    )
+    assert 'sourceInvalid = false, invalidateAfterPost = false' in fault
+    assert "changeEvidenceAfterPost = false" in fault
+    assert 'setup({sourceInvalid:true})' in fault
+    assert 'setup({invalidateAfterPost:true})' in fault
+    assert 'setup({changeEvidenceAfterPost:true})' in fault
+    assert "invalidated original evidence must never trigger a new owner Review" in fault
+    assert "source invalidated after POST cannot delete ambiguous original owner intent" in fault

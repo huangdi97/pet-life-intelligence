@@ -47,6 +47,8 @@ function delay() {
   return { promise, resolve };
 }
 function setup({ getGate, postGate, clearGate, lostAck = false, wrongPet = false,
+                 sourceInvalid = false, invalidateAfterPost = false,
+                 changeEvidenceAfterPost = false,
                  confirmDiscard = false, newerOnClear = false } = {}) {
   const intent = {
     petId: "pet-A", caseId: "case-A", sourceIdsKey: "e1|e2",
@@ -91,7 +93,8 @@ function setup({ getGate, postGate, clearGate, lostAck = false, wrongPet = false
         calls.push("GET");
         if (++getNumber === 1 && getGate) await getGate.promise;
         return { pet_id: wrongPet ? "pet-B" : "pet-A", case_id: "case-A",
-          evidence_event_ids: ["e2", "e1"], source_valid: true,
+          evidence_event_ids: changeEvidenceAfterPost && getNumber > 1 ? ["e3"] : ["e2", "e1"],
+          source_valid: !(sourceInvalid || (invalidateAfterPost && getNumber > 1)),
           reviews: [{ review_id: "rA", decision: "FOLLOW_UP_LATER" }] };
       },
       async post(url, payload) {
@@ -175,6 +178,30 @@ async function test() {
     assert.equal(h.saved.length,1);
   }
   {
+    const h=setup({sourceInvalid:true});
+    await h.recover(h.intent);
+    assert.equal(count(h,"POST"),0,
+      "invalidated original evidence must never trigger a new owner Review");
+    assert.equal(count(h,"CAS"),0);
+    assert.equal(h.saved.length,1);
+  }
+  {
+    const h=setup({invalidateAfterPost:true});
+    await h.recover(h.intent);
+    assert.equal(count(h,"POST"),1);
+    assert.equal(count(h,"CAS"),0,
+      "source invalidated after POST cannot delete ambiguous original owner intent");
+    assert.equal(h.saved.length,1);
+  }
+  {
+    const h=setup({changeEvidenceAfterPost:true});
+    await h.recover(h.intent);
+    assert.equal(count(h,"POST"),1);
+    assert.equal(count(h,"CAS"),0,
+      "changed evidence fingerprint after POST cannot be treated as original confirmed Case");
+    assert.equal(h.saved.length,1);
+  }
+  {
     const h=setup();
     await h.discardLocalReminder(h.intent);
     assert.equal(count(h,"CAS"),0,"discard first tap must only warn");
@@ -198,6 +225,6 @@ async function test() {
     assert.equal(h.saved[0].decision,"NOT_RELEVANT");
     assert.ok(h.notices.some(x=>x[0]==="warning" && x[1]?.includes("新决定未被清除")));
   }
-  console.log("R8T: 9 executable production recovery concurrency gates PASS");
+  console.log("R8T/R8X: 12 executable production owner recovery safety gates PASS");
 }
 test().catch(e=>{console.error(e);process.exitCode=1;});

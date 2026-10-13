@@ -100,6 +100,7 @@ export function PendingOwnerReviewRecovery({
       const fromServer = [...detail.evidence_event_ids].sort().join("|");
       if (detail.pet_id !== petId ||
           detail.case_id !== intent.caseId ||
+          detail.source_valid !== true ||
           fromServer !== intent.sourceIdsKey) {
         throw new Error("R8_RECOVERY_SCOPE_MISMATCH");
       }
@@ -127,6 +128,8 @@ export function PendingOwnerReviewRecovery({
       if (!stillCurrent()) return;
       if (confirmed.pet_id !== petId ||
           confirmed.case_id !== intent.caseId ||
+          confirmed.source_valid !== true ||
+          [...confirmed.evidence_event_ids].sort().join("|") !== intent.sourceIdsKey ||
           !confirmed.reviews.some((row) =>
             row.review_id === accepted.review_id && row.decision === intent.decision
           )) {
