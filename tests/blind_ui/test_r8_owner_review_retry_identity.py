@@ -329,3 +329,24 @@ def test_r8s_recovery_panel_synchronously_serializes_owner_actions() -> None:
     assert "if (discardCandidate !== intentKey)" in code
     assert "const accepted = await api.post<ReviewAck>" in code
     assert "const removed = await clearOwnerIntentIfUnchanged(intent);" in code
+
+
+def test_r8t_actual_owner_recovery_handler_executable_gate_runs_in_mobile_ci() -> None:
+    """The synchronous lock must be exercised with delayed I/O, not only scanned."""
+    root = Path(__file__).resolve().parents[2]
+    node = (root / "apps/mobile/scripts/test-owner-review-recovery.cjs").read_text()
+    ci = (root / ".github/workflows/ci.yml").read_text()
+    mobile = (root / "apps/mobile/package.json").read_text()
+    assert 'PendingOwnerReviewRecovery.tsx' in node
+    assert 'screen.slice(start, end)' in node
+    assert 'ts.transpileModule(source' in node
+    assert 'test:owner-review-recovery' in ci
+    assert 'pnpm --dir apps/mobile test:owner-review-recovery' in ci
+    assert 'node scripts/test-owner-review-recovery.cjs' in mobile
+    assert 'rapid double tap must not issue second GET' in node
+    assert 'A→B during GET cannot POST old intent' in node
+    assert 'A→B during POST cannot confirm stale pet' in node
+    assert 'lost acknowledgement must preserve durable owner intent' in node
+    assert 'two-step opt-out must never create server Review' in node
+    assert 'newer owner instruction must survive CAS' in node
+
