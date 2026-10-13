@@ -70,7 +70,8 @@ def test_r8j_unconfirmed_owner_review_recovery_survives_loss_of_notable_card() -
     assert "PendingOwnerReviewRecovery" in today
     assert "refreshKey={refreshCounter}" in today
     assert "hideSourceIdsKey" not in recovery
-    assert "if (!intents.length && !warning) return null;" in recovery
+    assert "if (!visibleIntents.length && !visibleWarning) return null;" in recovery
+    assert "const visibleIntents = intents.filter((entry) => entry.petId === petId);" in recovery
     assert "onPress={() => void recover(intent)}" in recovery
     assert recovery.index("const detail = await api.get<CaseDetail>(path)") < recovery.index(
         "const accepted = await api.post<ReviewAck>"
@@ -83,7 +84,7 @@ def test_r8j_unconfirmed_owner_review_recovery_survives_loss_of_notable_card() -
         "const cleared = await clearOwnerIntentIfUnchanged(intent);"
     )
     assert "if (!cleared) {" in recovery
-    assert "setIntents(await listOwnerIntentsForPet(petId));" in recovery
+    assert "await reloadForPet(requestedPet, generation);" in recovery
     assert "不会自动替你决定或补发" in recovery
     assert "原决定仍安全保留" in recovery
     assert "if (loadingCaseId) return;" in recovery
@@ -129,7 +130,7 @@ def test_r8k_confirmed_local_optout_does_not_erase_a_newer_decision_for_same_cas
     assert "saved.decision !== intent.decision" in store
     assert "const removed = await clearOwnerIntentIfUnchanged(intent);" in recovery
     assert "if (!removed) {" in recovery
-    assert "setIntents(await listOwnerIntentsForPet(petId));" in recovery
+    assert "await reloadForPet(requestedPet, generation);" in recovery
     assert "原决定可能已在服务器生效" in recovery
     assert "不撤销服务器上的记录" in recovery
     assert 'testID={`pli.r8.pending-review-recovery.discard-warning.${intent.caseId}`}' in recovery
@@ -231,3 +232,41 @@ def test_r8o_async_review_post_never_paints_new_pet_or_erases_its_intent() -> No
     assert "if (!stillCurrent()) return;" in review.split("const cleared = await clearOwnerIntentIfUnchanged({", 1)[1]
     assert "if (stillCurrent()) setLoading(false)" in review
     assert "if (!stillCurrent()) return;" in review.split("} catch (e: unknown)", 1)[1]
+
+
+def test_r8p_recovery_async_is_scoped_before_each_remote_side_effect() -> None:
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    flow = recovery.split("const recover = async", 1)[1].split("const discardLocalReminder = async", 1)[0]
+    assert "const activeRecoveryPet = useRef(petId);" in recovery
+    assert "activeRecoveryPet.current = petId;" in recovery
+    assert "return () => { alive = false; recoveryGeneration.current += 1; };" in recovery
+    assert "if (intent.petId !== petId) return;" in flow
+    assert "const stillCurrent = () => stillOnPet(requestedPet, generation);" in flow
+    assert "const saved = await restoreOwnerIntent(petId, intent.caseId, intent.sourceIdsKey);" in flow
+    assert "saved.payload.idempotency_key !== intent.payload.idempotency_key" in flow
+    assert "saved.payload.expected_latest_review_id !== intent.payload.expected_latest_review_id" in flow
+    assert flow.index("if (!stillCurrent()) return;", flow.index("const saved = await restoreOwnerIntent")) < flow.index(
+        "const accepted = await api.post<ReviewAck>"
+    )
+    assert "if (!stillCurrent()) return;" in flow.split("const accepted = await api.post<ReviewAck>", 1)[1]
+    assert "if (!stillCurrent()) return;" in flow.split("const confirmed = await api.get<CaseDetail>", 1)[1]
+    assert "if (!stillCurrent()) return;" in flow.split("const cleared = await clearOwnerIntentIfUnchanged(intent)", 1)[1]
+    assert "if (stillCurrent()) setLoadingCaseId(null)" in flow
+    assert "const visibleWarning = warningPetId === petId ? warning : null;" in recovery
+
+
+def test_r8p_discard_is_not_applied_to_a_different_active_pet() -> None:
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    discard = recovery.split("const discardLocalReminder = async", 1)[1].split(
+        "  // Hide prior-pet rows", 1
+    )[0]
+    assert "if (intent.petId !== petId) return;" in discard
+    assert "const stillCurrent = () => stillOnPet(requestedPet, generation);" in discard
+    assert discard.index("if (!stillCurrent()) return;") < discard.index(
+        "const removed = await clearOwnerIntentIfUnchanged(intent);"
+    )
+    assert "if (!stillCurrent()) return;" in discard.split(
+        "const removed = await clearOwnerIntentIfUnchanged(intent);", 1
+    )[1]
+    assert "if (stillCurrent()) setLoadingCaseId(null)" in discard
+    assert "const visibleIntents = intents.filter((entry) => entry.petId === petId);" in recovery
