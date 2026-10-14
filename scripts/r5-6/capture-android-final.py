@@ -963,7 +963,13 @@ def capture_r8_owner_review(
     product_tz = timezone(timedelta(hours=8))
     current_clock = datetime.now(product_tz) - timedelta(seconds=2)
     planted_ids: list[str] = []
-    for days_back, minutes in ((3, 90), (2, 90), (1, 90), (0, 20)):
+    # Five historical days, each with TWO real 45-minute observations, plus
+    # today's 20-minute observation. A real >8-source Case is required to
+    # exercise native owner-controlled pagination rather than only the first 8.
+    fixtures = tuple(
+        (days_back, 45) for days_back in range(5, 0, -1) for _ in range(2)
+    ) + ((0, 20),)
+    for days_back, minutes in fixtures:
         observed_at = current_clock - timedelta(days=days_back)
         created = api_json(
             f"{root}/pets/{pet_id}/events",
@@ -1102,7 +1108,8 @@ def capture_r8_owner_review(
     # event's FULL immutable ID in the real UIAutomator resource-id or
     # accessibility description; do not substitute API data for native proof.
     observed_source_ids: set[str] = set()
-    for attempt in range(16):
+    source_pagination_taps = 0
+    for attempt in range(36):
         nodes = ET.fromstring(source_ui).iter("node")
         accessible = " ".join(
             f'{n.attrib.get("text", "")} {n.attrib.get("content-desc", "")} {n.attrib.get("resource-id", "")}'
@@ -1113,9 +1120,27 @@ def capture_r8_owner_review(
         )
         if all(event_id in observed_source_ids for event_id in planted_ids):
             break
+        if ui_has_actionable_control(source_ui, "pli.r8.owner-review.sources.more"):
+            # The owner genuinely taps the NEXT batch on Android; never infer
+            # a source was visible from the backend Case or helper function.
+            android.tap(source_ui, "pli.r8.owner-review.sources.more", "id")
+            source_pagination_taps += 1
+            time.sleep(1)
+            source_ui = android.dump_xml(directory / f"source-page-{source_pagination_taps}.xml")
+            continue
+        # When the pagination button is visible but temporarily disabled,
+        # allow its existing GET to finish instead of scrolling it away.
+        if 'resource-id="pli.r8.owner-review.sources.more"' in source_ui:
+            time.sleep(0.8)
+            source_ui = android.dump_xml(directory / f"source-wait-{attempt + 1}.xml")
+            continue
         android.shell("input", "swipe", "765", "1850", "765", "1120", "320")
         time.sleep(0.7)
         source_ui = android.dump_xml(directory / f"source-scroll-{attempt + 1}.xml")
+    if len(planted_ids) <= 8 or source_pagination_taps < 1:
+        raise CaptureError(
+            "R8 Android fixture did not tap a real native >8-source pagination action"
+        )
     if any(event_id not in observed_source_ids for event_id in planted_ids):
         raise CaptureError(
             "R8 native raw-source list did not expose every real full event identity "
@@ -1205,6 +1230,9 @@ def capture_r8_owner_review(
         "baseline": baseline.get("baselines", {}).get("walk_minutes_per_day"),
         "case_id": case_id,
         "case_source_event_ids": case_source_ids,
+        "native_source_pagination_taps": source_pagination_taps,
+        "all_planted_sources_observed_in_native_xml": True,
+        "native_observed_source_ids": sorted(observed_source_ids),
         "review_decisions": decisions,
         "newly_recorded_followup_event_id": followup_event_ids[0],
         "all_actions_from_real_android_ui": True,

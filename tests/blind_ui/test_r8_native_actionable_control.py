@@ -54,3 +54,13 @@ def test_capture_waits_for_actionable_native_review_and_keeps_full_source_gate()
     assert 'if any(event_id not in observed_source_ids for event_id in planted_ids):' in source
     assert 'testID="pli.r8.owner-review.evidence-error"' in ui
     assert "正在读取原始记录…" in ui
+
+
+def test_hosted_r8_source_gate_requires_real_more_tap_for_more_than_eight_events():
+    source = SCRIPT.read_text(encoding="utf-8")
+    assert "for days_back in range(5, 0, -1) for _ in range(2)" in source
+    assert 'ui_has_actionable_control(source_ui, "pli.r8.owner-review.sources.more")' in source
+    assert 'android.tap(source_ui, "pli.r8.owner-review.sources.more", "id")' in source
+    assert "if len(planted_ids) <= 8 or source_pagination_taps < 1:" in source
+    assert '"native_observed_source_ids": sorted(observed_source_ids)' in source
+    assert "if any(event_id not in observed_source_ids for event_id in planted_ids):" in source

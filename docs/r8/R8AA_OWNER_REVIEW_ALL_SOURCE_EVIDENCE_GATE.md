@@ -14,3 +14,7 @@ Current PR #2 HEAD `04df0036022046210e31065ed193def26ab112c9` had CI, Android AP
 
 ## Gates
 Exact-new-HEAD Frontend TypeScript, owner evidence Node regression, Blind UI source contract, Backend, Playwright, Android APK and hosted emulator R8 evidence. Existing real demo fixture only provides 5 sources, so a >8-source native scroll/tap scenario must be explicitly added before declaring runtime pagination complete. `NO_VISION_MODEL_USED=TRUE`; `HUMAN_VISUAL_ACCEPTANCE=PENDING`; `3D_ASSET_QUALITY=BLOCKED_BY_SOURCE_ASSET`. No PR merge, tags, Release or baseline update.
+
+## R8AA native pagination gate added
+
+Hosted Android now plants **11 real event IDs** (five historical same-clock dates × two events each, plus one current-day walk), forcing the owner Review Case to exceed eight sources. The capture navigates a real Android app, taps the native source expansion and the real `pli.r8.owner-review.sources.more` Pressable, tracks each full observed ID from raw native XML, and fails unless all planted IDs have appeared and at least one actual pagination tap occurred. The evidence archive records tap counts and the full native-observed ID set separately from API truth. CI/build success alone is not human visual acceptance.
