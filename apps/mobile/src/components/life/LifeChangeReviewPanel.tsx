@@ -280,6 +280,19 @@ export function LifeChangeReviewPanel({
         // the saved intent for recovery from its ORIGINAL pet. Do not POST.
         if (!stillCurrent()) return;
         pendingReview.current = { caseId: record.case_id, decision, payload };
+      } else {
+        // A lost-ack retry is still an owner action against LIVE evidence.
+        // Retrying the identical token is necessary for idempotency, but not
+        // sufficient if the Case's original sources were withdrawn or swapped.
+        // Retain the saved intent; never POST on invalidated evidence.
+        const retryCase = await api.get<LifeCaseDetail>(
+          `/pets/${petId}/life-change-cases/${record.case_id}`,
+        );
+        if (!stillCurrent()) return;
+        if (!caseMatchesFrozenSources(retryCase, requestedPetId, requestedCaseId, requestedSources)) {
+          setMessage("原始记录已经失效或证据发生变化；本机原决定仍保留，不会重复提交。请先核对。");
+          return;
+        }
       }
       if (!stillCurrent()) return;
       const accepted = await api.post<ReviewAcknowledgement>(
