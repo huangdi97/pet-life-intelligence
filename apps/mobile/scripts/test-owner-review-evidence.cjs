@@ -68,6 +68,10 @@ assert.deepEqual(ownerEvidenceRoleCounts([
 assert.ok(ui.includes("ownerEvidenceValue(e)"));
 assert.ok(ui.includes("ownerEvidenceRole(e.occurred_at, record.computed_at)"));
 assert.ok(ui.includes("当日依据 {ownerEvidenceRoleCounts(evidence, record.computed_at).current} 条"));
+assert.ok(ui.includes('testID="pli.r8.owner-review.evidence-progress"'));
+assert.ok(ui.includes("styles.evidenceCurrentText : styles.evidenceHistoricalText"));
+assert.ok(ui.includes("styles.evidenceLegendCurrent"));
+assert.ok(ui.includes("styles.evidenceLegendHistorical"));
 assert.ok(ui.includes("ownerEvidenceLocalTime(e.occurred_at)"));
 assert.ok(ui.includes("ownerEvidenceLocalTime(e.recorded_at)"));
 assert.ok(ui.includes("完整事件标识 ${e.event_id}"));

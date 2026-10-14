@@ -507,16 +507,31 @@ export function LifeChangeReviewPanel({
           </Pressable>
           {showEvidence && evidence ? (
             <View style={styles.evidenceList} testID="pli.r8.owner-review.evidence">
-              <Text style={styles.evidenceProgress} testID="pli.r8.owner-review.evidence-progress">
-                已查看 {evidence.length} / {record.evidence_event_ids.length} 条原始记录 · 当日依据 {ownerEvidenceRoleCounts(evidence, record.computed_at).current} 条 · 同期参考 {ownerEvidenceRoleCounts(evidence, record.computed_at).historical} 条 · 分别保留发生时间与录入时间
-              </Text>
+              <View style={styles.evidenceHeader}>
+                <Text style={styles.evidenceProgress} testID="pli.r8.owner-review.evidence-progress">
+                  已查看 {evidence.length} / {record.evidence_event_ids.length} 条原始记录
+                </Text>
+                <View style={styles.evidenceLegend}>
+                  <Text style={styles.evidenceLegendCurrent}>
+                    当日依据 {ownerEvidenceRoleCounts(evidence, record.computed_at).current} 条
+                  </Text>
+                  <Text style={styles.evidenceLegendHistorical}>
+                    同期参考 {ownerEvidenceRoleCounts(evidence, record.computed_at).historical} 条
+                  </Text>
+                </View>
+                <Text style={styles.evidenceProgress}>每条来源分别保留发生时间、录入时间与原始事件 ID</Text>
+              </View>
               {[...evidence].sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at)).map((e) => (
                 <Text
                   key={e.event_id}
                   testID={`pli.r8.owner-review.event.${e.event_id}`}
                   accessible
                   accessibilityLabel={`${ownerEvidenceRole(e.occurred_at, record.computed_at)} · ${ownerEventType(e.event_type)} · ${ownerEvidenceValue(e)} · 发生 ${ownerEvidenceLocalTime(e.occurred_at)} · 录入 ${ownerEvidenceLocalTime(e.recorded_at)} · ${ownerSourceType(e.source_type)} · 完整事件标识 ${e.event_id}`}
-                  style={styles.evidenceText}
+                  style={[
+                    styles.evidenceText,
+                    ownerEvidenceRole(e.occurred_at, record.computed_at) === "当日依据"
+                      ? styles.evidenceCurrentText : styles.evidenceHistoricalText,
+                  ]}
                 >
                   {ownerEvidenceRole(e.occurred_at, record.computed_at)} · {ownerEventType(e.event_type)} · {ownerEvidenceValue(e)}
                   {"\n"}发生 {ownerEvidenceLocalTime(e.occurred_at)} · 录入 {ownerEvidenceLocalTime(e.recorded_at)}
@@ -612,8 +627,14 @@ const styles = StyleSheet.create({
   sourceAction: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
   sourceDisabled: { opacity: 0.55 },
   sourceText: { fontSize: TYPE.sm, fontWeight: "700", color: COLORS.brandPrimaryDeep },
-  evidenceList: { gap: SPACE.s1, padding: SPACE.s3, borderRadius: 12, backgroundColor: COLORS.surfaceRaised },
-  evidenceText: { fontSize: TYPE.caption, lineHeight: 20, color: COLORS.textSecondary },
+  evidenceList: { gap: SPACE.s2, padding: SPACE.s2, borderRadius: 16, backgroundColor: COLORS.surfaceRaised },
+  evidenceHeader: { gap: SPACE.s2, paddingHorizontal: SPACE.s2, paddingVertical: SPACE.s2 },
+  evidenceLegend: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
+  evidenceLegendCurrent: { fontSize: TYPE.caption, fontWeight: "700", color: COLORS.brandPrimaryDeep, backgroundColor: COLORS.brandSoft, borderRadius: 15, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2 },
+  evidenceLegendHistorical: { fontSize: TYPE.caption, fontWeight: "700", color: COLORS.textSecondary, backgroundColor: COLORS.stageWarmBase, borderRadius: 15, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2 },
+  evidenceText: { fontSize: TYPE.caption, lineHeight: 21, color: COLORS.textSecondary, padding: SPACE.s3, borderRadius: 14 },
+  evidenceCurrentText: { backgroundColor: COLORS.brandSoft },
+  evidenceHistoricalText: { backgroundColor: COLORS.stageWarmBase },
   evidenceProgress: { fontSize: TYPE.caption, lineHeight: 18, color: COLORS.textSecondary },
   error: { fontSize: TYPE.sm, color: COLORS.danger },
   warning: { fontSize: TYPE.sm, lineHeight: 21, color: COLORS.textPrimary, backgroundColor: COLORS.brandSoft, padding: SPACE.s3, borderRadius: 12 },
