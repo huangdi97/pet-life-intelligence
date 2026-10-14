@@ -445,3 +445,27 @@ def test_r8z_primary_review_executes_actual_handler_under_source_faults() -> Non
     assert 'changed source fingerprint on retry must never POST' in script
     assert 'owner switching pet during source GET cannot POST' in script
     assert 'lost ack retry must retain identical idempotency key' in script
+
+
+def test_r8z_primary_owner_review_has_synchronous_scope_lock_and_aba_guard() -> None:
+    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
+    test = (ROOT / "apps/mobile/scripts/test-owner-review-primary.cjs").read_text()
+    assert "const activeReviewAction = useRef<{ scope: string } | null>(null);" in panel
+    assert "const renderedReviewScope = useRef(ownerReviewScope);" in panel
+    assert "if (renderedReviewScope.current !== ownerReviewScope)" in panel
+    guard = panel.split("if (renderedReviewScope.current !== ownerReviewScope)", 1)[1].split(
+        "activeChangeScope.current =", 1
+    )[0]
+    assert "requestGeneration.current += 1;" in guard
+    assert "activeReviewAction.current = null;" in guard
+    review = panel.split("const review = async", 1)[1].split(
+        "const inspectEvidence = async", 1
+    )[0]
+    assert "if (activeReviewAction.current) return;" in review
+    assert "activeReviewAction.current = actionToken;" in review
+    assert review.index("activeReviewAction.current = actionToken;") < review.index(
+        "const details = await api.get<LifeCaseDetail>"
+    )
+    assert "if (activeReviewAction.current === actionToken) activeReviewAction.current = null;" in review
+    assert "rapid double tap must issue only one GET" in test
+    assert "rapid double tap must not issue a duplicate owner Review POST" in test

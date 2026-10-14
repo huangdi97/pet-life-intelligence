@@ -18,3 +18,7 @@ The initial human Review path checked `caseMatchesFrozenSources` before saving t
 ## Gate
 
 Exact-HEAD Backend, Frontend, blind contract and emulator build must succeed. Keep `NO_VISION_MODEL_USED=TRUE`, `HUMAN_VISUAL_ACCEPTANCE=PENDING`. Separate physical-device integration with faulted backend still needs human or dedicated mobile runtime work.
+
+## R8Z follow-up: primary synchronous lock / ABA generation
+
+A second quick tap can arrive before React's `setLoading(true)` rerender. The primary Review path now uses an immediate per-scope in-flight token and releases only the identical token on completion. Changing pet/Case/source fingerprint during render invalidates request generation *before* effect cleanup and clears the old action lock, preventing A→B→A restoration of a stale request. The actual production handler fault test now covers rapid double taps (13 total deterministic scenarios), and a blind contract asserts lock ordering and render-time generation protection. This still is not physical-device Human Visual Acceptance.

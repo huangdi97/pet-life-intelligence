@@ -19,7 +19,8 @@ const source = [
   "function build(ctx: any) {",
   "const {record, loading, restoring, pendingReview, petId, change, sourceIdsKey,",
   " requestGeneration, activeChangeScope, activeOwnerScope, setLoading, setMessage,",
-  " setRecord, api, saveOwnerIntent, clearOwnerIntentIfUnchanged, humanizeError, ApiError} = ctx;",
+  " setRecord, api, saveOwnerIntent, clearOwnerIntentIfUnchanged, humanizeError, ApiError,",
+  " activeReviewAction, ownerReviewScope} = ctx;",
   screen.slice(helperStart, helperEnd),
   screen.slice(start, end),
   "return {review}; } exports.build=build;",
@@ -53,6 +54,8 @@ function setup({pending = false, invalidBefore = false, changedBefore = false,
     activeChangeScope: {current:{petId:"pet-A",metric:"walk_minutes_per_day",sourceIdsKey:"e1|e2"}},
     activeOwnerScope: {current:{petId:"pet-A",caseId:"case-A"}},
     loading:false, restoring:false,
+    ownerReviewScope:"pet-A:case-A:e1|e2",
+    activeReviewAction:{current:null},
     setLoading(x){ log.push(["LOADING",x]); },
     setMessage(x){notices.push(x);},
     setRecord(x){log.push(["SET_RECORD",x.case_id]);},
@@ -106,6 +109,17 @@ async function tests() {
     const h=setup();await h.review("FOLLOW_UP_LATER");
     assert.equal(count(h,"POST"),1);assert.equal(count(h,"CAS"),1);
     assert.equal(h.saved.length,0);assert.ok(h.notices.some(x=>x?.includes("已记录")));
+  }
+  {
+    const gate=delay(),h=setup({preflightGate:gate});
+    const first=h.review("FOLLOW_UP_LATER");
+    const second=h.review("FOLLOW_UP_LATER");
+    assert.equal(count(h,"GET"),1,"rapid double tap must issue only one GET");
+    gate.resolve();await Promise.all([first,second]);
+    assert.equal(count(h,"POST"),1,
+      "rapid double tap must not issue a duplicate owner Review POST");
+    assert.equal(count(h,"CAS"),1);
+    assert.equal(h.ctx.activeReviewAction.current,null);
   }
   {
     const h=setup({invalidBefore:true});await h.review("FOLLOW_UP_LATER");
@@ -175,6 +189,6 @@ async function tests() {
     h.switchPet();gate.resolve();await first;
     assert.equal(count(h,"CAS"),0);assert.equal(h.saved.length,1);
   }
-  console.log("R8Z: 12 executable original owner-review source/ack/pet-scope gates PASS");
+  console.log("R8Z: 13 executable original owner-review source/ack/pet-scope gates PASS");
 }
 tests().catch(e=>{console.error(e);process.exitCode=1;});

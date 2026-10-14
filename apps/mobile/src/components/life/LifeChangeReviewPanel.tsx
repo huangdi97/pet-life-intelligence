@@ -145,6 +145,18 @@ export function LifeChangeReviewPanel({
   // The live change identity refreshes DURING render, before effect cleanup:
   // an old create()/review() reply cannot paint the next pet or changed Case.
   const activeChangeScope = useRef({ petId, metric: change.metric, sourceIdsKey });
+  // React state isn't a synchronous mutex: a second tap can enter review()
+  // before setLoading(true) commits. The per-scope token serializes attempts.
+  const activeReviewAction = useRef<{ scope: string } | null>(null);
+  const ownerReviewScope = [petId, record?.case_id ?? "", sourceIdsKey].join(":");
+  const renderedReviewScope = useRef(ownerReviewScope);
+  if (renderedReviewScope.current !== ownerReviewScope) {
+    // Invalidate A→B→A generations synchronously at render, not only after
+    // effect cleanup. A stale delayed GET/POST must not resume on the old A.
+    renderedReviewScope.current = ownerReviewScope;
+    requestGeneration.current += 1;
+    activeReviewAction.current = null;
+  }
   activeChangeScope.current = { petId, metric: change.metric, sourceIdsKey };
 
   useEffect(() => {
@@ -240,6 +252,9 @@ export function LifeChangeReviewPanel({
       setMessage("上一条主人决定尚未确认，请先重试原操作，再选择新的处理方式。");
       return;
     }
+    if (activeReviewAction.current) return;
+    const actionToken = { scope: ownerReviewScope };
+    activeReviewAction.current = actionToken;
     const requestedPetId = petId;
     const requestedCaseId = record.case_id;
     const requestedMetric = change.metric;
@@ -365,6 +380,8 @@ export function LifeChangeReviewPanel({
               : humanizeError(e),
       );
     } finally {
+      // Never unlock an action that replaced this one after a pet/scope swap.
+      if (activeReviewAction.current === actionToken) activeReviewAction.current = null;
       if (stillCurrent()) setLoading(false);
     }
   };
