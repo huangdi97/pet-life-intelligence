@@ -1101,6 +1101,27 @@ def capture_r8_owner_review(
     case_source_ids = case.get("evidence_event_ids", [])
     if not all(event_id in case_source_ids for event_id in planted_ids):
         raise CaptureError("R8 case failed to cite every real planted event")
+    # R8AG: actual native owner evidence must use the server's IMMUTABLE
+    # at-creation source-role map. The phone must not invent the category from
+    # its own timezone or recalculate an older Case with a changed algorithm.
+    frozen_roles = case.get("evidence_role_by_event_id")
+    if (
+        case.get("evidence_role_source") != "FROZEN_AT_CREATION"
+        or not isinstance(frozen_roles, dict)
+        or set(frozen_roles) != set(case_source_ids)
+        or any(role not in {"CURRENT", "HISTORICAL"} for role in frozen_roles.values())
+    ):
+        raise CaptureError("R8AG real Case did not persist a complete server-frozen source-role map")
+    expected_frozen_roles = {
+        event_id: "CURRENT" if role == "当日依据" else "HISTORICAL"
+        for event_id, role in expected_role_by_event_id.items()
+    }
+    for event_id, expected_role in expected_frozen_roles.items():
+        if frozen_roles.get(event_id) != expected_role:
+            raise CaptureError(
+                "R8AG frozen Case source role disagrees with actual planted owner facts: "
+                f"event_id={event_id} expected={expected_role} got={frozen_roles.get(event_id)}"
+            )
 
     # R8Z failing native capture exposed this exact Pressable with
     # enabled=false immediately after Case creation. The old script tapped
@@ -1278,6 +1299,9 @@ def capture_r8_owner_review(
         "native_observed_factual_source_ids": sorted(observed_factual_source_ids),
         "native_observed_comparison_role_ids": sorted(observed_comparison_role_ids),
         "expected_role_by_event_id": expected_role_by_event_id,
+        "case_frozen_role_by_event_id": frozen_roles,
+        "case_role_source": case["evidence_role_source"],
+        "native_roles_match_frozen_server_evidence": True,
         "expected_recorded_minutes_by_event_id": expected_minutes,
         "review_decisions": decisions,
         "newly_recorded_followup_event_id": followup_event_ids[0],

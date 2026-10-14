@@ -86,3 +86,14 @@ def test_r8ag_frozen_server_case_roles_override_android_local_reconstruction() -
     assert 'testID="pli.r8.owner-review.source-role-policy"' in panel
     assert 'if (frozenRoles != null)' in helper
     assert 'return "日期待核实";' in helper
+
+
+def test_r8ag_real_android_requires_complete_persisted_case_roles() -> None:
+    capture = read("scripts/r5-6/capture-android-final.py")
+    assert 'case.get("evidence_role_source") != "FROZEN_AT_CREATION"' in capture
+    assert "set(frozen_roles) != set(case_source_ids)" in capture
+    assert "expected_frozen_roles" in capture
+    assert "R8AG frozen Case source role disagrees" in capture
+    assert '"native_roles_match_frozen_server_evidence": True' in capture
+    # R8AF native XML proof is still mandatory, not replaced by API checks.
+    assert "event_id not in observed_comparison_role_ids for event_id in planted_ids" in capture
