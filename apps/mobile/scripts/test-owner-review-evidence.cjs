@@ -37,6 +37,6 @@ const ui = fs.readFileSync(path.resolve(__dirname, "../src/components/life/LifeC
 assert.ok(ui.includes('testID="pli.r8.owner-review.sources.more"'));
 assert.ok(ui.includes("onPress={() => void loadMoreEvidence()}"));
 assert.ok(ui.includes("verifyOwnerEvidenceBatch(rows, ids, requestedPetId)"));
-assert.ok(ui.includes('testID="pli.r8.owner-review.event.${e.event_id}"'.replace('\\','')));
+assert.ok(ui.includes('testID={`pli.r8.owner-review.event.${e.event_id}`}' ));
 assert.ok(!ui.includes("record.evidence_event_ids.slice(0, 8)"));
 console.log("R8 owner evidence pagination and pet/id binding: PASS");
