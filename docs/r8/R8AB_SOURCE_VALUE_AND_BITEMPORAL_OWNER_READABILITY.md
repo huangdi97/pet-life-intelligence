@@ -15,3 +15,7 @@ At prior HEAD `74dc19b2`, CI and hosted Android accepted an actual eleven-event 
 New HEAD TypeScript + Node owner-evidence regression, CI, Android APK and genuine UIAutomator eleven-event multi-page capture must PASS. Actual UI aesthetics and approval remain owner-gated. No release, tag, merge or accepted-screenshot baseline changes.
 
 `NO_VISION_MODEL_USED=TRUE`, `HUMAN_VISUAL_ACCEPTANCE=PENDING`, `3D_ASSET_QUALITY=BLOCKED_BY_SOURCE_ASSET`.
+
+## R8AB live Android data gate
+
+The hosted emulator capture also verifies that **each of all eleven real planted IDs** appears in the **same actual UIAutomator node** as its own expected `记录时长 X 分钟` and separate `发生` / `录入` labels. The result records `native_observed_factual_source_ids` and `expected_recorded_minutes_by_event_id` independently; a backend response or API-only assertion cannot satisfy this UI gate. Data mismatch is a hard failure. A fresh Android run is required on the new commit; static tests alone remain insufficient.

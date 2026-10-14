@@ -64,3 +64,14 @@ def test_hosted_r8_source_gate_requires_real_more_tap_for_more_than_eight_events
     assert "if len(planted_ids) <= 8 or source_pagination_taps < 1:" in source
     assert '"native_observed_source_ids": sorted(observed_source_ids)' in source
     assert "if any(event_id not in observed_source_ids for event_id in planted_ids):" in source
+
+
+def test_r8ab_native_source_gate_checks_real_factual_content_per_id():
+    capture = SCRIPT.read_text(encoding="utf-8")
+    assert "expected_minutes[event_id] = minutes" in capture
+    assert "observed_factual_source_ids: set[str] = set()" in capture
+    assert 'f"记录时长 {minutes} 分钟" in row' in capture
+    assert '"发生 " in row and "录入 " in row' in capture
+    assert "event_id in row" in capture
+    assert '"native_observed_factual_source_ids": sorted(observed_factual_source_ids)' in capture
+    assert "if any(event_id not in observed_factual_source_ids for event_id in planted_ids):" in capture

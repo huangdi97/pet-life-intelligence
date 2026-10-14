@@ -963,6 +963,7 @@ def capture_r8_owner_review(
     product_tz = timezone(timedelta(hours=8))
     current_clock = datetime.now(product_tz) - timedelta(seconds=2)
     planted_ids: list[str] = []
+    expected_minutes: dict[str, int] = {}
     # Five historical days, each with TWO real 45-minute observations, plus
     # today's 20-minute observation. A real >8-source Case is required to
     # exercise native owner-controlled pagination rather than only the first 8.
@@ -984,7 +985,9 @@ def capture_r8_owner_review(
         )
         if created.get("pet_id") != pet_id or not created.get("event_id"):
             raise CaptureError("R8 fixture failed to create a real pet-scoped LifeEvent")
-        planted_ids.append(str(created["event_id"]))
+        event_id = str(created["event_id"])
+        planted_ids.append(event_id)
+        expected_minutes[event_id] = minutes
     baseline = api_json(
         f"{root}/pets/{pet_id}/baseline/recompute?window_days=14",
         method="POST", headers=owner_header, body={},
@@ -1108,9 +1111,13 @@ def capture_r8_owner_review(
     # event's FULL immutable ID in the real UIAutomator resource-id or
     # accessibility description; do not substitute API data for native proof.
     observed_source_ids: set[str] = set()
+    # Native evidence must expose the recorded numeric value and BOTH time
+    # dimensions in the same accessible row as the immutable event ID.
+    # Backend-only values are insufficient for this Android visual-data gate.
+    observed_factual_source_ids: set[str] = set()
     source_pagination_taps = 0
     for attempt in range(36):
-        nodes = ET.fromstring(source_ui).iter("node")
+        nodes = list(ET.fromstring(source_ui).iter("node"))
         accessible = " ".join(
             f'{n.attrib.get("text", "")} {n.attrib.get("content-desc", "")} {n.attrib.get("resource-id", "")}'
             for n in nodes
@@ -1118,7 +1125,22 @@ def capture_r8_owner_review(
         observed_source_ids.update(
             event_id for event_id in planted_ids if event_id in accessible
         )
-        if all(event_id in observed_source_ids for event_id in planted_ids):
+        for node in nodes:
+            row = " ".join((
+                node.attrib.get("text", ""),
+                node.attrib.get("content-desc", ""),
+                node.attrib.get("resource-id", ""),
+            ))
+            for event_id, minutes in expected_minutes.items():
+                if (
+                    event_id in row and f"记录时长 {minutes} 分钟" in row
+                    and "发生 " in row and "录入 " in row
+                ):
+                    observed_factual_source_ids.add(event_id)
+        if (
+            all(event_id in observed_source_ids for event_id in planted_ids)
+            and all(event_id in observed_factual_source_ids for event_id in planted_ids)
+        ):
             break
         if ui_has_actionable_control(source_ui, "pli.r8.owner-review.sources.more"):
             # The owner genuinely taps the NEXT batch on Android; never infer
@@ -1145,6 +1167,12 @@ def capture_r8_owner_review(
         raise CaptureError(
             "R8 native raw-source list did not expose every real full event identity "
             f"after scrolling; observed={len(observed_source_ids)}/{len(planted_ids)}"
+        )
+    if any(event_id not in observed_factual_source_ids for event_id in planted_ids):
+        raise CaptureError(
+            "R8AB native source rows lack actual recorded minutes or distinct "
+            "occurred/recorded labels next to immutable IDs; "
+            f"observed={len(observed_factual_source_ids)}/{len(planted_ids)}"
         )
     android.screenshot(directory / "raw-sources.png")
 
@@ -1233,6 +1261,8 @@ def capture_r8_owner_review(
         "native_source_pagination_taps": source_pagination_taps,
         "all_planted_sources_observed_in_native_xml": True,
         "native_observed_source_ids": sorted(observed_source_ids),
+        "native_observed_factual_source_ids": sorted(observed_factual_source_ids),
+        "expected_recorded_minutes_by_event_id": expected_minutes,
         "review_decisions": decisions,
         "newly_recorded_followup_event_id": followup_event_ids[0],
         "all_actions_from_real_android_ui": True,
