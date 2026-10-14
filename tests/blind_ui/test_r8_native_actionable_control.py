@@ -75,3 +75,16 @@ def test_r8ab_native_source_gate_checks_real_factual_content_per_id():
     assert "event_id in row" in capture
     assert '"native_observed_factual_source_ids": sorted(observed_factual_source_ids)' in capture
     assert "if any(event_id not in observed_factual_source_ids for event_id in planted_ids):" in capture
+
+
+def test_r8af_native_source_roles_require_actual_same_node_evidence():
+    capture = SCRIPT.read_text(encoding="utf-8")
+    assert 'expected_role_by_event_id[event_id] = (' in capture
+    assert '"当日依据" if days_back == 0 else "同期参考"' in capture
+    assert 'observed_comparison_role_ids: set[str] = set()' in capture
+    assert 'if expected_role_by_event_id[event_id] in row:' in capture
+    assert 'observed_comparison_role_ids.add(event_id)' in capture
+    assert 'if any(event_id not in observed_comparison_role_ids for event_id in planted_ids):' in capture
+    assert '"native_observed_comparison_role_ids": sorted(observed_comparison_role_ids)' in capture
+    assert '"expected_role_by_event_id": expected_role_by_event_id' in capture
+    assert 'and "发生 " in row and "录入 " in row' in capture

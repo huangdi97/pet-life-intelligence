@@ -964,6 +964,7 @@ def capture_r8_owner_review(
     current_clock = datetime.now(product_tz) - timedelta(seconds=2)
     planted_ids: list[str] = []
     expected_minutes: dict[str, int] = {}
+    expected_role_by_event_id: dict[str, str] = {}
     # Five historical days, each with TWO real 45-minute observations, plus
     # today's 20-minute observation. A real >8-source Case is required to
     # exercise native owner-controlled pagination rather than only the first 8.
@@ -988,6 +989,9 @@ def capture_r8_owner_review(
         event_id = str(created["event_id"])
         planted_ids.append(event_id)
         expected_minutes[event_id] = minutes
+        expected_role_by_event_id[event_id] = (
+            "当日依据" if days_back == 0 else "同期参考"
+        )
     baseline = api_json(
         f"{root}/pets/{pet_id}/baseline/recompute?window_days=14",
         method="POST", headers=owner_header, body={},
@@ -1115,6 +1119,7 @@ def capture_r8_owner_review(
     # dimensions in the same accessible row as the immutable event ID.
     # Backend-only values are insufficient for this Android visual-data gate.
     observed_factual_source_ids: set[str] = set()
+    observed_comparison_role_ids: set[str] = set()
     source_pagination_taps = 0
     for attempt in range(36):
         nodes = list(ET.fromstring(source_ui).iter("node"))
@@ -1137,9 +1142,12 @@ def capture_r8_owner_review(
                     and "发生 " in row and "录入 " in row
                 ):
                     observed_factual_source_ids.add(event_id)
+                    if expected_role_by_event_id[event_id] in row:
+                        observed_comparison_role_ids.add(event_id)
         if (
             all(event_id in observed_source_ids for event_id in planted_ids)
             and all(event_id in observed_factual_source_ids for event_id in planted_ids)
+            and all(event_id in observed_comparison_role_ids for event_id in planted_ids)
         ):
             break
         if ui_has_actionable_control(source_ui, "pli.r8.owner-review.sources.more"):
@@ -1173,6 +1181,12 @@ def capture_r8_owner_review(
             "R8AB native source rows lack actual recorded minutes or distinct "
             "occurred/recorded labels next to immutable IDs; "
             f"observed={len(observed_factual_source_ids)}/{len(planted_ids)}"
+        )
+    if any(event_id not in observed_comparison_role_ids for event_id in planted_ids):
+        raise CaptureError(
+            "R8AF owner source cards must show the REAL expected comparison "
+            "role in the SAME native accessible node as source ID and minutes; "
+            f"observed={len(observed_comparison_role_ids)}/{len(planted_ids)}"
         )
     android.screenshot(directory / "raw-sources.png")
 
@@ -1262,6 +1276,8 @@ def capture_r8_owner_review(
         "all_planted_sources_observed_in_native_xml": True,
         "native_observed_source_ids": sorted(observed_source_ids),
         "native_observed_factual_source_ids": sorted(observed_factual_source_ids),
+        "native_observed_comparison_role_ids": sorted(observed_comparison_role_ids),
+        "expected_role_by_event_id": expected_role_by_event_id,
         "expected_recorded_minutes_by_event_id": expected_minutes,
         "review_decisions": decisions,
         "newly_recorded_followup_event_id": followup_event_ids[0],
