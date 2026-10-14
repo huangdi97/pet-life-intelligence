@@ -32,6 +32,19 @@ METRICS = {
 ALGORITHM = "R8A_SAME_CLOCK_RECORDED_CHANGE_V1"
 
 
+def _frozen_comparison_as_of(hint: dict) -> datetime:
+    """Preserve the actual same-clock comparison instant, including midnight.
+
+    Case creation performs subsequent DB permission/evidence/idempotency work;
+    its finish time must not silently shift the selected current/historical day.
+    """
+    candidate = datetime.fromisoformat(hint["as_of"])
+    if candidate.utcoffset() is None:
+        raise ConflictError("Life-change comparison returned an unzoned timestamp.")
+    return candidate.astimezone(UTC)
+
+
+
 class CaseCreate(BaseModel):
     metric: Literal["walk_minutes_per_day", "meal_count_per_day", "sleep_minutes_per_day"]
 
@@ -228,12 +241,12 @@ async def create_case(
             ),
             "replayed": True,
         }
-    now = datetime.now(UTC)
+    comparison_as_of = _frozen_comparison_as_of(hint)
     case = LifeChangeCase(
         pet_id=pet.id, created_by_user_id=user.id,
         metric=body.metric, insight_kind="RECORDED_CHANGE",
         algorithm_version=ALGORITHM, fingerprint=fingerprint,
-        computed_at=now, knowledge_cutoff=now,
+        computed_at=comparison_as_of, knowledge_cutoff=comparison_as_of,
         timezone_policy="CST_UTC_PLUS_08_FALLBACK",
         current_value=float(selected["current_value"]),
         baseline_value=float(selected["same_time_baseline"]),
