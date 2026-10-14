@@ -70,3 +70,19 @@ def test_r8y_primary_owner_review_validates_frozen_evidence_before_post_and_cas(
     assert action.index("caseMatchesFrozenSources(updated") < action.index("const cleared = await clearOwnerIntentIfUnchanged({")
     assert 'throw new Error("CASE_SOURCE_INVALIDATED_AFTER_REVIEW")' in action
     assert "本机原决定仍保留" in action
+
+
+def test_r8ag_frozen_server_case_roles_override_android_local_reconstruction() -> None:
+    server = read("services/api/app/api/routes/life_changes.py")
+    panel = read("apps/mobile/src/components/life/LifeChangeReviewPanel.tsx")
+    helper = read("apps/mobile/src/components/life/ownerEvidence.ts")
+    model = read("services/api/app/models/life_changes.py")
+    assert 'evidence_role_by_event_id=roles' in server
+    assert 'roles = _freeze_evidence_roles(selected)' in server
+    assert '"FROZEN_AT_CREATION" if case.evidence_role_by_event_id is not None' in server
+    assert "evidence_role_by_event_id: Mapped[dict | None]" in model
+    assert "ownerEvidenceCaseRole(e.event_id, e.occurred_at, record.computed_at, record.evidence_role_by_event_id)" in panel
+    assert "record.evidence_role_by_event_id" in panel
+    assert 'testID="pli.r8.owner-review.source-role-policy"' in panel
+    assert 'if (frozenRoles != null)' in helper
+    assert 'return "日期待核实";' in helper

@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ApiError, api, humanizeError } from "../../api";
 import { clearOwnerIntentIfUnchanged, restoreOwnerIntent, saveOwnerIntent } from "../../storage/pendingOwnerReview";
 import { COLORS, SPACE, TYPE } from "../../tokens";
-import { nextOwnerEvidenceIds, ownerEvidenceLocalTime, ownerEvidenceRole, ownerEvidenceRoleCounts, ownerEvidenceValue, verifyOwnerEvidenceBatch } from "./ownerEvidence";
+import { nextOwnerEvidenceIds, ownerEvidenceLocalTime, ownerEvidenceCaseRole, ownerEvidenceRoleCounts, ownerEvidenceValue, verifyOwnerEvidenceBatch } from "./ownerEvidence";
 
 export type LifeMetric =
   | "walk_minutes_per_day"
@@ -30,6 +30,8 @@ interface LifeCase {
   baseline_value: number;
   sample_days: number;
   evidence_event_ids: string[];
+  evidence_role_by_event_id?: Record<string, "CURRENT" | "HISTORICAL"> | null;
+  evidence_role_source?: "FROZEN_AT_CREATION" | "LEGACY_DATE_DERIVED";
   source_valid: boolean;
   computed_at: string;
   state: string;
@@ -115,7 +117,11 @@ function caseMatchesFrozenSources(
     detail.case_id === caseId &&
     sourceIds.size > 0 &&
     detail.evidence_event_ids.length === sourceIds.size &&
-    detail.evidence_event_ids.every((id) => sourceIds.has(id));
+    detail.evidence_event_ids.every((id) => sourceIds.has(id)) &&
+    (detail.evidence_role_by_event_id == null ||
+      (Object.keys(detail.evidence_role_by_event_id).length === sourceIds.size &&
+        detail.evidence_event_ids.every((id) =>
+          ["CURRENT", "HISTORICAL"].includes(detail.evidence_role_by_event_id?.[id] ?? ""))));
 }
 
 export function LifeChangeReviewPanel({
@@ -513,12 +519,17 @@ export function LifeChangeReviewPanel({
                 </Text>
                 <View style={styles.evidenceLegend}>
                   <Text style={styles.evidenceLegendCurrent}>
-                    当日依据 {ownerEvidenceRoleCounts(evidence, record.computed_at).current} 条
+                    当日依据 {ownerEvidenceRoleCounts(evidence, record.computed_at, record.evidence_role_by_event_id).current} 条
                   </Text>
                   <Text style={styles.evidenceLegendHistorical}>
-                    同期参考 {ownerEvidenceRoleCounts(evidence, record.computed_at).historical} 条
+                    同期参考 {ownerEvidenceRoleCounts(evidence, record.computed_at, record.evidence_role_by_event_id).historical} 条
                   </Text>
                 </View>
+                <Text style={styles.evidenceProgress} testID="pli.r8.owner-review.source-role-policy">
+                  {record.evidence_role_source === "FROZEN_AT_CREATION"
+                    ? "来源角色已在本次变化创建时冻结，不随手机时区重新计算。"
+                    : "旧记录没有角色快照：仅按当时日期规则兼容推算，来源身份仍可核对。"}
+                </Text>
                 <Text style={styles.evidenceProgress}>每条来源分别保留发生时间、录入时间与原始事件 ID</Text>
               </View>
               {[...evidence].sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at)).map((e) => (
@@ -526,14 +537,14 @@ export function LifeChangeReviewPanel({
                   key={e.event_id}
                   testID={`pli.r8.owner-review.event.${e.event_id}`}
                   accessible
-                  accessibilityLabel={`${ownerEvidenceRole(e.occurred_at, record.computed_at)} · ${ownerEventType(e.event_type)} · ${ownerEvidenceValue(e)} · 发生 ${ownerEvidenceLocalTime(e.occurred_at)} · 录入 ${ownerEvidenceLocalTime(e.recorded_at)} · ${ownerSourceType(e.source_type)} · 完整事件标识 ${e.event_id}`}
+                  accessibilityLabel={`${ownerEvidenceCaseRole(e.event_id, e.occurred_at, record.computed_at, record.evidence_role_by_event_id)} · ${ownerEventType(e.event_type)} · ${ownerEvidenceValue(e)} · 发生 ${ownerEvidenceLocalTime(e.occurred_at)} · 录入 ${ownerEvidenceLocalTime(e.recorded_at)} · ${ownerSourceType(e.source_type)} · 完整事件标识 ${e.event_id}`}
                   style={[
                     styles.evidenceText,
-                    ownerEvidenceRole(e.occurred_at, record.computed_at) === "当日依据"
+                    ownerEvidenceCaseRole(e.event_id, e.occurred_at, record.computed_at, record.evidence_role_by_event_id) === "当日依据"
                       ? styles.evidenceCurrentText : styles.evidenceHistoricalText,
                   ]}
                 >
-                  {ownerEvidenceRole(e.occurred_at, record.computed_at)} · {ownerEventType(e.event_type)} · {ownerEvidenceValue(e)}
+                  {ownerEvidenceCaseRole(e.event_id, e.occurred_at, record.computed_at, record.evidence_role_by_event_id)} · {ownerEventType(e.event_type)} · {ownerEvidenceValue(e)}
                   {"\n"}发生 {ownerEvidenceLocalTime(e.occurred_at)} · 录入 {ownerEvidenceLocalTime(e.recorded_at)}
                   {"\n"}{ownerSourceType(e.source_type)} · ID {e.event_id.slice(0, 8)}
                 </Text>

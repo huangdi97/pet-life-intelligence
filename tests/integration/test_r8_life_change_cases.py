@@ -62,6 +62,11 @@ def test_owner_case_has_real_sources_is_idempotent_and_non_diagnostic(client, se
     assert case["insight_kind"] == "RECORDED_CHANGE"
     assert case["algorithm_version"] == "R8A_SAME_CLOCK_RECORDED_CHANGE_V1"
     assert set(case["evidence_event_ids"]) == {current, *history}
+    assert case["evidence_role_source"] == "FROZEN_AT_CREATION"
+    assert case["evidence_role_by_event_id"] == {
+        current: "CURRENT",
+        **dict.fromkeys(history, "HISTORICAL"),
+    }
     assert case["current_value"] == 20
     assert case["baseline_value"] == 90
     assert case["sample_days"] == 3
@@ -548,3 +553,33 @@ def test_r8j_recovery_cannot_create_review_after_source_invalidated(client, seed
     )
     assert case_detail.status_code == 200
     assert case_detail.json()["reviews"] == []
+
+
+def test_case_source_roles_are_frozen_through_owner_reviews_and_retries(client, seeded):
+    owner = seeded["owner_id"]
+    pet, current, history = _create_change(client, owner)
+    first = _case(client, owner, pet)
+    assert first["evidence_role_by_event_id"] == {
+        current: "CURRENT", **dict.fromkeys(history, "HISTORICAL")
+    }
+    repeat = _case(client, owner, pet)
+    assert repeat["replayed"] is True
+    assert repeat["evidence_role_by_event_id"] == first["evidence_role_by_event_id"]
+    detail_url = f"/api/v1/pets/{pet}/life-change-cases/{first['case_id']}"
+    seen = client.get(detail_url, headers=auth(owner))
+    assert seen.status_code == 200
+    assert seen.json()["evidence_role_by_event_id"] == first["evidence_role_by_event_id"]
+    reviewed = client.post(
+        f"{detail_url}/reviews",
+        json={"decision": "FOLLOW_UP_LATER", "idempotency_key": "frozen-source-role-001"},
+        headers=auth(owner),
+    )
+    assert reviewed.status_code == 201, reviewed.text
+    after = client.get(detail_url, headers=auth(owner))
+    assert after.status_code == 200
+    assert after.json()["evidence_role_by_event_id"] == first["evidence_role_by_event_id"]
+    listing = client.get(f"/api/v1/pets/{pet}/life-change-cases", headers=auth(owner))
+    assert listing.status_code == 200
+    row = next(x for x in listing.json()["cases"] if x["case_id"] == first["case_id"])
+    assert row["evidence_role_source"] == "FROZEN_AT_CREATION"
+    assert row["evidence_role_by_event_id"] == first["evidence_role_by_event_id"]

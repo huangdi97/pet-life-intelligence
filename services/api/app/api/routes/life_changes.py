@@ -32,6 +32,24 @@ METRICS = {
 ALGORITHM = "R8A_SAME_CLOCK_RECORDED_CHANGE_V1"
 
 
+def _freeze_evidence_roles(selected: dict) -> dict[str, str]:
+    """Freeze algorithm-owned source membership, not a UI date guess.
+
+    Reject duplicate or overlapping IDs rather than allowing one source to
+    silently appear as both today's observation and a historic comparator.
+    """
+    current = selected.get("current_event_ids") or []
+    historical = selected.get("historical_event_ids") or []
+    if (not current or not historical or
+        len(set(current)) != len(current) or
+        len(set(historical)) != len(historical) or
+        set(current) & set(historical)):
+        raise ConflictError("Case evidence roles are incomplete or ambiguous.")
+    return {**dict.fromkeys(historical, "HISTORICAL"),
+            **dict.fromkeys(current, "CURRENT")}
+
+
+
 def _frozen_comparison_as_of(hint: dict) -> datetime:
     """Preserve the actual same-clock comparison instant, including midnight.
 
@@ -138,6 +156,11 @@ def _case_response(
         "sample_days": case.sample_days,
         "window_days": case.window_days,
         "evidence_event_ids": case.evidence_event_ids,
+        "evidence_role_by_event_id": case.evidence_role_by_event_id,
+        "evidence_role_source": (
+            "FROZEN_AT_CREATION" if case.evidence_role_by_event_id is not None
+            else "LEGACY_DATE_DERIVED"
+        ),
         "source_scope": case.source_scope,
         "uncertainty": case.uncertainty,
         "human_question": case.human_question,
@@ -203,7 +226,8 @@ async def create_case(
         raise ValidationFailed(
             "No reviewable source-backed change; missing facts are not a decline."
         )
-    ids = sorted(set(selected["current_event_ids"] + selected["historical_event_ids"]))
+    roles = _freeze_evidence_roles(selected)
+    ids = sorted(roles)
     if not await _evidence_current(db, pet.id, ids, METRICS[body.metric]):
         raise ConflictError("Source evidence changed; recompute before reviewing.")
     raw = {
@@ -252,7 +276,8 @@ async def create_case(
         baseline_value=float(selected["same_time_baseline"]),
         sample_days=int(selected["sample_count"]),
         window_days=int(selected["window_days"]),
-        evidence_event_ids=ids, source_scope="DAILY_RECORDED_EVENTS_ONLY",
+        evidence_event_ids=ids, evidence_role_by_event_id=roles,
+        source_scope="DAILY_RECORDED_EVENTS_ONLY",
         uncertainty=selected["uncertainty"],
         human_question="这些已记录的变化是否值得继续观察？",
         state="PROPOSED",

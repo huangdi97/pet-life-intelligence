@@ -78,6 +78,26 @@ export function ownerEvidenceLocalTime(iso: string): string {
  * It classifies a saved observation in a Case; it is NOT clinical verification.
  */
 export type OwnerEvidenceRole = "当日依据" | "同期参考" | "日期待核实";
+export type FrozenOwnerEvidenceRole = "CURRENT" | "HISTORICAL";
+export type OwnerEvidenceRoleMap = Record<string, FrozenOwnerEvidenceRole>;
+
+/** The server-owned frozen Case membership wins over client date arithmetic.
+ * Missing membership in a supposedly complete frozen map is a source error,
+ * not a reason to silently invent a comparison role.
+ */
+export function ownerEvidenceCaseRole(
+  eventId: string, occurredAt: string, caseComputedAt: string,
+  frozenRoles?: OwnerEvidenceRoleMap | null,
+): OwnerEvidenceRole {
+  if (frozenRoles != null) {
+    const role = frozenRoles[eventId];
+    if (role === "CURRENT") return "当日依据";
+    if (role === "HISTORICAL") return "同期参考";
+    return "日期待核实";
+  }
+  return ownerEvidenceRole(occurredAt, caseComputedAt);
+}
+
 
 export function ownerEvidenceRole(occurredAt: string, caseComputedAt: string): OwnerEvidenceRole {
   const eventMs = new Date(occurredAt).getTime();
@@ -91,11 +111,12 @@ export function ownerEvidenceRole(occurredAt: string, caseComputedAt: string): O
 }
 
 export function ownerEvidenceRoleCounts(
-  events: readonly {occurred_at: string}[], caseComputedAt: string,
+  events: readonly {event_id: string; occurred_at: string}[], caseComputedAt: string,
+  frozenRoles?: OwnerEvidenceRoleMap | null,
 ): {current: number; historical: number; unknown: number} {
   const counts = {current: 0, historical: 0, unknown: 0};
   for (const event of events) {
-    const role = ownerEvidenceRole(event.occurred_at, caseComputedAt);
+    const role = ownerEvidenceCaseRole(event.event_id, event.occurred_at, caseComputedAt, frozenRoles);
     if (role === "当日依据") counts.current++;
     else if (role === "同期参考") counts.historical++;
     else counts.unknown++;

@@ -38,6 +38,8 @@ class LifeChangeCase(UUIDPk, CreatedAt, Base):
     sample_days: Mapped[int] = mapped_column(Integer, nullable=False)
     window_days: Mapped[int] = mapped_column(Integer, nullable=False)
     evidence_event_ids: Mapped[list] = mapped_column(JSONB, nullable=False)
+    # R8AG: immutable Case creation-time source roles; NULL is a legacy Case.
+    evidence_role_by_event_id: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     source_scope: Mapped[str] = mapped_column(String(40), nullable=False)
     uncertainty: Mapped[str] = mapped_column(Text, nullable=False)
     human_question: Mapped[str] = mapped_column(String(240), nullable=False)
