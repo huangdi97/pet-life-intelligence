@@ -1030,9 +1030,31 @@ def capture_r8_owner_review(
                 # without unmounting the still-visible Case source control.
                 continue
             if name == "pli.r8.owner-review.evidence":
-                # After expanding source rows their header can end up ABOVE
-                # the viewport. Move content down to the Case, not further
-                # below it. Never turn API data alone into native evidence.
+                if any(node.attrib.get("resource-id") == "pli.r8.owner-review.evidence-error"
+                       for node in nodes):
+                    raise CaptureError(
+                        "R8 real native evidence API returned an error; "
+                        "do not replace missing rows with the Case API's event IDs"
+                    )
+                sources_visible = [
+                    node for node in nodes
+                    if node.attrib.get("resource-id") == "pli.r8.owner-review.sources"
+                ]
+                if sources_visible:
+                    # While expanded evidence GET is in flight the source
+                    # Pressable is present/disabled. Moving the scroll then
+                    # hides it and cannot make the network operation faster.
+                    if any(node.attrib.get("enabled") == "false"
+                           for node in sources_visible) or attempt < 4:
+                        continue
+                    # Once it is enabled, its list may be below the fold.
+                    # Use a SMALL upward swipe to reveal rows, not the old
+                    # 1100px blind sweep that lost the entire owner card.
+                    android.shell("input", "swipe", "765", "1480", "765", "1030", "260")
+                    continue
+                # If the whole owner panel is already above the viewport,
+                # scroll content down towards it and resume exact native
+                # evidence-ID inspection, never substitute a server response.
                 android.shell("input", "swipe", "765", "650", "765", "1460", "310")
             elif scroll_direction == "down":
                 android.shell("input", "swipe", "765", "650", "765", "1460", "310")
