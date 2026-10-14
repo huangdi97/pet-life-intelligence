@@ -2,7 +2,6 @@
 from datetime import UTC, datetime
 
 import pytest
-
 from app.api.routes.life_changes import _frozen_comparison_as_of
 from app.core.errors import ConflictError
 
