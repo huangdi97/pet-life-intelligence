@@ -73,3 +73,32 @@ export function ownerEvidenceLocalTime(iso: string): string {
     hour: "2-digit", minute: "2-digit", hour12: false,
   });
 }
+
+/** Comparison role is based on the algorithm's UTC+08 day, not device TZ.
+ * It classifies a saved observation in a Case; it is NOT clinical verification.
+ */
+export type OwnerEvidenceRole = "当日依据" | "同期参考" | "日期待核实";
+
+export function ownerEvidenceRole(occurredAt: string, caseComputedAt: string): OwnerEvidenceRole {
+  const eventMs = new Date(occurredAt).getTime();
+  const computedMs = new Date(caseComputedAt).getTime();
+  if (!Number.isFinite(eventMs) || !Number.isFinite(computedMs)) return "日期待核实";
+  const policyDay = (ms: number): string =>
+    new Date(ms + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  if (policyDay(eventMs) === policyDay(computedMs) && eventMs <= computedMs) return "当日依据";
+  if (policyDay(eventMs) < policyDay(computedMs)) return "同期参考";
+  return "日期待核实";
+}
+
+export function ownerEvidenceRoleCounts(
+  events: readonly {occurred_at: string}[], caseComputedAt: string,
+): {current: number; historical: number; unknown: number} {
+  const counts = {current: 0, historical: 0, unknown: 0};
+  for (const event of events) {
+    const role = ownerEvidenceRole(event.occurred_at, caseComputedAt);
+    if (role === "当日依据") counts.current++;
+    else if (role === "同期参考") counts.historical++;
+    else counts.unknown++;
+  }
+  return counts;
+}

@@ -13,7 +13,7 @@ const compiled = ts.transpileModule(source, {
 const moduleShim = {exports:{}};
 new Function("module", "exports", compiled)(moduleShim, moduleShim.exports);
 const {nextOwnerEvidenceIds, verifyOwnerEvidenceBatch, OWNER_EVIDENCE_BATCH_SIZE,
-  ownerEvidenceValue, ownerEvidenceLocalTime} = moduleShim.exports;
+  ownerEvidenceValue, ownerEvidenceLocalTime, ownerEvidenceRole, ownerEvidenceRoleCounts} = moduleShim.exports;
 assert.equal(OWNER_EVIDENCE_BATCH_SIZE, 8);
 const ids = Array.from({length: 23}, (_, i) => "real-event-id-" + i);
 let loaded = [];
@@ -55,7 +55,19 @@ assert.match(ownerEvidenceValue({...example,event_type:"daily.meal",payload:{pri
 assert.ok(!ownerEvidenceValue({...example,payload:{private:"SECRET"}}).includes("SECRET"));
 assert.notEqual(ownerEvidenceLocalTime(example.occurred_at), ownerEvidenceLocalTime(example.recorded_at));
 assert.equal(ownerEvidenceLocalTime("bad-date"), "时间未确认");
+const caseComputedAt = "2026-10-14T00:15:00+08:00";
+assert.equal(ownerEvidenceRole("2026-10-13T16:00:00Z",caseComputedAt), "当日依据");
+assert.equal(ownerEvidenceRole("2026-10-13T23:50:00+08:00",caseComputedAt), "同期参考");
+assert.equal(ownerEvidenceRole("2026-10-14T00:16:00+08:00",caseComputedAt), "日期待核实");
+assert.equal(ownerEvidenceRole("not-a-date",caseComputedAt), "日期待核实");
+assert.deepEqual(ownerEvidenceRoleCounts([
+ {occurred_at:"2026-10-14T00:05:00+08:00"},
+ {occurred_at:"2026-10-13T23:00:00+08:00"},
+ {occurred_at:"not-a-date"},
+],caseComputedAt),{current:1,historical:1,unknown:1});
 assert.ok(ui.includes("ownerEvidenceValue(e)"));
+assert.ok(ui.includes("ownerEvidenceRole(e.occurred_at, record.computed_at)"));
+assert.ok(ui.includes("当日依据 {ownerEvidenceRoleCounts(evidence, record.computed_at).current} 条"));
 assert.ok(ui.includes("ownerEvidenceLocalTime(e.occurred_at)"));
 assert.ok(ui.includes("ownerEvidenceLocalTime(e.recorded_at)"));
 assert.ok(ui.includes("完整事件标识 ${e.event_id}"));

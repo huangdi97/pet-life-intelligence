@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ApiError, api, humanizeError } from "../../api";
 import { clearOwnerIntentIfUnchanged, restoreOwnerIntent, saveOwnerIntent } from "../../storage/pendingOwnerReview";
 import { COLORS, SPACE, TYPE } from "../../tokens";
-import { nextOwnerEvidenceIds, ownerEvidenceLocalTime, ownerEvidenceValue, verifyOwnerEvidenceBatch } from "./ownerEvidence";
+import { nextOwnerEvidenceIds, ownerEvidenceLocalTime, ownerEvidenceRole, ownerEvidenceRoleCounts, ownerEvidenceValue, verifyOwnerEvidenceBatch } from "./ownerEvidence";
 
 export type LifeMetric =
   | "walk_minutes_per_day"
@@ -31,6 +31,7 @@ interface LifeCase {
   sample_days: number;
   evidence_event_ids: string[];
   source_valid: boolean;
+  computed_at: string;
   state: string;
   follow_up_source_valid?: boolean | null;
   human_question: string;
@@ -507,17 +508,17 @@ export function LifeChangeReviewPanel({
           {showEvidence && evidence ? (
             <View style={styles.evidenceList} testID="pli.r8.owner-review.evidence">
               <Text style={styles.evidenceProgress} testID="pli.r8.owner-review.evidence-progress">
-                已查看 {evidence.length} / {record.evidence_event_ids.length} 条原始记录 · 分别保留发生时间与录入时间
+                已查看 {evidence.length} / {record.evidence_event_ids.length} 条原始记录 · 当日依据 {ownerEvidenceRoleCounts(evidence, record.computed_at).current} 条 · 同期参考 {ownerEvidenceRoleCounts(evidence, record.computed_at).historical} 条 · 分别保留发生时间与录入时间
               </Text>
               {[...evidence].sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at)).map((e) => (
                 <Text
                   key={e.event_id}
                   testID={`pli.r8.owner-review.event.${e.event_id}`}
                   accessible
-                  accessibilityLabel={`${ownerEventType(e.event_type)} · ${ownerEvidenceValue(e)} · 发生 ${ownerEvidenceLocalTime(e.occurred_at)} · 录入 ${ownerEvidenceLocalTime(e.recorded_at)} · ${ownerSourceType(e.source_type)} · 完整事件标识 ${e.event_id}`}
+                  accessibilityLabel={`${ownerEvidenceRole(e.occurred_at, record.computed_at)} · ${ownerEventType(e.event_type)} · ${ownerEvidenceValue(e)} · 发生 ${ownerEvidenceLocalTime(e.occurred_at)} · 录入 ${ownerEvidenceLocalTime(e.recorded_at)} · ${ownerSourceType(e.source_type)} · 完整事件标识 ${e.event_id}`}
                   style={styles.evidenceText}
                 >
-                  {ownerEventType(e.event_type)} · {ownerEvidenceValue(e)}
+                  {ownerEvidenceRole(e.occurred_at, record.computed_at)} · {ownerEventType(e.event_type)} · {ownerEvidenceValue(e)}
                   {"\n"}发生 {ownerEvidenceLocalTime(e.occurred_at)} · 录入 {ownerEvidenceLocalTime(e.recorded_at)}
                   {"\n"}{ownerSourceType(e.source_type)} · ID {e.event_id.slice(0, 8)}
                 </Text>
