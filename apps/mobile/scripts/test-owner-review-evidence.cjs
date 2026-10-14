@@ -13,7 +13,7 @@ const compiled = ts.transpileModule(source, {
 const moduleShim = {exports:{}};
 new Function("module", "exports", compiled)(moduleShim, moduleShim.exports);
 const {nextOwnerEvidenceIds, verifyOwnerEvidenceBatch, OWNER_EVIDENCE_BATCH_SIZE,
-  ownerEvidenceValue, ownerEvidenceLocalTime, ownerEvidenceRole, ownerEvidenceRoleCounts} = moduleShim.exports;
+  ownerEvidenceValue, ownerEvidenceLocalTime, ownerEvidenceRole, ownerEvidenceCaseRole, ownerEvidenceRoleCounts} = moduleShim.exports;
 assert.equal(OWNER_EVIDENCE_BATCH_SIZE, 8);
 const ids = Array.from({length: 23}, (_, i) => "real-event-id-" + i);
 let loaded = [];
@@ -60,14 +60,30 @@ assert.equal(ownerEvidenceRole("2026-10-13T16:00:00Z",caseComputedAt), "当日�
 assert.equal(ownerEvidenceRole("2026-10-13T23:50:00+08:00",caseComputedAt), "同期参考");
 assert.equal(ownerEvidenceRole("2026-10-14T00:16:00+08:00",caseComputedAt), "日期待核实");
 assert.equal(ownerEvidenceRole("not-a-date",caseComputedAt), "日期待核实");
-assert.deepEqual(ownerEvidenceRoleCounts([
- {occurred_at:"2026-10-14T00:05:00+08:00"},
- {occurred_at:"2026-10-13T23:00:00+08:00"},
- {occurred_at:"not-a-date"},
-],caseComputedAt),{current:1,historical:1,unknown:1});
+const comparableRows = [
+ {event_id:"current-source",occurred_at:"2026-10-14T00:05:00+08:00"},
+ {event_id:"historic-source",occurred_at:"2026-10-13T23:00:00+08:00"},
+ {event_id:"unknown-source",occurred_at:"not-a-date"},
+];
+assert.deepEqual(ownerEvidenceRoleCounts(comparableRows,caseComputedAt),
+  {current:1,historical:1,unknown:1});
+// A frozen Case's server membership prevails over dates and a future
+// device/timezone algorithm. Even a malformed occurred_at is not reclassified.
+const frozen = {
+ "current-source":"HISTORICAL",
+ "historic-source":"CURRENT",
+ "unknown-source":"HISTORICAL",
+};
+assert.equal(ownerEvidenceCaseRole("current-source",comparableRows[0].occurred_at,caseComputedAt,frozen),"同期参考");
+assert.equal(ownerEvidenceCaseRole("historic-source",comparableRows[1].occurred_at,caseComputedAt,frozen),"当日依据");
+assert.equal(ownerEvidenceCaseRole("unknown-source","not-a-date",caseComputedAt,frozen),"同期参考");
+assert.equal(ownerEvidenceCaseRole("absent","2026-10-14T00:01:00+08:00",caseComputedAt,frozen),"日期待核实");
+assert.equal(ownerEvidenceCaseRole("current-source",comparableRows[0].occurred_at,caseComputedAt,null),"当日依据");
+assert.deepEqual(ownerEvidenceRoleCounts(comparableRows,caseComputedAt,frozen),
+  {current:1,historical:2,unknown:0});
 assert.ok(ui.includes("ownerEvidenceValue(e)"));
-assert.ok(ui.includes("ownerEvidenceRole(e.occurred_at, record.computed_at)"));
-assert.ok(ui.includes("当日依据 {ownerEvidenceRoleCounts(evidence, record.computed_at).current} 条"));
+assert.ok(ui.includes("ownerEvidenceCaseRole(e.event_id, e.occurred_at, record.computed_at, record.evidence_role_by_event_id)"));
+assert.ok(ui.includes("当日依据 {ownerEvidenceRoleCounts(evidence, record.computed_at, record.evidence_role_by_event_id).current} 条"));
 assert.ok(ui.includes('testID="pli.r8.owner-review.evidence-progress"'));
 assert.ok(ui.includes("styles.evidenceCurrentText : styles.evidenceHistoricalText"));
 assert.ok(ui.includes("styles.evidenceLegendCurrent"));
@@ -75,4 +91,4 @@ assert.ok(ui.includes("styles.evidenceLegendHistorical"));
 assert.ok(ui.includes("ownerEvidenceLocalTime(e.occurred_at)"));
 assert.ok(ui.includes("ownerEvidenceLocalTime(e.recorded_at)"));
 assert.ok(ui.includes("完整事件标识 ${e.event_id}"));
-console.log("R8 owner evidence pagination, exact identity, actual values and two-time reading: PASS");
+console.log("R8 owner evidence paging, immutable identity, factual dual time and server-frozen role authority: PASS");
