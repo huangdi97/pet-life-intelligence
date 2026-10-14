@@ -64,6 +64,20 @@ class CaptureError(RuntimeError):
     pass
 
 
+def ui_has_actionable_control(xml: str, resource_id: str) -> bool:
+    """An exposed but disabled React Native Pressable is not a valid tap.
+
+    Native UIAutomator reports both the resource-id and enabled/clickable
+    states. The latter are required before an evidence-affecting owner tap.
+    """
+    return any(
+        node.attrib.get("resource-id") == resource_id
+        and node.attrib.get("enabled") == "true"
+        and node.attrib.get("clickable") == "true"
+        for node in ET.fromstring(xml).iter("node")
+    )
+
+
 # Hosted emulators have been observed to stop answering adb while the job keeps
 # waiting forever (the failing run left a truncated logcat buffer next to empty
 # UIAutomator dumps). A bounded per-command budget keeps such a stall
@@ -1009,11 +1023,7 @@ def capture_r8_owner_review(
             matched = [node for node in nodes
                        if node.attrib.get("resource-id", "") == name]
             if matched:
-                if not require_enabled or any(
-                    node.attrib.get("enabled") == "true"
-                    and node.attrib.get("clickable") == "true"
-                    for node in matched
-                ):
+                if not require_enabled or ui_has_actionable_control(latest, name):
                     return latest
                 saw_disabled = True
                 # Let React Native commit the end of the pending POST/GET

@@ -454,10 +454,12 @@ export function LifeChangeReviewPanel({
             testID="pli.r8.owner-review.sources"
             accessibilityRole="button"
             onPress={() => void inspectEvidence()}
-            style={styles.sourceAction}
+            style={[styles.sourceAction, (loading || restoring) && styles.sourceDisabled]}
             disabled={loading || restoring}
           >
-            <Text style={styles.sourceText}>{showEvidence ? "收起记录来源" : "查看原始记录来源"}</Text>
+            <Text style={styles.sourceText}>
+              {loading ? "正在读取原始记录…" : restoring ? "正在核对记录…" : showEvidence ? "收起记录来源" : "查看原始记录来源"}
+            </Text>
           </Pressable>
           {showEvidence && evidence ? (
             <View style={styles.evidenceList} testID="pli.r8.owner-review.evidence">
@@ -477,7 +479,11 @@ export function LifeChangeReviewPanel({
               ) : null}
             </View>
           ) : null}
-          {evidenceError ? <Text style={styles.error}>{evidenceError}</Text> : null}
+          {evidenceError ? (
+            <Text style={styles.error} testID="pli.r8.owner-review.evidence-error">
+              {evidenceError}
+            </Text>
+          ) : null}
           {message ? (
             <Text style={styles.decisionStatus} testID="pli.r8.owner-review.decision-status" accessibilityLiveRegion="polite">
               {message}
@@ -542,6 +548,7 @@ const styles = StyleSheet.create({
   secondary: { minHeight: 44, paddingHorizontal: SPACE.s3, justifyContent: "center", alignItems: "center", borderRadius: 16, backgroundColor: COLORS.surfaceRaised },
   secondaryText: { fontSize: TYPE.sm, fontWeight: "600", color: COLORS.textPrimary },
   sourceAction: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
+  sourceDisabled: { opacity: 0.55 },
   sourceText: { fontSize: TYPE.sm, fontWeight: "700", color: COLORS.brandPrimaryDeep },
   evidenceList: { gap: SPACE.s1, padding: SPACE.s3, borderRadius: 12, backgroundColor: COLORS.surfaceRaised },
   evidenceText: { fontSize: TYPE.caption, lineHeight: 18, color: COLORS.textSecondary },
