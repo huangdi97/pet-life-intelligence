@@ -989,22 +989,53 @@ def capture_r8_owner_review(
     directory = out / "r8-owner-review"
     directory.mkdir(parents=True, exist_ok=True)
 
-    def find_control(name: str, filename: str, *, attempts: int = 21) -> str:
+    def find_control(
+        name: str, filename: str, *, attempts: int = 21,
+        require_enabled: bool = False, scroll_direction: str = "up",
+    ) -> str:
+        """Only return an actually actionable native target when tapping.
+
+        Hosted RN may expose an existing Pressable with enabled=false while
+        a Case POST / evidence GET is still settling. A disabled button is
+        NOT proof that the tap was possible. Never swipe it away while
+        waiting for the in-flight request to release the UI.
+        """
         latest = ""
+        saw_disabled = False
         for attempt in range(attempts):
-            time.sleep(1 if attempt else 2)
+            time.sleep(0.8 if attempt else 1.8)
             latest = android.dump_xml(directory / filename)
-            if name in latest:
-                return latest
-            # A tall pet Living Stage can put this contextual panel below fold.
-            android.shell("input", "swipe", "960", "1750", "960", "650", "360")
+            nodes = list(ET.fromstring(latest).iter("node"))
+            matched = [node for node in nodes
+                       if node.attrib.get("resource-id", "") == name]
+            if matched:
+                if not require_enabled or any(
+                    node.attrib.get("enabled") == "true"
+                    and node.attrib.get("clickable") == "true"
+                    for node in matched
+                ):
+                    return latest
+                saw_disabled = True
+                # Let React Native commit the end of the pending POST/GET
+                # without unmounting the still-visible Case source control.
+                continue
+            if name == "pli.r8.owner-review.evidence":
+                # After expanding source rows their header can end up ABOVE
+                # the viewport. Move content down to the Case, not further
+                # below it. Never turn API data alone into native evidence.
+                android.shell("input", "swipe", "765", "650", "765", "1460", "310")
+            elif scroll_direction == "down":
+                android.shell("input", "swipe", "765", "650", "765", "1460", "310")
+            else:
+                # A tall pet Living Stage can put the card below first fold.
+                android.shell("input", "swipe", "960", "1750", "960", "650", "360")
         raise CaptureError(
-            f"R8 real Android control not reachable after scroll: {name}; "
+            f"R8 native target not actionable: {name}; saw_disabled={saw_disabled}; "
             f"observed_ids={sorted(set(re.findall(r'resource-id=\"(pli\\.[^\"]+)\"', latest)))[:16]}"
         )
 
     android.start_link(f"pli-demo://nav?screen=today&pet={pet_id}")
-    invitation = find_control("pli.r8.owner-review.create", "invitation-ui.xml")
+    invitation = find_control("pli.r8.owner-review.create", "invitation-ui.xml", require_enabled=True)
     android.screenshot(directory / "invitation.png")
     android.tap(invitation, "pli.r8.owner-review.create", "id")
 
@@ -1026,9 +1057,12 @@ def capture_r8_owner_review(
     if not all(event_id in case_source_ids for event_id in planted_ids):
         raise CaptureError("R8 case failed to cite every real planted event")
 
-    case_ui = find_control("pli.r8.owner-review.sources", "case-ui.xml")
+    # R8Z failing native capture exposed this exact Pressable with
+    # enabled=false immediately after Case creation. The old script tapped
+    # the disabled view and then scrolled the evidence panel off screen.
+    case_ui = find_control("pli.r8.owner-review.sources", "case-ui.xml", require_enabled=True)
     android.tap(case_ui, "pli.r8.owner-review.sources", "id")
-    source_ui = find_control("pli.r8.owner-review.evidence", "source-ui.xml")
+    source_ui = find_control("pli.r8.owner-review.evidence", "source-ui.xml", attempts=30)
     android.screenshot(directory / "raw-sources-initial.png")
     # React Native/Android exposes only VISIBLE children of a long source
     # panel. A fixed first-fold dump misses the fourth source even when the
@@ -1059,7 +1093,7 @@ def capture_r8_owner_review(
 
     # Source inspection is user-controlled; close the long panel before making
     # a decision so the confirmation remains on-screen, not silently below fold.
-    collapse_ui = find_control("pli.r8.owner-review.sources", "source-collapse-ui.xml")
+    collapse_ui = find_control("pli.r8.owner-review.sources", "source-collapse-ui.xml", require_enabled=True, scroll_direction="down")
     android.tap(collapse_ui, "pli.r8.owner-review.sources", "id")
     for _ in range(12):
         time.sleep(0.6)
@@ -1069,7 +1103,7 @@ def capture_r8_owner_review(
     else:
         raise CaptureError("R8 source list did not collapse before owner decision")
 
-    later_ui = find_control("pli.r8.owner-review.later", "later-ui.xml")
+    later_ui = find_control("pli.r8.owner-review.later", "later-ui.xml", require_enabled=True, scroll_direction="down")
     android.tap(later_ui, "pli.r8.owner-review.later", "id")
     after_later = ""
     for _ in range(22):
@@ -1102,9 +1136,9 @@ def capture_r8_owner_review(
         )
     android.screenshot(directory / "owner-decision.png")
 
-    record_ui = find_control("pli.r8.owner-review.record", "record-ui.xml")
+    record_ui = find_control("pli.r8.owner-review.record", "record-ui.xml", require_enabled=True, scroll_direction="down")
     android.tap(record_ui, "pli.r8.owner-review.record", "id")
-    save_ui = find_control("pli.quicklog.save", "quicklog-ui.xml")
+    save_ui = find_control("pli.quicklog.save", "quicklog-ui.xml", require_enabled=True)
     android.screenshot(directory / "owner-observation-form.png")
     android.tap(save_ui, "pli.quicklog.save", "id")
     linked_ui = ""
