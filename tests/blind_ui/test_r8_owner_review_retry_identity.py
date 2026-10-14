@@ -422,3 +422,26 @@ def test_r8x_owner_recovery_rejects_source_invalidation_before_and_after_post() 
     assert 'setup({changeEvidenceAfterPost:true})' in fault
     assert "invalidated original evidence must never trigger a new owner Review" in fault
     assert "source invalidated after POST cannot delete ambiguous original owner intent" in fault
+
+
+def test_r8z_primary_review_executes_actual_handler_under_source_faults() -> None:
+    script = (ROOT / "apps/mobile/scripts/test-owner-review-primary.cjs").read_text()
+    ci = (ROOT / ".github/workflows/ci.yml").read_text()
+    package = (ROOT / "apps/mobile/package.json").read_text()
+    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
+    assert 'LifeChangeReviewPanel.tsx' in script
+    assert 'ts.transpileModule' in script
+    assert 'screen.slice(start, end)' in script
+    assert 'test:owner-review-primary' in ci
+    assert 'pnpm --dir apps/mobile test:owner-review-primary' in ci
+    assert 'node scripts/test-owner-review-primary.cjs' in package
+    assert 'if (!caseMatchesFrozenSources(retryCase, requestedPetId, requestedCaseId, requestedSources))' in panel
+    assert panel.index('caseMatchesFrozenSources(retryCase,') < panel.index(
+        'const accepted = await api.post<ReviewAcknowledgement>'
+    )
+    assert 'invalid source before first POST must stop' in script
+    assert 'source invalidated after POST must retain encrypted intent' in script
+    assert 'unconfirmed retry must revalidate source before POST' in script
+    assert 'changed source fingerprint on retry must never POST' in script
+    assert 'owner switching pet during source GET cannot POST' in script
+    assert 'lost ack retry must retain identical idempotency key' in script
