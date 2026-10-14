@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ApiError, api, humanizeError } from "../../api";
 import { clearOwnerIntentIfUnchanged, restoreOwnerIntent, saveOwnerIntent } from "../../storage/pendingOwnerReview";
 import { COLORS, SPACE, TYPE } from "../../tokens";
-import { nextOwnerEvidenceIds, verifyOwnerEvidenceBatch } from "./ownerEvidence";
+import { nextOwnerEvidenceIds, ownerEvidenceLocalTime, ownerEvidenceValue, verifyOwnerEvidenceBatch } from "./ownerEvidence";
 
 export type LifeMetric =
   | "walk_minutes_per_day"
@@ -47,6 +47,8 @@ interface EvidenceEvent {
   occurred_at: string;
   recorded_at: string;
   source_type: string;
+  payload?: Record<string, unknown>;
+  retracted_at?: string | null;
 }
 
 type Decision = "FOLLOW_UP_LATER" | "NOT_RELEVANT" | "CORRECT_SOURCE";
@@ -505,17 +507,19 @@ export function LifeChangeReviewPanel({
           {showEvidence && evidence ? (
             <View style={styles.evidenceList} testID="pli.r8.owner-review.evidence">
               <Text style={styles.evidenceProgress} testID="pli.r8.owner-review.evidence-progress">
-                已查看 {evidence.length} / {record.evidence_event_ids.length} 条原始记录
+                已查看 {evidence.length} / {record.evidence_event_ids.length} 条原始记录 · 分别保留发生时间与录入时间
               </Text>
               {[...evidence].sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at)).map((e) => (
                 <Text
                   key={e.event_id}
                   testID={`pli.r8.owner-review.event.${e.event_id}`}
                   accessible
-                  accessibilityLabel={`${ownerEventType(e.event_type)} · ${e.occurred_at.slice(0, 10)} · ${ownerSourceType(e.source_type)} · 完整事件标识 ${e.event_id}`}
+                  accessibilityLabel={`${ownerEventType(e.event_type)} · ${ownerEvidenceValue(e)} · 发生 ${ownerEvidenceLocalTime(e.occurred_at)} · 录入 ${ownerEvidenceLocalTime(e.recorded_at)} · ${ownerSourceType(e.source_type)} · 完整事件标识 ${e.event_id}`}
                   style={styles.evidenceText}
                 >
-                  {ownerEventType(e.event_type)} · {e.occurred_at.slice(0, 10)} · {ownerSourceType(e.source_type)} · ID {e.event_id.slice(0, 8)}
+                  {ownerEventType(e.event_type)} · {ownerEvidenceValue(e)}
+                  {"\n"}发生 {ownerEvidenceLocalTime(e.occurred_at)} · 录入 {ownerEvidenceLocalTime(e.recorded_at)}
+                  {"\n"}{ownerSourceType(e.source_type)} · ID {e.event_id.slice(0, 8)}
                 </Text>
               ))}
               {evidence.length < record.evidence_event_ids.length ? (

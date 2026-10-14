@@ -12,7 +12,8 @@ const compiled = ts.transpileModule(source, {
 }).outputText;
 const moduleShim = {exports:{}};
 new Function("module", "exports", compiled)(moduleShim, moduleShim.exports);
-const {nextOwnerEvidenceIds, verifyOwnerEvidenceBatch, OWNER_EVIDENCE_BATCH_SIZE} = moduleShim.exports;
+const {nextOwnerEvidenceIds, verifyOwnerEvidenceBatch, OWNER_EVIDENCE_BATCH_SIZE,
+  ownerEvidenceValue, ownerEvidenceLocalTime} = moduleShim.exports;
 assert.equal(OWNER_EVIDENCE_BATCH_SIZE, 8);
 const ids = Array.from({length: 23}, (_, i) => "real-event-id-" + i);
 let loaded = [];
@@ -39,4 +40,23 @@ assert.ok(ui.includes("onPress={() => void loadMoreEvidence()}"));
 assert.ok(ui.includes("verifyOwnerEvidenceBatch(rows, ids, requestedPetId)"));
 assert.ok(ui.includes('testID={`pli.r8.owner-review.event.${e.event_id}`}' ));
 assert.ok(!ui.includes("record.evidence_event_ids.slice(0, 8)"));
-console.log("R8 owner evidence pagination and pet/id binding: PASS");
+
+const example = {
+  event_type:"daily.walk", payload:{duration_minutes:17},
+  occurred_at:"2026-10-11T09:00:00+08:00", recorded_at:"2026-10-14T10:00:00+08:00",
+};
+assert.match(ownerEvidenceValue(example), /17 分钟/);
+assert.match(ownerEvidenceValue({...example,payload:{duration_minutes:0}}), /不能按零分钟/);
+assert.match(ownerEvidenceValue({...example,payload:{duration_minutes:"oops"}}), /时长未记录/);
+assert.match(ownerEvidenceValue({...example,payload:{duration_minutes:"25"}}), /25 分钟/);
+assert.match(ownerEvidenceValue({...example,payload:{duration_minutes:90000}}), /时长未记录/);
+assert.match(ownerEvidenceValue({...example,retracted_at:"2026-10-14T11:00:00Z"}), /已撤回/);
+assert.match(ownerEvidenceValue({...example,event_type:"daily.meal",payload:{private:"SECRET"}}), /1 条进食记录/);
+assert.ok(!ownerEvidenceValue({...example,payload:{private:"SECRET"}}).includes("SECRET"));
+assert.notEqual(ownerEvidenceLocalTime(example.occurred_at), ownerEvidenceLocalTime(example.recorded_at));
+assert.equal(ownerEvidenceLocalTime("bad-date"), "时间未确认");
+assert.ok(ui.includes("ownerEvidenceValue(e)"));
+assert.ok(ui.includes("ownerEvidenceLocalTime(e.occurred_at)"));
+assert.ok(ui.includes("ownerEvidenceLocalTime(e.recorded_at)"));
+assert.ok(ui.includes("完整事件标识 ${e.event_id}"));
+console.log("R8 owner evidence pagination, exact identity, actual values and two-time reading: PASS");
