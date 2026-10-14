@@ -9,11 +9,14 @@ const path = require("node:path");
 const vm = require("node:vm");
 const ts = require("typescript");
 const screen = fs.readFileSync(path.resolve(__dirname, "../src/components/life/LifeChangeReviewPanel.tsx"), "utf8");
+const createStart = screen.indexOf("  const create = async () => {");
+const createEnd = screen.indexOf("  const review = async", createStart);
 const start = screen.indexOf("  const review = async (decision: Decision) => {");
 const end = screen.indexOf("  const inspectEvidence = async", start);
 const helperStart = screen.indexOf("function caseMatchesFrozenSources(");
 const helperEnd = screen.indexOf("export function LifeChangeReviewPanel(", helperStart);
-assert.ok(start >= 0 && end > start && helperStart >= 0 && helperEnd > helperStart,
+assert.ok(createStart >= 0 && createEnd > createStart &&
+  start >= 0 && end > start && helperStart >= 0 && helperEnd > helperStart,
   "Cannot locate the actual production owner review handler / source validator");
 const source = [
   "function build(ctx: any) {",
@@ -22,8 +25,9 @@ const source = [
   " setRecord, api, saveOwnerIntent, clearOwnerIntentIfUnchanged, humanizeError, ApiError,",
   " activeReviewAction, ownerReviewScope} = ctx;",
   screen.slice(helperStart, helperEnd),
+  screen.slice(createStart, createEnd),
   screen.slice(start, end),
-  "return {review}; } exports.build=build;",
+  "return {create,review}; } exports.build=build;",
 ].join("\n");
 const output = ts.transpileModule(source, {
   compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020},
@@ -108,6 +112,38 @@ function setup({pending = false, invalidBefore = false, changedBefore = false,
 const count = (h,kind) => h.log.filter(x=>x[0]===kind).length;
 async function tests() {
   {
+    // Hosted regression: setRecord(newCase) causes synchronous review-scope
+    // generation invalidation on the new render. The original create()
+    // handler MUST release loading BEFORE that scope transition.
+    const log = [];
+    let isLoading = false;
+    const ctx = {
+      petId:"pet-A",record:null,loading:false,restoring:false,
+      change:{metric:"walk_minutes_per_day"},sourceIdsKey:"e1|e2",
+      requestGeneration:{current:8},
+      activeChangeScope:{current:{petId:"pet-A",metric:"walk_minutes_per_day",sourceIdsKey:"e1|e2"}},
+      activeOwnerScope:{current:{petId:"pet-A",caseId:""}},
+      setLoading(value){isLoading=value;log.push(["LOADING",value]);},
+      setMessage(value){log.push(["MESSAGE",value]);},
+      setRecord(value){
+        log.push(["CASE",value.case_id]);
+        ctx.requestGeneration.current++;
+        ctx.activeOwnerScope.current.caseId = value.case_id;
+      },
+      humanizeError:e=>e.message || String(e),
+      api:{post:async()=>({case_id:"case-A",pet_id:"pet-A",
+        metric:"walk_minutes_per_day",source_valid:true,evidence_event_ids:["e2","e1"]})},
+    };
+    const {create}=compiled.build(ctx);
+    await create();
+    assert.equal(isLoading,false,
+      "Creating a valid Case must never strand the source control disabled");
+    assert.deepEqual(log.map(x=>x[0]),["LOADING","MESSAGE","LOADING","CASE"],
+      "unlock must happen before the Case ID invalidates this async generation");
+    assert.equal(ctx.requestGeneration.current,9);
+    assert.equal(ctx.activeOwnerScope.current.caseId,"case-A");
+  }
+  {
     const h=setup();await h.review("FOLLOW_UP_LATER");
     assert.equal(count(h,"POST"),1);assert.equal(count(h,"CAS"),1);
     assert.equal(h.saved.length,0);assert.ok(h.notices.some(x=>x?.includes("已记录")));
@@ -191,6 +227,6 @@ async function tests() {
     h.switchPet();gate.resolve();await first;
     assert.equal(count(h,"CAS"),0);assert.equal(h.saved.length,1);
   }
-  console.log("R8Z: 13 executable original owner-review source/ack/pet-scope gates PASS");
+  console.log("R8Z: 14 executable original owner-review create/source/ack/pet-scope gates PASS");
 }
 tests().catch(e=>{console.error(e);process.exitCode=1;});

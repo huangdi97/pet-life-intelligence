@@ -235,10 +235,16 @@ export function LifeChangeReviewPanel({
           !saved.evidence_event_ids.every((id) => requestedSources.split("|").includes(id))) {
         throw new Error("CASE_SOURCE_SCOPE_MISMATCH");
       }
+      // This Case ID transition invalidates create()'s generation during
+      // the next render. A generation-guarded finally cannot unlock the new
+      // Case's actions afterwards. Unlock FIRST, then commit the new identity.
+      setLoading(false);
       setRecord(saved);
     } catch (e: unknown) {
       if (stillCurrent()) setMessage(humanizeError(e));
     } finally {
+      // The failure path must still release pending loading; an old pet's
+      // async generation must never mutate the new pet's current panel.
       if (stillCurrent()) setLoading(false);
     }
   };
