@@ -143,7 +143,7 @@ async function tests() {
   {
     const h=setup({pending:true});await h.review("FOLLOW_UP_LATER");
     assert.equal(count(h,"GET"),2);assert.equal(count(h,"SAVE"),0);
-    assert.deepEqual(h.log.filter(x=>x[0]==="POST").map(x=>x[1]),[h.saved[0]?.payload?.idempotency_key].filter(Boolean));
+    assert.deepEqual(h.log.filter(x=>x[0]==="POST").map(x=>x[1]),["r8-FOLLOW_UP_LATER-initial"]);
     assert.equal(count(h,"CAS"),1);assert.equal(h.saved.length,0);
   }
   {
