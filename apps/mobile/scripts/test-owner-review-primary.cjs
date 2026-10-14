@@ -88,7 +88,9 @@ function setup({pending = false, invalidBefore = false, changedBefore = false,
       return {
         pet_id:"pet-A",case_id:"case-A",source_valid:!(isAfter?invalidAfter:invalidBefore),
         evidence_event_ids:(isAfter?changedAfter:changedBefore)?["e3"]:["e2","e1"],
-        reviews:[{review_id:"review-A",decision:"FOLLOW_UP_LATER"}],
+        // A Review can appear in the follow-up GET only AFTER a POST. The
+        // preflight read must not invent a server Review that does not exist.
+        reviews:isAfter?[{review_id:"review-A",decision:"FOLLOW_UP_LATER"}]:[],
       };
     },
     async post(url,payload) {
