@@ -127,6 +127,8 @@ jobs:
         run: pnpm --dir apps/mobile test:owner-review-recovery
       - name: Primary Owner Review source-validity async fault injection
         run: pnpm --dir apps/mobile test:owner-review-primary
+      - name: Owner source evidence paging integrity
+        run: pnpm --dir apps/mobile test:owner-review-evidence
       - name: Mobile bundle (android)
         run: pnpm --dir apps/mobile exec expo export --platform android
       - name: Mobile bundle (ios)

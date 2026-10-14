@@ -12,6 +12,7 @@
     "test:quicklog-pet-scope": "node scripts/test-quicklog-pet-scope.cjs",
     "test:owner-review-recovery": "node scripts/test-owner-review-recovery.cjs",
     "test:owner-review-primary": "node scripts/test-owner-review-primary.cjs",
+    "test:owner-review-evidence": "node scripts/test-owner-review-evidence.cjs",
     "doctor": "expo-doctor",
     "build:3d-page": "node scripts/build-3d-page.mjs"
   },

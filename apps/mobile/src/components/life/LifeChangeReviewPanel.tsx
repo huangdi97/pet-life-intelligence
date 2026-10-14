@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ApiError, api, humanizeError } from "../../api";
 import { clearOwnerIntentIfUnchanged, restoreOwnerIntent, saveOwnerIntent } from "../../storage/pendingOwnerReview";
 import { COLORS, SPACE, TYPE } from "../../tokens";
+import { nextOwnerEvidenceIds, verifyOwnerEvidenceBatch } from "./ownerEvidence";
 
 export type LifeMetric =
   | "walk_minutes_per_day"
@@ -41,6 +42,7 @@ interface LifeCaseDetail extends LifeCase {
 
 interface EvidenceEvent {
   event_id: string;
+  pet_id: string;
   event_type: string;
   occurred_at: string;
   recorded_at: string;
@@ -407,15 +409,48 @@ export function LifeChangeReviewPanel({
     setEvidenceError(null);
     setLoading(true);
     try {
-      const rows = await Promise.all(
-        record.evidence_event_ids.slice(0, 8).map((id) =>
-          api.get<EvidenceEvent>(`/events/${id}`),
-        ),
-      );
+      const ids = nextOwnerEvidenceIds(record.evidence_event_ids, []);
+      const rows = await Promise.all(ids.map((id) => api.get<EvidenceEvent>(`/events/${id}`)));
       if (!stillCurrent()) return;
+      verifyOwnerEvidenceBatch(rows, ids, requestedPetId);
       setEvidence(rows);
     } catch (e: unknown) {
       if (stillCurrent()) setEvidenceError(humanizeError(e));
+    } finally {
+      if (stillCurrent()) setLoading(false);
+    }
+  };
+
+  // Every original source must remain inspectable in the owner panel.
+  // Page the network work; never pretend the first eight are all the evidence.
+  const loadMoreEvidence = async () => {
+    if (!record || !showEvidence || !evidence || loading || restoring) return;
+    const requestedPetId = petId;
+    const requestedCaseId = record.case_id;
+    const generation = requestGeneration.current;
+    const requestedSources = sourceIdsKey;
+    const ids = nextOwnerEvidenceIds(
+      record.evidence_event_ids, evidence.map((item) => item.event_id),
+    );
+    if (ids.length === 0) return;
+    const stillCurrent = () =>
+      requestGeneration.current === generation &&
+      activeOwnerScope.current.petId === requestedPetId &&
+      activeOwnerScope.current.caseId === requestedCaseId &&
+      activeChangeScope.current.sourceIdsKey === requestedSources;
+    setLoading(true);
+    setEvidenceError(null);
+    try {
+      const rows = await Promise.all(ids.map((id) => api.get<EvidenceEvent>(`/events/${id}`)));
+      if (!stillCurrent()) return;
+      verifyOwnerEvidenceBatch(rows, ids, requestedPetId);
+      setEvidence((before) => {
+        if (!before) return null;
+        const existing = new Set(before.map((event) => event.event_id));
+        return [...before, ...rows.filter((item) => !existing.has(item.event_id))];
+      });
+    } catch (error: unknown) {
+      if (stillCurrent()) setEvidenceError(humanizeError(error));
     } finally {
       if (stillCurrent()) setLoading(false);
     }
@@ -469,7 +504,10 @@ export function LifeChangeReviewPanel({
           </Pressable>
           {showEvidence && evidence ? (
             <View style={styles.evidenceList} testID="pli.r8.owner-review.evidence">
-              {evidence.map((e) => (
+              <Text style={styles.evidenceProgress} testID="pli.r8.owner-review.evidence-progress">
+                已查看 {evidence.length} / {record.evidence_event_ids.length} 条原始记录
+              </Text>
+              {[...evidence].sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at)).map((e) => (
                 <Text
                   key={e.event_id}
                   testID={`pli.r8.owner-review.event.${e.event_id}`}
@@ -480,9 +518,22 @@ export function LifeChangeReviewPanel({
                   {ownerEventType(e.event_type)} · {e.occurred_at.slice(0, 10)} · {ownerSourceType(e.source_type)} · ID {e.event_id.slice(0, 8)}
                 </Text>
               ))}
-              {record.evidence_event_ids.length > 8 ? (
-                <Text style={styles.meta}>还有 {record.evidence_event_ids.length - 8} 条来源，可在时间线继续查看。</Text>
-              ) : null}
+              {evidence.length < record.evidence_event_ids.length ? (
+                <Pressable
+                  testID="pli.r8.owner-review.sources.more"
+                  accessibilityRole="button"
+                  disabled={loading || restoring}
+                  style={[styles.sourceAction, (loading || restoring) && styles.sourceDisabled]}
+                  onPress={() => void loadMoreEvidence()}
+                >
+                  <Text style={styles.sourceText}>
+                    {loading ? "正在读取后续来源…" :
+                      `继续查看余下 ${record.evidence_event_ids.length - evidence.length} 条来源`}
+                  </Text>
+                </Pressable>
+              ) : (
+                <Text style={styles.evidenceProgress}>已可逐条核对全部来源</Text>
+              )}
             </View>
           ) : null}
           {evidenceError ? (
@@ -557,7 +608,8 @@ const styles = StyleSheet.create({
   sourceDisabled: { opacity: 0.55 },
   sourceText: { fontSize: TYPE.sm, fontWeight: "700", color: COLORS.brandPrimaryDeep },
   evidenceList: { gap: SPACE.s1, padding: SPACE.s3, borderRadius: 12, backgroundColor: COLORS.surfaceRaised },
-  evidenceText: { fontSize: TYPE.caption, lineHeight: 18, color: COLORS.textSecondary },
+  evidenceText: { fontSize: TYPE.caption, lineHeight: 20, color: COLORS.textSecondary },
+  evidenceProgress: { fontSize: TYPE.caption, lineHeight: 18, color: COLORS.textSecondary },
   error: { fontSize: TYPE.sm, color: COLORS.danger },
   warning: { fontSize: TYPE.sm, lineHeight: 21, color: COLORS.textPrimary, backgroundColor: COLORS.brandSoft, padding: SPACE.s3, borderRadius: 12 },
   decisionStatus: { fontSize: TYPE.sm, lineHeight: 21, color: COLORS.brandPrimaryDeep, backgroundColor: COLORS.brandSoft, padding: SPACE.s3, borderRadius: 12 },
