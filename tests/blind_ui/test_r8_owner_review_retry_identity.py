@@ -19,7 +19,28 @@ def test_owner_review_android_retries_keep_original_decision_and_optimistic_toke
     assert "const cleared = await clearOwnerIntentIfUnchanged({" in code
     assert "if (!cleared) {" in code
     assert "const updated = await api.get<LifeCaseDetail>" in code
-    assert "if (updated.pet_id !== petId || updated.case_id !== record.case_id)" in code
+    # R8Y tightened the old pet+Case-only assertion: source validity and the
+    # exact immutable evidence set must ALSO match before any durable clear.
+    helper = code.split("function caseMatchesFrozenSources(", 1)[1].split(
+        "export function LifeChangeReviewPanel", 1
+    )[0]
+    assert "detail.source_valid === true" in helper
+    assert "detail.pet_id === petId" in helper
+    assert "detail.case_id === caseId" in helper
+    assert "sourceIds.size > 0" in helper
+    assert "detail.evidence_event_ids.length === sourceIds.size" in helper
+    assert "detail.evidence_event_ids.every((id) => sourceIds.has(id))" in helper
+    review_flow = code.split("const review = async", 1)[1].split(
+        "const inspectEvidence = async", 1
+    )[0]
+    assert "if (!caseMatchesFrozenSources(details, requestedPetId, requestedCaseId, requestedSources))" in review_flow
+    assert "if (!caseMatchesFrozenSources(updated, requestedPetId, requestedCaseId, requestedSources))" in review_flow
+    assert review_flow.index("caseMatchesFrozenSources(details,") < review_flow.index(
+        "await saveOwnerIntent("
+    )
+    assert review_flow.index("caseMatchesFrozenSources(updated,") < review_flow.index(
+        "const cleared = await clearOwnerIntentIfUnchanged({"
+    )
     assert "e instanceof ApiError" in code
 
 
