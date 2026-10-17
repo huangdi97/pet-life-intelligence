@@ -18,14 +18,14 @@ export type LifeChangeCaseSummary = {
 
 export function caseHistoryStatus(c: LifeChangeCaseSummary): string {
   if (!c.source_valid || c.state === "INVALIDATED") return "原始记录已变更 · 需重新核对";
+  // Latest explicit owner choice is authoritative while original sources
+  // remain valid. A retired earlier follow-up stays visible in the audit
+  // history, but must not override a newer CLOSED/CORRECT_SOURCE decision.
+  if (c.state === "CLOSED") return "主人选择暂不关注";
+  if (c.state === "OWNER_ACKNOWLEDGED") return "主人已提出来源核对";
   if (c.follow_up_source_valid === false || c.state === "FOLLOW_UP_EVIDENCE_INVALIDATED") {
     return "后续记录已失效 · 需重新核对";
   }
-  // Latest owner decisions remain primary once sources are valid:
-  // a CLOSED Case can still contain an older legitimate observation, but its
-  // headline must not silently override the owner's newer choice.
-  if (c.state === "CLOSED") return "主人选择暂不关注";
-  if (c.state === "OWNER_ACKNOWLEDGED") return "主人已提出来源核对";
   if (c.follow_up_source_valid === true) return "已关联真实后续观察";
   if (c.state === "PROPOSED") return "等待主人核对";
   if (c.state === "FOLLOW_UP") return "主人选择继续关注";
