@@ -11,12 +11,13 @@ import {
 } from "./ownerCaseHistory";
 
 export function OwnerChangeHistory({
-  petId, cases, onOpenTimeline, onOpenCase,
+  petId, cases, onOpenTimeline, onOpenCase, onOpenHistory,
 }: {
   petId: string;
   cases: LifeChangeCaseSummary[];
   onOpenTimeline: () => void;
   onOpenCase: (caseId: string) => void;
+  onOpenHistory?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   // Even if a server response is accidentally stale, never paint pet A's
@@ -70,6 +71,17 @@ export function OwnerChangeHistory({
           style={styles.action}
         >
           <Text style={styles.link}>{expanded ? "收起历史核对" : `展开其余 ${own.length - 2} 条核对`}</Text>
+        </Pressable>
+      ) : null}
+      {onOpenHistory ? (
+        <Pressable
+          testID="pli.r8.owner-history.all"
+          accessibilityRole="button"
+          accessibilityLabel={`查看全部 ${own.length} 条生活观察档案`}
+          onPress={onOpenHistory}
+          style={styles.action}
+        >
+          <Text style={styles.link}>查看全部观察档案 →</Text>
         </Pressable>
       ) : null}
       <Pressable

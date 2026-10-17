@@ -16,6 +16,7 @@ import { ChangeCard } from "./_components/today/ChangeCard";
 import { NowCard } from "./_components/today/NowCard";
 import { RecentCard } from "./_components/today/RecentCard";
 import { TasksCard } from "./_components/today/TasksCard";
+import { CaseJournalCard } from "./_components/today/CaseJournalCard";
 import { SHEET_TYPES, type TodayData } from "./_components/today/constants";
 import { formatObservedDuration, observedActivityMinutes, observedDurationMinutes } from "./_components/today/activity";
 import { poseForEvent } from "@pli/pet-3d";
@@ -363,6 +364,8 @@ export default function TodayPage() {
             </div>
           )}
           <RecentCard hasPet={hasPet} today={today} />
+
+          <CaseJournalCard key={current.id} petId={current.id} />
 
           <TasksCard hasPet={hasPet} tasks={tasks} />
         </div>

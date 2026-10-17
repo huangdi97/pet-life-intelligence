@@ -1445,21 +1445,86 @@ def capture_r8_owner_review(
         raise CaptureError("R8AJ native historical Case does not show the saved follow-up status")
     android.screenshot(directory / "owner-case-detail-firstfold.png")
 
+    # R8AK: the detail now offers explicit owner continuation and an entry to
+    # the complete history. Sources are revealed on request, so real evidence
+    # must actually open them instead of assuming every row is painted.
+    actions_xml = detail_xml
+    for _ in range(10):
+        if "pli.r8.case-detail.review-actions" in actions_xml:
+            break
+        android.shell("input", "swipe", "780", "1690", "780", "840", "290")
+        time.sleep(0.4)
+        actions_xml = android.dump_xml(directory / "case-detail-actions.xml")
+    if "pli.r8.case-detail.review-actions" not in actions_xml:
+        raise CaptureError("R8AK native Case detail does not expose owner continue-review actions")
+    if "pli.r8.case-detail.history" not in actions_xml:
+        raise CaptureError("R8AK native Case detail has no complete-history entry")
+    # RN ScrollView content can expose the section node before its buttons are
+    # laid out; require the actual tappable action, not just the container.
+    for _ in range(8):
+        if ui_has_actionable_control(actions_xml, "pli.r8.case-detail.review.correct_source"):
+            break
+        android.shell("input", "swipe", "780", "1690", "780", "840", "220")
+        time.sleep(0.4)
+        actions_xml = android.dump_xml(directory / "case-detail-actions.xml")
+    if not ui_has_actionable_control(actions_xml, "pli.r8.case-detail.review.correct_source"):
+        raise CaptureError("R8AK owner continue-review action is not actually tappable")
+
     detail_api = api_json(
         f"{root}/pets/{pet_id}/life-change-cases/{case_id}",
         headers=owner_header,
     )
+    expected_reviews = [str(r["review_id"]) for r in detail_api.get("reviews", [])]
+
+    # Continually review the SAME old Case: an append-only human decision, not
+    # a new Case. The server CAS token and owner role still apply.
+    android.tap(actions_xml, "pli.r8.case-detail.review.correct_source", "id")
+    continued_api = detail_api
+    for _ in range(12):
+        time.sleep(0.8)
+        continued_api = api_json(
+            f"{root}/pets/{pet_id}/life-change-cases/{case_id}",
+            headers=owner_header,
+        )
+        if len(continued_api.get("reviews", [])) == len(expected_reviews) + 1:
+            break
+    if len(continued_api.get("reviews", [])) != len(expected_reviews) + 1:
+        raise CaptureError("R8AK continuing an old Case did not append exactly one immutable review")
+    if continued_api["reviews"][-1].get("decision") != "CORRECT_SOURCE":
+        raise CaptureError("R8AK continued review decision was not preserved as the owner sent it")
+    expected_reviews = [str(r["review_id"]) for r in continued_api.get("reviews", [])]
+    save_manifest(directory / "case-continue-review-truth.json", {
+        "pet_id": pet_id,
+        "case_id": case_id,
+        "review_ids": expected_reviews,
+        "continued_decision": continued_api["reviews"][-1].get("decision"),
+        "appended_exactly_one_review": True,
+        "same_case_id_retained": continued_api.get("case_id") == case_id,
+        "no_vision_model": True,
+    })
+
+    opened_sources = False
+    for step in range(12):
+        current_xml = android.dump_xml(directory / f"case-detail-open-{step:02d}.xml")
+        if "pli.r8.case-detail.sources.open" in current_xml:
+            android.tap(current_xml, "pli.r8.case-detail.sources.open", "id")
+            opened_sources = True
+            time.sleep(1.2)
+            break
+        android.shell("input", "swipe", "780", "1690", "780", "840", "290")
+        time.sleep(0.4)
+    if not opened_sources:
+        raise CaptureError("R8AK owner could not open the Case source detail")
     if detail_api.get("pet_id") != pet_id or detail_api.get("case_id") != case_id:
         raise CaptureError("R8AJ detail API returned a different pet or Case")
-    expected_reviews = [str(r["review_id"]) for r in detail_api.get("reviews", [])]
     if len(expected_reviews) < 2:
         raise CaptureError("R8AJ Case detail lacks append-only human review history")
-    expected_source_ids = set(detail_api.get("evidence_event_ids", []))
+    expected_source_ids = set(continued_api.get("evidence_event_ids", []))
     if not expected_source_ids or expected_source_ids != set(case_source_ids):
         raise CaptureError("R8AJ detail has no original immutable Case source-set equality")
     observed_reviews: set[str] = set()
     observed_sources: set[str] = set()
-    for step in range(22):
+    for step in range(34):
         current_xml = android.dump_xml(directory / f"case-detail-scroll-{step:02d}.xml")
         observed_reviews.update(
             review_id for review_id in expected_reviews
@@ -1471,6 +1536,12 @@ def capture_r8_owner_review(
         )
         if len(observed_reviews) == len(expected_reviews) and observed_sources == expected_source_ids:
             break
+        # R8AK source detail is paged: reveal the remaining authorized sources
+        # instead of silently treating the first page as the whole evidence.
+        if ui_has_actionable_control(current_xml, "pli.r8.case-detail.sources.more"):
+            android.tap(current_xml, "pli.r8.case-detail.sources.more", "id")
+            time.sleep(1.2)
+            continue
         android.shell("input", "swipe", "780", "1690", "780", "840", "290")
         time.sleep(0.4)
     if len(observed_reviews) != len(expected_reviews) or observed_sources != expected_source_ids:
@@ -1492,6 +1563,44 @@ def capture_r8_owner_review(
         "no_vision_model": True,
         "human_visual_acceptance": "PENDING",
     })
+
+    # R8AK: the complete owner Case history must be reachable from the detail
+    # and must list the same immutable Case, not only the recent Today slice.
+    top_xml = ""
+    for _ in range(14):
+        top_xml = android.dump_xml(directory / "case-detail-top.xml")
+        if "pli.r8.case-detail.history" in top_xml:
+            break
+        android.shell("input", "swipe", "780", "700", "780", "1750", "260")
+        time.sleep(0.3)
+    if "pli.r8.case-detail.history" not in top_xml:
+        raise CaptureError("R8AK complete-history entry was lost after evidence scrolling")
+    android.tap(top_xml, "pli.r8.case-detail.history", "id")
+    history_xml = ""
+    for _ in range(24):
+        time.sleep(0.8)
+        history_xml = android.dump_xml(directory / "case-history-list.xml")
+        if "pli.r8.history" in history_xml:
+            break
+    if "pli.r8.history" not in history_xml:
+        raise CaptureError("R8AK complete Case history did not mount from the detail entry")
+    if case_id not in history_xml:
+        raise CaptureError("R8AK complete Case history does not list the real Case it was opened from")
+    if "pli.r8.history.filter.all" not in history_xml:
+        raise CaptureError("R8AK history lacks owner-visible metric search filters")
+    android.screenshot(directory / "owner-case-history-list.png")
+    save_manifest(directory / "case-history-truth.json", {
+        "pet_id": pet_id,
+        "case_id": case_id,
+        "history_opened_from_detail": True,
+        "real_case_listed_in_complete_history": True,
+        "metric_filter_controls_present": True,
+        "screenshot": "owner-case-history-list.png",
+        "no_vision_model": True,
+        "human_visual_acceptance": "PENDING",
+    })
+    android.shell("input", "keyevent", "4")
+    time.sleep(1.0)
 
 
 def main() -> None:

@@ -238,6 +238,11 @@ export default function Pets() {
       url: "/pages/pets/life-view/index",
     },
     {
+      label: "观察档案",
+      hint: "主人核对过的生活观察会长期保留",
+      url: "/pages/observations/index",
+    },
+    {
       label: "健康",
       hint: eventDataUnavailable ? "健康记录暂时没有加载成功" : healthCount7d ? `最近 7 天 · ${healthCount7d} 条记录` : "还没有健康记录",
       url: "/pages/health/index",

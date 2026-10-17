@@ -1,0 +1,127 @@
+"""R8AK bounded source detail for an owner-reviewed LifeChangeCase.
+
+SECURITY: a Case ID or an event ID inside it is not a capability. Every event
+is re-read through the same pet membership and medical-read boundary as
+``GET /events/{id}``. The endpoint never widens visibility because a source is
+referenced by a Case.
+
+PROVENANCE: the frozen CASE_EVIDENCE role map is returned as stored; a legacy
+Case stays ``LEGACY_DATE_DERIVED`` and is never retroactively reclassified.
+"""
+
+import uuid
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, Query
+from sqlalchemy import select
+
+from app.api.deps import CurrentUser, DBSession
+from app.api.routes.events import MEDICAL_EVENT_TYPES, _actor_names_map, _serialize
+from app.core.errors import NotFound, PermissionDenied, ValidationFailed
+from app.domain import enums
+from app.models import LifeChangeCase, LifeChangeReview, LifeEvent, User
+from app.services import permissions as perm
+
+router = APIRouter(tags=["life-intelligence"])
+
+MAX_CASE_SOURCES = 200
+
+
+async def _pet_scoped_case(db, pet_id: uuid.UUID, case_id: uuid.UUID) -> LifeChangeCase:
+    case = (await db.execute(select(LifeChangeCase).where(
+        LifeChangeCase.id == case_id, LifeChangeCase.pet_id == pet_id,
+    ))).scalar_one_or_none()
+    if case is None:
+        raise NotFound("Life change case not found for this pet.")
+    return case
+
+
+async def _review_scope_ids(
+    db, case: LifeChangeCase, review_id: uuid.UUID,
+) -> list[str]:
+    review = (await db.execute(select(LifeChangeReview).where(
+        LifeChangeReview.id == review_id, LifeChangeReview.case_id == case.id,
+    ))).scalar_one_or_none()
+    if review is None:
+        raise NotFound("Owner review not found for this Case.")
+    if review.decision != "RECORD_OBSERVATION":
+        raise ValidationFailed("Only a recorded observation has follow-up sources.")
+    return list(review.related_event_ids)
+
+
+async def _superseded_ids(db, pet_id: uuid.UUID, ids: list[uuid.UUID]) -> set:
+    if not ids:
+        return set()
+    rows = (await db.execute(select(LifeEvent.supersedes_event_id).where(
+        LifeEvent.pet_id == pet_id,
+        LifeEvent.supersedes_event_id.in_(ids),
+        LifeEvent.recorded_at <= datetime.now(UTC),
+    ))).scalars().all()
+    return {row for row in rows if row is not None}
+
+
+@router.get("/pets/{pet_id}/life-change-cases/{case_id}/sources")
+async def list_case_sources(
+    pet_id: uuid.UUID, case_id: uuid.UUID, db: DBSession, user: CurrentUser,
+    review_id: uuid.UUID | None = Query(default=None),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(8, ge=1, le=20),
+) -> dict:
+    pet = await perm.get_pet_or_404(db, pet_id)
+    capabilities = await perm.require_capability(
+        db, pet, user.id, enums.Capability.DAILY_READ,
+    )
+    case = await _pet_scoped_case(db, pet.id, case_id)
+    scope = "FOLLOW_UP_REVIEW" if review_id else "CASE_EVIDENCE"
+    ids = (
+        await _review_scope_ids(db, case, review_id)
+        if review_id else list(case.evidence_event_ids)
+    )
+    if len(ids) > MAX_CASE_SOURCES:
+        raise ValidationFailed(
+            "This Case references more sources than one review page can safely load."
+        )
+    parsed = [uuid.UUID(item) for item in ids]
+    rows = list((await db.execute(select(LifeEvent).where(
+        LifeEvent.pet_id == pet.id, LifeEvent.id.in_(parsed),
+    ))).scalars().all()) if parsed else []
+    medical_visible = enums.Capability.MEDICAL_READ.value in capabilities
+    if any(e.event_type in MEDICAL_EVENT_TYPES for e in rows) and not medical_visible:
+        raise PermissionDenied("Medical event requires medical:read.")
+    actors = {}
+    if rows:
+        user_ids = {event.actor_id for event in rows}
+        users = list((await db.execute(select(User).where(User.id.in_(user_ids)))).scalars().all())
+        actors = _actor_names_map(users)
+    superseded = await _superseded_ids(db, pet.id, [e.id for e in rows])
+    by_id = {str(event.id): event for event in rows}
+    ordered = sorted(
+        (event for event in rows),
+        key=lambda event: (event.occurred_at, str(event.id)),
+        reverse=True,
+    )
+    total = len(ordered)
+    window = ordered[offset:offset + limit]
+    serialized = {item["event_id"]: item for item in _serialize(window, actors)}
+    role_map = case.evidence_role_by_event_id or {}
+    sources = []
+    for event in window:
+        payload = serialized[str(event.id)]
+        payload["role"] = role_map.get(str(event.id))
+        payload["role_source"] = (
+            "FROZEN_AT_CREATION" if case.evidence_role_by_event_id is not None
+            else "LEGACY_DATE_DERIVED"
+        )
+        payload["scope"] = scope
+        payload["valid"] = (
+            event.retracted_at is None and event.id not in superseded
+        )
+        sources.append(payload)
+    next_offset = offset + len(sources)
+    return {
+        "case_id": str(case.id), "pet_id": str(case.pet_id), "scope": scope,
+        "review_id": str(review_id) if review_id else None,
+        "sources": sources, "total": total, "offset": offset, "limit": limit,
+        "has_more": next_offset < total, "next_offset": next_offset if next_offset < total else None,
+        "missing_event_ids": [item for item in ids if item not in by_id],
+    }

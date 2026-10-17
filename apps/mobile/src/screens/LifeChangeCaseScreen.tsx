@@ -1,4 +1,10 @@
-/** R8AJ: owner-readable, read-only frozen change-case journal. */
+/** R8AJ/R8AK: owner-readable, immutable change-case journal + continue review.
+ *
+ * The detail view is read-only except for explicit append-only owner reviews.
+ * It never creates a Case, never invents a diagnosis and never claims a pet
+ * recovered; every source keeps its own recorded value, both timestamps and
+ * current validity.
+ */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,6 +15,8 @@ import { usePets } from "../context";
 import type { StackParamList } from "../navigation";
 import { COLORS, SPACE, TYPE } from "../tokens";
 import { caseHistoryMetric, caseHistoryStatus, type LifeChangeCaseSummary } from "../components/life/ownerCaseHistory";
+import { CaseSourceList } from "../components/life/CaseSourceList";
+import { CaseReviewActions } from "../components/life/CaseReviewActions";
 
 interface CaseReview {
   review_id: string;
@@ -24,6 +32,8 @@ interface CaseDetail extends LifeChangeCaseSummary {
   evidence_role_source: "FROZEN_AT_CREATION" | "LEGACY_DATE_DERIVED";
   uncertainty: string;
   truth_note: string;
+  owner_can_review: boolean;
+  latest_review_id: string | null;
   reviews: CaseReview[];
 }
 const decisions: Record<string, string> = {
@@ -32,6 +42,9 @@ const decisions: Record<string, string> = {
   NOT_RELEVANT: "主人选择暂不关注",
   CORRECT_SOURCE: "主人要求重新核对来源",
 };
+const METRICS = new Set([
+  "walk_minutes_per_day", "meal_count_per_day", "sleep_minutes_per_day",
+]);
 function dateText(value: string) {
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? "时间待核实" : d.toLocaleString("zh-CN", { hour12: false });
@@ -91,6 +104,15 @@ export function LifeChangeCaseScreen() {
   const metric = detail ? caseHistoryMetric(detail.metric) : null;
   const unit = metric?.unit ? ` ${metric.unit}` : "";
 
+  const recordObservation = () => {
+    if (!detail || !METRICS.has(detail.metric)) return;
+    navigation.navigate("QuickLog", {
+      lifeChangeCaseId: detail.case_id,
+      lifeChangePetId: requestedPetId,
+      lifeChangeMetric: detail.metric as "walk_minutes_per_day" | "meal_count_per_day" | "sleep_minutes_per_day",
+    });
+  };
+
   return <SafeAreaView style={styles.page}>
     <View style={styles.header}>
       <Pressable testID="pli.r8.case-detail.back" accessibilityRole="button"
@@ -98,6 +120,15 @@ export function LifeChangeCaseScreen() {
         <Text style={styles.link}>‹ 返回</Text>
       </Pressable>
       <Text style={styles.heading}>生活观察档案</Text>
+      <Pressable
+        testID="pli.r8.case-detail.history"
+        accessibilityRole="button"
+        accessibilityLabel="查看全部生活观察档案"
+        onPress={() => navigation.navigate("LifeChangeHistory", { petId: requestedPetId })}
+        style={styles.headerAction}
+      >
+        <Text style={styles.link}>全部档案</Text>
+      </Pressable>
     </View>
     {!matchedPet ? <View style={styles.section} testID="pli.r8.case-detail.pet-mismatch">
       <Text style={styles.heading}>已切换到其他宠物</Text>
@@ -116,9 +147,19 @@ export function LifeChangeCaseScreen() {
         <Text style={styles.title}>{metric?.name ?? "生活"}变化回顾</Text>
         <Text style={styles.link} testID="pli.r8.case-detail.status">{caseHistoryStatus(detail)}</Text>
         <Text style={styles.body}>当时已记录 {detail.current_value}{unit} · 同期参考 {detail.baseline_value}{unit}</Text>
-        <Text style={styles.caption}>{detail.sample_days} 天可比参考 · ${detail.evidence_event_ids.length} 条原始来源</Text>
+        <Text style={styles.caption}>{detail.sample_days} 天可比参考 · {detail.evidence_event_ids.length} 条原始来源</Text>
         <Text style={styles.caption}>对比时间 {dateText(detail.computed_at)} · 不能据此推断疾病或已恢复</Text>
       </View>
+
+      <CaseReviewActions
+        petId={requestedPetId}
+        caseId={detail.case_id}
+        ownerCanReview={detail.owner_can_review === true}
+        latestReviewId={detail.latest_review_id ?? null}
+        sourceValid={detail.source_valid}
+        onReviewed={() => setReload((n) => n + 1)}
+        onRecord={recordObservation}
+      />
 
       <View style={styles.section} testID="pli.r8.case-detail.reviews">
         <Text style={styles.heading}>主人反馈历程</Text>
@@ -139,25 +180,14 @@ export function LifeChangeCaseScreen() {
           </View>)}
       </View>
 
-      <View style={styles.section} testID="pli.r8.case-detail.evidence">
-        <Text style={styles.heading}>当时依据什么？</Text>
-        <Text style={detail.source_valid ? styles.body : styles.warning}>
-          {detail.source_valid ? "原始记录目前有效。" : "原始记录已改变，这次旧对比已失效。"}
-        </Text>
-        <Text style={styles.caption}>{detail.evidence_role_source === "FROZEN_AT_CREATION"
-          ? "当日与同期来源角色由服务器创建时冻结。" :
-          "旧版没有冻结来源角色，不能事后冒充当时分类。"}</Text>
-        {detail.evidence_event_ids.map((id) => {
-          const role = detail.evidence_role_source === "FROZEN_AT_CREATION"
-            ? detail.evidence_role_by_event_id?.[id] : null;
-          return <View style={styles.source} key={id}
-            testID={`pli.r8.case-detail.source.${id}`}>
-            <Text style={styles.label}>{role === "CURRENT" ? "当日依据" :
-              role === "HISTORICAL" ? "同期参考" : "来源角色待核实"}</Text>
-            <Text style={styles.id} selectable>{id}</Text>
-          </View>;
-        })}
-      </View>
+      <CaseSourceList
+        petId={requestedPetId}
+        caseId={detail.case_id}
+        computedAt={detail.computed_at}
+        expectedSourceIds={detail.evidence_event_ids}
+        frozenRoles={detail.evidence_role_by_event_id}
+        roleSource={detail.evidence_role_source}
+      />
 
       <View style={styles.section}>
         <Text style={styles.heading}>解释边界</Text>
@@ -176,6 +206,7 @@ export function LifeChangeCaseScreen() {
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.canvas },
   header: { flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingHorizontal: SPACE.s4, backgroundColor: COLORS.surface },
+  headerAction: { marginLeft: "auto", minHeight: 44, justifyContent: "center" },
   content: { padding: SPACE.s4, gap: SPACE.s4, paddingBottom: SPACE.s12 },
   hero: { borderRadius: 22, padding: SPACE.s5, backgroundColor: COLORS.stageWarmBase, gap: SPACE.s2 },
   section: { margin: SPACE.s4, backgroundColor: COLORS.surface, borderRadius: 18, padding: SPACE.s4, gap: SPACE.s3 },
@@ -189,6 +220,5 @@ const styles = StyleSheet.create({
   id: { color: COLORS.textSecondary, fontSize: TYPE.caption, lineHeight: 18 },
   touch: { minHeight: 44, justifyContent: "center" },
   review: { paddingLeft: SPACE.s3, borderLeftWidth: 3, borderLeftColor: COLORS.brandSoftGreen, gap: SPACE.s2 },
-  source: { padding: SPACE.s3, backgroundColor: COLORS.canvas, borderRadius: 12, gap: SPACE.s1 },
   warning: { fontSize: TYPE.body, fontWeight: "700", color: COLORS.danger },
 });

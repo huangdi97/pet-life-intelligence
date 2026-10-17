@@ -9,7 +9,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
@@ -18,6 +18,7 @@ from app.api.routes.v10_extras_services import abnormal_day_hint
 from app.core.errors import ConflictError, NotFound, PermissionDenied, ValidationFailed
 from app.domain import enums
 from app.models import CareTask, LifeChangeCase, LifeChangeReview, LifeEvent, Pet
+from app.services import life_change_history as hist
 from app.services import permissions as perm
 from app.services.eventlog import write_audit
 from app.services.life_replay import RECORD_FACT_SOURCES
@@ -61,6 +62,15 @@ def _frozen_comparison_as_of(hint: dict) -> datetime:
         raise ConflictError("Life-change comparison returned an unzoned timestamp.")
     return candidate.astimezone(UTC)
 
+
+
+def _require_zoned_filter(value: datetime | None, label: str) -> datetime | None:
+    """History windows are owner-local instants; a naive filter is ambiguous."""
+    if value is None:
+        return None
+    if value.utcoffset() is None:
+        raise ValidationFailed(f"History filter '{label}' must include a timezone.")
+    return value
 
 
 class CaseCreate(BaseModel):
@@ -302,13 +312,41 @@ async def create_case(
 
 
 @router.get("/pets/{pet_id}/life-change-cases")
-async def list_cases(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -> dict:
+async def list_cases(
+    pet_id: uuid.UUID, db: DBSession, user: CurrentUser,
+    limit: int = Query(hist.DEFAULT_PAGE_SIZE, ge=1, le=hist.MAX_PAGE_SIZE),
+    cursor: str | None = Query(default=None),
+    metric: Literal["walk_minutes_per_day", "meal_count_per_day", "sleep_minutes_per_day"] | None = Query(default=None),
+    since: datetime | None = Query(default=None),
+    until: datetime | None = Query(default=None),
+    q: str | None = Query(default=None, max_length=60),
+) -> dict:
+    """R8AK owner history page: immutable keyset pagination + bounded search.
+
+    The Case list is append-only, so an older page must never shift because a
+    new observation created another Case. Effective state is still derived on
+    read; filtering by derived state is intentionally not offered here because
+    it cannot be answered by a stable SQL keyset.
+    """
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
-    rows = list((await db.execute(
-        select(LifeChangeCase).where(LifeChangeCase.pet_id == pet.id)
-        .order_by(LifeChangeCase.created_at.desc()).limit(50)
-    )).scalars().all())
+    since = _require_zoned_filter(since, "since")
+    until = _require_zoned_filter(until, "until")
+    if since is not None and until is not None and until <= since:
+        raise ValidationFailed("History window must end after it starts.")
+    base = select(LifeChangeCase).where(LifeChangeCase.pet_id == pet.id)
+    base = hist.apply_history_filters(
+        base, metric=metric, since=since, until=until, search=q,
+    )
+    total = await hist.count_cases(db, base)
+    page_stmt = base.order_by(
+        LifeChangeCase.created_at.desc(), LifeChangeCase.id.desc(),
+    )
+    if cursor:
+        page_stmt = hist.apply_cursor(page_stmt, hist.decode_case_cursor(cursor))
+    rows = list((await db.execute(page_stmt.limit(limit + 1))).scalars().all())
+    has_more = len(rows) > limit
+    rows = rows[:limit]
     # One bounded query for the latest accepted observation for each case.
     # A later "follow up later" message does not make a withdrawn previously
     # accepted observation valid again.
@@ -335,7 +373,18 @@ async def list_cases(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -> dic
             case, await _case_current(db, case),
             follow_up_source_valid=followup_valid,
         ))
-    return {"cases": responses}
+    next_cursor = (
+        hist.encode_case_cursor(rows[-1].created_at, rows[-1].id)
+        if has_more and rows else None
+    )
+    return {
+        "cases": responses, "next_cursor": next_cursor,
+        "has_more": has_more, "total": total,
+        "filters": {
+            "metric": metric, "since": since.isoformat() if since else None,
+            "until": until.isoformat() if until else None, "q": q,
+        },
+    }
 
 
 @router.get("/pets/{pet_id}/life-change-cases/{case_id}")
@@ -370,12 +419,22 @@ async def get_case(
         detail = _review_response(review, owner_view=owner_view)
         detail["related_sources_valid"] = followup_states.get(review.id)
         review_payloads.append(detail)
+    case_current = await _case_current(db, case)
     return {
         **_case_response(
-            case, await _case_current(db, case),
+            case, case_current,
             follow_up_source_valid=followup_valid,
         ),
         "reviews": review_payloads,
+        # R8AK: the owner may keep reviewing an old Case from its own detail
+        # page. The token is the append-only Review identity, not a hidden
+        # capability: POST still re-checks source validity, owner role and CAS.
+        "owner_can_review": owner_view and case_current,
+        "latest_review_id": str(reviews[-1].id) if reviews else None,
+        "review_decisions": [
+            "RECORD_OBSERVATION", "FOLLOW_UP_LATER", "NOT_RELEVANT", "CORRECT_SOURCE",
+        ],
+        "follow_up_review_count": len(followup_states),
     }
 
 
