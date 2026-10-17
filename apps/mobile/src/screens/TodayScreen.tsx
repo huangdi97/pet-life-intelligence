@@ -389,14 +389,6 @@ export function TodayScreen() {
                 refreshKey={refreshCounter}
               />
             ) : null}
-            {petId && ownerCases.length > 0 ? (
-              <OwnerChangeHistory
-                key={petId}
-                petId={petId}
-                cases={ownerCases}
-                onOpenTimeline={() => tabNav.navigate("Timeline")}
-              />
-            ) : null}
             <View testID="pli.today.attention">
               {calm ? (
                 <View style={styles.calmRow}>
@@ -421,6 +413,15 @@ export function TodayScreen() {
               <View testID="pli.today.support">
                 <TodayHealthSummary health={health} evidenceState={healthState} />
               </View>
+            ) : null}
+
+            {petId && ownerCases.length > 0 ? (
+              <OwnerChangeHistory
+                key={petId}
+                petId={petId}
+                cases={ownerCases}
+                onOpenTimeline={() => tabNav.navigate("Timeline")}
+              />
             ) : null}
 
             {tasks.length > 0 ? (

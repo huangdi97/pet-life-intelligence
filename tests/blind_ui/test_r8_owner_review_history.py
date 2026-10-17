@@ -32,3 +32,10 @@ def test_r8ai_requires_genuine_normalized_walk_and_durable_native_case():
     assert "case_visible_in_real_native_xml" in capture
     assert "android.start_link(f\"pli-demo://nav?screen=today&pet={pet_id}\")" in capture
     assert "api_json(" in capture and '"/pets/{pet_id}/events"' not in capture
+
+
+def test_review_memory_cannot_push_health_attention_or_primary_record_action_below_it():
+    today = read("apps/mobile/src/screens/TodayScreen.tsx")
+    # Historical memory belongs after the canonical living first-fold actions.
+    assert today.index('testID="pli.today.attention"') < today.index("<OwnerChangeHistory")
+    assert today.index('label="快速记录"') < today.index("<OwnerChangeHistory")
