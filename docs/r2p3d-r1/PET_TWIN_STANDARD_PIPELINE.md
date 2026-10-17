@@ -3,6 +3,13 @@
 > 标准个体 Twin 生产链路（R2P3D-R1 §35/§36/§37/§38）。
 > 状态：2026-09-28。**STANDARD_INDIVIDUAL_TWIN_PIPELINE = PASS**（仓内确定性，零下载）。
 
+>
+> **2026-10-10 语义更正**：这里的 `PASS` 仅指仓内模板版的端到端产品机制通过，
+> 其 fidelity 为 `TEMPLATE_PROVISIONAL`。真实个体高保真重建仍是
+> `NOT_YET_QUALIFIED`，不得用本文件的 PASS 作为视觉/身份验收证据。
+> 生产 Fidelity 权威补充：
+> `PET_TWIN_PRODUCTION_FIDELITY_PLAN_2026-10-10.md`。
+
 ## 1. 目标
 
 把“有 3D Runtime / template fallback”推进到：**用户自己的宠物可本机生成、

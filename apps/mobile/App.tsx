@@ -6,8 +6,8 @@
  *   pli-demo://nav?screen=...   navigate to a screen (presentation runs)
  * Production builds never compile this path (flag off).
  */
-import React, { useCallback, useEffect, useState } from "react";
-import { Linking } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Linking, Pressable, Text } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PetsProvider, usePets } from "./src/context";
 import { AppNavigation } from "./src/navigation";
@@ -15,7 +15,6 @@ import { ApiConfigErrorScreen } from "./src/screens/ApiConfigErrorScreen";
 import { getApiConfigIssue, type ApiConfigIssue } from "./src/apiConfig";
 import { devLogin } from "./src/api";
 import { DEMO_ENV } from "./src/tokens";
-import { getDevUserId } from "./src/storage/session";
 import { navigateToDemoScreen } from "./src/demoNav";
 
 const DEMO_DEFAULT_EMAIL = "owner@pli.demo";
@@ -41,46 +40,133 @@ function demoNavFromUrl(url: string | null): string | null {
   }
 }
 
-function applyDemoNav(screen: string | null): void {
-  if (!screen) return;
-  // navigation may not be ready right after mount; retry briefly
-  for (let i = 0; i < 10; i++) {
-    setTimeout(() => navigateToDemoScreen(screen), i * 500);
+function demoDateFromUrl(url: string | null): string | null {
+  if (!url || !url.startsWith("pli-demo://")) return null;
+  try {
+    const parsed = new URL(url);
+    const date = parsed.searchParams.get("date");
+    // DEMO-ONLY date parameter: a real Life View calendar scope, no fake facts.
+    if (parsed.hostname !== "nav" || !date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+    return date;
+  } catch {
+    return null;
   }
 }
 
-/** Demo-only bootstrap: ensure a dev session (deep link or default account). */
+function demoPetFromUrl(url: string | null): string | null {
+  if (!url || !url.startsWith("pli-demo://")) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.searchParams.get("pet");
+  } catch {
+    return null;
+  }
+}
+
+let demoNavGeneration = 0;
+
+function applyDemoNav(screen: string | null, date: string | null = null): void {
+  if (!screen) return;
+  // Retry ONLY until React Navigation is ready. Previously this scheduled
+  // ten unconditional resetRoot calls over 4.5 s EVEN AFTER success: each
+  // reset can unmount an active 3D WebView while its runtime manifest is
+  // being persisted. This is particularly risky after R8 owner-review
+  // QuickLog flows followed by primary-to-secondary pet switching.
+  // Each new link still invalidates any pending retry from an older link.
+  const generation = ++demoNavGeneration;
+  const attemptNavigation = (attempt: number): void => {
+    if (generation !== demoNavGeneration) return;
+    if (navigateToDemoScreen(screen, date)) return;
+    if (attempt < 19) {
+      setTimeout(() => attemptNavigation(attempt + 1), 400);
+    }
+  };
+  setTimeout(() => attemptNavigation(0), 0);
+}
+
+/** A demo session is a prerequisite of mounting owner screens, not a
+ * best-effort side effect next to them. Otherwise Today/usePetTwin can issue a
+ * 401 before devLogin persists X-Dev-User-Id and never retry visual-models.
+ * This gate is DEMO-ONLY. Production navigation mounts normally.
+ */
 function DemoSession() {
-  const { reload } = usePets();
+  const { reload, choose, reset } = usePets();
+  const [ready, setReady] = useState(false);
+  const [failure, setFailure] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const authenticated = useRef(false);
+
   useEffect(() => {
-    if (!DEMO_ENV) return;
     let alive = true;
     async function boot() {
-      const url = await Linking.getInitialURL();
-      if (!alive) return;
-      const email = demoEmailFromUrl(url) ?? DEMO_DEFAULT_EMAIL;
-      if ((await getDevUserId()) && email === DEMO_DEFAULT_EMAIL) {
-        reload();
-      } else {
+      try {
+        const url = await Linking.getInitialURL();
+        if (!alive) return;
+        const email = demoEmailFromUrl(url) ?? DEMO_DEFAULT_EMAIL;
+        // Always exchange the dev email for the current backend user id.
+        // Stale SecureStore ids from an earlier demo backend are not valid.
         await devLogin(email);
+        if (!alive) return;
+        authenticated.current = true;
+        // The PetsProvider's first fetch was deliberately deferred; this is
+        // its authenticated starting signal, not a race against login.
         reload();
+        const pet = demoPetFromUrl(url);
+        if (pet) await choose(pet);
+        if (!alive) return;
+        setReady(true);
+        applyDemoNav(demoNavFromUrl(url), demoDateFromUrl(url));
+      } catch {
+        if (alive) setFailure(true);
       }
-      applyDemoNav(demoNavFromUrl(url));
     }
     void boot();
     const sub = Linking.addEventListener("url", ({ url }) => {
-      const email = demoEmailFromUrl(url);
-      if (email) {
-        void devLogin(email).then(reload);
-      }
-      applyDemoNav(demoNavFromUrl(url));
+      void (async () => {
+        try {
+          const email = demoEmailFromUrl(url);
+          if (email) {
+            authenticated.current = false;
+            // Cross-account demo navigation must never expose prior owner
+            // content while a new session is being established.
+            setReady(false);
+            reset();
+            await devLogin(email);
+            if (!alive) return;
+            authenticated.current = true;
+            reload();
+          } else if (!authenticated.current) {
+            // An early navigation link must not unblock owner screens while
+            // the initial authenticated bootstrap is still in flight.
+            return;
+          }
+          const pet = demoPetFromUrl(url);
+          if (pet) await choose(pet);
+          if (!alive) return;
+          setReady(true);
+          applyDemoNav(demoNavFromUrl(url), demoDateFromUrl(url));
+        } catch {
+          if (alive) setFailure(true);
+        }
+      })();
     });
     return () => {
       alive = false;
       sub.remove();
     };
-  }, [reload]);
-  return null;
+  }, [attempt, choose, reload, reset]);
+
+  if (failure && !ready) {
+    return (
+      <SafeAreaProvider>
+        <Pressable accessibilityRole="button" accessibilityLabel="重试演示登录" onPress={() => { setFailure(false); setAttempt((n) => n + 1); }}>
+          <Text>演示数据暂时没有连接成功 · 点击重试</Text>
+        </Pressable>
+      </SafeAreaProvider>
+    );
+  }
+  // No owner API hook or 3D Twin request can run before the demo session.
+  return ready ? <AppNavigation /> : null;
 }
 
 export default function App() {
@@ -98,9 +184,8 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <PetsProvider>
-        {DEMO_ENV ? <DemoSession /> : null}
-        <AppNavigation />
+      <PetsProvider deferInitialLoad={DEMO_ENV}>
+        {DEMO_ENV ? <DemoSession /> : <AppNavigation />}
       </PetsProvider>
     </SafeAreaProvider>
   );

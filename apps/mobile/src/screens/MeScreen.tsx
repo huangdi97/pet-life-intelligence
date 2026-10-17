@@ -10,17 +10,61 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { usePets } from "../context";
-import { devLogin } from "../api";
+import { breedLabel } from "../format";
+import { api, devLogin, humanizeError } from "../api";
 import { getDevUserId, getToken, setDevUserId, setToken } from "../storage/session";
 import { COLORS, DEMO_ENV, RADIUS, SPACE, TYPE } from "../tokens";
 import type { StackParamList } from "../navigation";
 import { OpenSection } from "../components/feedback/OpenSection";
 import { PetAvatar } from "../components/media/PetAvatar";
 import { resolvePetMediaUri } from "../components/media/demoPetVisual";
+import { consentPurposeLabel } from "./ui_labels";
 
 type StackNav = NativeStackNavigationProp<StackParamList>;
 
 const SHOW_DEVELOPER_SETTINGS = DEMO_ENV || __DEV__;
+
+const FEEDBACK_CATEGORIES = [
+  { key: "bug", label: "出错" },
+  { key: "confusing", label: "看不懂" },
+  { key: "missing", label: "缺少内容" },
+  { key: "feature_request", label: "功能建议" },
+  { key: "privacy", label: "隐私担忧" },
+  { key: "other", label: "其他" },
+] as const;
+
+interface ConsentRow {
+  purpose: string;
+  granted: boolean;
+  updated_at: string;
+}
+
+interface DeletionRequestRow {
+  request_id: string;
+  status: string;
+  reason: string;
+  created_at: string;
+  resolved_at: string | null;
+}
+
+interface EmergencyProfile {
+  owner_contact: string;
+  backup_contact: string;
+  vet_clinic_name: string;
+  vet_clinic_phone: string;
+  vet_clinic_address_text: string;
+  critical_care_notes: string;
+  updated_at?: string;
+}
+
+const EMPTY_EMERGENCY_PROFILE: EmergencyProfile = {
+  owner_contact: "",
+  backup_contact: "",
+  vet_clinic_name: "",
+  vet_clinic_phone: "",
+  vet_clinic_address_text: "",
+  critical_care_notes: "",
+};
 
 export function MeScreen() {
   const { pets, petId, choose, reload, reset } = usePets();
@@ -30,6 +74,24 @@ export function MeScreen() {
   const [email, setEmail] = useState("owner@pli.demo");
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [feedbackCategory, setFeedbackCategory] = useState<(typeof FEEDBACK_CATEGORIES)[number]["key"]>("confusing");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [feedbackStatus, setFeedbackStatus] = useState<string | null>(null);
+  const [consents, setConsents] = useState<ConsentRow[]>([]);
+  const [consentState, setConsentState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [consentBusy, setConsentBusy] = useState<string | null>(null);
+  const [emergency, setEmergency] = useState<EmergencyProfile>(EMPTY_EMERGENCY_PROFILE);
+  const [emergencyState, setEmergencyState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [emergencyBusy, setEmergencyBusy] = useState(false);
+  const [deletionReason, setDeletionReason] = useState("");
+  const [deletionBusy, setDeletionBusy] = useState(false);
+  const [deletionRequests, setDeletionRequests] = useState<DeletionRequestRow[]>([]);
+  const [deletionState, setDeletionState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [inviteCode, setInviteCode] = useState("");
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState<string | null>(null);
+  const [dataStatus, setDataStatus] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -46,6 +108,54 @@ export function MeScreen() {
 
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
   const hasSession = sessionKind === "dev" || sessionKind === "token";
+
+  useEffect(() => {
+    const pid = current?.id;
+    if (!pid || !hasSession) {
+      setConsents([]);
+      setConsentState("idle");
+      setEmergency(EMPTY_EMERGENCY_PROFILE);
+      setEmergencyState("idle");
+      setDeletionRequests([]);
+      setDeletionState("idle");
+      return;
+    }
+    let alive = true;
+    setConsentState("loading");
+    setEmergencyState("loading");
+    setDeletionState("loading");
+    setDataStatus(null);
+    Promise.allSettled([
+      api.get<ConsentRow[]>(`/pets/${pid}/consents`),
+      api.get<EmergencyProfile>(`/pets/${pid}/emergency-profile`),
+      api.get<DeletionRequestRow[]>(`/pets/${pid}/deletion-requests`),
+    ]).then(([consentResult, emergencyResult, deletionResult]) => {
+      if (!alive) return;
+      if (consentResult.status === "fulfilled") {
+        setConsents(consentResult.value);
+        setConsentState("ready");
+      } else {
+        setConsentState("error");
+      }
+      if (emergencyResult.status === "fulfilled") {
+        setEmergency({ ...EMPTY_EMERGENCY_PROFILE, ...emergencyResult.value });
+        setEmergencyState("ready");
+      } else {
+        setEmergency(EMPTY_EMERGENCY_PROFILE);
+        setEmergencyState("error");
+      }
+      if (deletionResult.status === "fulfilled") {
+        setDeletionRequests(deletionResult.value);
+        setDeletionState("ready");
+      } else {
+        setDeletionRequests([]);
+        setDeletionState("error");
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [current?.id, hasSession]);
 
   async function login() {
     const e = email.trim();
@@ -70,6 +180,98 @@ export function MeScreen() {
     reset();
   }
 
+  async function toggleConsent(row: ConsentRow) {
+    if (!current?.id || consentBusy || row.purpose === "SERVICE_ESSENTIAL") return;
+    setConsentBusy(row.purpose);
+    setDataStatus(null);
+    try {
+      await api.put(`/pets/${current.id}/consents/${row.purpose}`, { granted: !row.granted });
+      setConsents((items) =>
+        items.map((item) => (item.purpose === row.purpose ? { ...item, granted: !item.granted } : item)),
+      );
+      setDataStatus(`${consentPurposeLabel(row.purpose)}已${row.granted ? "撤回" : "同意"}。`);
+    } catch (error: unknown) {
+      setDataStatus(humanizeError(error));
+    } finally {
+      setConsentBusy(null);
+    }
+  }
+
+  async function saveEmergencyProfile() {
+    if (!current?.id || emergencyBusy) return;
+    setEmergencyBusy(true);
+    setDataStatus(null);
+    try {
+      await api.put(`/pets/${current.id}/emergency-profile`, emergency);
+      setEmergencyState("ready");
+      setDataStatus("紧急联系卡已保存。");
+    } catch (error: unknown) {
+      setDataStatus(humanizeError(error));
+    } finally {
+      setEmergencyBusy(false);
+    }
+  }
+
+  async function requestPetDeletion() {
+    if (!current?.id || deletionBusy) return;
+    setDeletionBusy(true);
+    setDataStatus(null);
+    try {
+      await api.post(`/pets/${current.id}/deletion-requests`, { reason: deletionReason.trim() });
+      setDeletionReason("");
+      setDataStatus("删除请求已登记；不会立即自动删除，后续仍需确认。");
+      const rows = await api.get<DeletionRequestRow[]>(`/pets/${current.id}/deletion-requests`);
+      setDeletionRequests(rows);
+      setDeletionState("ready");
+    } catch (error: unknown) {
+      setDataStatus(humanizeError(error));
+    } finally {
+      setDeletionBusy(false);
+    }
+  }
+
+  async function acceptHouseholdInvitation() {
+    const token = inviteCode.trim();
+    if (!token || inviteBusy || !hasSession) return;
+    setInviteBusy(true);
+    setInviteStatus(null);
+    try {
+      await api.post("/invitations/accept", { token });
+      setInviteCode("");
+      setInviteStatus("家庭邀请已接受。");
+      await reload();
+    } catch (error: unknown) {
+      setInviteStatus(humanizeError(error));
+    } finally {
+      setInviteBusy(false);
+    }
+  }
+
+  async function sendFeedback() {
+    const message = feedbackMessage.trim();
+    if (!message || feedbackBusy || !hasSession) return;
+    setFeedbackBusy(true);
+    setFeedbackStatus(null);
+    try {
+      await api.post("/pilot/feedback", {
+        category: feedbackCategory,
+        message,
+        page_url: "mobile://me",
+        pet_id: current?.id ?? null,
+        client: "android",
+        extra: { surface: "me" },
+      });
+      setFeedbackMessage("");
+      setFeedbackStatus("反馈已提交，感谢你帮助我们改进。");
+    } catch (error: unknown) {
+      setFeedbackStatus(humanizeError(error));
+    } finally {
+      setFeedbackBusy(false);
+    }
+  }
+
+  const pendingDeletion = deletionRequests.find((row) => row.status === "PENDING") ?? null;
+
   return (
     <SafeAreaView style={styles.page} edges={["top"]}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -86,10 +288,64 @@ export function MeScreen() {
         <OpenSection title="家庭" testID="pli.me.care-network">
           <Row label="当前宠物" value={current ? current.name : "未选择"} />
           <Row label="家庭" value={pets && pets.length > 0 ? "已加入" : "未加入"} />
-          <Row label="会话" value={sessionKind === "dev" || sessionKind === "token" ? "已登录" : "未登录"} />
+          <Pressable accessibilityRole="button" style={[styles.linkRow, styles.rowDivider]} onPress={() => navigation.navigate("Care")}>
+            <Ionicons name="people-outline" size={18} color={COLORS.brandPrimaryDeep} />
+            <Text style={styles.linkText}>照护协作</Text>
+            <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+          </Pressable>
+          <View style={[styles.inviteAccept, styles.rowDivider]}>
+            <Text style={styles.rowLabel}>接受家庭邀请</Text>
+            <Text style={styles.sectionLead}>邀请码只用于加入家庭，不会授予超出邀请角色的权限。</Text>
+            <TextInput
+              testID="pli.me.invitation.token"
+              style={styles.input}
+              value={inviteCode}
+              onChangeText={setInviteCode}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="输入邀请码"
+              placeholderTextColor={COLORS.textTertiary}
+            />
+            <Pressable
+              testID="pli.me.invitation.accept"
+              accessibilityRole="button"
+              accessibilityLabel="接受家庭邀请"
+              accessibilityState={{ disabled: inviteBusy || !inviteCode.trim() || !hasSession }}
+              disabled={inviteBusy || !inviteCode.trim() || !hasSession}
+              onPress={() => void acceptHouseholdInvitation()}
+              style={[styles.smallButton, styles.inviteButton, (inviteBusy || !inviteCode.trim() || !hasSession) && styles.controlDisabled]}
+            >
+              <Text style={styles.smallButtonText}>{inviteBusy ? "处理中…" : hasSession ? "接受邀请" : "登录后可接受"}</Text>
+            </Pressable>
+            {inviteStatus ? <Text style={styles.stateText}>{inviteStatus}</Text> : null}
+          </View>
         </OpenSection>
 
         <OpenSection title="我的宠物" testID="pli.me.pets">
+          <View style={styles.petActions}>
+            <Pressable
+              testID="pli.me.pets.create"
+              accessibilityRole="button"
+              accessibilityLabel="新建宠物档案"
+              onPress={() => navigation.navigate("PetProfile", { mode: "create" })}
+              style={styles.smallButton}
+            >
+              <Ionicons name="add" size={16} color={COLORS.brandPrimaryDeep} />
+              <Text style={styles.smallButtonText}>新建宠物</Text>
+            </Pressable>
+            {current ? (
+              <Pressable
+                testID="pli.me.pets.edit"
+                accessibilityRole="button"
+                accessibilityLabel={`编辑${current.name}的宠物档案`}
+                onPress={() => navigation.navigate("PetProfile", { mode: "edit" })}
+                style={styles.smallButton}
+              >
+                <Ionicons name="create-outline" size={16} color={COLORS.brandPrimaryDeep} />
+                <Text style={styles.smallButtonText}>编辑当前档案</Text>
+              </Pressable>
+            ) : null}
+          </View>
           {(pets ?? []).map((p, i) => (
             <Pressable
               key={p.id}
@@ -100,36 +356,183 @@ export function MeScreen() {
             >
               <PetAvatar pet={p} uri={resolvePetMediaUri(p)} size={36} />
               <Text style={styles.petName}>{p.name}</Text>
-              <Text style={styles.petMeta}>{p.breed || "宠物"}</Text>
+              <Text style={styles.petMeta}>{breedLabel(p.breed) || "宠物"}</Text>
             </Pressable>
           ))}
         </OpenSection>
 
-        <OpenSection title="常用">
+        <OpenSection title="通知与设备">
           <Pressable testID="pli.me.notifications" accessibilityRole="button" style={styles.linkRow} onPress={() => navigation.navigate("Notifications")}>
             <Ionicons name="notifications-outline" size={18} color={COLORS.brandPrimaryDeep} />
             <Text style={styles.linkText}>通知</Text>
             <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
           </Pressable>
-          <Pressable accessibilityRole="button" style={[styles.linkRow, styles.rowDivider]} onPress={() => navigation.navigate("Health")}>
-            <Ionicons name="medkit-outline" size={18} color={COLORS.brandPrimaryDeep} />
-            <Text style={styles.linkText}>健康</Text>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-          </Pressable>
-          <Pressable accessibilityRole="button" style={[styles.linkRow, styles.rowDivider]} onPress={() => navigation.navigate("LifeView")}>
-            <Ionicons name="planet-outline" size={18} color={COLORS.brandPrimaryDeep} />
-            <Text style={styles.linkText}>生命视图</Text>
+          <Pressable accessibilityRole="button" style={[styles.linkRow, styles.rowDivider]} onPress={() => navigation.navigate("Monitoring")}>
+            <Ionicons name="hardware-chip-outline" size={18} color={COLORS.brandPrimaryDeep} />
+            <Text style={styles.linkText}>在家与设备</Text>
             <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
           </Pressable>
         </OpenSection>
 
         <OpenSection title="隐私与数据" testID="pli.me.privacy">
-          <Row label="隐私" value="仅向你展示必要信息" />
-          <View testID="pli.me.data"><Row label="数据" value="由你记录，可随时导出" /></View>
+          <Text style={styles.sectionLead}>逐项管理数据用途。核心服务所需数据不可单独撤回，其余用途由你决定。</Text>
+          {!current ? (
+            <Text style={styles.stateText}>选择宠物后可查看数据用途设置。</Text>
+          ) : consentState === "loading" ? (
+            <Text style={styles.stateText}>正在读取数据用途设置…</Text>
+          ) : consentState === "error" ? (
+            <Text style={styles.errorText}>数据用途设置暂时没有加载成功；不会用默认值代替真实状态。</Text>
+          ) : (
+            consents.map((row, index) => {
+              const essential = row.purpose === "SERVICE_ESSENTIAL";
+              const busy = consentBusy === row.purpose;
+              return (
+                <View key={row.purpose} style={[styles.consentRow, index > 0 && styles.rowDivider]}>
+                  <View style={styles.consentCopy}>
+                    <Text style={styles.rowLabel}>{consentPurposeLabel(row.purpose)}</Text>
+                    <Text style={styles.consentMeta}>{row.granted ? "已同意" : "未同意"}{essential ? " · 服务必需" : ""}</Text>
+                  </View>
+                  <Pressable
+                    testID={`pli.me.consent.${row.purpose}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={essential ? "核心服务所需数据不可单独撤回" : `${row.granted ? "撤回" : "同意"}${consentPurposeLabel(row.purpose)}`}
+                    accessibilityState={{ disabled: essential || busy }}
+                    disabled={essential || busy}
+                    onPress={() => void toggleConsent(row)}
+                    style={[styles.smallButton, row.granted && styles.smallButtonActive, (essential || busy) && styles.controlDisabled]}
+                  >
+                    <Text style={[styles.smallButtonText, row.granted && styles.smallButtonTextActive]}>
+                      {essential ? "服务必需" : busy ? "处理中…" : row.granted ? "撤回" : "同意"}
+                    </Text>
+                  </Pressable>
+                </View>
+              );
+            })
+          )}
+          <View testID="pli.me.data" style={styles.dataBlock}>
+            <Text style={styles.dataTitle}>数据删除请求</Text>
+            <Text style={styles.stateText}>提交后先登记并保留审计记录；不会立即自动删除。</Text>
+            {deletionState === "loading" ? <Text style={styles.stateText}>正在读取删除请求状态…</Text> : null}
+            {deletionState === "error" ? (
+              <Text style={styles.errorText}>删除请求状态暂时没有加载成功；不会因此假定“没有待处理请求”。</Text>
+            ) : null}
+            {pendingDeletion ? (
+              <View style={styles.pendingDeletion}>
+                <Text style={styles.rowLabel}>当前有请求等待人工确认</Text>
+                <Text style={styles.stateText}>{new Date(pendingDeletion.created_at).toLocaleString()}</Text>
+                {pendingDeletion.reason ? <Text style={styles.stateText}>原因：{pendingDeletion.reason}</Text> : null}
+              </View>
+            ) : null}
+            {deletionRequests.slice(0, 3).map((row) => (
+              <View key={row.request_id} style={styles.row}>
+                <Text style={styles.rowLabel}>{row.status === "PENDING" ? "等待人工确认" : "状态已记录"}</Text>
+                <Text style={styles.rowValue}>{new Date(row.created_at).toLocaleDateString()}</Text>
+              </View>
+            ))}
+            <TextInput
+              style={styles.input}
+              value={deletionReason}
+              onChangeText={setDeletionReason}
+              maxLength={240}
+              editable={!pendingDeletion}
+              placeholder="原因（可选）"
+              placeholderTextColor={COLORS.textTertiary}
+            />
+            <Pressable
+              testID="pli.me.data.delete-request"
+              accessibilityRole="button"
+              accessibilityLabel="登记宠物数据删除请求"
+              accessibilityState={{ disabled: deletionBusy || !current || Boolean(pendingDeletion) || deletionState === "loading" }}
+              disabled={deletionBusy || !current || Boolean(pendingDeletion) || deletionState === "loading"}
+              onPress={() => void requestPetDeletion()}
+              style={[styles.dangerButton, (deletionBusy || !current || Boolean(pendingDeletion) || deletionState === "loading") && styles.controlDisabled]}
+            >
+              <Text style={styles.dangerButtonText}>
+                {deletionBusy ? "登记中…" : pendingDeletion ? "已有待处理请求" : "登记删除请求"}
+              </Text>
+            </Pressable>
+          </View>
+          {dataStatus ? <Text style={styles.feedbackStatus} accessibilityLiveRegion="polite">{dataStatus}</Text> : null}
+        </OpenSection>
+
+        <OpenSection title="紧急联系卡" testID="pli.me.emergency-profile">
+          <Text style={styles.sectionLead}>保存主人、备用联系人、首选医院与关键照护备注，供紧急照护场景使用。</Text>
+          {!current ? (
+            <Text style={styles.stateText}>选择宠物后可编辑紧急联系卡。</Text>
+          ) : emergencyState === "loading" ? (
+            <Text style={styles.stateText}>正在读取紧急联系卡…</Text>
+          ) : (
+            <>
+              {emergencyState === "error" ? (
+                <Text style={styles.errorText}>紧急联系卡暂时没有加载成功；你仍可重新填写并保存。</Text>
+              ) : null}
+              <TextInput style={styles.input} value={emergency.owner_contact} onChangeText={(value) => setEmergency((v) => ({ ...v, owner_contact: value }))} placeholder="主人联系方式" placeholderTextColor={COLORS.textTertiary} />
+              <TextInput style={styles.input} value={emergency.backup_contact} onChangeText={(value) => setEmergency((v) => ({ ...v, backup_contact: value }))} placeholder="备用联系人" placeholderTextColor={COLORS.textTertiary} />
+              <TextInput style={styles.input} value={emergency.vet_clinic_name} onChangeText={(value) => setEmergency((v) => ({ ...v, vet_clinic_name: value }))} placeholder="首选医院" placeholderTextColor={COLORS.textTertiary} />
+              <TextInput style={styles.input} value={emergency.vet_clinic_phone} onChangeText={(value) => setEmergency((v) => ({ ...v, vet_clinic_phone: value }))} keyboardType="phone-pad" placeholder="医院电话" placeholderTextColor={COLORS.textTertiary} />
+              <TextInput style={styles.input} value={emergency.vet_clinic_address_text} onChangeText={(value) => setEmergency((v) => ({ ...v, vet_clinic_address_text: value }))} placeholder="医院地址" placeholderTextColor={COLORS.textTertiary} />
+              <TextInput style={[styles.input, styles.multilineInput]} value={emergency.critical_care_notes} onChangeText={(value) => setEmergency((v) => ({ ...v, critical_care_notes: value }))} multiline textAlignVertical="top" placeholder="关键照护备注 / 行为禁忌" placeholderTextColor={COLORS.textTertiary} />
+              <Pressable
+                testID="pli.me.emergency-profile.save"
+                accessibilityRole="button"
+                accessibilityLabel="保存紧急联系卡"
+                accessibilityState={{ disabled: emergencyBusy }}
+                disabled={emergencyBusy}
+                onPress={() => void saveEmergencyProfile()}
+                style={[styles.feedbackSubmit, emergencyBusy && styles.controlDisabled]}
+              >
+                <Text style={styles.feedbackSubmitText}>{emergencyBusy ? "保存中…" : "保存紧急联系卡"}</Text>
+              </Pressable>
+            </>
+          )}
+        </OpenSection>
+
+        <OpenSection title="试点反馈" testID="pli.me.feedback">
+          <Text style={styles.feedbackLead}>告诉我们哪里出错、难懂或缺少内容；请不要填写病历全文或联系方式。</Text>
+          <View style={styles.feedbackChips} accessibilityLabel="反馈类别">
+            {FEEDBACK_CATEGORIES.map((category) => {
+              const selected = feedbackCategory === category.key;
+              return (
+                <Pressable
+                  key={category.key}
+                  testID={`pli.me.feedback.category.${category.key}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  onPress={() => setFeedbackCategory(category.key)}
+                  style={[styles.feedbackChip, selected && styles.feedbackChipSelected]}
+                >
+                  <Text style={[styles.feedbackChipText, selected && styles.feedbackChipTextSelected]}>{category.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <TextInput
+            testID="pli.me.feedback.message"
+            style={[styles.input, styles.feedbackInput]}
+            value={feedbackMessage}
+            onChangeText={setFeedbackMessage}
+            multiline
+            maxLength={4000}
+            textAlignVertical="top"
+            placeholder="描述你遇到的问题或建议"
+            placeholderTextColor={COLORS.textTertiary}
+          />
+          <Pressable
+            testID="pli.me.feedback.submit"
+            accessibilityRole="button"
+            accessibilityLabel={hasSession ? "提交试点反馈" : "登录后可提交试点反馈"}
+            accessibilityState={{ disabled: feedbackBusy || !feedbackMessage.trim() || !hasSession }}
+            disabled={feedbackBusy || !feedbackMessage.trim() || !hasSession}
+            onPress={() => void sendFeedback()}
+            style={[styles.feedbackSubmit, (feedbackBusy || !feedbackMessage.trim() || !hasSession) && styles.controlDisabled]}
+          >
+            <Text style={styles.feedbackSubmitText}>{feedbackBusy ? "提交中…" : hasSession ? "提交反馈" : "登录后可提交"}</Text>
+          </Pressable>
+          {feedbackStatus ? <Text style={styles.feedbackStatus} accessibilityLiveRegion="polite">{feedbackStatus}</Text> : null}
         </OpenSection>
 
         <OpenSection title="应用" testID="pli.me.help">
-          <Row label="版本" value="v0.2.0 · 预览版" />
+          <Row label="版本" value="预览构建" />
           <Row label="关于" value="Pet Life Intelligence" />
         </OpenSection>
 
@@ -137,6 +540,8 @@ export function MeScreen() {
           <OpenSection title="开发者设置" testID="pli.me.settings">
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={devOpen ? "收起演示环境登录" : "展开演示环境登录"}
+              accessibilityState={{ expanded: devOpen }}
               style={styles.linkRow}
               onPress={() => setDevOpen((v) => !v)}
             >
@@ -147,7 +552,7 @@ export function MeScreen() {
             {devOpen ? (
               <View style={styles.devForm}>
                 <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="demo 邮箱" placeholderTextColor={COLORS.textTertiary} />
-                <Pressable accessibilityRole="button" accessibilityLabel="登录" onPress={() => void login()} disabled={loginBusy} style={styles.devLoginBtn}>
+                <Pressable accessibilityRole="button" accessibilityLabel="登录" accessibilityState={{ disabled: loginBusy }} onPress={() => void login()} disabled={loginBusy} style={[styles.devLoginBtn, loginBusy && styles.controlDisabled]}>
                   <Text style={styles.devLoginText}>{loginBusy ? "登录中…" : "登录"}</Text>
                 </Pressable>
                 {loginError ? <Text style={styles.errorText}>{loginError}</Text> : null}
@@ -189,11 +594,27 @@ const styles = StyleSheet.create({
   rowDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
   rowLabel: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "500" },
   rowValue: { fontSize: TYPE.sm, color: COLORS.textTertiary },
+  petActions: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, paddingBottom: SPACE.s2 },
   petRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: 8 },
   petName: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "600" },
   petMeta: { fontSize: TYPE.meta, color: COLORS.textTertiary, marginLeft: "auto" },
   linkRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: 12 },
   linkText: { fontSize: TYPE.body, color: COLORS.textPrimary, flex: 1 },
+  sectionLead: { fontSize: TYPE.sm, color: COLORS.textTertiary, lineHeight: 20, marginBottom: SPACE.s2 },
+  stateText: { fontSize: TYPE.sm, color: COLORS.textTertiary, lineHeight: 20 },
+  consentRow: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: SPACE.s2 },
+  consentCopy: { flex: 1 },
+  consentMeta: { marginTop: 2, fontSize: TYPE.caption, color: COLORS.textTertiary },
+  smallButton: { minHeight: 44, minWidth: 72, alignItems: "center", justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.dividerStrong, backgroundColor: COLORS.surface },
+  smallButtonActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
+  smallButtonText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "600" },
+  smallButtonTextActive: { color: COLORS.brandPrimaryDeep },
+  dataBlock: { marginTop: SPACE.s4, gap: SPACE.s2 },
+  pendingDeletion: { padding: SPACE.s3, borderRadius: RADIUS.lg, backgroundColor: COLORS.surfaceRaised, gap: 4 },
+  dataTitle: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "600" },
+  dangerButton: { minHeight: 46, alignItems: "center", justifyContent: "center", borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.danger, backgroundColor: COLORS.surface },
+  dangerButtonText: { fontSize: TYPE.button, color: COLORS.danger, fontWeight: "600" },
+  multilineInput: { minHeight: 82 },
   devForm: { marginTop: SPACE.s2, gap: SPACE.s2 },
   input: {
     borderWidth: 1,
@@ -205,10 +626,23 @@ const styles = StyleSheet.create({
     fontSize: TYPE.body,
     color: COLORS.textPrimary,
   },
-  devLoginBtn: { backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 10, alignItems: "center" },
+  devLoginBtn: { minHeight: 48, justifyContent: "center", backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 10, alignItems: "center" },
   devLoginText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   devNote: { fontSize: TYPE.caption, color: COLORS.textTertiary },
   errorText: { fontSize: TYPE.sm, color: COLORS.danger },
-  logoutBtn: { marginHorizontal: SPACE.s4, marginTop: SPACE.s5, paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: COLORS.dividerStrong, alignItems: "center" },
+  feedbackLead: { fontSize: TYPE.sm, color: COLORS.textTertiary, lineHeight: 20 },
+  feedbackChips: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, marginTop: SPACE.s3 },
+  feedbackChip: { minHeight: 44, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised, borderWidth: 1, borderColor: COLORS.dividerSubtle },
+  feedbackChipSelected: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
+  feedbackChipText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
+  feedbackChipTextSelected: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  feedbackInput: { minHeight: 88, marginTop: SPACE.s3 },
+  feedbackSubmit: { minHeight: 48, justifyContent: "center", alignItems: "center", marginTop: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.brandPrimary },
+  feedbackSubmitText: { fontSize: TYPE.button, color: COLORS.textInverse, fontWeight: "600" },
+  feedbackStatus: { marginTop: SPACE.s2, fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20 },
+  logoutBtn: { minHeight: 48, justifyContent: "center", marginHorizontal: SPACE.s4, marginTop: SPACE.s5, paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: COLORS.dividerStrong, alignItems: "center" },
+  controlDisabled: { opacity: 0.5 },
   logoutText: { fontSize: TYPE.button, color: COLORS.textSecondary, fontWeight: "600" },
+  inviteAccept: { paddingTop: SPACE.s3, marginTop: SPACE.s2 },
+  inviteButton: { alignSelf: "flex-start", marginTop: SPACE.s2 },
 });

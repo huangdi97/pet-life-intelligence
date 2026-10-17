@@ -62,6 +62,7 @@ export function SocialRecordForm({
             value={duration}
             onChangeText={onDurationChange}
             keyboardType="number-pad"
+            accessibilityLabel="互动时长（分钟）"
             placeholder="30"
             placeholderTextColor={COLORS.inkDisabled}
           />
@@ -72,6 +73,7 @@ export function SocialRecordForm({
             style={styles.input}
             value={notes}
             onChangeText={onNotesChange}
+            accessibilityLabel="互动备注"
             placeholder="可选"
             placeholderTextColor={COLORS.inkDisabled}
           />

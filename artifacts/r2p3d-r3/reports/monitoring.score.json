@@ -1,0 +1,237 @@
+{
+  "screen": "monitoring",
+  "total": 95,
+  "max": 100,
+  "perDimension": {
+    "individualPetTruth": {
+      "earned": 25,
+      "max": 25
+    },
+    "visualComposition": {
+      "earned": 20,
+      "max": 20
+    },
+    "informationHierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surfaceGovernance": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interactionTruth": {
+      "earned": 5,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "pixelStyleTruth": {
+      "earned": 5,
+      "max": 5
+    }
+  },
+  "passed": [
+    {
+      "id": "monitoring.identity",
+      "dimension": "individualPetTruth",
+      "points": 10,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.monitoring.identity]=1"
+    },
+    {
+      "id": "monitoring.state.one",
+      "dimension": "individualPetTruth",
+      "points": 10,
+      "description": "状态机明确呈现（非一直 loading）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.state.*",
+        "count": [
+          1,
+          1
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.monitoring.state.*]=1"
+    },
+    {
+      "id": "monitoring.states",
+      "dimension": "visualComposition",
+      "points": 8,
+      "description": "状态机支持 LOADING/CONNECTED/NO_DEVICE/OFFLINE/ERROR/CACHED/PERMISSION_REQUIRED",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.state.*",
+        "count": [
+          1,
+          7
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.monitoring.state.*]=1"
+    },
+    {
+      "id": "monitoring.content",
+      "dimension": "visualComposition",
+      "points": 12,
+      "description": "监控内容区存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.content"
+      },
+      "passed": true,
+      "detail": "elements[pli.monitoring.content]=1"
+    },
+    {
+      "id": "monitoring.meaning",
+      "dimension": "informationHierarchy",
+      "points": 7,
+      "description": "当前状态有说明",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.state.*"
+      },
+      "passed": true,
+      "detail": "elements[pli.monitoring.state.*]=1"
+    },
+    {
+      "id": "monitoring.last",
+      "dimension": "informationHierarchy",
+      "points": 8,
+      "description": "最近数据/时间存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.last"
+      },
+      "passed": true,
+      "detail": "elements[pli.monitoring.last]=1"
+    },
+    {
+      "id": "monitoring.surface",
+      "dimension": "surfaceGovernance",
+      "points": 10,
+      "description": "大 Card ≤4",
+      "check": {
+        "kind": "surface",
+        "max": 4,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 4"
+    },
+    {
+      "id": "monitoring.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "monitoring.action",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "重试/连接动作存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.action"
+      },
+      "passed": true,
+      "detail": "elements[pli.monitoring.action]=1"
+    },
+    {
+      "id": "monitoring.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "状态可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.state.*"
+      },
+      "passed": true,
+      "detail": "elements[pli.monitoring.state.*]=1"
+    },
+    {
+      "id": "monitoring.truth",
+      "dimension": "individualPetTruth",
+      "points": 5,
+      "description": "状态来自真实状态机（无空白/死循环） (real data)",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "monitoring.truth.style",
+      "dimension": "pixelStyleTruth",
+      "points": 5,
+      "description": "无占位/空板书风格（style truth）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [
+    {
+      "id": "monitoring.view",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "内容可查看",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.monitoring.content"
+        },
+        "range": [
+          1,
+          8
+        ]
+      },
+      "passed": false,
+      "detail": "count=0 outside [1,8]"
+    }
+  ],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

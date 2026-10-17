@@ -17,7 +17,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "用于记录宠物照片作为健康与生活证据",
         "NSPhotoLibraryUsageDescription": "用于从相册选择宠物照片/视频",
-        "NSUserNotificationsUsageDescription": "用于接收用药、任务与健康提醒"
+        "NSUserNotificationsUsageDescription": "用于接收用药、任务与健康提醒",
+        "NSMicrophoneUsageDescription": "用于录制宠物生活语音日记；录音仅在你明确开始后保存"
       }
     },
     "android": {
@@ -30,7 +31,8 @@
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO"
       ]
     },
     "plugins": [

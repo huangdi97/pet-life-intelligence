@@ -21,7 +21,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageFilter, ImageOps, ImageStat
+from PIL import Image, ImageFilter, ImageOps, ImageStat
 
 Coerce = str | Path
 
@@ -98,9 +98,13 @@ def segment_by_background(path: Coerce, bg_tolerance: int = 42) -> dict:
 
 
 def silhouette_box(mask: Image.Image) -> dict:
-    """Bounding box + ground estimate from a binary mask (L, 0/255)."""
-    inv = ImageChops.invert(mask)
-    bbox = inv.getbbox()
+    """Bounding box + ground estimate from a foreground mask (L, 0/255).
+
+    segment_by_background() uses 255 for pet foreground and 0 for background.
+    Measure that foreground directly: inverting here measures the surrounding
+    background/image frame and collapses morphology toward the photo aspect.
+    """
+    bbox = mask.convert("L").getbbox()
     if bbox is None:
         return {"has_pet": False}
     x0, y0, x1, y1 = bbox

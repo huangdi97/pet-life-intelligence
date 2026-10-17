@@ -2,16 +2,18 @@
 
 /**
  * PetLivingStage — shared web stage composition (R2-P3D §16/§19/§23).
- * Three depth layers: warm charcoal environment background, midground REAL 3D
- * pet (shared demo asset, Pet3DViewer), foreground state anchors + identity/now
- * overlay. Used by Today / Pet / Life View pages so the same 豆豆 dominates all
- * three surfaces. When no demo identity or WebGL failure, degrades to the
+ * Three depth layers: warm living environment, midground REAL 3D pet,
+ * foreground state anchors + identity/now overlay. The same canonical asset
+ * is used by Today / Pet / Life View so one pet identity persists across all
+ * three surfaces. When no demo identity or WebGL failure, it degrades to the
  * certified 2.5D layer (labeled fallback — never the P0 target).
  */
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "@pli/api-client";
 import { Icon, type WebIconName } from "./icons";
 import { resolvePet3DIdentity } from "@pli/pet-3d";
+import type { PoseName } from "@pli/pet-3d";
 import { Pet3DViewer, type Pet3DStatus } from "./three/pet3d-viewer";
 
 export interface StageAnchor {
@@ -20,6 +22,7 @@ export interface StageAnchor {
   value: string;
   icon: WebIconName;
   href?: string;
+  onPress?: () => void;
 }
 
 interface Props {
@@ -33,19 +36,37 @@ interface Props {
   caption?: string;
   note?: string;
   demo?: boolean;
+  /** Blind-UI: number of source media views used to build the individual twin. */
+  sourceMediaCount?: number;
+  /** Individual twin descriptor (R2P3D-R3 D): drives the real per-pet asset. */
+  twin?: import("@pli/pet-3d").TwinDescriptor | null;
+  /** Representative motion derived from a real life event; null keeps ambient Idle. */
+  pose?: PoseName | null;
+  /** Enables drag rotate + pinch zoom (Life View). */
+  interactive?: boolean;
+  /** Historical surfaces must not reuse today's owner avatar as if it existed then. */
+  allowOwnerPhoto?: boolean;
   /** Blind-UI contract: id on the outer stage section (e.g. pli.today.living-stage). */
   stageTestId?: string;
   /** Blind-UI contract: id on the element containing the 3D/2.5D renderer. */
+  /** §31 framing target (fraction of full viewport) for the twin renderer. */
+  frameTarget?: number;
   twinTestId?: string;
   /** Blind-UI contract: id prefix for state anchors (`${prefix}.${anchor.id}`). */
   anchorTestIdPrefix?: string;
   /** Blind-UI contract: id on the headline element. */
   headlineTestId?: string;
+  /** V3 stage role (today/pet/life) — drives manifest + surface semantics. */
+  stageRole?: string;
+  /** V3 reality field id (warm-living / twin-space ...). */
+  realityField?: string;
 }
 
 export function PetLivingStage({
   name,
   petId,
+  sourceMediaCount: sourceMediaCountProp = 0,
+  twin = null,
   species,
   breed,
   variant = "today",
@@ -54,24 +75,68 @@ export function PetLivingStage({
   caption,
   note,
   demo = false,
+  pose = null,
+  interactive = false,
+  allowOwnerPhoto = true,
+  frameTarget = 0,
   stageTestId,
   twinTestId,
   anchorTestIdPrefix,
   headlineTestId,
+  stageRole,
+  realityField,
 }: Props) {
+  const role = stageRole ?? variant;
+  const field = realityField ?? "warm-living";
   const identity = resolvePet3DIdentity({ name, species, breed });
   const [pet3d, setPet3d] = useState<Pet3DStatus>("boot");
-  const show3d = identity !== null && pet3d !== "failed";
+  // Use the actual owner's persisted avatar when an individual 3D twin is
+  // absent. Never reuse the previous animal's picture during a pet switch.
+  const [avatar, setAvatar] = useState<{ petId: string; uri: string | null } | null>(null);
+  const [photoView, setPhotoView] = useState<{ petId: string; enabled: boolean } | null>(null);
+  useEffect(() => {
+    if (!petId) return;
+    let alive = true;
+    api.get<{ avatar_artifact_id: string | null; data_url: string | null }>(`/pets/${petId}/avatar`)
+      .then((row) => {
+        if (alive) setAvatar({ petId, uri: row.data_url ?? null });
+      })
+      .catch(() => {
+        if (alive) setAvatar({ petId, uri: null });
+      });
+    return () => { alive = false; };
+  }, [petId]);
+  const photoUri = allowOwnerPhoto && petId && avatar?.petId === petId ? avatar.uri : null;
+  // A bundled procedural/demo identity is allowed only in an explicitly
+  // marked demo session. Production owner surfaces need an actual persisted
+  // Twin descriptor; otherwise they fall back to the honest 2.5D/photo path.
+  const canShow3d = identity !== null && (twin !== null || demo) && pet3d !== "failed";
+  // A real owner photo is the identity-first default on Living surfaces.
+  // The current owner-media 3D path is descriptor-driven and intentionally
+  // offered as an alternate representation until a true per-pet GLB exists.
+  const photoFirstByDefault = Boolean(photoUri);
+  const explicitPhotoChoice = photoView && photoView.petId === petId ? photoView.enabled : null;
+  const showPhoto = Boolean(photoUri && (explicitPhotoChoice ?? photoFirstByDefault));
+  const show3d = canShow3d && !showPhoto;
   const stageClass = [
     "r2p-stage",
-    variant === "life" ? "r2p-stage--life" : variant === "pet" ? "r2p-stage--pet" : "",
+    variant === "today" ? "r2p-stage--today" : variant === "life" ? "r2p-stage--life" : variant === "pet" ? "r2p-stage--pet" : "",
+    role === "companion" ? "r2p-stage--companion" : "",
     show3d ? "r2p-stage--3d" : "",
   ]
     .filter(Boolean)
     .join(" ");
 
-  const corgi = (
-    <div className="r2p-corgi" role="img" aria-label={`${name}的 2.5D 形象：奶油色柯基，额头白色花纹，竖立圆耳`}>
+  const isCorgiLike = species === "dog" && /corgi|柯基/i.test(breed ?? "");
+  const fallbackVisual = photoUri ? (
+    <img
+      src={photoUri}
+      alt={`${name}的照片`}
+      className="r6-real-pet-photo"
+      data-pli-media-provenance="OWNER_UPLOADED"
+    />
+  ) : isCorgiLike ? (
+    <div className="r2p-corgi" role="img" aria-label={`${name}的 2.5D 柯基形象：奶油色、额头白色花纹、竖立圆耳`}>
       <span className="part shadow" aria-hidden="true" />
       <span className="part ear-l" aria-hidden="true" />
       <span className="part ear-r" aria-hidden="true" />
@@ -89,6 +154,20 @@ export function PetLivingStage({
       <span className="part eye-r" aria-hidden="true" />
       <span className="part rim" aria-hidden="true" />
     </div>
+  ) : (
+    <div
+      className={`r2p-species-fallback r2p-species-fallback--${species === "cat" ? "cat" : species === "dog" ? "dog" : "pet"}`}
+      role="img"
+      aria-label={`${name}的轻量${species === "cat" ? "猫" : species === "dog" ? "犬" : "宠物"}形象；高保真 3D 当前不可用`}
+    >
+      <span className="r2p-species-fallback-halo" aria-hidden="true" />
+      <span className="r2p-species-fallback-glyph" aria-hidden="true">
+        <Icon name="paw" size={76} strokeWidth={1.15} />
+      </span>
+      <span className="r2p-species-fallback-label">
+        {species === "cat" ? "猫" : species === "dog" ? "犬" : "宠物"}
+      </span>
+    </div>
   );
 
   return (
@@ -97,10 +176,19 @@ export function PetLivingStage({
       aria-label={`${name}的此刻舞台`}
       data-testid={stageTestId}
       data-pli-type={stageTestId ? "stage" : undefined}
+      data-pli-surface="STAGE"
+      data-appearance-role="warm-living-field"
+      data-surface-role={variant === "life" ? "digital-field" : "open-stage"}
+      data-reality-field={variant === "life" ? "true" : "false"}
+      data-stage-role={role}
+      data-pet-presence-role="individual-twin"
+      data-material-role="pbr-warm"
+      data-anchor-count={Math.min(anchors.length, 4)}
+      data-pli-interactive={(interactive || variant === "life") ? "true" : "false"}
     >
       <span className="r2p-stage-wash" aria-hidden="true" />
       <span className="r2p-stage-glow" aria-hidden="true" />
-      {petId ? (
+      {petId && variant !== "life" ? (
         <Link
           href={`/pets/${petId}/life-view`}
           className={`r2p-stage-pet ${show3d ? "r2p-stage-pet--3d" : ""}`}
@@ -108,17 +196,71 @@ export function PetLivingStage({
           data-testid={twinTestId}
           data-pli-type={twinTestId ? "twin" : undefined}
         >
-          {show3d ? <Pet3DViewer identity={identity} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} onStatus={setPet3d} /> : corgi}
+          {show3d ? (
+            <Pet3DViewer
+              identity={identity}
+              displayName={name}
+              demoTwin={demo}
+              twin={twin}
+              pose={pose}
+              variant="stage"
+              frameTarget={frameTarget}
+              petId={petId}
+              sourceMediaCount={sourceMediaCountProp}
+              stageRole={role}
+              realityField={field}
+              onStatus={setPet3d}
+            />
+          ) : fallbackVisual}
         </Link>
       ) : (
-        <span className={`r2p-stage-pet ${show3d ? "r2p-stage-pet--3d" : ""}`} data-testid={twinTestId} data-pli-type={twinTestId ? "twin" : undefined}>
-          {show3d ? <Pet3DViewer identity={identity} variant={variant === "life" ? "life" : "stage"} interactive={variant === "life"} onStatus={setPet3d} /> : corgi}
+        <span
+          className={`r2p-stage-pet ${show3d ? "r2p-stage-pet--3d" : ""}`}
+          data-testid={twinTestId}
+          data-pli-type={twinTestId ? "twin" : undefined}
+        >
+          {show3d ? (
+            <Pet3DViewer
+              identity={identity}
+              displayName={name}
+              demoTwin={demo}
+              twin={twin}
+              pose={pose}
+              variant={variant === "life" ? "life" : "stage"}
+              interactive={variant === "life"}
+              frameTarget={frameTarget}
+              petId={petId ?? null}
+              sourceMediaCount={sourceMediaCountProp}
+              stageRole={role}
+              realityField={field}
+              onStatus={setPet3d}
+            />
+          ) : fallbackVisual}
         </span>
       )}
-
-      {anchors.slice(0, 6).map((a, i) =>
-        a.href ? (
-          <Link key={a.id} href={a.href} className={`r2p-anchor r2p-anchor--${i}`} data-testid={anchorTestIdPrefix ? `${anchorTestIdPrefix}.${a.id}` : undefined}>
+      {anchors.slice(0, 4).map((a, i) =>
+        a.onPress ? (
+          <button
+            key={a.id}
+            type="button"
+            onClick={a.onPress}
+            className={`r2p-anchor r2p-anchor--button r2p-anchor--${i}`}
+            aria-label={`查看${a.label}详情：${a.value}`}
+            data-testid={anchorTestIdPrefix ? `${anchorTestIdPrefix}.${a.id}` : undefined}
+          >
+            <span className="r2p-anchor-icon"><Icon name={a.icon} size={13} /></span>
+            <span>
+              <span className="r2p-anchor-label" style={{ display: "block" }}>{a.label}</span>
+              <span className="r2p-anchor-value">{a.value}</span>
+            </span>
+          </button>
+        ) : a.href ? (
+          <Link
+            key={a.id}
+            href={a.href}
+            className={`r2p-anchor r2p-anchor--${i}`}
+            data-testid={anchorTestIdPrefix ? `${anchorTestIdPrefix}.${a.id}` : undefined}
+          >
             <span className="r2p-anchor-icon"><Icon name={a.icon} size={13} /></span>
             <span>
               <span className="r2p-anchor-label" style={{ display: "block" }}>{a.label}</span>
@@ -140,6 +282,19 @@ export function PetLivingStage({
         {name}
         {demo ? <span className="r2p-stage-demo">示例数据</span> : null}
       </p>
+      {photoUri && canShow3d && petId ? (
+        <button
+          type="button"
+          className="r2p-stage-photo-toggle"
+          data-testid={`pli.${variant}.view-switch`}
+          aria-pressed={showPhoto}
+          aria-label={showPhoto ? "切换为可旋转的 3D 形象" : "切换为主人上传的真实照片"}
+          onClick={() => setPhotoView({ petId, enabled: !showPhoto })}
+        >
+          <Icon name="paw" size={12} />
+          {showPhoto ? "看 3D 形象" : "看真实照片"}
+        </button>
+      ) : null}
       <div className="r2p-stage-now">
         {headline ? <p className="r2p-stage-headline" data-testid={headlineTestId}>{headline}</p> : null}
         {caption ? <p className="r2p-stage-caption">{caption}</p> : null}

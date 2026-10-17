@@ -1,0 +1,436 @@
+{
+  "screen": "today",
+  "total": 100,
+  "max": 100,
+  "perDimension": {
+    "individualPetTruth": {
+      "earned": 25,
+      "max": 25
+    },
+    "visualComposition": {
+      "earned": 20,
+      "max": 20
+    },
+    "informationHierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surfaceGovernance": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interactionTruth": {
+      "earned": 10,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "pixelStyleTruth": {
+      "earned": 5,
+      "max": 5
+    }
+  },
+  "passed": [
+    {
+      "id": "today.identity",
+      "dimension": "individualPetTruth",
+      "points": 3,
+      "description": "当前宠物身份（currentPet.name/avatar/species）存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.identity]=1"
+    },
+    {
+      "id": "today.twin.present",
+      "dimension": "individualPetTruth",
+      "points": 5,
+      "description": "个体 Pet Twin 元素存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.pet-twin",
+        "minHeight": 150
+      },
+      "passed": true,
+      "detail": "elements[pli.today.pet-twin]=1"
+    },
+    {
+      "id": "today.anchor.water",
+      "dimension": "individualPetTruth",
+      "points": 1,
+      "description": "基础状态「饮水」存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.anchor.water"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.anchor.water]=1"
+    },
+    {
+      "id": "today.anchor.food",
+      "dimension": "individualPetTruth",
+      "points": 1,
+      "description": "基础状态「进食」存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.anchor.food"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.anchor.food]=1"
+    },
+    {
+      "id": "today.anchor.activity",
+      "dimension": "individualPetTruth",
+      "points": 1,
+      "description": "基础状态「活动」存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.anchor.activity"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.anchor.activity]=1"
+    },
+    {
+      "id": "today.anchor.sleep",
+      "dimension": "individualPetTruth",
+      "points": 1,
+      "description": "基础状态「睡眠」存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.anchor.sleep"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.anchor.sleep]=1"
+    },
+    {
+      "id": "today.identity.gate",
+      "dimension": "individualPetTruth",
+      "points": 4,
+      "description": "Individual Identity Gate：generic=false + petId 匹配 + sourceMedia>=2",
+      "check": {
+        "kind": "identity",
+        "generic": false,
+        "petIdMatch": true,
+        "sourceMediaMin": 2
+      },
+      "passed": true,
+      "detail": "identity generic=false petId=69c4da88-0ebf-40e5-8932-5baf8aeb63eb assetVersion=1 sources=5"
+    },
+    {
+      "id": "today.3d.origin",
+      "dimension": "individualPetTruth",
+      "points": 3,
+      "description": "manifestOrigin == RUNTIME（非合成 fallback）",
+      "check": {
+        "kind": "manifest-origin",
+        "eq": "RUNTIME"
+      },
+      "passed": true,
+      "detail": "manifestOrigin=RUNTIME"
+    },
+    {
+      "id": "today.3d.no-fallback",
+      "dimension": "individualPetTruth",
+      "points": 3,
+      "description": "fallbackUsed = false（真实 3D）",
+      "check": {
+        "kind": "manifest",
+        "field": "fallbackUsed",
+        "eq": false
+      },
+      "passed": true,
+      "detail": "manifest.fallbackUsed=false"
+    },
+    {
+      "id": "today.3d.wireframe",
+      "dimension": "individualPetTruth",
+      "points": 3,
+      "description": "wireframe = false / 非线框",
+      "check": {
+        "kind": "manifest",
+        "field": "wireframe",
+        "eq": false
+      },
+      "passed": true,
+      "detail": "manifest.wireframe=false"
+    },
+    {
+      "id": "today.stage.interactive",
+      "dimension": "interactionTruth",
+      "points": 3,
+      "description": "Living Stage 可交互被测量",
+      "check": {
+        "kind": "interaction",
+        "id": "pli.today.living-stage"
+      },
+      "passed": true,
+      "detail": "interaction[pli.today.living-stage] disabled=true"
+    },
+    {
+      "id": "today.twin.center",
+      "dimension": "visualComposition",
+      "points": 4,
+      "description": "Twin 水平居中偏差 ≤10% 视口宽",
+      "check": {
+        "kind": "center",
+        "target": "pli.today.pet-twin",
+        "region": "viewport",
+        "axis": "x",
+        "tolerance": 0.1
+      },
+      "passed": true,
+      "detail": "pli.today.pet-twin x deviation=0.0% <= 10%"
+    },
+    {
+      "id": "today.projected.bounds",
+      "dimension": "visualComposition",
+      "points": 5,
+      "description": "真实模型投影 bbox 占视口 0.10–0.24（projectedPetBounds）",
+      "check": {
+        "kind": "manifest",
+        "field": "projectedAreaRatio",
+        "in": [
+          0.1,
+          0.24
+        ]
+      },
+      "passed": true,
+      "detail": "manifest.projectedAreaRatio=0.17057358123708835 in [0.1,0.24]"
+    },
+    {
+      "id": "today.stage.warm",
+      "dimension": "visualComposition",
+      "points": 5,
+      "description": "Today Stage 非 dark viewer：stageLuma 达暖环境阈值或 realityField media",
+      "check": {
+        "kind": "pixel-style",
+        "surface": "today",
+        "allowRealityMedia": true
+      },
+      "passed": true,
+      "detail": "stageLuma=undefined warm field or reality media ok"
+    },
+    {
+      "id": "today.health.separate",
+      "dimension": "informationHierarchy",
+      "points": 5,
+      "description": "健康摘要独立于四基础状态",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.health-summary"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.health-summary]=1"
+    },
+    {
+      "id": "today.attention.one",
+      "dimension": "informationHierarchy",
+      "points": 4,
+      "description": "注意点 ≤1 个",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.attention",
+        "count": [
+          0,
+          1
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.today.attention]=0"
+    },
+    {
+      "id": "today.change",
+      "dimension": "informationHierarchy",
+      "points": 3,
+      "description": "变化叙事（Change）存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.change"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.change]=1"
+    },
+    {
+      "id": "today.memory",
+      "dimension": "informationHierarchy",
+      "points": 3,
+      "description": "最近发生（Memory）预览存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.memory-preview"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.memory-preview]=1"
+    },
+    {
+      "id": "today.surface.cards",
+      "dimension": "surfaceGovernance",
+      "points": 5,
+      "description": "Above-fold 大 CARD ≤1（Card Dashboard Gate V2）",
+      "check": {
+        "kind": "surface",
+        "max": 1,
+        "minArea": 20000,
+        "aboveFold": true,
+        "surfaceType": "CARD"
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=true)=0 <= 1"
+    },
+    {
+      "id": "today.surface.panels",
+      "dimension": "surfaceGovernance",
+      "points": 5,
+      "description": "Above-fold SOFT_PANEL ≤2",
+      "check": {
+        "kind": "surface",
+        "max": 2,
+        "minArea": 20000,
+        "aboveFold": true,
+        "surfaceType": "SOFT_PANEL"
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=true)=0 <= 2"
+    },
+    {
+      "id": "today.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "today.nav.five",
+      "dimension": "interactionTruth",
+      "points": 4,
+      "description": "底导 5 项（今天/时间线/当前宠物/助手/我的）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.nav.*",
+        "count": [
+          5,
+          5
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.nav.*]=5"
+    },
+    {
+      "id": "today.primary-action",
+      "dimension": "interactionTruth",
+      "points": 3,
+      "description": "主动作「快速记录」存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.primary-action"
+      },
+      "passed": true,
+      "detail": "elements[pli.today.primary-action]=1"
+    },
+    {
+      "id": "today.stage.ratio",
+      "dimension": "visualComposition",
+      "points": 6,
+      "description": "Living Stage 高 = 内容区 43–53%",
+      "check": {
+        "kind": "ratio",
+        "target": "pli.today.living-stage",
+        "region": "content",
+        "property": "height",
+        "range": [
+          0.43,
+          0.53
+        ]
+      },
+      "passed": true,
+      "detail": "pli.today.living-stage height ratio=0.459 in [0.43,0.53]"
+    },
+    {
+      "id": "today.nav.a11y",
+      "dimension": "accessibility",
+      "points": 3,
+      "description": "底导 5 项为可访问按钮",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.nav."
+        },
+        "range": [
+          5,
+          5
+        ]
+      },
+      "passed": true,
+      "detail": "count=5 in [5,5]"
+    },
+    {
+      "id": "today.anchor.a11y",
+      "dimension": "accessibility",
+      "points": 2,
+      "description": "四个锚点均有可读文本",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.anchor.*",
+        "count": [
+          4,
+          4
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.today.anchor.*]=4"
+    },
+    {
+      "id": "today.style.truth",
+      "dimension": "pixelStyleTruth",
+      "points": 3,
+      "description": "Design-as-Data V2：stage 声明 warm 但 computed bg 不黑",
+      "check": {
+        "kind": "style-truth",
+        "idPrefix": "pli.today.living-stage",
+        "notDarkBg": true
+      },
+      "passed": true,
+      "detail": "pli.today.living-stage style truth ok (bg luma=n/a)"
+    },
+    {
+      "id": "today.warm.pixels",
+      "dimension": "pixelStyleTruth",
+      "points": 2,
+      "description": "Warm living field：白色大卡占比与暖色不冲突",
+      "check": {
+        "kind": "pixel-style",
+        "surface": "other"
+      },
+      "passed": true,
+      "detail": "pixel-style rule not enforced on this surface"
+    }
+  ],
+  "failed": [],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

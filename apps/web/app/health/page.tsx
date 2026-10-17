@@ -8,6 +8,35 @@ import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State, TriageBadge } from "../../components/ui";
 import { triageLabel } from "../../lib/ownerLabels";
 
+interface ReminderRow {
+  reminder_id: string;
+  kind: "VACCINE" | "DEWORMING" | "CHECKUP";
+  title: string;
+  due_date: string;
+  status: string;
+}
+
+const REMINDER_KIND_LABEL: Record<ReminderRow["kind"], string> = {
+  VACCINE: "疫苗",
+  DEWORMING: "驱虫",
+  CHECKUP: "体检",
+};
+
+interface HealthRecordRow {
+  record_id: string;
+  kind: "PRESCRIPTION" | "LAB" | "EXAM" | "VACCINATION";
+  source_type: string;
+  source_note: string;
+  signature_status: string;
+  occurred_at: string | null;
+}
+const HEALTH_RECORD_KIND_LABEL: Record<HealthRecordRow["kind"], string> = {
+  PRESCRIPTION: "处方",
+  LAB: "检验",
+  EXAM: "检查",
+  VACCINATION: "疫苗记录",
+};
+
 interface HealthEventRow {
   health_event_id: string;
   status: string;
@@ -23,6 +52,13 @@ export default function HealthPage() {
   const router = useRouter();
   const pets = useAsync<Pet[]>(() => api.get<Pet[]>("/pets"), []);
   const current = pets.data?.find((p) => p.id === petId) ?? pets.data?.[0];
+  const reminders = useAsync<ReminderRow[]>(
+    () =>
+      petId
+        ? api.get<ReminderRow[]>(`/pets/${petId}/reminders`)
+        : Promise.reject(new Error("no pet")),
+    [petId],
+  );
   const list = useAsync<HealthEventRow[]>(
     () =>
       petId
@@ -30,10 +66,60 @@ export default function HealthPage() {
         : Promise.reject(new Error("no pet")),
     [petId],
   );
+  const professionalRecords = useAsync<HealthRecordRow[]>(
+    () =>
+      petId
+        ? api.get<HealthRecordRow[]>(`/pets/${petId}/health-records`)
+        : Promise.reject(new Error("no pet")),
+    [petId],
+  );
   const [complaint, setComplaint] = useState("");
   const [onset, setOnset] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [reminderFormOpen, setReminderFormOpen] = useState(false);
+  const [reminderKind, setReminderKind] = useState<ReminderRow["kind"]>("VACCINE");
+  const [reminderTitle, setReminderTitle] = useState("");
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderBusy, setReminderBusy] = useState<string | null>(null);
+  const [reminderError, setReminderError] = useState<string | null>(null);
+
+  async function createReminder() {
+    if (!petId || !reminderTitle.trim() || !reminderDate || reminderBusy) return;
+    setReminderBusy("create");
+    setReminderError(null);
+    try {
+      await api.post(`/pets/${petId}/reminders`, {
+        kind: reminderKind,
+        title: reminderTitle.trim(),
+        due_date: reminderDate,
+        note: "",
+      });
+      setReminderTitle("");
+      setReminderDate("");
+      setReminderFormOpen(false);
+      reminders.reload();
+    } catch (e) {
+      setReminderError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setReminderBusy(null);
+    }
+  }
+
+  async function completeReminder(reminderId: string) {
+    if (reminderBusy) return;
+    setReminderBusy(reminderId);
+    setReminderError(null);
+    try {
+      await api.post(`/reminders/${reminderId}/done`, {});
+      reminders.reload();
+    } catch (e) {
+      setReminderError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setReminderBusy(null);
+    }
+  }
 
   async function open() {
     if (!petId || !complaint.trim()) return;
@@ -45,6 +131,7 @@ export default function HealthPage() {
         onset_at: onset ? new Date(onset).toISOString() : null,
       });
       setComplaint("");
+      setComposerOpen(false);
       list.reload();
       // jump straight into the intake flow
       router.push(`/health/${r.health_event_id}`);
@@ -60,68 +147,34 @@ export default function HealthPage() {
   const latestLevel = rows[0]?.latest_triage_level ?? null;
 
   return (
-    <main>
-      <div data-testid="pli.health.identity" style={{ marginBottom: 8 }}>
+    <main className="v4-main v5-domain-page">
+      <div className="v4-topline v5-page-lede" data-testid="pli.health.identity">
         <h1>健康事件</h1>
         <p className="sub">
-          {current ? `${current.name} · 发现异常 → 动态追问 → 可观察事实 → 红旗分级 → Vet Brief → Outcome。` : "发现异常 → 动态追问 → 可观察事实 → 红旗分级 → Vet Brief → Outcome。"}
-          分级由独立规则引擎给出，AI 只整理事实，不能降低紧急度。
+          {current ? `${current.name} · 先看最近的健康记录和变化，需要时再记录新的异常。` : "先看最近的健康记录和变化，需要时再记录新的异常。"}
+          风险提示来自独立规则；AI 只整理已有事实，不替代兽医判断。
         </p>
       </div>
 
-      <div className="card" data-testid="pli.health.overview">
-        <h2>近期状态概览</h2>
+      <section className="v4-sec" data-testid="pli.health.overview">
+        <h2 className="v4-sec-title">近期状态概览</h2>
         <p className="sub" style={{ margin: 0 }}>
           {list.state === "loading" ? "加载中……" : openCount > 0 ? `有 ${openCount} 个未关闭的健康事件` : "没有未关闭的健康事件。"}
         </p>
         <p className="muted" style={{ marginTop: 8 }}>
           状态：{latestLevel ? triageLabel(latestLevel) : "未分级"}（来自最近一条健康记录）
         </p>
-      </div>
+      </section>
 
-      <div className="card" data-testid="pli.health.changes">
-        <h2>近期变化</h2>
+      <section className="v4-sec" data-testid="pli.health.changes">
+        <h2 className="v4-sec-title">近期变化</h2>
         <p className="muted" style={{ margin: 0 }}>
           {rows.length > 0 ? `最近的健康事件是「${rows[0].chief_complaint}」，打开于 ${fmtTime(rows[0].opened_at)}。` : "还没有健康记录，变化会从第一条记录开始汇总。"}
         </p>
-      </div>
+      </section>
 
-      <div className="card" data-testid="pli.health.prevent">
-        <h2>预防与计划</h2>
-        <p className="muted" style={{ margin: 0 }}>疫苗、驱虫与定期体检记录会集中在这里。还没有相关记录。</p>
-      </div>
-
-      <div className="card" data-testid="pli.health.medication">
-        <h2>用药</h2>
-        <p className="muted" style={{ margin: 0 }}>
-          用药计划与给药记录见「用药」页。{" "}
-          <Link href="/medication">查看用药</Link>
-        </p>
-      </div>
-
-      <div className="card">
-        <h2>发现异常</h2>
-        <label className="field">
-          主诉 *（描述你观察到的异常）
-          <textarea
-            rows={2}
-            value={complaint}
-            onChange={(e) => setComplaint(e.target.value)}
-            placeholder="如：精神不太好，晚饭没吃；或：反复进猫砂盆但几乎尿不出来"
-          />
-        </label>
-        <label className="field">
-          开始时间（可选）
-          <input type="datetime-local" value={onset} onChange={(e) => setOnset(e.target.value)} />
-        </label>
-        <ErrorNote message={error} />
-        <button className="btn primary" onClick={open} disabled={busy || !petId} data-testid="pli.health.action">
-          {busy ? "创建中…" : "打开健康事件"}
-        </button>
-      </div>
-
-      <div className="card" data-testid="pli.health.records">
-        <h2>健康记录</h2>
+      <section className="v4-sec" data-testid="pli.health.records">
+        <h2 className="v4-sec-title">健康记录</h2>
         <p className="muted" style={{ marginTop: 0 }} data-testid="pli.health.status">
           {rows.length} 条记录 · {openCount} 个进行中
         </p>
@@ -134,14 +187,167 @@ export default function HealthPage() {
                     {h.chief_complaint}
                   </Link>
                   <TriageBadge level={h.latest_triage_level} />
-                  <span className={`badge status-${h.status}`}>{h.status === "OPEN" ? "进行中" : h.status === "CLOSED" ? "已关闭" : h.status}</span>
+                  <span className={`badge status-${h.status}`}>{h.status === "OPEN" ? "进行中" : h.status === "CLOSED" ? "已关闭" : "其他状态"}</span>
                   <span className="tl-time">{fmtTime(h.opened_at)}</span>
                 </div>
               </li>
             ))}
           </ul>
         </State>
-      </div>
+      </section>
+
+
+      <section className="v4-sec" data-testid="pli.health.vet">
+        <h2 className="v4-sec-title">就医与专业记录</h2>
+        <p className="v4-sec-sub">处方、检验、检查与疫苗记录只展示真实导入的数据，并保留来源与签名状态；加载失败时不会把未知显示成“没有记录”。</p>
+        <State
+          state={professionalRecords.state}
+          error={professionalRecords.error}
+          onRetry={professionalRecords.reload}
+          empty="还没有导入处方、检验、检查或疫苗专业记录。"
+        >
+          <div className="v4-list">
+            {(professionalRecords.data ?? []).slice(0, 6).map((record) => (
+              <div className="v4-list-row" key={record.record_id}>
+                <div>
+                  <strong>{HEALTH_RECORD_KIND_LABEL[record.kind] ?? "专业记录"}</strong>
+                  <div className="v4-note">
+                    {record.occurred_at ? fmtTime(record.occurred_at) : "时间未记录"} · {record.source_type === "PROFESSIONAL_CONFIRMED" ? "专业确认" : "来源已记录"}
+                  </div>
+                  <div className="v4-note">
+                    {record.signature_status === "SIGNED" ? "签名已记录" : record.signature_status === "UNSIGNED" ? "未记录签名" : "无需签名"}
+                    {record.source_note ? ` · ${record.source_note}` : ""}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </State>
+      </section>
+
+      <section className="v4-sec" data-testid="pli.health.prevent">
+        <div className="v4-sec-head">
+          <div>
+            <h2 className="v4-sec-title">预防与计划</h2>
+            <p className="v4-sec-sub">疫苗、驱虫和体检提醒来自主人明确记录；到期不等于异常，也不会自动推断已经完成。</p>
+          </div>
+        </div>
+        <State
+          state={reminders.state}
+          error={reminders.error}
+          onRetry={reminders.reload}
+          empty="还没有预防提醒。"
+        >
+          <div className="v4-list">
+            {(reminders.data ?? []).map((row) => (
+              <div className="v4-list-row" key={row.reminder_id}>
+                <div>
+                  <strong>{REMINDER_KIND_LABEL[row.kind] ?? "提醒"} · {row.title}</strong>
+                  <div className="v4-note">计划日期：{row.due_date} · {row.status === "DONE" ? "已完成" : "待完成"}</div>
+                </div>
+                {row.status !== "DONE" ? (
+                  <button className="btn" onClick={() => void completeReminder(row.reminder_id)} disabled={reminderBusy !== null}>
+                    {reminderBusy === row.reminder_id ? "保存中…" : "标记完成"}
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </State>
+        <button
+          type="button"
+          className="btn"
+          data-testid="pli.health.reminder.toggle"
+          aria-expanded={reminderFormOpen}
+          aria-controls="pli-health-reminder-form"
+          onClick={() => {
+            setReminderFormOpen((value) => !value);
+            setReminderError(null);
+          }}
+          style={{ marginTop: 12 }}
+        >
+          {reminderFormOpen ? "收起" : "+ 添加预防提醒"}
+        </button>
+        {reminderFormOpen ? (
+          <div id="pli-health-reminder-form" className="v5-form-surface v5-form-surface--inline">
+            <div className="grid2">
+              <label className="field">
+                类型
+                <select value={reminderKind} onChange={(e) => setReminderKind(e.target.value as ReminderRow["kind"])}>
+                  <option value="VACCINE">疫苗</option>
+                  <option value="DEWORMING">驱虫</option>
+                  <option value="CHECKUP">体检</option>
+                </select>
+              </label>
+              <label className="field">
+                计划日期
+                <input type="date" value={reminderDate} onChange={(e) => setReminderDate(e.target.value)} />
+              </label>
+              <label className="field" style={{ gridColumn: "1 / -1" }}>
+                提醒内容
+                <input value={reminderTitle} onChange={(e) => setReminderTitle(e.target.value)} placeholder="例如：年度核心疫苗" />
+              </label>
+            </div>
+            {reminderError ? <p className="v4-note">提醒暂时没有保存成功：{reminderError}</p> : null}
+            <button className="btn primary" data-testid="pli.health.reminder.submit" onClick={() => void createReminder()} disabled={reminderBusy !== null || !reminderTitle.trim() || !reminderDate}>
+              {reminderBusy === "create" ? "保存中…" : "保存预防提醒"}
+            </button>
+          </div>
+        ) : reminderError ? <p className="v4-note">提醒暂时没有保存成功：{reminderError}</p> : null}
+      </section>
+
+      <section className="v4-sec" data-testid="pli.health.medication">
+        <h2 className="v4-sec-title">用药</h2>
+        <p className="muted" style={{ margin: 0 }}>
+          用药计划与给药记录见「用药」页。{" "}
+          <Link href="/medication">查看用药</Link>
+        </p>
+      </section>
+
+      <section className="v4-sec v5-health-compose" data-testid="pli.health.compose">
+        <div className="v4-sec-head">
+          <div>
+            <h2 className="v4-sec-title">需要记录新的变化？</h2>
+            <p className="v4-sec-sub">只有发现新的异常或需要补充事实时再记录；阅读已有证据始终优先。</p>
+          </div>
+          <button
+            type="button"
+            className="btn"
+            aria-expanded={composerOpen}
+            aria-controls="pli-health-compose-form"
+            onClick={() => {
+              setComposerOpen((value) => !value);
+              setError(null);
+            }}
+            data-testid="pli.health.compose.toggle"
+          >
+            {composerOpen ? "收起" : "记录健康事件"}
+          </button>
+        </div>
+        {composerOpen ? (
+          <div id="pli-health-compose-form" className="v5-form-surface v5-form-surface--inline">
+            <h2>记录你真实观察到的情况</h2>
+            <label className="field">
+              主诉 *（描述你观察到的异常）
+              <textarea
+                rows={2}
+                value={complaint}
+                onChange={(e) => setComplaint(e.target.value)}
+                placeholder="如：精神不太好，晚饭没吃；或：反复进猫砂盆但几乎尿不出来"
+              />
+            </label>
+            <label className="field">
+              开始时间（可选）
+              <input type="datetime-local" value={onset} onChange={(e) => setOnset(e.target.value)} />
+            </label>
+            <p className="v4-note">提交后由独立规则进行风险提示，不是 AI 诊断；紧急情况请直接联系兽医。</p>
+            <ErrorNote message={error} />
+            <button className="btn primary" onClick={open} disabled={busy || !petId || !complaint.trim()} data-testid="pli.health.action">
+              {busy ? "创建中…" : "打开健康事件"}
+            </button>
+          </div>
+        ) : null}
+      </section>
 
       <div className="row" style={{ marginTop: 8 }} data-testid="pli.health.vet">
         <Link href="/medication" className="btn">

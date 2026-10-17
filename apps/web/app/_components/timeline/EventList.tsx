@@ -4,13 +4,16 @@ import Link from "next/link";
 import type { LifeEvent } from "@pli/api-client";
 import { Icon, type WebIconName } from "../../../components/icons";
 import { provenanceLabelForSource } from "../../../lib/provenance-zh";
-import { eventTypeLabel } from "../../../lib/ownerLabels";
+import { eventPayloadSummary, eventTypeLabel } from "../../../lib/ownerLabels";
 import { TYPE_LABELS } from "./constants";
+import { ArtifactMemory } from "./ArtifactMemory";
 
 interface EventListProps {
   events: LifeEvent[];
   /** Current pet name for honest empty copy. */
   petName?: string;
+  /** Current pet id enables a day header to open historical Life View. */
+  petId?: string;
 }
 
 const TYPE_ICONS: Record<string, WebIconName> = {
@@ -53,28 +56,8 @@ function dayLabel(isoDay: string): { main: string; relative: string } {
   return { main, relative: "" };
 }
 
-/** Payload → 用户语言摘要：已知字段展示，未知字段不泄漏内部 key。 */
-function payloadSummary(payload: Record<string, unknown>): string {
-  const parts: string[] = [];
-  if (typeof payload["amount"] === "number" || typeof payload["amount"] === "string") {
-    const unit = typeof payload["unit"] === "string" ? String(payload["unit"]) : "";
-    parts.push(`${payload["amount"]}${unit}`);
-  }
-  if (typeof payload["duration_minutes"] === "number")
-    parts.push(`${payload["duration_minutes"]} 分钟`);
-  if (typeof payload["weight_kg"] === "string" || typeof payload["weight_kg"] === "number")
-    parts.push(`${payload["weight_kg"]} kg`);
-  if (typeof payload["food_type"] === "string") parts.push(String(payload["food_type"]));
-  if (typeof payload["activity_type"] === "string") parts.push(String(payload["activity_type"]));
-  if (typeof payload["behavior"] === "string") parts.push(String(payload["behavior"]));
-  if (typeof payload["environment"] === "string") parts.push(`地点：${payload["environment"]}`);
-  if (typeof payload["outcome"] === "string") parts.push(`结果：${payload["outcome"]}`);
-  if (typeof payload["medicine_name"] === "string") parts.push(String(payload["medicine_name"]));
-  return parts.join(" · ");
-}
-
 /** OWN-003 Timeline — Life Stream：Day Group + time spine，不再逐条独立白卡。 */
-export function EventList({ events, petName = "它" }: EventListProps) {
+export function EventList({ events, petName = "它", petId }: EventListProps) {
   if (events.length === 0) {
     return (
       <div className="v4-sec">
@@ -112,13 +95,25 @@ export function EventList({ events, petName = "它" }: EventListProps) {
         return (
           <li key={day} className="ls-day" data-testid="pli.timeline.group">
             <div className="ls-day-title">
-              {main}
-              {relative && <span className="ls-day-relative">{relative}</span>}
+              <span>
+                {main}
+                {relative && <span className="ls-day-relative">{relative}</span>}
+              </span>
+              {petId ? (
+                <Link
+                  href={`/pets/${petId}/life-view?date=${encodeURIComponent(day)}`}
+                  className="ls-day-back"
+                  data-testid={`pli.timeline.day.${day}`}
+                  aria-label={`回到 ${main} 的生命视图`}
+                >
+                  回到这一天
+                </Link>
+              ) : null}
             </div>
             {rows.map((e) => {
               const label = eventTypeLabel(e.event_type);
               const time = (e.occurred_at ?? "").slice(11, 16);
-              const summary = payloadSummary(e.payload);
+              const summary = eventPayloadSummary(e.payload);
               return (
                 <div key={e.event_id} className={`ls-item${e.retracted_at ? " ls-item--retracted" : ""}`} data-testid={`pli.timeline.row.${e.event_id}`}>
                   <div>
@@ -148,12 +143,15 @@ export function EventList({ events, petName = "它" }: EventListProps) {
                       {(e.artifact_ids ?? []).length > 0 && (
                         <span className="ls-media">
                           <Icon name="camera" size={13} />
-                          {e.artifact_ids.length} 张照片
+                          {e.artifact_ids.length} 个原始媒体
                         </span>
                       )}
                       {e.supersedes_event_id && <span className="v4-chip">修订版本</span>}
                       {e.retracted_at && <span className="v4-chip v4-chip--danger">已撤回</span>}
                     </div>
+                    {(e.artifact_ids ?? []).slice(0, 3).map((artifactId) => (
+                      <ArtifactMemory key={artifactId} artifactId={artifactId} compact />
+                    ))}
                   </div>
                 </div>
               );

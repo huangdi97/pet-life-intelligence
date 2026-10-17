@@ -22,6 +22,17 @@ export const EVENT_ICONS: Record<string, string> = {
   "social.interaction_logged": "people-outline",
 };
 
+const ELIMINATION_KIND_LABELS: Record<string, string> = {
+  urine: "尿",
+  stool: "便",
+  both: "尿和便",
+};
+const ELIMINATION_QUALITY_LABELS: Record<string, string> = {
+  normal: "和平时一样",
+  abnormal: "和平时不一样",
+  concerning: "明显需要关注",
+};
+
 function hourMinute(iso: string): string {
   try {
     return new Date(iso).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -38,7 +49,11 @@ export function eventRowFromEvent(e: LifeEvent): LifeStreamRow {
   else if (e.event_type === "daily.walk") meta = `户外 ${payload.duration_minutes ?? "—"} 分钟`;
   else if (e.event_type === "daily.play") meta = `${payload.duration_minutes ?? "—"} 分钟`;
   else if (e.event_type === "daily.weight") meta = `${payload.weight_kg ?? ""} kg`;
-  else if (e.event_type === "daily.elimination") meta = `${payload.kind ?? ""} · ${payload.quality ?? ""}`.replace(/·\s*$/, "");
+  else if (e.event_type === "daily.elimination") {
+    const kind = ELIMINATION_KIND_LABELS[String(payload.kind ?? "")] ?? "";
+    const quality = ELIMINATION_QUALITY_LABELS[String(payload.quality ?? "")] ?? "";
+    meta = [kind, quality].filter(Boolean).join(" · ");
+  }
   else if (e.event_type === "medication.administered") meta = `${payload.medicine_name ?? ""} ${payload.dose_text ?? ""}`.trim();
   return {
     id: e.event_id,
@@ -49,27 +64,42 @@ export function eventRowFromEvent(e: LifeEvent): LifeStreamRow {
     outcome: e.retracted_at ? "已撤回" : null,
     icon: (EVENT_ICONS[e.event_type] ?? "ellipse-outline") as LifeStreamRow["icon"],
     mediaUri: null,
+    mediaCount: e.artifact_ids?.length ?? 0,
+    artifactIds: e.artifact_ids ?? [],
   };
+}
+
+/** Group by local calendar day, then display the most recent *actual* time first.
+ * Sorting the English `Date.toDateString()` labels alphabetically put weekdays
+ * before dates and could silently reorder a pet's life history.
+ */
+export function localLifeDayKey(iso: string): string {
+  const date = new Date(iso);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 export function groupEventsByDay(events: LifeEvent[]): LifeStreamDay[] {
   const groups = new Map<string, LifeEvent[]>();
-  for (const e of events) {
-    const key = new Date(e.occurred_at).toDateString();
+  for (const event of events) {
+    const key = localLifeDayKey(event.occurred_at);
     const list = groups.get(key) ?? [];
-    list.push(e);
+    list.push(event);
     groups.set(key, list);
   }
-  const nowKey = new Date().toDateString();
+  const today = localLifeDayKey(new Date().toISOString());
   return [...groups.entries()]
-    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .sort(([a], [b]) => b.localeCompare(a))
     .map(([key, list]) => {
-      const d = new Date(key);
+      const d = new Date(`${key}T12:00:00`);
       return {
         id: key,
+        date: key,
         label: `${d.getMonth() + 1}月${d.getDate()}日`,
-        isToday: key === nowKey,
-        rows: list.map(eventRowFromEvent),
+        isToday: key === today,
+        rows: [...list].sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at)).map(eventRowFromEvent),
       };
     });
 }

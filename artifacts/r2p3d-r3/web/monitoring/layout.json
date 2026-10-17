@@ -1,0 +1,161 @@
+{
+  "screen": "monitoring",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "contentBounds": {
+    "top": 82,
+    "bottom": 844,
+    "width": 390,
+    "height": 762,
+    "left": 0
+  },
+  "elements": [
+    {
+      "id": "header",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "nav",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 100,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "pli.nav.today",
+      "role": "button",
+      "x": 174,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "今日"
+    },
+    {
+      "id": "pli.nav.timeline",
+      "role": "button",
+      "x": 214,
+      "y": 15,
+      "width": 46,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "时间线"
+    },
+    {
+      "id": "pli.nav.pet",
+      "role": "button",
+      "x": 264,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆"
+    },
+    {
+      "id": "pli.nav.assistant",
+      "role": "button",
+      "x": 304,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "助手"
+    },
+    {
+      "id": "pli.nav.me",
+      "role": "button",
+      "x": 344,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "我的"
+    },
+    {
+      "id": "pli.multipet.switch",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）咪咪（cat）"
+    },
+    {
+      "id": "pli.multipet.current",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）"
+    },
+    {
+      "id": "pli.monitoring.identity",
+      "x": 12,
+      "y": 110,
+      "width": 366,
+      "height": 77,
+      "visible": true,
+      "z": 0,
+      "text": "在家 · Monitoring\n\n宠物在哪 / 最近发生什么 / 今天状态 / 设备是否正常 / 与自己历史相比的变化。"
+    },
+    {
+      "id": "pli.monitoring.state.NO_DEVICE",
+      "x": 12,
+      "y": 203,
+      "width": 366,
+      "height": 84,
+      "visible": true,
+      "z": 0,
+      "text": "当前状态\n\n还没有连接设备"
+    },
+    {
+      "id": "pli.monitoring.last",
+      "x": 12,
+      "y": 299,
+      "width": 366,
+      "height": 84,
+      "visible": true,
+      "z": 0,
+      "text": "最近看到\n\n2026/10/1 18:41:35 · today.viewed"
+    },
+    {
+      "id": "pli.monitoring.content",
+      "x": 12,
+      "y": 395,
+      "width": 366,
+      "height": 657,
+      "visible": true,
+      "z": 0,
+      "text": "今天\n还没有设备数据\n设备接入后，这里会显示今天的进食/饮水/排泄/活动/睡眠汇总。\n\n汇总仅含已通过质量检查的设备事件。\n\n设备\n设备接入暂未开放\nPROTOTYPE\n近期变化\n\n与它自己的 30 日范围对比；暂无自动判定时此处为空。\n\n待确认（摄像头候选）\n\n摄像头 AI 候选不直接成为事实；需 Owner 确认后进入 Canonical Event。"
+    },
+    {
+      "id": "pli.monitoring.action",
+      "x": 12,
+      "y": 1064,
+      "width": 366,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "重试\n回到今日\n陪伴"
+    }
+  ]
+}

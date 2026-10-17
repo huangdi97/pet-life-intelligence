@@ -68,6 +68,10 @@ from app.models import (
     PetFriend,
     PetIdentifier,
     PetPreference,
+    PetVisualCapture,
+    PetVisualJob,
+    PetVisualModel,
+    PetVisualRenderManifest,
     PilotFeedback,
     PilotInviteCode,
     PilotUserProfile,
@@ -98,6 +102,13 @@ from app.seed_data_identity import insert_identity
 CST = timezone(timedelta(hours=8))
 
 _TABLES = [
+    # Visual rows reference pets/models/captures and must be removed before
+    # the seeded pet identities are recreated. Keeping these here makes
+    # python -m app.seed truly idempotent once demo Twin fixtures exist.
+    PetVisualRenderManifest,
+    PetVisualJob,
+    PetVisualModel,
+    PetVisualCapture,
     CapabilityRegistry,
     FeatureFlag,
     Incident,

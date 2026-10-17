@@ -4,6 +4,8 @@
  */
 import type { ReactNode } from "react";
 import { Text, View } from "@tarojs/components";
+import Taro from "@tarojs/taro";
+import type { PetContextState } from "../../utils/usePets";
 
 export function EmptyState(props: {
   icon?: ReactNode;
@@ -39,5 +41,32 @@ export function InlineError(props: { message?: string; onRetry?: () => void }) {
         </Text>
       ) : null}
     </View>
+  );
+}
+
+/**
+ * Shared truth gate for pet-scoped Mini capabilities.
+ * Loading, directory failure and a genuinely empty household are distinct.
+ */
+export function PetContextGate(props: {
+  state: PetContextState;
+  hasPet: boolean;
+  onRetry: () => void;
+}) {
+  const { state, hasPet, onRetry } = props;
+  if (state === "loading") {
+    return <View className="state">正在读取宠物档案……</View>;
+  }
+  if (state === "error") {
+    return <InlineError message="宠物档案暂时没有加载成功" onRetry={onRetry} />;
+  }
+  if (hasPet) return null;
+  return (
+    <EmptyState
+      title="先建立宠物档案"
+      body="这些记录都属于具体的宠物。建立档案后，再从这里继续。"
+      actionLabel="前往宠物"
+      onAction={() => Taro.switchTab({ url: "/pages/pets/index" })}
+    />
   );
 }

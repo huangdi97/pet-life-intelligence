@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import type { ReactNode } from "react";
 import { cx } from "../lib/cx";
 import { TokenIcon } from "./icons";
 
@@ -15,11 +14,13 @@ export function Sheet({
   open: boolean;
   onClose: () => void;
   title: string;
-  children: ReactNode;
-  footer?: ReactNode;
+  children: unknown;
+  footer?: unknown;
   className?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -27,14 +28,14 @@ export function Sheet({
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     panelRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
       previous?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   return (
@@ -54,8 +55,8 @@ export function Sheet({
             <TokenIcon name="x" size={16} />
           </button>
         </div>
-        <div className="pli-sheet-body">{children}</div>
-        {footer ? <div className="pli-sheet-foot">{footer}</div> : null}
+        <div className="pli-sheet-body">{children as any}</div>
+        {footer ? <div className="pli-sheet-foot">{footer as any}</div> : null}
       </div>
     </div>
   );

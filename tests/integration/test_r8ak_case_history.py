@@ -1,0 +1,251 @@
+"""R8AK owner history: stable pagination, bounded search, re-authorized sources.
+
+Case rows for pure pagination/search tests are seeded directly because the
+Case *creation* invariants are already covered by R8A/R8AG integration tests;
+these tests target read-side keyset stability and authorization.
+"""
+import asyncio
+import uuid
+from datetime import UTC, datetime, timedelta, timezone
+
+from tests.conftest import auth, create_user
+
+PRODUCT_TZ_OFFSET = timezone(timedelta(hours=8))
+
+
+def _pet(client, owner, name="R8AK History Pet"):
+    response = client.post(
+        "/api/v1/pets", json={"name": name, "species": "dog"}, headers=auth(owner),
+    )
+    assert response.status_code == 201, response.text
+    return response.json()["id"]
+
+
+def _seed_cases(pet_id: str, owner_id: str, specs: list[tuple[str, datetime]]) -> list[str]:
+    from app.core.db import get_session_factory
+    from app.models import LifeChangeCase
+
+    async def run() -> list[str]:
+        factory = get_session_factory()
+        created: list[str] = []
+        async with factory() as db:
+            for metric, created_at in specs:
+                case = LifeChangeCase(
+                    pet_id=uuid.UUID(pet_id), created_by_user_id=uuid.UUID(owner_id),
+                    metric=metric, insight_kind="RECORDED_CHANGE",
+                    algorithm_version="R8A_SAME_CLOCK_RECORDED_CHANGE_V1",
+                    fingerprint=uuid.uuid4().hex,
+                    computed_at=created_at, knowledge_cutoff=created_at,
+                    timezone_policy="CST_UTC_PLUS_08_FALLBACK",
+                    current_value=20.0, baseline_value=90.0,
+                    sample_days=3, window_days=14,
+                    evidence_event_ids=[str(uuid.uuid4())],
+                    evidence_role_by_event_id=None,
+                    source_scope="DAILY_RECORDED_EVENTS_ONLY",
+                    uncertainty="样本有限，仅描述有记录的变化。",
+                    human_question="这些已记录的变化是否值得继续观察？",
+                    state="PROPOSED",
+                )
+                case.created_at = created_at
+                db.add(case)
+                await db.flush()
+                created.append(str(case.id))
+            await db.commit()
+        return created
+
+    return asyncio.run(run())
+
+
+def _real_case(client, owner):
+    """Create real walk evidence, a real Case and return (pet, case)."""
+    pet = _pet(client, owner, "R8AK Source Pet")
+    now = datetime.now(PRODUCT_TZ_OFFSET)
+    at = now - timedelta(minutes=2)
+    for days in (1, 2, 3):
+        sent = client.post(
+            f"/api/v1/pets/{pet}/events",
+            json={"event_type": "daily.walk", "payload": {"duration_minutes": 90},
+                  "occurred_at": (at - timedelta(days=days)).isoformat()},
+            headers=auth(owner),
+        )
+        assert sent.status_code == 201, sent.text
+    current = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 20},
+              "occurred_at": at.isoformat()},
+        headers=auth(owner),
+    )
+    assert current.status_code == 201, current.text
+    recompute = client.post(
+        f"/api/v1/pets/{pet}/baseline/recompute?window_days=14", json={}, headers=auth(owner),
+    )
+    assert recompute.status_code == 201, recompute.text
+    case = client.post(
+        f"/api/v1/pets/{pet}/life-change-cases",
+        json={"metric": "walk_minutes_per_day"}, headers=auth(owner),
+    )
+    assert case.status_code == 201, case.text
+    return pet, case.json()
+
+
+def test_history_keyset_pagination_is_stable_and_never_duplicates(client, seeded):
+    owner = seeded["owner_id"]
+    pet = _pet(client, owner)
+    now = datetime.now(UTC).replace(microsecond=0)
+    expected = _seed_cases(pet, owner, [
+        ("walk_minutes_per_day", now - timedelta(hours=hour)) for hour in (1, 2, 3, 4, 5)
+    ])
+    seen: list[str] = []
+    cursor = None
+    for _ in range(5):
+        params = {"limit": 2}
+        if cursor:
+            params["cursor"] = cursor
+        page = client.get(
+            f"/api/v1/pets/{pet}/life-change-cases", params=params, headers=auth(owner),
+        )
+        assert page.status_code == 200, page.text
+        body = page.json()
+        assert body["total"] == 5
+        seen.extend(item["case_id"] for item in body["cases"])
+        if not body["has_more"]:
+            assert body["next_cursor"] is None
+            break
+        assert body["next_cursor"]
+        cursor = body["next_cursor"]
+    assert seen == expected
+    assert len(set(seen)) == 5
+
+
+def test_history_search_filters_metrics_and_time_window(client, seeded):
+    owner = seeded["owner_id"]
+    pet = _pet(client, owner)
+    now = datetime.now(UTC).replace(microsecond=0)
+    walk_id, meal_id, sleep_id = _seed_cases(pet, owner, [
+        ("walk_minutes_per_day", now - timedelta(hours=1)),
+        ("meal_count_per_day", now - timedelta(hours=2)),
+        ("sleep_minutes_per_day", now - timedelta(hours=3)),
+    ])
+    walked = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases",
+        params={"metric": "walk_minutes_per_day"}, headers=auth(owner),
+    )
+    assert walked.status_code == 200, walked.text
+    assert [item["case_id"] for item in walked.json()["cases"]] == [walk_id]
+    assert walked.json()["total"] == 1
+    searched = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases", params={"q": "散步"}, headers=auth(owner),
+    )
+    assert searched.status_code == 200, searched.text
+    assert [item["case_id"] for item in searched.json()["cases"]] == [walk_id]
+    window = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases",
+        params={
+            "since": (now - timedelta(minutes=130)).isoformat(),
+            "until": (now - timedelta(minutes=70)).isoformat(),
+        },
+        headers=auth(owner),
+    )
+    assert window.status_code == 200, window.text
+    assert [item["case_id"] for item in window.json()["cases"]] == [meal_id]
+    assert sleep_id not in {item["case_id"] for item in window.json()["cases"]}
+
+
+def test_history_rejects_tampered_cursor_and_ambiguous_clock(client, seeded):
+    owner = seeded["owner_id"]
+    pet = _pet(client, owner)
+    bad_cursor = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases", params={"cursor": "not-a-cursor"},
+        headers=auth(owner),
+    )
+    assert bad_cursor.status_code == 422, bad_cursor.text
+    naive = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases",
+        params={"since": "2026-10-01T00:00:00"}, headers=auth(owner),
+    )
+    assert naive.status_code == 422, naive.text
+    inverted = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases",
+        params={"since": "2026-10-02T00:00:00+08:00", "until": "2026-10-01T00:00:00+08:00"},
+        headers=auth(owner),
+    )
+    assert inverted.status_code == 422, inverted.text
+
+
+def test_case_sources_are_authorized_real_events_with_frozen_roles(client, seeded):
+    owner = seeded["owner_id"]
+    pet, case = _real_case(client, owner)
+    path = f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}/sources"
+    first = client.get(path, params={"limit": 2}, headers=auth(owner))
+    assert first.status_code == 200, first.text
+    body = first.json()
+    assert body["scope"] == "CASE_EVIDENCE"
+    assert body["total"] == len(case["evidence_event_ids"])
+    assert len(body["sources"]) == 2
+    assert body["has_more"] is True and body["next_offset"] == 2
+    ids = {item["event_id"] for item in body["sources"]}
+    second = client.get(path, params={"limit": 20, "offset": 2}, headers=auth(owner))
+    assert second.status_code == 200, second.text
+    ids.update(item["event_id"] for item in second.json()["sources"])
+    assert ids == set(case["evidence_event_ids"])
+    all_sources = client.get(path, params={"limit": 20}, headers=auth(owner)).json()["sources"]
+    assert all(item["valid"] is True for item in all_sources)
+    assert all(item["payload"]["duration_minutes"] > 0 for item in all_sources)
+    assert {item["event_id"]: item["role"] for item in all_sources} == (
+        case["evidence_role_by_event_id"]
+    )
+    assert all(item["role_source"] == "FROZEN_AT_CREATION" for item in all_sources)
+    assert body["missing_event_ids"] == []
+
+
+def test_case_sources_are_pet_scoped_and_reject_foreign_review(client, seeded):
+    owner = seeded["owner_id"]
+    pet_a, case_a = _real_case(client, owner)
+    pet_b = _pet(client, owner, "R8AK Other Pet")
+    cross = client.get(
+        f"/api/v1/pets/{pet_b}/life-change-cases/{case_a['case_id']}/sources",
+        headers=auth(owner),
+    )
+    assert cross.status_code == 404, cross.text
+    foreign_review = client.get(
+        f"/api/v1/pets/{pet_a}/life-change-cases/{case_a['case_id']}/sources",
+        params={"review_id": str(uuid.uuid4())}, headers=auth(owner),
+    )
+    assert foreign_review.status_code == 404, foreign_review.text
+    stranger = create_user()
+    denied = client.get(
+        f"/api/v1/pets/{pet_a}/life-change-cases/{case_a['case_id']}/sources",
+        headers=auth(stranger),
+    )
+    assert denied.status_code in (403, 404), denied.text
+
+
+def test_old_case_detail_exposes_continue_review_token(client, seeded):
+    owner = seeded["owner_id"]
+    pet, case = _real_case(client, owner)
+    path = f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}"
+    first = client.post(
+        f"{path}/reviews", json={"decision": "FOLLOW_UP_LATER"}, headers=auth(owner),
+    )
+    assert first.status_code == 201, first.text
+    detail = client.get(path, headers=auth(owner))
+    assert detail.status_code == 200, detail.text
+    body = detail.json()
+    assert body["owner_can_review"] is True
+    assert body["latest_review_id"] == first.json()["review_id"]
+    assert set(body["review_decisions"]) == {
+        "RECORD_OBSERVATION", "FOLLOW_UP_LATER", "NOT_RELEVANT", "CORRECT_SOURCE",
+    }
+    # Continuing the SAME old Case appends a second immutable Review instead of
+    # opening a new Case or silently overwriting the earlier human decision.
+    continued = client.post(
+        f"{path}/reviews",
+        json={"decision": "CORRECT_SOURCE", "expected_latest_review_id": body["latest_review_id"]},
+        headers=auth(owner),
+    )
+    assert continued.status_code == 201, continued.text
+    final = client.get(path, headers=auth(owner)).json()
+    assert [item["decision"] for item in final["reviews"]] == [
+        "FOLLOW_UP_LATER", "CORRECT_SOURCE",
+    ]
+    assert final["state"] == "OWNER_ACKNOWLEDGED"

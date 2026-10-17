@@ -21,6 +21,11 @@ interface VisualModelRow {
   activated_at: string | null;
   artifact_map: Record<string, string>;
   identity_qc: Record<string, unknown>;
+  observed_surface_manifest?: Record<string, string>;
+  metadata_json?: {
+    demo_fixture?: boolean;
+    opts?: { observed_photo_count?: number; media_provenance?: string };
+  };
 }
 
 /** 模型状态 → 用户语言（不泄漏 raw 枚举）。 */
@@ -51,28 +56,41 @@ export default function TwinVersionPage({ params }: { params: Promise<{ id: stri
       .catch((e: unknown) => setNote(mapErrorMessage(e)));
   }, [petId]);
 
-  const current = models[0] ?? null;
-  const history = models.slice(1);
+  const current = models.find((m) => m.status === "ACTIVE") ?? models[0] ?? null;
+  const history = current ? models.filter((m) => m.model_id !== current.model_id) : [];
+  const currentIsDemo = current?.metadata_json?.demo_fixture === true;
+  const currentPhotoCount = Number(current?.metadata_json?.opts?.observed_photo_count ?? 0);
+  const currentObservedCount = Object.keys(current?.observed_surface_manifest ?? {}).length;
 
   return (
-    <main>
-      <div data-testid="pli.twinversion.identity">
+    <main className="v4-main v5-domain-page v5-utility-page">
+      <div className="v4-topline v5-page-lede" data-testid="pli.twinversion.identity">
         <h1>{petName ? `${petName} · 3D 形象版本` : "3D 形象版本"}</h1>
         <p className="sub">每一次生成与确认都会留下版本记录，来源与时间都可追溯。</p>
       </div>
 
       {current ? (
-        <div className="card" data-testid="pli.twinversion.current">
+        <section className="v5-utility-surface v5-utility-surface--soft" data-testid="pli.twinversion.current">
           <h2>当前版本 · 第 {current.version} 版</h2>
           <p className="sub" style={{ margin: 0 }}>{statusZh(current.status)}</p>
           <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 8 }}>
             <span className="badge" data-testid="pli.twinversion.time">生成于 {fmtTime(current.created_at)}</span>
-            <span className="badge" data-testid="pli.twinversion.source">来自 {Object.keys(current.artifact_map).length || 6} 张照片</span>
-            <span className="badge" data-testid="pli.twinversion.verify">{current.owner_verified ? "已通过主人确认" : "待主人确认"}</span>
+            <span className="badge" data-testid="pli.twinversion.source">
+              {currentIsDemo
+                ? "来源 · 示例模板"
+                : currentPhotoCount > 0
+                  ? `来源 · ${currentPhotoCount} 张照片`
+                  : currentObservedCount > 0
+                    ? `来源素材区域 · ${currentObservedCount} 项`
+                    : "来源素材 · 未观察到"}
+            </span>
+            <span className="badge" data-testid="pli.twinversion.verify">
+              {currentIsDemo ? "示例体验 · 非真实宠物身份确认" : current.owner_verified ? "已通过主人确认" : "待主人确认"}
+            </span>
           </div>
-        </div>
+        </section>
       ) : (
-        <div className="card" data-testid="pli.twinversion.current">
+        <section className="v5-utility-surface v5-utility-surface--soft" data-testid="pli.twinversion.current">
           <h2>当前版本</h2>
           <p className="sub" style={{ margin: 0 }}>还没有生成 3D 形象。拍摄素材并生成后，这里会显示版本信息。</p>
           <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 8 }}>
@@ -81,25 +99,25 @@ export default function TwinVersionPage({ params }: { params: Promise<{ id: stri
             <span className="badge" data-testid="pli.twinversion.verify">主人确认 · 待确认</span>
           </div>
           {note && <p className="muted" style={{ marginTop: 8 }}>{note}</p>}
-        </div>
+        </section>
       )}
 
-      <div className="card" data-testid="pli.twinversion.info">
+      <section className="v4-sec" data-testid="pli.twinversion.info">
         <h2>版本说明</h2>
         <p className="muted" style={{ margin: 0 }}>
-          每个版本都记录来源素材数量、生成时间与确认状态；确认后才会显示，未确认版本不会覆盖已使用版本。
+          每个版本都记录来源、生成时间与确认状态；示例模板会明确标注，真实候选只有在主人确认后才会成为当前形象。
         </p>
-      </div>
+      </section>
 
-      <div className="card" data-testid="pli.twinversion.history">
+      <section className="v5-utility-surface" data-testid="pli.twinversion.history">
         <h2>历史版本</h2>
         {history.length > 0 ? (
           history.map((m) => (
             <button
               key={m.model_id}
               type="button"
-              className="tl-head"
-              style={{ width: "100%", textAlign: "left", background: "none", border: 0, padding: "8px 0", cursor: "pointer" }}
+              className="tl-head v5-version-row"
+              style={{ textAlign: "left", cursor: "pointer" }}
               data-testid="pli.twinversion.history"
               onClick={() => {
                 window.location.assign(`/pets/${petId}/twin/review?version=${m.version}`);
@@ -113,8 +131,8 @@ export default function TwinVersionPage({ params }: { params: Promise<{ id: stri
         ) : (
           <button
             type="button"
-            className="tl-head"
-            style={{ width: "100%", textAlign: "left", background: "none", border: 0, padding: "8px 0", cursor: "pointer" }}
+            className="tl-head v5-version-row"
+            style={{ textAlign: "left", cursor: "pointer" }}
             data-testid="pli.twinversion.history"
             onClick={() => window.location.assign(`/pets/${petId}/capture`)}
           >
@@ -122,9 +140,9 @@ export default function TwinVersionPage({ params }: { params: Promise<{ id: stri
             <span className="badge">去拍摄素材</span>
           </button>
         )}
-      </div>
+      </section>
 
-      <div className="card">
+      <section className="v5-utility-surface v5-utility-surface--soft">
         <h2>完善 3D 形象</h2>
         <p className="muted" style={{ margin: 0 }}>补充更多角度的照片，可以让 3D 形象更像它。</p>
         <div className="row" style={{ marginTop: 8 }}>
@@ -132,7 +150,7 @@ export default function TwinVersionPage({ params }: { params: Promise<{ id: stri
             完善 3D 形象
           </Link>
         </div>
-      </div>
+      </section>
     </main>
   );
 }

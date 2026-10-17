@@ -3,6 +3,20 @@
 import type { HealthEventDetail } from "@pli/api-client";
 import { fmtTime } from "../../../lib/hooks";
 
+const OUTCOME_OPTIONS = [
+  ["RECOVERED", "已恢复"],
+  ["IMPROVED", "有改善"],
+  ["UNCHANGED", "暂无变化"],
+  ["WORSENED", "变差"],
+  ["RELAPSED", "再次出现"],
+  ["REFERRED", "已转诊 / 就医"],
+  ["UNRESOLVED", "仍未解决"],
+] as const;
+
+function outcomeLabel(value: string): string {
+  return OUTCOME_OPTIONS.find(([key]) => key === value)?.[1] ?? "已记录";
+}
+
 interface OutcomeCardProps {
   outcome: string;
   setOutcome: (v: string) => void;
@@ -30,11 +44,9 @@ export function OutcomeCard({
           结局
           <select value={outcome} onChange={(e) => setOutcome(e.target.value)}>
             <option value="">选择…</option>
-            {["RECOVERED", "IMPROVED", "UNCHANGED", "WORSENED", "RELAPSED", "REFERRED", "UNRESOLVED"].map(
-              (o) => (
-                <option key={o}>{o}</option>
-              ),
-            )}
+            {OUTCOME_OPTIONS.map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
           </select>
         </label>
         <label className="field">
@@ -47,7 +59,7 @@ export function OutcomeCard({
       </button>
       {outcomes.map((o, i) => (
         <div key={i} className="muted" style={{ marginTop: 6 }}>
-          已记录：{o.outcome} · {o.notes} · {fmtTime(o.recorded_at)}
+          已记录：{outcomeLabel(o.outcome)}{o.notes ? ` · ${o.notes}` : ""} · {fmtTime(o.recorded_at)}
         </div>
       ))}
     </div>

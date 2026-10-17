@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { cx } from "../lib/cx";
 import { formatDateTime } from "../lib/format";
 
@@ -26,7 +25,7 @@ export function EvidenceCard({
   createdAt?: string | null;
   media?: EvidenceMedia | null;
   caption?: string | null;
-  children?: ReactNode;
+  children?: unknown;
   className?: string;
 }) {
   const isImage =
@@ -63,7 +62,7 @@ export function EvidenceCard({
           ) : null}
         </div>
       ) : null}
-      {children}
+      {children as any}
     </div>
   );
 }

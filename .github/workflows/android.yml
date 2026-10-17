@@ -18,6 +18,9 @@ on:
   pull_request:
     paths:
       - "apps/mobile/**"
+      - "packages/pet-3d/**"
+      - "scripts/r2p3d-r4/**"
+      - "scripts/r5-6/**"
       - ".github/workflows/android.yml"
 
 concurrency:
@@ -25,7 +28,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   PLAY_STORE_SIGNING: EXTERNAL_BLOCKED
@@ -47,13 +50,15 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build pet-3d
         run: pnpm --dir packages/pet-3d build
+      - name: Build embedded mobile 3D page
+        run: pnpm --dir apps/mobile build:3d-page
       - name: Mobile typecheck
         run: pnpm --dir apps/mobile typecheck
       - name: Expo prebuild (android)
         run: pnpm --dir apps/mobile exec expo prebuild --platform android --non-interactive
       - name: Gradle assembleRelease
         working-directory: apps/mobile/android
-        run: ./gradlew assembleRelease --no-daemon
+        run: bash ../../../scripts/ci/gradle-retry.sh assembleRelease
       - name: Collect APK
         run: |
           echo "--- release outputs ---"
@@ -102,3 +107,134 @@ jobs:
           name: pli-web-standalone
           path: pli-web-standalone.tgz
           if-no-files-found: error
+
+  android-runtime-evidence:
+    name: Android R5.6 runtime evidence (NO_VISION_MODEL_USED)
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.head_ref == 'feat/r2p3d-r3-render-truth-ui-closure') }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: pli
+          POSTGRES_PASSWORD: pli_dev_password
+          POSTGRES_DB: pli
+        ports: ["5432/tcp"]
+        options: >-
+          --health-cmd "pg_isready -U pli -d pli"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379/tcp"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Configure dynamic runtime service ports
+        run: |
+          echo "DATABASE_URL=postgresql+asyncpg://pli:pli_dev_password@localhost:${{ job.services.postgres.ports[5432] }}/pli" >> "$GITHUB_ENV"
+          echo "TEST_DATABASE_URL=postgresql+asyncpg://pli:pli_dev_password@localhost:${{ job.services.postgres.ports[5432] }}/pli_test" >> "$GITHUB_ENV"
+          echo "REDIS_URL=redis://localhost:${{ job.services.redis.ports[6379] }}/0" >> "$GITHUB_ENV"
+      - name: Install backend + frontend dependencies
+        run: |
+          pip install -e "services/api[dev]" -e "packages/rules" -e "services/ai-gateway" pillow
+          pnpm install --frozen-lockfile
+      - name: Seed demo backend
+        run: |
+          cd services/api
+          alembic upgrade head
+          python -m app.seed
+      - name: Build demo-evidence Android APK
+        env:
+          EXPO_PUBLIC_PLI_API_URL: http://127.0.0.1:8800
+          EXPO_PUBLIC_PLI_DEMO_ENV: "1"
+        run: |
+          pnpm --dir packages/pet-3d build
+          pnpm --dir apps/mobile build:3d-page
+          pnpm --dir apps/mobile exec expo prebuild --platform android --non-interactive
+          # Evidence APK must be debuggable (run-as) AND self-contained. Normal
+          # RN debug omits JS and silently depends on emulator -> Metro reachability.
+          # Bundle JS in the debug variant to make the human-gate deterministic.
+          python scripts/r5-6/enable-debug-bundle.py
+          cd apps/mobile/android
+          bash ../../../scripts/ci/gradle-retry.sh assembleDebug
+          unzip -l app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/index.android.bundle'
+      - name: Start API
+        run: |
+          (cd services/api && nohup python -m uvicorn app.main:app --host 0.0.0.0 --port 8800 > /tmp/pli-api.log 2>&1 &)
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8800/api/v1/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/pli-api.log
+          exit 1
+      - name: Start Metro for demo-evidence debug APK
+        env:
+          CI: "1"
+          EXPO_PUBLIC_PLI_API_URL: http://127.0.0.1:8800
+          EXPO_PUBLIC_PLI_DEMO_ENV: "1"
+        run: |
+          (cd apps/mobile && nohup pnpm exec expo start --port 8081 > /tmp/pli-metro.log 2>&1 &)
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:8081/status | grep -q "packager-status:running"; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/pli-metro.log
+          exit 1
+      - name: Enable hosted-runner KVM access
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm
+            ls -l /dev/kvm
+          else
+            echo "::warning::/dev/kvm is unavailable; emulator will fall back to software virtualization"
+          fi
+      - name: Capture real Android runtime evidence
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot-save -camera-back none
+          script: bash scripts/r5-6/run-android-emulator-evidence.sh
+      - name: Build Android human-gate contact sheets
+        run: python scripts/r5-6/contact_sheets_ci.py --platform android
+      - name: Upload R5.6 Android runtime evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: r5-6-android-runtime-evidence
+          path: |
+            artifacts/r5-6-final/android/
+            artifacts/r5-6-final/contact-sheets-ci/
+          if-no-files-found: error
+      - name: Upload emulator/API diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r5-6-android-runtime-diagnostics
+          path: |
+            /tmp/pli-api.log
+            /tmp/pli-metro.log
+            /tmp/pli-android-logcat.txt
+            /tmp/pli-diag.json
+            /tmp/pli-runtime-manifest.json
+            artifacts/r5-6-final/android/
+            artifacts/r5-6-final/contact-sheets-ci/
+          if-no-files-found: warn
+

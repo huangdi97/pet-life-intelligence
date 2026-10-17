@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@pli/api-client";
 import { Pet3DViewer } from "../../../../../components/three/pet3d-viewer";
@@ -34,6 +34,7 @@ interface PetRow {
   name: string;
   species?: string | null;
   breed?: string | null;
+  avatar_artifact_id?: string | null;
 }
 
 interface VisualModelRow {
@@ -44,57 +45,117 @@ interface VisualModelRow {
   created_at: string;
   artifact_map: Record<string, string>;
   identity_qc: Record<string, unknown>;
+  metadata_json?: {
+    demo_fixture?: boolean;
+    media_provenance?: string;
+    opts?: { observed_photo_count?: number; media_provenance?: string };
+  };
 }
 
 export default function TwinReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const petId = use(params).id;
-  const [version, setVersion] = useState(1);
+  const [version, setVersion] = useState(0);
   const [pet, setPet] = useState<PetRow | null>(null);
   const [model, setModel] = useState<VisualModelRow | null>(null);
   const [modelNote, setModelNote] = useState<string | null>(null);
+  const [realPhoto, setRealPhoto] = useState<{ petId: string; uri: string | null } | null>(null);
   const [selected, setSelected] = useState<"like" | "basic_like" | "not_like" | null>(null);
   const [issueKeys, setIssueKeys] = useState<string[]>([]);
   const [view, setView] = useState<"front" | "side" | "back">("front");
+  const [viewRevision, setViewRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    const v = Number(new URLSearchParams(window.location.search).get("version")) || 1;
-    setVersion(v);
+    let alive = true;
+    // Pet/version changes are identity boundaries. Clear the prior candidate
+    // before resolving the next one so a stale Twin can never appear under a
+    // different pet name while requests are in flight.
+    setPet(null);
+    setModel(null);
+    setModelNote(null);
+    setSelected(null);
+    setIssueKeys([]);
+    setView("front");
+    setViewRevision(0);
+    setMsg(null);
+    const requestedVersion = Number(new URLSearchParams(window.location.search).get("version")) || 0;
+
+    const modelRequest = async (): Promise<VisualModelRow | null> => {
+      try {
+        let resolved = requestedVersion;
+        if (resolved <= 0) {
+          const list = await api.get<{ models: VisualModelRow[] }>(`/pets/${petId}/visual-models`);
+          resolved = Number(list.models?.[0]?.version ?? 0);
+        }
+        if (resolved <= 0) {
+          if (alive) {
+            setVersion(0);
+            setModelNote("还没有已生成的 3D 形象。");
+          }
+          return null;
+        }
+        const value = await api.get<VisualModelRow>(`/pets/${petId}/visual-models/${resolved}`);
+        if (alive) {
+          setVersion(resolved);
+          setModelNote(null);
+        }
+        return value;
+      } catch (e: unknown) {
+        if (alive) setModelNote(mapErrorMessage(e));
+        return null;
+      }
+    };
+
     Promise.all([
       api.get<PetRow>(`/pets/${petId}`).catch(() => null),
-      api.get<VisualModelRow>(`/pets/${petId}/visual-models/${v}`).catch((e: unknown) => {
-        setModelNote(mapErrorMessage(e));
-        return null;
-      }),
+      modelRequest(),
     ]).then(([p, m]) => {
+      if (!alive) return;
       setPet(p);
       setModel(m);
     });
-  }, [petId, version]);
 
-  async function verify(option: "like" | "basic_like" | "not_like") {
+    return () => {
+      alive = false;
+    };
+  }, [petId]);
+
+  // The uploaded owner reference is not model-training evidence. Keep it
+  // scoped to this pet; a late response from another pet cannot be displayed.
+  useEffect(() => {
+    if (!pet?.avatar_artifact_id) return;
+    const id = petId;
+    let alive = true;
+    api.get<{ data_url: string | null }>(`/pets/${id}/avatar`)
+      .then((response) => { if (alive) setRealPhoto({ petId: id, uri: response.data_url ?? null }); })
+      .catch(() => { if (alive) setRealPhoto({ petId: id, uri: null }); });
+    return () => { alive = false; };
+  }, [petId, pet?.avatar_artifact_id]);
+  const referencePhoto = realPhoto?.petId === petId ? realPhoto.uri : null;
+
+  function chooseReview(option: "like" | "basic_like" | "not_like") {
     setSelected(option);
     setMsg(null);
     if (option !== "not_like") setIssueKeys([]);
-    // 真实 API 存在（POST /visual-models/{version}/verify）；失败时保持客户端诚实态。
-    try {
-      await api.post(`/pets/${petId}/visual-models/${version}/verify`, {
-        result: option,
-        issues: option === "not_like" ? issueKeys : [],
-        notes: "",
-      });
-    } catch (e) {
-      setMsg("还没有可确认的 3D 形象，先拍摄素材并生成后再确认。");
-      setModelNote(mapErrorMessage(e));
-    }
   }
 
-  async function activate() {
-    if (!selected || selected === "not_like" || busy) return;
+  async function submitReview() {
+    if (!selected || busy || version <= 0 || !model) return;
     setBusy(true);
     setMsg(null);
     try {
+      await api.post(`/pets/${petId}/visual-models/${version}/verify`, {
+        result: selected,
+        issues: selected === "not_like" ? issueKeys : [],
+        notes: "",
+      });
+      if (selected === "not_like") {
+        // Negative feedback is persisted with the final selected issue set but
+        // can never activate the candidate.
+        setMsg("已记录哪里不像。补充更多素材后可以重新生成；当前 3D 形象不会被替换。");
+        return;
+      }
       await api.post(`/pets/${petId}/visual-models/${version}/activate`, {});
       setMsg("已确认并激活这个 3D 形象。");
     } catch (e) {
@@ -105,36 +166,69 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
   }
 
   const identity = resolvePet3DIdentity({ name: pet?.name, species: pet?.species, breed: pet?.breed });
-  const show3d = identity !== null;
+  const modelDescriptor = (model?.artifact_map as Record<string, unknown>)?.twin_descriptor as import("@pli/pet-3d").TwinDescriptor | undefined;
+  const show3d = identity !== null && modelDescriptor != null;
+  const modelSurface = (modelDescriptor as { surface?: { observed_regions?: string[] } } | undefined)?.surface?.observed_regions;
+  const twinSourceMediaCount = modelSurface?.length ?? 0;
+  const modelDemoFixture = model?.metadata_json?.demo_fixture === true;
+  // INVARIANT: pass a STABLE twin object. The spread below is intentionally
+  // memoized — a fresh object per render would remount the 3D scene (the
+  // viewer keys its effect on `twin`), resetting the camera and defeating the
+  // front/side/back presets that drive the real camera on click.
+  const viewerTwin = useMemo<import("@pli/pet-3d").TwinDescriptor | null>(
+    () =>
+      model && modelDescriptor
+        ? {
+            ...modelDescriptor,
+            // Preserve the backend's per-candidate family. Never coerce every
+            // dog into a Corgi template just because the current demo dog is a
+            // Corgi; fallback only when an older descriptor omitted family.
+            family:
+              modelDescriptor.family ??
+              (pet?.species === "cat" ? "standard-cat" : "standard-dog"),
+            version: model.version,
+            provenance: model.provenance_kind,
+          }
+        : null,
+    [model, modelDescriptor, pet?.species, model?.version, model?.provenance_kind],
+  );
 
   return (
-    <main>
-      <div data-testid="pli.twinreview.identity">
+    <main className="v4-main v5-review-page" data-pli-selected={selected ?? ""}>
+      <div className="v5-review-identity" data-testid="pli.twinreview.identity">
         <h1>{pet ? `${pet.name} · 确认 3D 形象` : "确认 3D 形象"}</h1>
         <p className="sub">
-          第 {version} 版 · 对比照片确认它是否像。确认后才会作为它的 3D 形象显示。
+          {version > 0 ? `第 ${version} 版 · ` : ""}从正面、侧面和背面重点看脸、耳朵、毛色、身形与尾巴。只有你确认相似后才会启用。
+        </p>
+        <p className="v4-note" style={{ marginTop: 6 }}>
+          {modelDemoFixture
+            ? `当前为示例 3D 形象，来自演示模板，不代表${pet?.name ?? "宠物"}的真实扫描或已验证个体外观。`
+            : twinSourceMediaCount > 0
+              ? `已关联 ${twinSourceMediaCount} 处素材区域；未观察到的部分仍可能来自模板推断。`
+              : `当前候选尚无可确认的素材区域；不会把模板部分描述为真实观察。`}
         </p>
       </div>
 
-      <div className="card" data-testid="pli.twinreview.stage" style={{ position: "relative", minHeight: 380 }}>
-        <div data-testid="pli.twinreview.twin" style={{ position: "absolute", inset: 0 }}>
-          {show3d ? (
-            <Pet3DViewer
-              identity={identity}
-              variant="life"
-              interactive
-              twin={model ? { family: pet?.species === "cat" ? "standard-cat" : "corgi-like", version: model.version, provenance: model.provenance_kind } : null}
-            />
-          ) : (
-            <div className="page-center" style={{ minHeight: 240 }}>
-              <p className="muted">还没有可展示的 3D 形象。先拍摄素材并生成后再确认。</p>
+      {/* Review is an interactive identity decision: make orbit controls visible
+          BEFORE the tall 3D stage, including on narrow owner phones. */}
+      <div className="v5-review-reference" data-testid="pli.twinreview.reference-photo">
+        {referencePhoto ? (
+          <>
+            <img src={referencePhoto} alt={`${pet?.name ?? "宠物"}的主人上传照片`} />
+            <div>
+              <strong>真实照片对照</strong>
+              <p>左侧是上传照片，下面是待确认的 3D 形象。请对照耳朵、毛色、脸型和身形。</p>
             </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <p>尚无可用的主人照片对照。模板形象不能代替对真实宠物外观的确认。</p>
+        )}
       </div>
-      {modelNote && <p className="muted" style={{ marginTop: 6 }}>当前为演示形象（开发环境）· {modelNote}</p>}
-
-      <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+      <div className="v5-review-tools">
+        <h2>观察角度</h2>
+        <p className="v5-review-hint">先从不同角度看清脸、耳朵、身形与尾巴，再判断是否像它。</p>
+      </div>
+      <div className="v5-segmented" aria-label="查看角度">
         {(
           [
             { id: "front", label: "正面" },
@@ -146,7 +240,11 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
             key={v.id}
             type="button"
             className={`btn${view === v.id ? " primary" : ""}`}
-            onClick={() => setView(v.id)}
+            onClick={() => {
+              setView(v.id);
+              setViewRevision((n) => n + 1);
+            }}
+            aria-pressed={view === v.id}
             data-testid={`pli.twinreview.view.${v.id}`}
           >
             {v.label}
@@ -154,16 +252,47 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
         ))}
       </div>
 
-      <div className="card" style={{ marginTop: 12 }}>
+
+      <div className="r5-review-studio v5-review-stage" data-testid="pli.twinreview.stage">
+        <div data-testid="pli.twinreview.twin" style={{ position: "absolute", inset: 0 }}>
+          {show3d ? (
+            <Pet3DViewer
+              identity={identity}
+              displayName={pet?.name}
+              demoTwin={modelDemoFixture}
+              variant="life"
+              interactive
+              petId={petId}
+              frameTarget={0.40}
+              stageRole="review"
+              realityField="review-studio"
+              sourceMediaCount={twinSourceMediaCount}
+              twin={viewerTwin}
+              pose="Stand"
+              view={view}
+              viewRevision={viewRevision}
+            />
+          ) : (
+            <div className="page-center" style={{ minHeight: 240 }}>
+              <p className="muted">还没有可展示的 3D 形象。先拍摄素材并生成后再确认。</p>
+            </div>
+          )}
+        </div>
+      </div>
+      {modelNote && <p className="muted" style={{ marginTop: 6 }}>还没有可确认的 3D 形象 · {modelNote}</p>}
+
+      <div className="v5-review-confirm">
         <h2>它像吗？</h2>
+        <p className="v5-review-hint">只确认外观是否像它；这个选择不会改变健康、行为或时间线里的真实记录。</p>
         <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
           {VERIFY_OPTIONS.map((o) => (
             <button
               key={o.id}
               type="button"
               className={`btn${selected === o.id ? " primary" : ""}`}
-              onClick={() => verify(o.id)}
-              disabled={busy}
+              onClick={() => chooseReview(o.id)}
+              disabled={busy || !model}
+              aria-pressed={selected === o.id}
               data-testid={`pli.twinreview.verify.${o.id}`}
             >
               {o.label}
@@ -172,7 +301,7 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
         </div>
 
         {selected === "not_like" && (
-          <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+          <div className="v5-review-issues">
             {ISSUES.map((i) => (
               <button
                 key={i.key}
@@ -191,24 +320,35 @@ export default function TwinReviewPage({ params }: { params: Promise<{ id: strin
       </div>
 
       {msg && <div className="alert info">{msg}</div>}
-      <div className="card">
+      <div className="v5-review-status">
         <h2 data-testid="pli.twinreview.status">
           {selected === null
             ? "还未确认"
             : selected === "not_like"
-              ? "不像：需补充素材后重新生成"
+              ? "不像：可提交反馈，不会启用"
               : selected === "basic_like"
-                ? "基本像：已记录确认"
-                : "很像：已记录确认"}
+                ? "基本像：确认提交后才会启用"
+                : "很像：确认提交后才会启用"}
         </h2>
+        {selected === "not_like" ? (
+          <button
+            type="button"
+            className="btn"
+            onClick={submitReview}
+            disabled={busy}
+            data-testid="pli.twinreview.action.feedback"
+          >
+            {busy ? "提交中…" : "提交不像反馈"}
+          </button>
+        ) : null}
         <button
           type="button"
           className="btn primary"
-          onClick={activate}
-          disabled={busy || !selected || selected === "not_like"}
+          onClick={submitReview}
+          disabled={busy || !model || version <= 0 || !selected || selected === "not_like"}
           data-testid="pli.twinreview.action.activate"
         >
-          {selected === "not_like" ? "需补充素材后重新生成" : "激活这个 3D 形象"}
+          {selected === "not_like" ? "需补充素材后重新生成" : busy ? "提交中…" : "确认并启用"}
         </button>
         <div className="row" style={{ marginTop: 10 }}>
           <Link href={`/pets/${petId}/capture`} className="btn">

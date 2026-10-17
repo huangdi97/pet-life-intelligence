@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { api, ApiError, type Pet } from "@pli/api-client";
 import { fmtDate, useAsync } from "../../../lib/hooks";
 import { mapErrorMessage, t } from "../../../lib/i18n";
+import { breedLabel, consentPurposeLabel } from "../../../lib/ownerLabels";
 import { State } from "../../../components/ui";
 import { PetLivingStage } from "../../../components/pet-living-stage";
 import { Icon, type WebIconName } from "../../../components/icons";
 import { EVENT_LABELS } from "../../_components/today/constants";
+import { poseForEvent } from "@pli/pet-3d";
 
 interface Consent {
   purpose: string;
@@ -18,7 +21,43 @@ interface Consent {
 interface TodayMini {
   event_counts: Record<string, number>;
   date: string;
+  events?: Array<{
+    event_type: string;
+    occurred_at: string;
+    payload?: Record<string, unknown>;
+  }>;
 }
+
+interface BaselineRow {
+  metric: string;
+  value: string;
+  sample_count: number;
+  window_days: number;
+  algorithm: string;
+  computed_at: string;
+}
+
+interface PetHealthMeaning {
+  health_event_id: string;
+}
+interface PetBehaviorMeaning {
+  behavior_event_id: string;
+  behavior: string;
+}
+interface PetTrainingMeaning {
+  goal_id: string;
+  title: string;
+  status: string;
+}
+interface PetWelfareMeaning {
+  observation_counts?: Record<string, number>;
+}
+
+const BASELINE_LABELS: Record<string, { label: string; suffix: string }> = {
+  meal_count_per_day: { label: "每日进食次数", suffix: " 次/天" },
+  walk_minutes_per_day: { label: "每日散步", suffix: " 分钟/天" },
+  sleep_minutes_per_day: { label: "每日睡眠", suffix: " 分钟/天" },
+};
 
 /** 年龄 → 用户语言：X岁X个月 / X个月 / 年龄未知。 */
 function ageText(birthDate: string | null): string {
@@ -37,11 +76,11 @@ function ageText(birthDate: string | null): string {
 }
 
 const DOMAIN_ROWS: Array<{ id: string; label: string; href: string; desc: string; icon: WebIconName }> = [
-  { id: "life", label: "生活", href: "/timeline", desc: "今天的状态与最近发生的变化", icon: "sun" },
+  { id: "life", label: "生活", href: "/timeline", desc: "此刻、趋势与外观", icon: "sun" },
   { id: "health", label: "健康", href: "/health", desc: "最近记录与近期变化", icon: "heart" },
   { id: "behavior", label: "行为", href: "/behavior", desc: "最近一次观察与行为模式", icon: "eye" },
   { id: "training", label: "训练", href: "/training", desc: "当前目标与最近练习", icon: "target" },
-  { id: "welfare", label: "福利", href: "/welfare", desc: "近期观察：舒适、活动与恢复", icon: "shield" },
+  { id: "welfare", label: "福祉", href: "/welfare", desc: "近期观察：舒适、活动与恢复", icon: "shield" },
   { id: "social", label: "社交", href: "/social", desc: "最近互动与它的朋友", icon: "users" },
 ];
 
@@ -67,6 +106,58 @@ export default function PetProfilePage() {
     () => (id ? api.get(`/pets/${id}/friends`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [id],
   );
+  const baseline = useAsync<BaselineRow[]>(
+    () => (id ? api.get(`/pets/${id}/baseline`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [id],
+  );
+  const healthMeaning = useAsync<PetHealthMeaning[]>(
+    () => (id ? api.get(`/pets/${id}/health-events`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [id],
+  );
+  const behaviorMeaning = useAsync<PetBehaviorMeaning[]>(
+    () => (id ? api.get(`/pets/${id}/behavior-events`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [id],
+  );
+  const trainingMeaning = useAsync<PetTrainingMeaning[]>(
+    () => (id ? api.get(`/pets/${id}/training-goals`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [id],
+  );
+  const welfareMeaning = useAsync<PetWelfareMeaning>(
+    () => (id ? api.get(`/pets/${id}/welfare-evidence`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [id],
+  );
+  const [baselineBusy, setBaselineBusy] = useState(false);
+  const [baselineError, setBaselineError] = useState<string | null>(null);
+
+  async function recomputeBaseline() {
+    if (!id || baselineBusy) return;
+    setBaselineBusy(true);
+    setBaselineError(null);
+    try {
+      await api.post(`/pets/${id}/baseline/recompute?window_days=14`, {});
+      baseline.reload();
+    } catch (error) {
+      setBaselineError(mapErrorMessage(error));
+    } finally {
+      setBaselineBusy(false);
+    }
+  }
+  // R4: same canonical individual twin as Today / Life View. Declared with
+  // the other hooks BEFORE any early return: a data error below (404/denied)
+  // must not change hook count or React will hit the error boundary instead
+  // of the dedicated not-found state (STAGE-V-VISUAL-02 regression).
+  const twinModels = useAsync<{ models: Array<Record<string, unknown>> }>(
+    () => (id ? api.get(`/pets/${id}/visual-models`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [id],
+  );
+  const activeTwin = twinModels.data?.models.find((m) => m.status === "ACTIVE") ?? null;
+  const twinDescriptor = activeTwin
+    ? ((activeTwin.artifact_map as Record<string, unknown>)?.twin_descriptor as
+        import("@pli/pet-3d").TwinDescriptor | undefined) ?? null
+    : null;
+  const twinMeta = (activeTwin?.metadata_json as Record<string, unknown> | undefined) ?? {};
+  const demoTwin = twinMeta.demo_fixture === true;
+  const twinSourceMediaCount = ((twinDescriptor as { surface?: { observed_regions?: string[] } } | null)?.surface?.observed_regions ?? []).length;
 
   if (!id || pet.state === "denied") {
     return (
@@ -98,33 +189,127 @@ export default function PetProfilePage() {
   const p = pet.data;
   const counts = today.data?.event_counts ?? {};
   const countEntries = Object.entries(counts);
-  const ANCHOR_ICONS: Record<string, WebIconName> = {
-    "daily.meal": "food",
-    "daily.drink": "water",
-    "daily.walk": "walk",
-    "daily.play": "play",
-    "daily.sleep": "sleep",
-    "daily.weight": "weight",
-  };
-  const anchors = countEntries
-    .filter(([et]) => et !== "today.viewed")
-    .slice(0, 4)
-    .map(([et, n]) => ({
-      id: et,
-      label: EVENT_LABELS[et] ?? "状态",
-      value: `${n} 次`,
-      icon: ANCHOR_ICONS[et] ?? "paw",
-      href: "/timeline",
-    }));
+  const todayEvents = (today.data?.events ?? []).filter((event) => event.event_type !== "today.viewed");
+  const latestLifeEvent = todayEvents[0] ?? null;
+  const representativePose = poseForEvent(latestLifeEvent?.event_type ?? null) ?? "Idle";
+  const activityMinutes = todayEvents
+    .filter((event) => event.event_type === "daily.walk" || event.event_type === "daily.play")
+    .reduce((total, event) => {
+      const minutes = Number(event.payload?.duration_minutes);
+      if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 24 * 60) return total;
+      return total + minutes;
+    }, 0);
+  const anchors = [
+    { id: "meal", label: "进食", value: `${counts["daily.meal"] ?? 0} 次`, icon: "food" as WebIconName, href: "/timeline" },
+    { id: "water", label: "饮水", value: `${counts["daily.drink"] ?? 0} 次`, icon: "water" as WebIconName, href: "/timeline" },
+    { id: "activity", label: "活动", value: activityMinutes > 0 ? `${activityMinutes} 分钟` : "—", icon: "walk" as WebIconName, href: "/timeline" },
+    { id: "sleep", label: "睡眠", value: `${counts["daily.sleep"] ?? 0} 次`, icon: "sleep" as WebIconName, href: "/timeline" },
+  ];
+
+
   const identityLine = [
     p?.birth_date ? ageText(p.birth_date) : "",
-    p?.breed || p?.species,
-    p?.sex === "FEMALE" ? "雌性" : p?.sex === "MALE" ? "雄性" : p?.sex,
+    breedLabel(p?.breed) || p?.species,
+    p?.sex === "FEMALE" ? "雌性" : p?.sex === "MALE" ? "雄性" : p?.sex === "UNKNOWN" ? "性别未知" : "",
   ]
     .filter(Boolean)
     .join(" · ");
+  const meaningfulTodayCount = countEntries
+    .filter(([eventType]) => eventType !== "today.viewed")
+    .reduce((sum, [, count]) => sum + count, 0);
+  const petHeadline =
+    meaningfulTodayCount > 0
+      ? `今天留下了 ${meaningfulTodayCount} 条生活记录`
+      : "今天还没有新的生活记录";
+  const visibleRelationships = (friends.data ?? []).filter(
+    (friend) => friend.status === "ACTIVE" || friend.status === "ACCEPTED" || friend.status === "PENDING",
+  );
+  const relationshipStatusLabel = (status: string) =>
+    status === "PENDING" ? "待确认" : status === "ACTIVE" || status === "ACCEPTED" ? "已连接" : "已记录";
+
+  // Pet World rows answer “what does this domain mean for this pet now?”.
+  // Loading/error stays distinct from an actual empty history.
+  const trainingGoals = Array.isArray(trainingMeaning.data) ? trainingMeaning.data : [];
+  const activeTrainingGoal = trainingGoals.find(
+    (goal) => goal.status === "OPEN" || goal.status === "ACTIVE",
+  );
+  const welfareObservationCount = Object.values(welfareMeaning.data?.observation_counts ?? {})
+    .reduce((sum, value) => sum + Number(value || 0), 0);
+  const domainRows = DOMAIN_ROWS.map((row) => {
+    if (row.id === "life") {
+      return {
+        ...row,
+        href: `/pets/${id}/life-view`,
+        desc: "此刻、趋势与外观都在这里",
+      };
+    }
+    if (row.id === "health") {
+      return {
+        ...row,
+        desc: healthMeaning.state === "loading"
+          ? "正在读取最近健康记录"
+          : healthMeaning.state === "error" || healthMeaning.state === "denied"
+            ? "健康记录暂时没有加载成功"
+            : healthMeaning.data?.length
+              ? `最近有 ${healthMeaning.data.length} 条健康记录`
+              : "最近还没有健康记录",
+      };
+    }
+    if (row.id === "behavior") {
+      const latest = behaviorMeaning.data?.[0];
+      const text = latest?.behavior?.trim() ?? "";
+      return {
+        ...row,
+        desc: behaviorMeaning.state === "loading"
+          ? "正在读取最近行为观察"
+          : behaviorMeaning.state === "error" || behaviorMeaning.state === "denied"
+            ? "行为记录暂时没有加载成功"
+            : text
+              ? `最近一次：${text.slice(0, 22)}${text.length > 22 ? "…" : ""}`
+              : "还没有行为观察",
+      };
+    }
+    if (row.id === "training") {
+      return {
+        ...row,
+        desc: trainingMeaning.state === "loading"
+          ? "正在读取当前训练目标"
+          : trainingMeaning.state === "error" || trainingMeaning.state === "denied"
+            ? "训练记录暂时没有加载成功"
+            : activeTrainingGoal
+              ? `正在学习：${activeTrainingGoal.title}`
+              : "还没有进行中的训练目标",
+      };
+    }
+    if (row.id === "welfare") {
+      return {
+        ...row,
+        desc: welfareMeaning.state === "loading"
+          ? "正在读取近期生活观察"
+          : welfareMeaning.state === "error" || welfareMeaning.state === "denied"
+            ? "福祉记录暂时没有加载成功"
+            : welfareObservationCount > 0
+              ? `近期观察 ${welfareObservationCount} 条`
+              : "最近没有新增生活观察",
+      };
+    }
+    if (row.id === "social") {
+      return {
+        ...row,
+        desc: friends.state === "loading"
+          ? "正在读取关系与互动"
+          : friends.state === "error" || friends.state === "denied"
+            ? "关系记录暂时没有加载成功"
+            : visibleRelationships.length > 0
+              ? `已有 ${visibleRelationships.length} 个已连接或待确认关系`
+              : "还没有已记录的宠物关系",
+      };
+    }
+    return row;
+  });
 
   return (
+
     <main className="v4-main">
       {p ? (
         <div data-testid="pli.pet.identity">
@@ -134,8 +319,15 @@ export default function PetProfilePage() {
             species={p.species}
             breed={p.breed}
             variant="pet"
-            anchors={anchors.length ? anchors : undefined}
-            headline={p.name}
+            stageRole="pet"
+            realityField="warm-living"
+            demo={demoTwin || process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1"}
+            twin={twinDescriptor}
+            frameTarget={0.56}
+            sourceMediaCount={twinSourceMediaCount}
+            pose={twinDescriptor ? representativePose : null}
+            anchors={anchors}
+            headline={petHeadline}
             caption={identityLine || undefined}
             stageTestId="pli.pet.hero-stage"
             twinTestId="pli.pet.pet-twin"
@@ -157,14 +349,14 @@ export default function PetProfilePage() {
                 打开生命视图
               </Link>
             </div>
-            <p className="v4-sec-sub">它的此刻与长期生活轨迹。真实照片与记录始终是基础，不依赖 3D。</p>
+            <p className="v4-sec-sub">查看它的此刻、趋势与外观；完整生命轨迹仍在一级时间线。真实照片与记录始终是基础，不依赖 3D。</p>
           </div>
 
           <div className="v4-sec">
             <h2 className="v4-sec-title">它的生活</h2>
-            {DOMAIN_ROWS.map((row) => (
+            {domainRows.map((row) => (
               <div key={row.id} className="v4-domain">
-                <Link href={row.href} className="v4-domain-main" role="button" data-testid={`pli.pet.domain.${row.id}`}>
+                <Link href={row.id === "life" ? `/pets/${id}/life-view` : row.href} className="v4-domain-main" role="button" data-testid={`pli.pet.domain.${row.id}`}>
                   <span className="v4-domain-icon">
                     <Icon name={row.icon} size={20} />
                   </span>
@@ -180,47 +372,105 @@ export default function PetProfilePage() {
 
           <div className="v4-sec" data-testid="pli.pet.friends">
             <div className="v4-sec-head">
-              <h2 className="v4-sec-title">它的朋友</h2>
+              <h2 className="v4-sec-title">它的关系</h2>
               <Link href="/social" className="v4-sec-link">管理</Link>
             </div>
-            {friends.state === "ready" && (friends.data?.length ?? 0) > 0 ? (
-              friends.data?.map((f) => (
+            {friends.state === "loading" ? (
+              <p className="v4-note" style={{ margin: "6px 0 0" }}>正在读取已记录的宠物关系……</p>
+            ) : friends.state === "error" || friends.state === "denied" ? (
+              <p className="v4-note" style={{ margin: "6px 0 0" }}>关系记录暂时没有加载成功；进入「社交」页可以重试。</p>
+            ) : visibleRelationships.length > 0 ? (
+              visibleRelationships.map((f) => (
                 <div key={f.friend_pet_id} className="v4-domain">
-                  <span className="v4-domain-label">{petsList.data?.find((x) => x.id === f.friend_pet_id)?.name ?? "朋友"}</span>
-                  <span className="v4-domain-value">{f.status === "ACTIVE" ? "已连接" : f.status === "PENDING" ? "待确认" : "朋友"}</span>
+                  <span className="v4-domain-label">{petsList.data?.find((x) => x.id === f.friend_pet_id)?.name ?? "宠物朋友"}</span>
+                  <span className="v4-domain-value">{relationshipStatusLabel(f.status)}</span>
                 </div>
               ))
             ) : (
-              <p className="v4-note" style={{ margin: "6px 0 0" }}>还没有添加朋友。在「社交」页添加后会出现在这里。</p>
+              <p className="v4-note" style={{ margin: "6px 0 0" }}>还没有已连接或待确认的宠物关系；在「社交」页记录真实关系与互动后会出现在这里。</p>
             )}
           </div>
         </div>
 
         <div className="v4-rail">
           <div className="v4-sec" style={{ paddingTop: 18 }}>
-            <h2 className="v4-sec-title">此刻</h2>
-            {countEntries.length > 0 ? (
-              <div className="v4-metrics">
-                {countEntries
-                  .filter(([et]) => et !== "today.viewed")
-                  .slice(0, 6)
-                  .map(([et, n]) => (
-                    <div key={et} className="v4-metric">
-                      <span className="v4-metric-value">{n}</span>
-                      <span className="v4-metric-label">{EVENT_LABELS[et] ?? "状态"}</span>
-                    </div>
-                  ))}
+            <h2 className="v4-sec-title">今天</h2>
+            <div className="v5-observation-list" style={{ marginTop: 6 }}>
+              <div className="v5-observation-row">
+                <span className="v5-observation-label">生活记录</span>
+                <span className="v5-observation-value">
+                  {meaningfulTodayCount > 0 ? `${meaningfulTodayCount} 条` : "还没有"}
+                </span>
               </div>
-            ) : (
-              <p className="v4-sec-sub">今天还没有记录。</p>
-            )}
+              <div className="v5-observation-row">
+                <span className="v5-observation-label">完整轨迹</span>
+                <Link href="/timeline" className="v4-sec-link">查看时间线</Link>
+              </div>
+            </div>
           </div>
 
+          <div className="v4-sec" data-testid="pli.pet.baseline">
+            <div className="v4-sec-head">
+              <h2 className="v4-sec-title">它的常态</h2>
+              <span className="v4-sec-link" aria-hidden="true">最近 14 天</span>
+            </div>
+            <p className="v4-note" style={{ marginTop: 6 }}>
+              用真实生活记录形成可解释基线，只和它自己比较；记录不足时不会猜测。
+            </p>
+            <State
+              state={baseline.state}
+              error={baseline.error ? mapErrorMessage(baseline.error) : null}
+              onRetry={baseline.reload}
+              empty="还没有足够的生活记录形成常态。继续真实记录后再计算。"
+            >
+              <div className="v5-observation-list" style={{ marginTop: 8 }}>
+                {(baseline.data ?? []).map((row) => {
+                  const meta = BASELINE_LABELS[row.metric] ?? { label: "生活基线", suffix: "" };
+                  return (
+                    <div className="v5-observation-row" key={row.metric}>
+                      <span className="v5-observation-label">{meta.label}</span>
+                      <span className="v5-observation-value">
+                        {row.value}{meta.suffix}
+                        <small className="v4-note" style={{ display: "block" }}>
+                          {row.sample_count} 天真实样本 · {row.window_days} 天窗口
+                        </small>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </State>
+            {baselineError ? <p className="v4-error" style={{ marginTop: 8 }}>{baselineError}</p> : null}
+            <div className="v4-linkrow" style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                className="v4-action v4-action--secondary"
+                disabled={baselineBusy}
+                onClick={() => void recomputeBaseline()}
+              >
+                {baselineBusy ? "计算中…" : "重新计算常态"}
+              </button>
+            </div>
+          </div>
+
+          <details className="v5-pet-management" data-testid="pli.pet.management">
+            <summary>
+              <span>
+                <strong>更多档案与管理</strong>
+                <small>基础档案、照护、授权与数据入口</small>
+              </span>
+              <span aria-hidden="true">展开</span>
+            </summary>
           <div className="v4-sec">
-            <h2 className="v4-sec-title">基本信息</h2>
+            <div className="v4-sec-head">
+              <h2 className="v4-sec-title">基本信息</h2>
+              <Link href={`/pets/${id}/edit`} className="v4-sec-link" data-testid="pli.pet.profile.edit-link">
+                编辑档案
+              </Link>
+            </div>
             <div className="v4-statsline" style={{ marginTop: 6 }}>
               <span className="v4-chip">种类：{p?.species === "dog" ? "犬" : p?.species === "cat" ? "猫" : p?.species || "—"}</span>
-              <span className="v4-chip">品种：{p?.breed || "—"}</span>
+              <span className="v4-chip">品种：{breedLabel(p?.breed) || "—"}</span>
               <span className="v4-chip">性别：{p?.sex === "FEMALE" ? "雌性" : p?.sex === "MALE" ? "雄性" : p?.sex === "UNKNOWN" ? "未知" : "—"}</span>
               <span className="v4-chip">绝育：{p?.neutered == null ? "—" : p.neutered ? "是" : "否"}</span>
             </div>
@@ -250,7 +500,7 @@ export default function PetProfilePage() {
               <div className="v4-statsline" style={{ marginTop: 6 }}>
                 {consents.data?.map((c) => (
                   <span key={c.purpose} className={`v4-chip${c.granted ? " v4-chip--success" : ""}`}>
-                    {c.purpose}: {c.granted ? "已同意" : "未同意"}
+                    {consentPurposeLabel(c.purpose)} · {c.granted ? "已同意" : "未同意"}
                   </span>
                 ))}
               </div>
@@ -272,6 +522,7 @@ export default function PetProfilePage() {
               </Link>
             </div>
           </div>
+          </details>
         </div>
       </div>
     </main>
