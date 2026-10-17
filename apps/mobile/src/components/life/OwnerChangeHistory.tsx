@@ -11,11 +11,12 @@ import {
 } from "./ownerCaseHistory";
 
 export function OwnerChangeHistory({
-  petId, cases, onOpenTimeline,
+  petId, cases, onOpenTimeline, onOpenCase,
 }: {
   petId: string;
   cases: LifeChangeCaseSummary[];
   onOpenTimeline: () => void;
+  onOpenCase: (caseId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   // Even if a server response is accidentally stale, never paint pet A's
@@ -37,9 +38,11 @@ export function OwnerChangeHistory({
           const status = caseHistoryStatus(c);
           const unit = metric.unit ? ` ${metric.unit}` : "";
           return (
-            <View
+            <Pressable
               key={c.case_id}
               testID={`pli.r8.owner-history.case.${c.case_id}`}
+              accessibilityRole="button"
+              onPress={() => onOpenCase(c.case_id)}
               accessible
               accessibilityLabel={`${metric.name}记录核对 · ${status} · 当前观察 ${c.current_value}${unit} · 个人同期记录 ${c.baseline_value}${unit} · ${c.sample_days} 天参考 · ${c.evidence_event_ids.length} 条原始来源 · Case ${c.case_id}`}
               style={styles.entry}
@@ -54,7 +57,8 @@ export function OwnerChangeHistory({
               <Text style={styles.provenance}>
                 {c.sample_days} 天可比参考 · {c.evidence_event_ids.length} 条冻结来源 · 非健康诊断
               </Text>
-            </View>
+              <Text style={styles.openDetail}>查看来源与主人反馈 →</Text>
+            </Pressable>
           );
         })}
       </View>
@@ -93,6 +97,7 @@ const styles = StyleSheet.create({
   warn: { color: COLORS.danger },
   facts: { fontSize: TYPE.sm, color: COLORS.textPrimary },
   provenance: { fontSize: TYPE.caption, lineHeight: 18, color: COLORS.textSecondary },
+  openDetail: { fontSize: TYPE.sm, fontWeight: "700", color: COLORS.brandPrimaryDeep },
   action: { minHeight: 44, alignSelf: "flex-start", justifyContent: "center" },
   link: { fontSize: TYPE.sm, fontWeight: "700", color: COLORS.brandPrimaryDeep },
 });
