@@ -16,6 +16,6 @@ An existing R8 Case and its append-only owner Reviews remain in PostgreSQL after
 
 - New blind-source contract checks durable Case GET independently of `notableChange`, UI visibility of real Case ID and per-pet isolation.
 - Node regression executes the production status helper, including sourced followup invalidation.
-- Hosted Android UIAutomator must still prove the historical case remains visible after adding a truly recorded activity that returns the current same-clock hint to non-notable. **Until this runtime gate is added and green it is not accepted.**
+- Hosted Android UIAutomator must still prove the historical case remains visible after adding a truly recorded activity that returns the current same-clock hint to non-notable. The exact-HEAD hosted Android evidence now seeds a real additional walk until the same-clock current hint is non-notable, then must navigate to real Android Today and find the original immutable Case ID and valid follow-up in the native accessibility tree and screenshot. The test remains **PENDING until that new HEAD's Android workflow succeeds**.
 - API list currently caps at latest 50 Cases; this is a first-fold recent-history entry, not exhaustive search or cross-client parity. A dedicated History reader with event detail and reviews is further work.
 - No visual model was used. `HUMAN_VISUAL_ACCEPTANCE = PENDING`, real individual 3D remains separately gated. No main merge/tag/Release/visual-baseline changes.

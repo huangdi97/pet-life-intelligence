@@ -1310,6 +1310,90 @@ def capture_r8_owner_review(
         "vision_model_used": False,
     })
 
+    # R8AI: a genuine owner's reviewed Case is durable even after the CURRENT
+    # comparison normalizes. Add a real recorded walk to make today's same-
+    # clock total comparable; do not fabricate a new state or weaken the Case.
+    before_normalization = api_json(
+        f"{root}/pets/{pet_id}/abnormal-day-hint",
+        headers=owner_header,
+    )
+    old_walk = next(
+        (row for row in before_normalization.get("explanations", [])
+         if row.get("metric") == "walk_minutes_per_day"), None,
+    )
+    if not old_walk or old_walk.get("same_time_baseline") is None:
+        raise CaptureError("R8AI fixture lacks an actual personal same-clock comparison")
+    gap_minutes = int(round(
+        float(old_walk["same_time_baseline"]) - float(old_walk["current_value"])
+    ))
+    if not 0 <= gap_minutes <= 1440:
+        raise CaptureError(f"R8AI cannot normalize via valid recorded walk: {gap_minutes}")
+    normalization_event_id = None
+    if gap_minutes > 0:
+        normalization = api_json(
+            f"{root}/pets/{pet_id}/events",
+            method="POST", headers=owner_header,
+            body={
+                "event_type": "daily.walk",
+                "payload": {"duration_minutes": gap_minutes},
+                "occurred_at": datetime.now(product_tz).isoformat(),
+                "allow_duplicate": True,
+            },
+        )
+        normalization_event_id = normalization.get("event_id")
+        if not normalization_event_id or normalization.get("pet_id") != pet_id:
+            raise CaptureError("R8AI normalization did not persist a real pet-scoped observation")
+    after_normalization = api_json(
+        f"{root}/pets/{pet_id}/abnormal-day-hint",
+        headers=owner_header,
+    )
+    normalized_walk = next(
+        (row for row in after_normalization.get("explanations", [])
+         if row.get("metric") == "walk_minutes_per_day"), None,
+    )
+    if not normalized_walk or normalized_walk.get("notable"):
+        raise CaptureError(
+            "R8AI current walk comparison did not normalize with real recorded facts: "
+            f"{normalized_walk}"
+        )
+    journal_cases = api_json(
+        f"{root}/pets/{pet_id}/life-change-cases", headers=owner_header,
+    ).get("cases", [])
+    journal_case = next(
+        (row for row in journal_cases if row.get("case_id") == case_id),
+        None,
+    )
+    if (
+        not journal_case or not journal_case.get("source_valid")
+        or journal_case.get("follow_up_source_valid") is not True
+    ):
+        raise CaptureError("R8AI original Case or real follow-up vanished after normalization")
+
+    # The owner must still SEE the Case on real Android Today after the live
+    # prompt stops qualifying. A backend Case list alone is insufficient.
+    android.start_link(f"pli-demo://nav?screen=today&pet={pet_id}")
+    history_node = f"pli.r8.owner-history.case.{case_id}"
+    journal_xml = find_control(history_node, "case-journal-ui.xml", attempts=30)
+    if history_node not in journal_xml or case_id not in journal_xml:
+        raise CaptureError("R8AI persistent Case not accessible in the real Android journal")
+    if "已关联真实后续观察" not in journal_xml:
+        raise CaptureError("R8AI native Case row does not preserve effective follow-up truth")
+    android.screenshot(directory / "durable-case-after-normalization.png")
+    save_manifest(directory / "case-journal-truth.json", {
+        "pet_id": pet_id,
+        "case_id": case_id,
+        "current_walk_notable": normalized_walk["notable"],
+        "current_walk_value": normalized_walk["current_value"],
+        "same_time_baseline": normalized_walk["same_time_baseline"],
+        "normalization_event_id": normalization_event_id,
+        "persistent_case_source_valid": journal_case["source_valid"],
+        "persistent_case_follow_up_source_valid": journal_case["follow_up_source_valid"],
+        "case_visible_in_real_native_xml": True,
+        "journal_screenshot": "durable-case-after-normalization.png",
+        "no_vision_model": True,
+        "human_visual_acceptance": "PENDING",
+    })
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
