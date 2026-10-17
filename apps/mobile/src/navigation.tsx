@@ -41,6 +41,7 @@ import { HealthDetailScreen } from "./screens/HealthDetailScreen";
 import { SearchScreen } from "./screens/SearchScreen";
 import { PetProfileScreen } from "./screens/PetProfileScreen";
 import { MediaMemoryScreen } from "./screens/MediaMemoryScreen";
+import { LifeChangeCaseScreen } from "./screens/LifeChangeCaseScreen";
 
 export type TabParamList = {
   Today: undefined;
@@ -57,6 +58,7 @@ export type StackParamList = {
   Search: undefined;
   PetProfile: { mode: "create" | "edit" };
   MediaMemory: { artifactIds: string[]; initialIndex?: number };
+  LifeChangeCase: { petId: string; caseId: string };
   Health: undefined;
   HealthDetail: { id: string };
   LifeView: { date?: string; anchor?: "water" | "meal" | "activity" | "sleep" } | undefined;
@@ -173,6 +175,7 @@ export function AppNavigation() {
         <Stack.Screen name="Search" component={SearchScreen} />
         <Stack.Screen name="PetProfile" component={PetProfileScreen} />
         <Stack.Screen name="MediaMemory" component={MediaMemoryScreen} />
+        <Stack.Screen name="LifeChangeCase" component={LifeChangeCaseScreen} />
         <Stack.Screen name="Health" component={HealthScreen} />
         <Stack.Screen name="HealthDetail" component={HealthDetailScreen} />
         <Stack.Screen name="LifeView" component={LifeViewScreen} />
