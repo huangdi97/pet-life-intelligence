@@ -421,6 +421,7 @@ export function TodayScreen() {
                 petId={petId}
                 cases={ownerCases}
                 onOpenTimeline={() => tabNav.navigate("Timeline")}
+                onOpenCase={(caseId) => stackNav.navigate("LifeChangeCase", { petId, caseId })}
               />
             ) : null}
 
