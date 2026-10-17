@@ -592,9 +592,9 @@ def test_follow_up_must_happen_after_persisted_case_creation_not_just_comparison
     import asyncio
     import uuid
 
-    from sqlalchemy import select
     from app.core.db import get_session_factory
     from app.models import LifeChangeCase
+    from sqlalchemy import select
 
     owner = seeded["owner_id"]
     pet, current, _ = _create_change(client, owner)
