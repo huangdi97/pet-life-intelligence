@@ -129,6 +129,8 @@ jobs:
         run: pnpm --dir apps/mobile test:owner-review-primary
       - name: Owner source evidence paging integrity
         run: pnpm --dir apps/mobile test:owner-review-evidence
+      - name: Persistent owner Case history status and pet scope
+        run: pnpm --dir apps/mobile test:owner-case-history
       - name: Mobile bundle (android)
         run: pnpm --dir apps/mobile exec expo export --platform android
       - name: Mobile bundle (ios)

@@ -83,7 +83,7 @@ export function OwnerChangeHistory({
 const styles = StyleSheet.create({
   section: { marginHorizontal: SPACE.s5, marginTop: SPACE.s6, gap: SPACE.s2 },
   eyebrow: { fontSize: TYPE.meta, fontWeight: "700", color: COLORS.brandPrimaryDeep },
-  title: { fontSize: TYPE.heading, fontWeight: "700", color: COLORS.textPrimary },
+  title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
   intro: { fontSize: TYPE.sm, lineHeight: 19, color: COLORS.textSecondary },
   entries: { gap: SPACE.s3, marginTop: SPACE.s2 },
   entry: { borderRadius: 17, backgroundColor: COLORS.stageWarmBase, padding: SPACE.s4, gap: SPACE.s2 },
