@@ -22,6 +22,8 @@ import { AttentionPanel } from "../components/life/AttentionPanel";
 import { ChangeNarrative } from "../components/life/ChangeNarrative";
 import { LifeChangeReviewPanel, type LifeMetric } from "../components/life/LifeChangeReviewPanel";
 import { PendingOwnerReviewRecovery } from "../components/life/PendingOwnerReviewRecovery";
+import { OwnerChangeHistory } from "../components/life/OwnerChangeHistory";
+import type { LifeChangeCaseSummary } from "../components/life/ownerCaseHistory";
 import { PrimaryAction, SecondaryAction, ActionRow } from "../components/actions/QuickAction";
 import { Skeleton } from "../components/feedback/Feedback";
 import { OpenSection } from "../components/feedback/OpenSection";
@@ -90,6 +92,7 @@ export function TodayScreen() {
   const [rawToday, setToday] = useState<TodayResp | null>(null);
   const [rawTasks, setTasks] = useState<Task[]>([]);
   const [rawHint, setHint] = useState<DayHintResponse | null>(null);
+  const [rawOwnerCases, setOwnerCases] = useState<LifeChangeCaseSummary[]>([]);
   const [rawHealth, setHealth] = useState<HealthEventRow[]>([]);
   const [rawHealthState, setHealthState] = useState<"loading" | "ready" | "error">("loading");
   const [rawError, setError] = useState<string | null>(null);
@@ -112,6 +115,7 @@ export function TodayScreen() {
   const today = isOwnData ? rawToday : null;
   const tasks = isOwnData ? rawTasks : [];
   const hint = isOwnData ? rawHint : null;
+  const ownerCases = isOwnData ? rawOwnerCases : [];
   const health = isOwnData ? rawHealth : [];
   const healthState = isOwnData ? rawHealthState : "loading";
   const error = isOwnData ? rawError : null;
@@ -129,6 +133,7 @@ export function TodayScreen() {
     setError(null);
     setCachedAt(null);
     setHint(null);
+    setOwnerCases([]);
     setHealth([]);
     setHealthState("loading");
     Promise.allSettled([
@@ -136,7 +141,8 @@ export function TodayScreen() {
       api.get<Task[]>(`/pets/${petId}/tasks`),
       api.get<DayHintResponse>(`/pets/${petId}/abnormal-day-hint`),
       api.get<HealthEventRow[]>(`/pets/${petId}/health-events`),
-    ]).then(([t, tk, h, he]) => {
+      api.get<{ cases: LifeChangeCaseSummary[] }>(`/pets/${petId}/life-change-cases`),
+    ]).then(([t, tk, h, he, lc]) => {
       if (!alive) return;
       if (t.status === "fulfilled") {
         setToday(t.value);
@@ -147,6 +153,9 @@ export function TodayScreen() {
       }
       if (tk.status === "fulfilled") setTasks(tk.value);
       if (h.status === "fulfilled") setHint(h.value);
+      // Cases are persistent owner memory, not dependent on whether today's
+      // heuristic still happens to qualify as a notable change.
+      if (lc.status === "fulfilled") setOwnerCases(lc.value.cases);
       if (he.status === "fulfilled") {
         setHealth(he.value);
         setHealthState("ready");
@@ -378,6 +387,14 @@ export function TodayScreen() {
                 key={petId}
                 petId={petId}
                 refreshKey={refreshCounter}
+              />
+            ) : null}
+            {petId && ownerCases.length > 0 ? (
+              <OwnerChangeHistory
+                key={petId}
+                petId={petId}
+                cases={ownerCases}
+                onOpenTimeline={() => tabNav.navigate("Timeline")}
               />
             ) : null}
             <View testID="pli.today.attention">

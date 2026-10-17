@@ -1,0 +1,25 @@
+"use strict";
+/** Run R8AI's REAL pure owner Case status mapping, not a copied test helper. */
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const ts = require("typescript");
+const source = fs.readFileSync(path.resolve(__dirname, "../src/components/life/ownerCaseHistory.ts"),"utf8");
+const compiled = ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
+const shim={exports:{}};
+new Function("module","exports",compiled)(shim,shim.exports);
+const {caseHistoryStatus,caseHistoryMetric}=shim.exports;
+const origin={pet_id:"pet-1",case_id:"case-A",metric:"walk_minutes_per_day",current_value:20,baseline_value:90,sample_days:5,evidence_event_ids:["e1","e2"],source_valid:true,state:"PROPOSED"};
+assert.equal(caseHistoryStatus(origin),"等待主人核对");
+assert.match(caseHistoryStatus({...origin,state:"FOLLOW_UP",follow_up_source_valid:true}),/真实后续观察/);
+assert.match(caseHistoryStatus({...origin,state:"FOLLOW_UP",follow_up_source_valid:null}),/继续关注/);
+assert.match(caseHistoryStatus({...origin,state:"FOLLOW_UP_EVIDENCE_INVALIDATED",follow_up_source_valid:false}),/已失效/);
+assert.match(caseHistoryStatus({...origin,state:"INVALIDATED",source_valid:false}),/原始记录已变更/);
+assert.equal(caseHistoryStatus({...origin,state:"CLOSED"}),"主人选择暂不关注");
+assert.equal(caseHistoryStatus({...origin,state:"OWNER_ACKNOWLEDGED"}),"主人已提出来源核对");
+assert.equal(caseHistoryMetric("daily.other").name,"生活记录");
+assert.equal(caseHistoryMetric("walk_minutes_per_day").unit,"分钟");
+const today = fs.readFileSync(path.resolve(__dirname,"../src/screens/TodayScreen.tsx"),"utf8");
+assert.ok(today.includes("ownerCases.length > 0"));
+assert.ok(today.includes("isOwnData ? rawOwnerCases : []"));
+console.log("R8AI persisted Case journal statuses and pet scope: PASS");
