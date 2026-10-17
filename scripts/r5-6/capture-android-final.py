@@ -1188,6 +1188,40 @@ def capture_r8_owner_review(
         android.shell("input", "swipe", "765", "1850", "765", "1120", "320")
         time.sleep(0.7)
         source_ui = android.dump_xml(directory / f"source-scroll-{attempt + 1}.xml")
+    # Source rows are React Native accessibility nodes with viewport-dependent
+    # exposure. The initial scroll progresses DOWN to reach the pagination
+    # control, so a first/current observation near the TOP can be seen only as
+    # an ID in an earlier XML while its full row is not captured in one node.
+    # Scan BACK toward the top, preserving the exact same per-row factual and
+    # immutable-ID checks. Do not treat Case API values as native evidence.
+    missing_full_rows = set(planted_ids) - observed_factual_source_ids
+    if missing_full_rows:
+        for reverse_attempt in range(24):
+            android.shell("input", "swipe", "765", "720", "765", "1580", "320")
+            time.sleep(0.45)
+            source_ui = android.dump_xml(
+                directory / f"source-reverse-{reverse_attempt + 1}.xml"
+            )
+            for node in ET.fromstring(source_ui).iter("node"):
+                row = " ".join((
+                    node.attrib.get("text", ""),
+                    node.attrib.get("content-desc", ""),
+                    node.attrib.get("resource-id", ""),
+                ))
+                for event_id in tuple(missing_full_rows):
+                    minutes = expected_minutes[event_id]
+                    if (
+                        event_id in row
+                        and f"记录时长 {minutes} 分钟" in row
+                        and "发生 " in row and "录入 " in row
+                    ):
+                        observed_source_ids.add(event_id)
+                        observed_factual_source_ids.add(event_id)
+                        if expected_role_by_event_id[event_id] in row:
+                            observed_comparison_role_ids.add(event_id)
+                        missing_full_rows.discard(event_id)
+            if not missing_full_rows:
+                break
     if len(planted_ids) <= 8 or source_pagination_taps < 1:
         raise CaptureError(
             "R8 Android fixture did not tap a real native >8-source pagination action"
