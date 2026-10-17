@@ -583,3 +583,85 @@ def test_case_source_roles_are_frozen_through_owner_reviews_and_retries(client, 
     row = next(x for x in listing.json()["cases"] if x["case_id"] == first["case_id"])
     assert row["evidence_role_source"] == "FROZEN_AT_CREATION"
     assert row["evidence_role_by_event_id"] == first["evidence_role_by_event_id"]
+
+
+def test_follow_up_must_happen_after_persisted_case_creation_not_just_comparison_clock(
+    client, seeded,
+):
+    """Two-time comparison is not the start of the owner's follow-up window."""
+    import asyncio
+    import uuid
+
+    from sqlalchemy import select
+
+    from app.core.db import get_session_factory
+    from app.models import LifeChangeCase
+
+    owner = seeded["owner_id"]
+    pet, current, _ = _create_change(client, owner)
+    case = _case(client, owner, pet)
+
+    async def read_case_clock():
+        async with get_session_factory()() as db:
+            row = (await db.execute(
+                select(LifeChangeCase).where(
+                    LifeChangeCase.id == uuid.UUID(case["case_id"]),
+                )
+            )).scalar_one()
+            return row.computed_at, row.created_at
+
+    comparison_at, created_at = asyncio.run(read_case_clock())
+    assert comparison_at < created_at
+    # The event happened AFTER the frozen comparison, but BEFORE this Case
+    # existed. Recording it now must not retroactively turn it into follow-up.
+    between = comparison_at + (created_at - comparison_at) / 2
+    backfill = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 6},
+              "occurred_at": between.isoformat()},
+        headers=auth(owner),
+    )
+    assert backfill.status_code == 201, backfill.text
+    path = f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}/reviews"
+    rejected = client.post(
+        path, json={"decision": "RECORD_OBSERVATION",
+                    "related_event_ids": [backfill.json()["event_id"]]},
+        headers=auth(owner),
+    )
+    assert rejected.status_code == 422, rejected.text
+    assert "Backfilled past events" in rejected.text
+
+    duplicated = client.post(
+        path, json={"decision": "RECORD_OBSERVATION",
+                    "related_event_ids": [current, current]},
+        headers=auth(owner),
+    )
+    assert duplicated.status_code == 422
+    original = client.post(
+        path, json={"decision": "RECORD_OBSERVATION",
+                    "related_event_ids": [current]},
+        headers=auth(owner),
+    )
+    assert original.status_code == 422
+    assert "Original Case evidence" in original.text
+    detail = client.get(path.rsplit("/reviews", 1)[0], headers=auth(owner))
+    assert detail.status_code == 200
+    assert detail.json()["reviews"] == []
+    assert detail.json()["state"] == "PROPOSED"
+
+    real_followup = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 8}},
+        headers=auth(owner),
+    )
+    assert real_followup.status_code == 201, real_followup.text
+    accepted = client.post(
+        path, json={"decision": "RECORD_OBSERVATION",
+                    "related_event_ids": [real_followup.json()["event_id"]]},
+        headers=auth(owner),
+    )
+    assert accepted.status_code == 201, accepted.text
+    after = client.get(path.rsplit("/reviews", 1)[0], headers=auth(owner))
+    assert after.status_code == 200
+    assert after.json()["follow_up_source_valid"] is True
+    assert after.json()["reviews"][0]["related_sources_valid"] is True

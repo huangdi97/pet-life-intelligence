@@ -127,10 +127,17 @@ async def _follow_up_current(
         LifeEvent.pet_id == case.pet_id, LifeEvent.id.in_(ids),
     ))).scalars().all())
     now = datetime.now(UTC)
-    return len(events) == len(ids) and all(
-        event.recorded_at > case.computed_at
-        and case.computed_at < event.occurred_at <= now
-        for event in events
+    # A comparison is computed before the owner Case is persisted. A walk
+    # during that gap was not a follow-up to an existing Case, even if it
+    # happened after the algorithm's frozen comparison clock.
+    return (
+        len(events) == len(ids)
+        and not set(review.related_event_ids) & set(case.evidence_event_ids)
+        and all(
+            event.recorded_at > case.created_at
+            and case.created_at < event.occurred_at <= now
+            for event in events
+        )
     )
 
 
@@ -418,17 +425,21 @@ async def review_case(
         raise ValidationFailed("RECORD_OBSERVATION requires real new life-event IDs, other decisions do not.")
     if body.related_event_ids:
         related_ids = [str(x) for x in body.related_event_ids]
+        if len(set(related_ids)) != len(related_ids):
+            raise ValidationFailed("Follow-up evidence IDs must be distinct.")
+        if set(related_ids) & set(case.evidence_event_ids):
+            raise ValidationFailed("Original Case evidence is not a new follow-up.")
         if not await _evidence_current(db, pet.id, related_ids, METRICS[case.metric]):
             raise ValidationFailed("Related observation must be a current sourced event from this pet and metric.")
         related_rows = list((await db.execute(
             select(LifeEvent).where(LifeEvent.pet_id == pet.id, LifeEvent.id.in_(body.related_event_ids))
         )).scalars().all())
-        # Bitemporal causality: merely ENTERING a backfilled observation
-        # after opening the Case does not make the underlying event a follow-up.
-        # A valid follow-up must BOTH happen and be recorded after the Case.
-        if any(e.recorded_at <= case.computed_at for e in related_rows):
+        # The frozen comparison clock defines the old baseline; created_at
+        # defines when a real owner-followup loop first became possible.
+        # Both recording and occurrence must be later than Case creation.
+        if any(e.recorded_at <= case.created_at for e in related_rows):
             raise ValidationFailed("Follow-up must be recorded after Case creation.")
-        if any(e.occurred_at <= case.computed_at for e in related_rows):
+        if any(e.occurred_at <= case.created_at for e in related_rows):
             raise ValidationFailed("Backfilled past events are history, not follow-up observations.")
         if any(e.occurred_at > datetime.now(UTC) for e in related_rows):
             raise ValidationFailed("Future-dated events cannot be follow-up observations.")
