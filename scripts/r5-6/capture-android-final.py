@@ -1428,6 +1428,71 @@ def capture_r8_owner_review(
         "human_visual_acceptance": "PENDING",
     })
 
+    # R8AJ: a saved Case must OPEN its actual immutable review/source history
+    # through a real Android tap, not merely remain an unclickable Today card.
+    if not ui_has_actionable_control(journal_xml, history_node):
+        raise CaptureError("R8AJ historical Case is visible but not a clickable native owner action")
+    android.tap(journal_xml, history_node, "id")
+    detail_xml = ""
+    for _ in range(24):
+        time.sleep(1)
+        detail_xml = android.dump_xml(directory / "case-detail-firstfold.xml")
+        if 'pli.r8.case-detail.identity' in detail_xml:
+            break
+    if 'pli.r8.case-detail.identity' not in detail_xml:
+        raise CaptureError("R8AJ native Case-detail route did not mount after real Case tap")
+    if "已关联真实后续观察" not in detail_xml:
+        raise CaptureError("R8AJ native historical Case does not show the saved follow-up status")
+    android.screenshot(directory / "owner-case-detail-firstfold.png")
+
+    detail_api = api_json(
+        f"{root}/pets/{pet_id}/life-change-cases/{case_id}",
+        headers=owner_header,
+    )
+    if detail_api.get("pet_id") != pet_id or detail_api.get("case_id") != case_id:
+        raise CaptureError("R8AJ detail API returned a different pet or Case")
+    expected_reviews = [str(r["review_id"]) for r in detail_api.get("reviews", [])]
+    if len(expected_reviews) < 2:
+        raise CaptureError("R8AJ Case detail lacks append-only human review history")
+    expected_source_ids = set(detail_api.get("evidence_event_ids", []))
+    if not expected_source_ids or expected_source_ids != set(case_source_ids):
+        raise CaptureError("R8AJ detail has no original immutable Case source-set equality")
+    observed_reviews: set[str] = set()
+    observed_sources: set[str] = set()
+    for step in range(22):
+        current_xml = android.dump_xml(directory / f"case-detail-scroll-{step:02d}.xml")
+        observed_reviews.update(
+            review_id for review_id in expected_reviews
+            if f"pli.r8.case-detail.review.{review_id}" in current_xml
+        )
+        observed_sources.update(
+            event_id for event_id in expected_source_ids
+            if f"pli.r8.case-detail.source.{event_id}" in current_xml
+        )
+        if len(observed_reviews) == len(expected_reviews) and observed_sources == expected_source_ids:
+            break
+        android.shell("input", "swipe", "780", "1690", "780", "840", "290")
+        time.sleep(0.4)
+    if len(observed_reviews) != len(expected_reviews) or observed_sources != expected_source_ids:
+        raise CaptureError(
+            "R8AJ native Case detail did not expose EVERY real review/source identity: "
+            f"reviews={len(observed_reviews)}/{len(expected_reviews)}, "
+            f"sources={len(observed_sources)}/{len(expected_source_ids)}"
+        )
+    android.screenshot(directory / "owner-case-detail-evidence.png")
+    save_manifest(directory / "case-detail-truth.json", {
+        "pet_id": pet_id,
+        "case_id": case_id,
+        "source_event_ids": sorted(expected_source_ids),
+        "review_ids": expected_reviews,
+        "native_revealed_source_ids": sorted(observed_sources),
+        "native_revealed_review_ids": sorted(observed_reviews),
+        "case_detail_opened_by_real_android_tap": True,
+        "all_case_ids_verified_in_native_xml": True,
+        "no_vision_model": True,
+        "human_visual_acceptance": "PENDING",
+    })
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
