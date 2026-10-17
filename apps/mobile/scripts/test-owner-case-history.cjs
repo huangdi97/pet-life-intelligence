@@ -16,6 +16,8 @@ assert.match(caseHistoryStatus({...origin,state:"FOLLOW_UP",follow_up_source_val
 assert.match(caseHistoryStatus({...origin,state:"FOLLOW_UP_EVIDENCE_INVALIDATED",follow_up_source_valid:false}),/已失效/);
 assert.match(caseHistoryStatus({...origin,state:"INVALIDATED",source_valid:false}),/原始记录已变更/);
 assert.equal(caseHistoryStatus({...origin,state:"CLOSED"}),"主人选择暂不关注");
+assert.equal(caseHistoryStatus({...origin,state:"CLOSED",follow_up_source_valid:true}),"主人选择暂不关注");
+assert.equal(caseHistoryStatus({...origin,state:"OWNER_ACKNOWLEDGED",follow_up_source_valid:true}),"主人已提出来源核对");
 assert.equal(caseHistoryStatus({...origin,state:"OWNER_ACKNOWLEDGED"}),"主人已提出来源核对");
 assert.equal(caseHistoryMetric("daily.other").name,"生活记录");
 assert.equal(caseHistoryMetric("walk_minutes_per_day").unit,"分钟");
