@@ -593,7 +593,6 @@ def test_follow_up_must_happen_after_persisted_case_creation_not_just_comparison
     import uuid
 
     from sqlalchemy import select
-
     from app.core.db import get_session_factory
     from app.models import LifeChangeCase
 
