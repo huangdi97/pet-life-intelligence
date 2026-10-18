@@ -49,15 +49,24 @@ async def _review_scope_ids(
     return list(review.related_event_ids)
 
 
-async def _superseded_ids(db, pet_id: uuid.UUID, ids: list[uuid.UUID]) -> set:
+async def _successor_by_event(
+    db, pet_id: uuid.UUID, ids: list[uuid.UUID],
+) -> dict:
+    """Map each superseded original event to the later correction event."""
     if not ids:
-        return set()
-    rows = (await db.execute(select(LifeEvent.supersedes_event_id).where(
+        return {}
+    rows = (await db.execute(select(
+        LifeEvent.supersedes_event_id, LifeEvent.id,
+    ).where(
         LifeEvent.pet_id == pet_id,
         LifeEvent.supersedes_event_id.in_(ids),
         LifeEvent.recorded_at <= datetime.now(UTC),
-    ))).scalars().all()
-    return {row for row in rows if row is not None}
+    ))).all()
+    return {
+        original: successor
+        for original, successor in rows
+        if original is not None
+    }
 
 
 @router.get("/pets/{pet_id}/life-change-cases/{case_id}/sources")
@@ -93,7 +102,7 @@ async def list_case_sources(
         user_ids = {event.actor_id for event in rows}
         users = list((await db.execute(select(User).where(User.id.in_(user_ids)))).scalars().all())
         actors = _actor_names_map(users)
-    superseded = await _superseded_ids(db, pet.id, [e.id for e in rows])
+    superseded_by = await _successor_by_event(db, pet.id, [e.id for e in rows])
     by_id = {str(event.id): event for event in rows}
     ordered = sorted(
         (event for event in rows),
@@ -114,7 +123,10 @@ async def list_case_sources(
         )
         payload["scope"] = scope
         payload["valid"] = (
-            event.retracted_at is None and event.id not in superseded
+            event.retracted_at is None and event.id not in superseded_by
+        )
+        payload["superseded_by_event_id"] = (
+            str(superseded_by[event.id]) if event.id in superseded_by else None
         )
         sources.append(payload)
     next_offset = offset + len(sources)

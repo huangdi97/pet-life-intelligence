@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
-from app.core.errors import NotFound, PermissionDenied, ValidationFailed
+from app.core.errors import ConflictError, NotFound, PermissionDenied, ValidationFailed
 from app.domain import enums
 from app.domain.event_types import EVENT_REGISTRY
 from app.models import Artifact, LifeEvent, User
@@ -49,6 +49,19 @@ class EventCreate(BaseModel):
     provenance_level: str | None = None
     artifact_ids: list[uuid.UUID] = Field(default_factory=list)
     allow_duplicate: bool = False
+
+
+class EventCorrection(BaseModel):
+    """Owner correction: new payload, SAME occurrence time and pet.
+
+    The correction is a new append-only event that supersedes the old one;
+    the original row is never edited. Moving an occurrence to another day is
+    deliberately not allowed here because same-clock baselines and historical
+    Case membership depend on the frozen occurrence instant.
+    """
+
+    payload: dict[str, Any]
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=96)
 
 
 class EventOut(BaseModel):
@@ -252,6 +265,91 @@ async def retract_event(
     )
     await db.commit()
     return {"event_id": str(event.id), "retracted_at": event.retracted_at.isoformat()}
+
+
+@router.post("/pets/{pet_id}/events/{event_id}/supersede", status_code=201)
+async def supersede_event(
+    pet_id: uuid.UUID, event_id: uuid.UUID, body: EventCorrection,
+    db: DBSession, user: CurrentUser,
+    x_request_id: str | None = Header(default=None),
+) -> dict:
+    """Append an owner correction that supersedes one existing recorded fact.
+
+    INVARIANT: the original row is never edited or deleted. The occurrence
+    instant is preserved, so same-clock baselines and any historical Case that
+    cited the original source can recompute validity from the chain.
+    """
+    pet = await perm.get_pet_or_404(db, pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.MANAGE_PET)
+    original = (await db.execute(select(LifeEvent).where(
+        LifeEvent.id == event_id, LifeEvent.pet_id == pet.id,
+    ))).scalar_one_or_none()
+    if original is None:
+        raise NotFound(f"Event {event_id} not found for this pet.")
+    # A lost-ack retry carries the same idempotency key; it must return the
+    # correction already accepted even though a successor now exists.
+    if body.idempotency_key:
+        existing = (await db.execute(select(LifeEvent).where(
+            LifeEvent.pet_id == pet.id,
+            LifeEvent.idempotency_key == body.idempotency_key,
+        ))).scalar_one_or_none()
+        if existing is not None:
+            if (existing.supersedes_event_id != original.id
+                    or existing.event_type != original.event_type):
+                raise ConflictError(
+                    "Idempotency key already belongs to a different correction."
+                )
+            actor = (
+                await db.execute(select(User).where(User.id == user.id))
+            ).scalar_one_or_none()
+            return {
+                **_serialize(
+                    [existing], _actor_names_map([actor]) if actor else {},
+                )[0],
+                "replayed": True,
+            }
+    if original.retracted_at is not None:
+        raise ConflictError(
+            "A retracted record cannot be corrected; record a new observation instead."
+        )
+    successor = (await db.execute(select(LifeEvent.id).where(
+        LifeEvent.pet_id == pet.id,
+        LifeEvent.supersedes_event_id == original.id,
+        LifeEvent.recorded_at <= datetime.now(UTC),
+    ).limit(1))).scalar_one_or_none()
+    if successor is not None:
+        raise ConflictError("This record already has an owner correction.")
+    try:
+        corrected, replayed = await create_life_event(
+            db, pet_id=pet.id, event_type=original.event_type,
+            payload=body.payload, actor_id=user.id,
+            occurred_at=original.occurred_at,
+            source_type=enums.SourceType.OWNER_REPORTED,
+            supersedes_event_id=original.id,
+            idempotency_key=body.idempotency_key,
+        )
+    except ConflictError as exc:
+        raise ConflictError(
+            "This correction is identical to an existing record; nothing to supersede."
+        ) from exc
+    if replayed and corrected.supersedes_event_id != original.id:
+        raise ConflictError("Idempotency key already belongs to a different correction.")
+    await write_audit(
+        db, action="event.supersede", actor_user_id=user.id,
+        household_id=pet.household_id, pet_id=pet.id,
+        resource_type="LifeEvent", resource_id=str(corrected.id),
+        detail={
+            "original_event_id": str(original.id),
+            "event_type": original.event_type,
+        },
+        request_id=x_request_id or "",
+    )
+    await db.commit()
+    actor = (await db.execute(select(User).where(User.id == user.id))).scalar_one_or_none()
+    return {
+        **_serialize([corrected], _actor_names_map([actor]) if actor else {})[0],
+        "replayed": replayed,
+    }
 
 
 # --- R7 Life Replay (bitemporal owner-readable view) -----------------------

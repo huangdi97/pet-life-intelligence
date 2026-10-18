@@ -1527,6 +1527,88 @@
         }
       }
     },
+    "/api/v1/pets/{pet_id}/events/{event_id}/supersede": {
+      "post": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Supersede Event",
+        "description": "Append an owner correction that supersedes one existing recorded fact.\n\nINVARIANT: the original row is never edited or deleted. The occurrence\ninstant is preserved, so same-clock baselines and any historical Case that\ncited the original source can recompute validity from the chain.",
+        "operationId": "supersede_event_api_v1_pets__pet_id__events__event_id__supersede_post",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "x-request-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Request-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventCorrection"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Supersede Event Api V1 Pets  Pet Id  Events  Event Id  Supersede Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{pet_id}/life-replay": {
       "get": {
         "tags": [
@@ -12704,6 +12786,34 @@
         },
         "type": "object",
         "title": "EmergencyProfileIn"
+      },
+      "EventCorrection": {
+        "properties": {
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 96,
+                "minLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "payload"
+        ],
+        "title": "EventCorrection",
+        "description": "Owner correction: new payload, SAME occurrence time and pet.\n\nThe correction is a new append-only event that supersedes the old one;\nthe original row is never edited. Moving an occurrence to another day is\ndeliberately not allowed here because same-clock baselines and historical\nCase membership depend on the frozen occurrence instant."
       },
       "EventCreate": {
         "properties": {

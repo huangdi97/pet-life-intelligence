@@ -6,6 +6,9 @@ import { api } from "@pli/api-client";
 import { mapErrorMessage } from "../../../../../lib/i18n";
 import { CASE_METRIC, caseStatus, type WebCaseSummary } from "../../../../../lib/lifeCases";
 import { followUpHref } from "../../../../../lib/caseFollowUp";
+import {
+  correctionFieldForMetric, correctionIdempotencyKey, correctionPayload,
+} from "../../../../../lib/caseCorrection";
 
 interface CaseReview {
   review_id: string;
@@ -95,6 +98,11 @@ export default function LifeChangeCaseDetailPage({
   // decision. It is two-step, owner-only, and the server re-derives validity.
   const [retractTarget, setRetractTarget] = useState<string | null>(null);
   const [retracting, setRetracting] = useState(false);
+  // R8AQ: a corrected value is appended as a NEW event that supersedes the
+  // original; the occurrence instant and the original row never change.
+  const [correctTarget, setCorrectTarget] = useState<SourceRow | null>(null);
+  const [correctValue, setCorrectValue] = useState("");
+  const [correcting, setCorrecting] = useState(false);
 
   const load = useCallback(() => {
     api
@@ -156,6 +164,35 @@ export default function LifeChangeCaseDetailPage({
       })
       .catch((e: unknown) => setMessage(mapErrorMessage(e)))
       .finally(() => setRetracting(false));
+  };
+
+  const submitCorrection = (source: SourceRow) => {
+    const field = correctionFieldForMetric(detail?.metric ?? "");
+    if (!field || !detail?.owner_can_review || correcting) return;
+    const payload = correctionPayload(field, correctValue);
+    if (!payload) {
+      setMessage(`请填写 0–1440 之间的${field.unit}。`);
+      return;
+    }
+    const value = payload[field.key];
+    setCorrecting(true);
+    setMessage(null);
+    api
+      .post(`/pets/${petId}/events/${source.event_id}/supersede`, {
+        payload,
+        idempotency_key: correctionIdempotencyKey(source.event_id, value),
+      })
+      .then(() => {
+        setCorrectTarget(null);
+        setCorrectValue("");
+        setSources([]);
+        setSourceTotal(0);
+        setSourceMore(false);
+        setMessage("已提交修正；旧对比失效，主人历史反馈仍保留。请重新核对档案。");
+        load();
+      })
+      .catch((e: unknown) => setMessage(mapErrorMessage(e)))
+      .finally(() => setCorrecting(false));
   };
 
   const review = (decision: string) => {
@@ -336,6 +373,55 @@ export default function LifeChangeCaseDetailPage({
                   data-testid={`pli.r8.web-case.source.retract.${source.event_id}`}
                 >
                   这条记录有误
+                </button>
+              )
+            ) : null}
+            {detail.owner_can_review && source.valid
+              && correctionFieldForMetric(detail.metric) ? (
+              correctTarget?.event_id === source.event_id ? (
+                <div className="r8-warn" data-testid={`pli.r8.web-case.source.correct-form.${source.event_id}`}>
+                  <div>
+                    只修正数值；发生时间与原始记录保持不变。修正会作为新记录替代旧来源，
+                    旧对比随之失效，历史反馈仍保留。
+                  </div>
+                  <input
+                    className="input"
+                    inputMode="numeric"
+                    value={correctValue}
+                    onChange={(event) => setCorrectValue(event.target.value)}
+                    aria-label={`修正后的${correctionFieldForMetric(detail.metric)?.unit ?? "数值"}`}
+                    data-testid={`pli.r8.web-case.source.correct-input.${source.event_id}`}
+                  />
+                  <button
+                    type="button"
+                    className="btn primary"
+                    disabled={correcting}
+                    onClick={() => submitCorrection(source)}
+                    data-testid={`pli.r8.web-case.source.correct-submit.${source.event_id}`}
+                  >
+                    {correcting ? "正在提交…" : "提交修正"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={correcting}
+                    onClick={() => { setCorrectTarget(null); setCorrectValue(""); }}
+                  >
+                    取消
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    setCorrectTarget(source);
+                    const raw = source.payload?.duration_minutes;
+                    setCorrectValue(typeof raw === "number" ? String(raw) : "");
+                  }}
+                  data-testid={`pli.r8.web-case.source.correct.${source.event_id}`}
+                >
+                  修正这条记录
                 </button>
               )
             ) : null}

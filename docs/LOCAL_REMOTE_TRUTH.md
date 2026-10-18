@@ -85,7 +85,10 @@ pnpm --dir apps/web build
   当日原始来源，必须同时满足原生状态失效、API `INVALIDATED`、Review 数量不变。
 - **R8AP（Mini 撤回）**：Mini Case 详情同样两步撤回原始来源，服务端派生失效；
   已通过 `tsc`、Taro weapp 构建与静态契约，Mini 真机运行仍 `NOT_YET_OBSERVED`。
-- 迁移：**无新增数据库迁移**（只读查询与响应字段扩展；R8AG 的 `evidence_role_by_event_id` 已存在）。
+- **R8AQ（supersede）**：新增受控修正端点与 Web 修正入口——原行不改、发生时间保持、
+  一条修正链、幂等重放、来源暴露 `superseded_by_event_id`；真实 Playwright 验证旧 Case
+  失效且原事件内容不变。
+- 迁移：**无新增数据库迁移**（`supersedes_event_id` 已存在；R8AG 角色列已存在）。
 
 ## 七、本轮 exact-HEAD 云端验证（`e3e75ac1`）
 
