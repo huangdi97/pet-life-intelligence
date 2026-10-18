@@ -15,7 +15,9 @@
 | OpenAPI（028d8f94） | run [39090868918](https://github.com/huangdi97/pet-life-intelligence/actions/runs/39090868918) **success** |
 | 产物（028d8f94） | `pli-mobile-apk`、`r5-6-android-runtime-evidence`、`pli-web-standalone` 均未过期 |
 
-> 本文件更新提交为 docs-only；Android 证据取自与最终代码相同的 `028d8f94`。若 docs-only 提交改变了 HEAD，应用代码仍与该取证提交逐字节一致。
+> 本文件更新提交为 docs-only；Android 证据取自与最终代码相同的 `028d8f94`。
+> 其后 R8AL（Web 补录闭环）提交为 `2a2a975d`，未改动 R8AK 的 Android 路径；其 exact-HEAD 三套
+> workflow 均 success，见 `docs/r8/R8AL_WEB_FOLLOW_UP_OBSERVATION_LOOP.md`。
 
 ## 2. 本轮交付
 

@@ -40,6 +40,13 @@ R8AK 收口报告把 Web 端这一项标为 `ACCEPTED_LIMITATION`。
 
 ## 测试与真实取证
 
+| 项 | 结果 |
+|---|---|
+| 实现提交 | `2a2a975de1810e5a1e636e3956970bf93aa0bdbe` |
+| CI | run `39106612419` **success**（Backend / Frontend / Blind Visual Contract / Playwright） |
+| Android | run `39106612427` **success**（APK 与真实运行取证未回退） |
+| OpenAPI | run `39106612420` **success** |
+
 - 新增 `apps/web/tests/case-follow-up.test.ts` 4 项：指标映射、链接参数、跨宠/跨指标拒绝、幂等键稳定。
 - `pnpm --dir apps/web typecheck` PASS；`pnpm --dir apps/web test` **62 passed**；生产构建 PASS。
 - 真实浏览器（Chromium，本地 API 8800 + Web 3100）执行完整闭环：

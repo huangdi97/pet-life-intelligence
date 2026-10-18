@@ -78,18 +78,17 @@ pnpm --dir apps/web build
   只允许同一宠物/同一指标，保存真实事件后追加 `RECORD_OBSERVATION` 并跳回同一 Case 详情。
 - 迁移：**无新增数据库迁移**（只读查询与响应字段扩展；R8AG 的 `evidence_role_by_event_id` 已存在）。
 
-## 七、本轮 exact-HEAD 云端验证（`028d8f94`）
+## 七、本轮 exact-HEAD 云端验证（`2a2a975d`）
 
 | Workflow | Run | 结论 |
 |---|---|---|
-| CI | 39090868894 | success（Backend / Frontend / Blind Visual Contract / Playwright） |
-| Android + Release Artifacts | 39090868925 | success（APK / Web standalone / **真实 Android 运行取证**） |
-| OpenAPI Artifact Sync | 39090868918 | success |
+| CI | 39106612419 | success（Backend / Frontend / Blind Visual Contract / Playwright） |
+| Android + Release Artifacts | 39106612427 | success（APK / Web standalone / **真实 Android 运行取证**） |
+| OpenAPI Artifact Sync | 39106612420 | success |
 
-真实 Android 取证新增：`case-continue-review-truth.json`（同一 Case 恰好追加 1 条
-`CORRECT_SOURCE`）、`case-history-truth.json`（从详情进入完整历史并列出同一 Case）、
-`case-detail-truth.json`（原始来源 ID 全部在原生 XML 中出现），以及
-`owner-case-history-list.png` 截图。本地 pytest 最终为 **770 passed / 0 failed / 0 error**。
+R8AK 的 exact-HEAD 取证记录在 `028d8f94`（run 39090868894 / 39090868925）；
+`2a2a975d`（R8AL）未回退任何 Android 路径，真实运行取证再次全绿。本地 pytest 最终为
+**770 passed / 0 failed / 0 error**。
 
 本机 Android release APK 也已成功构建（`apps/mobile/android/app/build/outputs/apk/release/app-release.apk`，
 102,056,745 B）。本机 Windows Gradle 曾遇到 Expo/Ninja 反复重生成 CMake 的问题，已用本地
