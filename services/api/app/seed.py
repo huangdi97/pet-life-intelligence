@@ -53,6 +53,8 @@ from app.models import (
     Incident,
     InsurancePolicyRecord,
     Invitation,
+    LifeChangeCase,
+    LifeChangeReview,
     LifeEvent,
     LoginAttempt,
     MedicationDose,
@@ -147,7 +149,11 @@ _TABLES = [
     PetIdentifier,
     Notification, ShareToken, DeletionRequest, CareCard, CareHandoff,
     MedicationDose, MedicationPlan, Outcome, VetBrief, TriageAssessment,
-    Observation, ClinicalIntakeStep, HealthEvent, BehaviorEvent, CareTask,
+    Observation, ClinicalIntakeStep, HealthEvent, BehaviorEvent,
+    # R8AK/R8AM: child rows of pets and care_tasks. A real owner Case must not
+    # make `python -m app.seed` fail with an FK violation.
+    LifeChangeReview, LifeChangeCase,
+    CareTask,
     Consent, EmergencyProfile, Grant, Relationship, Invitation, Artifact,
     LifeEvent, Pet, HouseholdMember, Household, AIInferenceLog, AuditEntry,
     # auth + pilot tables reference `users` — must be deleted BEFORE User;
