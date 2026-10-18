@@ -93,6 +93,7 @@ pnpm --dir apps/mobile typecheck; pnpm --dir apps/mini typecheck
 - `HUMAN_VISUAL_ACCEPTANCE = PENDING`；`NO_VISION_MODEL_USED = TRUE`。
 - 真实个体 3D 资产：`EXTERNAL_BLOCKED`。
 - 真实 AI：mock provider。
-- Web 端“补录后续观察并关联 Case”仍是 `ACCEPTED_LIMITATION`（Android QuickLog 闭环已真实验证）。
+- Web 端“补录后续观察并关联 Case”：**R8AL 已关闭 Web 部分**（真实浏览器闭环）；
+  Mini 端仍为 `ACCEPTED_LIMITATION`。详见 `docs/r8/R8AL_WEB_FOLLOW_UP_OBSERVATION_LOOP.md`。
 - 历史“按有效状态筛选”未提供（读时计算无法稳定 keyset），已记录为限制。
 - 未合并 PR、未改 main、未打 tag/Release、未批准视觉基线。

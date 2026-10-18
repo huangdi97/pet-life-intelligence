@@ -20,7 +20,8 @@
 | 14 | **R8AK 旧 Case 内继续复核（不新建 Case）** | `CaseReviewActions.tsx`, `CaseDetail`, POST API | CI `case-continue-review-truth.json` + 本机 `FOLLOW_UP_LATER` | Android/Web/Mini | PASS |
 | 15 | **R8AK 完整历史入口与列表** | `LifeChangeHistoryScreen.tsx`, Web history, Mini observations | CI `case-history-truth.json` + 本机截图 | 全端 | PASS |
 | 16 | **R8AK 真实观察反馈闭环（QuickLog→RECORD_OBSERVATION）** | `QuickLogScreen.tsx` + Case detail 入口 | 既有 R8C/R8T 测试 | Android | PASS（上一 HEAD 真实取证）；本轮待复跑 |
-| 17 | Web 端直接补录后续观察并关联 Case | — | — | Web | ACCEPTED_LIMITATION（Web 只能继续非观察类决策；真实观察关联仍在 Android QuickLog） |
+| 17 | **真实观察补录并关联 Case（Web）** | `apps/web/lib/caseFollowUp.ts`, `app/page.tsx`, Case 详情 | Vitest 4 项 + 真实浏览器闭环 | Web | PASS（R8AL；事件→Review→档案页，console 0 error） |
+| 17b | 真实观察补录并关联 Case（Mini） | — | — | Mini | ACCEPTED_LIMITATION（R8AL 只完成 Web；Mini 读+决定类写入可用） |
 | 18 | 非主人 `DAILY_READ` 不获得私人备注 | `_review_response(owner_view=...)` | 集成 | API | PASS |
 | 19 | 医疗事件 `medical:read` 边界 | `events.py`, `life_change_sources.py` | 集成 | API | PASS |
 | 20 | 宠物数据隔离 / 跨宠 Case 404 | `_get_case`, `_pet_scoped_case` | `test_r8ak...`（陌生用户/跨宠） | API | LOCAL_PASS |

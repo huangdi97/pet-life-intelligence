@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { api, type Pet, type Task } from "@pli/api-client";
 import { QuickLogSheet } from "@pli/ui-kit";
 import { useAsync, useCurrentPet } from "../lib/hooks";
 import { saveDraft } from "../lib/drafts";
 import { mapErrorMessage } from "../lib/i18n";
+import {
+  followUpEventType, isFollowUpTarget, linkFollowUpObservation,
+  type FollowUpTarget,
+} from "../lib/caseFollowUp";
 import { Icon } from "../components/icons";
 import { PetLivingStage, type StageAnchor } from "../components/pet-living-stage";
 import { PetCollectionGate } from "../components/pet-collection-gate";
@@ -66,6 +71,22 @@ function ownerFacingHealthText(value: string | null | undefined, fallback: strin
  *  此刻/变化/注意/动作/记忆依次展开。E2E 契约保留：快速记录 → .alert.info。 */
 export default function TodayPage() {
   const { petId } = useCurrentPet();
+  const router = useRouter();
+  // R8AL: a Case detail can hand the owner into the real Quick Log so the
+  // follow-up Review cites an actually saved LifeEvent. Parsed from the URL on
+  // the client only (no fabricated target, no hidden auto-log).
+  const [followUp, setFollowUp] = useState<FollowUpTarget | null>(null);
+  const followUpSheetOpened = useRef(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const caseId = params.get("followUpCase");
+    const pet = params.get("followUpPet");
+    const metric = params.get("followUpMetric");
+    if (!caseId || !pet || !metric) return;
+    const eventType = followUpEventType(metric);
+    if (!eventType) return;
+    setFollowUp({ caseId, petId: pet, metric, eventType });
+  }, []);
   // Demo disclosure is an environment truth, not a permanent decoration.
   // Production/real-data sessions must never be mislabeled as "示例数据".
   const demoMode = process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1";
@@ -94,6 +115,17 @@ export default function TodayPage() {
     [petId],
   );
   const [flash, setFlash] = useState<string | null>(null);
+  // Open the owner's own Quick Log only for the Case's pet. Another pet is
+  // never silently switched: the banner explains and the owner changes pets.
+  useEffect(() => {
+    if (!followUp || followUpSheetOpened.current) return;
+    if (pets.state !== "ready") return;
+    const rows = pets.data ?? [];
+    if (!rows.some((p) => p.id === followUp.petId)) return;
+    if (followUp.petId !== petId) return;
+    followUpSheetOpened.current = true;
+    setSheetPetId(followUp.petId);
+  }, [followUp, petId, pets.state, pets.data]);
 
   // Individual Twin (R2P3D-R3 D): same canonical per-pet asset as Life View.
   const twin = useAsync<{ models: Array<Record<string, unknown>> }>(
@@ -230,10 +262,10 @@ export default function TodayPage() {
     label: string,
     payload: Record<string, string | number>,
     artifactIds: string[] = [],
-  ) {
+  ): Promise<{ eventId: string } | null> {
     const target = current.id;
     try {
-      await api.post(`/pets/${target}/events`, {
+      const created = await api.post<{ event_id: string }>(`/pets/${target}/events`, {
         event_type: eventType,
         payload,
         artifact_ids: artifactIds,
@@ -241,12 +273,14 @@ export default function TodayPage() {
       setFlash(`已记录：${label}${artifactIds.length ? ` · 已绑定 ${artifactIds.length} 个媒体` : ""}`);
       today.reload();
       setTimeout(() => setFlash(null), 2500);
+      return created?.event_id ? { eventId: created.event_id } : null;
     } catch (e) {
       // Offline UX（§63）：失败时保存草稿，恢复后可在 /offline 重试同步。
       // Already-uploaded artifact ids are retained in the draft so recovery
       // does not silently drop evidence.
       saveDraft("quicklog", { pet_id: target, event_type: eventType, payload, artifact_ids: artifactIds });
       setFlash(`${mapErrorMessage(e)}（已保存草稿，恢复后可同步）`);
+      return null;
     }
   }
 
@@ -296,7 +330,21 @@ export default function TodayPage() {
       }
       payload[key] = value;
     }
-    await quickLog(q.type, q.label, payload, artifactIds);
+    const created = await quickLog(q.type, q.label, payload, artifactIds);
+    if (followUp && isFollowUpTarget(followUp, current.id, q.type)) {
+      if (created?.eventId) {
+        const result = await linkFollowUpObservation(followUp, created.eventId);
+        if (result.linked) {
+          // Land on the same immutable Case so the owner sees the appended
+          // observation and its source validity, not just a toast.
+          router.push(`/pets/${current.id}/history/${followUp.caseId}?linkedEvent=${created.eventId}`);
+          return;
+        }
+        setFlash(result.message);
+      } else {
+        setFlash("记录未确认，本次未关联核对；不会自动重试。");
+      }
+    }
     setSheetPetId(null);
   }
 
@@ -305,6 +353,13 @@ export default function TodayPage() {
   return (
     <main className="v4-main">
       {flash && <div className="alert info">{flash}</div>}
+      {followUp ? (
+        <div className="alert info" data-testid="pli.r8.web-followup.banner">
+          {followUp.petId === current.id
+            ? "正在为这条生活观察补录真实记录；保存后会关联到同一份档案，不会自动判断健康状况。"
+            : "这条观察属于另一只宠物；请先在顶部切换到对应宠物，再进行补录。"}
+        </div>
+      ) : null}
 
       <div data-testid="pli.today.identity" className="v7-today-hero-shell">
         <PetLivingStage
@@ -375,9 +430,13 @@ export default function TodayPage() {
         key={current.id}
         open={sheetPetId === current.id}
         onClose={() => setSheetPetId(null)}
-        types={SHEET_TYPES}
+        types={
+          followUp && followUp.petId === current.id
+            ? SHEET_TYPES.filter((item) => item.type === followUp.eventType)
+            : SHEET_TYPES
+        }
         onQuickLog={sheetLog}
-        title="快速记录"
+        title={followUp && followUp.petId === current.id ? "补录真实观察" : "快速记录"}
         identity={`${current.name} · ${identity}`}
       />
     </main>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api } from "@pli/api-client";
 import { mapErrorMessage } from "../../../../../lib/i18n";
 import { CASE_METRIC, caseStatus, type WebCaseSummary } from "../../../../../lib/lifeCases";
+import { followUpHref } from "../../../../../lib/caseFollowUp";
 
 interface CaseReview {
   review_id: string;
@@ -89,6 +90,7 @@ export default function LifeChangeCaseDetailPage({
   const [sourceTotal, setSourceTotal] = useState(0);
   const [sourceMore, setSourceMore] = useState(false);
   const [sourceError, setSourceError] = useState<string | null>(null);
+  const [linkedEvent, setLinkedEvent] = useState<string | null>(null);
 
   const load = useCallback(() => {
     api
@@ -110,6 +112,7 @@ export default function LifeChangeCaseDetailPage({
     setSourceTotal(0);
     setSourceMore(false);
     setMessage(null);
+    setLinkedEvent(new URLSearchParams(window.location.search).get("linkedEvent"));
     load();
   }, [load]);
 
@@ -196,6 +199,11 @@ export default function LifeChangeCaseDetailPage({
       <section className="v4-sec" data-testid="pli.r8.web-case.review-actions">
         <h2 className="v4-sec-title">主人可以怎样继续？</h2>
         <p className="muted">只记录主人的观察与决定，不会自动诊断、用药或判断宠物已恢复。</p>
+        {linkedEvent ? (
+          <p className="alert info" data-testid="pli.r8.web-case.followup-linked">
+            已关联真实后续观察（事件 {linkedEvent.slice(0, 8)}）；是否有效仍以来源状态为准。
+          </p>
+        ) : null}
         {!detail.owner_can_review ? (
           <p className="muted" data-testid="pli.r8.web-case.readonly">
             只有宠物主人可以在档案里继续记录决定；你可以查看已保留的来源与历史反馈。
@@ -214,8 +222,12 @@ export default function LifeChangeCaseDetailPage({
                 {action.label}
               </button>
             ))}
-            <Link className="btn primary" href={`/timeline`} data-testid="pli.r8.web-case.record">
-              去记录真实观察
+            <Link
+              className="btn primary"
+              href={followUpHref(petId, caseId, detail.metric)}
+              data-testid="pli.r8.web-case.record"
+            >
+              记录一条真实观察
             </Link>
           </div>
         )}

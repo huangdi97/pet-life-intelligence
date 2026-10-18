@@ -74,6 +74,8 @@ pnpm --dir apps/web build
 - Android：完整历史页、旧 Case 继续复核、来源时间与数值分页明细、Today 全部档案入口。
 - Web：`/pets/[id]/history` 与详情页、Today 观察回顾卡。
 - Mini：`pages/observations/index` 与 `detail/index`、宠物页入口。
+- **R8AL（Web）**：真实观察补录闭环——Today 识别 `followUpCase/followUpPet/followUpMetric`，
+  只允许同一宠物/同一指标，保存真实事件后追加 `RECORD_OBSERVATION` 并跳回同一 Case 详情。
 - 迁移：**无新增数据库迁移**（只读查询与响应字段扩展；R8AG 的 `evidence_role_by_event_id` 已存在）。
 
 ## 七、本轮 exact-HEAD 云端验证（`028d8f94`）
