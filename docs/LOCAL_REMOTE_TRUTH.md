@@ -76,6 +76,9 @@ pnpm --dir apps/web build
 - Mini：`pages/observations/index` 与 `detail/index`、宠物页入口。
 - **R8AL（Web）**：真实观察补录闭环——Today 识别 `followUpCase/followUpPet/followUpMetric`，
   只允许同一宠物/同一指标，保存真实事件后追加 `RECORD_OBSERVATION` 并跳回同一 Case 详情。
+- **R8AM（Mini + 回归）**：Mini 用短期存储意图把 Case 详情交接到 Today（Tab 无法带参），
+  同宠同指标才打开唯一真实 Quick Log，保存后关联并跳回详情；新增 Playwright
+  `r8-followup.spec.ts` 把 Web 闭环固化为 CI 回归（本地 1 passed）。
 - 迁移：**无新增数据库迁移**（只读查询与响应字段扩展；R8AG 的 `evidence_role_by_event_id` 已存在）。
 
 ## 七、本轮 exact-HEAD 云端验证（`2a2a975d`）

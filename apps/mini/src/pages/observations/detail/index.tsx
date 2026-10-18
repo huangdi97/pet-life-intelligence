@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button, Text, View } from "@tarojs/components";
-import { useRouter } from "@tarojs/taro";
+import Taro, { useRouter } from "@tarojs/taro";
 import { api } from "../../../services/api";
 import { fmtTime } from "../../../utils/format";
 import { PetContextGate } from "../../../components/feedback/Feedback";
 import { usePets } from "../../../utils/usePets";
+import {
+  followUpEventType, rememberFollowUpTarget,
+} from "../../../utils/caseFollowUp";
 
 /** R8AK Mini parity: immutable Case detail, authorized sources, append-only
  *  owner review. The server still enforces pet scope, owner role and CAS. */
@@ -78,6 +81,7 @@ export default function ObservationDetailPage() {
   const router = useRouter();
   const petId = String(router.params.petId ?? "");
   const caseId = String(router.params.caseId ?? "");
+  const linkedEvent = String(router.params.linkedEvent ?? "");
   const { petId: selectedPet, refresh, state } = usePets();
   const [detail, setDetail] = useState<Detail | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
@@ -151,6 +155,20 @@ export default function ObservationDetailPage() {
       .finally(() => setBusy(false));
   };
 
+  const startFollowUp = (row: Detail) => {
+    const eventType = followUpEventType(row.metric);
+    if (!eventType) {
+      setMessage("该指标暂不支持补录真实观察。");
+      return;
+    }
+    // The tab page cannot receive URL params via switchTab; a short-lived
+    // intent keeps the same pet/Case/metric without inventing a new tab.
+    rememberFollowUpTarget({
+      caseId: row.case_id, petId, metric: row.metric, eventType,
+    });
+    Taro.switchTab({ url: "/pages/index/index" });
+  };
+
   const metric = detail ? (METRIC[detail.metric] ?? { name: "生活记录", unit: "" }) : null;
   return (
     <View className="page">
@@ -175,6 +193,13 @@ export default function ObservationDetailPage() {
             <Text className="muted">不能据此推断疾病或已恢复。</Text>
           </View>
 
+          {linkedEvent ? (
+            <View className="card" data-testid="pli.r8.mini-followup-linked">
+              <Text>已关联真实后续观察（事件 {linkedEvent.slice(0, 8)}）。</Text>
+              <Text className="muted">是否有效仍以来源状态为准，不代表健康结论。</Text>
+            </View>
+          ) : null}
+
           <View className="open-section">
             <Text className="section-title">主人可以怎样继续？</Text>
             {detail.owner_can_review ? (
@@ -189,6 +214,14 @@ export default function ObservationDetailPage() {
                     {action.label}
                   </Button>
                 ))}
+                <Button
+                  className="btn"
+                  disabled={busy}
+                  data-testid="pli.r8.mini-followup-record"
+                  onClick={() => startFollowUp(detail)}
+                >
+                  记录一条真实观察
+                </Button>
               </View>
             ) : (
               <Text className="muted">只有宠物主人可以继续记录决定。</Text>

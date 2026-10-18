@@ -3,12 +3,16 @@
  * 结构：PetHero → Now(LifeSignal) → One Attention → Primary Action →
  * 情境入口 → 最近生命轨迹。数据流与网络层保持不变（presentation only）。
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon, Text, View } from "@tarojs/components";
 import Taro, { useDidShow } from "@tarojs/taro";
 import { api, ApiError, type Task } from "../../services/api";
 import { getPlatform } from "../../platform";
 import { usePets } from "../../utils/usePets";
+import {
+  consumeFollowUpTarget, isFollowUpEvent, linkFollowUpObservation,
+  type MiniFollowUpTarget,
+} from "../../utils/caseFollowUp";
 import { LifeStream, type LifeStreamDay } from "../../components/timeline/LifeStream";
 import { PetHero } from "../../components/pet_visual";
 import { LifeSignal, type LifeSignalRow } from "../../components/life/LifeSignal";
@@ -73,6 +77,10 @@ export default function Index() {
   const [sheetForm, setSheetForm] = useState<Record<string, string>>({});
   const [sheetBusy, setSheetBusy] = useState(false);
   const [sheetMedia, setSheetMedia] = useState<string[]>([]);
+  // R8AM: a Case detail may hand over a short-lived follow-up intent through
+  // storage (tab pages cannot receive URL params via switchTab).
+  const [followUpTarget, setFollowUpTarget] = useState<MiniFollowUpTarget | null>(null);
+  const followUpOpened = useRef(false);
 
   // 在家监测（contextual entry；设备未接入时如实显示）
   const [monitorOpen, setMonitorOpen] = useState(false);
@@ -136,7 +144,27 @@ export default function Index() {
       loadAttention(petId);
       loadChange(petId);
     }
+    // Consume at most one pending owner follow-up handover per show.
+    const pending = consumeFollowUpTarget();
+    if (pending) {
+      followUpOpened.current = false;
+      setFollowUpTarget(pending);
+    }
   });
+
+  // Open the matching real Quick Log only for the Case's pet. A different pet
+  // is never silently switched; the banner offers an explicit switch.
+  useEffect(() => {
+    if (!followUpTarget || followUpOpened.current) return;
+    if (!petId || followUpTarget.petId !== petId) return;
+    const matched = QUICK_TYPES.find((item) => item.type === followUpTarget.eventType);
+    if (!matched) {
+      setFollowUpTarget(null);
+      return;
+    }
+    followUpOpened.current = true;
+    openSheet(matched);
+  }, [followUpTarget, petId]);
 
   useEffect(() => {
     if (petId) {
@@ -266,6 +294,7 @@ export default function Index() {
         }
       }
     });
+    let savedEventId: string | null = null;
     try {
       // Diary is owner-authored text with its own canonical endpoint. Let the
       // backend create the corresponding timeline event rather than submitting
@@ -283,11 +312,12 @@ export default function Index() {
           const uploaded = await getPlatform().uploader.uploadImage(target, filePath);
           artifactIds.push(uploaded.artifact_id);
         }
-        await api.post(`/pets/${target}/events`, {
+        const created = await api.post<{ event_id: string }>(`/pets/${target}/events`, {
           event_type: sheetType.type,
           payload,
           artifact_ids: artifactIds,
         });
+        savedEventId = created?.event_id ?? null;
       }
       setSheetOpen(false);
       setSheetType(null);
@@ -296,6 +326,21 @@ export default function Index() {
       );
       loadToday(target);
       setTimeout(() => setFlash(null), 2000);
+      // R8AM: only a truly saved event of the SAME metric and pet can be
+      // linked. A failed link never invalidates the saved record.
+      if (followUpTarget && savedEventId && isFollowUpEvent(followUpTarget, target, sheetType.type)) {
+        const result = await linkFollowUpObservation(followUpTarget, savedEventId);
+        if (result.linked) {
+          setFollowUpTarget(null);
+          Taro.navigateTo({
+            url: `/pages/observations/detail/index?petId=${target}&caseId=${followUpTarget.caseId}&linkedEvent=${savedEventId}`,
+          });
+          return;
+        }
+        setFlash(result.message);
+      } else if (followUpTarget && sheetType.type !== followUpTarget.eventType) {
+        setFlash("这次记录与档案指标不同，未关联核对。");
+      }
     } catch (e: unknown) {
       setSheetOpen(false);
       setSheetType(null);
@@ -357,6 +402,29 @@ export default function Index() {
         timeContext={timeContextText()}
         onPress={() => Taro.switchTab({ url: "/pages/pets/index" })}
       />
+
+      {followUpTarget ? (
+        <View
+          className="card"
+          data-testid="pli.r8.mini-followup-banner"
+          style={{ margin: "8px 16px" }}
+        >
+          <Text>
+            {followUpTarget.petId === petId
+              ? "正在为这条生活观察补录真实记录；保存后会关联到同一份档案。"
+              : "这条观察属于另一只宠物；请先切换到对应宠物，再补录真实记录。"}
+          </Text>
+          {followUpTarget.petId !== petId ? (
+            <View
+              className="btn"
+              style={{ marginTop: 8 }}
+              onClick={() => choose(followUpTarget.petId)}
+            >
+              切换到该宠物
+            </View>
+          ) : null}
+        </View>
+      ) : null}
 
       {loadState === "error" && (
         <InlineError message="暂时连接不上，已展示已有内容" onRetry={() => petId && loadToday(petId)} />

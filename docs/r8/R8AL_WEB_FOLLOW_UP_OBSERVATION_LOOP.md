@@ -59,7 +59,8 @@ R8AK 收口报告把 Web 端这一项标为 `ACCEPTED_LIMITATION`。
 
 ## 诚实边界
 
-- Mini 端仍只有读与决定类写入，**补录真实观察并关联 Case 仍是 `ACCEPTED_LIMITATION`**。
+- Mini 端补录能力已由 R8AM 补齐；Mini 真机运行时仍为 `NOT_YET_OBSERVED`
+  （本轮只完成 tsc/Taro build/静态契约）。
 - 关联失败不会自动重试；事件已保存，失败文案会明确告知。
 - 只在同一指标内关联；不同指标记录不会强行接到 Case。
 - 没有新增数据库迁移；没有改变服务端权限、来源有效性或幂等语义。
