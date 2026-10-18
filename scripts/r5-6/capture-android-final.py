@@ -78,6 +78,39 @@ def ui_has_actionable_control(xml: str, resource_id: str) -> bool:
     )
 
 
+def ui_control_on_screen(
+    xml: str, resource_id: str, *, min_height: int = 24, screen_height: int = 2400,
+) -> bool:
+    """True only when the node has a real, visible rectangle.
+
+    React Native can keep an off-screen Pressable in the accessibility tree
+    with inverted/degenerate bounds (e.g. [88,136][304,116]). Tapping its
+    centre lands in the status bar and silently changes nothing, so a
+    presence-only check is not evidence that a real owner tap happened.
+    """
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError:
+        return False
+    for node in root.iter("node"):
+        if node.attrib.get("resource-id") != resource_id:
+            continue
+        match = re.match(
+            r"\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]",
+            node.attrib.get("bounds", ""),
+        )
+        if not match:
+            return False
+        left, top, right, bottom = (int(value) for value in match.groups())
+        return (
+            right > left
+            and bottom > top + min_height
+            and top >= 0
+            and bottom <= screen_height
+        )
+    return False
+
+
 # Hosted emulators have been observed to stop answering adb while the job keeps
 # waiting forever (the failing run left a truncated logcat buffer next to empty
 # UIAutomator dumps). A bounded per-command budget keeps such a stall
@@ -1247,18 +1280,22 @@ def capture_r8_owner_review(
 
     # Source inspection is user-controlled; close the long panel before making
     # a decision so the confirmation remains on-screen, not silently below fold.
-    # The panel can re-render while a >8-row list is scrolled (owner data
-    # refresh resets showEvidence), so a single blind tap may OPEN it again.
-    # Re-locate and toggle until the evidence node is gone, with a bounded
-    # number of attempts; this still requires the real native collapse.
+    # The toggle can sit ABOVE the viewport with degenerate bounds after a long
+    # source scroll; a presence-only lookup then taps the status bar and the
+    # panel never changes. Require a real visible rectangle, scroll it in, then
+    # toggle until the native evidence node is genuinely gone.
     collapsed = False
-    for _ in range(3):
+    for _ in range(10):
         collapse_ui = find_control(
             "pli.r8.owner-review.sources", "source-collapse-ui.xml",
-            require_enabled=True, scroll_direction="down",
+            require_enabled=True, scroll_direction="up",
         )
+        if not ui_control_on_screen(collapse_ui, "pli.r8.owner-review.sources"):
+            android.shell("input", "swipe", "765", "700", "765", "1560", "320")
+            time.sleep(0.45)
+            continue
         android.tap(collapse_ui, "pli.r8.owner-review.sources", "id")
-        for _ in range(8):
+        for _ in range(6):
             time.sleep(0.5)
             closed = android.dump_xml(directory / "source-collapsed-ui.xml")
             if "pli.r8.owner-review.evidence" not in closed:
