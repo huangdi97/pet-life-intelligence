@@ -1247,14 +1247,26 @@ def capture_r8_owner_review(
 
     # Source inspection is user-controlled; close the long panel before making
     # a decision so the confirmation remains on-screen, not silently below fold.
-    collapse_ui = find_control("pli.r8.owner-review.sources", "source-collapse-ui.xml", require_enabled=True, scroll_direction="down")
-    android.tap(collapse_ui, "pli.r8.owner-review.sources", "id")
-    for _ in range(12):
-        time.sleep(0.6)
-        closed = android.dump_xml(directory / "source-collapsed-ui.xml")
-        if "pli.r8.owner-review.evidence" not in closed:
+    # The panel can re-render while a >8-row list is scrolled (owner data
+    # refresh resets showEvidence), so a single blind tap may OPEN it again.
+    # Re-locate and toggle until the evidence node is gone, with a bounded
+    # number of attempts; this still requires the real native collapse.
+    collapsed = False
+    for _ in range(3):
+        collapse_ui = find_control(
+            "pli.r8.owner-review.sources", "source-collapse-ui.xml",
+            require_enabled=True, scroll_direction="down",
+        )
+        android.tap(collapse_ui, "pli.r8.owner-review.sources", "id")
+        for _ in range(8):
+            time.sleep(0.5)
+            closed = android.dump_xml(directory / "source-collapsed-ui.xml")
+            if "pli.r8.owner-review.evidence" not in closed:
+                collapsed = True
+                break
+        if collapsed:
             break
-    else:
+    if not collapsed:
         raise CaptureError("R8 source list did not collapse before owner decision")
 
     later_ui = find_control("pli.r8.owner-review.later", "later-ui.xml", require_enabled=True, scroll_direction="down")
