@@ -45,10 +45,10 @@ Web/Mini 共用 append-only/CAS/来源有效性语义、五 Tab IA 未变。
 
 | 项 | 值 |
 |---|---|
-| 最终代码提交 | `bbe8bae289e30f5e753094ae1385cb42ac755732`（含 seed 修复 `8cdcd1eb`） |
-| CI | run `39116345298` **success**（新增 Playwright `r8-followup.spec.ts` 在 CI 真实执行） |
-| Android | run `39116345296` **success**（APK + 真实运行取证） |
-| OpenAPI | run `39116345297` **success** |
+| 最终代码提交 | `7f4751e3871ed8a08c803959aaef52ff9a326cfb` |
+| CI | run `39122509924` **success**（新增 Playwright `r8-followup.spec.ts` 在 CI 真实执行） |
+| Android | run `39122509935` **success**（APK + 真实运行取证） |
+| OpenAPI | run `39122509928` **success** |
 | 本地后端 | **775 passed / 0 failed / 0 error**（含新增 seed 回归） |
 
 ## 诚实边界
@@ -60,19 +60,21 @@ Web/Mini 共用 append-only/CAS/来源有效性语义、五 Tab IA 未变。
 - 未新增数据库迁移；未改变服务端权限、来源有效性或幂等语义。
 - `NO_VISION_MODEL_USED = TRUE`；`HUMAN_VISUAL_ACCEPTANCE = PENDING`。
 
-## CI 首轮失败与真实修复（不是放宽测试）
+## CI 失败、定位与真实修复（不是放宽测试）
 
-在 `bd00c5a2` 的 exact-HEAD 上，CI 的 Browser E2E 失败、Android 取证失败：
-
-1. **真实缺陷**：新的 Playwright 用例会创建真实 Case；E2E job 随后执行
-   `python -m app.seed` 重置演示数据时，`DELETE FROM pets` 被
-   `life_change_cases.pet_id` 外键拒绝。任何真实主人的 Case 都会让 seed 重置失败。
-   - 修复 `8cdcd1eb`：seed 先删除 `life_change_reviews`、`life_change_cases`（Review 还引用
-     `care_tasks`，因此也必须在 CareTask 之前），并新增
+1. **真实缺陷（seed 重置）** —— `bd00c5a2`：新的 Playwright 用例会创建真实 Case；
+   E2E job 随后执行 `python -m app.seed` 重置演示数据时，`DELETE FROM pets` 被
+   `life_change_cases.pet_id` 外键拒绝。任何真实主人的 Case 都会让重置失败。
+   - 修复 `8cdcd1eb`：先删除 `life_change_reviews`、`life_change_cases`（Review 还引用
+     `care_tasks`，故也在 CareTask 之前），并新增
      `tests/integration/test_seed_reset_with_owner_case.py` 真实 Case/Review 回归。
-2. **取证门禁不稳定**：Android owner-review 的 >8 条来源滚动后，面板状态可能被数据刷新重置，
-   单次盲点会重新“展开”而不是“收起”，导致 `R8 source list did not collapse` 连续失败。
-   - 修复 `bbe8bae2`：每次重新定位控件、最多 3 次幂等折叠，仍然要求原生 evidence 节点真实消失。
-
-修复后 exact-HEAD `bbe8bae2`：CI / Android / OpenAPI 三套 workflow 全部 success。
-未删除或弱化任何断言。
+2. **Android 取证门禁（三轮真实定位）** —— 失败点均在 owner 来源面板折叠：
+   - `bd00c5a2`：单次盲点 + 面板重渲染，可能把“收起”点成“展开”；
+     修复 `bbe8bae2`（幂等重试）后该次通过。
+   - `ac5c0f3f`：diagnostics 显示按钮 bounds 退化为 `[88,136][304,116]`（高度为负），
+     点击坐标落到状态栏；修复 `f95fc5ee` 要求真实可见矩形。
+   - `f95fc5ee` 后仍失败：最终层级显示应用停在 Today 的 Timeline 区域，面板在视口上方；
+     `find_control` 的 `scroll_direction="up"` 实际继续向页面底部滚动，越找越远。
+     修复 `955c7214`（安全垂直区间）与 `7f4751e3`（向页面顶部滚动定位）。
+   - 最终 `7f4751e3`：CI / Android / OpenAPI 三套 workflow 全部 success。
+3. 未删除或弱化任何产品断言；每轮都保留原生 XML/截图作为证据。
