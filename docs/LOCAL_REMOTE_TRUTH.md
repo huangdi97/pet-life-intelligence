@@ -81,17 +81,17 @@ pnpm --dir apps/web build
   `r8-followup.spec.ts` 把 Web 闭环固化为 CI 回归（本地 1 passed）。
 - 迁移：**无新增数据库迁移**（只读查询与响应字段扩展；R8AG 的 `evidence_role_by_event_id` 已存在）。
 
-## 七、本轮 exact-HEAD 云端验证（`2a2a975d`）
+## 七、本轮 exact-HEAD 云端验证（`bbe8bae2`）
 
 | Workflow | Run | 结论 |
 |---|---|---|
-| CI | 39106612419 | success（Backend / Frontend / Blind Visual Contract / Playwright） |
-| Android + Release Artifacts | 39106612427 | success（APK / Web standalone / **真实 Android 运行取证**） |
-| OpenAPI Artifact Sync | 39106612420 | success |
+| CI | 39116345298 | success（Backend / Frontend / Blind Visual Contract / Playwright，含新增 `r8-followup.spec.ts`） |
+| Android + Release Artifacts | 39116345296 | success（APK / Web standalone / 真实 Android 运行取证） |
+| OpenAPI Artifact Sync | 39116345297 | success |
 
-R8AK 的 exact-HEAD 取证记录在 `028d8f94`（run 39090868894 / 39090868925）；
-`2a2a975d`（R8AL）未回退任何 Android 路径，真实运行取证再次全绿。本地 pytest 最终为
-**770 passed / 0 failed / 0 error**。
+R8AK 的 exact-HEAD 取证记录在 `028d8f94`；R8AL 在 `2a2a975d`；R8AM 在 `bbe8bae2`
+（含 seed 外键修复 `8cdcd1eb` 与 Android 折叠门禁硬化）。本地 pytest 在 seed 修复后为
+**775 passed / 0 failed / 0 error**。
 
 本机 Android release APK 也已成功构建（`apps/mobile/android/app/build/outputs/apk/release/app-release.apk`，
 102,056,745 B）。本机 Windows Gradle 曾遇到 Expo/Ninja 反复重生成 CMake 的问题，已用本地

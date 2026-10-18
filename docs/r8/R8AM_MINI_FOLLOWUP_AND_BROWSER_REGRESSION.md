@@ -41,6 +41,16 @@ R8AL 关闭了 Web 的真实观察补录闭环，但 Mini 仍只能读 Case、�
 新增 `tests/blind_ui/test_r8am_followup_parity.py`（4 项）：Mini 意图校验、同宠同指标关联、
 Web/Mini 共用 append-only/CAS/来源有效性语义、五 Tab IA 未变。
 
+## exact-HEAD 验证
+
+| 项 | 值 |
+|---|---|
+| 最终代码提交 | `bbe8bae289e30f5e753094ae1385cb42ac755732`（含 seed 修复 `8cdcd1eb`） |
+| CI | run `39116345298` **success**（新增 Playwright `r8-followup.spec.ts` 在 CI 真实执行） |
+| Android | run `39116345296` **success**（APK + 真实运行取证） |
+| OpenAPI | run `39116345297` **success** |
+| 本地后端 | **775 passed / 0 failed / 0 error**（含新增 seed 回归） |
+
 ## 诚实边界
 
 - Mini 真机/开发者工具运行未在本机执行：`MINI_RUNTIME = NOT_YET_OBSERVED`；
@@ -49,3 +59,20 @@ Web/Mini 共用 append-only/CAS/来源有效性语义、五 Tab IA 未变。
 - Web 端新增的 Playwright 用例会在 CI 的 Browser E2E job 中真实执行。
 - 未新增数据库迁移；未改变服务端权限、来源有效性或幂等语义。
 - `NO_VISION_MODEL_USED = TRUE`；`HUMAN_VISUAL_ACCEPTANCE = PENDING`。
+
+## CI 首轮失败与真实修复（不是放宽测试）
+
+在 `bd00c5a2` 的 exact-HEAD 上，CI 的 Browser E2E 失败、Android 取证失败：
+
+1. **真实缺陷**：新的 Playwright 用例会创建真实 Case；E2E job 随后执行
+   `python -m app.seed` 重置演示数据时，`DELETE FROM pets` 被
+   `life_change_cases.pet_id` 外键拒绝。任何真实主人的 Case 都会让 seed 重置失败。
+   - 修复 `8cdcd1eb`：seed 先删除 `life_change_reviews`、`life_change_cases`（Review 还引用
+     `care_tasks`，因此也必须在 CareTask 之前），并新增
+     `tests/integration/test_seed_reset_with_owner_case.py` 真实 Case/Review 回归。
+2. **取证门禁不稳定**：Android owner-review 的 >8 条来源滚动后，面板状态可能被数据刷新重置，
+   单次盲点会重新“展开”而不是“收起”，导致 `R8 source list did not collapse` 连续失败。
+   - 修复 `bbe8bae2`：每次重新定位控件、最多 3 次幂等折叠，仍然要求原生 evidence 节点真实消失。
+
+修复后 exact-HEAD `bbe8bae2`：CI / Android / OpenAPI 三套 workflow 全部 success。
+未删除或弱化任何断言。
