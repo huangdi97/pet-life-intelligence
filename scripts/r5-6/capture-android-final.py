@@ -1277,7 +1277,7 @@ def capture_r8_owner_review(
     for _ in range(14):
         collapse_ui = find_control(
             "pli.r8.owner-review.sources", "source-collapse-ui.xml",
-            require_enabled=True, scroll_direction="up",
+            require_enabled=True, scroll_direction="down",
         )
         center = ui_control_center(collapse_ui, "pli.r8.owner-review.sources")
         if center is None or not (320 <= center[1] <= 1680):
