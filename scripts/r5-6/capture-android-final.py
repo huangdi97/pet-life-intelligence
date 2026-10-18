@@ -1101,6 +1101,32 @@ def capture_r8_owner_review(
             f"observed_ids={sorted(set(re.findall(r'resource-id=\"(pli\\.[^\"]+)\"', latest)))[:16]}"
         )
 
+    def tap_control_safely(
+        name: str, filename: str, *, scroll_direction: str = "down",
+        attempts: int = 12,
+    ) -> str:
+        """Tap only inside a safe vertical band (not the status/bottom bars).
+
+        RN can keep a control in the tree with degenerate bounds or under the
+        fixed tab bar; coordinate taps then hit the wrong surface. This still
+        requires the exact native control to be enabled and visible.
+        """
+        for _ in range(attempts):
+            ui = find_control(
+                name, filename, require_enabled=True,
+                scroll_direction=scroll_direction,
+            )
+            center = ui_control_center(ui, name)
+            if center is not None and 320 <= center[1] <= 1680:
+                android.tap(ui, name, "id")
+                return ui
+            if center is not None and center[1] > 1680:
+                android.shell("input", "swipe", "765", "1750", "765", "1050", "300")
+            else:
+                android.shell("input", "swipe", "765", "700", "765", "1500", "300")
+            time.sleep(0.45)
+        raise CaptureError(f"R8 native control never reached a safe tap band: {name}")
+
     android.start_link(f"pli-demo://nav?screen=today&pet={pet_id}")
     invitation = find_control("pli.r8.owner-review.create", "invitation-ui.xml", require_enabled=True)
     android.screenshot(directory / "invitation.png")
@@ -1643,6 +1669,73 @@ def capture_r8_owner_review(
     })
     android.shell("input", "keyevent", "4")
     time.sleep(1.0)
+
+    # R8AO: the owner retracts an ORIGINAL source from the native Case detail.
+    # Deliberately the LAST mutation of this Case: it invalidates the
+    # comparison, while every append-only Review must remain.
+    time.sleep(1.2)
+    returned = android.dump_xml(directory / "case-detail-returned.xml")
+    if "pli.r8.case-detail.identity" not in returned:
+        raise CaptureError("R8AO did not return to the Case detail after history")
+    if "pli.r8.case-detail.sources.progress" not in returned:
+        tap_control_safely(
+            "pli.r8.case-detail.sources.open", "case-detail-open-sources.xml",
+        )
+        time.sleep(1.0)
+    retracted_event_id = planted_ids[-1]
+    reviews_before_retraction = len(expected_reviews)
+    tap_control_safely(
+        f"pli.r8.case-detail.source.retract.{retracted_event_id}",
+        "case-detail-retract-arm.xml",
+    )
+    time.sleep(0.6)
+    tap_control_safely(
+        f"pli.r8.case-detail.source.retract-yes.{retracted_event_id}",
+        "case-detail-retract-confirm.xml",
+    )
+    retracted_status = ""
+    for _ in range(24):
+        time.sleep(0.8)
+        retracted_ui = android.dump_xml(directory / "case-detail-retracted.xml")
+        retracted_status = ""
+        try:
+            for node in ET.fromstring(retracted_ui).iter("node"):
+                if node.attrib.get("resource-id") == "pli.r8.case-detail.status":
+                    retracted_status = node.attrib.get("text", "")
+        except ET.ParseError:
+            retracted_status = ""
+        if "原始记录已变更" in retracted_status:
+            break
+    if "原始记录已变更" not in retracted_status:
+        raise CaptureError(
+            "R8AO native Case status did not become invalidated after owner retraction"
+        )
+    retraction_api = api_json(
+        f"{root}/pets/{pet_id}/life-change-cases/{case_id}", headers=owner_header,
+    )
+    if (
+        retraction_api.get("source_valid") is not False
+        or retraction_api.get("state") != "INVALIDATED"
+    ):
+        raise CaptureError("R8AO server did not derive an INVALIDATED Case after retraction")
+    if len(retraction_api.get("reviews", [])) != reviews_before_retraction:
+        raise CaptureError("R8AO owner retraction removed or rewrote append-only Reviews")
+    android.screenshot(directory / "owner-case-source-retracted.png")
+    save_manifest(directory / "case-source-retraction-truth.json", {
+        "pet_id": pet_id,
+        "case_id": case_id,
+        "retracted_event_id": retracted_event_id,
+        "native_status": retracted_status,
+        "retracted_by_real_android_tap": True,
+        "server_source_valid": retraction_api.get("source_valid"),
+        "server_state": retraction_api.get("state"),
+        "reviews_before": reviews_before_retraction,
+        "reviews_after": len(retraction_api.get("reviews", [])),
+        "reviews_preserved": True,
+        "screenshot": "owner-case-source-retracted.png",
+        "no_vision_model": True,
+        "human_visual_acceptance": "PENDING",
+    })
 
 
 def main() -> None:

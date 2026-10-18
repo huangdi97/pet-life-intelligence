@@ -191,6 +191,8 @@ export function LifeChangeCaseScreen() {
         expectedSourceIds={detail.evidence_event_ids}
         frozenRoles={detail.evidence_role_by_event_id}
         roleSource={detail.evidence_role_source}
+        ownerCanRetract={detail.owner_can_review === true}
+        onRetracted={() => setReload((n) => n + 1)}
       />
 
       <View style={styles.section}>

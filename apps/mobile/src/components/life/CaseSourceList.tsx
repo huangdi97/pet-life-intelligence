@@ -5,7 +5,7 @@
  */
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { humanizeError } from "../../api";
+import { api, humanizeError } from "../../api";
 import { COLORS, SPACE, TYPE } from "../../tokens";
 import { listCaseSources, type CaseSourceEvent } from "./caseHistoryApi";
 import {
@@ -21,6 +21,7 @@ const SOURCE_LABELS: Record<string, string> = {
 
 export function CaseSourceList({
   petId, caseId, computedAt, expectedSourceIds, frozenRoles, roleSource,
+  ownerCanRetract, onRetracted,
 }: {
   petId: string;
   caseId: string;
@@ -28,6 +29,8 @@ export function CaseSourceList({
   expectedSourceIds: string[];
   frozenRoles: Record<string, "CURRENT" | "HISTORICAL"> | null;
   roleSource: "FROZEN_AT_CREATION" | "LEGACY_DATE_DERIVED";
+  ownerCanRetract: boolean;
+  onRetracted: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<CaseSourceEvent[]>([]);
@@ -35,6 +38,10 @@ export function CaseSourceList({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [missing, setMissing] = useState<string[]>([]);
+  // R8AO: retracting an original source is a real owner action, two-step and
+  // server-derived. The client never rewrites source_valid.
+  const [retractTarget, setRetractTarget] = useState<string | null>(null);
+  const [retracting, setRetracting] = useState(false);
   const generation = useRef(0);
   const scope = `${petId}:${caseId}`;
   const activeScope = useRef(scope);
@@ -81,6 +88,25 @@ export function CaseSourceList({
     if (rows.length === 0) void load(0);
   };
 
+  const retract = async (eventId: string) => {
+    if (!ownerCanRetract || retracting) return;
+    setRetracting(true);
+    setError(null);
+    try {
+      await api.post(`/events/${eventId}/retract`, {});
+      setRetractTarget(null);
+      // Drop cached valid rows; the Case must be re-read for its derived state.
+      setRows([]);
+      setTotal(null);
+      await load(0);
+      onRetracted();
+    } catch (e: unknown) {
+      setError(humanizeError(e));
+    } finally {
+      setRetracting(false);
+    }
+  };
+
   return (
     <View style={styles.section} testID="pli.r8.case-detail.evidence">
       <Text style={styles.heading}>当时依据什么？</Text>
@@ -119,22 +145,61 @@ export function CaseSourceList({
                 : frozenRoles[source.event_id] === "HISTORICAL" ? "同期参考" : "日期待核实")
               : ownerEvidenceCaseRole(source.event_id, source.occurred_at, computedAt, null);
             return (
-              <View
-                key={source.event_id}
-                testID={`pli.r8.case-detail.source.${source.event_id}`}
-                accessible
-                accessibilityLabel={`${role} · ${ownerEvidenceValue(source)} · 发生 ${ownerEvidenceLocalTime(source.occurred_at)} · 录入 ${ownerEvidenceLocalTime(source.recorded_at)} · ${SOURCE_LABELS[source.source_type] ?? "其他来源"} · ${source.valid ? "来源有效" : "来源已撤回或修正"} · 完整事件标识 ${source.event_id}`}
-                style={styles.source}
-              >
-                <Text style={styles.label}>{role}</Text>
-                <Text style={styles.body}>{ownerEvidenceValue(source)}</Text>
-                <Text style={styles.caption}>
-                  发生 {ownerEvidenceLocalTime(source.occurred_at)} · 录入 {ownerEvidenceLocalTime(source.recorded_at)}
-                </Text>
-                <Text style={styles.caption}>
-                  {SOURCE_LABELS[source.source_type] ?? "其他来源"} · {source.valid ? "来源有效" : "来源已撤回或修正"}
-                </Text>
-                <Text style={styles.id} selectable>{source.event_id}</Text>
+              <View key={source.event_id} style={styles.sourceGroup}>
+                {/* The factual row stays a single accessible node: R8AB/AG
+                    evidence requires ID + value + role + both clocks together. */}
+                <View
+                  testID={`pli.r8.case-detail.source.${source.event_id}`}
+                  accessible
+                  accessibilityLabel={`${role} · ${ownerEvidenceValue(source)} · 发生 ${ownerEvidenceLocalTime(source.occurred_at)} · 录入 ${ownerEvidenceLocalTime(source.recorded_at)} · ${SOURCE_LABELS[source.source_type] ?? "其他来源"} · ${source.valid ? "来源有效" : "来源已撤回或修正"} · 完整事件标识 ${source.event_id}`}
+                  style={styles.source}
+                >
+                  <Text style={styles.label}>{role}</Text>
+                  <Text style={styles.body}>{ownerEvidenceValue(source)}</Text>
+                  <Text style={styles.caption}>
+                    发生 {ownerEvidenceLocalTime(source.occurred_at)} · 录入 {ownerEvidenceLocalTime(source.recorded_at)}
+                  </Text>
+                  <Text style={styles.caption}>
+                    {SOURCE_LABELS[source.source_type] ?? "其他来源"} · {source.valid ? "来源有效" : "来源已撤回或修正"}
+                  </Text>
+                  <Text style={styles.id} selectable>{source.event_id}</Text>
+                </View>
+                {ownerCanRetract && source.valid ? (
+                  retractTarget === source.event_id ? (
+                    <View style={styles.retractBox} testID={`pli.r8.case-detail.source.retract-confirm.${source.event_id}`}>
+                      <Text style={styles.warning}>
+                        撤回后这条来源不再有效，旧对比会失效；历史主人反馈仍保留。
+                      </Text>
+                      <Pressable
+                        testID={`pli.r8.case-detail.source.retract-yes.${source.event_id}`}
+                        accessibilityRole="button"
+                        disabled={retracting}
+                        onPress={() => void retract(source.event_id)}
+                        style={styles.touch}
+                      >
+                        <Text style={styles.link}>{retracting ? "正在撤回…" : "确认撤回这条记录"}</Text>
+                      </Pressable>
+                      <Pressable
+                        testID={`pli.r8.case-detail.source.retract-cancel.${source.event_id}`}
+                        accessibilityRole="button"
+                        disabled={retracting}
+                        onPress={() => setRetractTarget(null)}
+                        style={styles.touch}
+                      >
+                        <Text style={styles.caption}>取消</Text>
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <Pressable
+                      testID={`pli.r8.case-detail.source.retract.${source.event_id}`}
+                      accessibilityRole="button"
+                      onPress={() => setRetractTarget(source.event_id)}
+                      style={styles.touch}
+                    >
+                      <Text style={styles.link}>这条记录有误</Text>
+                    </Pressable>
+                  )
+                ) : null}
               </View>
             );
           })}
@@ -166,6 +231,11 @@ const styles = StyleSheet.create({
   progress: { color: COLORS.textSecondary, fontSize: TYPE.caption, lineHeight: 18 },
   list: { gap: SPACE.s2 },
   source: { padding: SPACE.s3, backgroundColor: COLORS.canvas, borderRadius: 14, gap: SPACE.s1 },
+  sourceGroup: { gap: SPACE.s1 },
+  retractBox: {
+    padding: SPACE.s3, borderRadius: 12, backgroundColor: COLORS.surfaceRaised,
+    gap: SPACE.s1,
+  },
   id: { color: COLORS.textSecondary, fontSize: TYPE.caption, lineHeight: 18 },
   warning: { fontSize: TYPE.body, fontWeight: "700", color: COLORS.danger },
   touch: { minHeight: 44, justifyContent: "center" },

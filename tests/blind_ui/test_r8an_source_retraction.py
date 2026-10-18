@@ -39,3 +39,25 @@ def test_retraction_copy_never_claims_recovery_or_deletes_owner_reviews():
     assert "旧对比失效，主人历史反馈仍保留" in page
     assert "已撤回这条原始记录" in page
     assert "删除" not in page.split("const retractSource", 1)[1].split("const review", 1)[0]
+
+
+def test_android_retraction_is_two_step_and_reloads_server_state():
+    sources = read("apps/mobile/src/components/life/CaseSourceList.tsx")
+    screen = read("apps/mobile/src/screens/LifeChangeCaseScreen.tsx")
+    script = read("scripts/r5-6/capture-android-final.py")
+
+    assert "ownerCanRetract: boolean;" in sources
+    assert "ownerCanRetract && source.valid" in sources
+    assert "api.post(`/events/${eventId}/retract`, {})" in sources
+    assert "setRows([]);" in sources
+    assert "onRetracted();" in sources
+    assert "ownerCanRetract={detail.owner_can_review === true}" in screen
+    assert "onRetracted={() => setReload((n) => n + 1)}" in screen
+
+    # Real runtime proof requires the native status, the server-derived state
+    # and an unchanged append-only Review count — not just a 200 response.
+    assert "R8AO" in script
+    assert 'if "原始记录已变更" not in retracted_status' in script
+    assert 'retraction_api.get("source_valid") is not False' in script
+    assert '"reviews_preserved": True' in script
+    assert "case-source-retraction-truth.json" in script
