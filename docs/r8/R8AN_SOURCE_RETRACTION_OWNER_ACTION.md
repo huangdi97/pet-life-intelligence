@@ -21,6 +21,14 @@ R8A–R8AM 已实现 Case 来源有效性、撤回后自动失效、历史 Revie
 
 ## 测试与真实取证
 
+| 项 | 值 |
+|---|---|
+| 实现提交 | `c97afed3d322b1ae08887a68a32e0cbddecbd38f` |
+| CI | run `39125618347` **success**（Playwright 同用例执行补录 + 撤回 + 失效断言） |
+| Android | run `39125618328` **success**（APK + 真实运行取证未回退） |
+| OpenAPI | run `39125618362` **success** |
+| 本地 blind_ui | **258 passed**（含新增 2 项） |
+
 - 新增 `tests/blind_ui/test_r8an_source_retraction.py`（2 项）：主人/有效性双重前置、
   两步确认、真实端点、服务端派生、Review 保留、文案不声称恢复。
 - 扩展 `tests/e2e-browser/specs/r8-followup.spec.ts`：在真实补录闭环之后，

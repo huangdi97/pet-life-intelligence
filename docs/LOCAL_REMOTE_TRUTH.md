@@ -83,17 +83,17 @@ pnpm --dir apps/web build
   `INVALIDATED`，历史 Review 保留；Playwright 在同一用例中真实验证。
 - 迁移：**无新增数据库迁移**（只读查询与响应字段扩展；R8AG 的 `evidence_role_by_event_id` 已存在）。
 
-## 七、本轮 exact-HEAD 云端验证（`7f4751e3`）
+## 七、本轮 exact-HEAD 云端验证（`c97afed3`）
 
 | Workflow | Run | 结论 |
 |---|---|---|
-| CI | 39122509924 | success（Backend / Frontend / Blind Visual Contract / Playwright，含 `r8-followup.spec.ts`） |
-| Android + Release Artifacts | 39122509935 | success（APK / Web standalone / 真实 Android 运行取证） |
-| OpenAPI Artifact Sync | 39122509928 | success |
+| CI | 39125618347 | success（Backend / Frontend / Blind Visual Contract / Playwright，含补录 + 撤回） |
+| Android + Release Artifacts | 39125618328 | success（APK / Web standalone / 真实 Android 运行取证） |
+| OpenAPI Artifact Sync | 39125618362 | success |
 
-R8AK 的 exact-HEAD 取证记录在 `028d8f94`；R8AL 在 `2a2a975d`；R8AM 最终在 `7f4751e3`
-（seed 外键修复 `8cdcd1eb`、Android 取证门禁硬化 `bbe8bae2`→`7f4751e3`）。本地 pytest 在
-seed 修复后为 **775 passed / 0 failed / 0 error**。
+R8AK 的 exact-HEAD 取证记录在 `028d8f94`；R8AL 在 `2a2a975d`；R8AM 在 `7f4751e3`；
+R8AN 在 `c97afed3`。本地 pytest 最近一次全量为 **775 passed / 0 failed / 0 error**，
+blind_ui 为 **258 passed**。
 
 本机 Android release APK 也已成功构建（`apps/mobile/android/app/build/outputs/apk/release/app-release.apk`，
 102,056,745 B）。本机 Windows Gradle 曾遇到 Expo/Ninja 反复重生成 CMake 的问题，已用本地
