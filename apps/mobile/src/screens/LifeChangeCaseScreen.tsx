@@ -76,8 +76,12 @@ export function LifeChangeCaseScreen() {
     if (!matchedPet) return;
     let alive = true;
     const epoch = generation.current;
-    setSnapshot(null);
-    setResult(null);
+    // A reload (after an owner review) must not unmount the whole journal:
+    // doing so erased the just-shown confirmation and dropped scroll context.
+    // Keep the same-scope snapshot until the refreshed one replaces it; a
+    // different pet/Case still clears immediately via the scope check.
+    setSnapshot((before) => (before && before.scope === scope ? before : null));
+    setResult((before) => (before && before.scope === scope ? before : null));
     api.get<CaseDetail>(`/pets/${requestedPetId}/life-change-cases/${caseId}`)
       .then((data) => {
         if (!alive || epoch !== generation.current || renderScope.current !== scope) return;

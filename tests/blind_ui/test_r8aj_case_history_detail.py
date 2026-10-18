@@ -61,6 +61,10 @@ def test_case_detail_can_continue_an_old_case_without_a_new_case():
     assert 'lifeChangeCaseId: detail.case_id' in screen
     assert 'testID="pli.r8.case-detail.review.record"' in actions
     assert 'continueCaseReview(petId, caseId, decision, latestReviewId)' in actions
+    assert 'testID="pli.r8.case-detail.review.status"' in actions
+    # A reload after the decision must keep the same-scope journal mounted so
+    # the owner actually sees the confirmation instead of a blank reload.
+    assert 'before && before.scope === scope ? before : null' in screen
     assert '"owner_can_review": owner_view and case_current' in api
     assert '"latest_review_id": str(reviews[-1].id) if reviews else None' in api
 
