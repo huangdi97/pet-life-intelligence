@@ -78,6 +78,18 @@ def ui_has_actionable_control(xml: str, resource_id: str) -> bool:
     )
 
 
+def ui_control_description(xml: str, resource_id: str) -> str:
+    """Read a control's accessibility description (RN exposes the label here)."""
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError:
+        return ""
+    for node in root.iter("node"):
+        if node.attrib.get("resource-id") == resource_id:
+            return node.attrib.get("content-desc", "")
+    return ""
+
+
 def ui_control_center(xml: str, resource_id: str) -> tuple[int, int] | None:
     """Return the real tap centre, or None for a degenerate/absent rectangle."""
     try:
@@ -1713,12 +1725,29 @@ def capture_r8_owner_review(
     # header control is the stable proof that the same detail route is back.
     if "pli.r8.case-detail.history" not in returned:
         raise CaptureError("R8AO did not return to the Case detail after history")
-    if "pli.r8.case-detail.sources.progress" not in returned:
+    toggle_ui = find_control(
+        "pli.r8.case-detail.sources.open", "case-detail-open-sources.xml",
+        require_enabled=True, scroll_direction="up",
+    )
+    toggle_desc = ui_control_description(toggle_ui, "pli.r8.case-detail.sources.open")
+    if "收起" not in toggle_desc:
+        if "查看" not in toggle_desc:
+            raise CaptureError(
+                f"R8AO source toggle state is unreadable: {toggle_desc!r}"
+            )
         tap_control_safely(
             "pli.r8.case-detail.sources.open", "case-detail-open-sources.xml",
             scroll_direction="up",
         )
-        time.sleep(1.0)
+        # The toggle label alone is ambiguous at the viewport edge; require the
+        # actual expanded evidence container before searching for a source row.
+        for _ in range(20):
+            time.sleep(0.5)
+            opened = android.dump_xml(directory / "case-detail-sources-opened.xml")
+            if "pli.r8.case-detail.evidence" in opened:
+                break
+        else:
+            raise CaptureError("R8AO source panel did not stay open on the Case detail")
     retracted_event_id = planted_ids[-1]
     reviews_before_retraction = len(expected_reviews)
     tap_when_render_stable(
