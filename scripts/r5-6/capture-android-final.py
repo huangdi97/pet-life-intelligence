@@ -1674,6 +1674,12 @@ def capture_r8_owner_review(
     # Deliberately the LAST mutation of this Case: it invalidates the
     # comparison, while every append-only Review must remain.
     time.sleep(1.2)
+    # Normalize the detail scroll to the hero first: returning from history
+    # keeps a deep source-list position, and the retract control may be above
+    # or below that point. From a known top we can search downward reliably.
+    for _ in range(10):
+        android.shell("input", "swipe", "765", "700", "765", "1650", "260")
+        time.sleep(0.15)
     returned = android.dump_xml(directory / "case-detail-returned.xml")
     # Returning from history preserves the detail's scroll position, so the
     # first-fold identity can legitimately be above the viewport. The fixed
@@ -1683,18 +1689,19 @@ def capture_r8_owner_review(
     if "pli.r8.case-detail.sources.progress" not in returned:
         tap_control_safely(
             "pli.r8.case-detail.sources.open", "case-detail-open-sources.xml",
+            scroll_direction="up",
         )
         time.sleep(1.0)
     retracted_event_id = planted_ids[-1]
     reviews_before_retraction = len(expected_reviews)
     tap_control_safely(
         f"pli.r8.case-detail.source.retract.{retracted_event_id}",
-        "case-detail-retract-arm.xml",
+        "case-detail-retract-arm.xml", scroll_direction="up",
     )
     time.sleep(0.6)
     tap_control_safely(
         f"pli.r8.case-detail.source.retract-yes.{retracted_event_id}",
-        "case-detail-retract-confirm.xml",
+        "case-detail-retract-confirm.xml", scroll_direction="up",
     )
     # The status lives in the hero; the detail keeps its deep scroll position,
     # so bring the header/hero back into view before reading the native state.
