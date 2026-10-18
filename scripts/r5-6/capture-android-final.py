@@ -1675,7 +1675,10 @@ def capture_r8_owner_review(
     # comparison, while every append-only Review must remain.
     time.sleep(1.2)
     returned = android.dump_xml(directory / "case-detail-returned.xml")
-    if "pli.r8.case-detail.identity" not in returned:
+    # Returning from history preserves the detail's scroll position, so the
+    # first-fold identity can legitimately be above the viewport. The fixed
+    # header control is the stable proof that the same detail route is back.
+    if "pli.r8.case-detail.history" not in returned:
         raise CaptureError("R8AO did not return to the Case detail after history")
     if "pli.r8.case-detail.sources.progress" not in returned:
         tap_control_safely(
@@ -1693,6 +1696,11 @@ def capture_r8_owner_review(
         f"pli.r8.case-detail.source.retract-yes.{retracted_event_id}",
         "case-detail-retract-confirm.xml",
     )
+    # The status lives in the hero; the detail keeps its deep scroll position,
+    # so bring the header/hero back into view before reading the native state.
+    for _ in range(6):
+        android.shell("input", "swipe", "765", "750", "765", "1650", "260")
+        time.sleep(0.2)
     retracted_status = ""
     for _ in range(24):
         time.sleep(0.8)
