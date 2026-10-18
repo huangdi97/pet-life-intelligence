@@ -1127,6 +1127,33 @@ def capture_r8_owner_review(
             time.sleep(0.45)
         raise CaptureError(f"R8 native control never reached a safe tap band: {name}")
 
+    def tap_when_render_stable(
+        name: str, filename: str, *, wait_first: int = 5, attempts: int = 18,
+    ) -> None:
+        """Wait out the async source re-render, then tap in a safe band.
+
+        Opening a Case's source page clears and reloads its rows. Scrolling
+        while the target is momentarily absent hides it permanently; wait
+        first, and afterwards only reveal more of the list with small steps.
+        """
+        for attempt in range(attempts):
+            ui = android.dump_xml(directory / filename)
+            center = ui_control_center(ui, name)
+            if center is not None and 320 <= center[1] <= 1680:
+                android.tap(ui, name, "id")
+                return
+            if attempt < wait_first:
+                time.sleep(0.7)
+                continue
+            if center is not None and center[1] > 1680:
+                android.shell("input", "swipe", "765", "1750", "765", "1050", "300")
+            elif center is not None:
+                android.shell("input", "swipe", "765", "700", "765", "1500", "300")
+            else:
+                android.shell("input", "swipe", "765", "1600", "765", "1120", "260")
+            time.sleep(0.5)
+        raise CaptureError(f"R8 native control never rendered stably: {name}")
+
     android.start_link(f"pli-demo://nav?screen=today&pet={pet_id}")
     invitation = find_control("pli.r8.owner-review.create", "invitation-ui.xml", require_enabled=True)
     android.screenshot(directory / "invitation.png")
@@ -1694,14 +1721,14 @@ def capture_r8_owner_review(
         time.sleep(1.0)
     retracted_event_id = planted_ids[-1]
     reviews_before_retraction = len(expected_reviews)
-    tap_control_safely(
+    tap_when_render_stable(
         f"pli.r8.case-detail.source.retract.{retracted_event_id}",
-        "case-detail-retract-arm.xml", scroll_direction="up",
+        "case-detail-retract-arm.xml",
     )
     time.sleep(0.6)
-    tap_control_safely(
+    tap_when_render_stable(
         f"pli.r8.case-detail.source.retract-yes.{retracted_event_id}",
-        "case-detail-retract-confirm.xml", scroll_direction="up",
+        "case-detail-retract-confirm.xml", wait_first=3,
     )
     # The status lives in the hero; the detail keeps its deep scroll position,
     # so bring the header/hero back into view before reading the native state.
