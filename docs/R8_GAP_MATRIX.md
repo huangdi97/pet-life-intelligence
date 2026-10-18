@@ -23,7 +23,7 @@
 | 17 | **真实观察补录并关联 Case（Web）** | `apps/web/lib/caseFollowUp.ts`, `app/page.tsx`, Case 详情 | Vitest 4 项 + 真实浏览器闭环 | Web | PASS（R8AL；事件→Review→档案页，console 0 error） |
 | 17b | **真实观察补录并关联 Case（Mini）** | `apps/mini/src/utils/caseFollowUp.ts`, 详情页, Today | 静态契约 4 项 + `tsc` + weapp build | Mini | PASS（代码/构建/契约）；Mini 真机运行 = NOT_YET_OBSERVED |
 | 17c | **原始来源撤回（Web 主人操作）** | Web Case 详情来源卡 + `/events/{id}/retract` | blind 2 项 + Playwright 扩展 | Web | PASS（两步确认；服务端派生 INVALIDATED；Review 保留） |
-| 17d | **原始来源撤回（Android）** | `CaseSourceList.tsx` + 详情重载 | blind 3 项 + Android 真实取证脚本 | Android | PASS（代码/契约）；运行时以 `case-source-retraction-truth.json` 为准 |
+| 17d | **原始来源撤回（Android）** | `CaseSourceList.tsx` + 详情重载 | blind 3 项 + Android 真实取证 | Android | PASS（`case-source-retraction-truth.json`：原生失效 + INVALIDATED + Review 3→3） |
 | 17e | 原始来源撤回（Mini） | — | — | Mini | NOT_IMPLEMENTED（仅展示撤回/失效状态） |
 | 18 | 非主人 `DAILY_READ` 不获得私人备注 | `_review_response(owner_view=...)` | 集成 | API | PASS |
 | 19 | 医疗事件 `medical:read` 边界 | `events.py`, `life_change_sources.py` | 集成 | API | PASS |

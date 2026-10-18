@@ -85,17 +85,17 @@ pnpm --dir apps/web build
   当日原始来源，必须同时满足原生状态失效、API `INVALIDATED`、Review 数量不变。
 - 迁移：**无新增数据库迁移**（只读查询与响应字段扩展；R8AG 的 `evidence_role_by_event_id` 已存在）。
 
-## 七、本轮 exact-HEAD 云端验证（`c97afed3`）
+## 七、本轮 exact-HEAD 云端验证（`23ab619a`）
 
 | Workflow | Run | 结论 |
 |---|---|---|
-| CI | 39125618347 | success（Backend / Frontend / Blind Visual Contract / Playwright，含补录 + 撤回） |
-| Android + Release Artifacts | 39125618328 | success（APK / Web standalone / 真实 Android 运行取证） |
-| OpenAPI Artifact Sync | 39125618362 | success |
+| CI | 39136256691 | success（Backend / Frontend / Blind Visual Contract / Playwright） |
+| Android + Release Artifacts | 39136256743 | success（APK / Web standalone / 真实 Android 运行取证，含 R8AO 撤回） |
+| OpenAPI Artifact Sync | 39136256692 | success |
 
 R8AK 的 exact-HEAD 取证记录在 `028d8f94`；R8AL 在 `2a2a975d`；R8AM 在 `7f4751e3`；
-R8AN 在 `c97afed3`。本地 pytest 最近一次全量为 **775 passed / 0 failed / 0 error**，
-blind_ui 为 **258 passed**。
+R8AN 在 `c97afed3`；R8AO 在 `23ab619a`。Android `case-source-retraction-truth.json`
+记录原生失效状态、服务端 `INVALIDATED` 与 Review 3→3 保留。
 
 本机 Android release APK 也已成功构建（`apps/mobile/android/app/build/outputs/apk/release/app-release.apk`，
 102,056,745 B）。本机 Windows Gradle 曾遇到 Expo/Ninja 反复重生成 CMake 的问题，已用本地

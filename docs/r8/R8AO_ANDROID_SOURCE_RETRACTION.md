@@ -25,7 +25,8 @@ R8AN 已在 Web 提供主人两步撤回原始来源；Android Case 详情仍只
 在真实 Case 详情、完整历史检查之后，脚本执行**本 Case 的最后一次变更**：
 
 1. 从历史返回真实详情；
-2. 若来源面板未展开则展开；
+2. 规范化回顶部，读取来源开关的无障碍描述（“收起/查看”）判断面板开合，
+   仅在确实收起时展开；
 3. 对当日原始来源点“这条记录有误”，再点“确认撤回”；
 4. 必须看到原生状态变为“原始记录已变更”，否则失败；
 5. 与 API 核对 `source_valid=false`、`state=INVALIDATED`；
@@ -33,6 +34,26 @@ R8AN 已在 Web 提供主人两步撤回原始来源；Android Case 详情仍只
 7. 输出 `case-source-retraction-truth.json` 与 `owner-case-source-retracted.png`。
 
 所有点击都要求控件 `enabled/clickable` 处于安全垂直区间（避免状态栏与底部 Tab 栏误触）。
+
+## exact-HEAD 验证
+
+| 项 | 值 |
+|---|---|
+| 实现提交 | `23ab619a185d4c50a688d05a7e732efd0af81ae2` |
+| CI | run `39136256691` **success** |
+| Android | run `39136256743` **success** |
+| OpenAPI | run `39136256692` **success** |
+| 真实 manifest | `native_status=原始记录已变更 · 需重新核对`、`server_source_valid=false`、`server_state=INVALIDATED`、`reviews 3→3 preserved` |
+
+## 取证门禁的三轮真实修复（不是放宽断言）
+
+1. 从历史返回后首屏 identity 不在视口：改用固定 header 判定同一详情；
+2. 详情保留深滚动位置、撤回按钮可能在上下两侧：先规范化到顶部，再向下遍历；
+3. 打开来源会异步清空/重载行，盲目滚动会把目标滚走：等待渲染稳定后再小步揭示；
+4. 面板可能已展开但容器在视口外，误判为收起会把它点关：读取开关的 `content-desc`
+   （“收起/查看”）判定真实开合。
+
+最终 `23ab619a` 首次运行即通过全部 Android 门禁，manifest 与截图均来自真实模拟器。
 
 ## 诚实边界
 
