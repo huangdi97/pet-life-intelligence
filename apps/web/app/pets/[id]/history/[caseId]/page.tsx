@@ -91,6 +91,10 @@ export default function LifeChangeCaseDetailPage({
   const [sourceMore, setSourceMore] = useState(false);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [linkedEvent, setLinkedEvent] = useState<string | null>(null);
+  // R8AN: retracting an ORIGINAL source is a real owner action, not a text
+  // decision. It is two-step, owner-only, and the server re-derives validity.
+  const [retractTarget, setRetractTarget] = useState<string | null>(null);
+  const [retracting, setRetracting] = useState(false);
 
   const load = useCallback(() => {
     api
@@ -132,6 +136,26 @@ export default function LifeChangeCaseDetailPage({
         }
       })
       .catch((e: unknown) => setSourceError(mapErrorMessage(e)));
+  };
+
+  const retractSource = (eventId: string) => {
+    if (!detail?.owner_can_review || retracting) return;
+    setRetracting(true);
+    setMessage(null);
+    api
+      .post(`/events/${eventId}/retract`, {})
+      .then(() => {
+        // Never rewrite the Case locally: the server derives INVALIDATED on
+        // read, and every append-only Review must stay visible.
+        setRetractTarget(null);
+        setSources([]);
+        setSourceTotal(0);
+        setSourceMore(false);
+        setMessage("已撤回这条原始记录；旧对比失效，主人历史反馈仍保留。请重新核对档案。");
+        load();
+      })
+      .catch((e: unknown) => setMessage(mapErrorMessage(e)))
+      .finally(() => setRetracting(false));
   };
 
   const review = (decision: string) => {
@@ -280,8 +304,46 @@ export default function LifeChangeCaseDetailPage({
               {SOURCE_LABELS[source.source_type] ?? "其他来源"} · {source.valid ? "来源有效" : "来源已撤回或修正"}
             </div>
             <div className="muted">{source.event_id}</div>
+            {detail.owner_can_review && source.valid ? (
+              retractTarget === source.event_id ? (
+                <div className="r8-warn" data-testid={`pli.r8.web-case.source.retract-confirm.${source.event_id}`}>
+                  <div>
+                    撤回后这条来源不再有效，相关旧对比会失效；历史主人反馈仍会保留。
+                  </div>
+                  <button
+                    type="button"
+                    className="btn danger"
+                    disabled={retracting}
+                    onClick={() => retractSource(source.event_id)}
+                    data-testid={`pli.r8.web-case.source.retract-yes.${source.event_id}`}
+                  >
+                    {retracting ? "正在撤回…" : "确认撤回这条记录"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={retracting}
+                    onClick={() => setRetractTarget(null)}
+                  >
+                    取消
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setRetractTarget(source.event_id)}
+                  data-testid={`pli.r8.web-case.source.retract.${source.event_id}`}
+                >
+                  这条记录有误
+                </button>
+              )
+            ) : null}
           </div>
         ))}
+        {message ? (
+          <p className="alert info" data-testid="pli.r8.web-case.action-status">{message}</p>
+        ) : null}
         {sources.length < sourceTotal && sourceMore ? (
           <button
             type="button"

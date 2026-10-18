@@ -55,3 +55,7 @@ artifacts/release/**/*.tgz
 # R2P3D-R1 repo-local runtime (weights, envs, caches, temp, logs, avd)
 .local/
 .pi/
+
+# Blind-UI imaging tests write root-level thumbnail probes (e.g. tmp*.png).
+# They are test byproducts, never product evidence.
+/tmp*.png

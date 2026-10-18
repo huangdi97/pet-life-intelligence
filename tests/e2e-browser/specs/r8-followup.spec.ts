@@ -38,6 +38,7 @@ test("web owner records a real follow-up observation and links the same Case", a
     },
   });
   expect(today.ok()).toBeTruthy();
+  const todayEventId = (await today.json()).event_id as string;
 
   const recompute = await request.post(
     `${API}/pets/${petId}/baseline/recompute?window_days=14`, { headers, data: {} },
@@ -74,4 +75,21 @@ test("web owner records a real follow-up observation and links the same Case", a
   expect(observations).toHaveLength(1);
   expect(observations[0].related_event_ids).toEqual([eventId]);
   expect(body.follow_up_source_valid).toBe(true);
+
+  // R8AN: retracting an ORIGINAL source is a real two-step owner action. The
+  // derived Case becomes INVALIDATED while every append-only Review remains.
+  await page.getByTestId("pli.r8.web-case.sources.open").click();
+  await page.getByTestId(`pli.r8.web-case.source.retract.${todayEventId}`).click();
+  await page.getByTestId(`pli.r8.web-case.source.retract-yes.${todayEventId}`).click();
+  await expect(page.getByTestId("pli.r8.web-case.status")).toContainText("原始记录已变更");
+  await expect(page.getByTestId("pli.r8.web-case.action-status")).toContainText("已撤回");
+
+  const invalidated = await request.get(
+    `${API}/pets/${petId}/life-change-cases/${caseId}`, { headers },
+  );
+  expect(invalidated.ok()).toBeTruthy();
+  const invalidBody = await invalidated.json();
+  expect(invalidBody.source_valid).toBe(false);
+  expect(invalidBody.state).toBe("INVALIDATED");
+  expect(invalidBody.reviews).toHaveLength(observations.length);
 });

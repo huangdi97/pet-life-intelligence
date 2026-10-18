@@ -79,6 +79,8 @@ pnpm --dir apps/web build
 - **R8AM（Mini + 回归）**：Mini 用短期存储意图把 Case 详情交接到 Today（Tab 无法带参），
   同宠同指标才打开唯一真实 Quick Log，保存后关联并跳回详情；新增 Playwright
   `r8-followup.spec.ts` 把 Web 闭环固化为 CI 回归（本地 1 passed）。
+- **R8AN（撤回）**：Web Case 来源卡支持主人两步确认撤回原始记录，服务端派生
+  `INVALIDATED`，历史 Review 保留；Playwright 在同一用例中真实验证。
 - 迁移：**无新增数据库迁移**（只读查询与响应字段扩展；R8AG 的 `evidence_role_by_event_id` 已存在）。
 
 ## 七、本轮 exact-HEAD 云端验证（`7f4751e3`）
