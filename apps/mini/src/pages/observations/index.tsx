@@ -68,11 +68,15 @@ export default function ObservationsPage() {
       if (!petId) return;
       setLoading(true);
       setError(null);
-      const params = new URLSearchParams({ limit: String(PAGE) });
-      if (metric) params.set("metric", metric);
-      if (nextCursor) params.set("cursor", nextCursor);
+      // Build the query manually: URLSearchParams is not guaranteed to exist
+      // in every mini-program runtime, and a silent ReferenceError here would
+      // look like "no history".
+      const parts = [`limit=${PAGE}`];
+      if (metric) parts.push(`metric=${encodeURIComponent(metric)}`);
+      if (nextCursor) parts.push(`cursor=${encodeURIComponent(nextCursor)}`);
+      const query = `?${parts.join("&")}`;
       api
-        .get<HistoryPage>(`/pets/${petId}/life-change-cases?${params.toString()}`)
+        .get<HistoryPage>(`/pets/${petId}/life-change-cases${query}`)
         .then((page) => {
           // Stale cross-pet rows must never be painted on the selected pet.
           const own = page.cases.filter((item) => item.pet_id === petId);
