@@ -12,13 +12,13 @@
 | 6 | 主人 Review（append-only、CAS、幂等、审计） | 同上 | 同上 | Android/Web/Mini | LOCAL_PASS_PENDING_CI |
 | 7 | 来源撤回/修正 → Case 失效、Review 保留 | 同上 | 同上 | 全端 | PASS |
 | 8 | R8AI Today 持久化 Case 日志 | `OwnerChangeHistory.tsx`, `CaseJournalCard.tsx` | blind-ui + Node probe | Android/Web | LOCAL_PASS_PENDING_CI |
-| 9 | R8AJ Case 详情：冻结值、原始来源、全部 Review | `LifeChangeCaseScreen.tsx`, `CaseSourceList.tsx` | blind-ui R8AJ | Android | LOCAL_PASS（typecheck） |
+| 9 | R8AJ Case 详情：冻结值、原始来源、全部 Review | `LifeChangeCaseScreen.tsx`, `CaseSourceList.tsx` | blind-ui R8AJ + CI 原生 XML | Android | PASS（CI `case-detail-truth.json` 13/13 来源、3 条 Review；本机模拟器复核） |
 | 10 | R8AG 服务器冻结来源角色 | `life_changes.py`, `models/life_changes.py` | 集成 + Android XML | 全端 | PASS |
-| 11 | **R8AK 稳定游标分页 + total/has_more** | `app/services/life_change_history.py` | `test_r8ak_case_history.py` 6/6 | API | LOCAL_PASS |
-| 12 | **R8AK 指标/时间窗/关键词检索（有界）** | 同上 + `list_cases` | 同上 | Android/Web/Mini | LOCAL_PASS |
-| 13 | **R8AK 授权来源详情（逐条时间/值/有效性/角色）** | `app/api/routes/life_change_sources.py` | 同上 | 全端 | LOCAL_PASS |
-| 14 | **R8AK 旧 Case 内继续复核（不新建 Case）** | `CaseReviewActions.tsx`, `CaseDetail`, POST API | 集成 + Android 脚本 | Android/Web/Mini | LOCAL_PASS_PENDING_RUNTIME |
-| 15 | **R8AK 完整历史入口与列表** | `LifeChangeHistoryScreen.tsx`, Web history, Mini observations | blind-ui + typecheck | 全端 | LOCAL_PASS_PENDING_RUNTIME |
+| 11 | **R8AK 稳定游标分页 + total/has_more** | `app/services/life_change_history.py` | `test_r8ak_case_history.py` 6/6 | API | PASS |
+| 12 | **R8AK 指标/时间窗/关键词检索（有界）** | 同上 + `list_cases` | 同上 | Android/Web/Mini | PASS |
+| 13 | **R8AK 授权来源详情（逐条时间/值/有效性/角色）** | `app/api/routes/life_change_sources.py` | 同上 + 本机 4/4 原生来源 | 全端 | PASS |
+| 14 | **R8AK 旧 Case 内继续复核（不新建 Case）** | `CaseReviewActions.tsx`, `CaseDetail`, POST API | CI `case-continue-review-truth.json` + 本机 `FOLLOW_UP_LATER` | Android/Web/Mini | PASS |
+| 15 | **R8AK 完整历史入口与列表** | `LifeChangeHistoryScreen.tsx`, Web history, Mini observations | CI `case-history-truth.json` + 本机截图 | 全端 | PASS |
 | 16 | **R8AK 真实观察反馈闭环（QuickLog→RECORD_OBSERVATION）** | `QuickLogScreen.tsx` + Case detail 入口 | 既有 R8C/R8T 测试 | Android | PASS（上一 HEAD 真实取证）；本轮待复跑 |
 | 17 | Web 端直接补录后续观察并关联 Case | — | — | Web | ACCEPTED_LIMITATION（Web 只能继续非观察类决策；真实观察关联仍在 Android QuickLog） |
 | 18 | 非主人 `DAILY_READ` 不获得私人备注 | `_review_response(owner_view=...)` | 集成 | API | PASS |
