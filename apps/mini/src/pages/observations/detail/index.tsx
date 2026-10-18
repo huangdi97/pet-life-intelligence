@@ -90,6 +90,9 @@ export default function ObservationDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // R8AP: owner retraction with an explicit second step; never local rewrites.
+  const [retractTarget, setRetractTarget] = useState<string | null>(null);
+  const [retracting, setRetracting] = useState(false);
 
   const load = useCallback(() => {
     api
@@ -155,8 +158,26 @@ export default function ObservationDetailPage() {
       .finally(() => setBusy(false));
   };
 
-  const startFollowUp = (row: Detail) => {
-    const eventType = followUpEventType(row.metric);
+  const retractSource = (eventId: string) => {
+    if (!detail?.owner_can_review || retracting) return;
+    setRetracting(true);
+    setMessage(null);
+    api
+      .post(`/events/${eventId}/retract`, {})
+      .then(() => {
+        // The server derives INVALIDATED on read; never rewrite it locally.
+        setRetractTarget(null);
+        setSources([]);
+        setSourceTotal(0);
+        setSourceMore(false);
+        setMessage("已撤回这条原始记录；旧对比失效，历史主人反馈仍保留。请重新核对档案。");
+        load();
+      })
+      .catch(() => setMessage("撤回未确认，请稍后重试。"))
+      .finally(() => setRetracting(false));
+  };
+
+  const startFollowUp = (row: Detail) => {    const eventType = followUpEventType(row.metric);
     if (!eventType) {
       setMessage("该指标暂不支持补录真实观察。");
       return;
@@ -266,12 +287,47 @@ export default function ObservationDetailPage() {
                 <Text className="muted">发生 {fmtTime(source.occurred_at)} · 录入 {fmtTime(source.recorded_at)}</Text>
                 <Text className="muted">{source.valid ? "来源有效" : "来源已撤回或修正"}</Text>
                 <Text className="muted">{source.event_id}</Text>
+                {detail.owner_can_review && source.valid ? (
+                  retractTarget === source.event_id ? (
+                    <View data-testid={`pli.r8.mini-source-retract-confirm.${source.event_id}`}>
+                      <Text className="muted">
+                        撤回后这条来源不再有效，旧对比会失效；历史主人反馈仍保留。
+                      </Text>
+                      <Button
+                        className="btn"
+                        disabled={retracting}
+                        data-testid={`pli.r8.mini-source-retract-yes.${source.event_id}`}
+                        onClick={() => retractSource(source.event_id)}
+                      >
+                        {retracting ? "正在撤回…" : "确认撤回这条记录"}
+                      </Button>
+                      <Button
+                        className="secondary-action"
+                        disabled={retracting}
+                        onClick={() => setRetractTarget(null)}
+                      >
+                        取消
+                      </Button>
+                    </View>
+                  ) : (
+                    <Button
+                      className="secondary-action"
+                      data-testid={`pli.r8.mini-source-retract.${source.event_id}`}
+                      onClick={() => setRetractTarget(source.event_id)}
+                    >
+                      这条记录有误
+                    </Button>
+                  )
+                ) : null}
               </View>
             ))}
             {sources.length > 0 && sources.length < sourceTotal && sourceMore ? (
               <Button className="btn" onClick={() => loadSources(sources.length)}>
                 继续查看其余来源（{sources.length}/{sourceTotal}）
               </Button>
+            ) : null}
+            {message ? (
+              <Text className="muted" data-testid="pli.r8.mini-action-status">{message}</Text>
             ) : null}
           </View>
 

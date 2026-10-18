@@ -83,6 +83,8 @@ pnpm --dir apps/web build
   `INVALIDATED`，历史 Review 保留；Playwright 在同一用例中真实验证。
 - **R8AO（Android 撤回）**：Case 来源卡新增主人两步撤回；真实取证脚本在详情中撤回
   当日原始来源，必须同时满足原生状态失效、API `INVALIDATED`、Review 数量不变。
+- **R8AP（Mini 撤回）**：Mini Case 详情同样两步撤回原始来源，服务端派生失效；
+  已通过 `tsc`、Taro weapp 构建与静态契约，Mini 真机运行仍 `NOT_YET_OBSERVED`。
 - 迁移：**无新增数据库迁移**（只读查询与响应字段扩展；R8AG 的 `evidence_role_by_event_id` 已存在）。
 
 ## 七、本轮 exact-HEAD 云端验证（`23ab619a`）

@@ -61,3 +61,17 @@ def test_android_retraction_is_two_step_and_reloads_server_state():
     assert 'retraction_api.get("source_valid") is not False' in script
     assert '"reviews_preserved": True' in script
     assert "case-source-retraction-truth.json" in script
+
+
+def test_mini_retraction_is_two_step_owner_only_and_never_local():
+    detail = read("apps/mini/src/pages/observations/detail/index.tsx")
+    assert "detail.owner_can_review && source.valid" in detail
+    assert "if (!detail?.owner_can_review || retracting) return;" in detail
+    assert "/events/${eventId}/retract" in detail
+    assert "setRetractTarget(source.event_id)" in detail
+    assert "pli.r8.mini-source-retract-confirm" in detail
+    assert "pli.r8.mini-source-retract-yes" in detail
+    # No client rewrite of the derived state; drop stale rows and reload.
+    assert "setSources([]);" in detail
+    assert "请重新核对档案" in detail
+    assert "load();" in detail
