@@ -18,9 +18,17 @@ R8AN/R8AO 已让 Web 与 Android 的主人在 Case 详情中两步撤回原始�
 
 ## 测试与验证
 
+| 项 | 值 |
+|---|---|
+| 实现提交 | `e3e75ac13b2137038b0d6de62c569ac2bc156181` |
+| CI | run `39140214503` **success** |
+| Android | run `39140214454` **success**（APK 与既有真实取证未回退） |
+| OpenAPI | run `39140214435` **success** |
+| 本地 blind_ui | `test_r8an_source_retraction.py` **4 passed** |
+| Mini 构建 | `tsc` PASS；Taro `build:weapp` PASS |
+
 - `tests/blind_ui/test_r8an_source_retraction.py` 扩为 **4 项**：Mini 主人/有效性前置、
   两步确认、真实端点、清空缓存、服务端重读、文案不声称恢复。
-- `pnpm --dir apps/mini typecheck` PASS；Taro `build:weapp` PASS。
 
 ## 诚实边界
 

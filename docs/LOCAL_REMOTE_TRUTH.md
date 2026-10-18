@@ -87,17 +87,18 @@ pnpm --dir apps/web build
   已通过 `tsc`、Taro weapp 构建与静态契约，Mini 真机运行仍 `NOT_YET_OBSERVED`。
 - 迁移：**无新增数据库迁移**（只读查询与响应字段扩展；R8AG 的 `evidence_role_by_event_id` 已存在）。
 
-## 七、本轮 exact-HEAD 云端验证（`23ab619a`）
+## 七、本轮 exact-HEAD 云端验证（`e3e75ac1`）
 
 | Workflow | Run | 结论 |
 |---|---|---|
-| CI | 39136256691 | success（Backend / Frontend / Blind Visual Contract / Playwright） |
-| Android + Release Artifacts | 39136256743 | success（APK / Web standalone / 真实 Android 运行取证，含 R8AO 撤回） |
-| OpenAPI Artifact Sync | 39136256692 | success |
+| CI | 39140214503 | success（Backend / Frontend / Blind Visual Contract / Playwright） |
+| Android + Release Artifacts | 39140214454 | success（APK / Web standalone / 真实 Android 运行取证） |
+| OpenAPI Artifact Sync | 39140214435 | success |
 
-R8AK 的 exact-HEAD 取证记录在 `028d8f94`；R8AL 在 `2a2a975d`；R8AM 在 `7f4751e3`；
-R8AN 在 `c97afed3`；R8AO 在 `23ab619a`。Android `case-source-retraction-truth.json`
-记录原生失效状态、服务端 `INVALIDATED` 与 Review 3→3 保留。
+关键 exact-HEAD 取证：R8AK `028d8f94`、R8AL `2a2a975d`、R8AM `7f4751e3`、
+R8AN `c97afed3`、R8AO `23ab619a`（Android 撤回 manifest：原生失效 +
+`INVALIDATED` + Review 3→3）、R8AP `e3e75ac1`（Mini 撤回，运行时
+`NOT_YET_OBSERVED`）。
 
 本机 Android release APK 也已成功构建（`apps/mobile/android/app/build/outputs/apk/release/app-release.apk`，
 102,056,745 B）。本机 Windows Gradle 曾遇到 Expo/Ninja 反复重生成 CMake 的问题，已用本地
