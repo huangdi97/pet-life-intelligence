@@ -78,20 +78,12 @@ def ui_has_actionable_control(xml: str, resource_id: str) -> bool:
     )
 
 
-def ui_control_on_screen(
-    xml: str, resource_id: str, *, min_height: int = 24, screen_height: int = 2400,
-) -> bool:
-    """True only when the node has a real, visible rectangle.
-
-    React Native can keep an off-screen Pressable in the accessibility tree
-    with inverted/degenerate bounds (e.g. [88,136][304,116]). Tapping its
-    centre lands in the status bar and silently changes nothing, so a
-    presence-only check is not evidence that a real owner tap happened.
-    """
+def ui_control_center(xml: str, resource_id: str) -> tuple[int, int] | None:
+    """Return the real tap centre, or None for a degenerate/absent rectangle."""
     try:
         root = ET.fromstring(xml)
     except ET.ParseError:
-        return False
+        return None
     for node in root.iter("node"):
         if node.attrib.get("resource-id") != resource_id:
             continue
@@ -100,15 +92,12 @@ def ui_control_on_screen(
             node.attrib.get("bounds", ""),
         )
         if not match:
-            return False
+            return None
         left, top, right, bottom = (int(value) for value in match.groups())
-        return (
-            right > left
-            and bottom > top + min_height
-            and top >= 0
-            and bottom <= screen_height
-        )
-    return False
+        if right <= left or bottom <= top + 24:
+            return None
+        return (left + right) // 2, (top + bottom) // 2
+    return None
 
 
 # Hosted emulators have been observed to stop answering adb while the job keeps
@@ -1280,18 +1269,22 @@ def capture_r8_owner_review(
 
     # Source inspection is user-controlled; close the long panel before making
     # a decision so the confirmation remains on-screen, not silently below fold.
-    # The toggle can sit ABOVE the viewport with degenerate bounds after a long
-    # source scroll; a presence-only lookup then taps the status bar and the
-    # panel never changes. Require a real visible rectangle, scroll it in, then
-    # toggle until the native evidence node is genuinely gone.
+    # The toggle can sit above the viewport (degenerate bounds) or, after
+    # scrolling a >8-row list, be covered by the fixed bottom tab bar — a
+    # coordinate tap then opens Timeline instead. Move it into a safe middle
+    # band, then toggle until the native evidence node is genuinely gone.
     collapsed = False
-    for _ in range(10):
+    for _ in range(14):
         collapse_ui = find_control(
             "pli.r8.owner-review.sources", "source-collapse-ui.xml",
             require_enabled=True, scroll_direction="up",
         )
-        if not ui_control_on_screen(collapse_ui, "pli.r8.owner-review.sources"):
-            android.shell("input", "swipe", "765", "700", "765", "1560", "320")
+        center = ui_control_center(collapse_ui, "pli.r8.owner-review.sources")
+        if center is None or not (320 <= center[1] <= 1680):
+            if center is not None and center[1] > 1680:
+                android.shell("input", "swipe", "765", "1750", "765", "1050", "300")
+            else:
+                android.shell("input", "swipe", "765", "700", "765", "1500", "300")
             time.sleep(0.45)
             continue
         android.tap(collapse_ui, "pli.r8.owner-review.sources", "id")
