@@ -60,21 +60,44 @@ export function LifeChangeHistoryScreen() {
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Identity changes must hide stale owner Cases in the SAME render, not
+  // later when an effect clears state. All five dimensions are security
+  // relevant: selected pet, route owner, metric, search and source validity.
+  const scopeKey = JSON.stringify([petId, requestedPetId, metric, query.trim(), validity]);
+  const [resultScopeKey, setResultScopeKey] = useState<string | null>(null);
+  const scopeReady = matchedPet && resultScopeKey === scopeKey;
+  const visibleRows = scopeReady ? rows : [];
+  const visibleCursor = scopeReady ? cursor : null;
+  const visibleHasMore = scopeReady ? hasMore : false;
+  const visibleTotal = scopeReady ? total : null;
+  const visibleError = scopeReady ? error : null;
+  const visibleLoading = loading || !scopeReady;
+
+  // One generation per first-page scope and one in-flight page-2 request.
+  // Cleanup advances the generation, so a response after unmount or pet
+  // switch cannot append a previous pet's Case history.
   const generation = useRef(0);
-  const scope = `${requestedPetId}:${metric ?? "all"}:${query}:${validity ?? "any"}`;
+  const moreInFlight = useRef(false);
 
   const load = useCallback(async (nextCursor: string | null, append: boolean) => {
-    if (!matchedPet) return;
-    const epoch = generation.current + 1;
-    generation.current = epoch;
-    const requested = scope;
+    if (!matchedPet || (append && (!nextCursor || moreInFlight.current))) return;
+    const epoch = append ? generation.current : ++generation.current;
+    if (append) moreInFlight.current = true;
+    else {
+      moreInFlight.current = false;
+      setResultScopeKey(null);
+      setRows([]);
+      setCursor(null);
+      setHasMore(false);
+      setTotal(null);
+    }
     setLoading(true);
     setError(null);
     try {
       const page: CaseHistoryPage = await listCaseHistory(requestedPetId, {
         limit: PAGE, cursor: nextCursor, metric, q: query, validity,
       });
-      if (epoch !== generation.current || requested !== scope) return;
+      if (epoch !== generation.current) return;
       setRows((before) => {
         if (!append) return page.cases;
         const seen = new Set(before.map((item) => item.case_id));
@@ -83,27 +106,43 @@ export function LifeChangeHistoryScreen() {
       setCursor(page.next_cursor);
       setHasMore(page.has_more);
       setTotal(page.total);
+      setResultScopeKey(scopeKey);
     } catch (e: unknown) {
-      if (epoch === generation.current) {
-        setError(
-          e instanceof Error && e.message === "HISTORY_PET_MISMATCH"
-            ? "返回的历史不属于当前宠物，已停止显示。"
-            : humanizeError(e),
-        );
-      }
+      if (epoch !== generation.current) return;
+      setError(
+        e instanceof Error && e.message === "HISTORY_PET_MISMATCH"
+          ? "返回的历史不属于当前宠物，已停止显示。"
+          : humanizeError(e),
+      );
+      setResultScopeKey(scopeKey);
     } finally {
-      if (epoch === generation.current) setLoading(false);
+      if (epoch === generation.current) {
+        moreInFlight.current = false;
+        setLoading(false);
+      }
     }
-  }, [matchedPet, metric, query, requestedPetId, scope, validity]);
+  }, [matchedPet, metric, query, requestedPetId, scopeKey, validity]);
 
   useEffect(() => {
-    if (!matchedPet) return;
-    setRows([]);
-    setCursor(null);
-    setHasMore(false);
-    setTotal(null);
-    void load(null, false);
-  }, [matchedPet, metric, query, load, validity]);
+    if (matchedPet) void load(null, false);
+    else {
+      // A navigator may keep this screen mounted when the active pet changes.
+      // Abandon all in-flight requests and erase old state defensively.
+      generation.current += 1;
+      moreInFlight.current = false;
+      setResultScopeKey(null);
+      setRows([]);
+      setCursor(null);
+      setHasMore(false);
+      setTotal(null);
+      setError(null);
+      setLoading(false);
+    }
+    return () => {
+      generation.current += 1;
+      moreInFlight.current = false;
+    };
+  }, [matchedPet, load]);
 
   const petName = pets?.find((p) => p.id === requestedPetId)?.name ?? "宠物";
 
@@ -141,7 +180,7 @@ export function LifeChangeHistoryScreen() {
             <Text style={styles.title}>有来源的生活观察</Text>
             <Text style={styles.caption}>
               这里保留主人核对过的记录变化。今天不再提示，不代表宠物已经恢复或没有问题。
-              {total != null ? ` 共 ${total} 条档案。` : ""}
+              {visibleTotal != null ? ` 共 ${visibleTotal} 条档案。` : ""}
             </Text>
           </View>
 
@@ -203,9 +242,9 @@ export function LifeChangeHistoryScreen() {
             </Pressable>
           </View>
 
-          {error ? (
+          {visibleError ? (
             <View style={styles.block} testID="pli.r8.history.error">
-              <Text style={styles.warning}>{error}</Text>
+              <Text style={styles.warning}>{visibleError}</Text>
               <Pressable
                 testID="pli.r8.history.retry"
                 accessibilityRole="button"
@@ -217,14 +256,14 @@ export function LifeChangeHistoryScreen() {
             </View>
           ) : null}
 
-          {!loading && !error && rows.length === 0 ? (
+          {!visibleLoading && !visibleError && visibleRows.length === 0 ? (
             <View style={styles.block} testID="pli.r8.history.empty">
               <Text style={styles.body}>还没有符合条件的观察档案。</Text>
               <Text style={styles.caption}>空不代表没有记录；只是这里还没有主人核对过的变化。</Text>
             </View>
           ) : null}
 
-          {rows.map((item) => {
+          {visibleRows.map((item) => {
             const itemMetric = caseHistoryMetric(item.metric);
             const unit = itemMetric.unit ? ` ${itemMetric.unit}` : "";
             const status = caseHistoryStatus(item);
@@ -255,12 +294,12 @@ export function LifeChangeHistoryScreen() {
             );
           })}
 
-          {loading ? <Text style={styles.caption} testID="pli.r8.history.loading">正在核对档案…</Text> : null}
-          {hasMore && !loading ? (
+          {visibleLoading ? <Text style={styles.caption} testID="pli.r8.history.loading">正在核对档案…</Text> : null}
+          {visibleHasMore && !visibleLoading ? (
             <Pressable
               testID="pli.r8.history.more"
               accessibilityRole="button"
-              onPress={() => void load(cursor, true)}
+              onPress={() => void load(visibleCursor, true)}
               style={styles.touch}
             >
               <Text style={styles.link}>继续查看更早的档案</Text>
