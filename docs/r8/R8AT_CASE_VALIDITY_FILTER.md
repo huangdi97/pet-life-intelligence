@@ -58,10 +58,12 @@ R8AO 撤回原始来源后，脚本继续：
 |---|---|
 | 实现提交 | `ce934fc580cdfe166b321059cc716c2ca48a1d4c` |
 | 取证加固 | `dd96d00783fbbe77c28ca4a4b9031fa12cc61bec` |
-| CI | run `39215330902` **success** |
-| Android | run `39215330833` **success**（含真实筛选） |
-| OpenAPI | run `39215330811` **success** |
-| 本地后端 | **794 passed / 0 failed / 0 error** |
+| 测试加固 | `4b19f1f7ee634e57601785f5a4c4f5c987af9908`（多页 keyset + 浏览器筛选） |
+| CI | run `39222183594` **success** |
+| Android | run `39222183581` **success**（含真实筛选） |
+| OpenAPI | run `39222183653` **success** |
+| 本地后端 | **795 passed / 0 failed / 0 error** |
+| 本地 Playwright | 补录/修正/筛选 **3 passed** |
 
 真实 Android manifest：
 
