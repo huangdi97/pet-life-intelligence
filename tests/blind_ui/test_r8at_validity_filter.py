@@ -94,7 +94,7 @@ def test_history_presentation_is_sync_scoped_before_async_clear():
     assert 'const visibleCursor = scopeReady ? cursor : null;' in web
     assert 'visibleRows.map((item)' in web
     assert 'visibleHasMore ? (' in web
-    assert 'const scopeKey = JSON.stringify([petId, metric, validity]);' in mini
+    assert 'const scopeKey = JSON.stringify([petId, metric, validity, returnEpoch]);' in mini
     assert 'const visibleRows = scopeReady ? rows : [];' in mini
     assert 'visibleRows.map((row)' in mini
     assert 'visibleHasMore ? (' in mini
