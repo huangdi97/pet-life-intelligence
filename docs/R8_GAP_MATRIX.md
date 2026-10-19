@@ -31,7 +31,7 @@
 | 18 | 非主人 `DAILY_READ` 不获得私人备注 | `_review_response(owner_view=...)` | 集成 | API | PASS |
 | 19 | 医疗事件 `medical:read` 边界 | `events.py`, `life_change_sources.py` | 集成 | API | PASS |
 | 20 | 宠物数据隔离 / 跨宠 Case 404 | `_get_case`, `_pet_scoped_case` | `test_r8ak...`（陌生用户/跨宠） | API | LOCAL_PASS |
-| 21 | A→B→A 切宠遮蔽与异步竞态 | `TodayScreen`, `LifeChangeCaseScreen`, history screens | blind-ui R8N/R8R/R8Z | Android/Web/Mini | PASS（契约）+ PENDING_RUNTIME |
+| 21 | A→B→A 切宠遮蔽与异步竞态 | `TodayScreen`, `LifeChangeCaseScreen`, history screens | blind-ui R8N/R8R/R8Z + 真实 A→B→A | Android/Web/Mini | PASS（契约 + 真实 Android 身份/Case/3D 回归） |
 | 22 | Android 3D 首帧/真 GLB 门禁 | `LifeViewScreen`, evidence script | Android workflow | Android | PASS at `adbd7d74`（R8AV 预等待后仍通过） |
 | 23 | 主副宠切换 + 双宠 runtime manifest | `capture-android-final.py` | Android workflow | Android | PASS at `adbd7d74`（双宠 manifest 未回退） |
 | 24 | Twin Review 三视角真实截图 | 同上 | 同上 | Android | PASS at `adbd7d74`（front/side/back 三视角） |

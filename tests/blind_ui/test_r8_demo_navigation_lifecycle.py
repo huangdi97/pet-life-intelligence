@@ -32,6 +32,20 @@ def test_runtime_manifest_for_both_demo_pets_is_still_mandatory():
     assert "required rigged RUNTIME 3D manifest unavailable" in script
 
 
+def test_multipet_return_is_in_real_android_evidence():
+    script = read("scripts/r5-6/capture-android-final.py")
+    assert "primary_case_id = capture_r8_owner_review(" in script
+    assert "capture_multipet_return(" in script
+    block = script.split("def capture_multipet_return", 1)[1].split("def main", 1)[0]
+    assert "multipet-a-b-a-truth.json" in block
+    # A→B→A must prove identity, the immutable primary Case and the primary 3D.
+    assert 'ui_control_label(ui, "pli.today.identity")' in block
+    assert "secondary name leaked into the primary identity" in block
+    assert "primary Case disappeared" in block
+    assert 'expected_stage_role="today"' in block
+    assert '"primary_case_visible_after_return": True' in block
+
+
 def test_review_stage_waits_for_its_own_manifest_before_camera_commands():
     script = read("scripts/r5-6/capture-android-final.py")
     block = script.split("def capture_review_views", 1)[1].split(

@@ -102,6 +102,21 @@ def ui_control_text(xml: str, resource_id: str) -> str:
     return ""
 
 
+def ui_control_label(xml: str, resource_id: str) -> str:
+    """Join a control's own and descendant text (RN containers merge labels)."""
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError:
+        return ""
+    for node in root.iter("node"):
+        if node.attrib.get("resource-id") != resource_id:
+            continue
+        parts = [node.attrib.get("text", ""), node.attrib.get("content-desc", "")]
+        parts += [child.attrib.get("text", "") for child in node.iter("node")]
+        return " · ".join(part for part in parts if part)
+    return ""
+
+
 def ui_control_center(xml: str, resource_id: str) -> tuple[int, int] | None:
     """Return the real tap centre, or None for a degenerate/absent rectangle."""
     try:
@@ -1041,7 +1056,7 @@ def capture_r8_owner_review(
     api_url: str,
     owner_id: str,
     pet_id: str,
-) -> None:
+) -> str:
     """Prove owner action through real Android taps and persisted event IDs.
 
     Seed a real, recorded-only same-clock pattern. A human-facing Case is
@@ -1910,6 +1925,7 @@ def capture_r8_owner_review(
         "no_vision_model": True,
         "human_visual_acceptance": "PENDING",
     })
+    return case_id
 
 
 def capture_r8_correction(
@@ -2112,6 +2128,65 @@ def capture_r8_correction(
     })
 
 
+def capture_multipet_return(
+    android: Android, out: Path, *,
+    primary_id: str, secondary_id: str, primary_name: str, secondary_name: str,
+    case_id: str,
+) -> None:
+    """A→B→A through real Android: A must replace B without any B leakage."""
+    directory = out / "multipet-return"
+    directory.mkdir(parents=True, exist_ok=True)
+
+    android.start_link(f"pli-demo://nav?screen=today&pet={primary_id}")
+    ui = ""
+    for _ in range(24):
+        time.sleep(0.8)
+        ui = android.dump_xml(directory / "today-primary-return.xml")
+        if "pli.today.identity" in ui:
+            break
+    if "pli.today.identity" not in ui:
+        raise CaptureError("A→B→A: Today for the primary pet did not remount")
+    identity = ui_control_label(ui, "pli.today.identity")
+    if primary_name not in identity:
+        raise CaptureError(f"A→B→A: primary identity missing its name (saw {identity!r})")
+    if secondary_name in identity:
+        raise CaptureError("A→B→A: secondary name leaked into the primary identity")
+
+    # The immutable primary Case must come back with A's journal, not B's.
+    card = f"pli.r8.owner-history.case.{case_id}"
+    for _ in range(16):
+        if card in ui:
+            break
+        android.shell("input", "swipe", "765", "1650", "765", "950", "300")
+        time.sleep(0.5)
+        ui = android.dump_xml(directory / "today-primary-journal.xml")
+    if card not in ui:
+        raise CaptureError("A→B→A: primary Case disappeared after returning from B")
+
+    manifest = android.read_runtime_manifest(
+        retries=25, expected_pet_id=primary_id, expected_stage_role="today",
+    )
+    if manifest.get("petId") != primary_id:
+        raise CaptureError("A→B→A: Today 3D manifest belongs to another pet")
+
+    android.screenshot(directory / "multipet-return-today.png")
+    save_manifest(directory / "multipet-a-b-a-truth.json", {
+        "primary_pet_id": primary_id,
+        "secondary_pet_id": secondary_id,
+        "primary_name": primary_name,
+        "secondary_name": secondary_name,
+        "primary_identity_label": identity,
+        "secondary_name_absent_from_identity": True,
+        "primary_case_id": case_id,
+        "primary_case_visible_after_return": True,
+        "today_stage_role": manifest.get("stageRole"),
+        "today_manifest_pet_id": manifest.get("petId"),
+        "screenshot": "multipet-return-today.png",
+        "no_vision_model": True,
+        "human_visual_acceptance": "PENDING",
+    })
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default=str(DEFAULT_OUT.relative_to(ROOT)))
@@ -2209,7 +2284,7 @@ def main() -> None:
     )
     # R8: record, owner-acknowledge and follow-up on an actual Android screen.
     # Source event IDs + audit responses accompany the real screenshots.
-    capture_r8_owner_review(
+    primary_case_id = capture_r8_owner_review(
         android, out, api_url=args.api_url,
         owner_id=str(owner_auth["user_id"]), pet_id=primary_id,
     )
@@ -2302,6 +2377,16 @@ def main() -> None:
     time.sleep(1)
     android.screenshot(secondary_review / "secondary_twinreview.png")
     capture_review_views(android, secondary_review, "secondary", secondary_id)
+
+    # A→B→A: return to the primary pet and prove its identity, journal Case and
+    # 3D manifest fully replace the secondary surface (no B leakage).
+    capture_multipet_return(
+        android, out,
+        primary_id=primary_id, secondary_id=secondary_id,
+        primary_name=str(primary_pet["name"]),
+        secondary_name=str(secondary_pet["name"]),
+        case_id=primary_case_id,
+    )
 
     source_head, source_branch = source_identity()
     capture_manifest = {
