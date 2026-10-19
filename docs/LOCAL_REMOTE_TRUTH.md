@@ -90,6 +90,8 @@ pnpm --dir apps/web build
   失效且原事件内容不变。
 - **R8AR（Mini 修正）**：Mini Case 详情可修正 walk/sleep 时长，复用同一 supersede 端点与
   幂等语义；meal 明确不支持。Android 修正入口仍 `NOT_IMPLEMENTED`。
+- **R8AS（Android 修正）**：Android Case 详情同样可修正 walk/sleep 时长并重读服务端失效
+  状态；真实 UIAutomator 修正取证仍为 `PENDING`。
 - 迁移：**无新增数据库迁移**（`supersedes_event_id` 已存在；R8AG 角色列已存在）。
 
 ## 七、本轮 exact-HEAD 云端验证（`e7e17fa8`）

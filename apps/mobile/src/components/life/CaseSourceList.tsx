@@ -4,7 +4,7 @@
  * what the server already refused; it must never be the only gate.
  */
 import React, { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { api, humanizeError } from "../../api";
 import { COLORS, SPACE, TYPE } from "../../tokens";
 import { listCaseSources, type CaseSourceEvent } from "./caseHistoryApi";
@@ -21,7 +21,7 @@ const SOURCE_LABELS: Record<string, string> = {
 
 export function CaseSourceList({
   petId, caseId, computedAt, expectedSourceIds, frozenRoles, roleSource,
-  ownerCanRetract, onRetracted,
+  metric, ownerCanRetract, onRetracted,
 }: {
   petId: string;
   caseId: string;
@@ -29,6 +29,7 @@ export function CaseSourceList({
   expectedSourceIds: string[];
   frozenRoles: Record<string, "CURRENT" | "HISTORICAL"> | null;
   roleSource: "FROZEN_AT_CREATION" | "LEGACY_DATE_DERIVED";
+  metric: string;
   ownerCanRetract: boolean;
   onRetracted: () => void;
 }) {
@@ -42,6 +43,11 @@ export function CaseSourceList({
   // server-derived. The client never rewrites source_valid.
   const [retractTarget, setRetractTarget] = useState<string | null>(null);
   const [retracting, setRetracting] = useState(false);
+  // R8AS: correction appends a superseding event; the original row is kept.
+  const [correctTarget, setCorrectTarget] = useState<string | null>(null);
+  const [correctValue, setCorrectValue] = useState("");
+  const [correcting, setCorrecting] = useState(false);
+  const canCorrect = metric === "walk_minutes_per_day" || metric === "sleep_minutes_per_day";
   const generation = useRef(0);
   const scope = `${petId}:${caseId}`;
   const activeScope = useRef(scope);
@@ -79,6 +85,33 @@ export function CaseSourceList({
       if (epoch === generation.current) setError(humanizeError(e));
     } finally {
       if (epoch === generation.current) setLoading(false);
+    }
+  };
+
+  const correct = async (eventId: string) => {
+    if (!ownerCanRetract || correcting) return;
+    const value = Number(correctValue.trim());
+    if (!Number.isFinite(value) || value < 0 || value > 1440) {
+      setError("请填写 0–1440 之间的分钟数。");
+      return;
+    }
+    setCorrecting(true);
+    setError(null);
+    try {
+      await api.post(`/pets/${petId}/events/${eventId}/supersede`, {
+        payload: { duration_minutes: value },
+        idempotency_key: `r8-android-correction-${eventId}-${value}`,
+      });
+      setCorrectTarget(null);
+      setCorrectValue("");
+      setRows([]);
+      setTotal(null);
+      await load(0);
+      onRetracted();
+    } catch (e: unknown) {
+      setError(humanizeError(e));
+    } finally {
+      setCorrecting(false);
     }
   };
 
@@ -200,6 +233,59 @@ export function CaseSourceList({
                     </Pressable>
                   )
                 ) : null}
+                {ownerCanRetract && source.valid && canCorrect ? (
+                  correctTarget === source.event_id ? (
+                    <View
+                      style={styles.retractBox}
+                      testID={`pli.r8.case-detail.source.correct-form.${source.event_id}`}
+                    >
+                      <Text style={styles.warning}>
+                        只修正数值；发生时间与原始记录保持不变。修正会替代旧来源，旧对比随之失效。
+                      </Text>
+                      <TextInput
+                        testID={`pli.r8.case-detail.source.correct-input.${source.event_id}`}
+                        value={correctValue}
+                        onChangeText={setCorrectValue}
+                        keyboardType="number-pad"
+                        placeholder="0–1440 分钟"
+                        placeholderTextColor={COLORS.textSecondary}
+                        accessibilityLabel="修正后的分钟数"
+                        style={styles.input}
+                      />
+                      <Pressable
+                        testID={`pli.r8.case-detail.source.correct-submit.${source.event_id}`}
+                        accessibilityRole="button"
+                        disabled={correcting}
+                        onPress={() => void correct(source.event_id)}
+                        style={styles.touch}
+                      >
+                        <Text style={styles.link}>{correcting ? "正在提交…" : "提交修正"}</Text>
+                      </Pressable>
+                      <Pressable
+                        testID={`pli.r8.case-detail.source.correct-cancel.${source.event_id}`}
+                        accessibilityRole="button"
+                        disabled={correcting}
+                        onPress={() => { setCorrectTarget(null); setCorrectValue(""); }}
+                        style={styles.touch}
+                      >
+                        <Text style={styles.caption}>取消</Text>
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <Pressable
+                      testID={`pli.r8.case-detail.source.correct.${source.event_id}`}
+                      accessibilityRole="button"
+                      onPress={() => {
+                        setCorrectTarget(source.event_id);
+                        const raw = source.payload?.duration_minutes;
+                        setCorrectValue(typeof raw === "number" ? String(raw) : "");
+                      }}
+                      style={styles.touch}
+                    >
+                      <Text style={styles.link}>修正这条记录</Text>
+                    </Pressable>
+                  )
+                ) : null}
               </View>
             );
           })}
@@ -232,6 +318,10 @@ const styles = StyleSheet.create({
   list: { gap: SPACE.s2 },
   source: { padding: SPACE.s3, backgroundColor: COLORS.canvas, borderRadius: 14, gap: SPACE.s1 },
   sourceGroup: { gap: SPACE.s1 },
+  input: {
+    minHeight: 44, borderRadius: 12, paddingHorizontal: SPACE.s3,
+    backgroundColor: COLORS.surface, color: COLORS.textPrimary,
+  },
   retractBox: {
     padding: SPACE.s3, borderRadius: 12, backgroundColor: COLORS.surfaceRaised,
     gap: SPACE.s1,
