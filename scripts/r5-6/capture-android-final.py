@@ -1798,6 +1798,14 @@ def capture_r8_owner_review(
     if "pli.r8.history.validity.INVALID" not in history_xml:
         raise CaptureError("R8AZ real Android history has no INVALID filter control")
     android.tap(history_xml, "pli.r8.history.validity.INVALID", "id")
+    # Capture the earliest UIAutomator-accessible state before the 0.7-second
+    # settle polling, rather than only the eventual successful frame.
+    # This is NOT a synchronized frame-boundary or injected network-delay test.
+    invalid_transition_xml = android.dump_xml(
+        directory / "case-history-r8az-invalid-transition.xml"
+    )
+    android.screenshot(directory / "case-history-r8az-invalid-transition.png")
+    invalid_transition_stale_case = case_row_id in invalid_transition_xml
     invalid_ui = ""
     for _ in range(24):
         time.sleep(0.7)
@@ -1813,6 +1821,11 @@ def capture_r8_owner_review(
         raise CaptureError("R8AZ old valid Case persisted on settled INVALID native history")
     android.screenshot(directory / "case-history-r8az-invalid.png")
     android.tap(invalid_ui, "pli.r8.history.validity.VALID", "id")
+    valid_transition_xml = android.dump_xml(
+        directory / "case-history-r8az-valid-transition.xml"
+    )
+    android.screenshot(directory / "case-history-r8az-valid-transition.png")
+    valid_transition_case_visible = case_row_id in valid_transition_xml
     valid_ui = ""
     for _ in range(24):
         time.sleep(0.7)
@@ -1835,6 +1848,12 @@ def capture_r8_owner_review(
         "native_valid_restored_case": True,
         "settled_filter_switch_runtime": "PASS",
         "first_frame_async_race_runtime": "NOT_MEASURED_BY_THIS_TEST",
+        "first_available_invalid_transition_stale_case": invalid_transition_stale_case,
+        "first_available_valid_transition_case_visible": valid_transition_case_visible,
+        "first_available_ui_is_actual_first_composited_frame": False,
+        "first_available_ui_has_injected_network_latency": False,
+        "invalid_transition_screenshot": "case-history-r8az-invalid-transition.png",
+        "valid_transition_screenshot": "case-history-r8az-valid-transition.png",
         "invalid_screenshot": "case-history-r8az-invalid.png",
         "valid_screenshot": "case-history-r8az-valid.png",
         "no_vision_model": True,
