@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Text, View } from "@tarojs/components";
-import Taro from "@tarojs/taro";
+import Taro, { useDidHide, useDidShow } from "@tarojs/taro";
 import { api } from "../../services/api";
 import { usePets } from "../../utils/usePets";
 import { PetContextGate } from "../../components/feedback/Feedback";
@@ -68,11 +68,17 @@ export default function ObservationsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Scope-keyed presentation hides old pet/filter rows immediately, before
-  // a useEffect has cleared cached history in the following render cycle.
-  const scopeKey = JSON.stringify([petId, metric, validity]);
+  // Mini navigateTo keeps the previous page mounted. A source may be retracted
+  // or corrected on Case Detail while this history page is hidden; page-show
+  // is therefore a separate authority boundary from pet/filter/query.
+  const [isPageVisible, setPageVisible] = useState(true);
+  const [returnEpoch, setReturnEpoch] = useState(0);
+  const hasShownOnce = useRef(false);
+  // Scope-keyed presentation hides old pet/filter AND old page-show data
+  // synchronously, before a React effect has cleared the last rendered list.
+  const scopeKey = JSON.stringify([petId, metric, validity, returnEpoch]);
   const [resultScopeKey, setResultScopeKey] = useState<string | null>(null);
-  const scopeReady = resultScopeKey === scopeKey;
+  const scopeReady = isPageVisible && resultScopeKey === scopeKey;
   const visibleRows = scopeReady ? rows : [];
   const visibleHasMore = scopeReady ? hasMore : false;
   const visibleError = scopeReady ? error : null;
@@ -81,6 +87,23 @@ export default function ObservationsPage() {
   // every page and error state across pet switch / validity / metric changes.
   const scopeEpoch = useRef(0);
   const moreInFlight = useRef(false);
+
+  // Taro page lifecycle is independent of component mounting:
+  // hide instantly invalidates late API results and page data; every
+  // *subsequent* show advances the identity key, forcing a fresh server read.
+  // The initial onShow is already covered by the ordinary mount effect,
+  // avoiding duplicate first-page requests on cold start.
+  useDidShow(() => {
+    setPageVisible(true);
+    if (hasShownOnce.current) setReturnEpoch((current) => current + 1);
+    else hasShownOnce.current = true;
+  });
+  useDidHide(() => {
+    scopeEpoch.current += 1;
+    moreInFlight.current = false;
+    setPageVisible(false);
+    setResultScopeKey(null);
+  });
 
   const load = useCallback(
     (nextCursor: string | null, append: boolean) => {
