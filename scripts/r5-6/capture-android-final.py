@@ -1842,10 +1842,13 @@ def capture_r8_owner_review(
 
     # R8AT: the SAME invalidated Case must be discoverable through the real
     # owner-facing validity filter, not only by opening its detail directly.
-    tap_control_safely(
-        "pli.r8.case-detail.history", "case-history-open.xml",
-        scroll_direction="down",
-    )
+    top_ui = android.dump_xml(directory / "case-history-open.xml")
+    header = ui_control_center(top_ui, "pli.r8.case-detail.history")
+    # Fixed header controls sit above the scroll-safe band; 120 still excludes
+    # the system status bar while allowing the pinned detail header.
+    if header is None or not 120 <= header[1] <= 1680:
+        raise CaptureError("R8AT Case detail history header is not tappable")
+    android.tap(top_ui, "pli.r8.case-detail.history", "id")
     history_ui = ""
     for _ in range(24):
         time.sleep(0.8)
