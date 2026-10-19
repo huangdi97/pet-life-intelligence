@@ -48,6 +48,31 @@ R8AO 撤回原始来源后，脚本继续：
 - 后端全量 **794 passed / 0 failed / 0 error**；Web / Android / Mini `tsc` PASS；
   Taro `build:weapp` PASS。
 
+## exact-HEAD 验证
+
+| 项 | 值 |
+|---|---|
+| 实现提交 | `ce934fc580cdfe166b321059cc716c2ca48a1d4c` |
+| 取证加固 | `dd96d00783fbbe77c28ca4a4b9031fa12cc61bec` |
+| CI | run `39215330902` **success** |
+| Android | run `39215330833` **success**（含真实筛选） |
+| OpenAPI | run `39215330811` **success** |
+| 本地后端 | **794 passed / 0 failed / 0 error** |
+
+真实 Android manifest：
+
+```json
+{
+  "filter": "INVALID",
+  "native_case_row_visible": true,
+  "server_filter_total": 1,
+  "server_filter_contains_case": true,
+  "human_visual_acceptance": "PENDING"
+}
+```
+
+截图：`owner-history-invalid-filter.png`（Android runtime evidence artifact）。
+
 ## 诚实边界
 
 - 筛选只覆盖 **Case 主来源** 的有效性；后续观察来源失效仍由状态
