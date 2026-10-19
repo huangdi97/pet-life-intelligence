@@ -50,3 +50,14 @@ def test_r8az_real_android_history_filter_switch_has_truth_not_fake_first_frame_
     assert '"native_invalid_excluded_case": True' in source
     assert '"native_valid_restored_case": True' in source
     assert '"first_frame_async_race_runtime": "NOT_MEASURED_BY_THIS_TEST"' in source
+
+
+def test_r8az_capture_keeps_transition_samples_separate_from_first_frame_claim():
+    source = (SRC.parents[4] / "scripts/r5-6/capture-android-final.py").read_text(encoding="utf-8")
+    assert 'case-history-r8az-invalid-transition.xml' in source
+    assert 'case-history-r8az-valid-transition.xml' in source
+    assert '"first_available_invalid_transition_stale_case": invalid_transition_stale_case' in source
+    assert '"first_available_valid_transition_case_visible": valid_transition_case_visible' in source
+    assert '"first_available_ui_is_actual_first_composited_frame": False' in source
+    assert '"first_available_ui_has_injected_network_latency": False' in source
+    assert '"first_frame_async_race_runtime": "NOT_MEASURED_BY_THIS_TEST"' in source
