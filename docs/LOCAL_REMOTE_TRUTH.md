@@ -102,13 +102,13 @@ pnpm --dir apps/web build
   manifest 必须全部替换为主宠；副宠名字不得泄漏到主宠身份。
 - 迁移：**无新增数据库迁移**（`supersedes_event_id` 已存在；R8AG 角色列已存在）。
 
-## 七、本轮 exact-HEAD 云端验证（`adbd7d74`）
+## 七、本轮 exact-HEAD 云端验证（`4ed2e106`）
 
 | Workflow | Run | 结论 |
 |---|---|---|
-| CI | 39234573961 | success（Backend / Frontend / Blind Visual Contract / Playwright） |
-| Android + Release Artifacts | 39234574112 | success（APK / Web standalone / 真实 Android 运行取证） |
-| OpenAPI Artifact Sync | 39234573977 | success（203 paths / 95 schemas） |
+| CI | 39243214096 | success（Backend / Frontend / Blind Visual Contract / Playwright） |
+| Android + Release Artifacts | 39243214446 | success（APK / Web standalone / 真实 Android 运行取证，含 A→B→A） |
+| OpenAPI Artifact Sync | 39243214087 | success（203 paths / 95 schemas） |
 
 关键 exact-HEAD 取证：R8AK `028d8f94`、R8AL `2a2a975d`、R8AM `7f4751e3`、
 R8AN `c97afed3`、R8AO `23ab619a`（Android 撤回：原生失效 + `INVALIDATED` +
@@ -117,7 +117,8 @@ R8AR `e7e17fa8`（Mini supersede）、R8AS `d90bd97f`/`52b28340`（Android super
 R8AT `ce934fc5`/`dd96d007`/`4b19f1f7`（有效性筛选：原生“已失效”列表、服务端
 total 一致、多页 keyset 与浏览器回归）、R8AU `0f9ae3b3`（scratch 库迁移
 `base→head→base→head` + 跨家庭隔离/组合筛选）、R8AV `adbd7d74`（Twin Review
-预等待 Review stage 后，双宠 3D 与三视角仍通过）。
+预等待 Review stage 后，双宠 3D 与三视角仍通过）、R8AW `3d3688cb`/`4ed2e106`
+（A→B→A：主宠身份/Case/Today 3D manifest 全部替换，副宠仅出现在共享切换器）。
 
 本机 Android release APK 也已成功构建（`apps/mobile/android/app/build/outputs/apk/release/app-release.apk`，
 102,056,745 B）。本机 Windows Gradle 曾遇到 Expo/Ninja 反复重生成 CMake 的问题，已用本地

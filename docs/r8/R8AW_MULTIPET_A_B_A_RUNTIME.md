@@ -29,6 +29,32 @@ Android 取证覆盖了主宠、副宠与副宠 3D/Review，但没有**真实回
   主 Case 由 owner review 返回、A→B→A 取证存在、身份 label 与 Case/manifest 门禁存在。
 - 本地 blind 文件 **4 passed**。
 
+## exact-HEAD 验证
+
+| 项 | 值 |
+|---|---|
+| 实现提交 | `3d3688cbd3b1d4e2d1ac26a7c171fc856d697304` |
+| 断言修正 | `4ed2e10678969816c03c45fcbb2d23b4f4ad2b94` |
+| CI | run `39243214096` **success** |
+| Android | run `39243214446` **success**（含 A→B→A） |
+| OpenAPI | run `39243214087` **success** |
+
+真实 manifest：
+
+```json
+{
+  "primary_name": "豆豆",
+  "secondary_name": "咪咪",
+  "identity_includes_primary_name": true,
+  "identity_contains_shared_switcher": true,
+  "primary_case_visible_after_return": true,
+  "today_stage_role": "today",
+  "today_manifest_pet_id": "0753cc46-1d2a-4c2a-b6d0-909cdfb51a32"
+}
+```
+
+截图：`multipet-return-today.png`（Android runtime evidence artifact）。
+
 ## 诚实边界
 
 - 该步只证明真实 Android 的 A→B→A 表面替换；不新增多宠领域语义。
