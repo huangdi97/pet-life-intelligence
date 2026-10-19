@@ -1,7 +1,7 @@
 """R8AT: history validity filter uses the SAME derived source validity as detail."""
 from datetime import datetime, timedelta, timezone
 
-from tests.conftest import auth
+from tests.conftest import auth, create_user
 
 TZ = timezone(timedelta(hours=8))
 
@@ -125,6 +125,59 @@ def test_filtered_history_paginates_without_overlap(client, seeded):
     )
     assert valid.status_code == 200
     assert valid.json()["total"] == 0
+
+
+def test_validity_filter_is_household_scoped_and_composes(client, seeded):
+    owner = seeded["owner_id"]
+    pet, case_id, current_event = _case(client, owner, "R8AT Composed")
+    assert client.post(
+        f"/api/v1/events/{current_event}/retract", headers=auth(owner),
+    ).status_code == 200
+
+    # Cross-household: a stranger learns nothing, not even that the pet exists.
+    stranger = create_user()
+    denied = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases", params={"validity": "INVALID"},
+        headers=auth(stranger),
+    )
+    assert denied.status_code in (403, 404), denied.text
+    assert case_id not in denied.text
+
+    # Same household may read (or be capability-limited); either way it must
+    # never receive the Case payload without DAILY_READ.
+    family = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases", params={"validity": "INVALID"},
+        headers=auth(seeded["family_id"]),
+    )
+    assert family.status_code in (200, 403), family.text
+    if family.status_code == 200:
+        assert {row["case_id"] for row in family.json()["cases"]} == {case_id}
+    else:
+        assert case_id not in family.text
+
+    # Filters compose: metric text search + validity.
+    walk = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases",
+        params={"validity": "INVALID", "q": "散步"}, headers=auth(owner),
+    )
+    assert walk.status_code == 200
+    assert {row["case_id"] for row in walk.json()["cases"]} == {case_id}
+    sleep = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases",
+        params={"validity": "INVALID", "q": "睡眠"}, headers=auth(owner),
+    )
+    assert sleep.status_code == 200
+    assert sleep.json()["cases"] == []
+
+    # A window that starts after creation cannot include the Case.
+    future = (datetime.now(TZ) + timedelta(days=1)).isoformat()
+    empty = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases",
+        params={"validity": "INVALID", "since": future}, headers=auth(owner),
+    )
+    assert empty.status_code == 200
+    assert empty.json()["cases"] == []
+    assert empty.json()["total"] == 0
 
 
 def test_validity_filter_matches_retraction_and_supersede(client, seeded):

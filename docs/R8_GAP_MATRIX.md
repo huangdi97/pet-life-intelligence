@@ -44,7 +44,7 @@
 | 31 | 空/错/加载/权限拒绝/失效态 | 新增页面 | 手动 + 单测 | 全端 | LOCAL_PASS |
 | 32 | **历史按来源有效性筛选** | `validity=VALID/INVALID` 有界 anti-join + Web/Android/Mini 筛选 | 集成 1 项 + blind 4 项 + Android 真实筛选 | 全端 | PASS（派生语义与详情一致，keyset/count 稳定） |
 | 33 | 全量后端回归 | — | pytest | API | 见 `docs/r8/R8AK...` 与最终报告（本轮复跑） |
-| 34 | Alembic upgrade/downgrade | 迁移链 `… → f1e2d3c4b5a6` | pytest session 自动 upgrade | API | LOCAL_PASS（本轮无新迁移） |
+| 34 | Alembic upgrade/downgrade | 迁移链 `… → f1e2d3c4b5a6` | scratch 库 `base→head→base→head` + `alembic check` | API | LOCAL_PASS（81 表、无漂移；本轮无新迁移） |
 | 35 | Playwright / Blind Visual Contract | `tests/e2e` / `tests/blind_ui` | 本轮复跑 | Web | 见最终报告 |
 
 ## 下一阶段（R8AL 候选，未开工）
