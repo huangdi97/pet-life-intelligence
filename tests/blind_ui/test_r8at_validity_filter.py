@@ -38,7 +38,7 @@ def test_three_clients_send_the_validity_filter():
     mini = read("apps/mini/src/pages/observations/index.tsx")
     assert "validity=${validity}" in mini
     assert "pli.r8.mini-history.validity." in mini
-    assert "[metric, petId, validity]" in mini
+    assert "[metric, petId, validity, scopeKey]" in mini
 
 
 def test_filter_does_not_claim_recovery_or_rewrite_history():
@@ -81,7 +81,7 @@ def test_mini_history_rejects_old_pet_and_filter_paginated_responses():
     assert "if (scopeEpoch.current !== epoch) return;" in mini
     assert "if (petId) load(null, false);" in mini
     assert "scopeEpoch.current += 1;" in mini
-    assert "[metric, petId, validity]" in mini
+    assert "[metric, petId, validity, scopeKey]" in mini
     assert "item.pet_id === petId" in mini
 
 
