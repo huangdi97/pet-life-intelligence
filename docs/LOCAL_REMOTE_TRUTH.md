@@ -88,6 +88,8 @@ pnpm --dir apps/web build
 - **R8AQ（supersede）**：新增受控修正端点与 Web 修正入口——原行不改、发生时间保持、
   一条修正链、幂等重放、来源暴露 `superseded_by_event_id`；真实 Playwright 验证旧 Case
   失效且原事件内容不变。
+- **R8AR（Mini 修正）**：Mini Case 详情可修正 walk/sleep 时长，复用同一 supersede 端点与
+  幂等语义；meal 明确不支持。Android 修正入口仍 `NOT_IMPLEMENTED`。
 - 迁移：**无新增数据库迁移**（`supersedes_event_id` 已存在；R8AG 角色列已存在）。
 
 ## 七、本轮 exact-HEAD 云端验证（`9b8d0624`）

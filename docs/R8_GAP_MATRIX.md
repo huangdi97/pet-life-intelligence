@@ -26,7 +26,8 @@
 | 17d | **原始来源撤回（Android）** | `CaseSourceList.tsx` + 详情重载 | blind 3 项 + Android 真实取证 | Android | PASS（`case-source-retraction-truth.json`：原生失效 + INVALIDATED + Review 3→3） |
 | 17e | **原始来源撤回（Mini）** | Mini Case 详情来源卡 | blind 4 项 + `tsc` + weapp build | Mini | PASS（代码/构建/契约）；Mini 真机运行 = NOT_YET_OBSERVED |
 | 17f | **用新记录修正并取代旧记录（supersede，Web）** | `POST /events/{id}/supersede` + Web 来源卡 | 集成 2 项 + blind 3 项 + Playwright | Web/API | PASS（原行不变、发生时间保持、`INVALIDATED`、Review 保留、幂等） |
-| 17g | supersede（Android / Mini） | — | — | Android/Mini | NOT_IMPLEMENTED（仅撤回；下一阶段） |
+| 17g | **supersede（Mini）** | Mini Case 详情来源卡 | blind 2 项 + `tsc` + weapp build | Mini | PASS（代码/构建/契约）；Mini 真机运行 = NOT_YET_OBSERVED |
+| 17h | supersede（Android） | — | — | Android | NOT_IMPLEMENTED（仅撤回；下一阶段并需真实取证） |
 | 18 | 非主人 `DAILY_READ` 不获得私人备注 | `_review_response(owner_view=...)` | 集成 | API | PASS |
 | 19 | 医疗事件 `medical:read` 边界 | `events.py`, `life_change_sources.py` | 集成 | API | PASS |
 | 20 | 宠物数据隔离 / 跨宠 Case 404 | `_get_case`, `_pet_scoped_case` | `test_r8ak...`（陌生用户/跨宠） | API | LOCAL_PASS |

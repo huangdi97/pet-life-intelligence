@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Button, Text, View } from "@tarojs/components";
+import { Button, Input, Text, View } from "@tarojs/components";
 import Taro, { useRouter } from "@tarojs/taro";
 import { api } from "../../../services/api";
 import { fmtTime } from "../../../utils/format";
@@ -93,6 +93,10 @@ export default function ObservationDetailPage() {
   // R8AP: owner retraction with an explicit second step; never local rewrites.
   const [retractTarget, setRetractTarget] = useState<string | null>(null);
   const [retracting, setRetracting] = useState(false);
+  // R8AR: correction appends a superseding event; the original row is kept.
+  const [correctTarget, setCorrectTarget] = useState<Source | null>(null);
+  const [correctValue, setCorrectValue] = useState("");
+  const [correcting, setCorrecting] = useState(false);
 
   const load = useCallback(() => {
     api
@@ -177,7 +181,35 @@ export default function ObservationDetailPage() {
       .finally(() => setRetracting(false));
   };
 
-  const startFollowUp = (row: Detail) => {    const eventType = followUpEventType(row.metric);
+  const submitCorrection = (source: Source) => {
+    if (!detail?.owner_can_review || correcting) return;
+    const value = Number(correctValue.trim());
+    if (!Number.isFinite(value) || value < 0 || value > 1440) {
+      setMessage("请填写 0–1440 之间的分钟数。");
+      return;
+    }
+    setCorrecting(true);
+    setMessage(null);
+    api
+      .post(`/pets/${petId}/events/${source.event_id}/supersede`, {
+        payload: { duration_minutes: value },
+        idempotency_key: `r8-mini-correction-${source.event_id}-${value}`,
+      })
+      .then(() => {
+        setCorrectTarget(null);
+        setCorrectValue("");
+        setSources([]);
+        setSourceTotal(0);
+        setSourceMore(false);
+        setMessage("已提交修正；旧对比失效，历史主人反馈仍保留。请重新核对档案。");
+        load();
+      })
+      .catch(() => setMessage("修正未确认，请稍后重试。"))
+      .finally(() => setCorrecting(false));
+  };
+
+  const startFollowUp = (row: Detail) => {
+    const eventType = followUpEventType(row.metric);
     if (!eventType) {
       setMessage("该指标暂不支持补录真实观察。");
       return;
@@ -316,6 +348,50 @@ export default function ObservationDetailPage() {
                       onClick={() => setRetractTarget(source.event_id)}
                     >
                       这条记录有误
+                    </Button>
+                  )
+                ) : null}
+                {detail.owner_can_review && source.valid
+                  && detail.metric !== "meal_count_per_day" ? (
+                  correctTarget?.event_id === source.event_id ? (
+                    <View data-testid={`pli.r8.mini-source-correct-form.${source.event_id}`}>
+                      <Text className="muted">
+                        只修正数值；发生时间与原始记录保持不变。修正会替代旧来源，旧对比随之失效。
+                      </Text>
+                      <Input
+                        type="number"
+                        value={correctValue}
+                        placeholder="0–1440 分钟"
+                        data-testid={`pli.r8.mini-source-correct-input.${source.event_id}`}
+                        onInput={(event) => setCorrectValue(event.detail.value)}
+                      />
+                      <Button
+                        className="btn"
+                        disabled={correcting}
+                        data-testid={`pli.r8.mini-source-correct-submit.${source.event_id}`}
+                        onClick={() => submitCorrection(source)}
+                      >
+                        {correcting ? "正在提交…" : "提交修正"}
+                      </Button>
+                      <Button
+                        className="secondary-action"
+                        disabled={correcting}
+                        onClick={() => { setCorrectTarget(null); setCorrectValue(""); }}
+                      >
+                        取消
+                      </Button>
+                    </View>
+                  ) : (
+                    <Button
+                      className="secondary-action"
+                      data-testid={`pli.r8.mini-source-correct.${source.event_id}`}
+                      onClick={() => {
+                        setCorrectTarget(source);
+                        const raw = source.payload?.duration_minutes;
+                        setCorrectValue(typeof raw === "number" ? String(raw) : "");
+                      }}
+                    >
+                      修正这条记录
                     </Button>
                   )
                 ) : null}
