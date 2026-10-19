@@ -90,6 +90,18 @@ def ui_control_description(xml: str, resource_id: str) -> str:
     return ""
 
 
+def ui_control_text(xml: str, resource_id: str) -> str:
+    """Read a control's text attribute (derived status labels live here)."""
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError:
+        return ""
+    for node in root.iter("node"):
+        if node.attrib.get("resource-id") == resource_id:
+            return node.attrib.get("text", "")
+    return ""
+
+
 def ui_control_center(xml: str, resource_id: str) -> tuple[int, int] | None:
     """Return the real tap centre, or None for a degenerate/absent rectangle."""
     try:
@@ -1809,6 +1821,179 @@ def capture_r8_owner_review(
     })
 
 
+def capture_r8_correction(
+    android: Android, out: Path, *, api_url: str, owner_id: str, login_email: str,
+) -> None:
+    """R8AS: real owner correction of one recorded source (append-only supersede).
+
+    Uses its OWN pet + Case so the immutable-invalidation proof is independent
+    from the retraction Case captured above (a corrected Case can no longer be
+    retracted, and vice versa).
+    """
+    root = api_url.rstrip("/")
+    headers = {"X-Dev-User-Id": owner_id}
+    directory = out / "r8-owner-correction"
+    directory.mkdir(parents=True, exist_ok=True)
+
+    def tap_ready(name: str, filename: str, *, wait_first: int = 6, attempts: int = 24) -> None:
+        for attempt in range(attempts):
+            ui = android.dump_xml(directory / filename)
+            center = ui_control_center(ui, name)
+            if center is not None and 320 <= center[1] <= 1680:
+                android.tap(ui, name, "id")
+                return
+            if attempt < wait_first:
+                time.sleep(0.8)
+                continue
+            if center is not None and center[1] > 1680:
+                android.shell("input", "swipe", "765", "1750", "765", "1050", "300")
+            elif center is not None:
+                android.shell("input", "swipe", "765", "700", "765", "1500", "300")
+            else:
+                android.shell("input", "swipe", "765", "1600", "765", "1120", "260")
+            time.sleep(0.45)
+        raise CaptureError(f"R8AS native control never rendered stably: {name}")
+
+    pet = api_json(
+        f"{root}/api/v1/pets", method="POST",
+        body={"name": f"R8AS Correction {int(time.time())}", "species": "dog"},
+        headers=headers,
+    )
+    pet_id = str(pet["id"])
+    occurred = datetime.now(timezone.utc) - timedelta(minutes=2)
+    for days in (1, 2, 3):
+        api_json(
+            f"{root}/api/v1/pets/{pet_id}/events", method="POST",
+            body={
+                "event_type": "daily.walk",
+                "payload": {"duration_minutes": 90},
+                "occurred_at": (occurred - timedelta(days=days)).isoformat(),
+            },
+            headers=headers,
+        )
+    current = api_json(
+        f"{root}/api/v1/pets/{pet_id}/events", method="POST",
+        body={
+            "event_type": "daily.walk",
+            "payload": {"duration_minutes": 20},
+            "occurred_at": occurred.isoformat(),
+        },
+        headers=headers,
+    )
+    current_id = str(current["event_id"])
+    api_json(
+        f"{root}/api/v1/pets/{pet_id}/baseline/recompute?window_days=14",
+        method="POST", body={}, headers=headers,
+    )
+    case = api_json(
+        f"{root}/api/v1/pets/{pet_id}/life-change-cases", method="POST",
+        body={"metric": "walk_minutes_per_day"}, headers=headers,
+    )
+    case_id = str(case["case_id"])
+
+    # A pet created after the app's last pets fetch needs a demo login refresh
+    # before the Today journal can resolve it; then deep-link to its Today.
+    android.start_link(f"pli-demo://login?email={login_email}")
+    time.sleep(6)
+    android.start_link(f"pli-demo://nav?screen=today&pet={pet_id}")
+    card = f"pli.r8.owner-history.case.{case_id}"
+    journal = ""
+    for _ in range(40):
+        time.sleep(1)
+        journal = android.dump_xml(directory / "correction-today.xml")
+        if card in journal:
+            break
+    if card not in journal:
+        raise CaptureError("R8AS corrected-pet Case is absent from real Android Today journal")
+    tap_ready(card, "correction-today-tap.xml")
+
+    detail_ui = ""
+    for _ in range(24):
+        time.sleep(0.8)
+        detail_ui = android.dump_xml(directory / "correction-detail.xml")
+        if "pli.r8.case-detail.sources.open" in detail_ui:
+            break
+    if "pli.r8.case-detail.sources.open" not in detail_ui:
+        raise CaptureError("R8AS Case detail did not mount for the correction fixture")
+    tap_ready("pli.r8.case-detail.sources.open", "correction-open-sources.xml")
+    for _ in range(20):
+        time.sleep(0.5)
+        opened = android.dump_xml(directory / "correction-sources-open.xml")
+        if "pli.r8.case-detail.evidence" in opened:
+            break
+    else:
+        raise CaptureError("R8AS source panel did not open")
+
+    tap_ready(
+        f"pli.r8.case-detail.source.correct.{current_id}",
+        "correction-arm.xml",
+    )
+    tap_ready(
+        f"pli.r8.case-detail.source.correct-input.{current_id}",
+        "correction-input.xml", wait_first=3,
+    )
+    android.shell("input", "text", "35")
+    time.sleep(0.4)
+    android.shell("input", "keyevent", "111")  # dismiss the numeric keyboard
+    time.sleep(0.5)
+    tap_ready(
+        f"pli.r8.case-detail.source.correct-submit.{current_id}",
+        "correction-submit.xml", wait_first=3,
+    )
+
+    corrected: dict = {}
+    for _ in range(24):
+        time.sleep(0.8)
+        corrected = api_json(
+            f"{root}/api/v1/pets/{pet_id}/life-change-cases/{case_id}",
+            headers=headers,
+        )
+        if corrected.get("source_valid") is False and corrected.get("state") == "INVALIDATED":
+            break
+    if corrected.get("source_valid") is not False or corrected.get("state") != "INVALIDATED":
+        raise CaptureError("R8AS correction did not invalidate the Case on the server")
+
+    # The status lives in the hero, above the preserved source scroll.
+    for _ in range(10):
+        android.shell("input", "swipe", "765", "700", "765", "1650", "260")
+        time.sleep(0.15)
+    status_ui = android.dump_xml(directory / "correction-invalidated.xml")
+    native_status = ui_control_text(status_ui, "pli.r8.case-detail.status")
+    if "原始记录已变更" not in native_status:
+        raise CaptureError("R8AS native Case status did not become invalidated after correction")
+
+    original = api_json(f"{root}/api/v1/events/{current_id}", headers=headers)
+    if original.get("payload", {}).get("duration_minutes") != 20:
+        raise CaptureError("R8AS correction rewrote the original recorded payload")
+    sources = api_json(
+        f"{root}/api/v1/pets/{pet_id}/life-change-cases/{case_id}/sources?limit=20",
+        headers=headers,
+    )
+    row = next(
+        (item for item in sources.get("sources", []) if item.get("event_id") == current_id),
+        None,
+    )
+    if not row or row.get("valid") is not False or not row.get("superseded_by_event_id"):
+        raise CaptureError("R8AS source projection does not expose the successor correction")
+
+    android.screenshot(directory / "owner-case-source-corrected.png")
+    save_manifest(directory / "case-source-correction-truth.json", {
+        "pet_id": pet_id,
+        "case_id": case_id,
+        "corrected_event_id": current_id,
+        "superseded_by_event_id": row["superseded_by_event_id"],
+        "native_status": native_status,
+        "corrected_by_real_android_tap": True,
+        "server_source_valid": corrected.get("source_valid"),
+        "server_state": corrected.get("state"),
+        "original_payload_duration_minutes": original.get("payload", {}).get("duration_minutes"),
+        "original_row_unchanged": True,
+        "screenshot": "owner-case-source-corrected.png",
+        "no_vision_model": True,
+        "human_visual_acceptance": "PENDING",
+    })
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default=str(DEFAULT_OUT.relative_to(ROOT)))
@@ -1909,6 +2094,12 @@ def main() -> None:
     capture_r8_owner_review(
         android, out, api_url=args.api_url,
         owner_id=str(owner_auth["user_id"]), pet_id=primary_id,
+    )
+    # R8AS: independent pet/Case so correction invalidation cannot collide with
+    # the retraction proof above.
+    capture_r8_correction(
+        android, out, api_url=args.api_url,
+        owner_id=str(owner_auth["user_id"]), login_email=args.login_email,
     )
 
     # Switch to the secondary cat through the same DEMO-ONLY current-pet

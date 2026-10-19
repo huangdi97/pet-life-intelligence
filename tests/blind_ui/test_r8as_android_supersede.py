@@ -34,3 +34,18 @@ def test_android_correction_failure_never_claims_a_correction():
     # The submit label only exists before/while the request runs, not as an
     # unconfirmed success claim.
     assert 'correcting ? "正在提交…" : "提交修正"' in sources
+
+
+def test_correction_has_a_real_android_runtime_gate():
+    script = read("scripts/r5-6/capture-android-final.py")
+    capture = script.split("def capture_r8_correction", 1)[1].split("def main", 1)[0]
+    assert "capture_r8_correction(" in script
+    assert "pli.r8.case-detail.source.correct." in capture
+    assert "pli.r8.case-detail.source.correct-input." in capture
+    assert 'android.shell("input", "text", "35")' in capture
+    assert 'android.shell("input", "keyevent", "111")' in capture
+    assert "case-source-correction-truth.json" in capture
+    assert '"corrected_by_real_android_tap": True' in capture
+    assert '"original_row_unchanged": True' in capture
+    # Independent fixture: correction must not reuse the retraction Case.
+    assert '"name": f"R8AS Correction' in capture
