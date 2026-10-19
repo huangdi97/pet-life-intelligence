@@ -92,6 +92,8 @@ pnpm --dir apps/web build
   幂等语义；meal 明确不支持。Android 修正入口仍 `NOT_IMPLEMENTED`。
 - **R8AS（Android 修正）**：Android Case 详情可修正 walk/sleep 时长；真实 UIAutomator
   已跑通修正 → 原生失效、服务端 `INVALIDATED`、原值不变、successor 可见。
+- **R8AT（有效性筛选）**：历史列表支持 `validity=VALID/INVALID`，使用与详情一致的
+  SQL 有界 anti-join，三端均有筛选；真实 Android 在撤回后验证“已失效”列表。
 - 迁移：**无新增数据库迁移**（`supersedes_event_id` 已存在；R8AG 角色列已存在）。
 
 ## 七、本轮 exact-HEAD 云端验证（`de0ba512`）

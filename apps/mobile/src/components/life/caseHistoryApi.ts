@@ -56,6 +56,7 @@ export interface CaseHistoryQuery {
   cursor?: string | null;
   metric?: string | null;
   q?: string | null;
+  validity?: "VALID" | "INVALID" | null;
 }
 
 export interface CaseReviewAck {
@@ -74,6 +75,7 @@ export async function listCaseHistory(
   if (query.cursor) params.set("cursor", query.cursor);
   if (query.metric) params.set("metric", query.metric);
   if (query.q?.trim()) params.set("q", query.q.trim());
+  if (query.validity) params.set("validity", query.validity);
   const page = await api.get<CaseHistoryPage>(
     `/pets/${petId}/life-change-cases?${params.toString()}`,
   );

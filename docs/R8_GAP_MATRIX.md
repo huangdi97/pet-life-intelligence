@@ -42,7 +42,7 @@
 | 29 | 跨端语义一致（Pet/Event/Permission/Source） | 共享 domain 契约 | 各端 typecheck + 集成 | 全端 | LOCAL_PASS（读语义一致；写入口见 #17） |
 | 30 | 无障碍（标签/44px/实时区域） | 各端组件 | blind-ui | 全端 | PASS（新增控件均带 accessibilityLabel/Role） |
 | 31 | 空/错/加载/权限拒绝/失效态 | 新增页面 | 手动 + 单测 | 全端 | LOCAL_PASS |
-| 32 | 历史“按有效状态筛选” | — | — | 全端 | ACCEPTED_LIMITATION（读时计算，无法稳定 keyset；已显式记录） |
+| 32 | **历史按来源有效性筛选** | `validity=VALID/INVALID` 有界 anti-join + Web/Android/Mini 筛选 | 集成 1 项 + blind 4 项 + Android 真实筛选 | 全端 | PASS（派生语义与详情一致，keyset/count 稳定） |
 | 33 | 全量后端回归 | — | pytest | API | 见 `docs/r8/R8AK...` 与最终报告（本轮复跑） |
 | 34 | Alembic upgrade/downgrade | 迁移链 `… → f1e2d3c4b5a6` | pytest session 自动 upgrade | API | LOCAL_PASS（本轮无新迁移） |
 | 35 | Playwright / Blind Visual Contract | `tests/e2e` / `tests/blind_ui` | 本轮复跑 | Web | 见最终报告 |

@@ -1840,6 +1840,50 @@ def capture_r8_owner_review(
         "human_visual_acceptance": "PENDING",
     })
 
+    # R8AT: the SAME invalidated Case must be discoverable through the real
+    # owner-facing validity filter, not only by opening its detail directly.
+    tap_control_safely(
+        "pli.r8.case-detail.history", "case-history-open.xml",
+        scroll_direction="down",
+    )
+    history_ui = ""
+    for _ in range(24):
+        time.sleep(0.8)
+        history_ui = android.dump_xml(directory / "case-history-filter-ui.xml")
+        if "pli.r8.history.validity.INVALID" in history_ui:
+            break
+    if "pli.r8.history.validity.INVALID" not in history_ui:
+        raise CaptureError("R8AT Android history validity controls did not mount")
+    android.tap(history_ui, "pli.r8.history.validity.INVALID", "id")
+    filtered_ui = ""
+    case_row = f"pli.r8.history.case.{case_id}"
+    for _ in range(24):
+        time.sleep(0.8)
+        filtered_ui = android.dump_xml(directory / "case-history-invalid-filter.xml")
+        if case_row in filtered_ui:
+            break
+    if case_row not in filtered_ui:
+        raise CaptureError("R8AT invalidated Case is absent from the real Android INVALID filter")
+    filtered_api = api_json(
+        f"{root}/pets/{pet_id}/life-change-cases?validity=INVALID",
+        headers=owner_header,
+    )
+    filtered_ids = {str(row["case_id"]) for row in filtered_api.get("cases", [])}
+    if case_id not in filtered_ids:
+        raise CaptureError("R8AT server INVALID filter does not contain the retracted Case")
+    android.screenshot(directory / "owner-history-invalid-filter.png")
+    save_manifest(directory / "case-validity-filter-truth.json", {
+        "pet_id": pet_id,
+        "case_id": case_id,
+        "filter": "INVALID",
+        "native_case_row_visible": True,
+        "server_filter_total": filtered_api.get("total"),
+        "server_filter_contains_case": True,
+        "screenshot": "owner-history-invalid-filter.png",
+        "no_vision_model": True,
+        "human_visual_acceptance": "PENDING",
+    })
+
 
 def capture_r8_correction(
     android: Android, out: Path, *, api_url: str, owner_id: str, login_email: str,

@@ -14,6 +14,11 @@ const FILTERS: Array<{ key: string | null; label: string }> = [
   { key: "meal_count_per_day", label: "进食" },
   { key: "sleep_minutes_per_day", label: "睡眠" },
 ];
+const VALIDITY_FILTERS: Array<{ key: "VALID" | "INVALID" | null; label: string }> = [
+  { key: null, label: "全部来源" },
+  { key: "VALID", label: "来源有效" },
+  { key: "INVALID", label: "已失效" },
+];
 
 interface Page {
   cases: WebCaseSummary[];
@@ -26,6 +31,7 @@ interface Page {
 export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id: string }> }) {
   const petId = use(params).id;
   const [metric, setMetric] = useState<string | null>(null);
+  const [validity, setValidity] = useState<"VALID" | "INVALID" | null>(null);
   const [draft, setDraft] = useState("");
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<WebCaseSummary[]>([]);
@@ -45,6 +51,7 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
     const search = new URLSearchParams({ limit: String(PAGE) });
     if (metric) search.set("metric", metric);
     if (query.trim()) search.set("q", query.trim());
+    if (validity) search.set("validity", validity);
     api
       .get<Page>(`/pets/${petId}/life-change-cases?${search.toString()}`)
       .then((page) => {
@@ -64,7 +71,7 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
     return () => {
       alive = false;
     };
-  }, [petId, metric, query]);
+  }, [petId, metric, query, validity]);
 
   const more = () => {
     if (!cursor || loading) return;
@@ -72,6 +79,7 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
     const search = new URLSearchParams({ limit: String(PAGE), cursor });
     if (metric) search.set("metric", metric);
     if (query.trim()) search.set("q", query.trim());
+    if (validity) search.set("validity", validity);
     api
       .get<Page>(`/pets/${petId}/life-change-cases?${search.toString()}`)
       .then((page) => {
@@ -111,6 +119,20 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
               aria-pressed={metric === item.key}
               data-testid={`pli.r8.web-history.filter.${item.key ?? "all"}`}
               onClick={() => setMetric(item.key)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div className="r8-filters" role="group" aria-label="按来源有效性筛选">
+          {VALIDITY_FILTERS.map((item) => (
+            <button
+              key={item.key ?? "all"}
+              type="button"
+              className={`btn${validity === item.key ? " primary" : ""}`}
+              aria-pressed={validity === item.key}
+              data-testid={`pli.r8.web-history.validity.${item.key ?? "all"}`}
+              onClick={() => setValidity(item.key)}
             >
               {item.label}
             </button>

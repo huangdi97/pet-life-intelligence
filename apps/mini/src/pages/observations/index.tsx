@@ -35,6 +35,11 @@ const FILTERS: Array<{ key: string | null; label: string }> = [
   { key: "meal_count_per_day", label: "进食" },
   { key: "sleep_minutes_per_day", label: "睡眠" },
 ];
+const VALIDITY_FILTERS: Array<{ key: "VALID" | "INVALID" | null; label: string }> = [
+  { key: null, label: "全部来源" },
+  { key: "VALID", label: "来源有效" },
+  { key: "INVALID", label: "已失效" },
+];
 const METRIC: Record<string, { name: string; unit: string }> = {
   walk_minutes_per_day: { name: "散步", unit: "分钟" },
   meal_count_per_day: { name: "进食", unit: "次" },
@@ -57,6 +62,7 @@ function statusText(row: CaseRow): string {
 export default function ObservationsPage() {
   const { pets, petId, refresh, state } = usePets();
   const [metric, setMetric] = useState<string | null>(null);
+  const [validity, setValidity] = useState<"VALID" | "INVALID" | null>(null);
   const [rows, setRows] = useState<CaseRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -73,6 +79,7 @@ export default function ObservationsPage() {
       // look like "no history".
       const parts = [`limit=${PAGE}`];
       if (metric) parts.push(`metric=${encodeURIComponent(metric)}`);
+      if (validity) parts.push(`validity=${validity}`);
       if (nextCursor) parts.push(`cursor=${encodeURIComponent(nextCursor)}`);
       const query = `?${parts.join("&")}`;
       api
@@ -91,7 +98,7 @@ export default function ObservationsPage() {
         .catch(() => setError("观察档案暂时没有读取成功；这不代表没有历史记录。"))
         .finally(() => setLoading(false));
     },
-    [metric, petId],
+    [metric, petId, validity],
   );
 
   useEffect(() => {
@@ -117,6 +124,18 @@ export default function ObservationsPage() {
                 key={item.key ?? "all"}
                 className={metric === item.key ? "btn" : "secondary-action"}
                 onClick={() => setMetric(item.key)}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </View>
+          <View className="row" style={{ margin: "0 0 12px" }}>
+            {VALIDITY_FILTERS.map((item) => (
+              <Button
+                key={item.key ?? "all"}
+                className={validity === item.key ? "btn" : "secondary-action"}
+                data-testid={`pli.r8.mini-history.validity.${item.key ?? "all"}`}
+                onClick={() => setValidity(item.key)}
               >
                 {item.label}
               </Button>

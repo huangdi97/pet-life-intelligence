@@ -320,13 +320,14 @@ async def list_cases(
     since: datetime | None = Query(default=None),
     until: datetime | None = Query(default=None),
     q: str | None = Query(default=None, max_length=60),
+    validity: Literal["VALID", "INVALID"] | None = Query(default=None),
 ) -> dict:
-    """R8AK owner history page: immutable keyset pagination + bounded search.
+    """R8AK owner history page: immutable keyset pagination + bounded filters.
 
     The Case list is append-only, so an older page must never shift because a
-    new observation created another Case. Effective state is still derived on
-    read; filtering by derived state is intentionally not offered here because
-    it cannot be answered by a stable SQL keyset.
+    new observation created another Case. "VALID"/"INVALID" filter on the same
+    derived source validity the detail exposes (retracted or superseded
+    evidence); the bounded anti-join does not change the keyset order.
     """
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
@@ -336,7 +337,7 @@ async def list_cases(
         raise ValidationFailed("History window must end after it starts.")
     base = select(LifeChangeCase).where(LifeChangeCase.pet_id == pet.id)
     base = hist.apply_history_filters(
-        base, metric=metric, since=since, until=until, search=q,
+        base, metric=metric, since=since, until=until, search=q, validity=validity,
     )
     total = await hist.count_cases(db, base)
     page_stmt = base.order_by(

@@ -28,6 +28,12 @@ const FILTERS: Array<{ key: string | null; label: string }> = [
   { key: "sleep_minutes_per_day", label: "睡眠" },
 ];
 
+const VALIDITY_FILTERS: Array<{ key: "VALID" | "INVALID" | null; label: string }> = [
+  { key: null, label: "全部来源" },
+  { key: "VALID", label: "来源有效" },
+  { key: "INVALID", label: "已失效" },
+];
+
 function dayText(value: string): string {
   const instant = new Date(value);
   return Number.isFinite(instant.getTime())
@@ -45,6 +51,7 @@ export function LifeChangeHistoryScreen() {
   const requestedPetId = route.params.petId;
   const matchedPet = petId === requestedPetId;
   const [metric, setMetric] = useState<string | null>(null);
+  const [validity, setValidity] = useState<"VALID" | "INVALID" | null>(null);
   const [draft, setDraft] = useState("");
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<LifeChangeCaseSummary[]>([]);
@@ -54,7 +61,7 @@ export function LifeChangeHistoryScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const generation = useRef(0);
-  const scope = `${requestedPetId}:${metric ?? "all"}:${query}`;
+  const scope = `${requestedPetId}:${metric ?? "all"}:${query}:${validity ?? "any"}`;
 
   const load = useCallback(async (nextCursor: string | null, append: boolean) => {
     if (!matchedPet) return;
@@ -65,7 +72,7 @@ export function LifeChangeHistoryScreen() {
     setError(null);
     try {
       const page: CaseHistoryPage = await listCaseHistory(requestedPetId, {
-        limit: PAGE, cursor: nextCursor, metric, q: query,
+        limit: PAGE, cursor: nextCursor, metric, q: query, validity,
       });
       if (epoch !== generation.current || requested !== scope) return;
       setRows((before) => {
@@ -87,7 +94,7 @@ export function LifeChangeHistoryScreen() {
     } finally {
       if (epoch === generation.current) setLoading(false);
     }
-  }, [matchedPet, metric, query, requestedPetId, scope]);
+  }, [matchedPet, metric, query, requestedPetId, scope, validity]);
 
   useEffect(() => {
     if (!matchedPet) return;
@@ -96,7 +103,7 @@ export function LifeChangeHistoryScreen() {
     setHasMore(false);
     setTotal(null);
     void load(null, false);
-  }, [matchedPet, metric, query, load]);
+  }, [matchedPet, metric, query, load, validity]);
 
   const petName = pets?.find((p) => p.id === requestedPetId)?.name ?? "宠物";
 
@@ -148,6 +155,24 @@ export function LifeChangeHistoryScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                   onPress={() => setMetric(item.key)}
+                  style={[styles.chip, active && styles.chipActive]}
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.filters}>
+            {VALIDITY_FILTERS.map((item) => {
+              const active = validity === item.key;
+              return (
+                <Pressable
+                  key={item.key ?? "all"}
+                  testID={`pli.r8.history.validity.${item.key ?? "all"}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  onPress={() => setValidity(item.key)}
                   style={[styles.chip, active && styles.chipActive]}
                 >
                   <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
