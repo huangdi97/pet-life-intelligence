@@ -99,3 +99,4 @@ def test_history_presentation_is_sync_scoped_before_async_clear():
     assert 'visibleRows.map((row)' in mini
     assert 'visibleHasMore ? (' in mini
     assert "setResultScopeKey(scopeKey)" in mini
+    assert web.index("const [reloadToken, setReloadToken]") < web.index("const scopeKey = JSON.stringify")

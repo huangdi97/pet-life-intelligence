@@ -40,6 +40,8 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // A transient offline/5xx must be recoverable without a full page reload.
+  const [reloadToken, setReloadToken] = useState(0);
   // Render-time gating also prevents the OLD scope's already-loaded data from
   // flashing during the first frame before the fetch effect can reset state.
   const scopeKey = JSON.stringify([petId, metric, validity, query.trim(), reloadToken]);
@@ -51,8 +53,6 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
   const visibleTotal = scopeReady ? total : 0;
   const visibleError = scopeReady ? error : null;
   const visibleLoading = loading || !scopeReady;
-  // A transient offline/5xx must be recoverable without a full page reload.
-  const [reloadToken, setReloadToken] = useState(0);
   // Every pet/filter/search/retry transition invalidates *both* the first
   // page and any in-flight "more" page. Older pages must never join newer
   // pet history or a differently filtered list after slow network responses.
