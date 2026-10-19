@@ -47,6 +47,17 @@ Case 失效推导，但没有任何主人可用的 supersede 入口。
 - 本地：新增 Vitest 3 项（共 **65 passed**）；R8AQ Playwright **2 passed**（含既有 follow-up）；
   后端全量 **784 passed / 0 failed / 0 error**。
 
+## exact-HEAD 验证
+
+| 项 | 值 |
+|---|---|
+| 实现提交 | `9b8d0624dad2485e487c0a8bc45ff2dcabd12c3d` |
+| CI | run `39144839218` **success**（含新 Playwright `r8-correction.spec.ts`） |
+| Android | run `39144839219` **success**（APK + 既有真实取证未回退） |
+| OpenAPI | run `39144839233` **success**（203 paths / 95 schemas） |
+| 本地后端 | **784 passed / 0 failed / 0 error** |
+| 本地 Web | Vitest **65 passed**；R8AQ Playwright **2 passed** |
+
 ## 诚实边界
 
 - 本轮只做 **Web + 后端**；Android / Mini 仍只有撤回，没有修正入口（下一阶段）。
