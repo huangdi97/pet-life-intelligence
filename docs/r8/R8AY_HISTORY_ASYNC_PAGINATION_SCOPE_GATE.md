@@ -16,3 +16,7 @@ R8AX Web 历史页首屏 API 已对卸载/筛选切换做 `alive` 保护，但�
 新增 `r8-offline-recovery.spec.ts` 中的 R8AY 延迟分页测试：通过真实 API 创建宠物与 Case；仅在浏览器网络边界人为延迟并模拟分页，让旧“全部”分页请求滞留，然后将有效性筛选改为“已失效”，确认新结果为空，最后释放旧响应，核验不会重新出现原 Case、旧分页按钮或伪造的总数。此项是**可控网络竞态测试**，不冒充真实 Android 或人工视觉验收。
 
 只有提交后的同 SHA CI/Playwright 成功才可标记 PASS。当前 `NO_VISION_MODEL_USED = TRUE`；`HUMAN_VISUAL_ACCEPTANCE = PENDING`；PR #2 保持 OPEN，不发布 Release、不合并 main。
+
+## Mini parity · asynchronous generation guard
+
+`apps/mini/src/pages/observations/index.tsx` also lacked stale-request invalidation on initial/page-2 results. It now advances a pet/metric/validity epoch when rebuilding history, invalidates it on cleanup/unmount, discards all older `then/catch/finally` state writes, and blocks concurrent duplicate cursor clicks. This is Mini Taro React code; automated Mini typecheck/build and source-contract gates can validate compilation, but **real WeChat DevTools / physical-device runtime remains NOT_YET_OBSERVED**. Browser network-race Playwright remains the executable Web test, not a substitute for Mini runtime.

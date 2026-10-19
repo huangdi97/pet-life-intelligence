@@ -70,3 +70,16 @@ def test_validity_filter_has_a_real_android_gate():
     assert "?validity=INVALID" in block
     assert '"native_case_row_visible": True' in block
     assert '"server_filter_contains_case": True' in block
+
+
+def test_mini_history_rejects_old_pet_and_filter_paginated_responses():
+    """Delayed Mini network replies cannot reappear after a new validity scope."""
+    mini = read("apps/mini/src/pages/observations/index.tsx")
+    assert "const scopeEpoch = useRef(0);" in mini
+    assert "const moreInFlight = useRef(false);" in mini
+    assert "const epoch = append ? scopeEpoch.current : ++scopeEpoch.current;" in mini
+    assert "if (scopeEpoch.current !== epoch) return;" in mini
+    assert "if (petId) load(null, false);" in mini
+    assert "scopeEpoch.current += 1;" in mini
+    assert "[metric, petId, validity]" in mini
+    assert "item.pet_id === petId" in mini

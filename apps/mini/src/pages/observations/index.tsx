@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { api } from "../../services/api";
@@ -68,10 +68,17 @@ export default function ObservationsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Mini requests cannot be assumed cancellable. Scope generations protect
+  // every page and error state across pet switch / validity / metric changes.
+  const scopeEpoch = useRef(0);
+  const moreInFlight = useRef(false);
 
   const load = useCallback(
     (nextCursor: string | null, append: boolean) => {
-      if (!petId) return;
+      if (!petId || (append && (!nextCursor || moreInFlight.current))) return;
+      const epoch = append ? scopeEpoch.current : ++scopeEpoch.current;
+      if (append) moreInFlight.current = true;
+      else moreInFlight.current = false;
       setLoading(true);
       setError(null);
       // Build the query manually: URLSearchParams is not guaranteed to exist
@@ -85,7 +92,9 @@ export default function ObservationsPage() {
       api
         .get<HistoryPage>(`/pets/${petId}/life-change-cases${query}`)
         .then((page) => {
-          // Stale cross-pet rows must never be painted on the selected pet.
+          if (scopeEpoch.current !== epoch) return;
+          // A server-validated pet-scoped response must also belong to the
+          // exact live filter/request generation before updating client state.
           const own = page.cases.filter((item) => item.pet_id === petId);
           setRows((before) => {
             if (!append) return own;
@@ -95,18 +104,32 @@ export default function ObservationsPage() {
           setCursor(page.next_cursor);
           setHasMore(page.has_more);
         })
-        .catch(() => setError("观察档案暂时没有读取成功；这不代表没有历史记录。"))
-        .finally(() => setLoading(false));
+        .catch(() => {
+          if (scopeEpoch.current !== epoch) return;
+          setError("观察档案暂时没有读取成功；这不代表没有历史记录。");
+        })
+        .finally(() => {
+          if (scopeEpoch.current !== epoch) return;
+          moreInFlight.current = false;
+          setLoading(false);
+        });
     },
     [metric, petId, validity],
   );
 
   useEffect(() => {
+    scopeEpoch.current += 1;
+    moreInFlight.current = false;
     setRows([]);
     setCursor(null);
     setHasMore(false);
-    load(null, false);
-  }, [load]);
+    setError(null);
+    if (petId) load(null, false);
+    return () => {
+      scopeEpoch.current += 1;
+      moreInFlight.current = false;
+    };
+  }, [load, petId]);
 
   const current = pets?.find((pet) => pet.id === petId);
   return (
