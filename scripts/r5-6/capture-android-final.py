@@ -1898,11 +1898,16 @@ def capture_r8_correction(
     android.start_link(f"pli-demo://nav?screen=today&pet={pet_id}")
     card = f"pli.r8.owner-history.case.{case_id}"
     journal = ""
-    for _ in range(40):
-        time.sleep(1)
+    for attempt in range(16):
+        time.sleep(0.8)
         journal = android.dump_xml(directory / "correction-today.xml")
         if card in journal:
             break
+        # The journal is persistent owner memory below the Today hero/anchors;
+        # UIAutomator only exposes visible nodes, so reveal it by scrolling.
+        if attempt >= 2:
+            android.shell("input", "swipe", "765", "1650", "765", "950", "300")
+            time.sleep(0.4)
     if card not in journal:
         raise CaptureError("R8AS corrected-pet Case is absent from real Android Today journal")
     tap_ready(card, "correction-today-tap.xml")
