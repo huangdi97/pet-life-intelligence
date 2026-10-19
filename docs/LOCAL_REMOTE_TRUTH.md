@@ -90,24 +90,23 @@ pnpm --dir apps/web build
   失效且原事件内容不变。
 - **R8AR（Mini 修正）**：Mini Case 详情可修正 walk/sleep 时长，复用同一 supersede 端点与
   幂等语义；meal 明确不支持。Android 修正入口仍 `NOT_IMPLEMENTED`。
-- **R8AS（Android 修正）**：Android Case 详情同样可修正 walk/sleep 时长并重读服务端失效
-  状态；真实 UIAutomator 修正取证仍为 `PENDING`。
+- **R8AS（Android 修正）**：Android Case 详情可修正 walk/sleep 时长；真实 UIAutomator
+  已跑通修正 → 原生失效、服务端 `INVALIDATED`、原值不变、successor 可见。
 - 迁移：**无新增数据库迁移**（`supersedes_event_id` 已存在；R8AG 角色列已存在）。
 
-## 七、本轮 exact-HEAD 云端验证（`700467b4`）
+## 七、本轮 exact-HEAD 云端验证（`d90bd97f`）
 
 | Workflow | Run | 结论 |
 |---|---|---|
-| CI | 39191463755 | success（Backend / Frontend / Blind Visual Contract / Playwright） |
-| Android + Release Artifacts | 39191463747 | success（APK / Web standalone / 真实 Android 运行取证） |
-| OpenAPI Artifact Sync | 39191463741 | success（203 paths / 95 schemas） |
+| CI | 39200952292 | success（Backend / Frontend / Blind Visual Contract / Playwright） |
+| Android + Release Artifacts | 39200952290 | success（APK / Web standalone / 真实 Android 运行取证，含修正） |
+| OpenAPI Artifact Sync | 39200952381 | success（203 paths / 95 schemas） |
 
 关键 exact-HEAD 取证：R8AK `028d8f94`、R8AL `2a2a975d`、R8AM `7f4751e3`、
-R8AN `c97afed3`、R8AO `23ab619a`（Android 撤回 manifest：原生失效 +
-`INVALIDATED` + Review 3→3）、R8AP `e3e75ac1`（Mini 撤回）、
-R8AQ `9b8d0624`（受控 supersede：原行不变 + `INVALIDATED`）、
-R8AR `e7e17fa8`（Mini supersede）、R8AS `700467b4`（Android supersede，
-真实 UIAutomator 修正取证仍 `PENDING`）。
+R8AN `c97afed3`、R8AO `23ab619a`（Android 撤回：原生失效 + `INVALIDATED` +
+Review 3→3）、R8AP `e3e75ac1`（Mini 撤回）、R8AQ `9b8d0624`（Web supersede）、
+R8AR `e7e17fa8`（Mini supersede）、R8AS `d90bd97f`（Android supersede：
+原生失效 + `INVALIDATED` + 原值 20 不变 + successor 可见）。
 
 本机 Android release APK 也已成功构建（`apps/mobile/android/app/build/outputs/apk/release/app-release.apk`，
 102,056,745 B）。本机 Windows Gradle 曾遇到 Expo/Ninja 反复重生成 CMake 的问题，已用本地

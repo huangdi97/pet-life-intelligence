@@ -22,28 +22,57 @@ R8AQ（Web）与 R8AR（Mini）已支持受控 supersede；Android 仍只有撤�
 
 ## 测试
 
-- 新增 `tests/blind_ui/test_r8as_android_supersede.py`（2 项）：
+- 新增 `tests/blind_ui/test_r8as_android_supersede.py`（3 项）：
   主人/来源/指标前置、append-only 端点、数值范围、meal 不支持、无本地改写、
-  失败不声称已修正。
+  失败不声称已修正、真实取证门禁存在。
 - `pnpm --dir apps/mobile typecheck` PASS。
 - 后端、Web、Mini 的 supersede 语义未变（复用同一端点与幂等规则）。
+
+## 真实 Android 取证（R8AS_RUNTIME_ACCEPTED = PASS）
+
+取证脚本使用**独立宠物 + 独立 Case**（避免与 R8AO 撤回 Case 互相失效），在真实模拟器中：
+
+1. 创建 3 天历史散步 + 当日 20 分钟，重算基线并创建 Case；
+2. demo 登录刷新宠物列表，deep link 到该宠 Today，滚动找到并点击 Case；
+3. 打开来源明细，点“修正这条记录”，聚焦输入框键入 `35`，收起数字键盘并提交；
+4. 必须同时满足：
+   - 原生状态“原始记录已变更 · 需重新核对”；
+   - 服务端 `source_valid=false`、`state=INVALIDATED`；
+   - 原事件 payload 仍为 20 分钟（`original_row_unchanged`）；
+   - 来源投影出现 `superseded_by_event_id`；
+5. 输出 `case-source-correction-truth.json` 与 `owner-case-source-corrected.png`。
+
+真实 manifest（`d90bd97f`）：
+
+```json
+{
+  "native_status": "原始记录已变更 · 需重新核对",
+  "corrected_by_real_android_tap": true,
+  "server_source_valid": false,
+  "server_state": "INVALIDATED",
+  "original_payload_duration_minutes": 20,
+  "original_row_unchanged": true,
+  "superseded_by_event_id": "9da13eb3-35ba-4c31-9b8f-14151f35154b"
+}
+```
 
 ## exact-HEAD 验证
 
 | 项 | 值 |
 |---|---|
 | 实现提交 | `700467b4f626db8cafe6cdd9e70820bf72e4e127` |
-| CI | run `39191463755` **success** |
-| Android | run `39191463747` **success**（APK 构建与既有真实取证未回退） |
-| OpenAPI | run `39191463741` **success** |
-| 本地 blind_ui | `test_r8as_android_supersede.py` **2 passed** |
+| 真实取证提交 | `d90bd97f426c9ea9925eb32451fbfe3800471714` |
+| CI | run `39200952292` **success** |
+| Android | run `39200952290` **success**（含修正真实取证） |
+| OpenAPI | run `39200952381` **success** |
+| 本地 blind_ui | `test_r8as_android_supersede.py` **3 passed** |
 
 ## 诚实边界
 
-- 本轮的 Android 修正**尚未纳入真实 UIAutomator 取证脚本**：
-  `R8AS_RUNTIME_ACCEPTED = PENDING`，下一阶段需在模拟器中真实点击修正、输入数值、
-  提交，并核对原生 `INVALIDATED`、服务端状态与 Review 不变。
+- 修正只覆盖 walk/sleep 时长；meal 与其它事件类型不提供在线修正。
 - 不支持修改发生时间；需要改时间时只能撤回后重新记录。
 - Mini 真机运行仍 `NOT_YET_OBSERVED`；真实个体 3D `EXTERNAL_BLOCKED`。
 - 未新增数据库迁移；权限、幂等、来源有效性语义未变。
+- 本轮顺带加固 R8D：Review 3D 首次挂载若仍读到旧 life manifest，会重挂载
+  Review 路由一次并重新下发同一视角，仍失败才报错（不放宽断言）。
 - `NO_VISION_MODEL_USED = TRUE`；`HUMAN_VISUAL_ACCEPTANCE = PENDING`。
