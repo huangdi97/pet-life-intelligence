@@ -83,3 +83,19 @@ def test_mini_history_rejects_old_pet_and_filter_paginated_responses():
     assert "scopeEpoch.current += 1;" in mini
     assert "[metric, petId, validity]" in mini
     assert "item.pet_id === petId" in mini
+
+
+def test_history_presentation_is_sync_scoped_before_async_clear():
+    """A switched pet/filter must never paint cached rows in the first frame."""
+    web = read("apps/web/app/pets/[id]/history/page.tsx")
+    mini = read("apps/mini/src/pages/observations/index.tsx")
+    assert 'const scopeKey = JSON.stringify([petId, metric, validity, query.trim(), reloadToken]);' in web
+    assert 'const visibleRows = scopeReady ? rows : [];' in web
+    assert 'const visibleCursor = scopeReady ? cursor : null;' in web
+    assert 'visibleRows.map((item)' in web
+    assert 'visibleHasMore ? (' in web
+    assert 'const scopeKey = JSON.stringify([petId, metric, validity]);' in mini
+    assert 'const visibleRows = scopeReady ? rows : [];' in mini
+    assert 'visibleRows.map((row)' in mini
+    assert 'visibleHasMore ? (' in mini
+    assert "setResultScopeKey(scopeKey)" in mini

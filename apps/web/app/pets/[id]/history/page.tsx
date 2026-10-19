@@ -40,6 +40,17 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Render-time gating also prevents the OLD scope's already-loaded data from
+  // flashing during the first frame before the fetch effect can reset state.
+  const scopeKey = JSON.stringify([petId, metric, validity, query.trim(), reloadToken]);
+  const [resultScopeKey, setResultScopeKey] = useState<string | null>(null);
+  const scopeReady = resultScopeKey === scopeKey;
+  const visibleRows = scopeReady ? rows : [];
+  const visibleCursor = scopeReady ? cursor : null;
+  const visibleHasMore = scopeReady ? hasMore : false;
+  const visibleTotal = scopeReady ? total : 0;
+  const visibleError = scopeReady ? error : null;
+  const visibleLoading = loading || !scopeReady;
   // A transient offline/5xx must be recoverable without a full page reload.
   const [reloadToken, setReloadToken] = useState(0);
   // Every pet/filter/search/retry transition invalidates *both* the first
@@ -53,6 +64,7 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
     const epoch = ++scopeEpoch.current;
     moreInFlight.current = false;
     setLoading(true);
+    setResultScopeKey(null);
     setError(null);
     setRows([]);
     setCursor(null);
@@ -70,11 +82,13 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
         setCursor(page.next_cursor);
         setHasMore(page.has_more);
         setTotal(page.total);
+        setResultScopeKey(scopeKey);
         setLoading(false);
       })
       .catch((e: unknown) => {
         if (!alive || scopeEpoch.current !== epoch) return;
         setError(mapErrorMessage(e));
+        setResultScopeKey(scopeKey);
         setLoading(false);
       });
     return () => {
@@ -85,11 +99,11 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
   }, [petId, metric, query, validity, reloadToken]);
 
   const more = () => {
-    if (!cursor || loading || !hasMore || moreInFlight.current) return;
+    if (!visibleCursor || visibleLoading || !visibleHasMore || moreInFlight.current) return;
     const epoch = scopeEpoch.current;
     moreInFlight.current = true;
     setLoading(true);
-    const search = new URLSearchParams({ limit: String(PAGE), cursor });
+    const search = new URLSearchParams({ limit: String(PAGE), cursor: visibleCursor });
     if (metric) search.set("metric", metric);
     if (query.trim()) search.set("q", query.trim());
     if (validity) search.set("validity", validity);
@@ -126,7 +140,7 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
         <h1 className="v4-sec-title">生活观察档案</h1>
         <p className="v4-note">
           这里保留主人核对过的记录变化。今天不再提示，不代表宠物已经恢复或没有问题。
-          {total > 0 ? ` 共 ${total} 条档案。` : ""}
+          {visibleTotal > 0 ? ` 共 ${visibleTotal} 条档案。` : ""}
         </p>
         <div className="r8-filters">
           {FILTERS.map((item) => (
@@ -179,7 +193,7 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
         </div>
       </section>
 
-      {error ? (
+      {visibleError ? (
         <div className="r8-error-action">
           <button
             type="button"
@@ -192,14 +206,14 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
         </div>
       ) : null}
 
-      <State state={loading && rows.length === 0 ? "loading" : error ? "error" : "ready"} error={error}>
-        {rows.length === 0 && !loading ? (
+      <State state={visibleLoading && visibleRows.length === 0 ? "loading" : visibleError ? "error" : "ready"} error={visibleError}>
+        {visibleRows.length === 0 && !visibleLoading && !visibleError ? (
           <div className="state empty" data-testid="pli.r8.web-history.empty">
             还没有符合条件的观察档案。空不代表没有记录，只是这里还没有主人核对过的变化。
           </div>
         ) : (
           <div className="r8-journal-list">
-            {rows.map((item) => {
+            {visibleRows.map((item) => {
               const metricLabel = CASE_METRIC[item.metric] ?? { name: "生活记录", unit: "" };
               const unit = metricLabel.unit ? ` ${metricLabel.unit}` : "";
               return (
@@ -228,15 +242,15 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
             })}
           </div>
         )}
-        {hasMore ? (
+        {visibleHasMore ? (
           <button
             type="button"
             className="btn"
             onClick={more}
-            disabled={loading}
+            disabled={visibleLoading}
             data-testid="pli.r8.web-history.more"
           >
-            {loading ? "正在读取…" : "继续查看更早的档案"}
+            {visibleLoading ? "正在读取…" : "继续查看更早的档案"}
           </button>
         ) : null}
       </State>

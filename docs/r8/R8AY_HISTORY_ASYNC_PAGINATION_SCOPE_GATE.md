@@ -20,3 +20,7 @@ R8AX Web 历史页首屏 API 已对卸载/筛选切换做 `alive` 保护，但�
 ## Mini parity · asynchronous generation guard
 
 `apps/mini/src/pages/observations/index.tsx` also lacked stale-request invalidation on initial/page-2 results. It now advances a pet/metric/validity epoch when rebuilding history, invalidates it on cleanup/unmount, discards all older `then/catch/finally` state writes, and blocks concurrent duplicate cursor clicks. This is Mini Taro React code; automated Mini typecheck/build and source-contract gates can validate compilation, but **real WeChat DevTools / physical-device runtime remains NOT_YET_OBSERVED**. Browser network-race Playwright remains the executable Web test, not a substitute for Mini runtime.
+
+## R8AY 第二道门禁：首帧同步可见性
+
+进一步审计发现，仅对迟到响应做 epoch guard 仍不足够：宠物/筛选刚切换的**第一帧**，旧 `rows` 可能在 `useEffect` 清空之前被绘制。本次 Web 和 Mini 新增 `scopeKey/resultScopeKey`，任何已加载列表、总数、分页 cursor、error 都必须匹配**当下渲染时**的宠物 + 筛选（Web 还包含搜索与重试 token）；不匹配则同步只显示加载态，不会短暂暴露上一只宠物或旧条件的 Case。API/源事件/权限不变；Mini 仍无真机验证。

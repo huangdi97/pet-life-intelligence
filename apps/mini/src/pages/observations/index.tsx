@@ -68,6 +68,15 @@ export default function ObservationsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Scope-keyed presentation hides old pet/filter rows immediately, before
+  // a useEffect has cleared cached history in the following render cycle.
+  const scopeKey = JSON.stringify([petId, metric, validity]);
+  const [resultScopeKey, setResultScopeKey] = useState<string | null>(null);
+  const scopeReady = resultScopeKey === scopeKey;
+  const visibleRows = scopeReady ? rows : [];
+  const visibleHasMore = scopeReady ? hasMore : false;
+  const visibleError = scopeReady ? error : null;
+  const visibleLoading = loading || !scopeReady;
   // Mini requests cannot be assumed cancellable. Scope generations protect
   // every page and error state across pet switch / validity / metric changes.
   const scopeEpoch = useRef(0);
@@ -103,10 +112,12 @@ export default function ObservationsPage() {
           });
           setCursor(page.next_cursor);
           setHasMore(page.has_more);
+          setResultScopeKey(scopeKey);
         })
         .catch(() => {
           if (scopeEpoch.current !== epoch) return;
           setError("观察档案暂时没有读取成功；这不代表没有历史记录。");
+          setResultScopeKey(scopeKey);
         })
         .finally(() => {
           if (scopeEpoch.current !== epoch) return;
@@ -114,12 +125,13 @@ export default function ObservationsPage() {
           setLoading(false);
         });
     },
-    [metric, petId, validity],
+    [metric, petId, validity, scopeKey],
   );
 
   useEffect(() => {
     scopeEpoch.current += 1;
     moreInFlight.current = false;
+    setResultScopeKey(null);
     setRows([]);
     setCursor(null);
     setHasMore(false);
@@ -164,11 +176,11 @@ export default function ObservationsPage() {
               </Button>
             ))}
           </View>
-          {error ? <View className="state state-error">{error}</View> : null}
-          {!loading && !error && rows.length === 0 ? (
+          {visibleError ? <View className="state state-error">{visibleError}</View> : null}
+          {!visibleLoading && !visibleError && visibleRows.length === 0 ? (
             <View className="state">还没有符合条件的观察档案。</View>
           ) : null}
-          {rows.map((row) => {
+          {visibleRows.map((row) => {
             const label = METRIC[row.metric] ?? { name: "生活记录", unit: "" };
             const unit = label.unit ? ` ${label.unit}` : "";
             return (
@@ -197,12 +209,12 @@ export default function ObservationsPage() {
               </View>
             );
           })}
-          {hasMore ? (
-            <Button className="btn" disabled={loading} onClick={() => load(cursor, true)}>
-              {loading ? "正在读取…" : "继续查看更早的档案"}
+          {visibleHasMore ? (
+            <Button className="btn" disabled={visibleLoading} onClick={() => load(cursor, true)}>
+              {visibleLoading ? "正在读取…" : "继续查看更早的档案"}
             </Button>
           ) : null}
-          {rows.length > 0 ? (
+          {visibleRows.length > 0 ? (
             <Text className="muted" style={{ marginTop: "10px" }}>
               最近读取时间 {fmtTime(new Date().toISOString())}
             </Text>
