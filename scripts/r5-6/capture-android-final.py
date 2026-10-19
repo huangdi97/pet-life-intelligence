@@ -824,18 +824,38 @@ def capture_review_views(
     expected = {"front": 0.0, "side": 1.5707963267948966, "back": 3.141592653589793}
     previous_frame: Path | None = None
     for view, yaw in expected.items():
-        android.clear_runtime_manifest()
-        android.tap(xml, f"pli.twinreview.view.{view}", "id")
-        # Do not freeze a fixed sleep + first readable manifest: the RN bridge
-        # is asynchronous and the previous camera manifest can still be on
-        # disk. Poll until the SAME pet, Review stage, and commanded yaw agree.
-        manifest = android.read_runtime_manifest(
-            retries=15,
-            expected_pet_id=expected_pet_id,
-            expected_yaw=yaw,
-            expected_stage_role="review",
-            expected_pose="Stand",
-        )
+        button = f"pli.twinreview.view.{view}"
+        manifest = None
+        for attempt in range(2):
+            android.clear_runtime_manifest()
+            android.tap(xml, button, "id")
+            try:
+                # Do not freeze a fixed sleep + first readable manifest: the RN
+                # bridge is asynchronous and the previous camera manifest can
+                # still be on disk. Poll until the SAME pet, Review stage, and
+                # commanded yaw agree.
+                manifest = android.read_runtime_manifest(
+                    retries=15,
+                    expected_pet_id=expected_pet_id,
+                    expected_yaw=yaw,
+                    expected_stage_role="review",
+                    expected_pose="Stand",
+                )
+                break
+            except CaptureError:
+                if attempt == 1:
+                    raise
+                # R8D: a stale life-stage manifest can survive the first mount.
+                # Remount the Review route once, then command the same view.
+                android.start_link(f"pli-demo://nav?screen=twinreview&pet={expected_pet_id}")
+                xml = ""
+                for poll in range(12):
+                    time.sleep(1 if poll else 3)
+                    xml = android.dump_xml(directory / "ui.xml")
+                    if all(control in xml for control in required_controls):
+                        break
+                if not all(control in xml for control in required_controls):
+                    raise
         # Product presence gate: a loaded GLB is not visually acceptable when
         # the selected inspection angle shrinks into a small object. Narrow
         # front/back silhouettes may be area-limited, so accept either a
@@ -1916,11 +1936,16 @@ def capture_r8_correction(
     for _ in range(24):
         time.sleep(0.8)
         detail_ui = android.dump_xml(directory / "correction-detail.xml")
-        if "pli.r8.case-detail.sources.open" in detail_ui:
+        if "pli.r8.case-detail.history" in detail_ui:
             break
-    if "pli.r8.case-detail.sources.open" not in detail_ui:
+    if "pli.r8.case-detail.history" not in detail_ui:
         raise CaptureError("R8AS Case detail did not mount for the correction fixture")
-    tap_ready("pli.r8.case-detail.sources.open", "correction-open-sources.xml")
+    # The evidence toggle sits below the hero/reviews; waiting only for its
+    # first-fold presence falsely reports a missing detail. Scroll to it.
+    tap_ready(
+        "pli.r8.case-detail.sources.open", "correction-open-sources.xml",
+        wait_first=2, attempts=30,
+    )
     for _ in range(20):
         time.sleep(0.5)
         opened = android.dump_xml(directory / "correction-sources-open.xml")
