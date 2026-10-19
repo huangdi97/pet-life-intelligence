@@ -33,7 +33,7 @@ def test_history_stale_request_cannot_append_across_scope_or_unmount():
 
 def test_history_reading_source_remains_server_authoritative():
     source = SRC.read_text(encoding="utf-8")
-    api = (SRC.parents[2] / "apps/mobile/src/components/life/caseHistoryApi.ts").read_text(encoding="utf-8")
+    api = (SRC.parents[4] / "apps/mobile/src/components/life/caseHistoryApi.ts").read_text(encoding="utf-8")
     assert "listCaseHistory(requestedPetId" in source
     assert 'if (page.cases.some((item) => item.pet_id !== petId))' in api
     assert "throw new Error(\"HISTORY_PET_MISMATCH\");" in api
