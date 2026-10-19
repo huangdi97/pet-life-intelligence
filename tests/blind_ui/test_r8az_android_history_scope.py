@@ -38,3 +38,15 @@ def test_history_reading_source_remains_server_authoritative():
     assert 'if (page.cases.some((item) => item.pet_id !== petId))' in api
     assert "throw new Error(\"HISTORY_PET_MISMATCH\");" in api
     assert "if (!matchedPet) return;" in source
+
+
+def test_r8az_real_android_history_filter_switch_has_truth_not_fake_first_frame_claims():
+    source = (SRC.parents[4] / "scripts/r5-6/capture-android-final.py").read_text(encoding="utf-8")
+    assert 'case-history-r8az-invalid.xml' in source
+    assert 'case-history-r8az-valid.xml' in source
+    assert 'case-history-r8az-filter-truth.json' in source
+    assert 'android.tap(history_xml, "pli.r8.history.validity.INVALID", "id")' in source
+    assert 'android.tap(invalid_ui, "pli.r8.history.validity.VALID", "id")' in source
+    assert '"native_invalid_excluded_case": True' in source
+    assert '"native_valid_restored_case": True' in source
+    assert '"first_frame_async_race_runtime": "NOT_MEASURED_BY_THIS_TEST"' in source

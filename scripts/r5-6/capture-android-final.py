@@ -1777,6 +1777,69 @@ def capture_r8_owner_review(
         "no_vision_model": True,
         "human_visual_acceptance": "PENDING",
     })
+    # R8AZ: exact immutable Case must disappear when switching to INVALID
+    # before its source is withdrawn, and reappear when switching to VALID.
+    # This is real Android UIAutomator + real server truth, not fabricated data
+    # or a visual-model inference. It proves settled filter correctness; the
+    # synchronous first-render race is covered separately by the source guard.
+    case_row_id = f"pli.r8.history.case.{case_id}"
+    valid_history = api_json(
+        f"{root}/pets/{pet_id}/life-change-cases?validity=VALID",
+        headers=owner_header,
+    )
+    invalid_history = api_json(
+        f"{root}/pets/{pet_id}/life-change-cases?validity=INVALID",
+        headers=owner_header,
+    )
+    if case_id not in {item.get("case_id") for item in valid_history.get("cases", [])}:
+        raise CaptureError("R8AZ owner Case is not server-valid before its source withdrawal")
+    if case_id in {item.get("case_id") for item in invalid_history.get("cases", [])}:
+        raise CaptureError("R8AZ owner Case is incorrectly server-invalid before withdrawal")
+    if "pli.r8.history.validity.INVALID" not in history_xml:
+        raise CaptureError("R8AZ real Android history has no INVALID filter control")
+    android.tap(history_xml, "pli.r8.history.validity.INVALID", "id")
+    invalid_ui = ""
+    for _ in range(24):
+        time.sleep(0.7)
+        invalid_ui = android.dump_xml(directory / "case-history-r8az-invalid.xml")
+        if (
+            "pli.r8.history.validity.INVALID" in invalid_ui
+            and "pli.r8.history.loading" not in invalid_ui
+            and "pli.r8.history.error" not in invalid_ui
+            and case_row_id not in invalid_ui
+        ):
+            break
+    else:
+        raise CaptureError("R8AZ old valid Case persisted on settled INVALID native history")
+    android.screenshot(directory / "case-history-r8az-invalid.png")
+    android.tap(invalid_ui, "pli.r8.history.validity.VALID", "id")
+    valid_ui = ""
+    for _ in range(24):
+        time.sleep(0.7)
+        valid_ui = android.dump_xml(directory / "case-history-r8az-valid.xml")
+        if (
+            case_row_id in valid_ui
+            and "pli.r8.history.loading" not in valid_ui
+            and "pli.r8.history.error" not in valid_ui
+        ):
+            break
+    else:
+        raise CaptureError("R8AZ owner Case did not reappear in real VALID history")
+    android.screenshot(directory / "case-history-r8az-valid.png")
+    save_manifest(directory / "case-history-r8az-filter-truth.json", {
+        "pet_id": pet_id,
+        "case_id": case_id,
+        "server_valid_before_source_withdrawal": True,
+        "server_invalid_before_source_withdrawal": False,
+        "native_invalid_excluded_case": True,
+        "native_valid_restored_case": True,
+        "settled_filter_switch_runtime": "PASS",
+        "first_frame_async_race_runtime": "NOT_MEASURED_BY_THIS_TEST",
+        "invalid_screenshot": "case-history-r8az-invalid.png",
+        "valid_screenshot": "case-history-r8az-valid.png",
+        "no_vision_model": True,
+        "human_visual_acceptance": "PENDING",
+    })
     android.shell("input", "keyevent", "4")
     time.sleep(1.0)
 
