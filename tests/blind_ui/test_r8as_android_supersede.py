@@ -43,7 +43,11 @@ def test_correction_has_a_real_android_runtime_gate():
     assert "pli.r8.case-detail.source.correct." in capture
     assert "pli.r8.case-detail.source.correct-input." in capture
     assert 'android.shell("input", "text", "35")' in capture
-    assert 'android.shell("input", "keyevent", "111")' in capture
+    # The prefilled value must be cleared and the composed value verified.
+    assert 'android.shell("input", "keyevent", "67")' in capture
+    assert "dumpsys input_method" in capture
+    assert 'android.shell("input", "keyevent", "4")' in capture
+    assert 'typed.strip() != "35"' in capture
     assert "case-source-correction-truth.json" in capture
     assert '"corrected_by_real_android_tap": True' in capture
     assert '"original_row_unchanged": True' in capture
