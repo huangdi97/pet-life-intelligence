@@ -2149,8 +2149,9 @@ def capture_multipet_return(
     identity = ui_control_label(ui, "pli.today.identity")
     if primary_name not in identity:
         raise CaptureError(f"A→B→A: primary identity missing its name (saw {identity!r})")
-    if secondary_name in identity:
-        raise CaptureError("A→B→A: secondary name leaked into the primary identity")
+    # The identity container also exposes the multi-pet switcher, which
+    # legitimately lists every household pet. Isolation is proven below by the
+    # pet-scoped journal Case and the Today 3D manifest petId instead.
 
     # The immutable primary Case must come back with A's journal, not B's.
     card = f"pli.r8.owner-history.case.{case_id}"
@@ -2176,7 +2177,8 @@ def capture_multipet_return(
         "primary_name": primary_name,
         "secondary_name": secondary_name,
         "primary_identity_label": identity,
-        "secondary_name_absent_from_identity": True,
+        "identity_includes_primary_name": True,
+        "identity_contains_shared_switcher": secondary_name in identity,
         "primary_case_id": case_id,
         "primary_case_visible_after_return": True,
         "today_stage_role": manifest.get("stageRole"),

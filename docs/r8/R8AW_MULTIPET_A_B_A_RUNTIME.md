@@ -15,7 +15,8 @@ Android 取证覆盖了主宠、副宠与副宠 3D/Review，但没有**真实回
 1. deep link 回主宠 Today；
 2. 等待 `pli.today.identity` 挂载，读取其合并 label：
    - 必须包含主宠名字；
-   - **不得**包含副宠名字（防止 B 的身份/状态泄漏到 A）；
+   - 该容器同时暴露多宠切换器（合法列出全家宠物名），因此**不以“无副宠名字”判定泄漏**；
+   - 真正的隔离由下一步的主宠 Case 与 3D manifest `petId` 证明；
 3. 滚动到“持续记忆”，必须再次看到主宠的不可变 Case 行；
 4. 等待 Today 3D manifest，`petId` 必须等于主宠 ID、`stageRole=today`；
 5. 输出 `multipet-a-b-a-truth.json` 与 `multipet-return-today.png`。

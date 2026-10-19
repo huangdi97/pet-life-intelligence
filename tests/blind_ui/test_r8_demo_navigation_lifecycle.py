@@ -40,7 +40,10 @@ def test_multipet_return_is_in_real_android_evidence():
     assert "multipet-a-b-a-truth.json" in block
     # A→B→A must prove identity, the immutable primary Case and the primary 3D.
     assert 'ui_control_label(ui, "pli.today.identity")' in block
-    assert "secondary name leaked into the primary identity" in block
+    assert "identity_includes_primary_name" in block
+    # The shared switcher may legitimately list other pets; isolation is scoped
+    # content + manifest petId, not the absence of any other name.
+    assert "identity_contains_shared_switcher" in block
     assert "primary Case disappeared" in block
     assert 'expected_stage_role="today"' in block
     assert '"primary_case_visible_after_return": True' in block
