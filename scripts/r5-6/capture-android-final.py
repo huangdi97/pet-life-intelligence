@@ -1962,10 +1962,22 @@ def capture_r8_correction(
         f"pli.r8.case-detail.source.correct-input.{current_id}",
         "correction-input.xml", wait_first=3,
     )
+    # The field is prefilled with the recorded value; clear it before typing so
+    # the correction is exactly 35, never an appended "2035".
+    for _ in range(6):
+        android.shell("input", "keyevent", "67")
     android.shell("input", "text", "35")
-    time.sleep(0.4)
-    android.shell("input", "keyevent", "111")  # dismiss the numeric keyboard
     time.sleep(0.5)
+    ime = android.shell("dumpsys input_method", check=False)
+    if "mInputShown=true" in ime:
+        android.shell("input", "keyevent", "4")  # back closes only the keyboard
+        time.sleep(0.8)
+    typed_ui = android.dump_xml(directory / "correction-input-value.xml")
+    typed = ui_control_text(
+        typed_ui, f"pli.r8.case-detail.source.correct-input.{current_id}",
+    )
+    if typed.strip() != "35":
+        raise CaptureError(f"R8AS correction field did not accept 35 (saw {typed!r})")
     tap_ready(
         f"pli.r8.case-detail.source.correct-submit.{current_id}",
         "correction-submit.xml", wait_first=3,
@@ -1981,7 +1993,12 @@ def capture_r8_correction(
         if corrected.get("source_valid") is False and corrected.get("state") == "INVALIDATED":
             break
     if corrected.get("source_valid") is not False or corrected.get("state") != "INVALIDATED":
-        raise CaptureError("R8AS correction did not invalidate the Case on the server")
+        android.screenshot(directory / "correction-not-applied.png")
+        android.dump_xml(directory / "correction-not-applied.xml")
+        raise CaptureError(
+            "R8AS correction did not invalidate the Case on the server; "
+            f"observed source_valid={corrected.get('source_valid')} state={corrected.get('state')}"
+        )
 
     # The status lives in the hero, above the preserved source scroll.
     for _ in range(10):
