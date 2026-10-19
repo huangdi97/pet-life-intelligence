@@ -94,19 +94,20 @@ pnpm --dir apps/web build
   状态；真实 UIAutomator 修正取证仍为 `PENDING`。
 - 迁移：**无新增数据库迁移**（`supersedes_event_id` 已存在；R8AG 角色列已存在）。
 
-## 七、本轮 exact-HEAD 云端验证（`e7e17fa8`）
+## 七、本轮 exact-HEAD 云端验证（`700467b4`）
 
 | Workflow | Run | 结论 |
 |---|---|---|
-| CI | 39187341387 | success（Backend / Frontend / Blind Visual Contract / Playwright） |
-| Android + Release Artifacts | 39187341420 | success（APK / Web standalone / 真实 Android 运行取证） |
-| OpenAPI Artifact Sync | 39187341421 | success（203 paths / 95 schemas） |
+| CI | 39191463755 | success（Backend / Frontend / Blind Visual Contract / Playwright） |
+| Android + Release Artifacts | 39191463747 | success（APK / Web standalone / 真实 Android 运行取证） |
+| OpenAPI Artifact Sync | 39191463741 | success（203 paths / 95 schemas） |
 
 关键 exact-HEAD 取证：R8AK `028d8f94`、R8AL `2a2a975d`、R8AM `7f4751e3`、
 R8AN `c97afed3`、R8AO `23ab619a`（Android 撤回 manifest：原生失效 +
 `INVALIDATED` + Review 3→3）、R8AP `e3e75ac1`（Mini 撤回）、
 R8AQ `9b8d0624`（受控 supersede：原行不变 + `INVALIDATED`）、
-R8AR `e7e17fa8`（Mini supersede，运行时 `NOT_YET_OBSERVED`）。
+R8AR `e7e17fa8`（Mini supersede）、R8AS `700467b4`（Android supersede，
+真实 UIAutomator 修正取证仍 `PENDING`）。
 
 本机 Android release APK 也已成功构建（`apps/mobile/android/app/build/outputs/apk/release/app-release.apk`，
 102,056,745 B）。本机 Windows Gradle 曾遇到 Expo/Ninja 反复重生成 CMake 的问题，已用本地

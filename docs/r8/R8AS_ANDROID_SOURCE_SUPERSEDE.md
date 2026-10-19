@@ -28,6 +28,16 @@ R8AQ（Web）与 R8AR（Mini）已支持受控 supersede；Android 仍只有撤�
 - `pnpm --dir apps/mobile typecheck` PASS。
 - 后端、Web、Mini 的 supersede 语义未变（复用同一端点与幂等规则）。
 
+## exact-HEAD 验证
+
+| 项 | 值 |
+|---|---|
+| 实现提交 | `700467b4f626db8cafe6cdd9e70820bf72e4e127` |
+| CI | run `39191463755` **success** |
+| Android | run `39191463747` **success**（APK 构建与既有真实取证未回退） |
+| OpenAPI | run `39191463741` **success** |
+| 本地 blind_ui | `test_r8as_android_supersede.py` **2 passed** |
+
 ## 诚实边界
 
 - 本轮的 Android 修正**尚未纳入真实 UIAutomator 取证脚本**：
