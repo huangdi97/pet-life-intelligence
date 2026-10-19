@@ -821,6 +821,19 @@ def capture_review_views(
             "Twin Review controls unavailable after deterministic navigation: "
             f"missing={missing}; observed_ui_ids={observed_ids}"
         )
+    # R8D: the Review route mounts after the life stage. A late life manifest
+    # can land after clear(); let the Review stage emit its OWN ready manifest
+    # before commanding a camera. Best-effort only: the per-view gate below is
+    # still the sole acceptance authority.
+    try:
+        android.read_runtime_manifest(
+            retries=10,
+            expected_pet_id=expected_pet_id,
+            expected_stage_role="review",
+            expected_pose="Stand",
+        )
+    except CaptureError:
+        pass
     expected = {"front": 0.0, "side": 1.5707963267948966, "back": 3.141592653589793}
     previous_frame: Path | None = None
     for view, yaw in expected.items():
@@ -856,6 +869,17 @@ def capture_review_views(
                         break
                 if not all(control in xml for control in required_controls):
                     raise
+                # Give the remounted Review stage the same readiness grace
+                # before re-commanding the camera; still best-effort.
+                try:
+                    android.read_runtime_manifest(
+                        retries=8,
+                        expected_pet_id=expected_pet_id,
+                        expected_stage_role="review",
+                        expected_pose="Stand",
+                    )
+                except CaptureError:
+                    pass
         # Product presence gate: a loaded GLB is not visually acceptable when
         # the selected inspection angle shrinks into a small object. Narrow
         # front/back silhouettes may be area-limited, so accept either a

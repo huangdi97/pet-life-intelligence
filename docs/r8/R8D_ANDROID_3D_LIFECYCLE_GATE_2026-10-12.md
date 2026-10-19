@@ -22,3 +22,22 @@ Make `navigateToDemoScreen` return a boolean indicating that the reset was actua
 4. Require a same-HEAD Android evidence artifact and inspect its screenshots, manifest JSON, pet IDs and provenance.
 5. If failure persists, collect UI hierarchy, same-pet 3D status and per-WebView diagnostics; report BLOCKED rather than self-certifying 3D.
 6. `NO_VISION_MODEL_USED = TRUE`, `HUMAN_VISUAL_ACCEPTANCE = PENDING`. No tag, release, merge or baseline promotion.
+
+## R8AV stability hardening (2026-10-19)
+
+Observed failure mode: after deterministic navigation to Twin Review, the
+persisted runtime manifest could still be the **life** stage (`stageRole=life`,
+`petId=null`) when the first camera command was read. The old flow only reacted
+per view, after a 30 s poll, then remounted once.
+
+Change (evidence gate only; no assertion weakened):
+
+1. Before the first camera tap, wait best-effort for a Review-stage manifest
+   with the expected pet and `pose=Stand`;
+2. On a per-view mismatch, still remount the Review route exactly once, then
+   give the remounted stage the same readiness grace before re-commanding;
+3. The per-view `read_runtime_manifest` with pet + yaw + stage + pose remains
+   the sole acceptance authority; a failed pre-warm can never certify 3D.
+
+This targets the known intermittent R8D race without accepting a stale life
+manifest, synthetic metadata, or a different pet.

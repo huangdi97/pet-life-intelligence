@@ -30,3 +30,20 @@ def test_runtime_manifest_for_both_demo_pets_is_still_mandatory():
     assert "expected_pet_id=secondary_id" in script
     assert "capture_review_views(android, secondary_review, " in script
     assert "required rigged RUNTIME 3D manifest unavailable" in script
+
+
+def test_review_stage_waits_for_its_own_manifest_before_camera_commands():
+    script = read("scripts/r5-6/capture-android-final.py")
+    block = script.split("def capture_review_views", 1)[1].split(
+        "def capture_r7_life_replay", 1,
+    )[0]
+    # The pre-warm must happen before the first per-view camera tap.
+    prewarm = block.index('expected_stage_role="review"')
+    first_tap = block.index("android.tap(xml, button")
+    assert prewarm < first_tap
+    # Exactly one remount retry, then the original assertions still decide.
+    assert "for attempt in range(2)" in block
+    assert "Remount the Review route once" in block
+    # A failed pre-warm must never be accepted as a 3D proof.
+    assert "except CaptureError:\n        pass" in block
+    assert "read_runtime_manifest(\n                    retries=15," in block

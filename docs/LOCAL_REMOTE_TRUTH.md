@@ -96,6 +96,8 @@ pnpm --dir apps/web build
   SQL 有界 anti-join，三端均有筛选；真实 Android 在撤回后验证“已失效”列表。
 - **R8AU（收口验证）**：scratch 库完成 `base→head→base→head` 与 `alembic check`
   （81 表、无漂移）；筛选新增跨家庭隔离与多条件组合回归。
+- **R8AV（3D 稳定性）**：Twin Review 在首次相机命令前等待 Review stage 自身就绪；
+  失配时仍只重挂载一次，最终判定仍由 pet+yaw+stage+pose 的 manifest 门禁决定。
 - 迁移：**无新增数据库迁移**（`supersedes_event_id` 已存在；R8AG 角色列已存在）。
 
 ## 七、本轮 exact-HEAD 云端验证（`0f9ae3b3`）
