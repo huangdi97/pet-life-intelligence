@@ -41,3 +41,16 @@ Change (evidence gate only; no assertion weakened):
 
 This targets the known intermittent R8D race without accepting a stale life
 manifest, synthetic metadata, or a different pet.
+
+### R8AV exact-HEAD verification
+
+| Item | Value |
+|---|---|
+| Commit | `adbd7d74b16bf14a85569f4aec9ca77ba02fe75c` |
+| CI | run `39234573961` success |
+| Android | run `39234574112` success |
+| OpenAPI | run `39234573977` success |
+| Evidence | 双宠 3D manifest、Twin Review 三视角、R8 owner review 全部通过 |
+
+The pre-warm is deliberately non-authoritative: the run still fails if the
+per-view pet/yaw/stage/pose manifest never arrives.

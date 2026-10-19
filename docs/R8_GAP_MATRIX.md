@@ -32,9 +32,9 @@
 | 19 | 医疗事件 `medical:read` 边界 | `events.py`, `life_change_sources.py` | 集成 | API | PASS |
 | 20 | 宠物数据隔离 / 跨宠 Case 404 | `_get_case`, `_pet_scoped_case` | `test_r8ak...`（陌生用户/跨宠） | API | LOCAL_PASS |
 | 21 | A→B→A 切宠遮蔽与异步竞态 | `TodayScreen`, `LifeChangeCaseScreen`, history screens | blind-ui R8N/R8R/R8Z | Android/Web/Mini | PASS（契约）+ PENDING_RUNTIME |
-| 22 | Android 3D 首帧/真 GLB 门禁 | `LifeViewScreen`, evidence script | Android workflow | Android | PASS at `06c0ba5c`（artifact 存在）；新 HEAD 待复跑 |
-| 23 | 主副宠切换 + 双宠 runtime manifest | `capture-android-final.py` | Android workflow | Android | PASS at `06c0ba5c`；新 HEAD 待复跑 |
-| 24 | Twin Review 三视角真实截图 | 同上 | 同上 | Android | PASS at `06c0ba5c`；新 HEAD 待复跑 |
+| 22 | Android 3D 首帧/真 GLB 门禁 | `LifeViewScreen`, evidence script | Android workflow | Android | PASS at `adbd7d74`（R8AV 预等待后仍通过） |
+| 23 | 主副宠切换 + 双宠 runtime manifest | `capture-android-final.py` | Android workflow | Android | PASS at `adbd7d74`（双宠 manifest 未回退） |
+| 24 | Twin Review 三视角真实截图 | 同上 | 同上 | Android | PASS at `adbd7d74`（front/side/back 三视角） |
 | 25 | 真实个体 3D 身份还原 | provider adapter | — | Android/Web | EXTERNAL_BLOCKED（无真实生成服务/主人确认资产） |
 | 26 | 3D 历史回看不得伪造过去 | `life-view` 历史限制 | Playwright/Android | Web/Android | PASS |
 | 27 | 主人视觉验收 | — | — | 全端 | NOT_YET_OBSERVED（`HUMAN_VISUAL_ACCEPTANCE=PENDING`） |
