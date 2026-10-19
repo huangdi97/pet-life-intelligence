@@ -27,7 +27,7 @@ def test_three_clients_send_the_validity_filter():
     web = read("apps/web/app/pets/[id]/history/page.tsx")
     assert 'search.set("validity", validity)' in web
     assert "pli.r8.web-history.validity." in web
-    assert "[petId, metric, query, validity]" in web
+    assert "[petId, metric, query, validity, reloadToken]" in web
 
     mobile_api = read("apps/mobile/src/components/life/caseHistoryApi.ts")
     assert 'params.set("validity", query.validity)' in mobile_api
@@ -47,6 +47,18 @@ def test_filter_does_not_claim_recovery_or_rewrite_history():
     assert "康复" not in web
     assert "已恢复" not in web
     assert "INVALIDATED" not in web.split("VALIDITY_FILTERS", 1)[1].split("interface Page", 1)[0]
+
+
+def test_history_error_is_recoverable_without_fabricating_rows():
+    web = read("apps/web/app/pets/[id]/history/page.tsx")
+    assert 'data-testid="pli.r8.web-history.retry"' in web
+    assert "setReloadToken((token) => token + 1)" in web
+    assert "[petId, metric, query, validity, reloadToken]" in web
+
+    spec = read("tests/e2e-browser/specs/r8-offline-recovery.spec.ts")
+    assert 'route.abort("failed")' in spec
+    assert "pli.r8.web-history.retry" in spec
+    assert 'toHaveCount(0)' in spec  # no rows invented while offline
 
 
 def test_validity_filter_has_a_real_android_gate():

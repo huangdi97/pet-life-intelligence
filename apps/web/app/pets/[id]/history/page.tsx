@@ -40,6 +40,8 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // A transient offline/5xx must be recoverable without a full page reload.
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -71,7 +73,7 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
     return () => {
       alive = false;
     };
-  }, [petId, metric, query, validity]);
+  }, [petId, metric, query, validity, reloadToken]);
 
   const more = () => {
     if (!cursor || loading) return;
@@ -160,6 +162,19 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
           </button>
         </div>
       </section>
+
+      {error ? (
+        <div className="r8-error-action">
+          <button
+            type="button"
+            className="btn"
+            data-testid="pli.r8.web-history.retry"
+            onClick={() => setReloadToken((token) => token + 1)}
+          >
+            重新读取档案
+          </button>
+        </div>
+      ) : null}
 
       <State state={loading && rows.length === 0 ? "loading" : error ? "error" : "ready"} error={error}>
         {rows.length === 0 && !loading ? (

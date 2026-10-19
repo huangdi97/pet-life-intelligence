@@ -100,6 +100,8 @@ pnpm --dir apps/web build
   失配时仍只重挂载一次，最终判定仍由 pet+yaw+stage+pose 的 manifest 门禁决定。
 - **R8AW（A→B→A）**：真实 Android 回到主宠后，身份 label、不可变 Case 与 Today 3D
   manifest 必须全部替换为主宠；副宠名字不得泄漏到主宠身份。
+- **R8AX（离线恢复）**：Web 历史错误态新增就地重试；浏览器回归验证断网无伪造行、
+  恢复后重新读取真实 Case。
 - 迁移：**无新增数据库迁移**（`supersedes_event_id` 已存在；R8AG 角色列已存在）。
 
 ## 七、本轮 exact-HEAD 云端验证（`4ed2e106`）

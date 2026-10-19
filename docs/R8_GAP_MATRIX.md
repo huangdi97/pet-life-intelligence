@@ -41,7 +41,7 @@
 | 28 | 真实 AI 能力 | `AI_PROVIDER=mock` | — | 全端 | EXTERNAL_BLOCKED（未接真实模型/密钥） |
 | 29 | 跨端语义一致（Pet/Event/Permission/Source） | 共享 domain 契约 | 各端 typecheck + 集成 | 全端 | LOCAL_PASS（读语义一致；写入口见 #17） |
 | 30 | 无障碍（标签/44px/实时区域） | 各端组件 | blind-ui | 全端 | PASS（新增控件均带 accessibilityLabel/Role） |
-| 31 | 空/错/加载/权限拒绝/失效态 | 新增页面 | 手动 + 单测 | 全端 | LOCAL_PASS |
+| 31 | 空/错/加载/权限拒绝/失效态 | 新增页面 + 离线重试 | 手动 + 单测 + 离线恢复 Playwright | 全端 | PASS（Web 历史离线可就地重试；离线期间不伪造行） |
 | 32 | **历史按来源有效性筛选** | `validity=VALID/INVALID` 有界 anti-join + Web/Android/Mini 筛选 | 集成 1 项 + blind 4 项 + Android 真实筛选 | 全端 | PASS（派生语义与详情一致，keyset/count 稳定） |
 | 33 | 全量后端回归 | — | pytest | API | 见 `docs/r8/R8AK...` 与最终报告（本轮复跑） |
 | 34 | Alembic upgrade/downgrade | 迁移链 `… → f1e2d3c4b5a6` | scratch 库 `base→head→base→head` + `alembic check` | API | LOCAL_PASS（81 表、无漂移；本轮无新迁移） |
