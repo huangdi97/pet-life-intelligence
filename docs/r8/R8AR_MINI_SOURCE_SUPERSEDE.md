@@ -25,6 +25,16 @@ R8AQ 已在 Web 提供受控 supersede（追加替代事件、原行不变、发
   失败文案不声称恢复。
 - `pnpm --dir apps/mini typecheck` PASS；Taro `build:weapp` PASS。
 
+## exact-HEAD 验证
+
+| 项 | 值 |
+|---|---|
+| 实现提交 | `e7e17fa81c9b4ac2784c08284d0b87822031e904` |
+| CI | run `39187341387` **success** |
+| Android | run `39187341420` **success**（APK 与既有真实取证未回退） |
+| OpenAPI | run `39187341421` **success** |
+| 本地 blind_ui | `test_r8ar_mini_supersede.py` **2 passed** |
+
 ## 诚实边界
 
 - 本轮只做 Mini；**Android 仍没有修正入口**（下一阶段，并需真实 UIAutomator 取证）。
