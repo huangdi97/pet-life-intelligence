@@ -41,12 +41,16 @@ R8AO 撤回原始来源后，脚本继续：
 
 ## 测试
 
-- `tests/integration/test_r8at_case_validity_filter.py`：撤回失效、修正失效、有效 Case、
-  同一宠物混合有效/失效、过滤后的 keyset/count、非法枚举 422。
+- `tests/integration/test_r8at_case_validity_filter.py`（2 项）：
+  - 撤回失效、修正失效、有效 Case、同宠混合、非法枚举 422；
+  - **4 个失效 Case 分两页 keyset 读取**：total 恒为 4、无重复、两页并集等于全部，
+    过滤视图不泄漏有效补集。
 - `tests/blind_ui/test_r8at_validity_filter.py`（4 项）：派生 SQL 语义、三端传参、
   不声称恢复、真实 Android 门禁存在。
-- 后端全量 **794 passed / 0 failed / 0 error**；Web / Android / Mini `tsc` PASS；
-  Taro `build:weapp` PASS。
+- 新增 `tests/e2e-browser/specs/r8-history-filter.spec.ts`：真实浏览器创建
+  “已失效 + 有效”两个 Case，切换三档筛选，断言只显示对应行且“共 N 条档案”同步。
+- 后端全量 **795 passed / 0 failed / 0 error**；Web / Android / Mini `tsc` PASS；
+  Taro `build:weapp` PASS；本地 Playwright（补录/修正/筛选）**3 passed**。
 
 ## exact-HEAD 验证
 

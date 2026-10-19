@@ -49,6 +49,84 @@ def _ids(client, owner, pet, validity=None):
     return {row["case_id"] for row in body["cases"]}, body
 
 
+def test_filtered_history_paginates_without_overlap(client, seeded):
+    """A filtered keyset must page through the SAME invalid set, no repeats."""
+    owner = seeded["owner_id"]
+    pet = client.post(
+        "/api/v1/pets", json={"name": "R8AT Paginated", "species": "dog"},
+        headers=auth(owner),
+    ).json()["id"]
+    at = datetime.now(TZ) - timedelta(minutes=20)
+    for days in (1, 2, 3):
+        response = client.post(
+            f"/api/v1/pets/{pet}/events",
+            json={"event_type": "daily.walk", "payload": {"duration_minutes": 90},
+                  "occurred_at": (at - timedelta(days=days)).isoformat()},
+            headers=auth(owner),
+        )
+        assert response.status_code == 201
+
+    case_ids = []
+    for index in range(4):
+        current = client.post(
+            f"/api/v1/pets/{pet}/events",
+            json={"event_type": "daily.walk", "payload": {"duration_minutes": 20 + index},
+                  "occurred_at": (at + timedelta(minutes=index)).isoformat()},
+            headers=auth(owner),
+        )
+        assert current.status_code == 201, current.text
+        assert client.post(
+            f"/api/v1/pets/{pet}/baseline/recompute?window_days=14", json={},
+            headers=auth(owner),
+        ).status_code == 201
+        case = client.post(
+            f"/api/v1/pets/{pet}/life-change-cases",
+            json={"metric": "walk_minutes_per_day"}, headers=auth(owner),
+        )
+        assert case.status_code == 201, case.text
+        case_ids.append(case.json()["case_id"])
+        assert client.post(
+            f"/api/v1/events/{current.json()['event_id']}/retract",
+            headers=auth(owner),
+        ).status_code == 200
+
+    first = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases",
+        params={"validity": "INVALID", "limit": 2}, headers=auth(owner),
+    )
+    assert first.status_code == 200, first.text
+    first_body = first.json()
+    assert first_body["total"] == 4
+    assert first_body["has_more"] is True
+    assert len(first_body["cases"]) == 2
+    assert first_body["next_cursor"]
+
+    second = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases",
+        params={
+            "validity": "INVALID", "limit": 2, "cursor": first_body["next_cursor"],
+        },
+        headers=auth(owner),
+    )
+    assert second.status_code == 200, second.text
+    second_body = second.json()
+    assert second_body["total"] == 4
+    assert second_body["has_more"] is False
+    assert second_body["next_cursor"] is None
+
+    page_ids = [row["case_id"] for row in first_body["cases"] + second_body["cases"]]
+    assert len(page_ids) == len(set(page_ids)) == 4
+    assert set(page_ids) == set(case_ids)
+
+    # No page of the filtered view may leak the valid complement.
+    valid = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases",
+        params={"validity": "VALID"}, headers=auth(owner),
+    )
+    assert valid.status_code == 200
+    assert valid.json()["total"] == 0
+
+
 def test_validity_filter_matches_retraction_and_supersede(client, seeded):
     owner = seeded["owner_id"]
 
