@@ -9,7 +9,7 @@ import {
   Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused, useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { humanizeError } from "../api";
 import { usePets } from "../context";
@@ -47,6 +47,7 @@ function dayText(value: string): string {
 export function LifeChangeHistoryScreen() {
   const route = useRoute<RouteProp<StackParamList, "LifeChangeHistory">>();
   const navigation = useNavigation<NativeStackNavigationProp<StackParamList>>();
+  const isFocused = useIsFocused();
   const { petId, pets } = usePets();
   const requestedPetId = route.params.petId;
   const matchedPet = petId === requestedPetId;
@@ -65,7 +66,7 @@ export function LifeChangeHistoryScreen() {
   // relevant: selected pet, route owner, metric, search and source validity.
   const scopeKey = JSON.stringify([petId, requestedPetId, metric, query.trim(), validity]);
   const [resultScopeKey, setResultScopeKey] = useState<string | null>(null);
-  const scopeReady = matchedPet && resultScopeKey === scopeKey;
+  const scopeReady = isFocused && matchedPet && resultScopeKey === scopeKey;
   const visibleRows = scopeReady ? rows : [];
   const visibleCursor = scopeReady ? cursor : null;
   const visibleHasMore = scopeReady ? hasMore : false;
@@ -123,11 +124,13 @@ export function LifeChangeHistoryScreen() {
     }
   }, [matchedPet, metric, query, requestedPetId, scopeKey, validity]);
 
-  useEffect(() => {
+  // A stacked history screen remains mounted under Case Detail. Returning
+  // after a source correction/retraction must fetch new server-derived truth,
+  // even when pet/filter/search did not change. useFocusEffect runs on every
+  // actual navigation refocus and invalidates background HTTP completions.
+  useFocusEffect(useCallback(() => {
     if (matchedPet) void load(null, false);
     else {
-      // A navigator may keep this screen mounted when the active pet changes.
-      // Abandon all in-flight requests and erase old state defensively.
       generation.current += 1;
       moreInFlight.current = false;
       setResultScopeKey(null);
@@ -142,7 +145,20 @@ export function LifeChangeHistoryScreen() {
       generation.current += 1;
       moreInFlight.current = false;
     };
-  }, [matchedPet, load]);
+  }, [matchedPet, load]));
+
+  // Mask old history BEFORE the next focus render. Focus cleanup alone cannot
+  // prove a mounted screen has discarded a result before it becomes visible.
+  // The navigation blur event occurs while the child Case detail takes focus;
+  // the synchronous render guard also refuses data while out of focus.
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("blur", () => {
+      generation.current += 1;
+      moreInFlight.current = false;
+      setResultScopeKey(null);
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const petName = pets?.find((p) => p.id === requestedPetId)?.name ?? "宠物";
 

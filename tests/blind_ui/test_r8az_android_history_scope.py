@@ -61,3 +61,21 @@ def test_r8az_capture_keeps_transition_samples_separate_from_first_frame_claim()
     assert '"first_available_ui_is_actual_first_composited_frame": False' in source
     assert '"first_available_ui_has_injected_network_latency": False' in source
     assert '"first_frame_async_race_runtime": "NOT_MEASURED_BY_THIS_TEST"' in source
+
+
+def test_r8ba_history_reloads_after_return_from_source_correction_without_old_first_fold() -> None:
+    """Navigation refocus is another truth boundary, independent of query filters."""
+    source = SRC.read_text(encoding="utf-8")
+    assert "useFocusEffect, useIsFocused" in source
+    assert "const isFocused = useIsFocused();" in source
+    assert "const scopeReady = isFocused && matchedPet && resultScopeKey === scopeKey;" in source
+    assert "useFocusEffect(useCallback(() => {" in source
+    assert "if (matchedPet) void load(null, false);" in source
+    assert 'navigation.addListener("blur", () => {' in source
+    assert "setResultScopeKey(null);" in source
+    assert "generation.current += 1;" in source
+    assert "return unsubscribe;" in source
+    # More than one source can update a Case while the history screen is
+    # stacked under a detail. Never use a stale cached validity on return.
+    assert "const visibleRows = scopeReady ? rows : [];" in source
+    assert "const visibleTotal = scopeReady ? total : null;" in source
