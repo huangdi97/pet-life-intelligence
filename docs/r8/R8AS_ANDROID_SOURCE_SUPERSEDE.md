@@ -62,9 +62,11 @@ R8AQ（Web）与 R8AR（Mini）已支持受控 supersede；Android 仍只有撤�
 |---|---|
 | 实现提交 | `700467b4f626db8cafe6cdd9e70820bf72e4e127` |
 | 真实取证提交 | `d90bd97f426c9ea9925eb32451fbfe3800471714` |
-| CI | run `39200952292` **success** |
-| Android | run `39200952290` **success**（含修正真实取证） |
-| OpenAPI | run `39200952381` **success** |
+| 取证加固 | `52b28340`（清空预填值/校验 35/条件式收起键盘） |
+| 最终代码 HEAD | `de0ba512b8672776a6c5027b5360e7b2c836d679` |
+| CI | run `39207653954` **success** |
+| Android | run `39207653965` **success**（含修正真实取证；`52b28340` 的 Android run `39205404493` 亦 success） |
+| OpenAPI | run `39207653971` **success** |
 | 本地 blind_ui | `test_r8as_android_supersede.py` **3 passed** |
 
 ## 诚实边界
