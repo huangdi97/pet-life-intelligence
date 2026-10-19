@@ -43,6 +43,16 @@ alembic check        → No new upgrade operations detected.
 - 本机 Alembic 升降级与 `check` 通过；
 - 无新增数据库迁移、无权限语义变更、无客户端行为变更。
 
+## exact-HEAD 验证
+
+| 项 | 值 |
+|---|---|
+| 提交 | `0f9ae3b38c32659a204f8049c0861415faf3287f` |
+| CI | run `39229537841` **success** |
+| Android | run `39229537849` **success**（既有真实取证未回退） |
+| OpenAPI | run `39229538036` **success** |
+| 本地后端 | **796 passed / 0 failed / 0 error** |
+
 ## 诚实边界
 
 - 该验证证明“迁移可重建、筛选语义与隔离正确”，不证明生产规模性能；

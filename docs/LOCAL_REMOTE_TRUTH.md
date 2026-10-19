@@ -98,20 +98,21 @@ pnpm --dir apps/web build
   （81 表、无漂移）；筛选新增跨家庭隔离与多条件组合回归。
 - 迁移：**无新增数据库迁移**（`supersedes_event_id` 已存在；R8AG 角色列已存在）。
 
-## 七、本轮 exact-HEAD 云端验证（`4b19f1f7`）
+## 七、本轮 exact-HEAD 云端验证（`0f9ae3b3`）
 
 | Workflow | Run | 结论 |
 |---|---|---|
-| CI | 39222183594 | success（Backend / Frontend / Blind Visual Contract / Playwright，含筛选浏览器回归） |
-| Android + Release Artifacts | 39222183581 | success（APK / Web standalone / 真实 Android 运行取证，含有效性筛选） |
-| OpenAPI Artifact Sync | 39222183653 | success（203 paths / 95 schemas） |
+| CI | 39229537841 | success（Backend / Frontend / Blind Visual Contract / Playwright） |
+| Android + Release Artifacts | 39229537849 | success（APK / Web standalone / 真实 Android 运行取证） |
+| OpenAPI Artifact Sync | 39229538036 | success（203 paths / 95 schemas） |
 
 关键 exact-HEAD 取证：R8AK `028d8f94`、R8AL `2a2a975d`、R8AM `7f4751e3`、
 R8AN `c97afed3`、R8AO `23ab619a`（Android 撤回：原生失效 + `INVALIDATED` +
 Review 3→3）、R8AP `e3e75ac1`（Mini 撤回）、R8AQ `9b8d0624`（Web supersede）、
 R8AR `e7e17fa8`（Mini supersede）、R8AS `d90bd97f`/`52b28340`（Android supersede）、
 R8AT `ce934fc5`/`dd96d007`/`4b19f1f7`（有效性筛选：原生“已失效”列表、服务端
-total 一致、多页 keyset 与浏览器回归）。
+total 一致、多页 keyset 与浏览器回归）、R8AU `0f9ae3b3`（scratch 库迁移
+`base→head→base→head` + 跨家庭隔离/组合筛选）。
 
 本机 Android release APK 也已成功构建（`apps/mobile/android/app/build/outputs/apk/release/app-release.apk`，
 102,056,745 B）。本机 Windows Gradle 曾遇到 Expo/Ninja 反复重生成 CMake 的问题，已用本地
