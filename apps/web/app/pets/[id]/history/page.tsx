@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@pli/api-client";
 import { mapErrorMessage } from "../../../../lib/i18n";
@@ -42,9 +42,16 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
   const [error, setError] = useState<string | null>(null);
   // A transient offline/5xx must be recoverable without a full page reload.
   const [reloadToken, setReloadToken] = useState(0);
+  // Every pet/filter/search/retry transition invalidates *both* the first
+  // page and any in-flight "more" page. Older pages must never join newer
+  // pet history or a differently filtered list after slow network responses.
+  const scopeEpoch = useRef(0);
+  const moreInFlight = useRef(false);
 
   useEffect(() => {
     let alive = true;
+    const epoch = ++scopeEpoch.current;
+    moreInFlight.current = false;
     setLoading(true);
     setError(null);
     setRows([]);
@@ -57,7 +64,7 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
     api
       .get<Page>(`/pets/${petId}/life-change-cases?${search.toString()}`)
       .then((page) => {
-        if (!alive) return;
+        if (!alive || scopeEpoch.current !== epoch) return;
         const own = page.cases.filter((item) => item.pet_id === petId);
         setRows(own);
         setCursor(page.next_cursor);
@@ -66,17 +73,21 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
         setLoading(false);
       })
       .catch((e: unknown) => {
-        if (!alive) return;
+        if (!alive || scopeEpoch.current !== epoch) return;
         setError(mapErrorMessage(e));
         setLoading(false);
       });
     return () => {
       alive = false;
+      scopeEpoch.current += 1;
+      moreInFlight.current = false;
     };
   }, [petId, metric, query, validity, reloadToken]);
 
   const more = () => {
-    if (!cursor || loading) return;
+    if (!cursor || loading || !hasMore || moreInFlight.current) return;
+    const epoch = scopeEpoch.current;
+    moreInFlight.current = true;
     setLoading(true);
     const search = new URLSearchParams({ limit: String(PAGE), cursor });
     if (metric) search.set("metric", metric);
@@ -85,6 +96,7 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
     api
       .get<Page>(`/pets/${petId}/life-change-cases?${search.toString()}`)
       .then((page) => {
+        if (scopeEpoch.current !== epoch) return;
         setRows((before) => {
           const seen = new Set(before.map((item) => item.case_id));
           return [...before, ...page.cases.filter((item) => item.pet_id === petId && !seen.has(item.case_id))];
@@ -94,8 +106,12 @@ export default function LifeChangeHistoryPage({ params }: { params: Promise<{ id
         setLoading(false);
       })
       .catch((e: unknown) => {
+        if (scopeEpoch.current !== epoch) return;
         setError(mapErrorMessage(e));
         setLoading(false);
+      })
+      .finally(() => {
+        if (scopeEpoch.current === epoch) moreInFlight.current = false;
       });
   };
 
