@@ -7,7 +7,8 @@ SRC = Path(__file__).resolve().parents[2] / "apps/mobile/src/screens/LifeChangeH
 def test_history_first_frame_masks_previous_pet_and_filter():
     source = SRC.read_text(encoding="utf-8")
     assert "const scopeKey = JSON.stringify([petId, requestedPetId, metric, query.trim(), validity]);" in source
-    assert "const scopeReady = matchedPet && resultScopeKey === scopeKey;" in source
+    # Focus is part of the owner-data visibility gate after R8BA.
+    assert "const scopeReady = isFocused && matchedPet && resultScopeKey === scopeKey;" in source
     assert "const visibleRows = scopeReady ? rows : [];" in source
     assert "const visibleTotal = scopeReady ? total : null;" in source
     assert "const visibleError = scopeReady ? error : null;" in source
