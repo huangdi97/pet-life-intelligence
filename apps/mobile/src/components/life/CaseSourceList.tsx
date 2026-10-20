@@ -9,10 +9,22 @@ import { api, humanizeError } from "../../api";
 import { COLORS, SPACE, TYPE } from "../../tokens";
 import { listCaseSources, type CaseSourceEvent } from "./caseHistoryApi";
 import {
-  ownerEvidenceCaseRole, ownerEvidenceLocalTime, ownerEvidenceValue,
+  canonicalCaseSourceId, ownerEvidenceCaseRole, ownerEvidenceLocalTime, ownerEvidenceValue,
 } from "./ownerEvidence";
 
 const PAGE = 6;
+const SOURCE_TRUTH: Record<string, string> = {
+  VALID: "可用于本次对比",
+  RETRACTED: "记录已撤回",
+  SUPERSEDED: "记录已由后续修正替代",
+  WRONG_METRIC: "记录指标与本次对比不符",
+  NON_FACT_SOURCE: "此来源不具备观察事实资格",
+};
+function sourceTruthLabel(source: CaseSourceEvent): string {
+  return source.valid
+    ? SOURCE_TRUTH.VALID
+    : SOURCE_TRUTH[source.validity_reason ?? ""] ?? "来源有效性待核实";
+}
 const SOURCE_LABELS: Record<string, string> = {
   OWNER_REPORTED: "主人记录", CAREGIVER_REPORTED: "照护者记录",
   DEVICE_DERIVED: "设备记录", PROFESSIONAL_CONFIRMED: "专业人员确认",
@@ -71,15 +83,23 @@ export function CaseSourceList({
     try {
       const page = await listCaseSources(petId, caseId, offset, PAGE);
       if (epoch !== generation.current || activeScope.current !== requested) return;
-      const allowed = new Set(expectedSourceIds);
-      if (page.sources.some((item) => !allowed.has(item.event_id))) {
+      const allowed = new Set(expectedSourceIds.map(canonicalCaseSourceId));
+      if (page.sources.some((item) => {
+        const id = canonicalCaseSourceId(item.event_id);
+        return id === null || !allowed.has(id);
+      })) {
         throw new Error("SOURCE_NOT_IN_FROZEN_CASE");
       }
       setTotal(page.total);
       setMissing(page.missing_event_ids);
       setRows((before) => {
-        const seen = new Set(before.map((item) => item.event_id));
-        return [...before, ...page.sources.filter((item) => !seen.has(item.event_id))];
+        const seen = new Set(before.map((item) => canonicalCaseSourceId(item.event_id)));
+        return [...before, ...page.sources.filter((item) => {
+          const id = canonicalCaseSourceId(item.event_id);
+          if (!id || seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        })];
       });
     } catch (e: unknown) {
       if (epoch === generation.current) setError(humanizeError(e));
@@ -173,10 +193,9 @@ export function CaseSourceList({
             </Text>
           ) : null}
           {rows.map((source) => {
-            const role = frozenRoles != null
-              ? (frozenRoles[source.event_id] === "CURRENT" ? "当日依据"
-                : frozenRoles[source.event_id] === "HISTORICAL" ? "同期参考" : "日期待核实")
-              : ownerEvidenceCaseRole(source.event_id, source.occurred_at, computedAt, null);
+            const role = ownerEvidenceCaseRole(
+              source.event_id, source.occurred_at, computedAt, frozenRoles,
+            );
             return (
               <View key={source.event_id} style={styles.sourceGroup}>
                 {/* The factual row stays a single accessible node: R8AB/AG
@@ -184,7 +203,7 @@ export function CaseSourceList({
                 <View
                   testID={`pli.r8.case-detail.source.${source.event_id}`}
                   accessible
-                  accessibilityLabel={`${role} · ${ownerEvidenceValue(source)} · 发生 ${ownerEvidenceLocalTime(source.occurred_at)} · 录入 ${ownerEvidenceLocalTime(source.recorded_at)} · ${SOURCE_LABELS[source.source_type] ?? "其他来源"} · ${source.valid ? "来源有效" : "来源已撤回或修正"} · 完整事件标识 ${source.event_id}`}
+                  accessibilityLabel={`${role} · ${ownerEvidenceValue(source)} · 发生 ${ownerEvidenceLocalTime(source.occurred_at)} · 录入 ${ownerEvidenceLocalTime(source.recorded_at)} · ${SOURCE_LABELS[source.source_type] ?? "其他来源"} · ${sourceTruthLabel(source)} · 完整事件标识 ${source.event_id}`}
                   style={styles.source}
                 >
                   <Text style={styles.label}>{role}</Text>
@@ -193,7 +212,7 @@ export function CaseSourceList({
                     发生 {ownerEvidenceLocalTime(source.occurred_at)} · 录入 {ownerEvidenceLocalTime(source.recorded_at)}
                   </Text>
                   <Text style={styles.caption}>
-                    {SOURCE_LABELS[source.source_type] ?? "其他来源"} · {source.valid ? "来源有效" : "来源已撤回或修正"}
+                    {SOURCE_LABELS[source.source_type] ?? "其他来源"} · {sourceTruthLabel(source)}
                   </Text>
                   <Text style={styles.id} selectable>{source.event_id}</Text>
                 </View>
