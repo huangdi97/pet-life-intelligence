@@ -43,6 +43,8 @@ export interface CaseSourcePage {
   has_more: boolean;
   next_offset: number | null;
   missing_event_ids: string[];
+  evidence_shape_valid?: boolean;
+  evidence_role_shape_valid?: boolean;
 }
 
 export interface CaseHistoryPage {

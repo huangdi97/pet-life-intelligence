@@ -51,6 +51,7 @@ export function CaseSourceList({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [missing, setMissing] = useState<string[]>([]);
+  const [integrityWarning, setIntegrityWarning] = useState<string | null>(null);
   // R8AO: retracting an original source is a real owner action, two-step and
   // server-derived. The client never rewrites source_valid.
   const [retractTarget, setRetractTarget] = useState<string | null>(null);
@@ -72,6 +73,7 @@ export function CaseSourceList({
     setTotal(null);
     setError(null);
     setMissing([]);
+    setIntegrityWarning(null);
     setOpen(false);
   }, [petId, caseId]);
 
@@ -92,6 +94,10 @@ export function CaseSourceList({
       }
       setTotal(page.total);
       setMissing(page.missing_event_ids);
+      setIntegrityWarning(
+        page.evidence_shape_valid === false || page.evidence_role_shape_valid === false
+          ? "历史来源或角色字段格式异常，无法确认所有依据已核对。" : null,
+      );
       setRows((before) => {
         const seen = new Set(before.map((item) => canonicalCaseSourceId(item.event_id)));
         return [...before, ...page.sources.filter((item) => {
@@ -187,6 +193,11 @@ export function CaseSourceList({
           <Text style={styles.progress} testID="pli.r8.case-detail.sources.progress">
             已读取 {rows.length} / {expectedSourceIds.length} 条冻结来源
           </Text>
+          {integrityWarning ? (
+            <Text style={styles.warning} testID="pli.r8.case-detail.sources.integrity">
+              {integrityWarning}
+            </Text>
+          ) : null}
           {missing.length > 0 ? (
             <Text style={styles.warning} testID="pli.r8.case-detail.sources.missing">
               有 {missing.length} 条来源已不可读取；不能据此确认原来的变化仍然成立。
@@ -318,7 +329,7 @@ export function CaseSourceList({
             >
               <Text style={styles.link}>{loading ? "正在读取更多来源…" : "继续查看其余来源"}</Text>
             </Pressable>
-          ) : <Text style={styles.caption}>{missing.length > 0 ? "可读取的来源已全部查看，但仍有来源缺失" : "全部冻结来源已可逐条核对"}</Text>}
+          ) : <Text style={styles.caption}>{missing.length > 0 || integrityWarning ? "可读取的来源已查看，但仍有原始证据需要核对" : "全部冻结来源已可逐条核对"}</Text>}
         </View>
       ) : null}
       {error ? <Text style={styles.warning} testID="pli.r8.case-detail.sources.error">{error}</Text> : null}

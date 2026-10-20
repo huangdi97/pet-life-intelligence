@@ -52,6 +52,8 @@ interface SourcePage {
   sources: Source[];
   total: number;
   has_more: boolean;
+  evidence_shape_valid?: boolean;
+  evidence_role_shape_valid?: boolean;
 }
 const DECISIONS: Record<string, string> = {
   RECORD_OBSERVATION: "已关联真实后续观察",
@@ -104,6 +106,7 @@ export default function ObservationDetailPage() {
   const [sources, setSources] = useState<Source[]>([]);
   const [sourceTotal, setSourceTotal] = useState(0);
   const [sourceMore, setSourceMore] = useState(false);
+  const [sourceIntegrityWarning, setSourceIntegrityWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -134,6 +137,7 @@ export default function ObservationDetailPage() {
     setSources([]);
     setSourceTotal(0);
     setSourceMore(false);
+    setSourceIntegrityWarning(null);
     load();
   }, [load]);
 
@@ -147,6 +151,10 @@ export default function ObservationDetailPage() {
         });
         setSourceTotal(page.total);
         setSourceMore(page.has_more);
+        setSourceIntegrityWarning(
+          page.evidence_shape_valid === false || page.evidence_role_shape_valid === false
+            ? "历史来源或角色字段格式异常，无法确认所有依据已核对。" : null,
+        );
       })
       .catch(() => setMessage("来源暂时没有读取成功；不能用未显示代替没有来源。"));
   };
@@ -327,6 +335,11 @@ export default function ObservationDetailPage() {
               {detail.source_valid ? "原始记录目前有效。" : "原始记录已改变，这次旧对比已失效。"}
             </Text>
             <Button className="btn" onClick={() => loadSources(0)}>查看来源时间与数值</Button>
+            {sourceIntegrityWarning ? (
+              <Text className="muted" data-testid="pli.r8.mini-case.source-integrity">
+                {sourceIntegrityWarning}
+              </Text>
+            ) : null}
             {sources.map((source) => (
               <View className="card" key={source.event_id}>
                 <Text>

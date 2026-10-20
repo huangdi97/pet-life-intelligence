@@ -21,3 +21,7 @@ This is a **defensive legacy-read fix**, not a migration and not authorization t
 ## CI regression response
 
 Initial implementation used a JSONB CASE expression separately inside each array function. The full backend integration suite caught valid Case rows being filtered out by this changed SQL path, despite their detail being `source_valid=true`. This is not an acceptable security fix. R8BG-R2 instead puts **one outer CASE** around the entire **previously proven array-only validity predicate**. Non-array -> TRUE (INVALID); real array -> original exact predicate. The existing valid, invalid, pagination, uppercase UUID and malformed-array regressions remain mandatory. No tests are deleted or loosened.
+
+## R8BG-R3 owner UI disclosure
+
+The server now exposes optional, source-scoped `evidence_shape_valid` and `evidence_role_shape_valid` fields. Android, Web and Mini each surface an explicit historical integrity warning when either is `false` instead of treating an empty safe fallback as proof that every original event was reviewed. These fields are optional client-side so an older backend response does not get rewritten to either `true` or `false`. The warning does not assert disease, user tampering or that the event never happened. New Blind UI parity checks preserve the existing evidence-value, retraction and source-reason gates.

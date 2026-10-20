@@ -45,6 +45,8 @@ interface SourcePage {
   has_more: boolean;
   next_offset: number | null;
   missing_event_ids: string[];
+  evidence_shape_valid?: boolean;
+  evidence_role_shape_valid?: boolean;
 }
 
 const DECISIONS: Record<string, string> = {
@@ -155,7 +157,9 @@ export default function LifeChangeCaseDetailPage({
         });
         setSourceTotal(page.total);
         setSourceMore(page.has_more);
-        if (page.missing_event_ids.length > 0) {
+        if (page.evidence_shape_valid === false || page.evidence_role_shape_valid === false) {
+          setSourceError("历史来源或角色字段格式异常，无法确认所有依据已核对。");
+        } else if (page.missing_event_ids.length > 0) {
           setSourceError(`有 ${page.missing_event_ids.length} 条来源已不可读取，不能据此确认原变化仍成立。`);
         }
       })
