@@ -402,6 +402,7 @@ def test_source_detail_badges_require_case_metric_and_recorded_fact_source(clien
     assert initial.status_code == 200
     first_event = initial.json()["sources"][0]["event_id"]
     assert all(item["valid"] is True for item in initial.json()["sources"])
+    assert all(item["validity_reason"] == "VALID" for item in initial.json()["sources"])
 
     async def change_case_metric(metric):
         async with get_session_factory()() as db:
@@ -423,6 +424,7 @@ def test_source_detail_badges_require_case_metric_and_recorded_fact_source(clien
     wrong_metric = client.get(source_path, params={"limit": 20}, headers=auth(owner))
     assert wrong_metric.status_code == 200, wrong_metric.text
     assert all(item["valid"] is False for item in wrong_metric.json()["sources"])
+    assert all(item["validity_reason"] == "WRONG_METRIC" for item in wrong_metric.json()["sources"])
     assert client.get(path, headers=auth(owner)).json()["source_valid"] is False
 
     asyncio.run(change_case_metric("walk_minutes_per_day"))
@@ -431,6 +433,7 @@ def test_source_detail_badges_require_case_metric_and_recorded_fact_source(clien
     assert untrusted.status_code == 200, untrusted.text
     rows = {row["event_id"]: row for row in untrusted.json()["sources"]}
     assert rows[first_event]["valid"] is False
+    assert rows[first_event]["validity_reason"] == "NON_FACT_SOURCE"
     assert client.get(path, headers=auth(owner)).json()["source_valid"] is False
     valid, _ = _ids(client, owner, pet, "VALID")
     invalid, _ = _ids(client, owner, pet, "INVALID")
@@ -439,4 +442,5 @@ def test_source_detail_badges_require_case_metric_and_recorded_fact_source(clien
     asyncio.run(change_event_source(enums.SourceType.OWNER_REPORTED))
     restored = client.get(source_path, params={"limit": 20}, headers=auth(owner))
     assert all(row["valid"] is True for row in restored.json()["sources"])
+    assert all(row["validity_reason"] == "VALID" for row in restored.json()["sources"])
     assert client.get(path, headers=auth(owner)).json()["source_valid"] is True
