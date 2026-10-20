@@ -249,3 +249,72 @@ def test_old_case_detail_exposes_continue_review_token(client, seeded):
         "FOLLOW_UP_LATER", "CORRECT_SOURCE",
     ]
     assert final["state"] == "OWNER_ACKNOWLEDGED"
+
+
+def test_followup_source_integrity_detects_malformed_review_jsonb_not_case(client, seeded):
+    """A healthy parent Case cannot certify an invalid Review source container."""
+    from sqlalchemy import update
+
+    from app.core.db import get_session_factory
+    from app.models import LifeChangeReview
+
+    owner = seeded["owner_id"]
+    pet, case = _real_case(client, owner)
+    actual = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 12}},
+        headers=auth(owner),
+    )
+    assert actual.status_code == 201, actual.text
+    review = client.post(
+        f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}/reviews",
+        json={"decision": "RECORD_OBSERVATION",
+              "related_event_ids": [actual.json()["event_id"]]},
+        headers=auth(owner),
+    )
+    assert review.status_code == 201, review.text
+    review_id = review.json()["review_id"]
+    url = f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}/sources"
+    params = {"review_id": review_id}
+    healthy = client.get(url, params=params, headers=auth(owner))
+    assert healthy.status_code == 200, healthy.text
+    assert healthy.json()["scope"] == "FOLLOW_UP_REVIEW"
+    assert healthy.json()["evidence_shape_valid"] is True
+    assert [item["event_id"] for item in healthy.json()["sources"]] == [
+        actual.json()["event_id"]
+    ]
+
+    async def overwrite_review_evidence(raw_value):
+        factory = get_session_factory()
+        async with factory() as db:
+            await db.execute(
+                update(LifeChangeReview)
+                .where(LifeChangeReview.id == uuid.UUID(review_id))
+                .values(related_event_ids=raw_value)
+            )
+            await db.commit()
+
+    # These represent historical import corruption, not permitted API writes.
+    for malformed in ("not-an-array", {"ids": [actual.json()["event_id"]]}, 42, None):
+        asyncio.run(overwrite_review_evidence(malformed))
+        response = client.get(url, params=params, headers=auth(owner))
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["scope"] == "FOLLOW_UP_REVIEW"
+        assert body["evidence_shape_valid"] is False
+        assert body["sources"] == []
+        assert body["total"] == 0
+        assert body["case_id"] == case["case_id"]
+        original = client.get(
+            url, headers=auth(owner)
+        )
+        assert original.status_code == 200
+        assert original.json()["evidence_shape_valid"] is True
+
+    asyncio.run(overwrite_review_evidence([actual.json()["event_id"]]))
+    restored = client.get(url, params=params, headers=auth(owner))
+    assert restored.status_code == 200
+    assert restored.json()["evidence_shape_valid"] is True
+    assert [row["event_id"] for row in restored.json()["sources"]] == [
+        actual.json()["event_id"]
+    ]
