@@ -120,10 +120,19 @@ async def list_case_sources(
     window = ordered[offset:offset + limit]
     serialized = {item["event_id"]: item for item in _serialize(window, actors)}
     role_map = case.evidence_role_by_event_id or {}
+    normalized_roles: dict[uuid.UUID, str | None] = {}
+    for raw_id, role in role_map.items():
+        source_id = history.parse_case_source_id(raw_id)
+        if source_id is None:
+            continue
+        if source_id in normalized_roles and normalized_roles[source_id] != role:
+            normalized_roles[source_id] = None
+        else:
+            normalized_roles.setdefault(source_id, role)
     sources = []
     for event in window:
         payload = serialized[str(event.id)]
-        payload["role"] = role_map.get(str(event.id))
+        payload["role"] = normalized_roles.get(event.id)
         payload["role_source"] = (
             "FROZEN_AT_CREATION" if case.evidence_role_by_event_id is not None
             else "LEGACY_DATE_DERIVED"
