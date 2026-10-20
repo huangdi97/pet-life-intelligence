@@ -32,3 +32,18 @@ def test_android_source_allowlist_matches_strict_casefolded_uuid_contract():
     assert "canonicalCaseSourceId(key) !== canonical" in evidence
     assert "CASE_SOURCE_UUID.test(raw)" in evidence
     assert "SOURCE_NOT_IN_FROZEN_CASE" in ui
+
+
+def test_three_owner_clients_show_the_same_reason_without_erasing_original_values():
+    android = read("apps/mobile/src/components/life/CaseSourceList.tsx")
+    web = read("apps/web/app/pets/[id]/history/[caseId]/page.tsx")
+    mini = read("apps/mini/src/pages/observations/detail/index.tsx")
+    for client in (android, web, mini):
+        assert "sourceTruthLabel(source)" in client
+        assert "WRONG_METRIC" in client and "NON_FACT_SOURCE" in client
+        assert "来源已撤回或修正" not in client
+        assert "来源有效性待核实" in client
+    assert "if (!source.valid) return" not in web
+    assert "if (!source.valid) return" not in mini
+    assert "按 1 条进食记录计数，不代表食物摄入量" in web
+    assert "按 1 条进食记录计数，不代表食物摄入量" in mini
