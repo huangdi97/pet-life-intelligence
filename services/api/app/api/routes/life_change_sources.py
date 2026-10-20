@@ -41,7 +41,7 @@ async def _pet_scoped_case(db, pet_id: uuid.UUID, case_id: uuid.UUID) -> LifeCha
 
 async def _review_scope_ids(
     db, case: LifeChangeCase, review_id: uuid.UUID,
-) -> list[str]:
+) -> tuple[list[object], bool]:
     review = (await db.execute(select(LifeChangeReview).where(
         LifeChangeReview.id == review_id, LifeChangeReview.case_id == case.id,
     ))).scalar_one_or_none()
@@ -49,7 +49,7 @@ async def _review_scope_ids(
         raise NotFound("Owner review not found for this Case.")
     if review.decision != "RECORD_OBSERVATION":
         raise ValidationFailed("Only a recorded observation has follow-up sources.")
-    return history.frozen_source_items(review.related_event_ids)[0]
+    return history.frozen_source_items(review.related_event_ids)
 
 
 async def _successor_by_event(
@@ -85,11 +85,14 @@ async def list_case_sources(
     )
     case = await _pet_scoped_case(db, pet.id, case_id)
     scope = "FOLLOW_UP_REVIEW" if review_id else "CASE_EVIDENCE"
-    original_ids, shape_valid = history.frozen_source_items(case.evidence_event_ids)
-    ids = (
-        await _review_scope_ids(db, case, review_id)
-        if review_id else original_ids
-    )
+    original_ids, case_shape_valid = history.frozen_source_items(case.evidence_event_ids)
+    # Follow-up sources belong to the selected Review, not to the original
+    # Case evidence. A corrupt Review JSONB must never inherit a green
+    # "shape valid" marker from its well-formed parent Case.
+    if review_id:
+        ids, shape_valid = await _review_scope_ids(db, case, review_id)
+    else:
+        ids, shape_valid = original_ids, case_shape_valid
     if len(ids) > MAX_CASE_SOURCES:
         raise ValidationFailed(
             "This Case references more sources than one review page can safely load."

@@ -26,3 +26,12 @@ def test_source_container_integrity_is_reported_and_visible_on_all_three_clients
     assert 'data-testid="pli.r8.mini-case.source-integrity"' in mini
     assert "missing.length > 0 || integrityWarning" in android
     assert "setSourceError" in web
+
+
+def test_followup_integrity_flag_tracks_review_jsonb_not_parent_case():
+    source = read("services/api/app/api/routes/life_change_sources.py")
+    assert "tuple[list[object], bool]" in source
+    assert "return history.frozen_source_items(review.related_event_ids)" in source
+    assert "ids, shape_valid = await _review_scope_ids(db, case, review_id)" in source
+    assert "ids, shape_valid = original_ids, case_shape_valid" in source
+    assert '"evidence_shape_valid": shape_valid' in source

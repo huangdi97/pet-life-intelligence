@@ -25,3 +25,7 @@ Initial implementation used a JSONB CASE expression separately inside each array
 ## R8BG-R3 owner UI disclosure
 
 The server now exposes optional, source-scoped `evidence_shape_valid` and `evidence_role_shape_valid` fields. Android, Web and Mini each surface an explicit historical integrity warning when either is `false` instead of treating an empty safe fallback as proof that every original event was reviewed. These fields are optional client-side so an older backend response does not get rewritten to either `true` or `false`. The warning does not assert disease, user tampering or that the event never happened. New Blind UI parity checks preserve the existing evidence-value, retraction and source-reason gates.
+
+## R8BG-R4: Follow-up review evidence shape must be independently checked
+
+When `review_id` scopes the source-detail endpoint to a `RECORD_OBSERVATION` review, its `evidence_shape_valid` must reflect **that review's** `related_event_ids` JSONB container. Previously the endpoint derived the flag from the *parent Case's* `evidence_event_ids` and silently collapsed a malformed Review JSONB to `[]`, falsely implying the chosen follow-up container was intact. The source endpoint now returns the correct scope-specific validity flag; the three owner clients already warn when this flag is `false`. Immutable original history is preserved. CI and Android screenshot truth must be reverified on the new SHA.
