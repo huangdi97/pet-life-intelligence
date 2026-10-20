@@ -20,6 +20,7 @@ from app.api.routes.events import MEDICAL_EVENT_TYPES, _actor_names_map, _serial
 from app.core.errors import NotFound, PermissionDenied, ValidationFailed
 from app.domain import enums
 from app.models import LifeChangeCase, LifeChangeReview, LifeEvent, User
+from app.services import life_change_history as history
 from app.services import permissions as perm
 
 router = APIRouter(tags=["life-intelligence"])
@@ -90,10 +91,14 @@ async def list_case_sources(
         raise ValidationFailed(
             "This Case references more sources than one review page can safely load."
         )
-    parsed = [uuid.UUID(item) for item in ids]
+    # A historical Case remains readable even when a legacy frozen source ID
+    # is malformed; do not return HTTP 500 from uuid.UUID() on owner's tap.
+    # Keep raw unresolved IDs in missing_event_ids for owner-visible audit.
+    parsed = [history.parse_case_source_id(item) for item in ids]
+    known_ids = list({item for item in parsed if item is not None})
     rows = list((await db.execute(select(LifeEvent).where(
-        LifeEvent.pet_id == pet.id, LifeEvent.id.in_(parsed),
-    ))).scalars().all()) if parsed else []
+        LifeEvent.pet_id == pet.id, LifeEvent.id.in_(known_ids),
+    ))).scalars().all()) if known_ids else []
     medical_visible = enums.Capability.MEDICAL_READ.value in capabilities
     if any(e.event_type in MEDICAL_EVENT_TYPES for e in rows) and not medical_visible:
         raise PermissionDenied("Medical event requires medical:read.")
@@ -135,5 +140,8 @@ async def list_case_sources(
         "review_id": str(review_id) if review_id else None,
         "sources": sources, "total": total, "offset": offset, "limit": limit,
         "has_more": next_offset < total, "next_offset": next_offset if next_offset < total else None,
-        "missing_event_ids": [item for item in ids if item not in by_id],
+        "missing_event_ids": [
+            item for item, parsed_id in zip(ids, parsed)
+            if parsed_id is None or str(parsed_id) not in by_id
+        ],
     }

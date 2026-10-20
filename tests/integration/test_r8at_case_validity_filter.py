@@ -312,3 +312,73 @@ def test_validity_filter_agrees_with_detail_for_missing_duplicate_and_wrong_metr
 
     asyncio.run(change_evidence(original_ids, metric="walk_minutes_per_day"))
     assert_validity(True)
+
+
+
+def test_validity_parity_for_corrupt_and_casefolded_legacy_source_ids(client, seeded):
+    """R8BD: corrupted source JSON must not crash detail or bypass list filter."""
+    import asyncio
+    import uuid
+
+    from sqlalchemy import select
+
+    from app.core.db import get_session_factory
+    from app.models import LifeChangeCase
+
+    owner = seeded["owner_id"]
+    pet, case_id, _ = _case(client, owner, "R8BD Casefold/Legacy Source")
+    detail_path = f"/api/v1/pets/{pet}/life-change-cases/{case_id}"
+    sources_path = f"{detail_path}/sources"
+    original = client.get(detail_path, headers=auth(owner))
+    assert original.status_code == 200
+    original_ids = original.json()["evidence_event_ids"]
+    assert len(original_ids) >= 2
+
+    async def mutate(ids):
+        async with get_session_factory()() as db:
+            case = (await db.execute(
+                select(LifeChangeCase).where(LifeChangeCase.id == uuid.UUID(case_id))
+            )).scalar_one()
+            case.evidence_event_ids = ids
+            await db.commit()
+
+    def check(expected, *, missing=None):
+        detail = client.get(detail_path, headers=auth(owner))
+        assert detail.status_code == 200, detail.text
+        assert detail.json()["source_valid"] is expected
+        valid, _ = _ids(client, owner, pet, "VALID")
+        invalid, _ = _ids(client, owner, pet, "INVALID")
+        assert (case_id in valid) is expected
+        assert (case_id in invalid) is (not expected)
+        src = client.get(sources_path, params={"limit": 20}, headers=auth(owner))
+        assert src.status_code == 200, src.text
+        if missing is not None:
+            assert src.json()["missing_event_ids"] == missing
+        return src.json()
+
+    # Both hyphenated cases refer to the SAME UUID, not two distinct facts.
+    duplicates = [original_ids[0], original_ids[0].upper()]
+    asyncio.run(mutate(duplicates))
+    check(False, missing=[])
+
+    # A valid uppercase UUID is a real source and must not be misreported
+    # missing merely because LifeEvent serialization uses lowercase.
+    asyncio.run(mutate([original_ids[0].upper(), original_ids[1]]))
+    upper = check(True, missing=[])
+    assert len(upper["sources"]) == 2
+
+    # Python uuid.UUID accepts unhyphenated UUID text, PostgreSQL list SQL
+    # explicitly does not. Both must mark this as invalid, not diverge.
+    compact = original_ids[0].replace("-", "")
+    asyncio.run(mutate([compact, original_ids[1]]))
+    check(False, missing=[compact])
+
+    # A corrupt legacy source may be a plain string or null; detail and
+    # owner sources stay available while VALID filter excludes the Case.
+    asyncio.run(mutate(["not-a-uuid", original_ids[1]]))
+    check(False, missing=["not-a-uuid"])
+    asyncio.run(mutate([None, original_ids[1]]))
+    check(False, missing=[None])
+
+    asyncio.run(mutate(original_ids))
+    check(True, missing=[])

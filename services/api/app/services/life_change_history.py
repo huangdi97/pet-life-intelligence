@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import uuid
 from datetime import datetime
 
@@ -30,7 +31,7 @@ _INVALID_EVIDENCE_SQL = """
 (
     jsonb_array_length(life_change_cases.evidence_event_ids) = 0
     OR (
-        SELECT count(*) <> count(DISTINCT ev.id_text)
+        SELECT count(*) <> count(DISTINCT lower(ev.id_text))
         FROM jsonb_array_elements_text(life_change_cases.evidence_event_ids) AS ev(id_text)
     )
     OR EXISTS (
@@ -66,6 +67,22 @@ _INVALID_EVIDENCE_SQL = """
 """
 _INVALID_EVIDENCE = text(_INVALID_EVIDENCE_SQL)
 _VALID_EVIDENCE = text(f"NOT ({_INVALID_EVIDENCE_SQL})")
+
+# Match the strict 8-4-4-4-12 textual UUID grammar required by the SQL
+# validity filter. Python's uuid.UUID accepts unhyphenated strings; allowing
+# those only in detail would violate VALID/INVALID list/detail parity.
+_CASE_UUID = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+    r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+
+
+def parse_case_source_id(value: object) -> uuid.UUID | None:
+    """Parse a legacy source identifier without throwing on corrupt JSON."""
+    if not isinstance(value, str) or _CASE_UUID.fullmatch(value) is None:
+        return None
+    return uuid.UUID(value)
+
 
 CURSOR_VERSION = 1
 DEFAULT_PAGE_SIZE = 20

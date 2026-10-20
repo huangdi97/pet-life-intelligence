@@ -92,7 +92,13 @@ async def _evidence_current(
 ) -> bool:
     if not event_ids or len(set(event_ids)) != len(event_ids):
         return False
-    ids = [uuid.UUID(item) for item in event_ids]
+    parsed = [hist.parse_case_source_id(item) for item in event_ids]
+    # A malformed source or duplicated underlying UUID is not a valid
+    # frozen evidence set. Upper/lower-case spelling cannot manufacture two
+    # independent observations from one real event.
+    if any(item is None for item in parsed) or len(set(parsed)) != len(parsed):
+        return False
+    ids = [item for item in parsed if item is not None]
     rows = list((await db.execute(
         select(LifeEvent).where(LifeEvent.pet_id == pet_id, LifeEvent.id.in_(ids))
     )).scalars().all())
