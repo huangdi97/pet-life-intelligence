@@ -133,12 +133,18 @@ async def list_case_sources(
         # eligible for this Case: metric, provenance and current validity.
         # Retracted/corrected alone is insufficient for a legacy wrong-metric
         # or synthetic/AI-sourced row. Detail/list already reject those.
-        payload["valid"] = (
-            event.event_type == METRICS.get(case.metric)
-            and event.source_type in RECORD_FACT_SOURCES
-            and event.retracted_at is None
-            and event.id not in superseded_by
-        )
+        if event.retracted_at is not None:
+            reason = "RETRACTED"
+        elif event.id in superseded_by:
+            reason = "SUPERSEDED"
+        elif event.event_type != METRICS.get(case.metric):
+            reason = "WRONG_METRIC"
+        elif event.source_type not in RECORD_FACT_SOURCES:
+            reason = "NON_FACT_SOURCE"
+        else:
+            reason = "VALID"
+        payload["validity_reason"] = reason
+        payload["valid"] = reason == "VALID"
         payload["superseded_by_event_id"] = (
             str(superseded_by[event.id]) if event.id in superseded_by else None
         )
