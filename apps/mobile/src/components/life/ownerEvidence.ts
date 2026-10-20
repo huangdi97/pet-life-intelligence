@@ -81,6 +81,12 @@ export type OwnerEvidenceRole = "当日依据" | "同期参考" | "日期待核�
 export type FrozenOwnerEvidenceRole = "CURRENT" | "HISTORICAL";
 export type OwnerEvidenceRoleMap = Record<string, FrozenOwnerEvidenceRole>;
 
+// Strict Case UUID grammar matches PostgreSQL and Python source history.
+const CASE_SOURCE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export function canonicalCaseSourceId(raw: string): string | null {
+  return CASE_SOURCE_UUID.test(raw) ? raw.toLowerCase() : null;
+}
+
 /** The server-owned frozen Case membership wins over client date arithmetic.
  * Missing membership in a supposedly complete frozen map is a source error,
  * not a reason to silently invent a comparison role.
@@ -90,7 +96,14 @@ export function ownerEvidenceCaseRole(
   frozenRoles?: OwnerEvidenceRoleMap | null,
 ): OwnerEvidenceRole {
   if (frozenRoles != null) {
-    const role = frozenRoles[eventId];
+    const canonical = canonicalCaseSourceId(eventId);
+    if (canonical === null) return "日期待核实";
+    let role: FrozenOwnerEvidenceRole | null = null;
+    for (const [key, currentRole] of Object.entries(frozenRoles)) {
+      if (canonicalCaseSourceId(key) !== canonical) continue;
+      if (role !== null && role !== currentRole) return "日期待核实";
+      role = currentRole;
+    }
     if (role === "CURRENT") return "当日依据";
     if (role === "HISTORICAL") return "同期参考";
     return "日期待核实";
