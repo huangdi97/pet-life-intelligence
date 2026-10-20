@@ -28,7 +28,9 @@ def test_supersede_endpoint_is_owner_audited_and_never_edits_the_original():
 def test_sources_surface_the_successor_instead_of_hiding_the_chain():
     sources = read("services/api/app/api/routes/life_change_sources.py")
     assert "superseded_by_event_id" in sources
-    assert "event.id not in superseded_by" in sources
+    assert "elif event.id in superseded_by:" in sources
+    assert 'reason = "SUPERSEDED"' in sources
+    assert 'payload["validity_reason"] = reason' in sources
     assert "_successor_by_event" in sources
 
 
