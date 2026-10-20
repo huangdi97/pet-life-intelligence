@@ -141,7 +141,7 @@ async def list_case_sources(
         "sources": sources, "total": total, "offset": offset, "limit": limit,
         "has_more": next_offset < total, "next_offset": next_offset if next_offset < total else None,
         "missing_event_ids": [
-            item for item, parsed_id in zip(ids, parsed)
+            item for item, parsed_id in zip(ids, parsed, strict=True)
             if parsed_id is None or str(parsed_id) not in by_id
         ],
     }

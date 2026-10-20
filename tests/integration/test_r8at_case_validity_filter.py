@@ -320,10 +320,9 @@ def test_validity_parity_for_corrupt_and_casefolded_legacy_source_ids(client, se
     import asyncio
     import uuid
 
-    from sqlalchemy import select
-
     from app.core.db import get_session_factory
     from app.models import LifeChangeCase
+    from sqlalchemy import select
 
     owner = seeded["owner_id"]
     pet, case_id, _ = _case(client, owner, "R8BD Casefold/Legacy Source")

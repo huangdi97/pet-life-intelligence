@@ -18,7 +18,11 @@ def test_validity_filter_uses_the_same_derived_source_validity_as_detail():
     # an OR with the old explicit retracted-at check.
     assert "e.retracted_at IS NULL" in history
     assert "jsonb_array_length(life_change_cases.evidence_event_ids) = 0" in history
-    assert "count(DISTINCT ev.id_text)" in history
+    assert "count(DISTINCT lower(ev.id_text))" in history
+    # R8BD: case-folded aliases are one underlying event; bad textual IDs
+    # must never cause detail/source endpoints to throw or be marked valid.
+    assert "def parse_case_source_id(value: object)" in history
+    assert "hist.parse_case_source_id(item)" in route
     assert "WHERE NOT EXISTS" in history
     assert "e.pet_id = life_change_cases.pet_id" in history
     assert "e.event_type = CASE life_change_cases.metric" in history
