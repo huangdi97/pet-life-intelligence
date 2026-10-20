@@ -28,6 +28,7 @@ export interface CaseSourceEvent {
   role_source: "FROZEN_AT_CREATION" | "LEGACY_DATE_DERIVED";
   scope: "CASE_EVIDENCE" | "FOLLOW_UP_REVIEW";
   valid: boolean;
+  validity_reason?: "VALID" | "RETRACTED" | "SUPERSEDED" | "WRONG_METRIC" | "NON_FACT_SOURCE";
 }
 
 export interface CaseSourcePage {
