@@ -185,7 +185,7 @@ export function CaseSourceList({
       {open ? (
         <View style={styles.list}>
           <Text style={styles.progress} testID="pli.r8.case-detail.sources.progress">
-            已核对 {rows.length} / {total ?? expectedSourceIds.length} 条原始来源
+            已读取 {rows.length} / {expectedSourceIds.length} 条冻结来源
           </Text>
           {missing.length > 0 ? (
             <Text style={styles.warning} testID="pli.r8.case-detail.sources.missing">
@@ -318,7 +318,7 @@ export function CaseSourceList({
             >
               <Text style={styles.link}>{loading ? "正在读取更多来源…" : "继续查看其余来源"}</Text>
             </Pressable>
-          ) : <Text style={styles.caption}>全部来源已可逐条核对</Text>}
+          ) : <Text style={styles.caption}>{missing.length > 0 ? "可读取的来源已全部查看，但仍有来源缺失" : "全部冻结来源已可逐条核对"}</Text>}
         </View>
       ) : null}
       {error ? <Text style={styles.warning} testID="pli.r8.case-detail.sources.error">{error}</Text> : null}
