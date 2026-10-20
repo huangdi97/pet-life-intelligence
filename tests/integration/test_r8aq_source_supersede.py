@@ -98,6 +98,7 @@ def test_owner_correction_appends_supersede_and_invalidates_the_case(client, see
     assert sources.status_code == 200
     by_id = {row["event_id"]: row for row in sources.json()["sources"]}
     assert by_id[current["event_id"]]["valid"] is False
+    assert by_id[current["event_id"]]["validity_reason"] == "SUPERSEDED"
     assert by_id[current["event_id"]]["superseded_by_event_id"] == body["event_id"]
 
     # The original is never edited: its payload and occurrence stay intact.
