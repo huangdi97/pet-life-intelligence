@@ -254,3 +254,62 @@ def test_validity_filter_matches_retraction_and_supersede(client, seeded):
         params={"validity": "MAYBE"}, headers=auth(owner),
     )
     assert bad.status_code == 422
+
+
+def test_validity_filter_agrees_with_detail_for_missing_duplicate_and_wrong_metric_source(
+    client, seeded,
+):
+    """History VALID must mean the same thing as detail source_valid."""
+    import asyncio
+    import uuid
+
+    from sqlalchemy import select
+
+    from app.core.db import get_session_factory
+    from app.models import LifeChangeCase
+
+    owner = seeded["owner_id"]
+    pet, case_id, _ = _case(client, owner, "R8BC Detail/List Parity")
+    case_path = f"/api/v1/pets/{pet}/life-change-cases/{case_id}"
+
+    detail = client.get(case_path, headers=auth(owner))
+    assert detail.status_code == 200 and detail.json()["source_valid"] is True
+    original_ids = detail.json()["evidence_event_ids"]
+    assert len(original_ids) >= 2
+
+    async def change_evidence(ids, *, metric=None):
+        async with get_session_factory()() as db:
+            row = (await db.execute(
+                select(LifeChangeCase).where(LifeChangeCase.id == uuid.UUID(case_id))
+            )).scalar_one()
+            row.evidence_event_ids = ids
+            if metric is not None:
+                row.metric = metric
+            await db.commit()
+
+    def assert_validity(expected):
+        returned = client.get(case_path, headers=auth(owner))
+        assert returned.status_code == 200, returned.text
+        assert returned.json()["source_valid"] is expected
+        valid, _ = _ids(client, owner, pet, "VALID")
+        invalid, _ = _ids(client, owner, pet, "INVALID")
+        assert (case_id in valid) is expected
+        assert (case_id in invalid) is (not expected)
+
+    # A case can survive in the immutable ledger after a referenced source is
+    # missing; it is history, not valid CURRENT evidence.
+    asyncio.run(change_evidence([str(uuid.uuid4()), *original_ids[1:]]))
+    assert_validity(False)
+
+    # Case creation rejects duplicate evidence. A legacy/corrupt ledger row
+    # must nevertheless be hidden from the "source valid" filter.
+    asyncio.run(change_evidence([original_ids[0], original_ids[0]]))
+    assert_validity(False)
+
+    # All original events are walks; a Case whose frozen metric says "meal"
+    # is invalid despite every event still existing on the same pet.
+    asyncio.run(change_evidence(original_ids, metric="meal_count_per_day"))
+    assert_validity(False)
+
+    asyncio.run(change_evidence(original_ids, metric="walk_minutes_per_day"))
+    assert_validity(True)

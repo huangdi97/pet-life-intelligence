@@ -21,28 +21,47 @@ from sqlalchemy import Select, and_, func, or_, select, text
 from app.core.errors import ValidationFailed
 from app.models import LifeChangeCase
 
-# INVARIANT: this is the same derived validity the detail/source projection
-# exposes (retracted OR superseded by a visible correction). It is computed as
-# a bounded anti-join so the keyset order (created_at, id) stays stable and the
-# count/page queries agree. Evidence rows are never deleted, so a missing id is
-# not treated as "invalid" here; it is surfaced separately by the source page.
+# The list VALID/INVALID query must agree with the detail-level
+# _evidence_current() contract on EVERY source, not just retraction/supersession.
+# A missing, wrong-pet, wrong-type or untrusted source is NOT valid evidence.
+# The query works on bounded case evidence JSONB; malformed IDs are safely
+# rejected without casting an attacker-controlled string as uuid.
 _INVALID_EVIDENCE_SQL = """
-EXISTS (
-    SELECT 1
-    FROM life_events e
-    JOIN LATERAL jsonb_array_elements_text(
-        life_change_cases.evidence_event_ids
-    ) AS ev(id_text) ON TRUE
-    WHERE e.pet_id = life_change_cases.pet_id
-      AND e.id = ev.id_text::uuid
-      AND (
-          e.retracted_at IS NOT NULL
-          OR EXISTS (
-              SELECT 1 FROM life_events s
-              WHERE s.supersedes_event_id = e.id
-                AND s.recorded_at <= now()
-          )
-      )
+(
+    jsonb_array_length(life_change_cases.evidence_event_ids) = 0
+    OR (
+        SELECT count(*) <> count(DISTINCT ev.id_text)
+        FROM jsonb_array_elements_text(life_change_cases.evidence_event_ids) AS ev(id_text)
+    )
+    OR EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements_text(life_change_cases.evidence_event_ids) AS ev(id_text)
+        WHERE NOT EXISTS (
+            SELECT 1 FROM life_events e
+            WHERE e.pet_id = life_change_cases.pet_id
+              AND e.id = (
+                  CASE WHEN ev.id_text ~
+                  '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+                  THEN ev.id_text::uuid ELSE NULL::uuid END
+              )
+              AND e.event_type = CASE life_change_cases.metric
+                  WHEN 'walk_minutes_per_day' THEN 'daily.walk'
+                  WHEN 'meal_count_per_day' THEN 'daily.meal'
+                  WHEN 'sleep_minutes_per_day' THEN 'daily.sleep'
+                  ELSE NULL END
+              AND e.source_type IN (
+                  'OWNER_REPORTED', 'CAREGIVER_REPORTED', 'DEVICE_DERIVED',
+                  'PROFESSIONAL_CONFIRMED', 'LAB_CONFIRMED'
+              )
+              AND e.retracted_at IS NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM life_events s
+                  WHERE s.pet_id = e.pet_id
+                    AND s.supersedes_event_id = e.id
+                    AND s.recorded_at <= now()
+              )
+        )
+    )
 )
 """
 _INVALID_EVIDENCE = text(_INVALID_EVIDENCE_SQL)

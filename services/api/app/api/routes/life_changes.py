@@ -326,8 +326,9 @@ async def list_cases(
 
     The Case list is append-only, so an older page must never shift because a
     new observation created another Case. "VALID"/"INVALID" filter on the same
-    derived source validity the detail exposes (retracted or superseded
-    evidence); the bounded anti-join does not change the keyset order.
+    derived source validity the detail exposes (missing, duplicated,
+    wrong pet/type/source, retracted or superseded evidence); the bounded
+    anti-join does not change the keyset order.
     """
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
