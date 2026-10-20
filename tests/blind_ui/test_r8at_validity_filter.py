@@ -17,7 +17,12 @@ def test_validity_filter_uses_the_same_derived_source_validity_as_detail():
     # The invalid predicate is a negation of a fully eligible event, not merely
     # an OR with the old explicit retracted-at check.
     assert "e.retracted_at IS NULL" in history
-    assert "jsonb_array_length(life_change_cases.evidence_event_ids) = 0" in history
+    # R8BG: malformed historical JSONB must not crash PostgreSQL; the
+    # guarded CASE is required in both list and count validity predicates.
+    assert "jsonb_typeof(life_change_cases.evidence_event_ids) IS DISTINCT FROM 'array'" in history
+    assert "jsonb_array_length({_SAFE_EVIDENCE_ARRAY_SQL}) = 0" in history
+    assert history.count("jsonb_array_elements_text({_SAFE_EVIDENCE_ARRAY_SQL})") == 2
+    assert "def frozen_source_items(value: object)" in history
     assert "count(DISTINCT lower(ev.id_text))" in history
     # R8BD: case-folded aliases are one underlying event; bad textual IDs
     # must never cause detail/source endpoints to throw or be marked valid.

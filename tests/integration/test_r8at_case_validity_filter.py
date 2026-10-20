@@ -451,10 +451,9 @@ def test_r8bg_legacy_non_array_source_jsonb_is_inspectable_but_never_valid(clien
     import asyncio
     import uuid
 
-    from sqlalchemy import select
-
     from app.core.db import get_session_factory
     from app.models import LifeChangeCase
+    from sqlalchemy import select
 
     owner = seeded["owner_id"]
     pet, case_id, _ = _case(client, owner, "R8BG Malformed JSONB")
