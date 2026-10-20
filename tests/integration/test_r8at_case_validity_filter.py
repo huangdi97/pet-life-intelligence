@@ -444,3 +444,64 @@ def test_source_detail_badges_require_case_metric_and_recorded_fact_source(clien
     assert all(row["valid"] is True for row in restored.json()["sources"])
     assert all(row["validity_reason"] == "VALID" for row in restored.json()["sources"])
     assert client.get(path, headers=auth(owner)).json()["source_valid"] is True
+
+
+def test_r8bg_legacy_non_array_source_jsonb_is_inspectable_but_never_valid(client, seeded):
+    """JSONB strings/objects/null must not 500 on list, detail or source pages."""
+    import asyncio
+    import uuid
+
+    from sqlalchemy import select
+
+    from app.core.db import get_session_factory
+    from app.models import LifeChangeCase
+
+    owner = seeded["owner_id"]
+    pet, case_id, _ = _case(client, owner, "R8BG Malformed JSONB")
+    case_path = f"/api/v1/pets/{pet}/life-change-cases/{case_id}"
+    source_path = f"{case_path}/sources"
+    original = client.get(case_path, headers=auth(owner)).json()
+    frozen = original["evidence_event_ids"]
+    assert frozen and isinstance(frozen, list)
+
+    async def corrupt(payload, roles):
+        async with get_session_factory()() as db:
+            row = (await db.execute(
+                select(LifeChangeCase).where(LifeChangeCase.id == uuid.UUID(case_id))
+            )).scalar_one()
+            row.evidence_event_ids = payload
+            row.evidence_role_by_event_id = roles
+            await db.commit()
+
+    for payload in ("fake-source-id", {"frozen": frozen[0]}, 17, None):
+        # A historical import can corrupt JSONB shape while retaining owner
+        # reviews. Preserve the Case itself, but never trust its fake sources.
+        asyncio.run(corrupt(payload, "not-a-role-map"))
+        detail = client.get(case_path, headers=auth(owner))
+        assert detail.status_code == 200, detail.text
+        assert detail.json()["source_valid"] is False
+        assert detail.json()["evidence_shape_valid"] is False
+        assert detail.json()["evidence_role_shape_valid"] is False
+        assert detail.json()["evidence_event_ids"] == []
+        all_cases, _ = _ids(client, owner, pet)
+        valid, _ = _ids(client, owner, pet, "VALID")
+        invalid, listing = _ids(client, owner, pet, "INVALID")
+        assert case_id in all_cases and case_id in invalid and case_id not in valid
+        assert listing["total"] == 1
+        sources = client.get(source_path, headers=auth(owner))
+        assert sources.status_code == 200, sources.text
+        assert sources.json()["evidence_shape_valid"] is False
+        assert sources.json()["evidence_role_shape_valid"] is False
+        assert sources.json()["sources"] == []
+        assert sources.json()["total"] == 0
+
+    asyncio.run(corrupt(frozen, {frozen[0]: "CURRENT"}))
+    restored = client.get(case_path, headers=auth(owner))
+    assert restored.status_code == 200, restored.text
+    assert restored.json()["source_valid"] is True
+    assert restored.json()["evidence_shape_valid"] is True
+    assert restored.json()["evidence_role_shape_valid"] is True
+    restored_valid, _ = _ids(client, owner, pet, "VALID")
+    assert restored_valid == {case_id}
+
+

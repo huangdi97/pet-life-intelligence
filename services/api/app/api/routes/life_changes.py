@@ -90,9 +90,10 @@ async def _evidence_current(
     db: DBSession, pet_id: uuid.UUID, event_ids: list[str],
     expected_event_type: str,
 ) -> bool:
-    if not event_ids or len(set(event_ids)) != len(event_ids):
+    source_ids, shape_valid = hist.frozen_source_items(event_ids)
+    if not shape_valid or not source_ids:
         return False
-    parsed = [hist.parse_case_source_id(item) for item in event_ids]
+    parsed = [hist.parse_case_source_id(item) for item in source_ids]
     # A malformed source or duplicated underlying UUID is not a valid
     # frozen evidence set. Upper/lower-case spelling cannot manufacture two
     # independent observations from one real event.
@@ -132,13 +133,14 @@ async def _follow_up_current(
     A source correction/retraction does not erase an append-only owner Review,
     but the UX must stop showing that Review as a valid observation loop.
     """
-    if review.decision != "RECORD_OBSERVATION" or not review.related_event_ids:
+    followup_ids, followup_shape_valid = hist.frozen_source_items(review.related_event_ids)
+    if review.decision != "RECORD_OBSERVATION" or not followup_shape_valid or not followup_ids:
         return False
     if not await _evidence_current(
-        db, case.pet_id, review.related_event_ids, METRICS[case.metric],
+        db, case.pet_id, followup_ids, METRICS[case.metric],
     ):
         return False
-    ids = [uuid.UUID(item) for item in review.related_event_ids]
+    ids = [uuid.UUID(item) for item in followup_ids]
     events = list((await db.execute(select(LifeEvent).where(
         LifeEvent.pet_id == case.pet_id, LifeEvent.id.in_(ids),
     ))).scalars().all())
@@ -148,7 +150,10 @@ async def _follow_up_current(
     # happened after the algorithm's frozen comparison clock.
     return (
         len(events) == len(ids)
-        and not set(review.related_event_ids) & set(case.evidence_event_ids)
+        and not set(ids) & {
+            parsed for item in hist.frozen_source_items(case.evidence_event_ids)[0]
+            if (parsed := hist.parse_case_source_id(item)) is not None
+        }
         and all(
             event.recorded_at > case.created_at
             and case.created_at < event.occurred_at <= now
@@ -161,6 +166,9 @@ def _case_response(
     case: LifeChangeCase, current: bool, *,
     follow_up_source_valid: bool | None = None,
 ) -> dict:
+    original_ids, source_shape_valid = hist.frozen_source_items(case.evidence_event_ids)
+    role_map = case.evidence_role_by_event_id
+    role_shape_valid = role_map is None or isinstance(role_map, dict)
     # The *case* source and the *follow-up* source are independent. Preserve
     # historical owner reviews, but never mislabel a withdrawn follow-up as a
     # completed observation cycle.
@@ -178,8 +186,10 @@ def _case_response(
         "baseline_value": case.baseline_value,
         "sample_days": case.sample_days,
         "window_days": case.window_days,
-        "evidence_event_ids": case.evidence_event_ids,
-        "evidence_role_by_event_id": case.evidence_role_by_event_id,
+        "evidence_event_ids": original_ids,
+        "evidence_shape_valid": source_shape_valid,
+        "evidence_role_shape_valid": role_shape_valid,
+        "evidence_role_by_event_id": role_map if isinstance(role_map, dict) else None,
         "evidence_role_source": (
             "FROZEN_AT_CREATION" if case.evidence_role_by_event_id is not None
             else "LEGACY_DATE_DERIVED"

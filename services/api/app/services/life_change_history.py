@@ -27,16 +27,22 @@ from app.models import LifeChangeCase
 # A missing, wrong-pet, wrong-type or untrusted source is NOT valid evidence.
 # The query works on bounded case evidence JSONB; malformed IDs are safely
 # rejected without casting an attacker-controlled string as uuid.
-_INVALID_EVIDENCE_SQL = """
+_SAFE_EVIDENCE_ARRAY_SQL = """
+(CASE WHEN jsonb_typeof(life_change_cases.evidence_event_ids) = 'array'
+      THEN life_change_cases.evidence_event_ids
+      ELSE '[]'::jsonb END)
+"""
+_INVALID_EVIDENCE_SQL = f"""
 (
-    jsonb_array_length(life_change_cases.evidence_event_ids) = 0
+    jsonb_typeof(life_change_cases.evidence_event_ids) IS DISTINCT FROM 'array'
+    OR jsonb_array_length({_SAFE_EVIDENCE_ARRAY_SQL}) = 0
     OR (
         SELECT count(*) <> count(DISTINCT lower(ev.id_text))
-        FROM jsonb_array_elements_text(life_change_cases.evidence_event_ids) AS ev(id_text)
+        FROM jsonb_array_elements_text({_SAFE_EVIDENCE_ARRAY_SQL}) AS ev(id_text)
     )
     OR EXISTS (
         SELECT 1
-        FROM jsonb_array_elements_text(life_change_cases.evidence_event_ids) AS ev(id_text)
+        FROM jsonb_array_elements_text({_SAFE_EVIDENCE_ARRAY_SQL}) AS ev(id_text)
         WHERE NOT EXISTS (
             SELECT 1 FROM life_events e
             WHERE e.pet_id = life_change_cases.pet_id
@@ -75,6 +81,15 @@ _CASE_UUID = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
     r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 )
+
+
+def frozen_source_items(value: object) -> tuple[list[object], bool]:
+    """Read legacy JSONB without interpreting an object/string as an ID list.
+
+    The second value records whether a real JSON array was stored. A corrupt
+    historical Case stays inspectable, but source validity must fail closed.
+    """
+    return (list(value), True) if isinstance(value, list) else ([], False)
 
 
 def parse_case_source_id(value: object) -> uuid.UUID | None:

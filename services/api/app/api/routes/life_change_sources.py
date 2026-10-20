@@ -49,7 +49,7 @@ async def _review_scope_ids(
         raise NotFound("Owner review not found for this Case.")
     if review.decision != "RECORD_OBSERVATION":
         raise ValidationFailed("Only a recorded observation has follow-up sources.")
-    return list(review.related_event_ids)
+    return history.frozen_source_items(review.related_event_ids)[0]
 
 
 async def _successor_by_event(
@@ -85,9 +85,10 @@ async def list_case_sources(
     )
     case = await _pet_scoped_case(db, pet.id, case_id)
     scope = "FOLLOW_UP_REVIEW" if review_id else "CASE_EVIDENCE"
+    original_ids, shape_valid = history.frozen_source_items(case.evidence_event_ids)
     ids = (
         await _review_scope_ids(db, case, review_id)
-        if review_id else list(case.evidence_event_ids)
+        if review_id else original_ids
     )
     if len(ids) > MAX_CASE_SOURCES:
         raise ValidationFailed(
@@ -119,7 +120,8 @@ async def list_case_sources(
     total = len(ordered)
     window = ordered[offset:offset + limit]
     serialized = {item["event_id"]: item for item in _serialize(window, actors)}
-    role_map = case.evidence_role_by_event_id or {}
+    raw_roles = case.evidence_role_by_event_id
+    role_map = raw_roles if isinstance(raw_roles, dict) else {}
     normalized_roles: dict[uuid.UUID, str | None] = {}
     for raw_id, role in role_map.items():
         source_id = history.parse_case_source_id(raw_id)
@@ -161,6 +163,8 @@ async def list_case_sources(
     next_offset = offset + len(sources)
     return {
         "case_id": str(case.id), "pet_id": str(case.pet_id), "scope": scope,
+        "evidence_shape_valid": shape_valid,
+        "evidence_role_shape_valid": raw_roles is None or isinstance(raw_roles, dict),
         "review_id": str(review_id) if review_id else None,
         "sources": sources, "total": total, "offset": offset, "limit": limit,
         "has_more": next_offset < total, "next_offset": next_offset if next_offset < total else None,
