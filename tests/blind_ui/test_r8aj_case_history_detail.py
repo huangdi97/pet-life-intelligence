@@ -42,7 +42,9 @@ def test_detail_retains_reviews_exact_sources_and_server_note_redaction():
     # frozen-role contract must survive the move and receive the server map.
     assert 'detail.evidence_role_source' in screen
     assert 'roleSource === "FROZEN_AT_CREATION"' in sources
-    assert 'frozenRoles[source.event_id]' in sources
+    assert 'ownerEvidenceCaseRole(' in sources
+    assert 'canonicalCaseSourceId(item.event_id)' in sources
+    assert 'frozenRoles={detail.evidence_role_by_event_id}' in screen
     assert 'testID={`pli.r8.case-detail.source.${source.event_id}`}' in sources
     assert 'review.note?.trim()' in screen
     assert 'row.note if owner_view else ""' in api
