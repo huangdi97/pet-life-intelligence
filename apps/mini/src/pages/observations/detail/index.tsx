@@ -39,12 +39,14 @@ interface Detail {
 }
 interface Source {
   event_id: string;
+  event_type: string;
   occurred_at: string;
   recorded_at: string;
   source_type: string;
   payload: Record<string, unknown>;
   role: "CURRENT" | "HISTORICAL" | null;
   valid: boolean;
+  validity_reason?: "VALID" | "RETRACTED" | "SUPERSEDED" | "WRONG_METRIC" | "NON_FACT_SOURCE";
 }
 interface SourcePage {
   sources: Source[];
@@ -68,8 +70,23 @@ const METRIC: Record<string, { name: string; unit: string }> = {
   sleep_minutes_per_day: { name: "睡眠", unit: "分钟" },
 };
 
+const SOURCE_TRUTH: Record<string, string> = {
+  VALID: "可用于本次对比",
+  RETRACTED: "记录已撤回",
+  SUPERSEDED: "记录已由后续修正替代",
+  WRONG_METRIC: "记录指标与本次对比不符",
+  NON_FACT_SOURCE: "此来源不具备观察事实资格",
+};
+function sourceTruthLabel(source: Source): string {
+  return source.valid ? SOURCE_TRUTH.VALID
+    : SOURCE_TRUTH[source.validity_reason ?? ""] ?? "来源有效性待核实";
+}
+
 function valueText(source: Source): string {
-  if (!source.valid) return "这条来源已撤回或修正，不再是当前依据";
+  if (source.event_type === "daily.meal") return "按 1 条进食记录计数，不代表食物摄入量";
+  if (source.event_type !== "daily.walk" && source.event_type !== "daily.sleep") {
+    return "仅展示有来源的生活记录";
+  }
   const duration = source.payload?.duration_minutes;
   if (typeof duration === "number" && duration > 0 && duration <= 1440) {
     return `记录时长 ${duration} 分钟（非实时测量）`;
@@ -317,7 +334,7 @@ export default function ObservationDetailPage() {
                 </Text>
                 <Text className="muted">{valueText(source)}</Text>
                 <Text className="muted">发生 {fmtTime(source.occurred_at)} · 录入 {fmtTime(source.recorded_at)}</Text>
-                <Text className="muted">{source.valid ? "来源有效" : "来源已撤回或修正"}</Text>
+                <Text className="muted">{sourceTruthLabel(source)}</Text>
                 <Text className="muted">{source.event_id}</Text>
                 {detail.owner_can_review && source.valid ? (
                   retractTarget === source.event_id ? (
