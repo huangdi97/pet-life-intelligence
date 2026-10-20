@@ -381,3 +381,62 @@ def test_validity_parity_for_corrupt_and_casefolded_legacy_source_ids(client, se
 
     asyncio.run(mutate(original_ids))
     check(True, missing=[])
+
+
+
+def test_source_detail_badges_require_case_metric_and_recorded_fact_source(client, seeded):
+    """R8BE: rows must not display VALID when Case has wrong metric or AI fact."""
+    import asyncio
+    import uuid
+
+    from app.core.db import get_session_factory
+    from app.domain import enums
+    from app.models import LifeChangeCase, LifeEvent
+    from sqlalchemy import select
+
+    owner = seeded["owner_id"]
+    pet, case_id, _ = _case(client, owner, "R8BE Source Row Trust")
+    path = f"/api/v1/pets/{pet}/life-change-cases/{case_id}"
+    source_path = f"{path}/sources"
+    initial = client.get(source_path, params={"limit": 20}, headers=auth(owner))
+    assert initial.status_code == 200
+    first_event = initial.json()["sources"][0]["event_id"]
+    assert all(item["valid"] is True for item in initial.json()["sources"])
+
+    async def change_case_metric(metric):
+        async with get_session_factory()() as db:
+            row = (await db.execute(
+                select(LifeChangeCase).where(LifeChangeCase.id == uuid.UUID(case_id))
+            )).scalar_one()
+            row.metric = metric
+            await db.commit()
+
+    async def change_event_source(source_type):
+        async with get_session_factory()() as db:
+            row = (await db.execute(
+                select(LifeEvent).where(LifeEvent.id == uuid.UUID(first_event))
+            )).scalar_one()
+            row.source_type = source_type
+            await db.commit()
+
+    asyncio.run(change_case_metric("meal_count_per_day"))
+    wrong_metric = client.get(source_path, params={"limit": 20}, headers=auth(owner))
+    assert wrong_metric.status_code == 200, wrong_metric.text
+    assert all(item["valid"] is False for item in wrong_metric.json()["sources"])
+    assert client.get(path, headers=auth(owner)).json()["source_valid"] is False
+
+    asyncio.run(change_case_metric("walk_minutes_per_day"))
+    asyncio.run(change_event_source(enums.SourceType.AI_DERIVED))
+    untrusted = client.get(source_path, params={"limit": 20}, headers=auth(owner))
+    assert untrusted.status_code == 200, untrusted.text
+    rows = {row["event_id"]: row for row in untrusted.json()["sources"]}
+    assert rows[first_event]["valid"] is False
+    assert client.get(path, headers=auth(owner)).json()["source_valid"] is False
+    valid, _ = _ids(client, owner, pet, "VALID")
+    invalid, _ = _ids(client, owner, pet, "INVALID")
+    assert case_id not in valid and case_id in invalid
+
+    asyncio.run(change_event_source(enums.SourceType.OWNER_REPORTED))
+    restored = client.get(source_path, params={"limit": 20}, headers=auth(owner))
+    assert all(row["valid"] is True for row in restored.json()["sources"])
+    assert client.get(path, headers=auth(owner)).json()["source_valid"] is True

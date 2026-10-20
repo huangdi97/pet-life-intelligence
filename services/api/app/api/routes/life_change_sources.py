@@ -17,11 +17,13 @@ from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
 from app.api.routes.events import MEDICAL_EVENT_TYPES, _actor_names_map, _serialize
+from app.api.routes.life_changes import METRICS
 from app.core.errors import NotFound, PermissionDenied, ValidationFailed
 from app.domain import enums
 from app.models import LifeChangeCase, LifeChangeReview, LifeEvent, User
 from app.services import life_change_history as history
 from app.services import permissions as perm
+from app.services.life_replay import RECORD_FACT_SOURCES
 
 router = APIRouter(tags=["life-intelligence"])
 
@@ -127,8 +129,15 @@ async def list_case_sources(
             else "LEGACY_DATE_DERIVED"
         )
         payload["scope"] = scope
+        # The owner's source-detail badge must mean the same as a source
+        # eligible for this Case: metric, provenance and current validity.
+        # Retracted/corrected alone is insufficient for a legacy wrong-metric
+        # or synthetic/AI-sourced row. Detail/list already reject those.
         payload["valid"] = (
-            event.retracted_at is None and event.id not in superseded_by
+            event.event_type == METRICS.get(case.metric)
+            and event.source_type in RECORD_FACT_SOURCES
+            and event.retracted_at is None
+            and event.id not in superseded_by
         )
         payload["superseded_by_event_id"] = (
             str(superseded_by[event.id]) if event.id in superseded_by else None
