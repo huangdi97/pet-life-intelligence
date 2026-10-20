@@ -253,10 +253,9 @@ def test_old_case_detail_exposes_continue_review_token(client, seeded):
 
 def test_followup_source_integrity_detects_malformed_review_jsonb_not_case(client, seeded):
     """A healthy parent Case cannot certify an invalid Review source container."""
-    from sqlalchemy import update
-
     from app.core.db import get_session_factory
     from app.models import LifeChangeReview
+    from sqlalchemy import update
 
     owner = seeded["owner_id"]
     pet, case = _real_case(client, owner)
