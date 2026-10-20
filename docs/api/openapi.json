@@ -1836,7 +1836,7 @@
           "life-intelligence"
         ],
         "summary": "List Cases",
-        "description": "R8AK owner history page: immutable keyset pagination + bounded filters.\n\nThe Case list is append-only, so an older page must never shift because a\nnew observation created another Case. \"VALID\"/\"INVALID\" filter on the same\nderived source validity the detail exposes (retracted or superseded\nevidence); the bounded anti-join does not change the keyset order.",
+        "description": "R8AK owner history page: immutable keyset pagination + bounded filters.\n\nThe Case list is append-only, so an older page must never shift because a\nnew observation created another Case. \"VALID\"/\"INVALID\" filter on the same\nderived source validity the detail exposes (missing, duplicated,\nwrong pet/type/source, retracted or superseded evidence); the bounded\nanti-join does not change the keyset order.",
         "operationId": "list_cases_api_v1_pets__pet_id__life_change_cases_get",
         "parameters": [
           {
