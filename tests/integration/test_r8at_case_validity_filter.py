@@ -263,10 +263,9 @@ def test_validity_filter_agrees_with_detail_for_missing_duplicate_and_wrong_metr
     import asyncio
     import uuid
 
-    from sqlalchemy import select
-
     from app.core.db import get_session_factory
     from app.models import LifeChangeCase
+    from sqlalchemy import select
 
     owner = seeded["owner_id"]
     pet, case_id, _ = _case(client, owner, "R8BC Detail/List Parity")

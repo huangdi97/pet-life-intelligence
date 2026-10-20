@@ -13,7 +13,17 @@ def test_validity_filter_uses_the_same_derived_source_validity_as_detail():
     route = read("services/api/app/api/routes/life_changes.py")
 
     assert "jsonb_array_elements_text" in history
-    assert "e.retracted_at IS NOT NULL" in history
+    # R8BC: a VALID row must satisfy detail's complete evidence contract.
+    # The invalid predicate is a negation of a fully eligible event, not merely
+    # an OR with the old explicit retracted-at check.
+    assert "e.retracted_at IS NULL" in history
+    assert "jsonb_array_length(life_change_cases.evidence_event_ids) = 0" in history
+    assert "count(DISTINCT ev.id_text)" in history
+    assert "WHERE NOT EXISTS" in history
+    assert "e.pet_id = life_change_cases.pet_id" in history
+    assert "e.event_type = CASE life_change_cases.metric" in history
+    assert "e.source_type IN (" in history
+    assert "s.pet_id = e.pet_id" in history
     assert "s.supersedes_event_id = e.id" in history
     assert 'validity == "VALID"' in history
     assert 'validity == "INVALID"' in history
