@@ -27,48 +27,48 @@ from app.models import LifeChangeCase
 # A missing, wrong-pet, wrong-type or untrusted source is NOT valid evidence.
 # The query works on bounded case evidence JSONB; malformed IDs are safely
 # rejected without casting an attacker-controlled string as uuid.
-_SAFE_EVIDENCE_ARRAY_SQL = """
-(CASE WHEN jsonb_typeof(life_change_cases.evidence_event_ids) = 'array'
-      THEN life_change_cases.evidence_event_ids
-      ELSE '[]'::jsonb END)
-"""
-_INVALID_EVIDENCE_SQL = f"""
+_INVALID_EVIDENCE_SQL = """
 (
-    jsonb_typeof(life_change_cases.evidence_event_ids) IS DISTINCT FROM 'array'
-    OR jsonb_array_length({_SAFE_EVIDENCE_ARRAY_SQL}) = 0
-    OR (
-        SELECT count(*) <> count(DISTINCT lower(ev.id_text))
-        FROM jsonb_array_elements_text({_SAFE_EVIDENCE_ARRAY_SQL}) AS ev(id_text)
-    )
-    OR EXISTS (
-        SELECT 1
-        FROM jsonb_array_elements_text({_SAFE_EVIDENCE_ARRAY_SQL}) AS ev(id_text)
-        WHERE NOT EXISTS (
-            SELECT 1 FROM life_events e
-            WHERE e.pet_id = life_change_cases.pet_id
-              AND e.id = (
-                  CASE WHEN ev.id_text ~
-                  '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
-                  THEN ev.id_text::uuid ELSE NULL::uuid END
-              )
-              AND e.event_type = CASE life_change_cases.metric
-                  WHEN 'walk_minutes_per_day' THEN 'daily.walk'
-                  WHEN 'meal_count_per_day' THEN 'daily.meal'
-                  WHEN 'sleep_minutes_per_day' THEN 'daily.sleep'
-                  ELSE NULL END
-              AND e.source_type IN (
-                  'OWNER_REPORTED', 'CAREGIVER_REPORTED', 'DEVICE_DERIVED',
-                  'PROFESSIONAL_CONFIRMED', 'LAB_CONFIRMED'
-              )
-              AND e.retracted_at IS NULL
-              AND NOT EXISTS (
-                  SELECT 1 FROM life_events s
-                  WHERE s.pet_id = e.pet_id
-                    AND s.supersedes_event_id = e.id
-                    AND s.recorded_at <= now()
-              )
+    CASE
+    WHEN jsonb_typeof(life_change_cases.evidence_event_ids) IS DISTINCT FROM 'array'
+        THEN TRUE
+    ELSE (
+        jsonb_array_length(life_change_cases.evidence_event_ids) = 0
+        OR (
+            SELECT count(*) <> count(DISTINCT lower(ev.id_text))
+            FROM jsonb_array_elements_text(life_change_cases.evidence_event_ids) AS ev(id_text)
+        )
+        OR EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements_text(life_change_cases.evidence_event_ids) AS ev(id_text)
+            WHERE NOT EXISTS (
+                SELECT 1 FROM life_events e
+                WHERE e.pet_id = life_change_cases.pet_id
+                  AND e.id = (
+                      CASE WHEN ev.id_text ~
+                      '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+                      THEN ev.id_text::uuid ELSE NULL::uuid END
+                  )
+                  AND e.event_type = CASE life_change_cases.metric
+                      WHEN 'walk_minutes_per_day' THEN 'daily.walk'
+                      WHEN 'meal_count_per_day' THEN 'daily.meal'
+                      WHEN 'sleep_minutes_per_day' THEN 'daily.sleep'
+                      ELSE NULL END
+                  AND e.source_type IN (
+                      'OWNER_REPORTED', 'CAREGIVER_REPORTED', 'DEVICE_DERIVED',
+                      'PROFESSIONAL_CONFIRMED', 'LAB_CONFIRMED'
+                  )
+                  AND e.retracted_at IS NULL
+                  AND NOT EXISTS (
+                      SELECT 1 FROM life_events s
+                      WHERE s.pet_id = e.pet_id
+                        AND s.supersedes_event_id = e.id
+                        AND s.recorded_at <= now()
+                  )
+            )
         )
     )
+    END
 )
 """
 _INVALID_EVIDENCE = text(_INVALID_EVIDENCE_SQL)

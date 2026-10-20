@@ -17,3 +17,7 @@ R8BF fixed legacy UUID text casing and reason labels, but a historical `LifeChan
 This is a **defensive legacy-read fix**, not a migration and not authorization to create malformed production records. Other source paths (medical attachment checks, independent provider identity, owner-approved individual Twin) retain their existing gates.
 
 `NO_VISION_MODEL_USED = TRUE`; `HUMAN_VISUAL_ACCEPTANCE = PENDING`. Do not merge main, tag, issue Release or promote visual baselines.
+
+## CI regression response
+
+Initial implementation used a JSONB CASE expression separately inside each array function. The full backend integration suite caught valid Case rows being filtered out by this changed SQL path, despite their detail being `source_valid=true`. This is not an acceptable security fix. R8BG-R2 instead puts **one outer CASE** around the entire **previously proven array-only validity predicate**. Non-array -> TRUE (INVALID); real array -> original exact predicate. The existing valid, invalid, pagination, uppercase UUID and malformed-array regressions remain mandatory. No tests are deleted or loosened.
