@@ -37,6 +37,7 @@ interface SourceRow {
   payload: Record<string, unknown>;
   role: "CURRENT" | "HISTORICAL" | null;
   valid: boolean;
+  validity_reason?: "VALID" | "RETRACTED" | "SUPERSEDED" | "WRONG_METRIC" | "NON_FACT_SOURCE";
 }
 interface SourcePage {
   sources: SourceRow[];
@@ -63,6 +64,18 @@ const SOURCE_LABELS: Record<string, string> = {
   LAB_CONFIRMED: "检测机构确认",
 };
 
+const SOURCE_TRUTH: Record<string, string> = {
+  VALID: "可用于本次对比",
+  RETRACTED: "记录已撤回",
+  SUPERSEDED: "记录已由后续修正替代",
+  WRONG_METRIC: "记录指标与本次对比不符",
+  NON_FACT_SOURCE: "此来源不具备观察事实资格",
+};
+function sourceTruthLabel(source: SourceRow): string {
+  return source.valid ? SOURCE_TRUTH.VALID
+    : SOURCE_TRUTH[source.validity_reason ?? ""] ?? "来源有效性待核实";
+}
+
 function timeText(value: string): string {
   const instant = new Date(value);
   return Number.isFinite(instant.getTime())
@@ -70,7 +83,10 @@ function timeText(value: string): string {
     : "时间待核实";
 }
 function valueText(source: SourceRow): string {
-  if (!source.valid) return "这条来源已撤回或修正，不再是当前依据";
+  if (source.event_type === "daily.meal") return "按 1 条进食记录计数，不代表食物摄入量";
+  if (source.event_type !== "daily.walk" && source.event_type !== "daily.sleep") {
+    return "仅展示有来源的生活记录";
+  }
   const duration = source.payload?.duration_minutes;
   if (typeof duration === "number" && duration > 0 && duration <= 1440) {
     return `记录时长 ${duration} 分钟（非实时测量）`;
@@ -338,7 +354,7 @@ export default function LifeChangeCaseDetailPage({
               发生 {timeText(source.occurred_at)} · 录入 {timeText(source.recorded_at)}
             </div>
             <div className="muted">
-              {SOURCE_LABELS[source.source_type] ?? "其他来源"} · {source.valid ? "来源有效" : "来源已撤回或修正"}
+              {SOURCE_LABELS[source.source_type] ?? "其他来源"} · {sourceTruthLabel(source)}
             </div>
             <div className="muted">{source.event_id}</div>
             {detail.owner_can_review && source.valid ? (
@@ -441,7 +457,7 @@ export default function LifeChangeCaseDetailPage({
           </button>
         ) : null}
         {sources.length > 0 && sources.length >= sourceTotal ? (
-          <p className="muted">全部来源已可逐条核对</p>
+          <p className="muted">{sourceError ? "已读完可访问的来源，仍有来源需核实" : "全部来源已可逐条核对"}</p>
         ) : null}
         {sourceError ? <p className="r8-warn" data-testid="pli.r8.web-case.sources.error">{sourceError}</p> : null}
       </section>
