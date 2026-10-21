@@ -98,7 +98,7 @@ export function FollowUpSourceEvidence({
             return true;
           })],
           missing: result.missing_event_ids,
-          shapeValid: result.evidence_shape_valid,
+          shapeValid: result.evidence_shape_valid ?? null,
           total: result.total,
           next: result.has_more ? result.next_offset : null,
           error: null,
