@@ -656,3 +656,63 @@ def test_r8bk_review_source_details_match_owner_followup_temporal_eligibility(cl
     assert restored["valid"] is True
     assert restored["validity_reason"] == "VALID"
     assert read_review_validity() is True
+
+
+def test_case_future_source_eligibility_matches_list_detail_and_source_cards(client, seeded):
+    """An import with a future source clock may not prove a past-life change."""
+    from app.core.db import get_session_factory
+    from app.models import LifeEvent
+    from sqlalchemy import update
+
+    owner = seeded["owner_id"]
+    pet, case = _real_case(client, owner)
+    case_id = case["case_id"]
+    source_id = case["evidence_event_ids"][0]
+    detail_url = f"/api/v1/pets/{pet}/life-change-cases/{case_id}"
+    history_url = f"/api/v1/pets/{pet}/life-change-cases"
+    source_url = f"{detail_url}/sources"
+    original = client.get(source_url, headers=auth(owner))
+    assert original.status_code == 200, original.text
+    row = next(item for item in original.json()["sources"] if item["event_id"] == source_id)
+    original_occurred = datetime.fromisoformat(row["occurred_at"])
+    original_recorded = datetime.fromisoformat(row["recorded_at"])
+
+    async def mutate(**changes):
+        async with get_session_factory()() as db:
+            await db.execute(
+                update(LifeEvent)
+                .where(LifeEvent.id == uuid.UUID(source_id))
+                .values(**changes)
+            )
+            await db.commit()
+
+    def assert_visibility(valid):
+        detail = client.get(detail_url, headers=auth(owner))
+        assert detail.status_code == 200, detail.text
+        assert detail.json()["source_valid"] is valid
+        selected_filter = "VALID" if valid else "INVALID"
+        filtered = client.get(
+            history_url, params={"validity": selected_filter},
+            headers=auth(owner),
+        )
+        assert filtered.status_code == 200, filtered.text
+        assert case_id in {item["case_id"] for item in filtered.json()["cases"]}
+        opposite = client.get(
+            history_url, params={"validity": "INVALID" if valid else "VALID"},
+            headers=auth(owner),
+        )
+        assert opposite.status_code == 200, opposite.text
+        assert case_id not in {item["case_id"] for item in opposite.json()["cases"]}
+        card = client.get(source_url, headers=auth(owner))
+        assert card.status_code == 200, card.text
+        source = next(item for item in card.json()["sources"] if item["event_id"] == source_id)
+        assert source["valid"] is valid
+        assert source["validity_reason"] == ("VALID" if valid else "FUTURE_OBSERVATION")
+
+    assert_visibility(True)
+    asyncio.run(mutate(occurred_at=datetime.now(UTC) + timedelta(days=1)))
+    assert_visibility(False)
+    asyncio.run(mutate(occurred_at=original_occurred, recorded_at=datetime.now(UTC) + timedelta(days=1)))
+    assert_visibility(False)
+    asyncio.run(mutate(occurred_at=original_occurred, recorded_at=original_recorded))
+    assert_visibility(True)

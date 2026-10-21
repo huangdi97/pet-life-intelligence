@@ -177,13 +177,13 @@ async def list_case_sources(
             reason = "NON_FACT_SOURCE"
         elif review_id is not None and event.id in original_case_ids:
             reason = "REUSED_CASE_EVIDENCE"
+        elif event.occurred_at > now or event.recorded_at > now:
+            reason = "FUTURE_OBSERVATION"
         elif review_id is not None and (
             event.recorded_at <= case.created_at
             or event.occurred_at <= case.created_at
         ):
             reason = "NOT_AFTER_CASE"
-        elif review_id is not None and event.occurred_at > now:
-            reason = "FUTURE_OBSERVATION"
         else:
             reason = "VALID"
         payload["validity_reason"] = reason

@@ -105,9 +105,13 @@ async def _evidence_current(
     )).scalars().all())
     if len(rows) != len(ids):
         return False
+    # A future-dated source is neither a recorded past observation nor
+    # a valid current Case reference. Keep list/detail/source cards aligned.
+    now = datetime.now(UTC)
     if any(
         e.event_type != expected_event_type or
         e.source_type not in RECORD_FACT_SOURCES or e.retracted_at is not None
+        or e.occurred_at > now or e.recorded_at > now
         for e in rows
     ):
         return False

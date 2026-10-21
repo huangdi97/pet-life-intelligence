@@ -60,6 +60,8 @@ _INVALID_EVIDENCE_SQL = """
                       'PROFESSIONAL_CONFIRMED', 'LAB_CONFIRMED'
                   )
                   AND e.retracted_at IS NULL
+                  AND e.occurred_at <= now()
+                  AND e.recorded_at <= now()
                   AND NOT EXISTS (
                       SELECT 1 FROM life_events s
                       WHERE s.pet_id = e.pet_id
