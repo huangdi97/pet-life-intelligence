@@ -1470,6 +1470,29 @@ def capture_r8_owner_review(
 
     record_ui = find_control("pli.r8.owner-review.record", "record-ui.xml", require_enabled=True, scroll_direction="down")
     android.tap(record_ui, "pli.r8.owner-review.record", "id")
+    # R8BJ is explicitly a *numeric-value* provenance gate. QuickLog's walk
+    # duration is optional for ordinary owner use. The native fixture must
+    # ENTER a real measured amount, not save an empty walk then demand a
+    # nonexistent value in the historical Review. Never inject a fake backend
+    # observation or silently force duration on every owner's QuickLog.
+    followup_minutes = 17
+    tap_control_safely(
+        "pli.quicklog.minutes", "quicklog-minutes-input.xml",
+        scroll_direction="down", attempts=16,
+    )
+    android.shell("input", "text", str(followup_minutes))
+    time.sleep(0.5)
+    minutes_ui = android.dump_xml(directory / "quicklog-minutes-entered.xml")
+    typed_minutes = ui_control_text(minutes_ui, "pli.quicklog.minutes").strip()
+    if typed_minutes != str(followup_minutes):
+        raise CaptureError(
+            "R8BJ actual Android numeric QuickLog input differs from "
+            f"entered minutes: {typed_minutes!r}"
+        )
+    ime = android.shell("dumpsys input_method", check=False)
+    if "mInputShown=true" in ime:
+        android.shell("input", "keyevent", "4")
+        time.sleep(0.6)
     save_ui = find_control("pli.quicklog.save", "quicklog-ui.xml", require_enabled=True)
     android.screenshot(directory / "owner-observation-form.png")
     android.tap(save_ui, "pli.quicklog.save", "id")
@@ -1498,6 +1521,11 @@ def capture_r8_owner_review(
     )
     if source.get("pet_id") != pet_id or source.get("event_type") != "daily.walk":
         raise CaptureError("R8 linked follow-up is not this pet's real walking event")
+    if (source.get("payload") or {}).get("duration_minutes") != followup_minutes:
+        raise CaptureError(
+            "R8BJ Android numeric field did not persist in the linked, real "
+            f"LifeEvent: expected {followup_minutes} actual={source.get('payload')}"
+        )
     save_manifest(directory / "api-truth.json", {
         "pet_id": pet_id,
         "metric": "walk_minutes_per_day",
@@ -1517,6 +1545,8 @@ def capture_r8_owner_review(
         "expected_recorded_minutes_by_event_id": expected_minutes,
         "review_decisions": decisions,
         "newly_recorded_followup_event_id": followup_event_ids[0],
+        "native_entered_followup_minutes": followup_minutes,
+        "saved_followup_minutes_verified_from_api": True,
         "all_actions_from_real_android_ui": True,
         "human_visual_acceptance": "PENDING",
         "vision_model_used": False,
@@ -1782,14 +1812,22 @@ def capture_r8_owner_review(
     )
     if native_source_id not in followup_xml or expected_followup_id not in followup_xml:
         raise CaptureError("R8BJ actual Android follow-up did not display the authorized source ID")
-    if "记录时长" not in followup_xml or "后续观察" not in followup_xml:
-        raise CaptureError("R8BJ Android follow-up did not expose the raw recorded value")
+    if (f"记录时长 {followup_minutes} 分钟" not in followup_xml
+            or "后续观察" not in followup_xml
+            or "发生 " not in followup_xml
+            or "录入 " not in followup_xml):
+        raise CaptureError(
+            "R8BJ Android follow-up did not expose the exact numeric "
+            "owner-entered value and both event time dimensions"
+        )
     android.screenshot(directory / "followup-source-detail-native.png")
     save_manifest(directory / "followup-source-detail-truth.json", {
         "pet_id": pet_id,
         "case_id": case_id,
         "review_id": followup_review_id,
         "source_event_id": expected_followup_id,
+        "native_entered_followup_minutes": followup_minutes,
+        "raw_value_verified_in_android_xml": True,
         "source_role": None,
         "source_role_origin": "FOLLOW_UP_OBSERVATION",
         "api_scope": followup_source_page["scope"],

@@ -57,3 +57,19 @@ def test_android_review_drilldown_has_real_role_and_pet_scope_guards():
     assert '"SOURCE_SCOPE_MISMATCH"' in transport
     assert "page.review_id !== (reviewId ?? null)" in transport
     assert "不会倒填历史角色或推断宠物已恢复" in followup
+
+
+def test_r8bj_numeric_followup_is_typed_on_android_not_invented_by_api():
+    quicklog_ui = read("apps/mobile/src/screens/quicklog_sections.tsx")
+    quicklog_logic = read("apps/mobile/src/screens/QuickLogScreen.tsx")
+    capture = read("scripts/r5-6/capture-android-final.py")
+    assert 'testID="pli.quicklog.minutes"' in quicklog_ui
+    assert 'followup_minutes = 17' in capture
+    assert '"pli.quicklog.minutes", "quicklog-minutes-input.xml"' in capture
+    assert 'android.shell("input", "text", str(followup_minutes))' in capture
+    assert 'ui_control_text(minutes_ui, "pli.quicklog.minutes").strip()' in capture
+    assert '(source.get("payload") or {}).get("duration_minutes") != followup_minutes' in capture
+    assert 'f"记录时长 {followup_minutes} 分钟" not in followup_xml' in capture
+    assert '"raw_value_verified_in_android_xml": True' in capture
+    assert 'payload = duration > 0 ? { duration_minutes: duration } : {};' in quicklog_logic
+    assert "Never invent a default duration" in quicklog_logic
