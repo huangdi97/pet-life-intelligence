@@ -201,8 +201,10 @@ def decode_case_cursor(cursor: str) -> tuple[datetime, uuid.UUID]:
         created_at = datetime.fromisoformat(payload["t"])
         if created_at.utcoffset() is None:
             raise ValueError("naive cursor instant")
+        if not isinstance(payload["id"], str):
+            raise ValueError("non-string case ID")
         case_id = uuid.UUID(payload["id"])
-        if not isinstance(payload["id"], str) or str(case_id) != payload["id"]:
+        if str(case_id) != payload["id"]:
             raise ValueError("noncanonical case ID")
         return created_at, case_id
     except (ValueError, KeyError, TypeError, UnicodeError, binascii.Error) as exc:
