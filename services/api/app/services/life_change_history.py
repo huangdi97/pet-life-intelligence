@@ -92,6 +92,21 @@ def frozen_source_items(value: object) -> tuple[list[object], bool]:
     return (list(value), True) if isinstance(value, list) else ([], False)
 
 
+def safe_review_source_ids(value: object) -> tuple[list[str], bool]:
+    """Do not let corrupt historical Review JSONB reach owner UI arrays."""
+    items, shape_ok = frozen_source_items(value)
+    if not shape_ok:
+        return [], False
+    parsed = [parse_case_source_id(item) for item in items]
+    valid_ids = [str(item) for item in parsed if item is not None]
+    complete = (
+        all(item is not None for item in parsed)
+        and len(set(valid_ids)) == len(items)
+        and len(items) <= 12
+    )
+    return list(dict.fromkeys(valid_ids)), complete
+
+
 def parse_case_source_id(value: object) -> uuid.UUID | None:
     """Parse a legacy source identifier without throwing on corrupt JSON."""
     if not isinstance(value, str) or _CASE_UUID.fullmatch(value) is None:

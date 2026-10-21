@@ -215,12 +215,14 @@ def _review_response(row: LifeChangeReview, *, owner_view: bool = True) -> dict:
     # Life-change progress is shareable within DAILY_READ; the owner's free
     # text and linked task ID are not. A note may contain symptoms or private
     # context, and some tasks are clinical despite the Case being daily-only.
+    readable_ids, ids_valid = hist.safe_review_source_ids(row.related_event_ids)
     return {
         "review_id": str(row.id), "case_id": str(row.case_id),
         "pet_id": str(row.pet_id), "actor_id": str(row.actor_id),
         "reviewed_at": row.reviewed_at.isoformat(), "decision": row.decision,
         "note": row.note if owner_view else "",
-        "related_event_ids": row.related_event_ids,
+        "related_event_ids": readable_ids,
+        "related_evidence_shape_valid": ids_valid,
         "related_task_id": (
             str(row.related_task_id) if owner_view and row.related_task_id else None
         ),

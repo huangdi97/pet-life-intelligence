@@ -49,7 +49,7 @@ async def _review_scope_ids(
         raise NotFound("Owner review not found for this Case.")
     if review.decision != "RECORD_OBSERVATION":
         raise ValidationFailed("Only a recorded observation has follow-up sources.")
-    return history.frozen_source_items(review.related_event_ids)
+    return history.safe_review_source_ids(review.related_event_ids)
 
 
 async def _successor_by_event(

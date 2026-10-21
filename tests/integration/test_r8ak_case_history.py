@@ -279,6 +279,16 @@ def test_followup_source_integrity_detects_malformed_review_jsonb_not_case(clien
     assert healthy.status_code == 200, healthy.text
     assert healthy.json()["scope"] == "FOLLOW_UP_REVIEW"
     assert healthy.json()["evidence_shape_valid"] is True
+    detail = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}",
+        headers=auth(owner),
+    )
+    assert detail.status_code == 200
+    item = next(
+        row for row in detail.json()["reviews"] if row["review_id"] == review_id
+    )
+    assert item["related_evidence_shape_valid"] is True
+    assert item["related_event_ids"] == [actual.json()["event_id"]]
     assert healthy.json()["evidence_role_shape_valid"] is None
     assert [item["event_id"] for item in healthy.json()["sources"]] == [
         actual.json()["event_id"]
@@ -339,6 +349,16 @@ def test_followup_source_integrity_detects_malformed_review_jsonb_not_case(clien
         body = response.json()
         assert body["scope"] == "FOLLOW_UP_REVIEW"
         assert body["evidence_shape_valid"] is False
+        detail = client.get(
+            f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}",
+            headers=auth(owner),
+        )
+        assert detail.status_code == 200
+        item = next(
+            row for row in detail.json()["reviews"] if row["review_id"] == review_id
+        )
+        assert item["related_evidence_shape_valid"] is False
+        assert item["related_event_ids"] == []
         assert body["sources"] == []
         assert body["total"] == 0
         assert body["case_id"] == case["case_id"]
@@ -355,6 +375,39 @@ def test_followup_source_integrity_detects_malformed_review_jsonb_not_case(clien
     assert [row["event_id"] for row in restored.json()["sources"]] == [
         actual.json()["event_id"]
     ]
+    restored_detail = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}",
+        headers=auth(owner),
+    )
+    assert restored_detail.status_code == 200
+    restored_review = next(
+        row for row in restored_detail.json()["reviews"]
+        if row["review_id"] == review_id
+    )
+    assert restored_review["related_evidence_shape_valid"] is True
+
+    # Legacy arrays with duplicate casefold identities or non-string members
+    # cannot be shown as complete, yet genuine surviving IDs remain readable.
+    asyncio.run(overwrite_review_evidence([
+        actual.json()["event_id"], actual.json()["event_id"].upper(),
+        {"invalid": "not-a-uuid"},
+    ]))
+    mixed = client.get(url, params=params, headers=auth(owner))
+    detail = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}",
+        headers=auth(owner),
+    )
+    assert mixed.status_code == 200 and detail.status_code == 200
+    assert mixed.json()["evidence_shape_valid"] is False
+    assert [row["event_id"] for row in mixed.json()["sources"]] == [
+        actual.json()["event_id"]
+    ]
+    mixed_review = next(
+        row for row in detail.json()["reviews"] if row["review_id"] == review_id
+    )
+    assert mixed_review["related_evidence_shape_valid"] is False
+    assert mixed_review["related_event_ids"] == [actual.json()["event_id"]]
+
 
 
 def test_r8bh_malformed_frozen_role_map_never_forges_owner_source_membership(client, seeded):
