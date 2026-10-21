@@ -22,7 +22,7 @@ const SOURCE_TYPE: Record<string, string> = {
   LAB_CONFIRMED: "检测机构确认",
 };
 const REASON: Record<string, string> = {
-  VALID: "这条后续来源目前有效",
+  VALID: "记录本身有效，不代表后续干预产生了效果",
   RETRACTED: "记录已撤回",
   SUPERSEDED: "记录已被新的修正替代",
   WRONG_METRIC: "指标与本次观察不符",
@@ -151,7 +151,7 @@ export function FollowUpSourceEvidence({
           {visible?.rows.map((source) => (
             <View key={source.event_id} style={styles.source}
               testID={`pli.r8.followup-evidence.source.${source.event_id}`}>
-              <Text style={styles.heading}>后续观察 · {ownerEvidenceValue(source)}</Text>
+              <Text style={styles.heading}>后续观察 · {ownerEvidenceValue({ ...source, retracted_at: null })}</Text>
               <Text style={styles.caption}>
                 发生 {ownerEvidenceLocalTime(source.occurred_at)} · 录入 {ownerEvidenceLocalTime(source.recorded_at)}
               </Text>
