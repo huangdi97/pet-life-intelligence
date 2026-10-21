@@ -514,11 +514,19 @@ async def review_case(
             raise ValidationFailed("Follow-up evidence IDs must be distinct.")
         if set(related_ids) & set(case.evidence_event_ids):
             raise ValidationFailed("Original Case evidence is not a new follow-up.")
-        if not await _evidence_current(db, pet.id, related_ids, METRICS[case.metric]):
-            raise ValidationFailed("Related observation must be a current sourced event from this pet and metric.")
         related_rows = list((await db.execute(
             select(LifeEvent).where(LifeEvent.pet_id == pet.id, LifeEvent.id.in_(body.related_event_ids))
         )).scalars().all())
+        # A future-dated observation is an explicit temporal error, not a
+        # generic source-invalid message. The source IDs must all belong to
+        # this pet before returning the specific classification.
+        now = datetime.now(UTC)
+        if len(related_rows) == len(related_ids) and any(
+            e.occurred_at > now or e.recorded_at > now for e in related_rows
+        ):
+            raise ValidationFailed("Future-dated events cannot be follow-up observations.")
+        if not await _evidence_current(db, pet.id, related_ids, METRICS[case.metric]):
+            raise ValidationFailed("Related observation must be a current sourced event from this pet and metric.")
         # The frozen comparison clock defines the old baseline; created_at
         # defines when a real owner-followup loop first became possible.
         # Both recording and occurrence must be later than Case creation.
@@ -526,8 +534,6 @@ async def review_case(
             raise ValidationFailed("Follow-up must be recorded after Case creation.")
         if any(e.occurred_at <= case.created_at for e in related_rows):
             raise ValidationFailed("Backfilled past events are history, not follow-up observations.")
-        if any(e.occurred_at > datetime.now(UTC) for e in related_rows):
-            raise ValidationFailed("Future-dated events cannot be follow-up observations.")
     if body.related_task_id:
         task = (await db.execute(
             select(CareTask).where(
