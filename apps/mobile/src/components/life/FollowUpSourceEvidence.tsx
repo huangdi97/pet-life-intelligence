@@ -164,7 +164,7 @@ export function FollowUpSourceEvidence({
           {visible?.next != null ? (
             <Pressable style={styles.touch} accessibilityRole="button"
               testID={`pli.r8.followup-evidence.more.${reviewId}`}
-              disabled={loading} onPress={() => void load(visible.next!)}>
+              disabled={loading} onPress={() => { if (visible?.next != null) void load(visible.next); }}>
               <Text style={styles.link}>继续核对后续来源</Text>
             </Pressable>
           ) : visible && !visible.error ? (
