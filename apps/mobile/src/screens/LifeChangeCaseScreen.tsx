@@ -16,6 +16,7 @@ import type { StackParamList } from "../navigation";
 import { COLORS, SPACE, TYPE } from "../tokens";
 import { caseHistoryMetric, caseHistoryStatus, type LifeChangeCaseSummary } from "../components/life/ownerCaseHistory";
 import { CaseSourceList } from "../components/life/CaseSourceList";
+import { FollowUpSourceEvidence } from "../components/life/FollowUpSourceEvidence";
 import { CaseReviewActions } from "../components/life/CaseReviewActions";
 
 interface CaseReview {
@@ -193,6 +194,14 @@ export function LifeChangeCaseScreen() {
             ) : null}
             {review.related_event_ids.map((id) => <Text key={id} style={styles.id}
               testID={`pli.r8.case-detail.followup.${id}`}>后续事件 ID：{id}</Text>)}
+            {review.decision === "RECORD_OBSERVATION" ? (
+              <FollowUpSourceEvidence
+                petId={requestedPetId}
+                caseId={detail.case_id}
+                reviewId={review.review_id}
+                expectedSourceIds={review.related_event_ids}
+              />
+            ) : null}
             {review.note?.trim() ? <Text style={styles.body}>主人备注：{review.note}</Text> : null}
           </View>)}
       </View>
