@@ -51,7 +51,8 @@ def test_android_review_drilldown_has_real_role_and_pet_scope_guards():
     assert "generation.current !== epoch" in followup
     assert "ownerEvidenceLocalTime(source.occurred_at)" in followup
     assert "ownerEvidenceLocalTime(source.recorded_at)" in followup
-    assert "ownerEvidenceValue(source)" in followup
+    assert "ownerEvidenceValue({ ...source, retracted_at: null })" in followup
+    assert "不代表后续干预产生了效果" in followup
     assert "result.has_more ? result.next_offset : null" in followup
     assert '"SOURCE_SCOPE_MISMATCH"' in transport
     assert "page.review_id !== (reviewId ?? null)" in transport
