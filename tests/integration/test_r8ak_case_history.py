@@ -5,6 +5,8 @@ Case *creation* invariants are already covered by R8A/R8AG integration tests;
 these tests target read-side keyset stability and authorization.
 """
 import asyncio
+import base64
+import json
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
 
@@ -170,6 +172,51 @@ def test_history_rejects_tampered_cursor_and_ambiguous_clock(client, seeded):
         headers=auth(owner),
     )
     assert inverted.status_code == 422, inverted.text
+
+
+def test_history_cursor_rejects_non_utf8_invalid_padding_non_object_and_oversize(client, seeded):
+    """All malformed external cursors fail closed (422), not HTTP 500."""
+    owner, pet = seeded["owner_id"], _pet(client, seeded["owner_id"])
+    endpoint = f"/api/v1/pets/{pet}/life-change-cases"
+
+    def cursor_for_json(value):
+        return base64.urlsafe_b64encode(
+            json.dumps(value, separators=(",", ":")).encode("utf-8")
+        ).decode("ascii").rstrip("=")
+
+    malformed = [
+        "a",                    # invalid Base64 data length
+        "a!a",                  # illegal Base64 alphabet
+        "abc",                  # undecodable bytes
+        "W10",                  # JSON array, not a versioned object
+        "bnVsbA",               # JSON null
+        cursor_for_json(5),    # JSON number
+        cursor_for_json({"v": 1, "t": "2026-10-21T10:00:00Z", "id": 7}),
+        cursor_for_json({"v": 1, "t": "2026-10-21T10:00:00", "id": str(uuid.uuid4())}),
+        "A" * 1025,             # length budget
+    ]
+    for cursor in malformed:
+        response = client.get(
+            endpoint, params={"cursor": cursor}, headers=auth(owner),
+        )
+        assert response.status_code == 422, (cursor[:60], response.text)
+
+    # The immutable position emitted by the server must remain round-trippable.
+    now = datetime.now(UTC).replace(microsecond=0)
+    _seed_cases(pet, owner, [
+        ("walk_minutes_per_day", now - timedelta(minutes=i)) for i in (1, 2, 3)
+    ])
+    first = client.get(
+        endpoint, params={"limit": 1}, headers=auth(owner),
+    )
+    assert first.status_code == 200, first.text
+    cursor = first.json()["next_cursor"]
+    assert cursor is not None
+    second = client.get(
+        endpoint, params={"limit": 1, "cursor": cursor}, headers=auth(owner),
+    )
+    assert second.status_code == 200, second.text
+    assert first.json()["cases"][0]["case_id"] != second.json()["cases"][0]["case_id"]
 
 
 def test_case_sources_are_authorized_real_events_with_frozen_roles(client, seeded):

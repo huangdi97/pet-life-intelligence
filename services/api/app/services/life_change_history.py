@@ -12,6 +12,7 @@ and clinical text are never queried here.
 from __future__ import annotations
 
 import base64
+import binascii
 import json
 import re
 import uuid
@@ -176,17 +177,35 @@ def encode_case_cursor(created_at: datetime, case_id: uuid.UUID) -> str:
     return base64.urlsafe_b64encode(raw.encode("utf-8")).decode("ascii").rstrip("=")
 
 
+# A cursor is a pagination position, NOT an access token. Bound untrusted
+# Base64/JSON before parsing so malformed page links never produce HTTP 500 or
+# allow an arbitrarily large decode allocation.
+MAX_CURSOR_LENGTH = 1024
+_CURSOR_ALPHABET = re.compile(r"^[A-Za-z0-9_-]+$")
+
+
 def decode_case_cursor(cursor: str) -> tuple[datetime, uuid.UUID]:
+    if (
+        not isinstance(cursor, str)
+        or not cursor
+        or len(cursor) > MAX_CURSOR_LENGTH
+        or _CURSOR_ALPHABET.fullmatch(cursor) is None
+    ):
+        raise ValidationFailed("Case history cursor is invalid or unsupported.")
     try:
         padded = cursor + "=" * (-len(cursor) % 4)
-        payload = json.loads(base64.urlsafe_b64decode(padded.encode("ascii")))
-        if payload.get("v") != CURSOR_VERSION:
-            raise ValueError("unsupported cursor version")
+        decoded = base64.b64decode(padded.encode("ascii"), altchars=b"-_", validate=True)
+        payload = json.loads(decoded.decode("utf-8"))
+        if not isinstance(payload, dict) or payload.get("v") != CURSOR_VERSION:
+            raise ValueError("unsupported cursor version or shape")
         created_at = datetime.fromisoformat(payload["t"])
         if created_at.utcoffset() is None:
             raise ValueError("naive cursor instant")
-        return created_at, uuid.UUID(payload["id"])
-    except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        case_id = uuid.UUID(payload["id"])
+        if not isinstance(payload["id"], str) or str(case_id) != payload["id"]:
+            raise ValueError("noncanonical case ID")
+        return created_at, case_id
+    except (ValueError, KeyError, TypeError, UnicodeError, binascii.Error) as exc:
         raise ValidationFailed("Case history cursor is invalid or unsupported.") from exc
 
 
