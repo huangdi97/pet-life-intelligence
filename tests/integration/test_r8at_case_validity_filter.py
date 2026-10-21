@@ -461,7 +461,10 @@ def test_r8bg_legacy_non_array_source_jsonb_is_inspectable_but_never_valid(clien
     source_path = f"{case_path}/sources"
     original = client.get(case_path, headers=auth(owner)).json()
     frozen = original["evidence_event_ids"]
+    frozen_roles = original["evidence_role_by_event_id"]
     assert frozen and isinstance(frozen, list)
+    assert isinstance(frozen_roles, dict) and set(frozen_roles) == set(frozen)
+    assert set(frozen_roles.values()) == {"CURRENT", "HISTORICAL"}
 
     async def corrupt(payload, roles):
         async with get_session_factory()() as db:
@@ -494,7 +497,9 @@ def test_r8bg_legacy_non_array_source_jsonb_is_inspectable_but_never_valid(clien
         assert sources.json()["sources"] == []
         assert sources.json()["total"] == 0
 
-    asyncio.run(corrupt(frozen, {frozen[0]: "CURRENT"}))
+    # Restore the COMPLETE creation-time role partition, not a single
+    # first-source label. A partial map is invalid under the R8BH contract.
+    asyncio.run(corrupt(frozen, frozen_roles))
     restored = client.get(case_path, headers=auth(owner))
     assert restored.status_code == 200, restored.text
     assert restored.json()["source_valid"] is True
