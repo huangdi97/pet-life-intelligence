@@ -17,6 +17,7 @@ interface Review {
   decision: string;
   note: string;
   related_event_ids: string[];
+  related_evidence_shape_valid?: boolean;
   related_sources_valid: boolean | null;
 }
 interface Detail {
@@ -326,6 +327,11 @@ export default function ObservationDetailPage() {
                     {row.related_sources_valid === true ? "后续记录目前有效"
                       : row.related_sources_valid === false ? "后续记录已撤回或修正，需重新核对"
                         : "后续记录有效性待核实"}
+                  </Text>
+                ) : null}
+                {row.related_evidence_shape_valid === false ? (
+                  <Text className="muted" data-testid={`pli.r8.mini-followup-integrity.${row.review_id}`}>
+                    历史后续来源格式异常，部分原始事件标识无法核对。
                   </Text>
                 ) : null}
                 {row.related_event_ids.map((eventId) => (

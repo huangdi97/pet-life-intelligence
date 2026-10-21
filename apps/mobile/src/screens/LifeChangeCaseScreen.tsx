@@ -24,6 +24,7 @@ interface CaseReview {
   decision: string;
   note: string;
   related_event_ids: string[];
+  related_evidence_shape_valid?: boolean;
   related_sources_valid: boolean | null;
 }
 interface CaseDetail extends LifeChangeCaseSummary {
@@ -185,6 +186,11 @@ export function LifeChangeCaseScreen() {
                 {review.related_sources_valid === true ? "后续记录目前有效" :
                   review.related_sources_valid === false ? "后续记录已撤回或修正，需重新核对" : "后续记录有效性待核实"}
               </Text> : null}
+            {review.related_evidence_shape_valid === false ? (
+              <Text style={styles.warning} testID={`pli.r8.case-detail.followup-integrity.${review.review_id}`}>
+                历史后续来源格式异常，部分原始事件标识无法核对。
+              </Text>
+            ) : null}
             {review.related_event_ids.map((id) => <Text key={id} style={styles.id}
               testID={`pli.r8.case-detail.followup.${id}`}>后续事件 ID：{id}</Text>)}
             {review.note?.trim() ? <Text style={styles.body}>主人备注：{review.note}</Text> : null}

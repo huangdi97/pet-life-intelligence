@@ -16,6 +16,7 @@ interface CaseReview {
   decision: string;
   note: string;
   related_event_ids: string[];
+  related_evidence_shape_valid?: boolean;
   related_sources_valid: boolean | null;
 }
 interface CaseDetail extends WebCaseSummary {
@@ -335,6 +336,11 @@ export default function LifeChangeCaseDetailPage({
                 {item.related_sources_valid === true ? "后续记录目前有效"
                   : item.related_sources_valid === false ? "后续记录已撤回或修正，需重新核对"
                     : "后续记录有效性待核实"}
+              </div>
+            ) : null}
+            {item.related_evidence_shape_valid === false ? (
+              <div className="r8-warn" data-testid={`pli.r8.web-case.followup-integrity.${item.review_id}`}>
+                历史后续来源格式异常，部分原始事件标识无法核对。
               </div>
             ) : null}
             {item.related_event_ids.map((eventId) => (

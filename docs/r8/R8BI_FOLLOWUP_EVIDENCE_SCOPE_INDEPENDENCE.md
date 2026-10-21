@@ -19,3 +19,10 @@
 此提交不代表所有 Review 来源详情在 Android/Web/Mini 都已经可直接展开。不得将 API 的来源 ID、数值或权限凭空映射为真实影像、诊断结论或 3D 重建。
 
 **门槛：** Backend Ruff + full pytest、Frontend、Blind UI、Browser Playwright、Android APK 与真实模拟器取证，全部针对 exact HEAD。NO_VISION_MODEL_USED=TRUE，HUMAN_VISUAL_ACCEPTANCE=PENDING。PR #2 不合并，不发布，不晋升基线。
+
+## R8BI-R2 · 历史 Review 来源数组的详情页安全解释
+
+- `_review_response` 原先将旧 `related_event_ids` JSONB 原样返回；它可能是字符串、对象、null、重复大小写 UUID 或包含错误成员的数组，导致三端直接 `.map` 崩溃或误把不完整历史视为可核对。
+- 服务端新 `safe_review_source_ids` 仅对严格 UUID 生成规范化、去重的可读取 ID 列表，附带 `related_evidence_shape_valid`。错误历史内容仍留在数据库，不覆盖主人 Review；合法剩余来源仍然可见。
+- `/sources?review_id` 与 Case 详情共享该安全解释；Android、Web、Mini 只有在服务端**明确返回 false** 时展示“历史后续来源格式异常”，不会把旧服务器缺少该字段擅自视为异常。
+- 真实集成回归模拟损坏/恢复 Review JSONB，确认详情仍 200、来源不会变成 HTML/React 非法对象、独立原始 Case 身份仍保留。自动化 PASS 不等于人眼认可 UI。
