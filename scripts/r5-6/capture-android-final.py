@@ -1711,18 +1711,48 @@ def capture_r8_owner_review(
         "no_vision_model": True,
     })
 
+    # A testID in the hierarchy alone is NOT proof of a successful touch.
+    # On long Case pages a Pressable can be offscreen/under the tab bar; an
+    # unsafely tapped toggle previously produced zero source API requests,
+    # yet the harness continued to demand all 13 source rows from native XML.
+    source_toggle = "pli.r8.case-detail.sources.open"
+    tap_control_safely(
+        source_toggle, "case-detail-open-source-action.xml",
+        scroll_direction="up", attempts=20,
+    )
     opened_sources = False
-    for step in range(12):
+    for step in range(32):
+        time.sleep(0.6 if step else 1.2)
         current_xml = android.dump_xml(directory / f"case-detail-open-{step:02d}.xml")
-        if "pli.r8.case-detail.sources.open" in current_xml:
-            android.tap(current_xml, "pli.r8.case-detail.sources.open", "id")
+        if "pli.r8.case-detail.sources.error" in current_xml:
+            raise CaptureError(
+                "R8AK native Case source GET failed: inspect exact API and UI XML; "
+                "never substitute frozen Case IDs for an unreadable source list"
+            )
+        if (
+            "pli.r8.case-detail.sources.progress" in current_xml
+            or any(f"pli.r8.case-detail.source.{event_id}" in current_xml
+                   for event_id in case_source_ids)
+        ):
             opened_sources = True
-            time.sleep(1.2)
             break
-        android.shell("input", "swipe", "780", "1690", "780", "840", "290")
-        time.sleep(0.4)
+        if step in (8, 18) and ui_has_actionable_control(current_xml, source_toggle):
+            label = ui_control_description(current_xml, source_toggle)
+            if "查看来源" in label:
+                tap_control_safely(
+                    source_toggle, f"case-detail-open-retry-{step}.xml",
+                    scroll_direction="up", attempts=12,
+                )
+                continue
+        # The toggle might have opened successfully near the bottom of the
+        # viewport; a small downward-content swipe reveals the real progress.
+        if step > 3 and step % 4 == 0:
+            android.shell("input", "swipe", "780", "1630", "780", "1090", "280")
     if not opened_sources:
-        raise CaptureError("R8AK owner could not open the Case source detail")
+        raise CaptureError(
+            "R8AK real Android source panel never exposed its progress or "
+            "any authorized source row after a safe, enabled native tap"
+        )
     if detail_api.get("pet_id") != pet_id or detail_api.get("case_id") != case_id:
         raise CaptureError("R8AJ detail API returned a different pet or Case")
     if len(expected_reviews) < 2:

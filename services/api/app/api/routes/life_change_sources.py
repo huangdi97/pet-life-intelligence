@@ -142,9 +142,15 @@ async def list_case_sources(
     # A currently valid source event is not automatically a legitimate
     # *follow-up*: the owner Review must cite a new observation, not recycle
     # an original comparison event or backfill the period before the Case.
+    # Never overwrite the `parsed` list used in missing_event_ids below.
+    # Assignment expressions in a comprehension bind in the containing scope,
+    # so a prior "parsed := UUID(...)" left a UUID where a list was required.
     original_case_ids = {
-        parsed for item in original_ids
-        if (parsed := history.parse_case_source_id(item)) is not None
+        source_id
+        for source_id in (
+            history.parse_case_source_id(item) for item in original_ids
+        )
+        if source_id is not None
     }
     now = datetime.now(UTC)
     sources = []
