@@ -101,7 +101,13 @@ export async function listCaseSources(
   if (page.pet_id !== petId || page.case_id !== caseId) {
     throw new Error("SOURCE_IDENTITY_MISMATCH");
   }
-  if (page.sources.some((item) => item.pet_id !== petId)) {
+  // A Case source query cannot be silently answered with a Review scope or
+  // vice versa. Identities are not just optional presentation metadata.
+  if (page.scope !== (reviewId ? "FOLLOW_UP_REVIEW" : "CASE_EVIDENCE") ||
+      page.review_id !== (reviewId ?? null)) {
+    throw new Error("SOURCE_SCOPE_MISMATCH");
+  }
+  if (page.sources.some((item) => item.pet_id !== petId || item.scope !== page.scope)) {
     throw new Error("SOURCE_PET_MISMATCH");
   }
   return page;
