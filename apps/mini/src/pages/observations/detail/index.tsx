@@ -27,6 +27,8 @@ interface Detail {
   baseline_value: number;
   sample_days: number;
   evidence_event_ids: string[];
+  evidence_role_shape_valid?: boolean;
+  evidence_shape_valid?: boolean;
   source_valid: boolean;
   follow_up_source_valid?: boolean | null;
   state: string;
@@ -269,6 +271,11 @@ export default function ObservationDetailPage() {
               {fmtTime(detail.computed_at)}
             </Text>
             <Text className="muted">不能据此推断疾病或已恢复。</Text>
+            {(detail.evidence_shape_valid === false || detail.evidence_role_shape_valid === false) ? (
+              <Text className="muted" data-testid="pli.r8.mini-case.frozen-integrity">
+                历史来源或角色字段格式异常，无法确认所有依据已核对。
+              </Text>
+            ) : null}
           </View>
 
           {linkedEvent ? (

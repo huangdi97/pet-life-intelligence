@@ -30,6 +30,8 @@ interface CaseDetail extends LifeChangeCaseSummary {
   computed_at: string;
   evidence_role_by_event_id: Record<string, "CURRENT" | "HISTORICAL"> | null;
   evidence_role_source: "FROZEN_AT_CREATION" | "LEGACY_DATE_DERIVED";
+  evidence_role_shape_valid?: boolean;
+  evidence_shape_valid?: boolean;
   uncertainty: string;
   truth_note: string;
   owner_can_review: boolean;
@@ -153,6 +155,11 @@ export function LifeChangeCaseScreen() {
         <Text style={styles.body}>当时已记录 {detail.current_value}{unit} · 同期参考 {detail.baseline_value}{unit}</Text>
         <Text style={styles.caption}>{detail.sample_days} 天可比参考 · {detail.evidence_event_ids.length} 条原始来源</Text>
         <Text style={styles.caption}>对比时间 {dateText(detail.computed_at)} · 不能据此推断疾病或已恢复</Text>
+        {(detail.evidence_shape_valid === false || detail.evidence_role_shape_valid === false) ? (
+          <Text style={styles.body} testID="pli.r8.case-detail.frozen-integrity">
+            历史来源或角色字段格式异常，无法确认所有依据已核对。
+          </Text>
+        ) : null}
       </View>
 
       <CaseReviewActions
@@ -191,6 +198,7 @@ export function LifeChangeCaseScreen() {
         expectedSourceIds={detail.evidence_event_ids}
         frozenRoles={detail.evidence_role_by_event_id}
         roleSource={detail.evidence_role_source}
+        roleIntegrityValid={detail.evidence_role_shape_valid !== false}
         metric={detail.metric}
         ownerCanRetract={detail.owner_can_review === true}
         onRetracted={() => setReload((n) => n + 1)}

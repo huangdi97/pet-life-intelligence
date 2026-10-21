@@ -22,6 +22,8 @@ interface CaseDetail extends WebCaseSummary {
   computed_at: string;
   evidence_role_source: "FROZEN_AT_CREATION" | "LEGACY_DATE_DERIVED";
   evidence_role_by_event_id: Record<string, "CURRENT" | "HISTORICAL"> | null;
+  evidence_role_shape_valid?: boolean;
+  evidence_shape_valid?: boolean;
   uncertainty: string;
   truth_note: string;
   owner_can_review: boolean;
@@ -275,6 +277,11 @@ export default function LifeChangeCaseDetailPage({
           {detail.sample_days} 天可比参考 · {detail.evidence_event_ids.length} 条原始来源 ·
           对比时间 {timeText(detail.computed_at)} · 不能据此推断疾病或已恢复
         </p>
+        {(detail.evidence_shape_valid === false || detail.evidence_role_shape_valid === false) ? (
+          <p className="r8-warn" data-testid="pli.r8.web-case.frozen-integrity">
+            历史来源或角色字段格式异常，无法确认所有依据已核对。
+          </p>
+        ) : null}
       </section>
 
       <section className="v4-sec" data-testid="pli.r8.web-case.review-actions">
@@ -341,9 +348,11 @@ export default function LifeChangeCaseDetailPage({
       <section className="v4-sec" data-testid="pli.r8.web-case.sources">
         <h2 className="v4-sec-title">当时依据什么？</h2>
         <p className="muted">
-          {detail.evidence_role_source === "FROZEN_AT_CREATION"
-            ? "当日依据与同期参考的角色在创建时由服务器冻结，不随浏览器时区重算。"
-            : "旧记录没有冻结角色：只按当时日期规则兼容推算，来源身份仍可核对。"}
+          {detail.evidence_role_shape_valid === false
+            ? "原始来源角色无法核实；不使用浏览器时间推算确定角色。"
+            : detail.evidence_role_source === "FROZEN_AT_CREATION"
+              ? "当日依据与同期参考的角色在创建时由服务器冻结，不随浏览器时区重算。"
+              : "旧记录没有冻结角色：只按当时日期规则兼容推算，来源身份仍可核对。"}
         </p>
         <button type="button" className="btn" onClick={() => loadSources(0)} data-testid="pli.r8.web-case.sources.open">
           查看来源时间与数值

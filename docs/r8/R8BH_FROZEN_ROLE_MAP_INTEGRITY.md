@@ -17,3 +17,7 @@ R8BG correctly handles malformed `evidence_event_ids` containers. It previously 
 Real Case created through public API, followed by direct isolated mutation of historical JSONB under test; test missing/extra source, forged role, duplicate casefold identity, non-map types, preserved API access, restored uppercase-only happy path and honest legacy SQL NULL behaviour. CI Backend, Browser, Android and OpenAPI must be confirmed for the *new exact HEAD*.
 
 `NO_VISION_MODEL_USED = TRUE`, `HUMAN_VISUAL_ACCEPTANCE = PENDING`. No Release, merge, tag, synthetic provenance, or screenshot baseline promotion.
+
+## R8BH-R2 · Owner UI first-fold disclosure
+
+Android, Web and Mini Case detail pages now show the exact same source-integrity warning on the *first fold* when the server reports either `evidence_shape_valid=false` or `evidence_role_shape_valid=false`. Android and Web also suppress misleading 'frozen roles certainly known' introductory copy when membership is corrupt. Expanding the source list still supplies the full event identifiers, raw recorded values and independent per-item validation reasons. An absent optional flag on an older server is not automatically called corrupt. Blind UI parity regression added; real native screenshots and human approval remain separately gated.

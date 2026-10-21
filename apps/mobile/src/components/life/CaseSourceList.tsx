@@ -33,7 +33,7 @@ const SOURCE_LABELS: Record<string, string> = {
 
 export function CaseSourceList({
   petId, caseId, computedAt, expectedSourceIds, frozenRoles, roleSource,
-  metric, ownerCanRetract, onRetracted,
+  roleIntegrityValid, metric, ownerCanRetract, onRetracted,
 }: {
   petId: string;
   caseId: string;
@@ -41,6 +41,7 @@ export function CaseSourceList({
   expectedSourceIds: string[];
   frozenRoles: Record<string, "CURRENT" | "HISTORICAL"> | null;
   roleSource: "FROZEN_AT_CREATION" | "LEGACY_DATE_DERIVED";
+  roleIntegrityValid: boolean;
   metric: string;
   ownerCanRetract: boolean;
   onRetracted: () => void;
@@ -170,9 +171,11 @@ export function CaseSourceList({
     <View style={styles.section} testID="pli.r8.case-detail.evidence">
       <Text style={styles.heading}>当时依据什么？</Text>
       <Text style={styles.caption}>
-        {roleSource === "FROZEN_AT_CREATION"
-          ? "当日依据与同期参考的角色在创建时由服务器冻结，不随手机时区重算。"
-          : "旧记录没有冻结角色：只按当时日期规则兼容推算，来源身份仍可核对。"}
+        {!roleIntegrityValid
+          ? "原始来源角色无法核实；不会使用手机日期推算出确定的对比角色。"
+          : roleSource === "FROZEN_AT_CREATION"
+            ? "当日依据与同期参考的角色在创建时由服务器冻结，不随手机时区重算。"
+            : "旧记录没有冻结角色：只按当时日期规则兼容推算，来源身份仍可核对。"}
       </Text>
       <Text style={styles.caption}>
         每条来源分别保留记录值、发生时间、录入时间、来源类型与完整事件标识；显示 ID 不等于已看到原始媒体。
