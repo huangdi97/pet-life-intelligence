@@ -155,10 +155,9 @@ def test_history_search_filters_metrics_and_time_window(client, seeded):
 
 def test_history_search_treats_percent_underscore_and_backslash_as_literals(client, seeded):
     """Owner questions are searched as text, not client-provided LIKE patterns."""
-    from sqlalchemy import update
-
     from app.core.db import get_session_factory
     from app.models import LifeChangeCase
+    from sqlalchemy import update
 
     owner = seeded["owner_id"]
     pet = _pet(client, owner, "R8BM Literal Search Pet")
