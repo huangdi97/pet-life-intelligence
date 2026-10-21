@@ -25,7 +25,7 @@ export interface CaseSourceEvent {
   retracted_at: string | null;
   supersedes_event_id?: string | null;
   role: "CURRENT" | "HISTORICAL" | null;
-  role_source: "FROZEN_AT_CREATION" | "LEGACY_DATE_DERIVED";
+  role_source: "FROZEN_AT_CREATION" | "LEGACY_DATE_DERIVED" | "FOLLOW_UP_OBSERVATION";
   scope: "CASE_EVIDENCE" | "FOLLOW_UP_REVIEW";
   valid: boolean;
   validity_reason?: "VALID" | "RETRACTED" | "SUPERSEDED" | "WRONG_METRIC" | "NON_FACT_SOURCE";
@@ -44,7 +44,7 @@ export interface CaseSourcePage {
   next_offset: number | null;
   missing_event_ids: string[];
   evidence_shape_valid?: boolean;
-  evidence_role_shape_valid?: boolean;
+  evidence_role_shape_valid?: boolean | null;
 }
 
 export interface CaseHistoryPage {

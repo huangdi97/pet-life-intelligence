@@ -254,7 +254,7 @@ def test_old_case_detail_exposes_continue_review_token(client, seeded):
 def test_followup_source_integrity_detects_malformed_review_jsonb_not_case(client, seeded):
     """A healthy parent Case cannot certify an invalid Review source container."""
     from app.core.db import get_session_factory
-    from app.models import LifeChangeReview
+    from app.models import LifeChangeCase, LifeChangeReview
     from sqlalchemy import update
 
     owner = seeded["owner_id"]
@@ -279,9 +279,47 @@ def test_followup_source_integrity_detects_malformed_review_jsonb_not_case(clien
     assert healthy.status_code == 200, healthy.text
     assert healthy.json()["scope"] == "FOLLOW_UP_REVIEW"
     assert healthy.json()["evidence_shape_valid"] is True
+    assert healthy.json()["evidence_role_shape_valid"] is None
     assert [item["event_id"] for item in healthy.json()["sources"]] == [
         actual.json()["event_id"]
     ]
+    # This is the REVIEW's observation, never an original Case CURRENT or
+    # HISTORICAL reference, even when original role partition is healthy.
+    assert all(item["role"] is None for item in healthy.json()["sources"])
+    assert all(
+        item["role_source"] == "FOLLOW_UP_OBSERVATION"
+        for item in healthy.json()["sources"]
+    )
+
+    async def overwrite_case_roles(raw_value):
+        async with get_session_factory()() as db:
+            await db.execute(
+                update(LifeChangeCase)
+                .where(LifeChangeCase.id == uuid.UUID(case["case_id"]))
+                .values(evidence_role_by_event_id=raw_value)
+            )
+            await db.commit()
+
+    # Corrupting the parent Case MUST NOT turn a healthy follow-up observation
+    # into a falsely "invalid frozen role map" review. The original Case
+    # retains its own explicit integrity warning.
+    asyncio.run(overwrite_case_roles({str(uuid.uuid4()): "CURRENT"}))
+    corrupt_parent = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}",
+        headers=auth(owner),
+    )
+    assert corrupt_parent.status_code == 200
+    assert corrupt_parent.json()["evidence_role_shape_valid"] is False
+    unaffected = client.get(url, params=params, headers=auth(owner))
+    assert unaffected.status_code == 200, unaffected.text
+    assert unaffected.json()["evidence_shape_valid"] is True
+    assert unaffected.json()["evidence_role_shape_valid"] is None
+    assert [row["role"] for row in unaffected.json()["sources"]] == [None]
+    assert all(
+        row["role_source"] == "FOLLOW_UP_OBSERVATION"
+        for row in unaffected.json()["sources"]
+    )
+    asyncio.run(overwrite_case_roles(case["evidence_role_by_event_id"]))
 
     async def overwrite_review_evidence(raw_value):
         factory = get_session_factory()

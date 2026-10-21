@@ -123,20 +123,28 @@ async def list_case_sources(
     total = len(ordered)
     window = ordered[offset:offset + limit]
     serialized = {item["event_id"]: item for item in _serialize(window, actors)}
-    role_map, role_integrity_valid = history.validated_frozen_roles(
-        case.evidence_event_ids, case.evidence_role_by_event_id,
-    )
-    # Invalid frozen maps never yield confident "today" / "historical"
-    # labels. They remain inspectable but the owner sees explicit uncertainty.
-    normalized_roles = {
-        uuid.UUID(source_id): role
-        for source_id, role in (role_map or {}).items()
-    }
+    # The original Case comparison owns its frozen CURRENT/HISTORICAL role
+    # partition. A later observation Review has a distinct evidence container
+    # and does NOT inherit the Case's role map or integrity status. Otherwise
+    # corrupted old comparison roles can falsely taint a healthy follow-up,
+    # and reused event IDs can be mislabelled as original comparison evidence.
+    if review_id is None:
+        role_map, role_integrity_valid = history.validated_frozen_roles(
+            case.evidence_event_ids, case.evidence_role_by_event_id,
+        )
+        normalized_roles = {
+            uuid.UUID(source_id): role
+            for source_id, role in (role_map or {}).items()
+        }
+    else:
+        normalized_roles = {}
+        role_integrity_valid = None
     sources = []
     for event in window:
         payload = serialized[str(event.id)]
         payload["role"] = normalized_roles.get(event.id)
         payload["role_source"] = (
+            "FOLLOW_UP_OBSERVATION" if review_id is not None else
             "FROZEN_AT_CREATION" if case.evidence_role_by_event_id is not None
             else "LEGACY_DATE_DERIVED"
         )
