@@ -477,10 +477,9 @@ def test_r8bh_malformed_frozen_role_map_never_forges_owner_source_membership(cli
 
 def test_r8bk_review_source_details_match_owner_followup_temporal_eligibility(client, seeded):
     """A valid raw walk is not necessarily a *new* follow-up to this Case."""
-    from sqlalchemy import update
-
     from app.core.db import get_session_factory
     from app.models import LifeChangeReview
+    from sqlalchemy import update
 
     owner = seeded["owner_id"]
     pet, case = _real_case(client, owner)
