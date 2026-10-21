@@ -153,6 +153,48 @@ def test_history_search_filters_metrics_and_time_window(client, seeded):
     assert sleep_id not in {item["case_id"] for item in window.json()["cases"]}
 
 
+def test_history_search_treats_percent_underscore_and_backslash_as_literals(client, seeded):
+    """Owner questions are searched as text, not client-provided LIKE patterns."""
+    from sqlalchemy import update
+
+    from app.core.db import get_session_factory
+    from app.models import LifeChangeCase
+
+    owner = seeded["owner_id"]
+    pet = _pet(client, owner, "R8BM Literal Search Pet")
+    created_at = datetime.now(UTC).replace(microsecond=0)
+    a, b, c, plain = _seed_cases(pet, owner, [
+        ("walk_minutes_per_day", created_at - timedelta(minutes=i))
+        for i in (1, 2, 3, 4)
+    ])
+    async def rewrite():
+        async with get_session_factory()() as db:
+            for item_id, title in (
+                (a, "进展达到 50%记录"),
+                (b, "主人写入 _记录"),
+                (c, r"保存到 C:\\记录"),
+                (plain, "普通历史描述"),
+            ):
+                await db.execute(
+                    update(LifeChangeCase)
+                    .where(LifeChangeCase.id == uuid.UUID(item_id))
+                    .values(human_question=title)
+                )
+            await db.commit()
+
+    asyncio.run(rewrite())
+    url = f"/api/v1/pets/{pet}/life-change-cases"
+    for text_value, expected_id in (("%", a), ("_", b), ("\\", c)):
+        result = client.get(url, params={"q": text_value}, headers=auth(owner))
+        assert result.status_code == 200, (text_value, result.text)
+        assert result.json()["total"] == 1, text_value
+        assert [row["case_id"] for row in result.json()["cases"]] == [expected_id]
+
+    ordinary = client.get(url, params={"q": "普通"}, headers=auth(owner))
+    assert ordinary.status_code == 200
+    assert [row["case_id"] for row in ordinary.json()["cases"]] == [plain]
+
+
 def test_history_rejects_tampered_cursor_and_ambiguous_clock(client, seeded):
     owner = seeded["owner_id"]
     pet = _pet(client, owner)

@@ -211,6 +211,16 @@ def decode_case_cursor(cursor: str) -> tuple[datetime, uuid.UUID]:
         raise ValidationFailed("Case history cursor is invalid or unsupported.") from exc
 
 
+def escape_like_literal(value: str) -> str:
+    """Treat an owner's Case-history search as text, never a LIKE pattern.
+
+    % and _ are wildcards in SQL ILIKE, and a backslash is the explicit
+    escape character. Without escaping, an owner search for "%" silently
+    returns all Cases in the pet-scoped history, not Cases containing "%".
+    """
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def metrics_matching(search: str) -> list[str]:
     term = search.strip().lower()
     if not term:
@@ -241,7 +251,11 @@ def apply_history_filters(
     if search and search.strip():
         term = search.strip()
         matched_metrics = metrics_matching(term)
-        clauses = [LifeChangeCase.human_question.ilike(f"%{term}%")]
+        clauses = [
+            LifeChangeCase.human_question.ilike(
+                f"%{escape_like_literal(term)}%", escape="\\",
+            )
+        ]
         if matched_metrics:
             clauses.append(LifeChangeCase.metric.in_(matched_metrics))
         stmt = stmt.where(or_(*clauses))
