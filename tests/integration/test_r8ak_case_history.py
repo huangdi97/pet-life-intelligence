@@ -473,3 +473,99 @@ def test_r8bh_malformed_frozen_role_map_never_forges_owner_source_membership(cli
     assert legacy["evidence_role_shape_valid"] is True
     assert legacy["evidence_role_by_event_id"] is None
     assert legacy["evidence_role_source"] == "LEGACY_DATE_DERIVED"
+
+
+def test_r8bk_review_source_details_match_owner_followup_temporal_eligibility(client, seeded):
+    """A valid raw walk is not necessarily a *new* follow-up to this Case."""
+    from sqlalchemy import update
+
+    from app.core.db import get_session_factory
+    from app.models import LifeChangeReview
+
+    owner = seeded["owner_id"]
+    pet, case = _real_case(client, owner)
+    case_id = case["case_id"]
+    followup = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 17}},
+        headers=auth(owner),
+    )
+    assert followup.status_code == 201, followup.text
+    current_id = followup.json()["event_id"]
+    review = client.post(
+        f"/api/v1/pets/{pet}/life-change-cases/{case_id}/reviews",
+        json={"decision": "RECORD_OBSERVATION", "related_event_ids": [current_id]},
+        headers=auth(owner),
+    )
+    assert review.status_code == 201, review.text
+    review_id = review.json()["review_id"]
+    source_url = f"/api/v1/pets/{pet}/life-change-cases/{case_id}/sources"
+    detail_url = f"/api/v1/pets/{pet}/life-change-cases/{case_id}"
+
+    def read_source():
+        response = client.get(
+            source_url, params={"review_id": review_id}, headers=auth(owner),
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["scope"] == "FOLLOW_UP_REVIEW"
+        assert len(body["sources"]) == 1
+        return body["sources"][0]
+
+    def read_review_validity():
+        response = client.get(detail_url, headers=auth(owner))
+        assert response.status_code == 200, response.text
+        return next(
+            item["related_sources_valid"] for item in response.json()["reviews"]
+            if item["review_id"] == review_id
+        )
+
+    async def rewrite_review_sources(ids):
+        async with get_session_factory()() as db:
+            await db.execute(
+                update(LifeChangeReview)
+                .where(LifeChangeReview.id == uuid.UUID(review_id))
+                .values(related_event_ids=ids)
+            )
+            await db.commit()
+
+    original = read_source()
+    assert original["valid"] is True
+    assert original["validity_reason"] == "VALID"
+    assert read_review_validity() is True
+
+    # A legacy import can incorrectly reuse an original comparison record.
+    old_id = case["evidence_event_ids"][0]
+    asyncio.run(rewrite_review_sources([old_id]))
+    recycled = read_source()
+    assert recycled["event_id"] == old_id
+    assert recycled["valid"] is False
+    assert recycled["validity_reason"] == "REUSED_CASE_EVIDENCE"
+    assert read_review_validity() is False
+
+    # An event entered after Case creation but *occurred before* creation is
+    # historical backfill, not a new owner follow-up.
+    backfill = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={
+            "event_type": "daily.walk",
+            "payload": {"duration_minutes": 19},
+            "occurred_at": (datetime.now(UTC) - timedelta(hours=6)).isoformat(),
+        },
+        headers=auth(owner),
+    )
+    assert backfill.status_code == 201, backfill.text
+    backfill_id = backfill.json()["event_id"]
+    asyncio.run(rewrite_review_sources([backfill_id]))
+    historical = read_source()
+    assert historical["event_id"] == backfill_id
+    assert historical["valid"] is False
+    assert historical["validity_reason"] == "NOT_AFTER_CASE"
+    assert historical["payload"]["duration_minutes"] == 19
+    assert read_review_validity() is False
+
+    asyncio.run(rewrite_review_sources([current_id]))
+    restored = read_source()
+    assert restored["valid"] is True
+    assert restored["validity_reason"] == "VALID"
+    assert read_review_validity() is True

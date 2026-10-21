@@ -73,3 +73,18 @@ def test_r8bj_numeric_followup_is_typed_on_android_not_invented_by_api():
     assert '"raw_value_verified_in_android_xml": True' in capture
     assert 'payload = duration > 0 ? { duration_minutes: duration } : {};' in quicklog_logic
     assert "Never invent a default duration" in quicklog_logic
+
+
+def test_r8bk_followup_sources_cannot_label_backfilled_or_reused_case_facts_valid():
+    backend = read("services/api/app/api/routes/life_change_sources.py")
+    android = read("apps/mobile/src/components/life/FollowUpSourceEvidence.tsx")
+    transport = read("apps/mobile/src/components/life/caseHistoryApi.ts")
+    for reason in ("REUSED_CASE_EVIDENCE", "NOT_AFTER_CASE", "FUTURE_OBSERVATION"):
+        assert f'reason = "{reason}"' in backend
+        assert reason in android
+        assert reason in transport
+    assert "event.id in original_case_ids" in backend
+    assert "event.occurred_at <= case.created_at" in backend
+    assert "event.recorded_at <= case.created_at" in backend
+    assert "event.occurred_at > now" in backend
+    assert "不代表后续干预产生了效果" in android

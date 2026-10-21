@@ -139,6 +139,14 @@ async def list_case_sources(
     else:
         normalized_roles = {}
         role_integrity_valid = None
+    # A currently valid source event is not automatically a legitimate
+    # *follow-up*: the owner Review must cite a new observation, not recycle
+    # an original comparison event or backfill the period before the Case.
+    original_case_ids = {
+        parsed for item in original_ids
+        if (parsed := history.parse_case_source_id(item)) is not None
+    }
+    now = datetime.now(UTC)
     sources = []
     for event in window:
         payload = serialized[str(event.id)]
@@ -161,6 +169,15 @@ async def list_case_sources(
             reason = "WRONG_METRIC"
         elif event.source_type not in RECORD_FACT_SOURCES:
             reason = "NON_FACT_SOURCE"
+        elif review_id is not None and event.id in original_case_ids:
+            reason = "REUSED_CASE_EVIDENCE"
+        elif review_id is not None and (
+            event.recorded_at <= case.created_at
+            or event.occurred_at <= case.created_at
+        ):
+            reason = "NOT_AFTER_CASE"
+        elif review_id is not None and event.occurred_at > now:
+            reason = "FUTURE_OBSERVATION"
         else:
             reason = "VALID"
         payload["validity_reason"] = reason
