@@ -99,6 +99,44 @@ def parse_case_source_id(value: object) -> uuid.UUID | None:
     return uuid.UUID(value)
 
 
+
+def validated_frozen_roles(
+    evidence_ids: object, raw_roles: object,
+) -> tuple[dict[str, str] | None, bool]:
+    """Check the *whole* frozen Case role partition, not merely JSON type.
+
+    NULL is an honest legacy Case with no frozen membership. Any non-NULL
+    invalid shape must remain a frozen-but-unverifiable Case: return an empty
+    map (not None), so clients cannot reinterpret it as legacy date-derived
+    roles. Never silently accept duplicate casefold UUIDs, missing/extra
+    source identities, or invented role values.
+    """
+    if raw_roles is None:
+        return None, True
+    if not isinstance(raw_roles, dict):
+        return {}, False
+    sources, shape_ok = frozen_source_items(evidence_ids)
+    if not shape_ok or not sources:
+        return {}, False
+    source_ids = [parse_case_source_id(item) for item in sources]
+    if (any(item is None for item in source_ids)
+            or len(set(source_ids)) != len(source_ids)):
+        return {}, False
+    normalized: dict[str, str] = {}
+    for key, role in raw_roles.items():
+        parsed = parse_case_source_id(key)
+        if parsed is None or role not in ("CURRENT", "HISTORICAL"):
+            return {}, False
+        canonical = str(parsed)
+        if canonical in normalized:
+            return {}, False
+        normalized[canonical] = role
+    if (set(normalized) != {str(item) for item in source_ids}
+            or set(normalized.values()) != {"CURRENT", "HISTORICAL"}):
+        return {}, False
+    return normalized, True
+
+
 CURSOR_VERSION = 1
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 50

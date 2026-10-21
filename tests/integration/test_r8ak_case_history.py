@@ -317,3 +317,68 @@ def test_followup_source_integrity_detects_malformed_review_jsonb_not_case(clien
     assert [row["event_id"] for row in restored.json()["sources"]] == [
         actual.json()["event_id"]
     ]
+
+
+def test_r8bh_malformed_frozen_role_map_never_forges_owner_source_membership(client, seeded):
+    """Shape-valid JSON objects may still lie about event membership."""
+    from app.core.db import get_session_factory
+    from app.models import LifeChangeCase
+    from sqlalchemy import update
+
+    owner = seeded["owner_id"]
+    pet, created = _real_case(client, owner)
+    case_id = created["case_id"]
+    original = created["evidence_role_by_event_id"]
+    assert set(original.values()) == {"CURRENT", "HISTORICAL"}
+    keys = list(original)
+    assert len(keys) >= 4
+    detail_path = f"/api/v1/pets/{pet}/life-change-cases/{case_id}"
+    source_path = f"{detail_path}/sources"
+
+    async def set_frozen_roles(raw):
+        async with get_session_factory()() as db:
+            await db.execute(
+                update(LifeChangeCase)
+                .where(LifeChangeCase.id == uuid.UUID(case_id))
+                .values(evidence_role_by_event_id=raw)
+            )
+            await db.commit()
+
+    malformed = [
+        {k: v for k, v in original.items() if k != keys[0]},  # missing
+        {**original, str(uuid.uuid4()): "HISTORICAL"},  # extra
+        {**original, keys[0]: "VERIFIED"},  # forged role
+        {**original, keys[0].upper(): "HISTORICAL"},  # same UUID, two keys
+        {"source_ids": list(original)},  # object, not a role partition
+        "corrupt-roles", ["CURRENT"], 27,
+    ]
+    for raw in malformed:
+        asyncio.run(set_frozen_roles(raw))
+        detail = client.get(detail_path, headers=auth(owner))
+        source = client.get(source_path, headers=auth(owner))
+        assert detail.status_code == 200, (raw, detail.text)
+        assert source.status_code == 200, (raw, source.text)
+        d, s = detail.json(), source.json()
+        assert d["evidence_role_shape_valid"] is False
+        assert d["evidence_role_by_event_id"] == {}
+        assert d["evidence_role_source"] == "FROZEN_AT_CREATION"
+        assert s["evidence_role_shape_valid"] is False
+        assert all(item["role"] is None for item in s["sources"])
+        assert all(item["role_source"] == "FROZEN_AT_CREATION" for item in s["sources"])
+        assert d["case_id"] == case_id and s["case_id"] == case_id
+
+    # Casefold-only spelling differences, without duplicates, are admissible
+    # for legacy imports but always normalize to canonical event identities.
+    casefold_only = {key.upper(): value for key, value in original.items()}
+    asyncio.run(set_frozen_roles(casefold_only))
+    normal = client.get(detail_path, headers=auth(owner)).json()
+    assert normal["evidence_role_shape_valid"] is True
+    assert normal["evidence_role_by_event_id"] == original
+
+    # A genuine pre-freeze legacy Case is not treated as corruption, but may
+    # only offer explicitly labelled compatibility date inference.
+    asyncio.run(set_frozen_roles(None))
+    legacy = client.get(detail_path, headers=auth(owner)).json()
+    assert legacy["evidence_role_shape_valid"] is True
+    assert legacy["evidence_role_by_event_id"] is None
+    assert legacy["evidence_role_source"] == "LEGACY_DATE_DERIVED"

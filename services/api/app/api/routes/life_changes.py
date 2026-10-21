@@ -167,8 +167,9 @@ def _case_response(
     follow_up_source_valid: bool | None = None,
 ) -> dict:
     original_ids, source_shape_valid = hist.frozen_source_items(case.evidence_event_ids)
-    role_map = case.evidence_role_by_event_id
-    role_shape_valid = role_map is None or isinstance(role_map, dict)
+    role_map, role_shape_valid = hist.validated_frozen_roles(
+        case.evidence_event_ids, case.evidence_role_by_event_id,
+    )
     # The *case* source and the *follow-up* source are independent. Preserve
     # historical owner reviews, but never mislabel a withdrawn follow-up as a
     # completed observation cycle.
@@ -189,7 +190,8 @@ def _case_response(
         "evidence_event_ids": original_ids,
         "evidence_shape_valid": source_shape_valid,
         "evidence_role_shape_valid": role_shape_valid,
-        "evidence_role_by_event_id": role_map if isinstance(role_map, dict) else None,
+        # {} signals corrupt frozen membership; None alone means true legacy.
+        "evidence_role_by_event_id": role_map,
         "evidence_role_source": (
             "FROZEN_AT_CREATION" if case.evidence_role_by_event_id is not None
             else "LEGACY_DATE_DERIVED"

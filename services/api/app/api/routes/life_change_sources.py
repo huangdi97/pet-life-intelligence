@@ -123,17 +123,15 @@ async def list_case_sources(
     total = len(ordered)
     window = ordered[offset:offset + limit]
     serialized = {item["event_id"]: item for item in _serialize(window, actors)}
-    raw_roles = case.evidence_role_by_event_id
-    role_map = raw_roles if isinstance(raw_roles, dict) else {}
-    normalized_roles: dict[uuid.UUID, str | None] = {}
-    for raw_id, role in role_map.items():
-        source_id = history.parse_case_source_id(raw_id)
-        if source_id is None:
-            continue
-        if source_id in normalized_roles and normalized_roles[source_id] != role:
-            normalized_roles[source_id] = None
-        else:
-            normalized_roles.setdefault(source_id, role)
+    role_map, role_integrity_valid = history.validated_frozen_roles(
+        case.evidence_event_ids, case.evidence_role_by_event_id,
+    )
+    # Invalid frozen maps never yield confident "today" / "historical"
+    # labels. They remain inspectable but the owner sees explicit uncertainty.
+    normalized_roles = {
+        uuid.UUID(source_id): role
+        for source_id, role in (role_map or {}).items()
+    }
     sources = []
     for event in window:
         payload = serialized[str(event.id)]
@@ -167,7 +165,7 @@ async def list_case_sources(
     return {
         "case_id": str(case.id), "pet_id": str(case.pet_id), "scope": scope,
         "evidence_shape_valid": shape_valid,
-        "evidence_role_shape_valid": raw_roles is None or isinstance(raw_roles, dict),
+        "evidence_role_shape_valid": role_integrity_valid,
         "review_id": str(review_id) if review_id else None,
         "sources": sources, "total": total, "offset": offset, "limit": limit,
         "has_more": next_offset < total, "next_offset": next_offset if next_offset < total else None,
