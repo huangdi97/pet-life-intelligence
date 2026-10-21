@@ -1742,6 +1742,66 @@ def capture_r8_owner_review(
         "human_visual_acceptance": "PENDING",
     })
 
+    # R8BJ: an actual Review's follow-up event must be inspectable on the
+    # real Android screen. It is NOT part of the original Case's frozen
+    # CURRENT/HISTORICAL comparison; never borrow those roles.
+    followup_review = next(
+        (row for row in final_case["reviews"]
+         if row.get("decision") == "RECORD_OBSERVATION"),
+        None,
+    )
+    if followup_review is None:
+        raise CaptureError("R8BJ fixture has no saved real follow-up Review")
+    followup_review_id = str(followup_review["review_id"])
+    followup_source_page = api_json(
+        f"{root}/pets/{pet_id}/life-change-cases/{case_id}/sources?"
+        + urlencode({"review_id": followup_review_id}),
+        headers=owner_header,
+    )
+    expected_followup_id = followup_event_ids[0]
+    if (
+        followup_source_page.get("scope") != "FOLLOW_UP_REVIEW"
+        or followup_source_page.get("review_id") != followup_review_id
+        or followup_source_page.get("evidence_shape_valid") is not True
+        or followup_source_page.get("evidence_role_shape_valid") is not None
+        or [row.get("event_id") for row in followup_source_page.get("sources", [])]
+        != [expected_followup_id]
+        or any(row.get("role") is not None or row.get("role_source") != "FOLLOW_UP_OBSERVATION"
+               for row in followup_source_page["sources"])
+    ):
+        raise CaptureError("R8BJ follow-up is not a real independent Review source")
+    native_toggle = f"pli.r8.followup-evidence.open.{followup_review_id}"
+    tap_control_safely(
+        native_toggle, "followup-source-toggle-ui.xml",
+        scroll_direction="down", attempts=16,
+    )
+    native_source_id = f"pli.r8.followup-evidence.source.{expected_followup_id}"
+    followup_xml = find_control(
+        native_source_id, "followup-source-observation-ui.xml",
+        attempts=22, scroll_direction="up",
+    )
+    if native_source_id not in followup_xml or expected_followup_id not in followup_xml:
+        raise CaptureError("R8BJ actual Android follow-up did not display the authorized source ID")
+    if "记录时长" not in followup_xml or "后续观察" not in followup_xml:
+        raise CaptureError("R8BJ Android follow-up did not expose the raw recorded value")
+    android.screenshot(directory / "followup-source-detail-native.png")
+    save_manifest(directory / "followup-source-detail-truth.json", {
+        "pet_id": pet_id,
+        "case_id": case_id,
+        "review_id": followup_review_id,
+        "source_event_id": expected_followup_id,
+        "source_role": None,
+        "source_role_origin": "FOLLOW_UP_OBSERVATION",
+        "api_scope": followup_source_page["scope"],
+        "real_android_source_detail_seen": True,
+        "source_has_actual_occurred_and_recorded_time": bool(
+            followup_source_page["sources"][0].get("occurred_at")
+            and followup_source_page["sources"][0].get("recorded_at")
+        ),
+        "no_vision_model": True,
+        "human_visual_acceptance": "PENDING",
+    })
+
     # R8AK: the complete owner Case history must be reachable from the detail
     # and must list the same immutable Case, not only the recent Today slice.
     top_xml = ""
