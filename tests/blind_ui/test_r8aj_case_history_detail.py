@@ -103,3 +103,13 @@ def test_case_sources_endpoint_reauthorizes_every_event():
     assert 'LifeChangeCase.pet_id == pet_id' in source_api
     assert '"LEGACY_DATE_DERIVED"' in source_api
 
+
+
+def test_r8bn_future_source_clock_has_explicit_owner_readable_reason():
+    """A server rejected future clock must not look like an unknown UI fault."""
+    owner_sources = read("apps/mobile/src/components/life/CaseSourceList.tsx")
+    follow_up = read("apps/mobile/src/components/life/FollowUpSourceEvidence.tsx")
+    assert 'FUTURE_OBSERVATION: "事件发生或记录时间在未来，不能当作已观察事实"' in owner_sources
+    assert 'FUTURE_OBSERVATION: "事件发生或记录时间在未来，不能当作已完成的后续观察"' in follow_up
+    assert 'SOURCE_TRUTH[source.validity_reason ?? ""]' in owner_sources
+    assert 'REASON[source.validity_reason ?? ""]' in follow_up

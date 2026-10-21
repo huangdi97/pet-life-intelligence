@@ -19,6 +19,7 @@ const SOURCE_TRUTH: Record<string, string> = {
   SUPERSEDED: "记录已由后续修正替代",
   WRONG_METRIC: "记录指标与本次对比不符",
   NON_FACT_SOURCE: "此来源不具备观察事实资格",
+  FUTURE_OBSERVATION: "事件发生或记录时间在未来，不能当作已观察事实",
 };
 function sourceTruthLabel(source: CaseSourceEvent): string {
   return source.valid

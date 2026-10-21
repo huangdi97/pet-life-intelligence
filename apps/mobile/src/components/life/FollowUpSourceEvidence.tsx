@@ -29,7 +29,7 @@ const REASON: Record<string, string> = {
   NON_FACT_SOURCE: "这不是可采信的原始观察",
   REUSED_CASE_EVIDENCE: "这是旧对比依据，不能重复充当后续观察",
   NOT_AFTER_CASE: "发生或录入时间早于档案建立，不能作为后续观察",
-  FUTURE_OBSERVATION: "事件发生时间在未来，不是已发生的后续观察",
+  FUTURE_OBSERVATION: "事件发生或记录时间在未来，不能当作已完成的后续观察",
 };
 
 interface SourceState {

@@ -16,3 +16,7 @@ The R8BM read-side contract checks Case sources for pet, type, provenance, retra
 ## Verification and boundaries
 
 Require exact-head Ruff, pytest, UI blind contracts, Playwright and Android evidence; green CI at an earlier SHA is not sufficient. Keep PR #2 OPEN, no merge, release, tag or baseline promotion. `NO_VISION_MODEL_USED = TRUE`; `HUMAN_VISUAL_ACCEPTANCE = PENDING`. Individual 3D identity still needs actual source assets and owner visual approval.
+
+## Android source-message continuity
+
+The source endpoint's `FUTURE_OBSERVATION` reason is now explicitly displayed in both original Case source cards and independent Review follow-up evidence: **发生或记录时间在未来**, not an ambiguous generic “待核实” and not only future *occurrence*. Static blind contracts pin those user-facing labels while the server remains authoritative for validity and permissions.
