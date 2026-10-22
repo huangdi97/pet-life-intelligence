@@ -48,3 +48,17 @@ Hosted Android evidence records `case_review_head_id` in
 `NO_VISION_MODEL_USED = TRUE`.
 `HUMAN_VISUAL_ACCEPTANCE = PENDING`.
 PR #2 stays open; no merge, tag, Release or visual-baseline promotion.
+
+
+## Verification contract
+
+Exact-HEAD verification must include the regenerated OpenAPI artifact that
+exposes `expected_latest_review_id` and `case_review_head_id`. A workflow
+result from the pre-sync parent commit is diagnostic only; it is not accepted as
+final R8BX evidence.
+
+Required gates remain: backend migration replay + integration tests, frontend
+mobile typecheck/bundles, Browser E2E, installable Android APK, and hosted
+Android runtime evidence. The OpenAPI sync bot commit itself may be blocked from
+recursively starting workflows by GitHub; a subsequent ordinary branch commit
+must carry the same generated artifact and run the gates.
