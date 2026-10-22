@@ -6,7 +6,7 @@
  */
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { humanizeError } from "../../api";
+import { api, humanizeError } from "../../api";
 import { COLORS, SPACE, TYPE } from "../../tokens";
 import { listCaseSources, type CaseSourceEvent } from "./caseHistoryApi";
 import {
@@ -43,12 +43,14 @@ interface SourceState {
 }
 
 export function FollowUpSourceEvidence({
-  petId, caseId, reviewId, expectedSourceIds,
+  petId, caseId, reviewId, expectedSourceIds, ownerCanRetract, onSourceChanged,
 }: {
   petId: string;
   caseId: string;
   reviewId: string;
   expectedSourceIds: string[];
+  ownerCanRetract: boolean;
+  onSourceChanged: () => void;
 }) {
   const scope = `${petId}:${caseId}:${reviewId}`;
   const activeScope = useRef(scope);
@@ -60,10 +62,14 @@ export function FollowUpSourceEvidence({
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [state, setState] = useState<SourceState | null>(null);
+  const [retractTarget, setRetractTarget] = useState<string | null>(null);
+  const [retracting, setRetracting] = useState(false);
   useEffect(() => {
     setExpanded(false);
     setLoading(false);
     setState(null);
+    setRetractTarget(null);
+    setRetracting(false);
     return () => { generation.current += 1; };
   }, [scope]);
   const visible = state?.scope === scope ? state : null;
@@ -123,6 +129,31 @@ export function FollowUpSourceEvidence({
     }
   }
 
+  async function retract(eventId: string) {
+    if (!ownerCanRetract || retracting) return;
+    setRetracting(true);
+    setState((before) => before?.scope === scope ? { ...before, error: null } : before);
+    try {
+      await api.post(`/events/${eventId}/retract`, {});
+      setRetractTarget(null);
+      setState(null);
+      await load(0);
+      onSourceChanged();
+    } catch (e: unknown) {
+      setState((before) => ({
+        scope,
+        rows: before?.scope === scope ? before.rows : [],
+        missing: before?.scope === scope ? before.missing : [],
+        shapeValid: before?.scope === scope ? before.shapeValid : null,
+        total: before?.scope === scope ? before.total : 0,
+        next: before?.scope === scope ? before.next : null,
+        error: humanizeError(e),
+      }));
+    } finally {
+      setRetracting(false);
+    }
+  }
+
   return (
     <View testID={`pli.r8.followup-evidence.${reviewId}`} style={styles.container}>
       <Pressable
@@ -162,6 +193,46 @@ export function FollowUpSourceEvidence({
                 {SOURCE_TYPE[source.source_type] ?? "其他来源"} · {REASON[source.validity_reason ?? ""] ?? "来源有效性待核实"}
               </Text>
               <Text style={styles.id} selectable>{source.event_id}</Text>
+              {ownerCanRetract && source.valid ? (
+                retractTarget === source.event_id ? (
+                  <View
+                    style={styles.retractBox}
+                    testID={`pli.r8.followup-evidence.retract-confirm.${source.event_id}`}
+                  >
+                    <Text style={styles.warning}>
+                      撤回后，这条后续观察不再作为当前依据；既有主人反馈与结果判断仍保留为历史。
+                    </Text>
+                    <Pressable
+                      testID={`pli.r8.followup-evidence.retract-yes.${source.event_id}`}
+                      accessibilityRole="button"
+                      disabled={retracting}
+                      onPress={() => void retract(source.event_id)}
+                      style={styles.touch}
+                    >
+                      <Text style={styles.link}>{retracting ? "正在撤回…" : "确认撤回这条后续观察"}</Text>
+                    </Pressable>
+                    <Pressable
+                      testID={`pli.r8.followup-evidence.retract-cancel.${source.event_id}`}
+                      accessibilityRole="button"
+                      disabled={retracting}
+                      onPress={() => setRetractTarget(null)}
+                      style={styles.touch}
+                    >
+                      <Text style={styles.caption}>取消</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Pressable
+                    testID={`pli.r8.followup-evidence.retract.${source.event_id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel="这条后续观察有误"
+                    onPress={() => setRetractTarget(source.event_id)}
+                    style={styles.touch}
+                  >
+                    <Text style={styles.link}>这条后续观察有误</Text>
+                  </Pressable>
+                )
+              ) : null}
             </View>
           ))}
           {visible?.next != null ? (
@@ -203,4 +274,8 @@ const styles = StyleSheet.create({
   caption: { color: COLORS.textSecondary, fontSize: TYPE.sm, lineHeight: 19 },
   id: { color: COLORS.textSecondary, fontSize: TYPE.caption, lineHeight: 18 },
   warning: { color: COLORS.danger, fontSize: TYPE.body, fontWeight: "700" },
+  retractBox: {
+    padding: SPACE.s3, borderRadius: 12, backgroundColor: COLORS.surfaceRaised,
+    gap: SPACE.s1,
+  },
 });
