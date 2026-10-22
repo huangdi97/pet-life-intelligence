@@ -664,3 +664,127 @@ def test_follow_up_must_happen_after_persisted_case_creation_not_just_comparison
     assert after.status_code == 200
     assert after.json()["follow_up_source_valid"] is True
     assert after.json()["reviews"][0]["related_sources_valid"] is True
+
+
+
+def test_owner_outcome_requires_current_real_followup_and_survives_source_invalidation(client, seeded):
+    """R8BV: owner outcome is append-only judgement, never proof of recovery."""
+    owner, family = seeded["owner_id"], seeded["family_id"]
+    pet, _, _ = _create_change(client, owner)
+    case = _case(client, owner, pet)
+    case_id = case["case_id"]
+    detail_url = f"/api/v1/pets/{pet}/life-change-cases/{case_id}"
+
+    follow = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 18}},
+        headers=auth(owner),
+    )
+    assert follow.status_code == 201, follow.text
+    follow_id = follow.json()["event_id"]
+    review = client.post(
+        detail_url + "/reviews",
+        json={"decision": "RECORD_OBSERVATION", "related_event_ids": [follow_id]},
+        headers=auth(owner),
+    )
+    assert review.status_code == 201, review.text
+    review_id = review.json()["review_id"]
+
+    outcome_body = {
+        "observation_review_id": review_id,
+        "assessment": "CONTINUE_OBSERVING",
+        "note": "owner-private-outcome-note-771",
+        "expected_latest_outcome_id": None,
+        "idempotency_key": "r8bv-owner-outcome-001",
+    }
+    saved = client.post(detail_url + "/outcomes", json=outcome_body, headers=auth(owner))
+    assert saved.status_code == 201, saved.text
+    assert saved.json()["observation_sources_valid"] is True
+    assert "恢复" not in saved.json()["truth_note"]
+
+    replay = client.post(detail_url + "/outcomes", json=outcome_body, headers=auth(owner))
+    assert replay.status_code == 201, replay.text
+    assert replay.json()["replayed"] is True
+    assert replay.json()["outcome_id"] == saved.json()["outcome_id"]
+
+    owner_view = client.get(detail_url, headers=auth(owner))
+    family_view = client.get(detail_url, headers=auth(family))
+    assert owner_view.status_code == 200 and family_view.status_code == 200
+    assert owner_view.json()["outcomes"][0]["note"] == "owner-private-outcome-note-771"
+    assert family_view.json()["outcomes"][0]["assessment"] == "CONTINUE_OBSERVING"
+    assert family_view.json()["outcomes"][0]["note"] == ""
+    assert owner_view.json()["state"] == "FOLLOW_UP"
+
+    withdrawn = client.post(f"/api/v1/events/{follow_id}/retract", headers=auth(owner))
+    assert withdrawn.status_code == 200, withdrawn.text
+    after = client.get(detail_url, headers=auth(owner))
+    assert after.status_code == 200
+    assert after.json()["outcomes"][0]["outcome_id"] == saved.json()["outcome_id"]
+    assert after.json()["outcomes"][0]["observation_sources_valid"] is False
+    assert "已被撤回、修正或失效" in after.json()["outcomes"][0]["truth_note"]
+    assert after.json()["state"] == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+
+
+def test_owner_outcome_rejects_decision_only_review_and_stale_outcome_cas(client, seeded):
+    owner = seeded["owner_id"]
+    pet, _, _ = _create_change(client, owner)
+    case = _case(client, owner, pet)
+    detail_url = f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}"
+
+    decision = client.post(
+        detail_url + "/reviews",
+        json={"decision": "FOLLOW_UP_LATER"},
+        headers=auth(owner),
+    )
+    assert decision.status_code == 201, decision.text
+    refused = client.post(
+        detail_url + "/outcomes",
+        json={
+            "observation_review_id": decision.json()["review_id"],
+            "assessment": "NO_LONGER_CONCERNED",
+            "expected_latest_outcome_id": None,
+            "idempotency_key": "r8bv-invalid-decision-only",
+        },
+        headers=auth(owner),
+    )
+    assert refused.status_code == 422
+
+    observation = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 14}},
+        headers=auth(owner),
+    )
+    assert observation.status_code == 201
+    latest_review = client.get(detail_url, headers=auth(owner)).json()["latest_review_id"]
+    recorded = client.post(
+        detail_url + "/reviews",
+        json={
+            "decision": "RECORD_OBSERVATION",
+            "related_event_ids": [observation.json()["event_id"]],
+            "expected_latest_review_id": latest_review,
+        },
+        headers=auth(owner),
+    )
+    assert recorded.status_code == 201, recorded.text
+    first = client.post(
+        detail_url + "/outcomes",
+        json={
+            "observation_review_id": recorded.json()["review_id"],
+            "assessment": "NEEDS_FURTHER_FOLLOW_UP",
+            "expected_latest_outcome_id": None,
+            "idempotency_key": "r8bv-owner-outcome-002",
+        },
+        headers=auth(owner),
+    )
+    assert first.status_code == 201, first.text
+    stale = client.post(
+        detail_url + "/outcomes",
+        json={
+            "observation_review_id": recorded.json()["review_id"],
+            "assessment": "CONTINUE_OBSERVING",
+            "expected_latest_outcome_id": None,
+            "idempotency_key": "r8bv-owner-outcome-003",
+        },
+        headers=auth(owner),
+    )
+    assert stale.status_code == 409
