@@ -22,6 +22,7 @@ def upgrade() -> None:
         sa.Column("pet_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("pets.id"), nullable=False),
         sa.Column("actor_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=False),
         sa.Column("observation_review_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("life_change_reviews.id"), nullable=False),
+        sa.Column("case_review_head_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("life_change_reviews.id"), nullable=False),
         sa.Column("recorded_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("assessment", sa.String(length=40), nullable=False),
         sa.Column("note", sa.String(length=240), nullable=False, server_default=""),
