@@ -1948,6 +1948,88 @@ def capture_r8_owner_review(
         "human_visual_acceptance": "PENDING",
     })
 
+    # R8BW: explicitly retract the SAME follow-up observation from Android.
+    # The Outcome must remain immutable history but immediately lose current
+    # evidentiary support. The UI must stop offering another Outcome against
+    # that stale observation; no sleep/timeout weakening or API-side mutation
+    # is accepted as proof of the owner-facing control.
+    tap_when_render_stable(
+        f"pli.r8.followup-evidence.retract.{expected_followup_id}",
+        "followup-retract-arm.xml",
+    )
+    time.sleep(0.6)
+    tap_when_render_stable(
+        f"pli.r8.followup-evidence.retract-yes.{expected_followup_id}",
+        "followup-retract-confirm.xml", wait_first=3,
+    )
+    invalidated_outcome_api = outcome_api
+    for _ in range(18):
+        time.sleep(0.8)
+        invalidated_outcome_api = api_json(
+            f"{root}/pets/{pet_id}/life-change-cases/{case_id}",
+            headers=owner_header,
+        )
+        current_outcomes = invalidated_outcome_api.get("outcomes", [])
+        if (
+            invalidated_outcome_api.get("state") == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+            and invalidated_outcome_api.get("follow_up_source_valid") is False
+            and len(current_outcomes) == len(outcomes)
+            and current_outcomes
+            and current_outcomes[-1].get("outcome_id") == outcome_id
+            and current_outcomes[-1].get("observation_sources_valid") is False
+        ):
+            break
+    else:
+        raise CaptureError(
+            "R8BW follow-up retraction did not invalidate the existing Outcome "
+            "without rewriting its immutable identity"
+        )
+
+    invalid_outcome_xml = find_control(
+        f"pli.r8.case-detail.outcome.{outcome_id}",
+        "case-detail-outcome-invalidated.xml",
+        attempts=24,
+        scroll_direction="up",
+    )
+    if (
+        "所依据的后续记录已变化" not in invalid_outcome_xml
+        or "pli.r8.case-detail.outcome.needs-observation" not in invalid_outcome_xml
+    ):
+        raise CaptureError(
+            "R8BW Android Outcome history did not expose invalid source truth "
+            "or did not require a fresh observation before another Outcome"
+        )
+    stale_outcome_actions = (
+        "pli.r8.case-detail.outcome.continue_observing",
+        "pli.r8.case-detail.outcome.no_longer_concerned",
+        "pli.r8.case-detail.outcome.needs_further_follow_up",
+    )
+    if any(ui_has_actionable_control(invalid_outcome_xml, action)
+           for action in stale_outcome_actions):
+        raise CaptureError(
+            "R8BW Android still offers a new Outcome against invalidated follow-up evidence"
+        )
+    android.screenshot(directory / "owner-outcome-source-invalidated.png")
+    save_manifest(directory / "case-outcome-invalidation-truth.json", {
+        "pet_id": pet_id,
+        "case_id": case_id,
+        "review_id": followup_review_id,
+        "followup_event_id": expected_followup_id,
+        "outcome_id": outcome_id,
+        "server_state": invalidated_outcome_api.get("state"),
+        "follow_up_source_valid": invalidated_outcome_api.get("follow_up_source_valid"),
+        "outcome_source_valid": invalidated_outcome_api["outcomes"][-1].get(
+            "observation_sources_valid"
+        ),
+        "same_outcome_identity_preserved": True,
+        "followup_retracted_by_real_android_tap": True,
+        "fresh_observation_required_before_new_outcome": True,
+        "no_recovery_claim": True,
+        "screenshot": "owner-outcome-source-invalidated.png",
+        "no_vision_model": True,
+        "human_visual_acceptance": "PENDING",
+    })
+
     # R8AK: the complete owner Case history must be reachable from the detail
     # and must list the same immutable Case, not only the recent Today slice.
     top_xml = ""
