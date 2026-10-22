@@ -4,13 +4,13 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 
 from app.core.db import get_session_factory
 from app.domain import enums
 from app.models import LifeEvent
 from app.services.eventlog import create_life_event
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from tests.conftest import auth, create_user
 
