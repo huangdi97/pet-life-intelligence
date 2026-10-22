@@ -39,13 +39,14 @@ function dateText(value: string): string {
 }
 
 export function CaseOutcomePanel({
-  petId, caseId, ownerCanWrite, observationReviewId, latestOutcomeId,
+  petId, caseId, ownerCanWrite, observationReviewId, latestReviewId, latestOutcomeId,
   outcomes, onRecorded,
 }: {
   petId: string;
   caseId: string;
   ownerCanWrite: boolean;
   observationReviewId: string | null;
+  latestReviewId: string | null;
   latestOutcomeId: string | null;
   outcomes: OwnerOutcomeRow[];
   onRecorded: () => void;
@@ -55,13 +56,13 @@ export function CaseOutcomePanel({
   const inFlight = useRef(false);
 
   const submit = async (assessment: CaseOutcomeAssessment) => {
-    if (!ownerCanWrite || !observationReviewId || inFlight.current) return;
+    if (!ownerCanWrite || !observationReviewId || !latestReviewId || inFlight.current) return;
     inFlight.current = true;
     setBusy(true);
     setMessage(null);
     try {
       const ack = await recordCaseOutcome(
-        petId, caseId, observationReviewId, assessment, latestOutcomeId,
+        petId, caseId, observationReviewId, assessment, latestReviewId, latestOutcomeId,
       );
       setMessage(
         ack.replayed
