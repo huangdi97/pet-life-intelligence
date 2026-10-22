@@ -98,7 +98,7 @@ WIPE_TABLES = [
     "care_handoffs", "medication_doses", "medication_plans", "outcomes",
     "vet_briefs", "triage_assessments", "observations",
     "clinical_intake_steps", "health_events", "behavior_events",
-    "life_change_reviews", "life_change_cases",
+    "life_change_outcomes", "life_change_reviews", "life_change_cases",
     "care_tasks", "consents", "emergency_profiles", "grants",
     "relationships", "invitations", "artifacts", "life_events",
     "pet_visual_render_manifests", "pet_visual_jobs", "pet_visual_models", "pet_visual_captures",
