@@ -54,6 +54,7 @@ from app.models import (
     InsurancePolicyRecord,
     Invitation,
     LifeChangeCase,
+    LifeChangeOutcome,
     LifeChangeReview,
     LifeEvent,
     LoginAttempt,
@@ -152,7 +153,7 @@ _TABLES = [
     Observation, ClinicalIntakeStep, HealthEvent, BehaviorEvent,
     # R8AK/R8AM: child rows of pets and care_tasks. A real owner Case must not
     # make `python -m app.seed` fail with an FK violation.
-    LifeChangeReview, LifeChangeCase,
+    LifeChangeOutcome, LifeChangeReview, LifeChangeCase,
     CareTask,
     Consent, EmergencyProfile, Grant, Relationship, Invitation, Artifact,
     LifeEvent, Pet, HouseholdMember, Household, AIInferenceLog, AuditEntry,
