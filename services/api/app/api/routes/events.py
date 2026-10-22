@@ -14,8 +14,7 @@ from app.domain import enums
 from app.domain.event_types import EVENT_REGISTRY
 from app.models import Artifact, LifeEvent, User
 from app.services import permissions as perm
-from app.services.event_visibility import MEDICAL_EVENT_TYPES
-from app.services.event_visibility import event_visible, scope_life_event_stmt
+from app.services.event_visibility import MEDICAL_EVENT_TYPES, event_visible, scope_life_event_stmt
 from app.services.eventlog import create_life_event, write_audit
 from app.services.life_replay import project_life_replay
 
