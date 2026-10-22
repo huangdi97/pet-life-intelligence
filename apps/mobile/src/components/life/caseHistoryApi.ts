@@ -143,6 +143,7 @@ export interface CaseOutcomeAck {
   case_id: string;
   pet_id: string;
   observation_review_id: string;
+  case_review_head_id: string;
   assessment: CaseOutcomeAssessment;
   observation_sources_valid: boolean;
   replayed: boolean;
@@ -153,6 +154,7 @@ export async function recordCaseOutcome(
   caseId: string,
   observationReviewId: string,
   assessment: CaseOutcomeAssessment,
+  latestReviewId: string,
   latestOutcomeId: string | null,
 ): Promise<CaseOutcomeAck> {
   const ack = await api.post<CaseOutcomeAck>(
@@ -160,14 +162,16 @@ export async function recordCaseOutcome(
     {
       observation_review_id: observationReviewId,
       assessment,
+      expected_latest_review_id: latestReviewId,
       expected_latest_outcome_id: latestOutcomeId,
-      idempotency_key: `r8bv-${assessment}-${observationReviewId}-${latestOutcomeId ?? "initial"}`,
+      idempotency_key: `r8bx-${assessment}-${observationReviewId}-${latestReviewId}-${latestOutcomeId ?? "initial"}`,
     },
   );
   if (
     ack.pet_id !== petId ||
     ack.case_id !== caseId ||
     ack.observation_review_id !== observationReviewId ||
+    ack.case_review_head_id !== latestReviewId ||
     ack.assessment !== assessment
   ) {
     throw new Error("OUTCOME_ACK_MISMATCH");
