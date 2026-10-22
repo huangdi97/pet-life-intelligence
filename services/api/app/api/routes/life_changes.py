@@ -94,6 +94,7 @@ class OutcomeCreate(BaseModel):
         "NEEDS_FURTHER_FOLLOW_UP",
     ]
     note: str = Field(default="", max_length=240)
+    expected_latest_review_id: uuid.UUID
     expected_latest_outcome_id: uuid.UUID | None = None
     idempotency_key: str = Field(min_length=8, max_length=96)
 
@@ -255,6 +256,7 @@ def _outcome_response(
         "pet_id": str(row.pet_id),
         "actor_id": str(row.actor_id),
         "observation_review_id": str(row.observation_review_id),
+        "case_review_head_id": str(row.case_review_head_id),
         "recorded_at": row.recorded_at.isoformat(),
         "assessment": row.assessment,
         "note": row.note if owner_view else "",
@@ -644,6 +646,7 @@ async def record_case_outcome(
     if existing:
         if (
             existing.observation_review_id != body.observation_review_id
+            or existing.case_review_head_id != body.expected_latest_review_id
             or existing.assessment != body.assessment
             or existing.note != body.note
             or existing.prior_outcome_id != body.expected_latest_outcome_id
@@ -668,6 +671,15 @@ async def record_case_outcome(
     if not await _case_current(db, case):
         raise ConflictError(
             "Case evidence has changed; a new outcome cannot be attached to an invalidated case."
+        )
+    latest_review = (await db.execute(
+        select(LifeChangeReview).where(LifeChangeReview.case_id == case.id)
+        .order_by(LifeChangeReview.reviewed_at.desc(), LifeChangeReview.id.desc())
+        .limit(1)
+    )).scalar_one_or_none()
+    if latest_review is None or body.expected_latest_review_id != latest_review.id:
+        raise ConflictError(
+            "Case review journal changed since the owner's last view."
         )
     observation = (await db.execute(select(LifeChangeReview).where(
         LifeChangeReview.id == body.observation_review_id,
@@ -695,6 +707,7 @@ async def record_case_outcome(
         pet_id=pet.id,
         actor_id=user.id,
         observation_review_id=observation.id,
+        case_review_head_id=latest_review.id,
         assessment=body.assessment,
         note=body.note,
         prior_outcome_id=latest.id if latest else None,
@@ -713,6 +726,7 @@ async def record_case_outcome(
         detail={
             "case_id": str(case.id),
             "observation_review_id": str(observation.id),
+            "case_review_head_id": str(latest_review.id),
             "assessment": body.assessment,
         },
     )
