@@ -724,6 +724,22 @@ def test_owner_outcome_requires_current_real_followup_and_survives_source_invali
     assert "已被撤回、修正或失效" in after.json()["outcomes"][0]["truth_note"]
     assert after.json()["state"] == "FOLLOW_UP_EVIDENCE_INVALIDATED"
 
+    stale_outcome = client.post(
+        detail_url + "/outcomes",
+        json={
+            "observation_review_id": review_id,
+            "assessment": "NO_LONGER_CONCERNED",
+            "expected_latest_outcome_id": saved.json()["outcome_id"],
+            "idempotency_key": "r8bw-stale-followup-outcome-001",
+        },
+        headers=auth(owner),
+    )
+    assert stale_outcome.status_code == 409
+    unchanged = client.get(detail_url, headers=auth(owner))
+    assert [row["outcome_id"] for row in unchanged.json()["outcomes"]] == [
+        saved.json()["outcome_id"],
+    ]
+
 
 def test_owner_outcome_rejects_decision_only_review_and_stale_outcome_cas(client, seeded):
     owner = seeded["owner_id"]
