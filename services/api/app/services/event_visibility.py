@@ -15,12 +15,12 @@ MEDICAL_EVENT_TYPES = frozenset(
 )
 
 # Administrative facts expose household identity/authorization/platform state or
-# private finance. They remain available through their dedicated guarded APIs,
+# private finance or private AI interaction history. They remain available through their dedicated guarded APIs,
 # but a daily-only caregiver must not discover them through the generic life feed.
 ADMIN_EVENT_TYPES = frozenset(
     name
     for name, definition in EVENT_REGISTRY.items()
-    if definition.domain in {"identity", "platform", "finance"}
+    if definition.domain in {"identity", "platform", "finance", "agent"}
 )
 
 

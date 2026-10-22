@@ -507,3 +507,54 @@ def test_search_ask_and_why_do_not_reuse_superseded_event_payloads(client, seede
     prior_ids = [row["event_id"] for row in why.json()["prior_events"]]
     assert old_id not in prior_ids
     assert new_id in prior_ids
+
+
+def test_daily_only_reader_cannot_read_owner_private_agent_question_history(client, seeded):
+    """Using Ask is collaborative; another person's archived question text is not."""
+    owner, sitter, pet = _daily_only_caregiver(client, seeded)
+    secret_question = "private-owner-question-6642 should I discuss this observation"
+    asked = client.post(
+        f"/api/v1/pets/{pet}/ask",
+        json={"question": secret_question},
+        headers=auth(owner),
+    )
+    assert asked.status_code == 200, asked.text
+
+    owner_rows = client.get(
+        f"/api/v1/pets/{pet}/events?event_type=pet.asked&limit=200",
+        headers=auth(owner),
+    )
+    assert owner_rows.status_code == 200, owner_rows.text
+    private_event = next(
+        row for row in owner_rows.json()["events"]
+        if "private-owner-question-6642" in str(row["payload"])
+    )
+    private_id = private_event["event_id"]
+
+    sitter_rows = client.get(
+        f"/api/v1/pets/{pet}/events?event_type=pet.asked&limit=200",
+        headers=auth(sitter),
+    )
+    assert sitter_rows.status_code == 200
+    assert sitter_rows.json()["events"] == []
+    assert private_id not in sitter_rows.text
+
+    search = client.get(
+        f"/api/v1/pets/{pet}/search",
+        params={"q": "private-owner-question-6642"},
+        headers=auth(sitter),
+    )
+    assert search.status_code == 200
+    assert search.json()["hits"] == []
+
+    direct = client.get(f"/api/v1/events/{private_id}", headers=auth(sitter))
+    assert direct.status_code == 403
+
+    # The sitter may still ask their own question and receive the immediate
+    # answer; only the archived agent-interaction LifeEvent is manager-private.
+    own = client.post(
+        f"/api/v1/pets/{pet}/ask",
+        json={"question": "今天有哪些我能看到的生活记录？"},
+        headers=auth(sitter),
+    )
+    assert own.status_code == 200, own.text
