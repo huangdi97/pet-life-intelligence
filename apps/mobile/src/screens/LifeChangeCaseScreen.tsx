@@ -18,6 +18,7 @@ import { caseHistoryMetric, caseHistoryStatus, type LifeChangeCaseSummary } from
 import { CaseSourceList } from "../components/life/CaseSourceList";
 import { FollowUpSourceEvidence } from "../components/life/FollowUpSourceEvidence";
 import { CaseReviewActions } from "../components/life/CaseReviewActions";
+import { CaseOutcomePanel, type OwnerOutcomeRow } from "../components/life/CaseOutcomePanel";
 
 interface CaseReview {
   review_id: string;
@@ -39,6 +40,8 @@ interface CaseDetail extends LifeChangeCaseSummary {
   owner_can_review: boolean;
   latest_review_id: string | null;
   reviews: CaseReview[];
+  outcomes: OwnerOutcomeRow[];
+  latest_outcome_id: string | null;
 }
 const decisions: Record<string, string> = {
   RECORD_OBSERVATION: "已关联真实后续观察",
@@ -205,6 +208,20 @@ export function LifeChangeCaseScreen() {
             {review.note?.trim() ? <Text style={styles.body}>主人备注：{review.note}</Text> : null}
           </View>)}
       </View>
+
+      <CaseOutcomePanel
+        petId={requestedPetId}
+        caseId={detail.case_id}
+        ownerCanWrite={detail.owner_can_review === true && detail.source_valid}
+        observationReviewId={
+          [...detail.reviews].reverse().find(
+            (review) => review.decision === "RECORD_OBSERVATION" && review.related_sources_valid === true,
+          )?.review_id ?? null
+        }
+        latestOutcomeId={detail.latest_outcome_id ?? null}
+        outcomes={detail.outcomes ?? []}
+        onRecorded={() => setReload((n) => n + 1)}
+      />
 
       <CaseSourceList
         petId={requestedPetId}
