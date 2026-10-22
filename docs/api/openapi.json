@@ -14010,6 +14010,11 @@
             "title": "Note",
             "default": ""
           },
+          "expected_latest_review_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Expected Latest Review Id"
+          },
           "expected_latest_outcome_id": {
             "anyOf": [
               {
@@ -14033,6 +14038,7 @@
         "required": [
           "observation_review_id",
           "assessment",
+          "expected_latest_review_id",
           "idempotency_key"
         ],
         "title": "OutcomeCreate"
