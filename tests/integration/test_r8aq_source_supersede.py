@@ -4,7 +4,6 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
-
 from app.core.db import get_session_factory
 from app.domain import enums
 from app.models import LifeEvent
