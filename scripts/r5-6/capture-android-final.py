@@ -1760,9 +1760,29 @@ def capture_r8_owner_review(
     expected_source_ids = set(continued_api.get("evidence_event_ids", []))
     if not expected_source_ids or expected_source_ids != set(case_source_ids):
         raise CaptureError("R8AJ detail has no original immutable Case source-set equality")
+    # The Case grew while this screen stayed mounted: after appending the
+    # third immutable Review and opening the long source panel, the viewport is
+    # intentionally no longer at the top. Scanning only downward would certify
+    # sources but miss an older Review that is still rendered above the current
+    # scroll position. Rewind the CURRENT, post-review Case to its real top
+    # first; this keeps the gate strict while proving every Review and source
+    # identity from one current UI state.
+    top_xml = ""
+    for step in range(18):
+        top_xml = android.dump_xml(directory / f"case-detail-top-{step:02d}.xml")
+        if "pli.r8.case-detail.identity" in top_xml:
+            break
+        android.shell("input", "swipe", "780", "760", "780", "1880", "260")
+        time.sleep(0.3)
+    if "pli.r8.case-detail.identity" not in top_xml:
+        raise CaptureError(
+            "R8AJ native Case detail could not return to the current journal top "
+            "before full review/source identity traversal"
+        )
+
     observed_reviews: set[str] = set()
     observed_sources: set[str] = set()
-    for step in range(34):
+    for step in range(40):
         current_xml = android.dump_xml(directory / f"case-detail-scroll-{step:02d}.xml")
         observed_reviews.update(
             review_id for review_id in expected_reviews
