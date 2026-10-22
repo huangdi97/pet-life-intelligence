@@ -16,6 +16,8 @@ from app.models import Artifact, LifeEvent, User
 from app.services import permissions as perm
 from app.services.event_visibility import (
     MEDICAL_EVENT_TYPES,
+)
+from app.services.event_visibility import (
     can_read_medical as _can_read_medical,
 )
 from app.services.eventlog import create_life_event, write_audit
