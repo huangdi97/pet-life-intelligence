@@ -17,7 +17,7 @@ from app.api.deps import CurrentUser, DBSession
 from app.api.routes.v10_extras_services import abnormal_day_hint
 from app.core.errors import ConflictError, NotFound, PermissionDenied, ValidationFailed
 from app.domain import enums
-from app.models import CareTask, LifeChangeCase, LifeChangeReview, LifeEvent, Pet
+from app.models import CareTask, LifeChangeCase, LifeChangeOutcome, LifeChangeReview, LifeEvent, Pet
 from app.services import life_change_history as hist
 from app.services import permissions as perm
 from app.services.eventlog import write_audit
@@ -84,6 +84,18 @@ class ReviewCreate(BaseModel):
     related_task_id: uuid.UUID | None = None
     expected_latest_review_id: uuid.UUID | None = None
     idempotency_key: str | None = Field(default=None, min_length=8, max_length=96)
+
+
+class OutcomeCreate(BaseModel):
+    observation_review_id: uuid.UUID
+    assessment: Literal[
+        "CONTINUE_OBSERVING",
+        "NO_LONGER_CONCERNED",
+        "NEEDS_FURTHER_FOLLOW_UP",
+    ]
+    note: str = Field(default="", max_length=240)
+    expected_latest_outcome_id: uuid.UUID | None = None
+    idempotency_key: str = Field(min_length=8, max_length=96)
 
 
 async def _evidence_current(
@@ -231,6 +243,28 @@ def _review_response(row: LifeChangeReview, *, owner_view: bool = True) -> dict:
             str(row.related_task_id) if owner_view and row.related_task_id else None
         ),
         "prior_review_id": str(row.prior_review_id) if row.prior_review_id else None,
+    }
+
+
+def _outcome_response(
+    row: LifeChangeOutcome, *, source_valid: bool, owner_view: bool,
+) -> dict:
+    return {
+        "outcome_id": str(row.id),
+        "case_id": str(row.case_id),
+        "pet_id": str(row.pet_id),
+        "actor_id": str(row.actor_id),
+        "observation_review_id": str(row.observation_review_id),
+        "recorded_at": row.recorded_at.isoformat(),
+        "assessment": row.assessment,
+        "note": row.note if owner_view else "",
+        "prior_outcome_id": str(row.prior_outcome_id) if row.prior_outcome_id else None,
+        "observation_sources_valid": source_valid,
+        "truth_note": (
+            "这是主人的跟进判断，不代表疾病诊断、因果关系或宠物已经恢复。"
+            if source_valid else
+            "这条主人判断仍保留，但它所依据的后续记录已被撤回、修正或失效。"
+        ),
     }
 
 
@@ -445,6 +479,22 @@ async def get_case(
         detail = _review_response(review, owner_view=owner_view)
         detail["related_sources_valid"] = followup_states.get(review.id)
         review_payloads.append(detail)
+    outcomes = list((await db.execute(
+        select(LifeChangeOutcome).where(LifeChangeOutcome.case_id == case.id)
+        .order_by(LifeChangeOutcome.recorded_at.asc(), LifeChangeOutcome.id.asc())
+    )).scalars().all())
+    review_by_id = {review.id: review for review in reviews}
+    outcome_payloads = []
+    for outcome in outcomes:
+        observation = review_by_id.get(outcome.observation_review_id)
+        source_valid = (
+            await _follow_up_current(db, case, observation)
+            if observation is not None and observation.decision == "RECORD_OBSERVATION"
+            else False
+        )
+        outcome_payloads.append(_outcome_response(
+            outcome, source_valid=source_valid, owner_view=owner_view,
+        ))
     case_current = await _case_current(db, case)
     return {
         **_case_response(
@@ -452,6 +502,8 @@ async def get_case(
             follow_up_source_valid=followup_valid,
         ),
         "reviews": review_payloads,
+        "outcomes": outcome_payloads,
+        "latest_outcome_id": str(outcomes[-1].id) if outcomes else None,
         # R8AK: the owner may keep reviewing an old Case from its own detail
         # page. The token is the append-only Review identity, not a hidden
         # capability: POST still re-checks source validity, owner role and CAS.
@@ -567,3 +619,105 @@ async def review_case(
     )
     await db.commit()
     return {**_review_response(review), "replayed": False}
+
+
+@router.post("/pets/{pet_id}/life-change-cases/{case_id}/outcomes", status_code=201)
+async def record_case_outcome(
+    pet_id: uuid.UUID, case_id: uuid.UUID, body: OutcomeCreate,
+    db: DBSession, user: CurrentUser,
+) -> dict:
+    """Append an owner assessment anchored to a real follow-up observation.
+
+    An outcome is a human judgement about what to do next. It never rewrites
+    the Case, claims recovery, or converts temporal association into causality.
+    """
+    pet = await perm.get_pet_or_404(db, pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_WRITE)
+    await perm.require_owner(db, pet, user.id)
+    case = await _get_case(db, pet.id, case_id, lock=True)
+
+    existing = (await db.execute(select(LifeChangeOutcome).where(
+        LifeChangeOutcome.case_id == case.id,
+        LifeChangeOutcome.actor_id == user.id,
+        LifeChangeOutcome.idempotency_key == body.idempotency_key,
+    ))).scalar_one_or_none()
+    if existing:
+        if (
+            existing.observation_review_id != body.observation_review_id
+            or existing.assessment != body.assessment
+            or existing.note != body.note
+            or existing.prior_outcome_id != body.expected_latest_outcome_id
+        ):
+            raise ConflictError(
+                "Idempotency key already belongs to a different owner outcome."
+            )
+        observation = (await db.execute(select(LifeChangeReview).where(
+            LifeChangeReview.id == existing.observation_review_id,
+            LifeChangeReview.case_id == case.id,
+        ))).scalar_one_or_none()
+        source_valid = bool(
+            observation is not None
+            and observation.decision == "RECORD_OBSERVATION"
+            and await _follow_up_current(db, case, observation)
+        )
+        return {
+            **_outcome_response(existing, source_valid=source_valid, owner_view=True),
+            "replayed": True,
+        }
+
+    if not await _case_current(db, case):
+        raise ConflictError(
+            "Case evidence has changed; a new outcome cannot be attached to an invalidated case."
+        )
+    observation = (await db.execute(select(LifeChangeReview).where(
+        LifeChangeReview.id == body.observation_review_id,
+        LifeChangeReview.case_id == case.id,
+        LifeChangeReview.pet_id == pet.id,
+    ))).scalar_one_or_none()
+    if observation is None or observation.decision != "RECORD_OBSERVATION":
+        raise ValidationFailed(
+            "Outcome must reference this Case's real RECORD_OBSERVATION review."
+        )
+    if not await _follow_up_current(db, case, observation):
+        raise ConflictError(
+            "Follow-up observation evidence changed; record a new observation before a new outcome."
+        )
+    latest = (await db.execute(
+        select(LifeChangeOutcome).where(LifeChangeOutcome.case_id == case.id)
+        .order_by(LifeChangeOutcome.recorded_at.desc(), LifeChangeOutcome.id.desc())
+        .limit(1)
+    )).scalar_one_or_none()
+    if body.expected_latest_outcome_id != (latest.id if latest else None):
+        raise ConflictError("Case outcome changed since the owner's last view.")
+
+    outcome = LifeChangeOutcome(
+        case_id=case.id,
+        pet_id=pet.id,
+        actor_id=user.id,
+        observation_review_id=observation.id,
+        assessment=body.assessment,
+        note=body.note,
+        prior_outcome_id=latest.id if latest else None,
+        idempotency_key=body.idempotency_key,
+    )
+    db.add(outcome)
+    await db.flush()
+    await write_audit(
+        db,
+        action="life_change.owner_outcome",
+        actor_user_id=user.id,
+        household_id=pet.household_id,
+        pet_id=pet.id,
+        resource_type="LifeChangeOutcome",
+        resource_id=str(outcome.id),
+        detail={
+            "case_id": str(case.id),
+            "observation_review_id": str(observation.id),
+            "assessment": body.assessment,
+        },
+    )
+    await db.commit()
+    return {
+        **_outcome_response(outcome, source_valid=True, owner_view=True),
+        "replayed": False,
+    }
