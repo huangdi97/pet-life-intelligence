@@ -263,7 +263,6 @@ async def retract_event(
     successor = (await db.execute(select(LifeEvent.id).where(
         LifeEvent.pet_id == event.pet_id,
         LifeEvent.supersedes_event_id == event.id,
-        LifeEvent.recorded_at <= datetime.now(UTC),
     ).limit(1))).scalar_one_or_none()
     if successor is not None:
         raise ConflictError(
@@ -333,7 +332,6 @@ async def supersede_event(
     successor = (await db.execute(select(LifeEvent.id).where(
         LifeEvent.pet_id == pet.id,
         LifeEvent.supersedes_event_id == original.id,
-        LifeEvent.recorded_at <= datetime.now(UTC),
     ).limit(1))).scalar_one_or_none()
     if successor is not None:
         raise ConflictError("This record already has an owner correction.")

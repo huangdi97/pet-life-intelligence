@@ -252,3 +252,44 @@ def test_superseded_original_cannot_be_retracted_but_current_leaf_can(client, se
     assert leaf_retract.status_code == 200, leaf_retract.text
     assert leaf_retract.json()["event_id"] == successor_id
     assert leaf_retract.json()["retracted_at"] is not None
+
+
+
+def test_future_dated_successor_still_occupies_the_correction_branch(client, seeded):
+    """Validity time is not graph topology: a persisted successor forbids a fork."""
+    owner = seeded["owner_id"]
+    pet, _, original, _ = _case_with_current_source(client, owner)
+    first = client.post(
+        f"/api/v1/pets/{pet}/events/{original['event_id']}/supersede",
+        json={"payload": {"duration_minutes": 33}, "idempotency_key": "r8bo-future-branch-001"},
+        headers=auth(owner),
+    )
+    assert first.status_code == 201, first.text
+    successor_id = first.json()["event_id"]
+
+    async def move_successor_clock_into_future():
+        factory = get_session_factory()
+        async with factory() as db:
+            row = (await db.execute(select(LifeEvent).where(
+                LifeEvent.id == uuid.UUID(successor_id)
+            ))).scalar_one()
+            row.recorded_at = datetime.now(timezone.utc) + timedelta(days=2)
+            await db.commit()
+
+    asyncio.run(move_successor_clock_into_future())
+
+    # R8BN may call the future successor invalid for current evidence, but it
+    # still exists in the immutable graph and cannot be bypassed by a new fork.
+    correction = client.post(
+        f"/api/v1/pets/{pet}/events/{original['event_id']}/supersede",
+        json={"payload": {"duration_minutes": 44}, "idempotency_key": "r8bo-future-branch-002"},
+        headers=auth(owner),
+    )
+    assert correction.status_code == 409, correction.text
+
+    retraction = client.post(
+        f"/api/v1/events/{original['event_id']}/retract", headers=auth(owner),
+    )
+    assert retraction.status_code == 409, retraction.text
+    assert retraction.json()["error"]["code"] == "EVENT_ALREADY_SUPERSEDED"
+    assert retraction.json()["error"]["details"]["successor_event_id"] == successor_id
