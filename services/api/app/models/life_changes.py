@@ -108,6 +108,9 @@ class LifeChangeOutcome(UUIDPk, Base):
     observation_review_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("life_change_reviews.id"), nullable=False
     )
+    case_review_head_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("life_change_reviews.id"), nullable=False
+    )
     recorded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False
     )
