@@ -445,7 +445,7 @@ def test_search_ask_and_why_do_not_reuse_superseded_event_payloads(client, seede
     first = client.post(
         f"/api/v1/pets/{pet}/events",
         json={"event_type": "daily.walk",
-              "payload": {"duration_minutes": 91, "note": "obsolete-walk-91"},
+              "payload": {"duration_minutes": 91, "notes": "obsolete-walk-91"},
               "occurred_at": occurred.isoformat()},
         headers=auth(owner),
     )
@@ -457,7 +457,7 @@ def test_search_ask_and_why_do_not_reuse_superseded_event_payloads(client, seede
             replacement, replayed = await create_life_event(
                 db, pet_id=uuid.UUID(pet), actor_id=uuid.UUID(owner),
                 event_type="daily.walk",
-                payload={"duration_minutes": 21, "note": "current-walk-21"},
+                payload={"duration_minutes": 21, "notes": "current-walk-21"},
                 occurred_at=occurred,
                 supersedes_event_id=uuid.UUID(old_id),
                 source_type=enums.SourceType.OWNER_REPORTED,
