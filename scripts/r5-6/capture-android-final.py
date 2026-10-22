@@ -1711,6 +1711,64 @@ def capture_r8_owner_review(
         "no_vision_model": True,
     })
 
+    # R8BV: close the owner-intelligence loop with an explicit OUTCOME that is
+    # anchored to the already-saved real follow-up observation. This is a
+    # human judgement, not a recovery claim. Prove both a real Android touch
+    # and exact API/UI identity; never inject an outcome directly through API.
+    initial_outcome_ids = [
+        str(item["outcome_id"]) for item in continued_api.get("outcomes", [])
+    ]
+    tap_control_safely(
+        "pli.r8.case-detail.outcome.continue_observing",
+        "case-detail-outcome-action.xml",
+        scroll_direction="up",
+        attempts=24,
+    )
+    outcome_api = continued_api
+    for _ in range(12):
+        time.sleep(0.8)
+        outcome_api = api_json(
+            f"{root}/pets/{pet_id}/life-change-cases/{case_id}",
+            headers=owner_header,
+        )
+        outcomes = outcome_api.get("outcomes", [])
+        if len(outcomes) == len(initial_outcome_ids) + 1:
+            break
+    outcomes = outcome_api.get("outcomes", [])
+    if len(outcomes) != len(initial_outcome_ids) + 1:
+        raise CaptureError("R8BV Android owner action did not append exactly one Outcome")
+    owner_outcome = outcomes[-1]
+    outcome_id = str(owner_outcome.get("outcome_id", ""))
+    if (
+        owner_outcome.get("assessment") != "CONTINUE_OBSERVING"
+        or owner_outcome.get("observation_sources_valid") is not True
+        or not outcome_id
+    ):
+        raise CaptureError("R8BV persisted Outcome lost assessment, identity or source validity")
+
+    outcome_seen = False
+    for step in range(18):
+        outcome_xml = android.dump_xml(directory / f"case-detail-outcome-{step:02d}.xml")
+        if f"pli.r8.case-detail.outcome.{outcome_id}" in outcome_xml:
+            outcome_seen = True
+            break
+        android.shell("input", "swipe", "780", "760", "780", "1780", "260")
+        time.sleep(0.3)
+    if not outcome_seen:
+        raise CaptureError("R8BV persisted Outcome identity was not exposed by current Android UI")
+    save_manifest(directory / "case-outcome-truth.json", {
+        "pet_id": pet_id,
+        "case_id": case_id,
+        "outcome_id": outcome_id,
+        "assessment": owner_outcome.get("assessment"),
+        "observation_review_id": owner_outcome.get("observation_review_id"),
+        "observation_sources_valid": owner_outcome.get("observation_sources_valid"),
+        "created_by_real_android_tap": True,
+        "no_recovery_claim": True,
+        "no_vision_model": True,
+        "human_visual_acceptance": "PENDING",
+    })
+
     # A testID in the hierarchy alone is NOT proof of a successful touch.
     # On long Case pages a Pressable can be offscreen/under the tab bar; an
     # unsafely tapped toggle previously produced zero source API requests,
