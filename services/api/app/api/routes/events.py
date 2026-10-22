@@ -14,12 +14,8 @@ from app.domain import enums
 from app.domain.event_types import EVENT_REGISTRY
 from app.models import Artifact, LifeEvent, User
 from app.services import permissions as perm
-from app.services.event_visibility import (
-    MEDICAL_EVENT_TYPES,
-)
-from app.services.event_visibility import (
-    can_read_medical as _can_read_medical,
-)
+from app.services.event_visibility import MEDICAL_EVENT_TYPES
+from app.services.event_visibility import event_visible, scope_life_event_stmt
 from app.services.eventlog import create_life_event, write_audit
 from app.services.life_replay import project_life_replay
 
@@ -196,9 +192,10 @@ async def list_events(
     pet = await perm.get_pet_or_404(db, pet_id)
     capabilities = await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
 
-    stmt = select(LifeEvent).where(LifeEvent.pet_id == pet.id)
-    if not _can_read_medical(capabilities):
-        stmt = stmt.where(LifeEvent.event_type.not_in(MEDICAL_EVENT_TYPES))
+    stmt = scope_life_event_stmt(
+        select(LifeEvent).where(LifeEvent.pet_id == pet.id),
+        capabilities,
+    )
     if event_type:
         for t in event_type:
             if t not in EVENT_REGISTRY:
@@ -228,8 +225,8 @@ async def get_event(event_id: uuid.UUID, db: DBSession, user: CurrentUser) -> di
         raise NotFound(f"Event {event_id} not found.")
     pet = await perm.get_pet_or_404(db, event.pet_id)
     capabilities = await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
-    if event.event_type in MEDICAL_EVENT_TYPES and not _can_read_medical(capabilities):
-        raise PermissionDenied("Medical event requires medical:read.")
+    if not event_visible(event, capabilities):
+        raise PermissionDenied("Event requires an elevated read capability.")
     actor = (
         await db.execute(select(User).where(User.id == event.actor_id))
     ).scalar_one_or_none()
@@ -378,7 +375,7 @@ async def supersede_event(
 
 async def _replay_day_candidates(
     db: DBSession, pet_id: uuid.UUID, start: datetime, end: datetime,
-    cutoff: datetime, *, medical_read: bool,
+    cutoff: datetime, *, capabilities: set[str],
 ) -> list[LifeEvent]:
     """Load every occurrence in a day and its later correction chain.
 
@@ -393,8 +390,7 @@ async def _replay_day_candidates(
         LifeEvent.occurred_at < end,
         LifeEvent.event_type.not_in(["today.viewed", "audit.accessed"]),
     )
-    if not medical_read:
-        stmt = stmt.where(LifeEvent.event_type.not_in(MEDICAL_EVENT_TYPES))
+    stmt = scope_life_event_stmt(stmt, capabilities)
     day_events = list((await db.execute(stmt)).scalars().all())
     events_by_id = {row.id: row for row in day_events}
     pending = set(events_by_id)
@@ -406,8 +402,7 @@ async def _replay_day_candidates(
             LifeEvent.supersedes_event_id.in_(pending),
             LifeEvent.recorded_at < cutoff,
         )
-        if not medical_read:
-            next_stmt = next_stmt.where(LifeEvent.event_type.not_in(MEDICAL_EVENT_TYPES))
+        next_stmt = scope_life_event_stmt(next_stmt, capabilities)
         superseders = list((await db.execute(next_stmt)).scalars().all())
         pending = {row.id for row in superseders if row.id not in events_by_id}
         for row in superseders:
@@ -460,7 +455,7 @@ async def life_replay(
     cutoff = min(end, now) if perspective == "as_known_then" else now
     candidates = await _replay_day_candidates(
         db, pet.id, start, end, cutoff,
-        medical_read=_can_read_medical(capabilities),
+        capabilities=capabilities,
     )
     projection = project_life_replay(
         candidates,
@@ -529,7 +524,7 @@ async def today(
     now = datetime.now(UTC)
     candidates = await _replay_day_candidates(
         db, pet.id, day_start, day_end, now,
-        medical_read=_can_read_medical(capabilities),
+        capabilities=capabilities,
     )
     projection = project_life_replay(
         candidates, pet_id=pet.id, day_start=day_start, day_end=day_end,

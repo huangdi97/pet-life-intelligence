@@ -330,3 +330,103 @@ def test_generic_daily_fact_retraction_remains_supported(client, seeded):
         f"/api/v1/events/{row.json()['event_id']}/retract", headers=auth(owner),
     )
     assert withdrawn.status_code == 200, withdrawn.text
+
+
+def test_daily_only_reader_cannot_discover_admin_identity_events_via_generic_surfaces(
+    client, seeded,
+):
+    """manage:pet guarded facts must not leak back through the LifeEvent fabric."""
+    owner, sitter, pet = _daily_only_caregiver(client, seeded)
+    grant = client.post(
+        f"/api/v1/pets/{pet}/grants",
+        json={
+            "user_id": sitter,
+            "scopes": ["daily:read"],
+            "reason": "admin-visibility-regression-8831",
+        },
+        headers=auth(owner),
+    )
+    assert grant.status_code == 201, grant.text
+    grant_id = grant.json()["grant_id"]
+
+    owner_rows = client.get(
+        f"/api/v1/pets/{pet}/events?event_type=grant.created&limit=200",
+        headers=auth(owner),
+    )
+    assert owner_rows.status_code == 200, owner_rows.text
+    admin_event = next(
+        row for row in owner_rows.json()["events"]
+        if row["payload"]["grant_id"] == grant_id
+    )
+    event_id = admin_event["event_id"]
+
+    # The dedicated management API remains owner-only; generic life surfaces
+    # must not downgrade that boundary to daily:read.
+    for endpoint in (
+        f"/api/v1/pets/{pet}/events?limit=200",
+        f"/api/v1/pets/{pet}/events?event_type=grant.created&limit=200",
+        f"/api/v1/pets/{pet}/today",
+        f"/api/v1/pets/{pet}/life-replay?date={datetime.now(PRODUCT_TZ).date().isoformat()}",
+    ):
+        response = client.get(endpoint, headers=auth(sitter))
+        assert response.status_code == 200, (endpoint, response.text)
+        assert event_id not in response.text
+        assert grant_id not in response.text
+        assert "grant.created" not in response.text
+
+    direct = client.get(f"/api/v1/events/{event_id}", headers=auth(sitter))
+    assert direct.status_code == 403
+    assert grant_id not in direct.text
+
+    search = client.get(
+        f"/api/v1/pets/{pet}/search", params={"q": grant_id}, headers=auth(sitter),
+    )
+    assert search.status_code == 200
+    assert search.json()["hits"] == []
+    assert grant_id not in search.text
+
+    ask = client.post(
+        f"/api/v1/pets/{pet}/ask",
+        json={"question": f"记录里有没有授权 {grant_id}？"},
+        headers=auth(sitter),
+    )
+    assert ask.status_code == 200, ask.text
+    assert event_id not in str(ask.json().get("citations", []))
+    assert grant_id not in ask.text
+
+    daily = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 6}},
+        headers=auth(sitter),
+    )
+    assert daily.status_code == 201, daily.text
+    why = client.get(
+        f"/api/v1/pets/{pet}/why",
+        params={"after_event_id": daily.json()["event_id"]},
+        headers=auth(sitter),
+    )
+    assert why.status_code == 200
+    assert event_id not in str(why.json()["prior_events"])
+    assert not any(
+        row["event_type"] == "grant.created"
+        for row in why.json()["prior_events"]
+    )
+
+    direct_admin_why = client.get(
+        f"/api/v1/pets/{pet}/why",
+        params={"after_event_id": event_id},
+        headers=auth(sitter),
+    )
+    assert direct_admin_why.status_code == 403
+
+    memories = client.get(
+        f"/api/v1/pets/{pet}/memories?years_back=1",
+        headers=auth(sitter),
+    )
+    assert memories.status_code == 200
+    assert grant_id not in memories.text
+    assert "grant.created" not in memories.text
+
+    owner_direct = client.get(f"/api/v1/events/{event_id}", headers=auth(owner))
+    assert owner_direct.status_code == 200
+    assert owner_direct.json()["payload"]["grant_id"] == grant_id

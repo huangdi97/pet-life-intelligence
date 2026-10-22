@@ -25,8 +25,8 @@ from app.models import (
 from app.services import permissions as perm
 from app.services.ai_gateway import get_gateway
 from app.services.event_visibility import (
-    MEDICAL_EVENT_TYPES,
     can_read_medical,
+    event_visible,
     scope_life_event_stmt,
 )
 from app.services.eventlog import create_life_event, write_audit
@@ -94,8 +94,8 @@ async def why_happened(
     ).scalar_one_or_none()
     if anchor is None or anchor.pet_id != pet.id:
         raise NotFound("Anchor event not found on this pet.")
-    if anchor.event_type in MEDICAL_EVENT_TYPES and not can_read_medical(capabilities):
-        raise PermissionDenied("Medical event requires medical:read.")
+    if not event_visible(anchor, capabilities):
+        raise PermissionDenied("Event requires an elevated read capability.")
     window_start = anchor.occurred_at - timedelta(hours=48)
     stmt = select(LifeEvent).where(
         LifeEvent.pet_id == pet.id,
