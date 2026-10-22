@@ -220,6 +220,7 @@ export function LifeChangeCaseScreen() {
             (review) => review.decision === "RECORD_OBSERVATION" && review.related_sources_valid === true,
           )?.review_id ?? null
         }
+        latestReviewId={detail.latest_review_id ?? null}
         latestOutcomeId={detail.latest_outcome_id ?? null}
         outcomes={detail.outcomes ?? []}
         onRecorded={() => setReload((n) => n + 1)}
