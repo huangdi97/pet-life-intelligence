@@ -82,3 +82,36 @@ class LifeChangeReview(UUIDPk, Base):
     idempotency_key: Mapped[str | None] = mapped_column(
         String(96), nullable=True
     )
+
+
+class LifeChangeOutcome(UUIDPk, Base):
+    """Append-only owner assessment anchored to one real follow-up observation."""
+
+    __tablename__ = "life_change_outcomes"
+    __table_args__ = (
+        Index("ix_life_change_outcome_case_time", "case_id", "recorded_at"),
+        UniqueConstraint(
+            "case_id", "actor_id", "idempotency_key",
+            name="uq_life_change_outcome_idempotency",
+        ),
+    )
+
+    case_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("life_change_cases.id"), nullable=False
+    )
+    pet_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("pets.id"), nullable=False
+    )
+    actor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    observation_review_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("life_change_reviews.id"), nullable=False
+    )
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    assessment: Mapped[str] = mapped_column(String(40), nullable=False)
+    note: Mapped[str] = mapped_column(String(240), default="", nullable=False)
+    prior_outcome_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    idempotency_key: Mapped[str] = mapped_column(String(96), nullable=False)
