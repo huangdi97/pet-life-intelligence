@@ -132,3 +132,45 @@ export async function continueCaseReview(
   }
   return ack;
 }
+
+export type CaseOutcomeAssessment =
+  | "CONTINUE_OBSERVING"
+  | "NO_LONGER_CONCERNED"
+  | "NEEDS_FURTHER_FOLLOW_UP";
+
+export interface CaseOutcomeAck {
+  outcome_id: string;
+  case_id: string;
+  pet_id: string;
+  observation_review_id: string;
+  assessment: CaseOutcomeAssessment;
+  observation_sources_valid: boolean;
+  replayed: boolean;
+}
+
+export async function recordCaseOutcome(
+  petId: string,
+  caseId: string,
+  observationReviewId: string,
+  assessment: CaseOutcomeAssessment,
+  latestOutcomeId: string | null,
+): Promise<CaseOutcomeAck> {
+  const ack = await api.post<CaseOutcomeAck>(
+    `/pets/${petId}/life-change-cases/${caseId}/outcomes`,
+    {
+      observation_review_id: observationReviewId,
+      assessment,
+      expected_latest_outcome_id: latestOutcomeId,
+      idempotency_key: `r8bv-${assessment}-${observationReviewId}-${latestOutcomeId ?? "initial"}`,
+    },
+  );
+  if (
+    ack.pet_id !== petId ||
+    ack.case_id !== caseId ||
+    ack.observation_review_id !== observationReviewId ||
+    ack.assessment !== assessment
+  ) {
+    throw new Error("OUTCOME_ACK_MISMATCH");
+  }
+  return ack;
+}
