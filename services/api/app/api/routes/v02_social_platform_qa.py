@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
 from app.api.routes.v02_social_platform_daily import _event_text
@@ -30,6 +30,7 @@ from app.services.event_visibility import (
     scope_life_event_stmt,
 )
 from app.services.eventlog import create_life_event, write_audit
+from app.services.life_replay import RECORD_FACT_SOURCES, project_life_replay
 
 router = APIRouter(tags=["v02-social-platform"])
 
@@ -127,28 +128,53 @@ async def low_risk_task_plan(
     medical actions."""
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
-    today = datetime.now(timezone.utc).date()
-    suggestions = []
-    for _metric, event_type in (("meal", "daily.meal"), ("walk", "daily.walk"),
-                               ("play", "daily.play"), ("sleep", "daily.sleep")):
-        count = (
-            await db.execute(
-                select(func.count()).where(
-                    LifeEvent.pet_id == pet.id,
-                    LifeEvent.event_type == event_type,
-                    LifeEvent.occurred_at >= datetime(today.year, today.month, today.day,
-                                                     tzinfo=timezone.utc),
-                )
+    now = datetime.now(timezone.utc)
+    day_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+    observed_types = ("daily.meal", "daily.walk", "daily.play", "daily.sleep")
+    originals = list((await db.execute(
+        select(LifeEvent).where(
+            LifeEvent.pet_id == pet.id,
+            LifeEvent.event_type.in_(observed_types),
+            LifeEvent.occurred_at >= day_start,
+            LifeEvent.occurred_at < now,
+        )
+    )).scalars().all())
+    successors: list[LifeEvent] = []
+    if originals:
+        successors = list((await db.execute(
+            select(LifeEvent).where(
+                LifeEvent.pet_id == pet.id,
+                LifeEvent.supersedes_event_id.in_([event.id for event in originals]),
+                LifeEvent.recorded_at < now,
             )
-        ).scalar_one()
-        if count == 0:
-            suggestions.append(f"今天还没有「{event_type}」记录，需要时可在 Quick Log 补记。")
-    await write_audit(db, action="task_plan.suggest", actor_user_id=user.id,
-                      household_id=pet.household_id, pet_id=pet.id,
-                      resource_type="TaskPlan", detail={"count": len(suggestions)})
+        )).scalars().all())
+    candidates = {event.id: event for event in [*originals, *successors]}
+    projection = project_life_replay(
+        list(candidates.values()), pet_id=pet.id,
+        day_start=day_start, day_end=now, knowledge_cutoff=now,
+    )
+    observed_event_ids: dict[str, list[str]] = {kind: [] for kind in observed_types}
+    for event in projection.events:
+        if event.event_type in observed_types and event.source_type in RECORD_FACT_SOURCES:
+            observed_event_ids[event.event_type].append(str(event.id))
+
+    suggestions = [
+        f"今天还没有「{event_type}」记录，需要时可在 Quick Log 补记。"
+        for event_type in observed_types
+        if not observed_event_ids[event_type]
+    ]
+    await write_audit(
+        db, action="task_plan.suggest", actor_user_id=user.id,
+        household_id=pet.household_id, pet_id=pet.id,
+        resource_type="TaskPlan",
+        detail={"count": len(suggestions), "observed_event_ids": observed_event_ids},
+    )
     await db.commit()
-    return {"suggestions": suggestions or ["今天的常规记录已齐全。"],
-            "boundary": "仅低风险日常建议；不包含医疗动作（PLI-204 硬边界）。"}
+    return {
+        "suggestions": suggestions or ["今天的常规记录已齐全。"],
+        "observed_event_ids": observed_event_ids,
+        "boundary": "仅提示记录缺口；未记录不代表实际未发生，也不包含医疗动作（PLI-204 硬边界）。",
+    }
 
 
 # --- PLI-205 structured memory ----------------------------------------------------------

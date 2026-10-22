@@ -354,3 +354,60 @@ def test_stored_baseline_and_care_feedback_obey_corrected_event_truth(client, se
     assert all(r["metric"] != "walk_minutes_per_day" for r in later_baseline.json())
     later_feedback = client.get(f"/api/v1/pets/{pet}/care-feedback", headers=auth(owner))
     assert not any(r["event_type"] == "daily.walk" for r in later_feedback.json()["feedback"])
+
+
+def test_task_plan_uses_current_replay_truth_not_retracted_or_superseded_rows(client, seeded):
+    """A removed or replaced log cannot falsely satisfy the daily-record checklist."""
+    from app.core.db import get_session_factory
+    from app.domain import enums
+    from app.services.eventlog import create_life_event
+
+    owner = seeded["owner_id"]
+    created = client.post(
+        "/api/v1/pets",
+        json={"name": "Task Plan Replay Pet", "species": "dog"},
+        headers=auth(owner),
+    )
+    assert created.status_code == 201, created.text
+    pet = created.json()["id"]
+    now = datetime.now(timezone.utc) - timedelta(minutes=1)
+    first = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 20},
+              "occurred_at": now.isoformat()},
+        headers=auth(owner),
+    )
+    assert first.status_code == 201, first.text
+    old_id = first.json()["event_id"]
+
+    before = client.post(f"/api/v1/pets/{pet}/task-plan", headers=auth(owner))
+    assert before.status_code == 200, before.text
+    assert before.json()["observed_event_ids"]["daily.walk"] == [old_id]
+    assert not any("daily.walk" in row for row in before.json()["suggestions"])
+
+    async def correct():
+        async with get_session_factory()() as db:
+            replacement, replayed = await create_life_event(
+                db, pet_id=uuid.UUID(pet), actor_id=uuid.UUID(owner),
+                event_type="daily.walk", payload={"duration_minutes": 9},
+                occurred_at=now,
+                supersedes_event_id=uuid.UUID(old_id),
+                source_type=enums.SourceType.OWNER_REPORTED,
+            )
+            assert not replayed
+            await db.commit()
+            return str(replacement.id)
+
+    new_id = asyncio.run(correct())
+    corrected = client.post(f"/api/v1/pets/{pet}/task-plan", headers=auth(owner))
+    assert corrected.status_code == 200
+    assert corrected.json()["observed_event_ids"]["daily.walk"] == [new_id]
+    assert old_id not in corrected.text
+
+    withdrawn = client.post(f"/api/v1/events/{new_id}/retract", headers=auth(owner))
+    assert withdrawn.status_code == 200, withdrawn.text
+    after = client.post(f"/api/v1/pets/{pet}/task-plan", headers=auth(owner))
+    assert after.status_code == 200
+    assert after.json()["observed_event_ids"]["daily.walk"] == []
+    assert any("daily.walk" in row for row in after.json()["suggestions"])
+    assert "未记录不代表实际未发生" in after.json()["boundary"]
