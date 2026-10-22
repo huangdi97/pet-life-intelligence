@@ -24,6 +24,7 @@ from app.models import (
 )
 from app.services import permissions as perm
 from app.services.ai_gateway import get_gateway
+from app.services.current_events import scope_current_event_stmt
 from app.services.event_visibility import (
     can_read_medical,
     event_visible,
@@ -52,6 +53,7 @@ async def pet_ask(pet_id: uuid.UUID, body: AskIn, db: DBSession, user: CurrentUs
         LifeEvent.pet_id == pet.id, LifeEvent.retracted_at.is_(None)
     ).order_by(LifeEvent.occurred_at.desc()).limit(200)
     stmt = scope_life_event_stmt(stmt, capabilities)
+    stmt = scope_current_event_stmt(stmt)
     rows = (await db.execute(stmt)).scalars().all()
     evidence = [
         {"id": str(e.id), "text": f"{e.occurred_at:%Y-%m-%d} {e.event_type} {_event_text(e)}"}
@@ -105,6 +107,7 @@ async def why_happened(
         LifeEvent.retracted_at.is_(None),
     ).order_by(LifeEvent.occurred_at.desc()).limit(10)
     stmt = scope_life_event_stmt(stmt, capabilities)
+    stmt = scope_current_event_stmt(stmt)
     rows = (await db.execute(stmt)).scalars().all()
     return {
         "anchor_event_id": str(anchor.id),

@@ -1,6 +1,8 @@
 """LifeEvent authorization must be consistent across ALL reading surfaces."""
 
+import asyncio
 import io
+import uuid
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -430,3 +432,78 @@ def test_daily_only_reader_cannot_discover_admin_identity_events_via_generic_sur
     owner_direct = client.get(f"/api/v1/events/{event_id}", headers=auth(owner))
     assert owner_direct.status_code == 200
     assert owner_direct.json()["payload"]["grant_id"] == grant_id
+
+
+def test_search_ask_and_why_do_not_reuse_superseded_event_payloads(client, seeded):
+    """Auxiliary intelligence reads must consume the same current fact version."""
+    from app.core.db import get_session_factory
+    from app.domain import enums
+    from app.services.eventlog import create_life_event
+
+    owner, pet = seeded["owner_id"], seeded["coco_id"]
+    occurred = datetime.now(timezone.utc) - timedelta(hours=2)
+    first = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk",
+              "payload": {"duration_minutes": 91, "note": "obsolete-walk-91"},
+              "occurred_at": occurred.isoformat()},
+        headers=auth(owner),
+    )
+    assert first.status_code == 201, first.text
+    old_id = first.json()["event_id"]
+
+    async def correct():
+        async with get_session_factory()() as db:
+            replacement, replayed = await create_life_event(
+                db, pet_id=uuid.UUID(pet), actor_id=uuid.UUID(owner),
+                event_type="daily.walk",
+                payload={"duration_minutes": 21, "note": "current-walk-21"},
+                occurred_at=occurred,
+                supersedes_event_id=uuid.UUID(old_id),
+                source_type=enums.SourceType.OWNER_REPORTED,
+            )
+            assert not replayed
+            await db.commit()
+            return str(replacement.id)
+
+    new_id = asyncio.run(correct())
+
+    old_search = client.get(
+        f"/api/v1/pets/{pet}/search",
+        params={"q": "obsolete-walk-91"},
+        headers=auth(owner),
+    )
+    assert old_search.status_code == 200
+    assert old_search.json()["hits"] == []
+
+    new_search = client.get(
+        f"/api/v1/pets/{pet}/search",
+        params={"q": "current-walk-21"},
+        headers=auth(owner),
+    )
+    assert new_search.status_code == 200
+    assert [row["event_id"] for row in new_search.json()["hits"]] == [new_id]
+
+    asked = client.post(
+        f"/api/v1/pets/{pet}/ask",
+        json={"question": "最近散步记录是什么？"},
+        headers=auth(owner),
+    )
+    assert asked.status_code == 200, asked.text
+    assert old_id not in str(asked.json().get("citations", []))
+
+    anchor = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.play", "payload": {"duration_minutes": 3}},
+        headers=auth(owner),
+    )
+    assert anchor.status_code == 201, anchor.text
+    why = client.get(
+        f"/api/v1/pets/{pet}/why",
+        params={"after_event_id": anchor.json()["event_id"]},
+        headers=auth(owner),
+    )
+    assert why.status_code == 200, why.text
+    prior_ids = [row["event_id"] for row in why.json()["prior_events"]]
+    assert old_id not in prior_ids
+    assert new_id in prior_ids

@@ -21,6 +21,7 @@ from app.models import (
     Milestone,
 )
 from app.services import permissions as perm
+from app.services.current_events import scope_current_event_stmt
 from app.services.event_visibility import scope_life_event_stmt
 from app.services.eventlog import create_life_event
 
@@ -230,6 +231,7 @@ async def memories_on_this_day(
             LifeEvent.retracted_at.is_(None),
         ).order_by(LifeEvent.occurred_at).limit(10)
         stmt = scope_life_event_stmt(stmt, capabilities)
+        stmt = scope_current_event_stmt(stmt, now)
         rows = (await db.execute(stmt)).scalars().all()
         if rows:
             out.append({"years_ago": y, "window": f"{start.date()} ~ {target.date()}",
@@ -260,6 +262,7 @@ async def search_timeline(
         LifeEvent.pet_id == pet.id, LifeEvent.retracted_at.is_(None)
     )
     stmt = scope_life_event_stmt(stmt, capabilities)
+    stmt = scope_current_event_stmt(stmt)
     if domain:
         stmt = stmt.where(LifeEvent.event_type.like(f"{domain}.%"))
     rows = (
