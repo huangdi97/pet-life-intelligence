@@ -63,9 +63,19 @@ jobs:
           pip install -e "services/api[dev]" -e "packages/rules" -e "services/ai-gateway"
       - name: Ruff
         run: ruff check services packages tests scripts
-      - name: Migration replay
+      - name: Migration replay + metadata drift guard
         run: |
-          cd services/api && alembic upgrade head && alembic current
+          cd services/api
+          alembic upgrade head
+          alembic current
+          alembic check
+          # Prove the newest migration is reversible and replayable on the
+          # same database before pytest starts. Keep this relative so future
+          # linear migrations inherit the gate instead of hard-coding R8BO.
+          alembic downgrade -1
+          alembic upgrade head
+          alembic check
+          alembic current
       - name: Pytest
         run: |
           pytest -q --tb=short --ignore=tests/blind_ui
