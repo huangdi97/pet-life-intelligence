@@ -1762,6 +1762,7 @@ def capture_r8_owner_review(
         "outcome_id": outcome_id,
         "assessment": owner_outcome.get("assessment"),
         "observation_review_id": owner_outcome.get("observation_review_id"),
+        "case_review_head_id": owner_outcome.get("case_review_head_id"),
         "observation_sources_valid": owner_outcome.get("observation_sources_valid"),
         "created_by_real_android_tap": True,
         "no_recovery_claim": True,
