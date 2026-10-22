@@ -203,6 +203,8 @@ export function LifeChangeCaseScreen() {
                 caseId={detail.case_id}
                 reviewId={review.review_id}
                 expectedSourceIds={review.related_event_ids}
+                ownerCanRetract={detail.owner_can_review === true && detail.source_valid}
+                onSourceChanged={() => setReload((n) => n + 1)}
               />
             ) : null}
             {review.note?.trim() ? <Text style={styles.body}>主人备注：{review.note}</Text> : null}
