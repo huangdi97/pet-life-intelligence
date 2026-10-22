@@ -1,5 +1,16 @@
 """R8AQ: owner correction appends a superseding event; history is never edited."""
+import asyncio
+import uuid
 from datetime import datetime, timedelta, timezone
+
+import pytest
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+
+from app.core.db import get_session_factory
+from app.domain import enums
+from app.models import LifeEvent
+from app.services.eventlog import create_life_event
 
 from tests.conftest import auth, create_user
 
@@ -146,3 +157,64 @@ def test_correction_permissions_pet_scope_and_payload_validation(client, seeded)
         path, json={"payload": {"duration_minutes": 30}}, headers=auth(owner),
     )
     assert after_retract.status_code == 409, after_retract.text
+
+
+
+def test_database_rejects_a_second_direct_successor_even_if_api_check_is_bypassed(
+    client, seeded,
+):
+    """The append-only correction graph must be a chain, never a branch."""
+    owner = seeded["owner_id"]
+    pet, _, current, _ = _case_with_current_source(client, owner)
+    first = client.post(
+        f"/api/v1/pets/{pet}/events/{current['event_id']}/supersede",
+        json={"payload": {"duration_minutes": 35}, "idempotency_key": "r8bo-db-guard-001"},
+        headers=auth(owner),
+    )
+    assert first.status_code == 201, first.text
+    first_id = first.json()["event_id"]
+
+    async def try_second_direct_successor():
+        factory = get_session_factory()
+        async with factory() as db:
+            with pytest.raises(IntegrityError):
+                await create_life_event(
+                    db,
+                    pet_id=uuid.UUID(pet),
+                    event_type="daily.walk",
+                    payload={"duration_minutes": 41},
+                    actor_id=uuid.UUID(owner),
+                    occurred_at=datetime.fromisoformat(current["occurred_at"]),
+                    source_type=enums.SourceType.OWNER_REPORTED,
+                    supersedes_event_id=uuid.UUID(current["event_id"]),
+                )
+            await db.rollback()
+            rows = list((await db.execute(
+                select(LifeEvent).where(
+                    LifeEvent.pet_id == uuid.UUID(pet),
+                    LifeEvent.supersedes_event_id == uuid.UUID(current["event_id"]),
+                )
+            )).scalars().all())
+            return [str(row.id) for row in rows]
+
+    successors = asyncio.run(try_second_direct_successor())
+    assert successors == [first_id]
+
+
+def test_correction_chain_can_continue_from_the_current_successor(client, seeded):
+    """A→B→C is valid; only A→B and A→C is forbidden."""
+    owner = seeded["owner_id"]
+    pet, _, current, _ = _case_with_current_source(client, owner)
+    first = client.post(
+        f"/api/v1/pets/{pet}/events/{current['event_id']}/supersede",
+        json={"payload": {"duration_minutes": 34}, "idempotency_key": "r8bo-chain-001"},
+        headers=auth(owner),
+    )
+    assert first.status_code == 201, first.text
+    second = client.post(
+        f"/api/v1/pets/{pet}/events/{first.json()['event_id']}/supersede",
+        json={"payload": {"duration_minutes": 36}, "idempotency_key": "r8bo-chain-002"},
+        headers=auth(owner),
+    )
+    assert second.status_code == 201, second.text
+    assert second.json()["supersedes_event_id"] == first.json()["event_id"]

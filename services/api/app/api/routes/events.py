@@ -281,9 +281,11 @@ async def supersede_event(
     """
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.MANAGE_PET)
+    # Serialize competing corrections for the same original row. The database
+    # also owns a partial unique successor index as a final integrity boundary.
     original = (await db.execute(select(LifeEvent).where(
         LifeEvent.id == event_id, LifeEvent.pet_id == pet.id,
-    ))).scalar_one_or_none()
+    ).with_for_update())).scalar_one_or_none()
     if original is None:
         raise NotFound(f"Event {event_id} not found for this pet.")
     # A lost-ack retry carries the same idempotency key; it must return the
