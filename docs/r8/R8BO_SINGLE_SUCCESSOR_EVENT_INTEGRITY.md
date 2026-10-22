@@ -22,3 +22,10 @@ The owner correction API checked for an existing successor before appending a re
 ## Gates / boundaries
 
 Require exact-HEAD Alembic base→head→base→head, `alembic check`, Ruff, full pytest, OpenAPI, browser and Android workflows. No merge, release, tag or visual-baseline promotion. This improves event graph integrity only; it does not claim causal medical inference, real AI, real individual 3D identity, or human visual acceptance. `HUMAN_VISUAL_ACCEPTANCE=PENDING`.
+
+
+## R8BO-2 · Correction vs retraction terminal-state serialization
+
+The same source version must not become both **retracted** and **superseded**. The retraction endpoint now locks the LifeEvent row with `FOR UPDATE`, exactly like correction, then checks for a committed successor. If a successor exists, retracting the obsolete original returns `409 EVENT_ALREADY_SUPERSEDED` with the current successor ID; the owner can retract that current leaf instead. This makes concurrent retract-vs-correct requests serialize to one deterministic outcome and keeps owner source-card validity reasons stable.
+
+Database uniqueness still prevents correction forks. This endpoint rule governs the cross-row terminal-state conflict that a simple partial unique index cannot express.

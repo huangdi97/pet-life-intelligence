@@ -218,3 +218,37 @@ def test_correction_chain_can_continue_from_the_current_successor(client, seeded
     )
     assert second.status_code == 201, second.text
     assert second.json()["supersedes_event_id"] == first.json()["event_id"]
+
+
+
+def test_superseded_original_cannot_be_retracted_but_current_leaf_can(client, seeded):
+    """One fact version has one terminal path: correction OR retraction."""
+    owner = seeded["owner_id"]
+    pet, _, original, _ = _case_with_current_source(client, owner)
+    corrected = client.post(
+        f"/api/v1/pets/{pet}/events/{original['event_id']}/supersede",
+        json={"payload": {"duration_minutes": 31}, "idempotency_key": "r8bo-terminal-001"},
+        headers=auth(owner),
+    )
+    assert corrected.status_code == 201, corrected.text
+    successor_id = corrected.json()["event_id"]
+
+    old_retract = client.post(
+        f"/api/v1/events/{original['event_id']}/retract", headers=auth(owner),
+    )
+    assert old_retract.status_code == 409, old_retract.text
+    assert old_retract.json()["error"]["code"] == "EVENT_ALREADY_SUPERSEDED"
+    assert old_retract.json()["error"]["details"]["successor_event_id"] == successor_id
+
+    original_after = client.get(
+        f"/api/v1/events/{original['event_id']}", headers=auth(owner),
+    )
+    assert original_after.status_code == 200
+    assert original_after.json()["retracted_at"] is None
+
+    leaf_retract = client.post(
+        f"/api/v1/events/{successor_id}/retract", headers=auth(owner),
+    )
+    assert leaf_retract.status_code == 200, leaf_retract.text
+    assert leaf_retract.json()["event_id"] == successor_id
+    assert leaf_retract.json()["retracted_at"] is not None

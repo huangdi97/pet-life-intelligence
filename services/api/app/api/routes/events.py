@@ -245,8 +245,13 @@ async def retract_event(
     event_id: uuid.UUID, db: DBSession, user: CurrentUser,
     x_request_id: str | None = Header(default=None),
 ) -> dict:
+    # Retraction and correction are competing terminal actions on the current
+    # leaf fact. Lock the row so a concurrent supersede cannot pass its own
+    # precondition while we retract this event.
     event = (
-        await db.execute(select(LifeEvent).where(LifeEvent.id == event_id))
+        await db.execute(
+            select(LifeEvent).where(LifeEvent.id == event_id).with_for_update()
+        )
     ).scalar_one_or_none()
     if event is None:
         raise NotFound(f"Event {event_id} not found.")
@@ -255,6 +260,17 @@ async def retract_event(
     if event.retracted_at is not None:
         return {"event_id": str(event.id), "retracted_at": event.retracted_at.isoformat(),
                 "already_retracted": True}
+    successor = (await db.execute(select(LifeEvent.id).where(
+        LifeEvent.pet_id == event.pet_id,
+        LifeEvent.supersedes_event_id == event.id,
+        LifeEvent.recorded_at <= datetime.now(UTC),
+    ).limit(1))).scalar_one_or_none()
+    if successor is not None:
+        raise ConflictError(
+            "A superseded record cannot be retracted; retract the current correction instead.",
+            code="EVENT_ALREADY_SUPERSEDED",
+            details={"successor_event_id": str(successor)},
+        )
     event.retracted_at = datetime.now(UTC)
     await db.flush()
     await write_audit(
