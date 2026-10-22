@@ -694,6 +694,7 @@ def test_owner_outcome_requires_current_real_followup_and_survives_source_invali
         "observation_review_id": review_id,
         "assessment": "CONTINUE_OBSERVING",
         "note": "owner-private-outcome-note-771",
+        "expected_latest_review_id": review_id,
         "expected_latest_outcome_id": None,
         "idempotency_key": "r8bv-owner-outcome-001",
     }
@@ -729,6 +730,7 @@ def test_owner_outcome_requires_current_real_followup_and_survives_source_invali
         json={
             "observation_review_id": review_id,
             "assessment": "NO_LONGER_CONCERNED",
+            "expected_latest_review_id": review_id,
             "expected_latest_outcome_id": saved.json()["outcome_id"],
             "idempotency_key": "r8bw-stale-followup-outcome-001",
         },
@@ -758,6 +760,7 @@ def test_owner_outcome_rejects_decision_only_review_and_stale_outcome_cas(client
         json={
             "observation_review_id": decision.json()["review_id"],
             "assessment": "NO_LONGER_CONCERNED",
+            "expected_latest_review_id": decision.json()["review_id"],
             "expected_latest_outcome_id": None,
             "idempotency_key": "r8bv-invalid-decision-only",
         },
@@ -787,6 +790,7 @@ def test_owner_outcome_rejects_decision_only_review_and_stale_outcome_cas(client
         json={
             "observation_review_id": recorded.json()["review_id"],
             "assessment": "NEEDS_FURTHER_FOLLOW_UP",
+            "expected_latest_review_id": recorded.json()["review_id"],
             "expected_latest_outcome_id": None,
             "idempotency_key": "r8bv-owner-outcome-002",
         },
@@ -798,9 +802,79 @@ def test_owner_outcome_rejects_decision_only_review_and_stale_outcome_cas(client
         json={
             "observation_review_id": recorded.json()["review_id"],
             "assessment": "CONTINUE_OBSERVING",
+            "expected_latest_review_id": recorded.json()["review_id"],
             "expected_latest_outcome_id": None,
             "idempotency_key": "r8bv-owner-outcome-003",
         },
         headers=auth(owner),
     )
     assert stale.status_code == 409
+
+
+
+def test_owner_outcome_rejects_stale_case_review_head(client, seeded):
+    """R8BX: an outcome must belong to the exact Case journal snapshot the owner saw."""
+    owner = seeded["owner_id"]
+    pet, _, _ = _create_change(client, owner)
+    case = _case(client, owner, pet)
+    detail_url = f"/api/v1/pets/{pet}/life-change-cases/{case['case_id']}"
+
+    observation = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 13}},
+        headers=auth(owner),
+    )
+    assert observation.status_code == 201, observation.text
+    recorded = client.post(
+        detail_url + "/reviews",
+        json={
+            "decision": "RECORD_OBSERVATION",
+            "related_event_ids": [observation.json()["event_id"]],
+            "expected_latest_review_id": None,
+        },
+        headers=auth(owner),
+    )
+    assert recorded.status_code == 201, recorded.text
+    stale_head = recorded.json()["review_id"]
+
+    # Another device/user action appends a newer owner Review while the first
+    # outcome sheet is still open on stale_head.
+    newer = client.post(
+        detail_url + "/reviews",
+        json={
+            "decision": "FOLLOW_UP_LATER",
+            "expected_latest_review_id": stale_head,
+        },
+        headers=auth(owner),
+    )
+    assert newer.status_code == 201, newer.text
+
+    stale = client.post(
+        detail_url + "/outcomes",
+        json={
+            "observation_review_id": recorded.json()["review_id"],
+            "assessment": "CONTINUE_OBSERVING",
+            "expected_latest_review_id": stale_head,
+            "expected_latest_outcome_id": None,
+            "idempotency_key": "r8bx-stale-review-head-001",
+        },
+        headers=auth(owner),
+    )
+    assert stale.status_code == 409, stale.text
+    assert "review journal changed" in stale.text
+    assert client.get(detail_url, headers=auth(owner)).json()["outcomes"] == []
+
+    refreshed = client.post(
+        detail_url + "/outcomes",
+        json={
+            "observation_review_id": recorded.json()["review_id"],
+            "assessment": "CONTINUE_OBSERVING",
+            "expected_latest_review_id": newer.json()["review_id"],
+            "expected_latest_outcome_id": None,
+            "idempotency_key": "r8bx-fresh-review-head-001",
+        },
+        headers=auth(owner),
+    )
+    assert refreshed.status_code == 201, refreshed.text
+    assert refreshed.json()["case_review_head_id"] == newer.json()["review_id"]
+    assert refreshed.json()["observation_review_id"] == recorded.json()["review_id"]
