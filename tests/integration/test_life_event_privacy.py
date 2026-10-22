@@ -269,3 +269,64 @@ def test_daily_only_reader_medical_privacy_extends_to_search_qa_why_and_memory(
     assert sitter_memory.status_code == 200, sitter_memory.text
     assert sitter_memory.json()["memory"]["active_medications"] == []
     assert medicine not in sitter_memory.text and dose not in sitter_memory.text
+
+
+
+def test_generic_history_mutations_cannot_desynchronize_medical_domain_objects(
+    client, seeded,
+):
+    """Clinical events are projections of guarded domain objects, not editable daily logs."""
+    owner, pet = seeded["owner_id"], seeded["coco_id"]
+    secret = "domain-object-stays-authoritative-411"
+    health = client.post(
+        f"/api/v1/pets/{pet}/health-events",
+        json={"chief_complaint": secret},
+        headers=auth(owner),
+    )
+    assert health.status_code == 201, health.text
+    rows = client.get(
+        f"/api/v1/pets/{pet}/events?event_type=health.event_opened&limit=200",
+        headers=auth(owner),
+    )
+    medical = next(
+        row for row in rows.json()["events"]
+        if secret in str(row["payload"])
+    )
+    event_id = medical["event_id"]
+
+    retract = client.post(f"/api/v1/events/{event_id}/retract", headers=auth(owner))
+    assert retract.status_code == 422, retract.text
+    assert retract.json()["error"]["code"] == "EVENT_MUTATION_DOMAIN_FORBIDDEN"
+
+    supersede = client.post(
+        f"/api/v1/pets/{pet}/events/{event_id}/supersede",
+        json={
+            "payload": {
+                "health_event_id": medical["payload"]["health_event_id"],
+                "chief_complaint": "silently rewritten",
+            }
+        },
+        headers=auth(owner),
+    )
+    assert supersede.status_code == 422, supersede.text
+    assert supersede.json()["error"]["code"] == "EVENT_MUTATION_DOMAIN_FORBIDDEN"
+
+    unchanged = client.get(f"/api/v1/events/{event_id}", headers=auth(owner))
+    assert unchanged.status_code == 200
+    assert unchanged.json()["retracted_at"] is None
+    assert unchanged.json()["supersedes_event_id"] is None
+    assert unchanged.json()["payload"]["chief_complaint"] == secret
+
+
+def test_generic_daily_fact_retraction_remains_supported(client, seeded):
+    owner, pet = seeded["owner_id"], seeded["coco_id"]
+    row = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 8}},
+        headers=auth(owner),
+    )
+    assert row.status_code == 201, row.text
+    withdrawn = client.post(
+        f"/api/v1/events/{row.json()['event_id']}/retract", headers=auth(owner),
+    )
+    assert withdrawn.status_code == 200, withdrawn.text

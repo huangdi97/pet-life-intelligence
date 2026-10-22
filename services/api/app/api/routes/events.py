@@ -251,6 +251,11 @@ async def retract_event(
         raise NotFound(f"Event {event_id} not found.")
     pet = await perm.get_pet_or_404(db, event.pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.MANAGE_PET)
+    if event.event_type not in MANUAL_EVENT_TYPES:
+        raise ValidationFailed(
+            "This domain event cannot be retracted through the generic life-event API.",
+            code="EVENT_MUTATION_DOMAIN_FORBIDDEN",
+        )
     if event.retracted_at is not None:
         return {"event_id": str(event.id), "retracted_at": event.retracted_at.isoformat(),
                 "already_retracted": True}
@@ -297,6 +302,11 @@ async def supersede_event(
     ).with_for_update())).scalar_one_or_none()
     if original is None:
         raise NotFound(f"Event {event_id} not found for this pet.")
+    if original.event_type not in MANUAL_EVENT_TYPES:
+        raise ValidationFailed(
+            "This domain event cannot be corrected through the generic life-event API.",
+            code="EVENT_MUTATION_DOMAIN_FORBIDDEN",
+        )
     # A lost-ack retry carries the same idempotency key; it must return the
     # correction already accepted even though a successor now exists.
     if body.idempotency_key:

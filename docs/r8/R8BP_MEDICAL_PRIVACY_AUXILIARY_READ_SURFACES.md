@@ -25,3 +25,8 @@ This change intentionally does not yet define visibility for every nonmedical pl
 The integration test grants a sitter only daily read/write, creates a real private health complaint and medication plan as the owner, then proves the sitter cannot find the clinical phrase/event ID through Search, Ask citations, Why or Structured Memory while the owner can still read the medication. Generic Timeline privacy tests remain in place.
 
 No AI model output is used as the security assertion: the protected row is removed before gateway invocation. `NO_VISION_MODEL_USED=TRUE`; `HUMAN_VISUAL_ACCEPTANCE=PENDING`.
+
+
+## Generic mutation domain boundary
+
+R8 Case source correction/retraction uses manually recorded `daily.*` facts. Domain events such as health, medication, behavior, milestone, identity, consent, grant and platform events are projections of separate guarded objects/workflows. The generic `/events/{id}/retract` and `/pets/{pet}/events/{id}/supersede` endpoints now reject non-`daily.*` types with `422 EVENT_MUTATION_DOMAIN_FORBIDDEN`. This prevents an owner from changing only the event-log mirror while leaving the authoritative clinical/consent/domain object unchanged. Existing daily Case correction and retraction remain supported.
