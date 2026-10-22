@@ -700,7 +700,7 @@ def test_owner_outcome_requires_current_real_followup_and_survives_source_invali
     saved = client.post(detail_url + "/outcomes", json=outcome_body, headers=auth(owner))
     assert saved.status_code == 201, saved.text
     assert saved.json()["observation_sources_valid"] is True
-    assert "恢复" not in saved.json()["truth_note"]
+    assert "不代表疾病诊断、因果关系或宠物已经恢复" in saved.json()["truth_note"]
 
     replay = client.post(detail_url + "/outcomes", json=outcome_body, headers=auth(owner))
     assert replay.status_code == 201, replay.text
