@@ -13,7 +13,7 @@ from sqlalchemy import func, select
 
 from app.api.deps import CurrentUser, DBSession
 from app.api.routes.v02_social_platform_daily import _event_text
-from app.core.errors import NotFound
+from app.core.errors import NotFound, PermissionDenied
 from app.domain import enums
 from app.models import (
     Baseline,
@@ -24,6 +24,11 @@ from app.models import (
 )
 from app.services import permissions as perm
 from app.services.ai_gateway import get_gateway
+from app.services.event_visibility import (
+    MEDICAL_EVENT_TYPES,
+    can_read_medical,
+    scope_life_event_stmt,
+)
 from app.services.eventlog import create_life_event, write_audit
 
 router = APIRouter(tags=["v02-social-platform"])
@@ -39,14 +44,14 @@ class AskIn(BaseModel):
 async def pet_ask(pet_id: uuid.UUID, body: AskIn, db: DBSession, user: CurrentUser) -> dict:
     """PLI-197 personal QA — answer_with_evidence must cite real events."""
     pet = await perm.get_pet_or_404(db, pet_id)
-    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
-    rows = (
-        await db.execute(
-            select(LifeEvent).where(
-                LifeEvent.pet_id == pet.id, LifeEvent.retracted_at.is_(None)
-            ).order_by(LifeEvent.occurred_at.desc()).limit(200)
-        )
-    ).scalars().all()
+    capabilities = await perm.require_capability(
+        db, pet, user.id, enums.Capability.DAILY_READ
+    )
+    stmt = select(LifeEvent).where(
+        LifeEvent.pet_id == pet.id, LifeEvent.retracted_at.is_(None)
+    ).order_by(LifeEvent.occurred_at.desc()).limit(200)
+    stmt = scope_life_event_stmt(stmt, capabilities)
+    rows = (await db.execute(stmt)).scalars().all()
     evidence = [
         {"id": str(e.id), "text": f"{e.occurred_at:%Y-%m-%d} {e.event_type} {_event_text(e)}"}
         for e in rows
@@ -81,23 +86,25 @@ async def why_happened(
 ) -> dict:
     """PLI-199: deterministic 'prior events' hints — explicitly NOT causal."""
     pet = await perm.get_pet_or_404(db, pet_id)
-    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    capabilities = await perm.require_capability(
+        db, pet, user.id, enums.Capability.DAILY_READ
+    )
     anchor = (
         await db.execute(select(LifeEvent).where(LifeEvent.id == after_event_id))
     ).scalar_one_or_none()
     if anchor is None or anchor.pet_id != pet.id:
         raise NotFound("Anchor event not found on this pet.")
+    if anchor.event_type in MEDICAL_EVENT_TYPES and not can_read_medical(capabilities):
+        raise PermissionDenied("Medical event requires medical:read.")
     window_start = anchor.occurred_at - timedelta(hours=48)
-    rows = (
-        await db.execute(
-            select(LifeEvent).where(
-                LifeEvent.pet_id == pet.id,
-                LifeEvent.occurred_at >= window_start,
-                LifeEvent.occurred_at < anchor.occurred_at,
-                LifeEvent.retracted_at.is_(None),
-            ).order_by(LifeEvent.occurred_at.desc()).limit(10)
-        )
-    ).scalars().all()
+    stmt = select(LifeEvent).where(
+        LifeEvent.pet_id == pet.id,
+        LifeEvent.occurred_at >= window_start,
+        LifeEvent.occurred_at < anchor.occurred_at,
+        LifeEvent.retracted_at.is_(None),
+    ).order_by(LifeEvent.occurred_at.desc()).limit(10)
+    stmt = scope_life_event_stmt(stmt, capabilities)
+    rows = (await db.execute(stmt)).scalars().all()
     return {
         "anchor_event_id": str(anchor.id),
         "prior_events": [
@@ -150,7 +157,9 @@ async def low_risk_task_plan(
 @router.get("/pets/{pet_id}/memory")
 async def structured_memory(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -> dict:
     pet = await perm.get_pet_or_404(db, pet_id)
-    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    capabilities = await perm.require_capability(
+        db, pet, user.id, enums.Capability.DAILY_READ
+    )
     prefs = (
         await db.execute(select(PetPreference).where(PetPreference.pet_id == pet.id))
     ).scalars().all()
@@ -160,13 +169,15 @@ async def structured_memory(pet_id: uuid.UUID, db: DBSession, user: CurrentUser)
     diet = (
         await db.execute(select(DietProfile).where(DietProfile.pet_id == pet.id))
     ).scalar_one_or_none()
-    meds = (
-        await db.execute(
-            select(MedicationPlan).where(
-                MedicationPlan.pet_id == pet.id, MedicationPlan.status == "ACTIVE"
+    meds = []
+    if can_read_medical(capabilities):
+        meds = list((
+            await db.execute(
+                select(MedicationPlan).where(
+                    MedicationPlan.pet_id == pet.id, MedicationPlan.status == "ACTIVE"
+                )
             )
-        )
-    ).scalars().all()
+        ).scalars().all())
     return {
         "pet_id": str(pet.id),
         "memory": {
@@ -186,7 +197,7 @@ async def structured_memory(pet_id: uuid.UUID, db: DBSession, user: CurrentUser)
                 for m in meds
             ],
         },
-        "notice": "结构化记忆只来自已验证的记录，均带来源。",
+        "notice": "结构化记忆只返回当前权限可读取的记录；来源字段用于核对，不代表独立验证。",
     }
 
 

@@ -14,16 +14,15 @@ from app.domain import enums
 from app.domain.event_types import EVENT_REGISTRY
 from app.models import Artifact, LifeEvent, User
 from app.services import permissions as perm
+from app.services.event_visibility import (
+    MEDICAL_EVENT_TYPES,
+    can_read_medical as _can_read_medical,
+)
 from app.services.eventlog import create_life_event, write_audit
 from app.services.life_replay import project_life_replay
 
 router = APIRouter(tags=["events"])
 
-# Registry domains classify clinical sensitivity; client payloads may not.
-MEDICAL_EVENT_TYPES = frozenset(
-    name for name, definition in EVENT_REGISTRY.items()
-    if definition.domain in {"health", "medication"}
-)
 MANUAL_REPORT_SOURCES = frozenset({
     enums.SourceType.OWNER_REPORTED,
     enums.SourceType.CAREGIVER_REPORTED,
@@ -33,11 +32,6 @@ MANUAL_REPORT_SOURCES = frozenset({
 MANUAL_EVENT_TYPES = frozenset(
     name for name in EVENT_REGISTRY if name.startswith("daily.")
 )
-
-
-def _can_read_medical(capabilities: set[str]) -> bool:
-    return enums.Capability.MEDICAL_READ.value in capabilities
-
 
 
 class EventCreate(BaseModel):

@@ -176,3 +176,96 @@ def test_manual_event_media_rejects_cross_pet_and_sensitive_artifacts(client, se
     )
     assert published.status_code == 201, published.text
     assert published.json()["artifact_ids"] == [permitted.json()["artifact_id"]]
+
+
+
+def test_daily_only_reader_medical_privacy_extends_to_search_qa_why_and_memory(
+    client, seeded,
+):
+    """Auxiliary read surfaces must not bypass the canonical medical gate."""
+    owner, sitter, pet = _daily_only_caregiver(client, seeded)
+    secret = "private-medical-search-secret-7719"
+    health = client.post(
+        f"/api/v1/pets/{pet}/health-events",
+        json={"chief_complaint": secret},
+        headers=auth(owner),
+    )
+    assert health.status_code == 201, health.text
+
+    owner_events = client.get(
+        f"/api/v1/pets/{pet}/events?event_type=health.event_opened&limit=200",
+        headers=auth(owner),
+    )
+    medical = next(
+        row for row in owner_events.json()["events"]
+        if secret in str(row["payload"])
+    )
+    medical_id = medical["event_id"]
+
+    search = client.get(
+        f"/api/v1/pets/{pet}/search", params={"q": secret}, headers=auth(sitter),
+    )
+    assert search.status_code == 200, search.text
+    assert search.json()["hits"] == []
+    assert secret not in search.text and medical_id not in search.text
+
+    asked = client.post(
+        f"/api/v1/pets/{pet}/ask",
+        json={"question": f"记录里有没有 {secret}？"},
+        headers=auth(sitter),
+    )
+    assert asked.status_code == 200, asked.text
+    assert secret not in str(asked.json().get("citations", []))
+    assert medical_id not in str(asked.json().get("citations", []))
+
+    daily = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 7}},
+        headers=auth(owner),
+    )
+    assert daily.status_code == 201, daily.text
+    why = client.get(
+        f"/api/v1/pets/{pet}/why",
+        params={"after_event_id": daily.json()["event_id"]},
+        headers=auth(sitter),
+    )
+    assert why.status_code == 200, why.text
+    assert medical_id not in str(why.json()["prior_events"])
+    assert not any(
+        row["event_type"].startswith(("health.", "medication."))
+        for row in why.json()["prior_events"]
+    )
+
+    direct_medical_why = client.get(
+        f"/api/v1/pets/{pet}/why",
+        params={"after_event_id": medical_id},
+        headers=auth(sitter),
+    )
+    assert direct_medical_why.status_code == 403
+    assert secret not in direct_medical_why.text
+
+    medicine = "PrivateMedicine7719"
+    dose = "PrivateDose7719"
+    plan = client.post(
+        f"/api/v1/pets/{pet}/medication-plans",
+        json={
+            "medicine_name": medicine,
+            "dose_text": dose,
+            "frequency_per_day": 1,
+            "duration_days": 7,
+        },
+        headers=auth(owner),
+    )
+    assert plan.status_code == 201, plan.text
+
+    owner_memory = client.get(f"/api/v1/pets/{pet}/memory", headers=auth(owner))
+    assert owner_memory.status_code == 200
+    assert any(
+        row["medicine_name"] == medicine
+        for row in owner_memory.json()["memory"]["active_medications"]
+    )
+
+    sitter_memory = client.get(f"/api/v1/pets/{pet}/memory", headers=auth(sitter))
+    assert sitter_memory.status_code == 200, sitter_memory.text
+    assert sitter_memory.json()["memory"]["active_medications"] == []
+    assert medicine not in sitter_memory.text and dose not in sitter_memory.text
