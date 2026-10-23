@@ -15,7 +15,8 @@
     "test:owner-review-evidence": "node scripts/test-owner-review-evidence.cjs",
     "test:owner-case-history": "node scripts/test-owner-case-history.cjs",
     "doctor": "expo-doctor",
-    "build:3d-page": "node scripts/build-3d-page.mjs"
+    "build:3d-page": "node scripts/build-3d-page.mjs",
+    "test:outcome-idempotency": "node scripts/test-outcome-idempotency.cjs"
   },
   "dependencies": {
     "@babel/runtime": "^7.24.0",
