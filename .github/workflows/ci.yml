@@ -141,6 +141,8 @@ jobs:
         run: pnpm --dir apps/mobile test:owner-review-evidence
       - name: Persistent owner Case history status and pet scope
         run: pnpm --dir apps/mobile test:owner-case-history
+      - name: R8BX Outcome idempotency key length contract
+        run: pnpm --dir apps/mobile test:outcome-idempotency
       - name: Mobile bundle (android)
         run: pnpm --dir apps/mobile exec expo export --platform android
       - name: Mobile bundle (ios)
