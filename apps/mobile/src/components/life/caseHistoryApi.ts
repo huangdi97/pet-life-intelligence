@@ -7,6 +7,7 @@
  */
 import { api } from "../../api";
 import type { LifeChangeCaseSummary } from "./ownerCaseHistory";
+import { buildOutcomeIdempotencyKey } from "./outcomeIdempotency";
 
 export type CaseDecision =
   | "FOLLOW_UP_LATER"
@@ -164,7 +165,9 @@ export async function recordCaseOutcome(
       assessment,
       expected_latest_review_id: latestReviewId,
       expected_latest_outcome_id: latestOutcomeId,
-      idempotency_key: `r8bx-${assessment}-${observationReviewId}-${latestReviewId}-${latestOutcomeId ?? "initial"}`,
+      idempotency_key: buildOutcomeIdempotencyKey(
+        observationReviewId, latestReviewId, assessment, latestOutcomeId,
+      ),
     },
   );
   if (
