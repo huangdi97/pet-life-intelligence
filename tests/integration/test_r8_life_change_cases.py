@@ -842,7 +842,7 @@ def test_owner_outcome_rejects_stale_case_review_head(client, seeded):
     newer = client.post(
         detail_url + "/reviews",
         json={
-            "decision": "FOLLOW_UP_LATER",
+            "decision": "CORRECT_SOURCE",
             "expected_latest_review_id": stale_head,
         },
         headers=auth(owner),
@@ -878,3 +878,22 @@ def test_owner_outcome_rejects_stale_case_review_head(client, seeded):
     assert refreshed.status_code == 201, refreshed.text
     assert refreshed.json()["case_review_head_id"] == newer.json()["review_id"]
     assert refreshed.json()["observation_review_id"] == recorded.json()["review_id"]
+
+    # R8BW + R8BX composition: the denormalized Case state now reflects the
+    # later CORRECT_SOURCE review, but withdrawing the assessed observation
+    # must still invalidate the Outcome's current evidence projection.
+    before_retract = client.get(detail_url, headers=auth(owner)).json()
+    assert before_retract["recorded_state"] == "OWNER_ACKNOWLEDGED"
+    assert before_retract["outcomes"][-1]["observation_sources_valid"] is True
+
+    withdrawn = client.post(
+        f"/api/v1/events/{observation.json()['event_id']}/retract",
+        headers=auth(owner),
+    )
+    assert withdrawn.status_code == 200, withdrawn.text
+    invalidated = client.get(detail_url, headers=auth(owner)).json()
+    assert invalidated["recorded_state"] == "OWNER_ACKNOWLEDGED"
+    assert invalidated["state"] == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+    assert invalidated["follow_up_source_valid"] is False
+    assert invalidated["outcomes"][-1]["outcome_id"] == refreshed.json()["outcome_id"]
+    assert invalidated["outcomes"][-1]["observation_sources_valid"] is False
