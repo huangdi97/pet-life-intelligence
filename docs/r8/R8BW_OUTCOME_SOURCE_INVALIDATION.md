@@ -20,10 +20,16 @@ When a follow-up source becomes invalid:
 - read projection changes `observation_sources_valid` to `false`;
 - the effective Case state becomes `FOLLOW_UP_EVIDENCE_INVALIDATED` while the
   original Case evidence itself may remain valid;
-- this effective invalidation is derived from the current follow-up evidence
-  graph, not from the denormalized stored Case state. A later owner Review such
-  as `CORRECT_SOURCE` remains preserved as `recorded_state`, but it cannot
-  make a withdrawn follow-up observation current again;
+- this effective invalidation is derived from the current owner-workflow head,
+  not from the denormalized stored Case state alone. An Outcome is current only
+  while its `case_review_head_id` still matches the latest Review head it was
+  recorded against. If that Outcome's observation is withdrawn, the effective
+  state becomes `FOLLOW_UP_EVIDENCE_INVALIDATED` even when the stored
+  `recorded_state` is `OWNER_ACKNOWLEDGED`;
+- a Review appended **after** that Outcome becomes the new owner-workflow head.
+  It does not resurrect the withdrawn observation—the historical Outcome still
+  reports `observation_sources_valid=false`—but it may legitimately make the
+  current workflow `CLOSED`, `FOLLOW_UP`, or another Review-derived state;
 - the owner must create a **new real follow-up observation** before another
   Outcome can be appended;
 - the UI must not describe the previous Outcome as recovery, diagnosis, normality
