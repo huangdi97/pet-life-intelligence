@@ -183,6 +183,7 @@ def _case_response(
     case: LifeChangeCase, current: bool, *,
     follow_up_source_valid: bool | None = None,
     effective_state: str | None = None,
+    owner_workflow: dict | None = None,
 ) -> dict:
     original_ids, source_shape_valid = hist.frozen_source_items(case.evidence_event_ids)
     role_map, role_shape_valid = hist.validated_frozen_roles(
@@ -196,6 +197,13 @@ def _case_response(
         state = case.state if current else "INVALIDATED"
         if current and case.state == "FOLLOW_UP" and follow_up_source_valid is False:
             state = "FOLLOW_UP_EVIDENCE_INVALIDATED"
+    workflow = owner_workflow or {
+        "state": state,
+        "source": "CASE",
+        "latest_effective_outcome_id": None,
+        "latest_effective_outcome_assessment": None,
+        "requires_new_follow_up_observation": state == "FOLLOW_UP_EVIDENCE_INVALIDATED",
+    }
     return {
         "case_id": str(case.id), "pet_id": str(case.pet_id),
         "metric": case.metric, "insight_kind": case.insight_kind,
@@ -221,6 +229,15 @@ def _case_response(
         "human_question": case.human_question,
         "recorded_state": case.state,
         "state": state,
+        "owner_workflow_state": workflow["state"],
+        "owner_workflow_source": workflow["source"],
+        "latest_effective_outcome_id": workflow["latest_effective_outcome_id"],
+        "latest_effective_outcome_assessment": workflow[
+            "latest_effective_outcome_assessment"
+        ],
+        "requires_new_follow_up_observation": workflow[
+            "requires_new_follow_up_observation"
+        ],
         "source_valid": current,
         "follow_up_source_valid": follow_up_source_valid,
         "truth_note": (
@@ -308,6 +325,62 @@ def _effective_case_state(
         return "FOLLOW_UP_EVIDENCE_INVALIDATED"
 
     return case.state
+
+
+def _owner_workflow_projection(
+    case: LifeChangeCase,
+    *,
+    case_source_valid: bool,
+    latest_review: LifeChangeReview | None,
+    latest_follow_up_source_valid: bool | None,
+    latest_outcome: LifeChangeOutcome | None = None,
+    latest_outcome_source_valid: bool | None = None,
+) -> dict:
+    """Expose the current owner workflow separately from evidence history.
+
+    A valid current Outcome is an owner intention, not a physiological state.
+    Its assessment can guide the next observation action but cannot mean
+    healthy, normal, recovered, diagnosed, or causal.
+    """
+    effective_state = _effective_case_state(
+        case,
+        case_source_valid=case_source_valid,
+        latest_review=latest_review,
+        latest_follow_up_source_valid=latest_follow_up_source_valid,
+        latest_outcome=latest_outcome,
+        latest_outcome_source_valid=latest_outcome_source_valid,
+    )
+    outcome_is_current = bool(
+        case_source_valid
+        and latest_outcome is not None
+        and latest_review is not None
+        and latest_outcome.case_review_head_id == latest_review.id
+    )
+    if outcome_is_current:
+        if latest_outcome_source_valid is False:
+            workflow_state = "FOLLOW_UP_EVIDENCE_INVALIDATED"
+        else:
+            workflow_state = f"OUTCOME_{latest_outcome.assessment}"
+        return {
+            "state": workflow_state,
+            "source": "OUTCOME",
+            "latest_effective_outcome_id": str(latest_outcome.id),
+            "latest_effective_outcome_assessment": latest_outcome.assessment,
+            "requires_new_follow_up_observation": latest_outcome_source_valid is False,
+        }
+
+    return {
+        "state": effective_state,
+        "source": (
+            "REVIEW" if latest_review is not None
+            else "CASE"
+        ),
+        "latest_effective_outcome_id": None,
+        "latest_effective_outcome_assessment": None,
+        "requires_new_follow_up_observation": (
+            effective_state == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+        ),
+    }
 
 
 async def _get_case(db: DBSession, pet_id: uuid.UUID, case_id: uuid.UUID,
@@ -401,7 +474,7 @@ async def create_case(
                 and await _follow_up_current(db, existing, outcome_observation)
             )
         case_current = await _case_current(db, existing)
-        effective_state = _effective_case_state(
+        owner_workflow = _owner_workflow_projection(
             existing,
             case_source_valid=case_current,
             latest_review=latest_review,
@@ -413,7 +486,15 @@ async def create_case(
             **_case_response(
                 existing, case_current,
                 follow_up_source_valid=followup_valid,
-                effective_state=effective_state,
+                effective_state=_effective_case_state(
+                    existing,
+                    case_source_valid=case_current,
+                    latest_review=latest_review,
+                    latest_follow_up_source_valid=followup_valid,
+                    latest_outcome=latest_outcome,
+                    latest_outcome_source_valid=latest_outcome_source_valid,
+                ),
+                owner_workflow=owner_workflow,
             ),
             "replayed": True,
         }
@@ -534,10 +615,11 @@ async def list_cases(
                 and await _follow_up_current(db, case, outcome_observation)
             )
         case_current = await _case_current(db, case)
-        effective_state = _effective_case_state(
+        latest_review = latest_review_by_case.get(case.id)
+        owner_workflow = _owner_workflow_projection(
             case,
             case_source_valid=case_current,
-            latest_review=latest_review_by_case.get(case.id),
+            latest_review=latest_review,
             latest_follow_up_source_valid=followup_valid,
             latest_outcome=latest_outcome,
             latest_outcome_source_valid=latest_outcome_source_valid,
@@ -545,7 +627,15 @@ async def list_cases(
         responses.append(_case_response(
             case, case_current,
             follow_up_source_valid=followup_valid,
-            effective_state=effective_state,
+            effective_state=_effective_case_state(
+                case,
+                case_source_valid=case_current,
+                latest_review=latest_review,
+                latest_follow_up_source_valid=followup_valid,
+                latest_outcome=latest_outcome,
+                latest_outcome_source_valid=latest_outcome_source_valid,
+            ),
+            owner_workflow=owner_workflow,
         ))
     next_cursor = (
         hist.encode_case_cursor(rows[-1].created_at, rows[-1].id)
@@ -614,22 +704,31 @@ async def get_case(
     case_current = await _case_current(db, case)
     latest_review = reviews[-1] if reviews else None
     latest_outcome = outcomes[-1] if outcomes else None
-    effective_state = _effective_case_state(
+    latest_outcome_source_valid = (
+        outcome_source_validity.get(latest_outcome.id)
+        if latest_outcome is not None else None
+    )
+    owner_workflow = _owner_workflow_projection(
         case,
         case_source_valid=case_current,
         latest_review=latest_review,
         latest_follow_up_source_valid=followup_valid,
         latest_outcome=latest_outcome,
-        latest_outcome_source_valid=(
-            outcome_source_validity.get(latest_outcome.id)
-            if latest_outcome is not None else None
-        ),
+        latest_outcome_source_valid=latest_outcome_source_valid,
     )
     return {
         **_case_response(
             case, case_current,
             follow_up_source_valid=followup_valid,
-            effective_state=effective_state,
+            effective_state=_effective_case_state(
+                case,
+                case_source_valid=case_current,
+                latest_review=latest_review,
+                latest_follow_up_source_valid=followup_valid,
+                latest_outcome=latest_outcome,
+                latest_outcome_source_valid=latest_outcome_source_valid,
+            ),
+            owner_workflow=owner_workflow,
         ),
         "reviews": review_payloads,
         "outcomes": outcome_payloads,
