@@ -182,6 +182,7 @@ async def _follow_up_current(
 def _case_response(
     case: LifeChangeCase, current: bool, *,
     follow_up_source_valid: bool | None = None,
+    effective_state: str | None = None,
 ) -> dict:
     original_ids, source_shape_valid = hist.frozen_source_items(case.evidence_event_ids)
     role_map, role_shape_valid = hist.validated_frozen_roles(
@@ -190,14 +191,11 @@ def _case_response(
     # The *case* source and the *follow-up* source are independent. Preserve
     # historical owner reviews, but never mislabel a withdrawn follow-up as a
     # completed observation cycle.
-    state = case.state if current else "INVALIDATED"
-    # Effective follow-up validity outranks the denormalized last owner-decision
-    # state. A later CORRECT_SOURCE / NOT_RELEVANT review must not make a
-    # withdrawn real observation look current again. recorded_state preserves
-    # the stored owner-decision projection; this derived state describes the
-    # current evidence graph only.
-    if current and follow_up_source_valid is False:
-        state = "FOLLOW_UP_EVIDENCE_INVALIDATED"
+    state = effective_state
+    if state is None:
+        state = case.state if current else "INVALIDATED"
+        if current and case.state == "FOLLOW_UP" and follow_up_source_valid is False:
+            state = "FOLLOW_UP_EVIDENCE_INVALIDATED"
     return {
         "case_id": str(case.id), "pet_id": str(case.pet_id),
         "metric": case.metric, "insight_kind": case.insight_kind,
@@ -275,6 +273,43 @@ def _outcome_response(
     }
 
 
+def _effective_case_state(
+    case: LifeChangeCase,
+    *,
+    case_source_valid: bool,
+    latest_review: LifeChangeReview | None,
+    latest_follow_up_source_valid: bool | None,
+    latest_outcome: LifeChangeOutcome | None = None,
+    latest_outcome_source_valid: bool | None = None,
+) -> str:
+    """Derive current owner workflow without rewriting historical records.
+
+    An Outcome is current only while it still points at the latest Review head
+    the owner had seen when recording it. Source invalidation then overrides
+    that Outcome. If a newer Review is appended afterwards, that Review becomes
+    the workflow head instead of an older Outcome reopening or overriding it.
+    """
+    if not case_source_valid:
+        return "INVALIDATED"
+
+    outcome_is_current = bool(
+        latest_outcome is not None
+        and latest_review is not None
+        and latest_outcome.case_review_head_id == latest_review.id
+    )
+    if outcome_is_current and latest_outcome_source_valid is False:
+        return "FOLLOW_UP_EVIDENCE_INVALIDATED"
+
+    if (
+        latest_review is not None
+        and latest_review.decision == "RECORD_OBSERVATION"
+        and latest_follow_up_source_valid is False
+    ):
+        return "FOLLOW_UP_EVIDENCE_INVALIDATED"
+
+    return case.state
+
+
 async def _get_case(db: DBSession, pet_id: uuid.UUID, case_id: uuid.UUID,
                     *, lock: bool = False) -> LifeChangeCase:
     stmt = select(LifeChangeCase).where(
@@ -327,23 +362,58 @@ async def create_case(
         # POST retries must agree with list/detail on the EFFECTIVE status.
         # The stored FOLLOW_UP review remains append-only, but a withdrawn
         # follow-up source can no longer be represented as still valid.
-        last_observation = (await db.execute(
+        replay_reviews = list((await db.execute(
             select(LifeChangeReview).where(
                 LifeChangeReview.case_id == existing.id,
-                LifeChangeReview.decision == "RECORD_OBSERVATION",
             ).order_by(
-                LifeChangeReview.reviewed_at.desc(),
-                LifeChangeReview.id.desc(),
-            ).limit(1)
-        )).scalar_one_or_none()
+                LifeChangeReview.reviewed_at.asc(),
+                LifeChangeReview.id.asc(),
+            )
+        )).scalars().all())
+        latest_review = replay_reviews[-1] if replay_reviews else None
+        last_observation = next(
+            (row for row in reversed(replay_reviews)
+             if row.decision == "RECORD_OBSERVATION"),
+            None,
+        )
         followup_valid = (
             await _follow_up_current(db, existing, last_observation)
             if last_observation else None
         )
+        latest_outcome = (await db.execute(
+            select(LifeChangeOutcome).where(
+                LifeChangeOutcome.case_id == existing.id,
+            ).order_by(
+                LifeChangeOutcome.recorded_at.desc(),
+                LifeChangeOutcome.id.desc(),
+            ).limit(1)
+        )).scalar_one_or_none()
+        latest_outcome_source_valid = None
+        if latest_outcome is not None:
+            outcome_observation = next(
+                (row for row in replay_reviews
+                 if row.id == latest_outcome.observation_review_id),
+                None,
+            )
+            latest_outcome_source_valid = bool(
+                outcome_observation is not None
+                and outcome_observation.decision == "RECORD_OBSERVATION"
+                and await _follow_up_current(db, existing, outcome_observation)
+            )
+        case_current = await _case_current(db, existing)
+        effective_state = _effective_case_state(
+            existing,
+            case_source_valid=case_current,
+            latest_review=latest_review,
+            latest_follow_up_source_valid=followup_valid,
+            latest_outcome=latest_outcome,
+            latest_outcome_source_valid=latest_outcome_source_valid,
+        )
         return {
             **_case_response(
-                existing, await _case_current(db, existing),
+                existing, case_current,
                 follow_up_source_valid=followup_valid,
+                effective_state=effective_state,
             ),
             "replayed": True,
         }
@@ -414,31 +484,68 @@ async def list_cases(
     rows = list((await db.execute(page_stmt.limit(limit + 1))).scalars().all())
     has_more = len(rows) > limit
     rows = rows[:limit]
-    # One bounded query for the latest accepted observation for each case.
-    # A later "follow up later" message does not make a withdrawn previously
-    # accepted observation valid again.
+    # One bounded journal read per page. The newest Review is the current
+    # owner workflow head; the newest RECORD_OBSERVATION remains the source
+    # candidate used for follow-up validity. Outcomes carry the exact Review
+    # head they were recorded against, so an older Outcome cannot shadow a
+    # later explicit owner Review.
     observation_by_case: dict[uuid.UUID, LifeChangeReview] = {}
+    latest_review_by_case: dict[uuid.UUID, LifeChangeReview] = {}
+    review_by_id: dict[uuid.UUID, LifeChangeReview] = {}
+    latest_outcome_by_case: dict[uuid.UUID, LifeChangeOutcome] = {}
     if rows:
+        case_ids = [case.id for case in rows]
         reviews = list((await db.execute(
             select(LifeChangeReview).where(
-                LifeChangeReview.case_id.in_([case.id for case in rows]),
-                LifeChangeReview.decision == "RECORD_OBSERVATION",
+                LifeChangeReview.case_id.in_(case_ids),
             ).order_by(
                 LifeChangeReview.reviewed_at.desc(),
                 LifeChangeReview.id.desc(),
             )
         )).scalars().all())
         for review in reviews:
-            observation_by_case.setdefault(review.case_id, review)
+            latest_review_by_case.setdefault(review.case_id, review)
+            review_by_id[review.id] = review
+            if review.decision == "RECORD_OBSERVATION":
+                observation_by_case.setdefault(review.case_id, review)
+        outcomes = list((await db.execute(
+            select(LifeChangeOutcome).where(
+                LifeChangeOutcome.case_id.in_(case_ids),
+            ).order_by(
+                LifeChangeOutcome.recorded_at.desc(),
+                LifeChangeOutcome.id.desc(),
+            )
+        )).scalars().all())
+        for outcome in outcomes:
+            latest_outcome_by_case.setdefault(outcome.case_id, outcome)
     responses = []
     for case in rows:
         accepted = observation_by_case.get(case.id)
         followup_valid = (
             await _follow_up_current(db, case, accepted) if accepted else None
         )
+        latest_outcome = latest_outcome_by_case.get(case.id)
+        latest_outcome_source_valid = None
+        if latest_outcome is not None:
+            outcome_observation = review_by_id.get(latest_outcome.observation_review_id)
+            latest_outcome_source_valid = bool(
+                outcome_observation is not None
+                and outcome_observation.decision == "RECORD_OBSERVATION"
+                and await _follow_up_current(db, case, outcome_observation)
+            )
+        case_current = await _case_current(db, case)
+        effective_state = _effective_case_state(
+            case,
+            case_source_valid=case_current,
+            latest_review=latest_review_by_case.get(case.id),
+            latest_follow_up_source_valid=followup_valid,
+            latest_outcome=latest_outcome,
+            latest_outcome_source_valid=latest_outcome_source_valid,
+        )
         responses.append(_case_response(
-            case, await _case_current(db, case),
+            case, case_current,
             follow_up_source_valid=followup_valid,
+            effective_state=effective_state,
         ))
     next_cursor = (
         hist.encode_case_cursor(rows[-1].created_at, rows[-1].id)
@@ -492,6 +599,7 @@ async def get_case(
     )).scalars().all())
     review_by_id = {review.id: review for review in reviews}
     outcome_payloads = []
+    outcome_source_validity: dict[uuid.UUID, bool] = {}
     for outcome in outcomes:
         observation = review_by_id.get(outcome.observation_review_id)
         source_valid = (
@@ -499,14 +607,29 @@ async def get_case(
             if observation is not None and observation.decision == "RECORD_OBSERVATION"
             else False
         )
+        outcome_source_validity[outcome.id] = source_valid
         outcome_payloads.append(_outcome_response(
             outcome, source_valid=source_valid, owner_view=owner_view,
         ))
     case_current = await _case_current(db, case)
+    latest_review = reviews[-1] if reviews else None
+    latest_outcome = outcomes[-1] if outcomes else None
+    effective_state = _effective_case_state(
+        case,
+        case_source_valid=case_current,
+        latest_review=latest_review,
+        latest_follow_up_source_valid=followup_valid,
+        latest_outcome=latest_outcome,
+        latest_outcome_source_valid=(
+            outcome_source_validity.get(latest_outcome.id)
+            if latest_outcome is not None else None
+        ),
+    )
     return {
         **_case_response(
             case, case_current,
             follow_up_source_valid=followup_valid,
+            effective_state=effective_state,
         ),
         "reviews": review_payloads,
         "outcomes": outcome_payloads,
