@@ -1766,6 +1766,18 @@ def capture_r8_owner_review(
         time.sleep(0.3)
     if not outcome_seen:
         raise CaptureError("R8BV persisted Outcome identity was not exposed by current Android UI")
+    workflow_status_xml = find_control(
+        "pli.r8.case-detail.status",
+        "case-detail-outcome-workflow-status.xml",
+        attempts=22,
+        scroll_direction="down",
+    )
+    if "主人选择继续观察" not in ui_control_text(
+        workflow_status_xml, "pli.r8.case-detail.status",
+    ):
+        raise CaptureError(
+            "R8BY Android Case summary did not render the effective Outcome workflow"
+        )
     save_manifest(directory / "case-outcome-truth.json", {
         "pet_id": pet_id,
         "case_id": case_id,
@@ -2035,6 +2047,18 @@ def capture_r8_owner_review(
            for action in stale_outcome_actions):
         raise CaptureError(
             "R8BW Android still offers a new Outcome against invalidated follow-up evidence"
+        )
+    invalid_workflow_status_xml = find_control(
+        "pli.r8.case-detail.status",
+        "case-detail-invalidated-workflow-status.xml",
+        attempts=22,
+        scroll_direction="down",
+    )
+    if "后续记录已失效 · 需新的真实观察" not in ui_control_text(
+        invalid_workflow_status_xml, "pli.r8.case-detail.status",
+    ):
+        raise CaptureError(
+            "R8BY Android Case summary did not expose invalidated Outcome workflow"
         )
     android.screenshot(directory / "owner-outcome-source-invalidated.png")
     save_manifest(directory / "case-outcome-invalidation-truth.json", {
