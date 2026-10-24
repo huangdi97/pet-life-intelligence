@@ -16,7 +16,7 @@ import { usePets } from "../context";
 import type { StackParamList } from "../navigation";
 import { COLORS, SPACE, TYPE } from "../tokens";
 import {
-  caseHistoryMetric, caseHistoryStatus, type LifeChangeCaseSummary,
+  caseHistoryMetric, caseHistoryNeedsAttention, caseHistoryStatus, type LifeChangeCaseSummary,
 } from "../components/life/ownerCaseHistory";
 import { listCaseHistory, type CaseHistoryPage } from "../components/life/caseHistoryApi";
 
@@ -294,7 +294,7 @@ export function LifeChangeHistoryScreen() {
               >
                 <View style={styles.cardHead}>
                   <Text style={styles.cardTitle}>{itemMetric.name}记录</Text>
-                  <Text style={[styles.status, (!item.source_valid || item.follow_up_source_valid === false) && styles.warn]}>
+                  <Text style={[styles.status, caseHistoryNeedsAttention(item) && styles.warn]}>
                     {status}
                   </Text>
                 </View>
