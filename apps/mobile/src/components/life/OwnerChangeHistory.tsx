@@ -6,7 +6,7 @@ import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS, SPACE, TYPE } from "../../tokens";
 import {
-  caseHistoryMetric, caseHistoryStatus,
+  caseHistoryMetric, caseHistoryNeedsAttention, caseHistoryStatus,
   type LifeChangeCaseSummary,
 } from "./ownerCaseHistory";
 
@@ -50,7 +50,7 @@ export function OwnerChangeHistory({
             >
               <View style={styles.entryHead}>
                 <Text style={styles.metric}>{metric.name}记录</Text>
-                <Text style={[styles.status, (!c.source_valid || c.follow_up_source_valid === false) && styles.warn]}>{status}</Text>
+                <Text style={[styles.status, caseHistoryNeedsAttention(c) && styles.warn]}>{status}</Text>
               </View>
               <Text style={styles.facts}>
                 当时已记录 {c.current_value}{unit} · 同期参考 {c.baseline_value}{unit}
