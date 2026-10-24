@@ -16,7 +16,8 @@ import { usePets } from "../context";
 import type { StackParamList } from "../navigation";
 import { COLORS, SPACE, TYPE } from "../tokens";
 import {
-  caseHistoryMetric, caseHistoryNeedsAttention, caseHistoryStatus, type LifeChangeCaseSummary,
+  caseHistoryMetric, caseHistoryNeedsAttention, caseHistoryNextAction, caseHistoryStatus,
+  type LifeChangeCaseSummary,
 } from "../components/life/ownerCaseHistory";
 import { listCaseHistory, type CaseHistoryPage } from "../components/life/caseHistoryApi";
 
@@ -167,6 +168,19 @@ export function LifeChangeHistoryScreen() {
     navigation.navigate("LifeChangeCase", { petId: requestedPetId, caseId });
   };
 
+  const recordObservation = (item: LifeChangeCaseSummary) => {
+    if (!matchedPet) return;
+    if (!["walk_minutes_per_day", "meal_count_per_day", "sleep_minutes_per_day"].includes(item.metric)) {
+      openCase(item.case_id);
+      return;
+    }
+    navigation.navigate("QuickLog", {
+      lifeChangeCaseId: item.case_id,
+      lifeChangePetId: requestedPetId,
+      lifeChangeMetric: item.metric as "walk_minutes_per_day" | "meal_count_per_day" | "sleep_minutes_per_day",
+    });
+  };
+
   return (
     <SafeAreaView style={styles.page}>
       <View style={styles.header}>
@@ -283,30 +297,60 @@ export function LifeChangeHistoryScreen() {
             const itemMetric = caseHistoryMetric(item.metric);
             const unit = itemMetric.unit ? ` ${itemMetric.unit}` : "";
             const status = caseHistoryStatus(item);
+            const next = caseHistoryNextAction(item);
             return (
-              <Pressable
-                key={item.case_id}
-                testID={`pli.r8.history.case.${item.case_id}`}
-                accessibilityRole="button"
-                accessibilityLabel={`${itemMetric.name}记录 · ${status} · 当时已记录 ${item.current_value}${unit} · 同期参考 ${item.baseline_value}${unit} · ${item.sample_days} 天参考 · ${item.evidence_event_ids.length} 条来源`}
-                onPress={() => openCase(item.case_id)}
-                style={styles.card}
-              >
-                <View style={styles.cardHead}>
-                  <Text style={styles.cardTitle}>{itemMetric.name}记录</Text>
-                  <Text style={[styles.status, caseHistoryNeedsAttention(item) && styles.warn]}>
-                    {status}
+              <View key={item.case_id} style={styles.card}>
+                <Pressable
+                  testID={`pli.r8.history.case.${item.case_id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${itemMetric.name}记录 · ${status} · 当时已记录 ${item.current_value}${unit} · 同期参考 ${item.baseline_value}${unit} · ${item.sample_days} 天参考 · ${item.evidence_event_ids.length} 条来源`}
+                  onPress={() => openCase(item.case_id)}
+                  style={styles.cardSummary}
+                >
+                  <View style={styles.cardHead}>
+                    <Text style={styles.cardTitle}>{itemMetric.name}记录</Text>
+                    <Text style={[styles.status, caseHistoryNeedsAttention(item) && styles.warn]}>
+                      {status}
+                    </Text>
+                  </View>
+                  <Text style={styles.facts}>
+                    当时已记录 {item.current_value}{unit} · 同期参考 {item.baseline_value}{unit}
                   </Text>
-                </View>
-                <Text style={styles.facts}>
-                  当时已记录 {item.current_value}{unit} · 同期参考 {item.baseline_value}{unit}
-                </Text>
-                <Text style={styles.caption}>
-                  {item.sample_days} 天可比参考 · {item.evidence_event_ids.length} 条冻结来源 · 非健康诊断
-                </Text>
-                <Text style={styles.caption}>Case ID {item.case_id}</Text>
-                <Text style={styles.open}>查看来源与主人反馈 →</Text>
-              </Pressable>
+                  <Text style={styles.caption}>
+                    {item.sample_days} 天可比参考 · {item.evidence_event_ids.length} 条冻结来源 · 非健康诊断
+                  </Text>
+                  <Text style={styles.caption}>Case ID {item.case_id}</Text>
+                  <Text style={styles.open}>查看完整档案 →</Text>
+                </Pressable>
+                {next.kind === "RECORD_OBSERVATION" ? (
+                  <Pressable
+                    testID={`pli.r8.history.next-record.${item.case_id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${next.label}。${next.note}`}
+                    onPress={() => recordObservation(item)}
+                    style={styles.nextAction}
+                  >
+                    <Text style={styles.nextTitle}>{next.label} →</Text>
+                    <Text style={styles.nextNote}>{next.note}</Text>
+                  </Pressable>
+                ) : next.kind === "OPEN_CASE" ? (
+                  <Pressable
+                    testID={`pli.r8.history.next-open.${item.case_id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${next.label}。${next.note}`}
+                    onPress={() => openCase(item.case_id)}
+                    style={styles.nextAction}
+                  >
+                    <Text style={styles.nextTitle}>{next.label} →</Text>
+                    <Text style={styles.nextNote}>{next.note}</Text>
+                  </Pressable>
+                ) : (
+                  <View testID={`pli.r8.history.next-none.${item.case_id}`} style={styles.nextStatic}>
+                    <Text style={styles.nextTitle}>{next.label}</Text>
+                    <Text style={styles.nextNote}>{next.note}</Text>
+                  </View>
+                )}
+              </View>
             );
           })}
 
@@ -353,7 +397,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface, color: COLORS.textPrimary,
   },
   searchAction: { minHeight: 44, justifyContent: "center", paddingHorizontal: SPACE.s2 },
-  card: { padding: SPACE.s4, borderRadius: 18, backgroundColor: COLORS.stageWarmBase, gap: SPACE.s2 },
+  card: { padding: SPACE.s4, borderRadius: 18, backgroundColor: COLORS.stageWarmBase, gap: SPACE.s3 },
+  cardSummary: { gap: SPACE.s2 },
   cardHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: SPACE.s2 },
   cardTitle: { color: COLORS.textPrimary, fontSize: TYPE.bodyStrong, fontWeight: "700" },
   status: { flexShrink: 1, textAlign: "right", fontSize: TYPE.sm, fontWeight: "600", color: COLORS.brandPrimaryDeep },
@@ -362,6 +407,13 @@ const styles = StyleSheet.create({
   caption: { color: COLORS.textSecondary, fontSize: TYPE.sm, lineHeight: 19 },
   body: { color: COLORS.textPrimary, fontSize: TYPE.body, lineHeight: 21 },
   open: { color: COLORS.brandPrimaryDeep, fontSize: TYPE.sm, fontWeight: "700" },
+  nextAction: {
+    minHeight: 44, justifyContent: "center", gap: 2, paddingTop: SPACE.s2,
+    borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle,
+  },
+  nextStatic: { gap: 2, paddingTop: SPACE.s2, borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
+  nextTitle: { color: COLORS.brandPrimaryDeep, fontSize: TYPE.sm, fontWeight: "700" },
+  nextNote: { color: COLORS.textSecondary, fontSize: TYPE.caption, lineHeight: 18 },
   block: { padding: SPACE.s4, borderRadius: 18, backgroundColor: COLORS.surface, gap: SPACE.s2 },
   warning: { color: COLORS.danger, fontSize: TYPE.body, fontWeight: "700" },
   link: { color: COLORS.brandPrimaryDeep, fontSize: TYPE.body, fontWeight: "700" },
