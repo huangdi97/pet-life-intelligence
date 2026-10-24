@@ -191,7 +191,12 @@ def _case_response(
     # historical owner reviews, but never mislabel a withdrawn follow-up as a
     # completed observation cycle.
     state = case.state if current else "INVALIDATED"
-    if current and case.state == "FOLLOW_UP" and follow_up_source_valid is False:
+    # Effective follow-up validity outranks the denormalized last owner-decision
+    # state. A later CORRECT_SOURCE / NOT_RELEVANT review must not make a
+    # withdrawn real observation look current again. recorded_state preserves
+    # the stored owner-decision projection; this derived state describes the
+    # current evidence graph only.
+    if current and follow_up_source_valid is False:
         state = "FOLLOW_UP_EVIDENCE_INVALIDATED"
     return {
         "case_id": str(case.id), "pet_id": str(case.pet_id),
