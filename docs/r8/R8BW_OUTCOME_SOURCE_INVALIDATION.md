@@ -20,6 +20,10 @@ When a follow-up source becomes invalid:
 - read projection changes `observation_sources_valid` to `false`;
 - the effective Case state becomes `FOLLOW_UP_EVIDENCE_INVALIDATED` while the
   original Case evidence itself may remain valid;
+- this effective invalidation is derived from the current follow-up evidence
+  graph, not from the denormalized stored Case state. A later owner Review such
+  as `CORRECT_SOURCE` remains preserved as `recorded_state`, but it cannot
+  make a withdrawn follow-up observation current again;
 - the owner must create a **new real follow-up observation** before another
   Outcome can be appended;
 - the UI must not describe the previous Outcome as recovery, diagnosis, normality
