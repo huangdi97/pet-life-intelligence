@@ -14,7 +14,9 @@ import { api, humanizeError } from "../api";
 import { usePets } from "../context";
 import type { StackParamList } from "../navigation";
 import { COLORS, SPACE, TYPE } from "../tokens";
-import { caseHistoryMetric, caseHistoryStatus, type LifeChangeCaseSummary } from "../components/life/ownerCaseHistory";
+import {
+  caseHistoryMetric, caseHistoryNextAction, caseHistoryStatus, type LifeChangeCaseSummary,
+} from "../components/life/ownerCaseHistory";
 import { CaseSourceList } from "../components/life/CaseSourceList";
 import { FollowUpSourceEvidence } from "../components/life/FollowUpSourceEvidence";
 import { CaseReviewActions } from "../components/life/CaseReviewActions";
@@ -114,6 +116,7 @@ export function LifeChangeCaseScreen() {
   const petName = pets?.find((p) => p.id === requestedPetId)?.name ?? "宠物";
   const metric = detail ? caseHistoryMetric(detail.metric) : null;
   const unit = metric?.unit ? ` ${metric.unit}` : "";
+  const nextAction = detail ? caseHistoryNextAction(detail) : null;
 
   const recordObservation = () => {
     if (!detail || !METRICS.has(detail.metric)) return;
@@ -157,6 +160,23 @@ export function LifeChangeCaseScreen() {
         <Text style={styles.eyebrow}>{petName} · 有来源的生活观察</Text>
         <Text style={styles.title}>{metric?.name ?? "生活"}变化回顾</Text>
         <Text style={styles.link} testID="pli.r8.case-detail.status">{caseHistoryStatus(detail)}</Text>
+        {nextAction?.kind === "RECORD_OBSERVATION" ? (
+          <Pressable
+            testID="pli.r8.case-detail.next-record"
+            accessibilityRole="button"
+            accessibilityLabel={`${nextAction.label}。${nextAction.note}`}
+            onPress={recordObservation}
+            style={styles.nextAction}
+          >
+            <Text style={styles.nextActionTitle}>下一步 · {nextAction.label} →</Text>
+            <Text style={styles.caption}>{nextAction.note}</Text>
+          </Pressable>
+        ) : nextAction ? (
+          <View testID={`pli.r8.case-detail.next-${nextAction.kind === "NONE" ? "none" : "review"}`} style={styles.nextStatic}>
+            <Text style={styles.nextActionTitle}>下一步 · {nextAction.label}</Text>
+            <Text style={styles.caption}>{nextAction.note}</Text>
+          </View>
+        ) : null}
         <Text style={styles.body}>当时已记录 {detail.current_value}{unit} · 同期参考 {detail.baseline_value}{unit}</Text>
         <Text style={styles.caption}>{detail.sample_days} 天可比参考 · {detail.evidence_event_ids.length} 条原始来源</Text>
         <Text style={styles.caption}>对比时间 {dateText(detail.computed_at)} · 不能据此推断疾病或已恢复</Text>
@@ -259,6 +279,15 @@ const styles = StyleSheet.create({
   headerAction: { marginLeft: "auto", minHeight: 44, justifyContent: "center" },
   content: { padding: SPACE.s4, gap: SPACE.s4, paddingBottom: SPACE.s12 },
   hero: { borderRadius: 22, padding: SPACE.s5, backgroundColor: COLORS.stageWarmBase, gap: SPACE.s2 },
+  nextAction: {
+    minHeight: 52, justifyContent: "center", gap: 2, marginTop: SPACE.s1,
+    paddingVertical: SPACE.s2, borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle,
+  },
+  nextStatic: {
+    gap: 2, marginTop: SPACE.s1, paddingVertical: SPACE.s2,
+    borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle,
+  },
+  nextActionTitle: { color: COLORS.brandPrimaryDeep, fontSize: TYPE.bodyStrong, fontWeight: "700" },
   section: { margin: SPACE.s4, backgroundColor: COLORS.surface, borderRadius: 18, padding: SPACE.s4, gap: SPACE.s3 },
   heading: { color: COLORS.textPrimary, fontSize: TYPE.section, fontWeight: "700" },
   title: { color: COLORS.textPrimary, fontSize: TYPE.pageTitle, fontWeight: "700" },
