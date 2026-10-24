@@ -8,7 +8,7 @@ const source = fs.readFileSync(path.resolve(__dirname, "../src/components/life/o
 const compiled = ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
 const shim={exports:{}};
 new Function("module","exports",compiled)(shim,shim.exports);
-const {caseHistoryStatus,caseHistoryNeedsAttention,caseHistoryMetric}=shim.exports;
+const {caseHistoryStatus,caseHistoryNeedsAttention,caseHistoryNextAction,caseHistoryMetric}=shim.exports;
 const origin={pet_id:"pet-1",case_id:"case-A",metric:"walk_minutes_per_day",current_value:20,baseline_value:90,sample_days:5,evidence_event_ids:["e1","e2"],source_valid:true,state:"PROPOSED"};
 assert.equal(caseHistoryStatus(origin),"等待主人核对");
 assert.match(caseHistoryStatus({...origin,state:"FOLLOW_UP",follow_up_source_valid:true}),/真实后续观察/);
@@ -29,9 +29,53 @@ assert.equal(caseHistoryStatus({...origin,state:"CLOSED",owner_workflow_state:"C
 assert.equal(caseHistoryNeedsAttention({...origin,state:"OWNER_ACKNOWLEDGED",owner_workflow_state:"OUTCOME_CONTINUE_OBSERVING"}),false);
 assert.equal(caseHistoryNeedsAttention({...origin,state:"OWNER_ACKNOWLEDGED",owner_workflow_state:"FOLLOW_UP_EVIDENCE_INVALIDATED",follow_up_source_valid:false}),true);
 assert.equal(caseHistoryNeedsAttention({...origin,state:"CLOSED",owner_workflow_state:"CLOSED",follow_up_source_valid:false}),false);
+assert.deepEqual(
+  caseHistoryNextAction({...origin,state:"OWNER_ACKNOWLEDGED",owner_workflow_state:"FOLLOW_UP_EVIDENCE_INVALIDATED",follow_up_source_valid:false}),
+  {
+    kind:"RECORD_OBSERVATION",
+    label:"补一条新的真实散步记录",
+    note:"旧主人判断仍保留为历史；新结果必须基于新的真实观察。",
+  },
+);
+assert.equal(
+  caseHistoryNextAction({...origin,state:"OWNER_ACKNOWLEDGED",owner_workflow_state:"OUTCOME_CONTINUE_OBSERVING"}).kind,
+  "RECORD_OBSERVATION",
+);
+assert.match(
+  caseHistoryNextAction({...origin,state:"OWNER_ACKNOWLEDGED",owner_workflow_state:"OUTCOME_CONTINUE_OBSERVING"}).note,
+  /不要求连续打卡/,
+);
+assert.equal(
+  caseHistoryNextAction({...origin,state:"OWNER_ACKNOWLEDGED",owner_workflow_state:"OUTCOME_NEEDS_FURTHER_FOLLOW_UP"}).kind,
+  "RECORD_OBSERVATION",
+);
+assert.match(
+  caseHistoryNextAction({...origin,state:"OWNER_ACKNOWLEDGED",owner_workflow_state:"OUTCOME_NEEDS_FURTHER_FOLLOW_UP"}).note,
+  /不自动表示健康风险等级更高/,
+);
+assert.deepEqual(
+  caseHistoryNextAction({...origin,state:"OWNER_ACKNOWLEDGED",owner_workflow_state:"OUTCOME_NO_LONGER_CONCERNED"}),
+  {
+    kind:"NONE",
+    label:"当前没有待办",
+    note:"这只是主人当前选择，不等于宠物已恢复、正常或没有健康问题。",
+  },
+);
+assert.equal(
+  caseHistoryNextAction({...origin,state:"CLOSED",owner_workflow_state:"CLOSED",follow_up_source_valid:false}).kind,
+  "NONE",
+);
+assert.equal(
+  caseHistoryNextAction({...origin,state:"INVALIDATED",owner_workflow_state:"INVALIDATED",source_valid:false}).kind,
+  "OPEN_CASE",
+);
+assert.equal(
+  caseHistoryNextAction({...origin,state:"FOLLOW_UP",follow_up_source_valid:true}).label,
+  "回看后续观察并记录结果",
+);
 assert.equal(caseHistoryMetric("daily.other").name,"生活记录");
 assert.equal(caseHistoryMetric("walk_minutes_per_day").unit,"分钟");
 const today = fs.readFileSync(path.resolve(__dirname,"../src/screens/TodayScreen.tsx"),"utf8");
 assert.ok(today.includes("ownerCases.length > 0"));
 assert.ok(today.includes("isOwnData ? rawOwnerCases : []"));
-console.log("R8AI/R8BY persisted Case journal + effective owner workflow statuses: PASS");
+console.log("R8AI/R8BY/R8BZ Case journal + workflow + owner next action routing: PASS");
