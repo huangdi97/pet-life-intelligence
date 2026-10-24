@@ -18,6 +18,60 @@ export interface Draft {
 
 const KEY = "pli_offline_drafts";
 
+/** A draft belongs to the pet selected when it was CREATED, never when
+ * it is retried. Missing pet provenance must fail closed to prevent a
+ * different household pet from inheriting an unrelated clinical/life event.
+ * No arbitrary user-supplied endpoint is accepted on replay.
+ */
+export interface DraftRequest {
+  path: string;
+  body: Record<string, unknown>;
+}
+
+function petIdFromDraft(value: unknown): string {
+  if (typeof value !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(value)) {
+    throw new Error("DRAFT_PET_ID_UNVERIFIED");
+  }
+  return value;
+}
+
+export function resolveDraftRequest(kind: DraftKind, payload: Record<string, unknown>): DraftRequest {
+  const petId = petIdFromDraft(payload.pet_id);
+  if (kind === "quicklog" && payload.endpoint !== undefined) {
+    if (payload.endpoint !== `/pets/${petId}/diary`) {
+      throw new Error("DRAFT_ENDPOINT_MISMATCH");
+    }
+    if (typeof payload.text !== "string" || !payload.text.trim()) {
+      throw new Error("DRAFT_DIARY_TEXT_MISSING");
+    }
+    return { path: `/pets/${petId}/diary`, body: { text: payload.text.trim() } };
+  }
+  if (kind === "quicklog" || kind === "behavior") {
+    if (typeof payload.event_type !== "string" || !/^[a-z][a-z0-9_.]{1,80}$/.test(payload.event_type)) {
+      throw new Error("DRAFT_EVENT_TYPE_UNVERIFIED");
+    }
+    if (!payload.payload || typeof payload.payload !== "object" || Array.isArray(payload.payload)) {
+      throw new Error("DRAFT_EVENT_PAYLOAD_INVALID");
+    }
+    if (payload.artifact_ids !== undefined &&
+        (!Array.isArray(payload.artifact_ids) || !payload.artifact_ids.every(id => typeof id === "string"))) {
+      throw new Error("DRAFT_ARTIFACT_IDS_INVALID");
+    }
+    return {
+      path: `/pets/${petId}/events`,
+      body: {
+        event_type: payload.event_type,
+        payload: payload.payload,
+        artifact_ids: payload.artifact_ids ?? [],
+      },
+    };
+  }
+  // Health intake and caregiver notes are governed flows. Without their
+  // canonical endpoint/payload contract, NEVER recast them as diary events.
+  throw new Error("DRAFT_KIND_REQUIRES_REVIEW");
+}
+
+
 export function listDrafts(): Draft[] {
   if (typeof window === "undefined") return [];
   try {

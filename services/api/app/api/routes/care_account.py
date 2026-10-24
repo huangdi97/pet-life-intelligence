@@ -1,13 +1,14 @@
 """Care network: notifications, audit, deletion requests (PLI-219/046/216)."""
 
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 
 from app.api.deps import CurrentUser, DBSession
-from app.core.errors import PermissionDenied
+from app.core.errors import ConflictError, NotFound, PermissionDenied
 from app.domain import enums
 from app.models import AuditEntry, DeletionRequest, HouseholdMember, Notification
 from app.services import permissions as perm
@@ -35,8 +36,24 @@ async def list_notifications(
         await db.execute(
             select(Notification)
             .where(
-                (Notification.household_id == household_id)
-                | (Notification.recipient_user_id == user.id)
+                or_(
+                    and_(
+                        Notification.household_id == household_id,
+                        or_(
+                            Notification.recipient_user_id.is_(None),
+                            Notification.recipient_user_id == user.id,
+                        ),
+                        or_(
+                            Notification.target_role.is_(None),
+                            Notification.target_role == "ALL",
+                            Notification.target_role == membership.role,
+                        ),
+                    ),
+                    and_(
+                        Notification.household_id.is_(None),
+                        Notification.recipient_user_id == user.id,
+                    ),
+                )
             )
             .order_by(Notification.created_at.desc())
             .limit(limit)
@@ -48,10 +65,127 @@ async def list_notifications(
             "pet_id": str(n.pet_id) if n.pet_id else None,
             "created_at": n.created_at.isoformat(),
             "read_at": n.read_at.isoformat() if n.read_at else None,
+            "target_role": n.target_role,
             "data": n.data,
         }
         for n in rows
     ]
+
+
+
+async def _notification_for_user(
+    notification_id: uuid.UUID, db: DBSession, user: CurrentUser
+) -> Notification:
+    row = (
+        await db.execute(select(Notification).where(Notification.id == notification_id))
+    ).scalar_one_or_none()
+    if row is None:
+        raise NotFound("Notification not found.")
+
+    if row.recipient_user_id == user.id and row.household_id is None:
+        return row
+    if row.household_id is None:
+        raise PermissionDenied("Notification is not available to this user.")
+
+    membership = (
+        await db.execute(
+            select(HouseholdMember).where(
+                HouseholdMember.household_id == row.household_id,
+                HouseholdMember.user_id == user.id,
+                HouseholdMember.status == "ACTIVE",
+            )
+        )
+    ).scalar_one_or_none()
+    if membership is None:
+        raise PermissionDenied("Notification is not available to this user.")
+    if row.recipient_user_id is not None and row.recipient_user_id != user.id:
+        raise PermissionDenied("Notification is addressed to another household member.")
+    if row.target_role not in (None, "", "ALL", membership.role):
+        raise PermissionDenied("Notification is addressed to another household role.")
+    return row
+
+
+@router.post("/notifications/{notification_id}/read")
+async def mark_notification_read(
+    notification_id: uuid.UUID, db: DBSession, user: CurrentUser
+) -> dict:
+    """Mark one visible notification read.
+
+    Idempotent: a second call preserves the original read timestamp.
+    """
+    row = await _notification_for_user(notification_id, db, user)
+    if row.read_at is None:
+        row.read_at = datetime.now(UTC)
+        await write_audit(
+            db,
+            action="notification.read",
+            actor_user_id=user.id,
+            household_id=row.household_id,
+            pet_id=row.pet_id,
+            resource_type="Notification",
+            resource_id=str(row.id),
+        )
+        await db.commit()
+    return {"notification_id": str(row.id), "read_at": row.read_at.isoformat() if row.read_at else None}
+
+
+@router.post("/households/{household_id}/notifications/read-all")
+async def mark_household_notifications_read(
+    household_id: uuid.UUID, db: DBSession, user: CurrentUser
+) -> dict:
+    """Mark the current user's visible notifications in one household read."""
+    membership = (
+        await db.execute(
+            select(HouseholdMember).where(
+                HouseholdMember.household_id == household_id,
+                HouseholdMember.user_id == user.id,
+                HouseholdMember.status == "ACTIVE",
+            )
+        )
+    ).scalar_one_or_none()
+    if membership is None:
+        raise PermissionDenied("Not a member of this household.")
+
+    rows = (
+        await db.execute(
+            select(Notification).where(
+                or_(
+                    and_(
+                        Notification.household_id == household_id,
+                        or_(
+                            Notification.recipient_user_id.is_(None),
+                            Notification.recipient_user_id == user.id,
+                        ),
+                        or_(
+                            Notification.target_role.is_(None),
+                            Notification.target_role == "ALL",
+                            Notification.target_role == membership.role,
+                        ),
+                    ),
+                    and_(
+                        Notification.household_id.is_(None),
+                        Notification.recipient_user_id == user.id,
+                    ),
+                ),
+                Notification.read_at.is_(None),
+            )
+        )
+    ).scalars().all()
+    now = datetime.now(UTC)
+    for row in rows:
+        row.read_at = now
+    if rows:
+        await write_audit(
+            db,
+            action="notification.read_all",
+            actor_user_id=user.id,
+            household_id=household_id,
+            resource_type="Notification",
+            resource_id="*",
+            detail={"count": len(rows)},
+        )
+        await db.commit()
+    return {"marked": len(rows), "read_at": now.isoformat() if rows else None}
 
 
 @router.get("/pets/{pet_id}/audit")
@@ -80,13 +214,60 @@ class DeletionRequestIn(BaseModel):
     reason: str = ""
 
 
+@router.get("/pets/{pet_id}/deletion-requests")
+async def list_deletion_requests(
+    pet_id: uuid.UUID, db: DBSession, user: CurrentUser
+) -> list[dict]:
+    """Owner-visible deletion request history.
+
+    This is status-only. It never executes deletion; execution remains an
+    explicit, manual, audited high-risk operation outside this automatic path.
+    """
+    pet = await perm.get_pet_or_404(db, pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.MANAGE_PET)
+    rows = (
+        await db.execute(
+            select(DeletionRequest)
+            .where(DeletionRequest.pet_id == pet.id)
+            .order_by(DeletionRequest.created_at.desc())
+        )
+    ).scalars().all()
+    return [
+        {
+            "request_id": str(row.id),
+            "status": row.status,
+            "reason": row.reason,
+            "created_at": row.created_at.isoformat(),
+            "resolved_at": row.resolved_at.isoformat() if row.resolved_at else None,
+        }
+        for row in rows
+    ]
+
+
 @router.post("/pets/{pet_id}/deletion-requests", status_code=201)
 async def request_deletion(
     pet_id: uuid.UUID, body: DeletionRequestIn, db: DBSession, user: CurrentUser
 ) -> dict:
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.MANAGE_PET)
-    dr = DeletionRequest(pet_id=pet.id, requested_by_user_id=user.id, reason=body.reason)
+    pending = (
+        await db.execute(
+            select(DeletionRequest).where(
+                DeletionRequest.pet_id == pet.id,
+                DeletionRequest.status == "PENDING",
+            )
+        )
+    ).scalar_one_or_none()
+    if pending is not None:
+        raise ConflictError(
+            "A deletion request is already pending for this pet.",
+            details={"request_id": str(pending.id)},
+        )
+    dr = DeletionRequest(
+        pet_id=pet.id,
+        requested_by_user_id=user.id,
+        reason=body.reason.strip(),
+    )
     db.add(dr)
     await db.flush()
     await create_life_event(

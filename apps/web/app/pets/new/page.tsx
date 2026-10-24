@@ -56,10 +56,12 @@ export default function CreatePetPage() {
   }
 
   return (
-    <main>
-      <h1>创建宠物档案</h1>
-      <p className="sub">建立宠物唯一身份。之后可在家庭中管理多宠。</p>
-      <div className="card">
+    <main className="v4-main v5-domain-page v5-utility-page">
+      <div className="v4-topline v5-page-lede">
+        <h1>创建宠物档案</h1>
+        <p className="sub">先建立它的基本身份。以后所有生活、健康与照护记录都会围绕同一只宠物累积。</p>
+      </div>
+      <section className="v5-form-surface">
         <label className="field">
           名字 *
           <input value={form.name} onChange={(e) => set("name", e.target.value)} />
@@ -107,7 +109,7 @@ export default function CreatePetPage() {
         <button className="btn primary" onClick={submit} disabled={busy}>
           {busy ? "创建中…" : "创建"}
         </button>
-      </div>
+      </section>
     </main>
   );
 }

@@ -1,0 +1,132 @@
+{
+  "screen": "empty",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "contentBounds": {
+    "top": 82,
+    "bottom": 844,
+    "width": 390,
+    "height": 762,
+    "left": 0
+  },
+  "elements": [
+    {
+      "id": "header",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "宠物生活\n今日\n时间线\n宠物\n助手\n我的\n退出"
+    },
+    {
+      "id": "nav",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 100,
+      "text": "宠物生活\n今日\n时间线\n宠物\n助手\n我的\n退出"
+    },
+    {
+      "id": "pli.nav.today",
+      "role": "button",
+      "x": 174,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "今日"
+    },
+    {
+      "id": "pli.nav.timeline",
+      "role": "button",
+      "x": 214,
+      "y": 15,
+      "width": 46,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "时间线"
+    },
+    {
+      "id": "pli.nav.pet",
+      "role": "button",
+      "x": 264,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "宠物"
+    },
+    {
+      "id": "pli.nav.assistant",
+      "role": "button",
+      "x": 304,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "助手"
+    },
+    {
+      "id": "pli.nav.me",
+      "role": "button",
+      "x": 344,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "我的"
+    },
+    {
+      "id": "pli.multipet.switch",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "（无）"
+    },
+    {
+      "id": "pli.empty.pet",
+      "x": 14,
+      "y": 163,
+      "width": 362,
+      "height": 83,
+      "visible": true,
+      "z": 0,
+      "text": "还没有宠物\n\n先创建一只宠物档案，从这里开始记录它的每一天。"
+    },
+    {
+      "id": "pli.empty.why",
+      "x": 62,
+      "y": 177,
+      "width": 298,
+      "height": 19,
+      "visible": true,
+      "z": 0,
+      "text": "还没有宠物"
+    },
+    {
+      "id": "pli.empty.action",
+      "role": "button",
+      "x": 14,
+      "y": 256,
+      "width": 120,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "创建宠物档案"
+    }
+  ]
+}

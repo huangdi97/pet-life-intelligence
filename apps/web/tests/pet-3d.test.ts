@@ -6,9 +6,16 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  addStageLights,
   applyOrbit,
+  canPersonalizeTwinGLB,
   createPetStageScene,
+  createTwinScene,
+  enableStageShadowCasters,
+  twinFingerprint,
   DEFAULT_ORBIT,
+  fitOrbitRadius,
+  projectPetBounds,
   orbitFromDrag,
   orbitZoom,
   PET_3D_ASSETS,
@@ -18,13 +25,13 @@ import {
 import * as THREE from "three";
 
 describe("registry — one identity across all screens", () => {
-  it("maps 豆豆 / corgi breed to doudou", () => {
-    expect(resolvePet3DIdentity({ name: "豆豆" })).toBe("doudou");
+  it("maps an explicit Corgi dog to the demo template, never by name alone", () => {
+    expect(resolvePet3DIdentity({ name: "豆豆" })).toBeNull();
     expect(resolvePet3DIdentity({ name: "其他", species: "dog", breed: "柯基" })).toBe("doudou");
   });
 
-  it("maps 咪咪 / cat to mimi", () => {
-    expect(resolvePet3DIdentity({ name: "咪咪" })).toBe("mimi");
+  it("maps a known cat species to its demo asset, not a mutable display name", () => {
+    expect(resolvePet3DIdentity({ name: "咪咪" })).toBeNull();
     expect(resolvePet3DIdentity({ name: "其他", species: "cat" })).toBe("mimi");
   });
 
@@ -33,10 +40,11 @@ describe("registry — one identity across all screens", () => {
     expect(resolvePet3DIdentity({ name: null })).toBeNull();
   });
 
-  it("assets are DEMO/SYNTHETIC dev-only with explicit provenance", () => {
+  it("assets are explicitly CC0-derived DEMO_TEMPLATE, never verified real pets", () => {
     for (const asset of Object.values(PET_3D_ASSETS)) {
-      expect(asset.provenance).toBe("DEMO_SYNTHETIC");
+      expect(asset.provenance).toBe("DEMO_TEMPLATE");
       expect(asset.devOnly).toBe(true);
+      expect(asset.description).toContain("演示");
     }
   });
 });
@@ -67,6 +75,52 @@ describe("demo assets — 豆豆 ≠ 咪咪", () => {
     expect(delta).toBeLessThan(0.03);
     scene.setPose(0, false);
     expect(body.scale.y).toBeCloseTo(before, 5);
+  });
+});
+
+describe("owner skinned-GLB personalization capability", () => {
+  it("only personalizes a descriptor onto a truly compatible base geometry", () => {
+    expect(canPersonalizeTwinGLB("doudou", { family: "corgi-like" })).toBe(true);
+    expect(canPersonalizeTwinGLB("mimi", { family: "standard-cat" })).toBe(true);
+    expect(canPersonalizeTwinGLB("doudou", { family: "standard-dog" })).toBe(false);
+    expect(canPersonalizeTwinGLB("doudou", { family: "retriever-dog" })).toBe(false);
+    expect(canPersonalizeTwinGLB("mimi", { family: "corgi-like" })).toBe(false);
+    expect(canPersonalizeTwinGLB("mimi", null)).toBe(false);
+  });
+});
+
+describe("individual owner Twin — organic morph volume contract", () => {
+  it("uses the full owner morph scale and a richer continuous silhouette", () => {
+    const base = createTwinScene({
+      family: "standard-cat",
+      morph: { overall_scale: 1 },
+      texture: { observed: { coat: "#A98365", face: "#B28C70" } },
+    });
+    const scaled = createTwinScene({
+      family: "standard-cat",
+      morph: { overall_scale: 1.25 },
+      texture: { observed: { coat: "#A98365", face: "#B28C70" } },
+    });
+    expect(scaled.bounds.height).toBeGreaterThan(base.bounds.height * 1.18);
+    expect(twinFingerprint(base).parts).toBeGreaterThan(24);
+    expect(base.pet.getObjectByName("torsoCore")).toBeTruthy();
+    expect(base.pet.getObjectByName("neckBridge")).toBeTruthy();
+    expect(base.pet.getObjectByName("cheekL")).toBeTruthy();
+    expect(base.pet.getObjectByName("tailJoint")).toBeTruthy();
+  });
+
+  it("makes waist_width visible in the actual rendered abdomen", () => {
+    const narrow = createTwinScene({
+      family: "standard-dog",
+      morph: { chest_width: 1.1, waist_width: 0.65 },
+    });
+    const wide = createTwinScene({
+      family: "standard-dog",
+      morph: { chest_width: 1.1, waist_width: 1.15 },
+    });
+    const narrowAbdomen = narrow.pet.getObjectByName("abdomen") as THREE.Mesh;
+    const wideAbdomen = wide.pet.getObjectByName("abdomen") as THREE.Mesh;
+    expect(narrowAbdomen.scale.x).toBeLessThan(wideAbdomen.scale.x);
   });
 });
 
@@ -102,5 +156,103 @@ describe("orbit math — rotate / zoom / reset are deterministic", () => {
     // Orbit distance stays near the configured radius (≥ radius, < 1.1× radius).
     expect(dist).toBeGreaterThan(DEFAULT_ORBIT.radius);
     expect(dist).toBeLessThan(DEFAULT_ORBIT.radius * 1.1);
+  });
+});
+describe("projected bounds use the camera pose immediately after orbit changes", () => {
+  it("does not reuse a stale view matrix after imperative rotation", () => {
+    const pet = new THREE.Group();
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1, 2.5));
+    pet.add(mesh);
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 40);
+    applyOrbit(camera, STAGE_TARGET, { yaw: 0, pitch: 0.2, radius: 4.6 });
+    const front = projectPetBounds(pet, camera, 400, 400);
+    applyOrbit(camera, STAGE_TARGET, { yaw: Math.PI / 2, pitch: 0.2, radius: 4.6 });
+    const side = projectPetBounds(pet, camera, 400, 400);
+    expect(front).not.toBeNull();
+    expect(side).not.toBeNull();
+    expect(side!.width).toBeGreaterThan(front!.width);
+  });
+});
+
+describe("portrait twin framing — never crop long bodies across Review angles", () => {
+  it("fits a vertically offset, long pet at front, side, and back", () => {
+    // Mimics the tall cat failure exposed by HEAD 286574a in actual Android
+    // and Web evidence. A matching projected AREA does not mean it fits.
+    const pet = new THREE.Group();
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.8, 2.8));
+    mesh.position.set(0, 0.1, 0);
+    pet.add(mesh);
+    const camera = new THREE.PerspectiveCamera(38, 0.89, 0.1, 40);
+    camera.updateProjectionMatrix();
+    const fit = fitOrbitRadius(pet, camera, DEFAULT_ORBIT, 0.4, 342, 384, {
+      fitYaws: [0, Math.PI / 2, Math.PI],
+      paddingRatio: 0.06,
+    });
+    for (const yaw of [0, Math.PI / 2, Math.PI]) {
+      applyOrbit(camera, STAGE_TARGET, { ...fit, yaw });
+      const p = projectPetBounds(pet, camera, 342, 384);
+      expect(p).not.toBeNull();
+      expect(p!.x).toBeGreaterThanOrEqual(342 * 0.06 - 1);
+      expect(p!.y).toBeGreaterThanOrEqual(384 * 0.06 - 1);
+      expect(p!.x + p!.width).toBeLessThanOrEqual(342 * 0.94 + 1);
+      expect(p!.y + p!.height).toBeLessThanOrEqual(384 * 0.94 + 1);
+    }
+    expect(fit.yaw).toBe(DEFAULT_ORBIT.yaw);
+  });
+});
+
+describe("nested Hero canvas projection", () => {
+  it("translates NDC bounds to the actual stage rectangle in full-screen pixels", () => {
+    const pet = new THREE.Group();
+    pet.add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.3, 1.5)));
+    const canvasRect = { x: 80, y: 75, width: 220, height: 330 };
+    const viewport = { width: 400, height: 500 };
+    const camera = new THREE.PerspectiveCamera(38, 220 / 330, 0.1, 40);
+    camera.updateProjectionMatrix();
+    const fit = fitOrbitRadius(
+      pet, camera, DEFAULT_ORBIT, 0.3,
+      viewport.width, viewport.height,
+      { canvasRect, fitYaws: [0, Math.PI / 2, Math.PI], paddingRatio: 0.06 },
+    );
+    for (const yaw of [0, Math.PI / 2, Math.PI]) {
+      applyOrbit(camera, STAGE_TARGET, { ...fit, yaw });
+      const result = projectPetBounds(pet, camera, viewport.width, viewport.height, undefined, canvasRect);
+      expect(result).not.toBeNull();
+      expect(result!.x).toBeGreaterThanOrEqual(canvasRect.x + 0.06 * canvasRect.width - 1);
+      expect(result!.y).toBeGreaterThanOrEqual(canvasRect.y + 0.06 * canvasRect.height - 1);
+      expect(result!.x + result!.width).toBeLessThanOrEqual(canvasRect.x + 0.94 * canvasRect.width + 1);
+      expect(result!.y + result!.height).toBeLessThanOrEqual(canvasRect.y + 0.94 * canvasRect.height + 1);
+      expect(result!.viewportWidth).toBe(viewport.width);
+      expect(result!.viewportHeight).toBe(viewport.height);
+    }
+  });
+});
+
+
+describe("Living Canvas depth — real pet shadows, not only decorative ellipses", () => {
+  it("marks pet meshes as shadow casters without changing identity geometry", () => {
+    const stage = createPetStageScene("doudou");
+    enableStageShadowCasters(stage.pet);
+    let meshes = 0;
+    stage.pet.traverse((object) => {
+      const mesh = object as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      meshes += 1;
+      expect(mesh.castShadow).toBe(true);
+      expect(mesh.receiveShadow).toBe(false);
+    });
+    expect(meshes).toBeGreaterThan(0);
+  });
+
+  it("configures the shared daylight key as a bounded soft-shadow source", () => {
+    const scene = new THREE.Scene();
+    addStageLights(scene);
+    const key = scene.children.find(
+      (object) => object instanceof THREE.DirectionalLight && object.castShadow,
+    ) as THREE.DirectionalLight | undefined;
+    expect(key).toBeTruthy();
+    expect(key!.shadow.mapSize.width).toBe(1024);
+    expect(key!.shadow.mapSize.height).toBe(1024);
+    expect(key!.shadow.camera.far).toBe(12);
   });
 });

@@ -13,6 +13,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -28,6 +29,14 @@ class LifeEvent(UUIDPk, Base):
     __table_args__ = (
         Index("ix_life_events_pet_time", "pet_id", "occurred_at"),
         Index("ix_life_events_pet_type", "pet_id", "event_type"),
+        # One recorded fact may have one direct append-only correction only.
+        # Chains A→B→C remain valid; branches A→B and A→C are forbidden.
+        Index(
+            "uq_life_events_one_successor",
+            "pet_id", "supersedes_event_id",
+            unique=True,
+            postgresql_where=text("supersedes_event_id IS NOT NULL"),
+        ),
         UniqueConstraint("pet_id", "idempotency_key", name="uq_lifeevent_idem"),
     )
 

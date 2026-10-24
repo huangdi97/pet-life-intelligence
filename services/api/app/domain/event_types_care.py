@@ -41,6 +41,12 @@ class CareHandoffEndedPayload(_Strict):
     ended_by: str
 
 
+class CareHandoffChecklistCompletedPayload(_Strict):
+    handoff_id: str
+    item_id: str
+    text: str = ""
+
+
 class CareCardGeneratedPayload(_Strict):
     card_id: str
     token_prefix: str

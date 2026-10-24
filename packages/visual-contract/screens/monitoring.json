@@ -1,21 +1,187 @@
 {
   "screen": "monitoring",
-  "version": 1,
-  "dimensions": { "petIdentity": 20, "composition": 20, "hierarchy": 15, "surface": 10, "contentPurity": 10, "interaction": 10, "accessibility": 5, "runtimeTruth": 10 },
-  "thresholds": { "pass": 92 },
-  "critical": ["monitoring.state.one", "monitoring.content.purity"],
+  "version": 2,
+  "dimensions": {
+    "individualPetTruth": 25,
+    "visualComposition": 20,
+    "informationHierarchy": 15,
+    "surfaceGovernance": 10,
+    "contentPurity": 10,
+    "interactionTruth": 10,
+    "accessibility": 5,
+    "pixelStyleTruth": 5
+  },
+  "thresholds": {
+    "pass": 92
+  },
+  "critical": [
+    "monitoring.state.one",
+    "monitoring.content.purity"
+  ],
   "checks": [
-    { "id": "monitoring.identity", "dimension": "petIdentity", "points": 10, "description": "当前宠物身份存在", "check": { "kind": "element", "idPrefix": "pli.monitoring.identity" } },
-    { "id": "monitoring.state.one", "dimension": "petIdentity", "points": 10, "description": "状态机明确呈现（非一直 loading）", "check": { "kind": "element", "idPrefix": "pli.monitoring.state.*", "count": [1, 1] } },
-    { "id": "monitoring.states", "dimension": "composition", "points": 8, "description": "状态机支持 LOADING/CONNECTED/NO_DEVICE/OFFLINE/ERROR/CACHED/PERMISSION_REQUIRED", "check": { "kind": "element", "idPrefix": "pli.monitoring.state.*", "count": [1, 7] } },
-    { "id": "monitoring.content", "dimension": "composition", "points": 12, "description": "监控内容区存在", "check": { "kind": "element", "idPrefix": "pli.monitoring.content" } },
-    { "id": "monitoring.meaning", "dimension": "hierarchy", "points": 7, "description": "当前状态有说明", "check": { "kind": "element", "idPrefix": "pli.monitoring.state.*" } },
-    { "id": "monitoring.last", "dimension": "hierarchy", "points": 8, "description": "最近数据/时间存在", "check": { "kind": "element", "idPrefix": "pli.monitoring.last" } },
-    { "id": "monitoring.surface", "dimension": "surface", "points": 10, "description": "大 Card ≤4", "check": { "kind": "surface", "max": 4, "minArea": 16000 } },
-    { "id": "monitoring.content.purity", "dimension": "contentPurity", "points": 10, "description": "Owner 文本无 raw internal terms", "check": { "kind": "text-free", "tokens": ["BW-", "OWNER_REPORTED", "STRESS_RECOVERY", "OPEN", "provider_", "model_id", "event_key", "PLI-"] } },
-    { "id": "monitoring.action", "dimension": "interaction", "points": 5, "description": "重试/连接动作存在", "check": { "kind": "element", "idPrefix": "pli.monitoring.action" } },
-    { "id": "monitoring.view", "dimension": "interaction", "points": 5, "description": "内容可查看", "check": { "kind": "count", "filter": { "role": "button", "idPrefix": "pli.monitoring.content" }, "range": [1, 8] } },
-    { "id": "monitoring.a11y", "dimension": "accessibility", "points": 5, "description": "状态可读", "check": { "kind": "element", "idPrefix": "pli.monitoring.state.*" } },
-    { "id": "monitoring.truth", "dimension": "runtimeTruth", "points": 10, "description": "状态来自真实状态机（无空白/死循环）", "check": { "kind": "text-free", "tokens": ["占位", "TODO", "placeholder"] } }
+    {
+      "id": "monitoring.identity",
+      "dimension": "individualPetTruth",
+      "points": 10,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.identity"
+      }
+    },
+    {
+      "id": "monitoring.state.one",
+      "dimension": "individualPetTruth",
+      "points": 10,
+      "description": "状态机明确呈现（非一直 loading）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.state.*",
+        "count": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "id": "monitoring.states",
+      "dimension": "visualComposition",
+      "points": 8,
+      "description": "状态机支持 LOADING/CONNECTED/NO_DEVICE/OFFLINE/ERROR/CACHED/PERMISSION_REQUIRED",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.state.*",
+        "count": [
+          1,
+          7
+        ]
+      }
+    },
+    {
+      "id": "monitoring.content",
+      "dimension": "visualComposition",
+      "points": 12,
+      "description": "监控内容区存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.content"
+      }
+    },
+    {
+      "id": "monitoring.meaning",
+      "dimension": "informationHierarchy",
+      "points": 7,
+      "description": "当前状态有说明",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.state.*"
+      }
+    },
+    {
+      "id": "monitoring.last",
+      "dimension": "informationHierarchy",
+      "points": 8,
+      "description": "最近数据/时间存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.last"
+      }
+    },
+    {
+      "id": "monitoring.surface",
+      "dimension": "surfaceGovernance",
+      "points": 10,
+      "description": "大 Card ≤4",
+      "check": {
+        "kind": "surface",
+        "max": 4,
+        "minArea": 16000
+      }
+    },
+    {
+      "id": "monitoring.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      }
+    },
+    {
+      "id": "monitoring.action",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "重试/连接动作存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.action"
+      }
+    },
+    {
+      "id": "monitoring.view",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "内容可查看",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.monitoring.content"
+        },
+        "range": [
+          1,
+          8
+        ]
+      }
+    },
+    {
+      "id": "monitoring.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "状态可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.monitoring.state.*"
+      }
+    },
+    {
+      "id": "monitoring.truth",
+      "dimension": "individualPetTruth",
+      "points": 5.0,
+      "description": "状态来自真实状态机（无空白/死循环） (real data)",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder"
+        ]
+      }
+    },
+    {
+      "id": "monitoring.truth.style",
+      "dimension": "pixelStyleTruth",
+      "points": 5.0,
+      "description": "无占位/空板书风格（style truth）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      }
+    }
   ]
 }

@@ -1,0 +1,22 @@
+{
+  "stage": "r2p3d-r4-2",
+  "twin": "doudou",
+  "asset": "packages/pet-3d/assets/twins/doudou_base.obj",
+  "measured_at": "2026-10-02",
+  "method": "corgi_proxies (machine proxy only — NEVER a human breed-recognition claim)",
+  "proxies": {
+    "total_height": 1.34,
+    "body_length_over_height": 1.442,
+    "leg_length_over_height": 0.238,
+    "head_width_over_head_height": 1.028,
+    "ear_height_over_head_height": 1.0,
+    "muzzle_length_over_head_length": 0.0716,
+    "chest_width_over_head_width": 0.935
+  },
+  "r4_1_comparison": {
+    "body_length_ratio": "1.396 -> 1.442",
+    "leg_top_ratio": "0.256 -> 0.238",
+    "muzzle_stickout_ratio": "0.091 -> 0.072"
+  },
+  "notes": "Region-aware morph (corgi_morph R4.2): longer low back, shorter legs, wider head, taller upright ears, shorter muzzle. GLB bind bbox size=[0.5507,1.34,1.9318] h/l=0.694 — long low silhouette. Coat: warm sable/tan mid-tone atlas (mean rgb 122,119,114; dark pixel ratio 0.042), cream chest/muzzle/paws."
+}

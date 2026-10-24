@@ -18,30 +18,37 @@ interface TodayPanelProps {
   summary: Async<HomeSummary>;
 }
 
-/** OWN-013 Monitoring — 今天（设备事件汇总）卡片。 */
+/** OWN-013 Monitoring — 今天的设备记录保持低密度，作为生活证据而不是 IoT dashboard。 */
 export function TodayPanel({ summary }: TodayPanelProps) {
   const counts = summary.data?.today_counts ?? {};
   return (
-    <div className="card">
-      <h2>{t("monitoring.today")}</h2>
+    <section className="v5-utility-surface" data-testid="pli.monitoring.today">
+      <div className="v4-sec-head">
+        <div>
+          <h2>{t("monitoring.today")}</h2>
+          <p className="v4-sec-sub">只汇总设备今天真实同步到的生活记录；没有数据时保持未知。</p>
+        </div>
+      </div>
       <State
         state={summary.state}
         error={summary.error ? mapErrorMessage(summary.error) : null}
         onRetry={summary.reload}
         empty={t("monitoring.noData")}
       >
-        {Object.entries(counts).map(([kind, n]) => (
-          <MetricCard key={kind} label={KIND_LABELS[kind] ?? kind} value={Number(n)} />
-        ))}
-        {Object.keys(counts).length === 0 && (
-          <EmptyState title="还没有设备数据" description="设备接入后，这里会显示今天的进食/饮水/排泄/活动/睡眠汇总。" />
-        )}
-        {summary.data?.note && (
+        <div className="v5-monitoring-metrics">
+          {Object.entries(counts).map(([kind, n]) => (
+            <MetricCard key={kind} label={KIND_LABELS[kind] ?? "其他"} value={Number(n)} />
+          ))}
+        </div>
+        {Object.keys(counts).length === 0 ? (
+          <EmptyState title="还没有设备数据" description="设备接入并产生真实同步后，这里才会出现今天的生活汇总。" />
+        ) : null}
+        {summary.data?.note ? (
           <p className="muted" style={{ marginTop: 8 }}>
             {summary.data.note}
           </p>
-        )}
+        ) : null}
       </State>
-    </div>
+    </section>
   );
 }

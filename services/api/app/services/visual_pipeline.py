@@ -19,12 +19,17 @@ per candidate (DEMO_SYNTHETIC fixtures vs owner media).
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from sqlalchemy import select
+
 from app.adapters.visual_provider import VisualProvider
-from app.models import Pet, PetVisualCapture, PetVisualJob, PetVisualModel
+from app.core.config import get_settings
+from app.models import Artifact, Pet, PetVisualCapture, PetVisualJob, PetVisualModel
+from app.services.storage import get_storage
 from app.services.twin_individual import build_individual_twin
 from app.services.twin_media import image_quality
 
@@ -56,62 +61,121 @@ def _demo_fixture_for(pet: Pet) -> Path | None:
     return None
 
 
-def _resolve_photos(capture: PetVisualCapture | None, pet: Pet) -> tuple[list[Path], str]:
-    """Return (photo files, provenance) for the media pipeline.
+async def _resolve_photos(db, capture: PetVisualCapture | None, pet: Pet) -> tuple[list[Path], str, list[str | None]]:
+    """Materialize captured IMAGE artifacts through the storage abstraction.
 
-    Own uploads (real files under local_upload_dir keyed by artifact id) are
-    preferred; if none can be located, the in-repo DEMO_SYNTHETIC fixtures are
-    used for known demo pets. Provenance is recorded accordingly so the
-    candidate is never silently promoted to real-pet validation.
+    Artifact UUID is database identity, not a filesystem path. Production
+    uploads use random storage keys and may live in MinIO, so the old direct
+    local path lookup silently missed real owner media. Returned artifact ids
+    stay index-aligned with photo paths so capture angle provenance survives.
     """
     if capture and capture.artifact_ids:
-        from app.core.config import get_settings
+        ordered_ids: list[uuid.UUID] = []
+        for raw in capture.artifact_ids[:8]:
+            try:
+                ordered_ids.append(uuid.UUID(str(raw)))
+            except (TypeError, ValueError):
+                continue
+        if ordered_ids:
+            rows = (
+                await db.execute(
+                    select(Artifact).where(
+                        Artifact.id.in_(ordered_ids),
+                        Artifact.pet_id == pet.id,
+                        Artifact.deleted_at.is_(None),
+                    )
+                )
+            ).scalars().all()
+            by_id = {str(row.id): row for row in rows}
+            storage = get_storage()
+            media_root = Path(get_settings().local_upload_dir).parent / "tmp" / "twin-media" / str(capture.id)
+            media_root.mkdir(parents=True, exist_ok=True)
+            suffix_by_type = {
+                "image/png": ".png",
+                "image/jpeg": ".jpg",
+                "image/webp": ".webp",
+            }
+            found: list[Path] = []
+            found_ids: list[str | None] = []
+            for raw in capture.artifact_ids[:8]:
+                row = by_id.get(str(raw))
+                if row is None or row.kind != "IMAGE":
+                    continue
+                suffix = suffix_by_type.get(row.content_type)
+                if suffix is None:
+                    continue
+                try:
+                    content = await storage.get(row.storage_key)
+                except Exception:
+                    continue
+                target = media_root / f"{row.id}{suffix}"
+                target.write_bytes(content)
+                found.append(target)
+                found_ids.append(str(row.id))
+            if found:
+                return found, "OWNER_REPORTED", found_ids
 
-        upload_root = Path(get_settings().local_upload_dir)
-        found: list[Path] = []
-        for aid in capture.artifact_ids[:8]:
-            p = upload_root / aid
-            if p.exists() and p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"):
-                found.append(p)
-        if found:
-            return found, "OWNER_REPORTED"
-        # Capture exists but its artifact ids did not resolve to files on this
-        # machine. For known demo pets we fall back to the in-repo
-        # DEMO_SYNTHETIC fixture media so the individual twin actually runs.
+        # Demo seeded captures intentionally reference fixture identities rather
+        # than persisted upload objects. Preserve that deterministic test/demo
+        # path, but never label it owner media.
         fixture = _demo_fixture_for(pet)
         if fixture is not None:
             photos = sorted(fixture.glob("*.png"))
             if photos:
-                return photos, "DEMO_SYNTHETIC"
-    # No capture at all -> metadata-only template descriptor (no photos).
-    return [], "NOT_YET_OBSERVED"
+                return photos, "DEMO_SYNTHETIC", [None] * len(photos)
+
+    return [], "NOT_YET_OBSERVED", []
 
 
-def _build_individual(capture: PetVisualCapture | None, pet: Pet) -> dict[str, Any]:
-    """Run the deterministic individual twin engine over resolved media.
+CANONICAL_CAPTURE_ANGLES = {"front", "left", "right", "back", "full_body", "head"}
 
-    Falls back to a metadata-only descriptor when no photo is available, so
-    the generation job still completes honestly into OWNER_REVIEW.
-    """
-    photos, provenance = _resolve_photos(capture, pet)
+
+def _angle_map_for_photos(
+    photos: list[Path],
+    artifact_ids: list[str | None],
+    capture: PetVisualCapture | None,
+) -> dict[str, list[int]]:
+    """Resolve semantic camera direction for each materialized photo."""
+    angle_map: dict[str, list[int]] = {}
+    stored = ((capture.coverage or {}).get("_angle_artifact_ids") or {}) if capture else {}
+    by_artifact = {
+        str(artifact_id): angle
+        for angle, artifact_id in stored.items()
+        if angle in CANONICAL_CAPTURE_ANGLES
+    }
+    for i, path in enumerate(photos):
+        artifact_id = artifact_ids[i] if i < len(artifact_ids) else None
+        angle = by_artifact.get(str(artifact_id)) if artifact_id else None
+        if angle is None:
+            stem = path.stem
+            if stem == "full":
+                stem = "full_body"
+            angle = stem if stem in CANONICAL_CAPTURE_ANGLES else None
+        if angle:
+            angle_map.setdefault(angle, []).append(i)
+    return angle_map
+
+
+async def _build_individual(db, capture: PetVisualCapture | None, pet: Pet) -> dict[str, Any]:
+    """Build the individual descriptor from actual persisted owner media."""
+    photos, provenance, artifact_ids = await _resolve_photos(db, capture, pet)
     if not photos:
         from app.services.visual_pipeline_meta import metadata_only_descriptor
 
         return metadata_only_descriptor(pet)
-    angle_map: dict[str, list[int]] = {}
-    for i, p in enumerate(photos):
-        angle_map.setdefault(p.stem, []).append(i)
-    from app.core.config import get_settings
-
+    angle_map = _angle_map_for_photos(photos, artifact_ids, capture)
     tmp = Path(get_settings().local_upload_dir).parent / "tmp" / "twin-frames"
     species = "cat" if (pet.species or "").lower() == "cat" else "dog"
-    return build_individual_twin(
+    result = build_individual_twin(
         photos,
         species=species,
         breed=pet.breed,
         angle_map=angle_map,
         tmp_dir=tmp,
     )
+    result["provenance"] = provenance
+    result["capture_angles"] = sorted(angle_map)
+    return result
 
 
 async def run_local_generation(
@@ -128,7 +192,7 @@ async def run_local_generation(
     await db.commit()
 
     try:
-        desc = _build_individual(capture, pet)
+        desc = await _build_individual(db, capture, pet)
         family = desc["family"]
         variant = family.split("-")[1] if "-" in family else family
         observed = {k: "photo_projection" for k in desc["surface"]["observed_regions"]}
@@ -163,12 +227,18 @@ async def run_local_generation(
             "poster": "",
             "turntable": "",
         }
-        model.metadata_json["opts"] = {
+        metadata = dict(model.metadata_json or {})
+        metadata["opts"] = {
             "observed_photo_count": n_photos,
             "media_provenance": desc["provenance"],
             "identity": desc["identity"],
+            "capture_angles": desc.get("capture_angles", []),
         }
-        model.metadata_json["surface"] = {"observed": observed, "inferred": inferred}
+        metadata["surface"] = {"observed": observed, "inferred": inferred}
+        # SQLAlchemy JSON columns do not reliably detect nested in-place
+        # mutation. Reassign the complete object so provenance/capture-angle
+        # truth survives the commit and is returned by later GET requests.
+        model.metadata_json = metadata
         # Identity gate surfaces on the model for the client review screen.
         if desc["identity"].get("gate") == "NEEDS_OWNER_CONFIRMATION":
             model.identity_qc = {"gate": "NEEDS_OWNER_CONFIRMATION"}

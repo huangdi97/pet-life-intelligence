@@ -53,6 +53,9 @@ from app.models import (
     Incident,
     InsurancePolicyRecord,
     Invitation,
+    LifeChangeCase,
+    LifeChangeOutcome,
+    LifeChangeReview,
     LifeEvent,
     LoginAttempt,
     MedicationDose,
@@ -68,6 +71,10 @@ from app.models import (
     PetFriend,
     PetIdentifier,
     PetPreference,
+    PetVisualCapture,
+    PetVisualJob,
+    PetVisualModel,
+    PetVisualRenderManifest,
     PilotFeedback,
     PilotInviteCode,
     PilotUserProfile,
@@ -98,6 +105,13 @@ from app.seed_data_identity import insert_identity
 CST = timezone(timedelta(hours=8))
 
 _TABLES = [
+    # Visual rows reference pets/models/captures and must be removed before
+    # the seeded pet identities are recreated. Keeping these here makes
+    # python -m app.seed truly idempotent once demo Twin fixtures exist.
+    PetVisualRenderManifest,
+    PetVisualJob,
+    PetVisualModel,
+    PetVisualCapture,
     CapabilityRegistry,
     FeatureFlag,
     Incident,
@@ -136,7 +150,11 @@ _TABLES = [
     PetIdentifier,
     Notification, ShareToken, DeletionRequest, CareCard, CareHandoff,
     MedicationDose, MedicationPlan, Outcome, VetBrief, TriageAssessment,
-    Observation, ClinicalIntakeStep, HealthEvent, BehaviorEvent, CareTask,
+    Observation, ClinicalIntakeStep, HealthEvent, BehaviorEvent,
+    # R8AK/R8AM: child rows of pets and care_tasks. A real owner Case must not
+    # make `python -m app.seed` fail with an FK violation.
+    LifeChangeOutcome, LifeChangeReview, LifeChangeCase,
+    CareTask,
     Consent, EmergencyProfile, Grant, Relationship, Invitation, Artifact,
     LifeEvent, Pet, HouseholdMember, Household, AIInferenceLog, AuditEntry,
     # auth + pilot tables reference `users` — must be deleted BEFORE User;

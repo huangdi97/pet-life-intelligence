@@ -19,7 +19,7 @@ async def insert_care(db: AsyncSession, ids: dict, now: datetime) -> dict:
     coco_id = ids["coco_id"]
 
     # task
-    task = CareTask(pet_id=coco_id, title="Evening feeding", task_type="FEED",
+    task = CareTask(pet_id=coco_id, title="晚间喂食", task_type="FEED",
                     due_at=now.replace(hour=19, minute=0, second=0, microsecond=0),
                     repeat_rule=enums.RepeatRule.DAILY.value,
                     assignee_user_id=family_id, created_by_user_id=owner_id)

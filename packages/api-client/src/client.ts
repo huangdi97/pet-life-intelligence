@@ -198,6 +198,35 @@ async function request<T>(
   return (await resp.json()) as T;
 }
 
+async function requestBlob(path: string, retried = false): Promise<Blob> {
+  const headers = buildHeaders({ headers: { Accept: "*/*" } });
+  delete headers["Content-Type"];
+  const resp = await fetch(`${API_URL}/api/v1${path}`, {
+    method: "GET",
+    headers,
+    credentials: "include",
+  });
+  if (resp.status === 401 && !retried) {
+    const refreshed = await tryRefresh();
+    if (refreshed) return requestBlob(path, true);
+  }
+  if (!resp.ok) {
+    let body: ApiErrorBody | null = null;
+    try {
+      body = (await resp.json()) as ApiErrorBody;
+    } catch {
+      /* non-JSON error */
+    }
+    if (body?.error) throw new ApiError(resp.status, body.error);
+    throw new ApiError(resp.status, {
+      code: "HTTP_ERROR",
+      message: `Request failed (${resp.status})`,
+      request_id: "",
+    });
+  }
+  return resp.blob();
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown) =>
@@ -207,6 +236,7 @@ export const api = {
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "PATCH", body: body === undefined ? undefined : JSON.stringify(body) }),
   del: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  blob: (path: string) => requestBlob(path),
   upload: async <T>(path: string, file: File): Promise<T> => {
     const form = new FormData();
     form.append("file", file);

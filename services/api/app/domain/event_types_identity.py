@@ -15,6 +15,9 @@ class IdentifierAddedPayload(_Strict):
 class DiaryCreatedPayload(_Strict):
     diary_id: str
     has_audio: bool = False
+    # Additive, backward-compatible metadata; never stores the diary text.
+    # Both text-only and voice-only entries use the same canonical event.
+    text_present: bool = False
 
 
 class SummaryGeneratedPayload(_Strict):

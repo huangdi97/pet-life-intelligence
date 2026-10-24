@@ -1,0 +1,353 @@
+{
+  "screen": "attention",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "contentBounds": {
+    "top": 82,
+    "bottom": 844,
+    "width": 390,
+    "height": 762,
+    "left": 0
+  },
+  "elements": [
+    {
+      "id": "header",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "宠物生活\n今日\n时间线\n关注\n助手\n我的\n退出"
+    },
+    {
+      "id": "nav",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 100,
+      "text": "宠物生活\n今日\n时间线\n关注\n助手\n我的\n退出"
+    },
+    {
+      "id": "pli.nav.today",
+      "role": "button",
+      "x": 174,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "今日"
+    },
+    {
+      "id": "pli.nav.timeline",
+      "role": "button",
+      "x": 214,
+      "y": 15,
+      "width": 46,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "时间线"
+    },
+    {
+      "id": "pli.nav.pet",
+      "role": "button",
+      "x": 264,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "关注"
+    },
+    {
+      "id": "pli.nav.assistant",
+      "role": "button",
+      "x": 304,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "助手"
+    },
+    {
+      "id": "pli.nav.me",
+      "role": "button",
+      "x": 344,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "我的"
+    },
+    {
+      "id": "pli.multipet.switch",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "关注（dog）"
+    },
+    {
+      "id": "pli.multipet.current",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "关注（dog）"
+    },
+    {
+      "id": "pli.today.identity",
+      "x": 12,
+      "y": 110,
+      "width": 366,
+      "height": 21,
+      "visible": true,
+      "z": 0,
+      "text": "关注 · 柯基"
+    },
+    {
+      "id": "pli.today.living-stage",
+      "type": "stage",
+      "x": 12,
+      "y": 141,
+      "width": 366,
+      "height": 350,
+      "visible": true,
+      "z": 0,
+      "text": "进食\n—\n饮水\n—\n活动\n—\n睡眠\n—\n\n关注\n示例数据\n\n今天还没有新的记录\n\n最近记录 · 14:15"
+    },
+    {
+      "id": "pli.today.pet-twin",
+      "type": "twin",
+      "x": 70,
+      "y": 167,
+      "width": 250,
+      "height": 296,
+      "visible": true,
+      "z": 0,
+      "text": ""
+    },
+    {
+      "id": "pet3d-stage",
+      "role": "img",
+      "x": 70,
+      "y": 167,
+      "width": 250,
+      "height": 296,
+      "visible": true,
+      "z": 0,
+      "text": ""
+    },
+    {
+      "id": "pet3d-canvas",
+      "x": 70,
+      "y": 167,
+      "width": 250,
+      "height": 296,
+      "visible": true,
+      "z": 0,
+      "text": ""
+    },
+    {
+      "id": "pli.today.anchor.food",
+      "x": 28,
+      "y": 215,
+      "width": 80,
+      "height": 50,
+      "visible": true,
+      "z": 0,
+      "text": "进食\n—"
+    },
+    {
+      "id": "pli.today.anchor.water",
+      "x": 282,
+      "y": 215,
+      "width": 80,
+      "height": 50,
+      "visible": true,
+      "z": 0,
+      "text": "饮水\n—"
+    },
+    {
+      "id": "pli.today.anchor.activity",
+      "x": 28,
+      "y": 349,
+      "width": 80,
+      "height": 50,
+      "visible": true,
+      "z": 0,
+      "text": "活动\n—"
+    },
+    {
+      "id": "pli.today.anchor.sleep",
+      "x": 282,
+      "y": 349,
+      "width": 80,
+      "height": 50,
+      "visible": true,
+      "z": 0,
+      "text": "睡眠\n—"
+    },
+    {
+      "id": "pli.today.change",
+      "x": 34,
+      "y": 433,
+      "width": 322,
+      "height": 22,
+      "visible": true,
+      "z": 0,
+      "text": "今天还没有新的记录"
+    },
+    {
+      "id": "pli.today.health-summary",
+      "x": 12,
+      "y": 501,
+      "width": 366,
+      "height": 19,
+      "visible": true,
+      "z": 0,
+      "text": "健康：1 项需要留意"
+    },
+    {
+      "id": "pli.attention.panel",
+      "type": "card",
+      "x": 12,
+      "y": 816,
+      "width": 366,
+      "height": 173,
+      "visible": true,
+      "z": 0,
+      "text": "值得注意\n\n今天有值得关注的变化\n\n今天有 1 件事值得关注\n\n查看依据"
+    },
+    {
+      "id": "pli.attention.evidence",
+      "x": 60,
+      "y": 900,
+      "width": 140,
+      "height": 17,
+      "visible": true,
+      "z": 0,
+      "text": "今天有 1 件事值得关注"
+    },
+    {
+      "id": "pli.attention.action",
+      "x": 60,
+      "y": 925,
+      "width": 76,
+      "height": 32,
+      "visible": true,
+      "z": 0,
+      "text": "查看依据"
+    },
+    {
+      "id": "pli.today.primary-action",
+      "role": "button",
+      "x": 308,
+      "y": 1008,
+      "width": 68,
+      "height": 23,
+      "visible": true,
+      "z": 0,
+      "text": "快速记录"
+    },
+    {
+      "id": "pli.quicklog.tile.feed",
+      "role": "button",
+      "x": 14,
+      "y": 1041,
+      "width": 114,
+      "height": 76,
+      "visible": true,
+      "z": 0,
+      "text": "喂食"
+    },
+    {
+      "id": "pli.quicklog.tile.water",
+      "role": "button",
+      "x": 138,
+      "y": 1041,
+      "width": 114,
+      "height": 76,
+      "visible": true,
+      "z": 0,
+      "text": "饮水"
+    },
+    {
+      "id": "pli.quicklog.tile.elimination",
+      "role": "button",
+      "x": 262,
+      "y": 1041,
+      "width": 114,
+      "height": 76,
+      "visible": true,
+      "z": 0,
+      "text": "排泄"
+    },
+    {
+      "id": "pli.quicklog.tile.walk",
+      "role": "button",
+      "x": 14,
+      "y": 1127,
+      "width": 114,
+      "height": 76,
+      "visible": true,
+      "z": 0,
+      "text": "散步"
+    },
+    {
+      "id": "pli.quicklog.tile.daily.play",
+      "role": "button",
+      "x": 138,
+      "y": 1127,
+      "width": 114,
+      "height": 76,
+      "visible": true,
+      "z": 0,
+      "text": "玩耍"
+    },
+    {
+      "id": "pli.quicklog.tile.daily.weight",
+      "role": "button",
+      "x": 262,
+      "y": 1127,
+      "width": 114,
+      "height": 76,
+      "visible": true,
+      "z": 0,
+      "text": "体重"
+    },
+    {
+      "id": "pli.today.memory-preview",
+      "type": "card",
+      "x": 12,
+      "y": 1259,
+      "width": 366,
+      "height": 388,
+      "visible": true,
+      "z": 0,
+      "text": "最近\n查看完整时间线\n4:15:\n风险分级\n系统计算\n4:15:\n红旗\n系统计算\n4:15:\n红旗\n系统计算\n4:15:\n风险分级\n系统计算\n看看它\n陪伴"
+    },
+    {
+      "id": "pli.current-pet-id",
+      "role": "text",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "text": "26b5b9d2-beb8-419a-a6ad-4020f4a3535e"
+    }
+  ]
+}

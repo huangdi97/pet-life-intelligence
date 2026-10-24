@@ -4,6 +4,7 @@
  * + 引导文案，不再是“还没有回答”。
  */
 import { Button, Input, Text, View } from "@tarojs/components";
+import Taro from "@tarojs/taro";
 import { SUGGESTED, type AnswerResult, type AskState } from "../_lib";
 
 export function AskPanel(props: {
@@ -16,7 +17,12 @@ export function AskPanel(props: {
 }) {
   const { petName, question, askState, result, onQuestionChange, onAsk } = props;
 
-  const uncertain = result ? !result.sufficient : false;
+  const uncertain = result ? result.sufficient === false : false;
+  const sources = result
+    ? [...(result.citations ?? []), ...(result.sources ?? [])]
+        .map((item) => (typeof item === "string" ? item : item.label ?? item.event_id ?? "记录"))
+        .filter(Boolean)
+    : [];
 
   return (
     <View>
@@ -55,13 +61,27 @@ export function AskPanel(props: {
             <View className="answer-body">{result.answer}</View>
           </View>
 
-          {result.citations.length > 0 && (
+          {result.facts && result.facts.length > 0 && (
             <View className="answer-block">
-              <Text className="answer-label">依据</Text>
-              {result.citations.map((c, i) => (
-                <View className="citation-row" key={i}>
-                  {c}
-                </View>
+              <Text className="answer-label">事实</Text>
+              {result.facts.map((fact, i) => (
+                <View className="citation-row" key={`fact-${i}`}>{fact}</View>
+              ))}
+            </View>
+          )}
+
+          {result.inference && (
+            <View className="answer-block">
+              <Text className="answer-label">推断（非事实）</Text>
+              <View className="answer-body">{result.inference}</View>
+            </View>
+          )}
+
+          {sources.length > 0 && (
+            <View className="answer-block">
+              <Text className="answer-label">来源</Text>
+              {sources.map((source, i) => (
+                <View className="citation-row" key={`source-${i}`}>{source}</View>
               ))}
             </View>
           )}
@@ -69,13 +89,19 @@ export function AskPanel(props: {
           <View className="answer-block">
             <Text className="answer-label">不确定性</Text>
             <View className="answer-body">
-              {uncertain ? "当前记录不足以完整回答该问题。" : "基于现有记录的回答；如有不适请及时就医。"}
+              {result.uncertainty || (uncertain ? "当前记录不足以完整回答该问题。" : "回答只覆盖当前已经记录并可引用的事实。")}
             </View>
           </View>
 
           <View className="answer-block">
             <Text className="answer-label">下一步</Text>
-            <View className="answer-body">可以继续追问，或在时间线中查看来源。</View>
+            <View className="answer-body">{result.action || "可以继续追问，或在时间线中核对来源。"}</View>
+          </View>
+
+          <View className="action-row" data-testid="pli.mini.assistant.answer-actions">
+            <View className="secondary-action" onClick={() => Taro.switchTab({ url: "/pages/timeline/index" })}>查看记录</View>
+            <View className="secondary-action" onClick={() => Taro.switchTab({ url: "/pages/timeline/index" })}>查看来源</View>
+            <View className="secondary-action" onClick={() => Taro.navigateTo({ url: "/pages/pets/life-view/index" })}>与它自己相比</View>
           </View>
 
           <View className="life-row-source" style={{ marginTop: 16 }}>

@@ -13,10 +13,12 @@ class CaptureCreate(BaseModel):
     artifact_ids: list[uuid.UUID] = Field(default_factory=list)
     capture_type: str = "PHOTO_SET"  # PHOTO_SET | VIDEO
     consent_visual_model_training: bool = False
-    # R.2-P3D: angle coverage the wizard collected
-    # {"front": true, "left": false, "right": true, "back": false,
-    #  "full_body": true, "head": true}
+    # R.2-P3D: angle coverage the wizard collected.
+    # Boolean coverage remains backward-compatible, while angle_artifact_ids
+    # preserves WHICH uploaded artifact belongs to WHICH view. Without this
+    # binding UUID/object-storage filenames lose front/head/back semantics.
     coverage: dict | None = None
+    angle_artifact_ids: dict[str, uuid.UUID] = Field(default_factory=dict)
 
 
 class CaptureOut(BaseModel):
@@ -26,7 +28,8 @@ class CaptureOut(BaseModel):
     capture_type: str
     qc_result: dict
     qc_passed: bool | None
-    coverage: dict = {}
+    coverage: dict = Field(default_factory=dict)
+    angle_artifact_ids: dict[str, uuid.UUID] = Field(default_factory=dict)
     privacy_scan: dict
     status: str
     created_at: datetime
