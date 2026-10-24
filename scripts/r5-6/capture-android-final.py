@@ -1745,6 +1745,16 @@ def capture_r8_owner_review(
         or not outcome_id
     ):
         raise CaptureError("R8BV persisted Outcome lost assessment, identity or source validity")
+    if (
+        outcome_api.get("owner_workflow_state") != "OUTCOME_CONTINUE_OBSERVING"
+        or outcome_api.get("owner_workflow_source") != "OUTCOME"
+        or outcome_api.get("latest_effective_outcome_id") != outcome_id
+        or outcome_api.get("latest_effective_outcome_assessment") != "CONTINUE_OBSERVING"
+        or outcome_api.get("requires_new_follow_up_observation") is not False
+    ):
+        raise CaptureError(
+            "R8BY real Android Outcome did not become the effective owner workflow head"
+        )
 
     outcome_seen = False
     for step in range(18):
@@ -1764,6 +1774,15 @@ def capture_r8_owner_review(
         "observation_review_id": owner_outcome.get("observation_review_id"),
         "case_review_head_id": owner_outcome.get("case_review_head_id"),
         "observation_sources_valid": owner_outcome.get("observation_sources_valid"),
+        "owner_workflow_state": outcome_api.get("owner_workflow_state"),
+        "owner_workflow_source": outcome_api.get("owner_workflow_source"),
+        "latest_effective_outcome_id": outcome_api.get("latest_effective_outcome_id"),
+        "latest_effective_outcome_assessment": outcome_api.get(
+            "latest_effective_outcome_assessment"
+        ),
+        "requires_new_follow_up_observation": outcome_api.get(
+            "requires_new_follow_up_observation"
+        ),
         "created_by_real_android_tap": True,
         "no_recovery_claim": True,
         "no_vision_model": True,
@@ -1973,6 +1992,13 @@ def capture_r8_owner_review(
         current_outcomes = invalidated_outcome_api.get("outcomes", [])
         if (
             invalidated_outcome_api.get("state") == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+            and invalidated_outcome_api.get("owner_workflow_state")
+                == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+            and invalidated_outcome_api.get("owner_workflow_source") == "OUTCOME"
+            and invalidated_outcome_api.get("latest_effective_outcome_id") == outcome_id
+            and invalidated_outcome_api.get("latest_effective_outcome_assessment")
+                == "CONTINUE_OBSERVING"
+            and invalidated_outcome_api.get("requires_new_follow_up_observation") is True
             and invalidated_outcome_api.get("follow_up_source_valid") is False
             and len(current_outcomes) == len(outcomes)
             and current_outcomes
@@ -2018,6 +2044,17 @@ def capture_r8_owner_review(
         "followup_event_id": expected_followup_id,
         "outcome_id": outcome_id,
         "server_state": invalidated_outcome_api.get("state"),
+        "owner_workflow_state": invalidated_outcome_api.get("owner_workflow_state"),
+        "owner_workflow_source": invalidated_outcome_api.get("owner_workflow_source"),
+        "latest_effective_outcome_id": invalidated_outcome_api.get(
+            "latest_effective_outcome_id"
+        ),
+        "latest_effective_outcome_assessment": invalidated_outcome_api.get(
+            "latest_effective_outcome_assessment"
+        ),
+        "requires_new_follow_up_observation": invalidated_outcome_api.get(
+            "requires_new_follow_up_observation"
+        ),
         "follow_up_source_valid": invalidated_outcome_api.get("follow_up_source_valid"),
         "outcome_source_valid": invalidated_outcome_api["outcomes"][-1].get(
             "observation_sources_valid"
