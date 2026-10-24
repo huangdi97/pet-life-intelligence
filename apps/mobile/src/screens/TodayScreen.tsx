@@ -423,6 +423,17 @@ export function TodayScreen() {
                 onOpenTimeline={() => tabNav.navigate("Timeline")}
                 onOpenCase={(caseId) => stackNav.navigate("LifeChangeCase", { petId, caseId })}
                 onOpenHistory={() => stackNav.navigate("LifeChangeHistory", { petId })}
+                onRecordObservation={(item) => {
+                  if (!["walk_minutes_per_day", "meal_count_per_day", "sleep_minutes_per_day"].includes(item.metric)) {
+                    stackNav.navigate("LifeChangeCase", { petId, caseId: item.case_id });
+                    return;
+                  }
+                  stackNav.navigate("QuickLog", {
+                    lifeChangeCaseId: item.case_id,
+                    lifeChangePetId: petId,
+                    lifeChangeMetric: item.metric as "walk_minutes_per_day" | "meal_count_per_day" | "sleep_minutes_per_day",
+                  });
+                }}
               />
             ) : null}
 
