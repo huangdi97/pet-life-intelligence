@@ -2092,6 +2092,65 @@ def capture_r8_owner_review(
         "human_visual_acceptance": "PENDING",
     })
 
+    # R8BZ: current workflow truth must route to a real owner action, not stop
+    # at status copy. From the invalidated Outcome, tap the derived next action
+    # and prove Android opens QuickLog already scoped to this pet/Case/metric.
+    next_action_xml = find_control(
+        "pli.r8.case-detail.next-record",
+        "case-detail-invalidated-next-action.xml",
+        attempts=22,
+        scroll_direction="down",
+    )
+    if (
+        not ui_has_actionable_control(next_action_xml, "pli.r8.case-detail.next-record")
+        or "补一条新的真实散步记录" not in next_action_xml
+    ):
+        raise CaptureError(
+            "R8BZ invalidated owner workflow did not expose the required fresh-observation action"
+        )
+    android.tap(next_action_xml, "pli.r8.case-detail.next-record", "id")
+    quicklog_context_xml = find_control(
+        "pli.r8.quicklog-followup",
+        "case-next-action-quicklog-context.xml",
+        attempts=18,
+        scroll_direction="up",
+    )
+    quicklog_form_xml = find_control(
+        "pli.quicklog.minutes",
+        "case-next-action-quicklog-form.xml",
+        attempts=18,
+        scroll_direction="down",
+    )
+    if (
+        "补充真实观察后才会关联到核对" not in quicklog_context_xml
+        or "散步" not in quicklog_form_xml
+        or "pli.quicklog.minutes" not in quicklog_form_xml
+    ):
+        raise CaptureError(
+            "R8BZ Case next action did not open the linked real-observation QuickLog form"
+        )
+    save_manifest(directory / "case-next-action-routing-truth.json", {
+        "pet_id": pet_id,
+        "case_id": case_id,
+        "metric": "walk_minutes_per_day",
+        "workflow_state": invalidated_outcome_api.get("owner_workflow_state"),
+        "action": "RECORD_OBSERVATION",
+        "required_fresh_observation": True,
+        "opened_linked_quicklog_by_real_android_tap": True,
+        "quicklog_followup_context_visible": True,
+        "metric_form_visible": True,
+        "no_health_state_inference": True,
+        "no_vision_model": True,
+        "human_visual_acceptance": "PENDING",
+    })
+    android.shell("input", "keyevent", "4")
+    find_control(
+        "pli.r8.case-detail.identity",
+        "case-detail-returned-from-next-action.xml",
+        attempts=18,
+        scroll_direction="up",
+    )
+
     # R8AK: the complete owner Case history must be reachable from the detail
     # and must list the same immutable Case, not only the recent Today slice.
     top_xml = ""
