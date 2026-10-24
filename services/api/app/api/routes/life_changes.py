@@ -350,6 +350,15 @@ def _owner_workflow_projection(
         latest_outcome=latest_outcome,
         latest_outcome_source_valid=latest_outcome_source_valid,
     )
+    if not case_source_valid:
+        return {
+            "state": "INVALIDATED",
+            "source": "CASE",
+            "latest_effective_outcome_id": None,
+            "latest_effective_outcome_assessment": None,
+            "requires_new_follow_up_observation": False,
+        }
+
     outcome_is_current = bool(
         case_source_valid
         and latest_outcome is not None
