@@ -897,3 +897,33 @@ def test_owner_outcome_rejects_stale_case_review_head(client, seeded):
     assert invalidated["follow_up_source_valid"] is False
     assert invalidated["outcomes"][-1]["outcome_id"] == refreshed.json()["outcome_id"]
     assert invalidated["outcomes"][-1]["observation_sources_valid"] is False
+
+    # R8BY: an explicit Review appended AFTER the Outcome is the new owner
+    # workflow head. It does not resurrect the withdrawn observation: the old
+    # Outcome stays invalid history, while the current workflow may be CLOSED.
+    closed = client.post(
+        detail_url + "/reviews",
+        json={
+            "decision": "NOT_RELEVANT",
+            "expected_latest_review_id": newer.json()["review_id"],
+        },
+        headers=auth(owner),
+    )
+    assert closed.status_code == 201, closed.text
+    after_closed = client.get(detail_url, headers=auth(owner)).json()
+    assert after_closed["recorded_state"] == "CLOSED"
+    assert after_closed["state"] == "CLOSED"
+    assert after_closed["follow_up_source_valid"] is False
+    assert after_closed["outcomes"][-1]["outcome_id"] == refreshed.json()["outcome_id"]
+    assert after_closed["outcomes"][-1]["observation_sources_valid"] is False
+
+    listed = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases", headers=auth(owner),
+    )
+    assert listed.status_code == 200, listed.text
+    listed_case = next(
+        row for row in listed.json()["cases"] if row["case_id"] == case["case_id"]
+    )
+    assert listed_case["recorded_state"] == "CLOSED"
+    assert listed_case["state"] == "CLOSED"
+    assert listed_case["follow_up_source_valid"] is False
