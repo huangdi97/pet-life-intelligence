@@ -879,6 +879,14 @@ def test_owner_outcome_rejects_stale_case_review_head(client, seeded):
     assert refreshed.json()["case_review_head_id"] == newer.json()["review_id"]
     assert refreshed.json()["observation_review_id"] == recorded.json()["review_id"]
 
+    projected = client.get(detail_url, headers=auth(owner))
+    assert projected.status_code == 200, projected.text
+    assert projected.json()["owner_workflow_state"] == "OUTCOME_CONTINUE_OBSERVING"
+    assert projected.json()["owner_workflow_source"] == "OUTCOME"
+    assert projected.json()["latest_effective_outcome_id"] == refreshed.json()["outcome_id"]
+    assert projected.json()["latest_effective_outcome_assessment"] == "CONTINUE_OBSERVING"
+    assert projected.json()["requires_new_follow_up_observation"] is False
+
     # R8BW + R8BX composition: the denormalized Case state now reflects the
     # later CORRECT_SOURCE review, but withdrawing the assessed observation
     # must still invalidate the Outcome's current evidence projection.
@@ -895,6 +903,11 @@ def test_owner_outcome_rejects_stale_case_review_head(client, seeded):
     assert invalidated["recorded_state"] == "OWNER_ACKNOWLEDGED"
     assert invalidated["state"] == "FOLLOW_UP_EVIDENCE_INVALIDATED"
     assert invalidated["follow_up_source_valid"] is False
+    assert invalidated["owner_workflow_state"] == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+    assert invalidated["owner_workflow_source"] == "OUTCOME"
+    assert invalidated["latest_effective_outcome_id"] == refreshed.json()["outcome_id"]
+    assert invalidated["latest_effective_outcome_assessment"] == "CONTINUE_OBSERVING"
+    assert invalidated["requires_new_follow_up_observation"] is True
     assert invalidated["outcomes"][-1]["outcome_id"] == refreshed.json()["outcome_id"]
     assert invalidated["outcomes"][-1]["observation_sources_valid"] is False
 
@@ -914,6 +927,11 @@ def test_owner_outcome_rejects_stale_case_review_head(client, seeded):
     assert after_closed["recorded_state"] == "CLOSED"
     assert after_closed["state"] == "CLOSED"
     assert after_closed["follow_up_source_valid"] is False
+    assert after_closed["owner_workflow_state"] == "CLOSED"
+    assert after_closed["owner_workflow_source"] == "REVIEW"
+    assert after_closed["latest_effective_outcome_id"] is None
+    assert after_closed["latest_effective_outcome_assessment"] is None
+    assert after_closed["requires_new_follow_up_observation"] is False
     assert after_closed["outcomes"][-1]["outcome_id"] == refreshed.json()["outcome_id"]
     assert after_closed["outcomes"][-1]["observation_sources_valid"] is False
 
@@ -927,3 +945,7 @@ def test_owner_outcome_rejects_stale_case_review_head(client, seeded):
     assert listed_case["recorded_state"] == "CLOSED"
     assert listed_case["state"] == "CLOSED"
     assert listed_case["follow_up_source_valid"] is False
+    assert listed_case["owner_workflow_state"] == "CLOSED"
+    assert listed_case["owner_workflow_source"] == "REVIEW"
+    assert listed_case["latest_effective_outcome_id"] is None
+    assert listed_case["requires_new_follow_up_observation"] is False
