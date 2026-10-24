@@ -510,6 +510,11 @@ def test_r8j_recovery_same_owner_instruction_after_case_source_withdrawal(client
     assert invalidated.status_code == 200
     assert invalidated.json()["source_valid"] is False
     assert invalidated.json()["state"] == "INVALIDATED"
+    assert invalidated.json()["owner_workflow_state"] == "INVALIDATED"
+    assert invalidated.json()["owner_workflow_source"] == "CASE"
+    assert invalidated.json()["latest_effective_outcome_id"] is None
+    assert invalidated.json()["latest_effective_outcome_assessment"] is None
+    assert invalidated.json()["requires_new_follow_up_observation"] is False
 
     # Replayed original instruction is resolvable even when original evidence
     # no longer qualifies for a new owner review.
