@@ -24,6 +24,10 @@ import { LivingModeSwitcher, type LivingMode } from "../components/life/LivingMo
 import { OpenSection } from "../components/feedback/OpenSection";
 import { LifeStream } from "../components/timeline/LifeStream";
 import { groupEventsByDay } from "../components/timeline/lifeStreamUtils";
+import {
+  caseHistoryMetric, caseHistoryNeedsAttention, caseHistoryStatus,
+  type LifeChangeCaseSummary,
+} from "../components/life/ownerCaseHistory";
 import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { eventTypeLabel, sourceLabel } from "./ui_labels";
 import { observedActivityMinutes } from "./today_helpers";
@@ -47,6 +51,9 @@ interface LifeReplayMeta {
   truth_note: string;
   exclusions: { retracted: number; superseded: number; reported_later: number };
   model_status: string;
+  owner_workflows?: LifeChangeCaseSummary[];
+  owner_workflow_count?: number;
+  owner_workflow_truth_note?: string;
 }
 interface HistoricalVisualModel {
   version: number;
@@ -633,6 +640,65 @@ export function LifeViewScreen() {
           </View>
         ) : null}
 
+        {timeScope === "date" ? (
+          <View
+            style={styles.ownerReplay}
+            testID="pli.lifeview.replay.owner-workflows"
+          >
+            <Text style={styles.ownerReplayEyebrow}>主人核对历史</Text>
+            <Text style={styles.ownerReplayTitle}>
+              {replayPerspective === "as_known_then"
+                ? "当天结束时，主人当时已经怎么判断？"
+                : "现在回看，这一天形成了哪些主人判断？"}
+            </Text>
+            {!scoped ? (
+              <Text style={styles.ownerReplayEmpty}>正在读取当时可知的主人核对…</Text>
+            ) : error ? (
+              <Text style={styles.ownerReplayEmpty}>主人核对历史暂时无法读取。</Text>
+            ) : (replay?.owner_workflows ?? []).length === 0 ? (
+              <Text style={styles.ownerReplayEmpty}>
+                {replayPerspective === "as_known_then"
+                  ? "截至当天结束，没有已知的主人核对档案；这不代表当天没有变化或问题。"
+                  : "目前没有属于这一天的主人核对档案；不会据此推断宠物没有变化。"}
+              </Text>
+            ) : (
+              <View style={styles.ownerReplayList}>
+                {(replay?.owner_workflows ?? []).map((item) => {
+                  const metricInfo = caseHistoryMetric(item.metric);
+                  const unit = metricInfo.unit ? ` ${metricInfo.unit}` : "";
+                  return (
+                    <View
+                      key={item.case_id}
+                      testID={`pli.lifeview.replay.owner-workflow.${item.case_id}`}
+                      style={styles.ownerReplayCard}
+                    >
+                      <View style={styles.ownerReplayHead}>
+                        <Text style={styles.ownerReplayMetric}>{metricInfo.name}变化核对</Text>
+                        <Text style={[
+                          styles.ownerReplayStatus,
+                          caseHistoryNeedsAttention(item) && styles.ownerReplayWarning,
+                        ]}>
+                          {caseHistoryStatus(item)}
+                        </Text>
+                      </View>
+                      <Text style={styles.ownerReplayFacts}>
+                        当时已记录 {item.current_value}{unit} · 同期参考 {item.baseline_value}{unit}
+                      </Text>
+                      <Text style={styles.ownerReplayMeta}>
+                        {item.sample_days} 天可比参考 · 当前显示的是该知识截止时点的主人工作流
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+            <Text style={styles.ownerReplayTruth}>
+              {replay?.owner_workflow_truth_note
+                ?? "主人判断与宠物健康状态分开回放；历史页面只读，不从过去直接发起今天的动作。"}
+            </Text>
+          </View>
+        ) : null}
+
         {displayTwin ? (
         <View testID="pli.lifeview.control.zoom" style={styles.controlRow} accessibilityLabel="3D 视图控制">
           <Pressable accessibilityRole="button" onPress={() => viewerRef.current?.zoomOut()} style={styles.controlBtn}>
@@ -849,6 +915,24 @@ const styles = StyleSheet.create({
   replayChipText: { color: COLORS.textSecondary, fontSize: TYPE.sm },
   replayChipTextActive: { color: COLORS.textInverse, fontWeight: "700" },
   replayNote: { color: COLORS.textSecondary, fontSize: TYPE.caption, lineHeight: 18 },
+  ownerReplay: {
+    marginHorizontal: SPACE.s4, marginTop: SPACE.s3, padding: SPACE.s4,
+    borderRadius: 20, backgroundColor: COLORS.stageWarmBase, gap: SPACE.s2,
+  },
+  ownerReplayEyebrow: { color: COLORS.brandPrimaryDeep, fontSize: TYPE.meta, fontWeight: "700" },
+  ownerReplayTitle: { color: COLORS.textPrimary, fontSize: TYPE.bodyStrong, fontWeight: "700", lineHeight: 22 },
+  ownerReplayEmpty: { color: COLORS.textSecondary, fontSize: TYPE.sm, lineHeight: 20 },
+  ownerReplayList: { gap: SPACE.s2 },
+  ownerReplayCard: {
+    padding: SPACE.s3, borderRadius: 15, backgroundColor: COLORS.surface, gap: 5,
+  },
+  ownerReplayHead: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: SPACE.s2 },
+  ownerReplayMetric: { color: COLORS.textPrimary, fontSize: TYPE.sm, fontWeight: "700" },
+  ownerReplayStatus: { flexShrink: 1, color: COLORS.brandPrimaryDeep, fontSize: TYPE.caption, fontWeight: "700", textAlign: "right" },
+  ownerReplayWarning: { color: COLORS.danger },
+  ownerReplayFacts: { color: COLORS.textPrimary, fontSize: TYPE.sm },
+  ownerReplayMeta: { color: COLORS.textSecondary, fontSize: TYPE.caption, lineHeight: 18 },
+  ownerReplayTruth: { color: COLORS.textTertiary, fontSize: TYPE.caption, lineHeight: 18 },
   historyTruth: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3, flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2, padding: SPACE.s3, borderRadius: 18, backgroundColor: COLORS.surfaceRaised },
   historyTruthText: { flex: 1, fontSize: TYPE.sm, lineHeight: 20, color: COLORS.textSecondary },
   panel: { marginHorizontal: SPACE.s4, marginTop: SPACE.s4 },
