@@ -22,7 +22,6 @@ from app.services import life_change_history as hist
 from app.services import life_change_workflow as workflow
 from app.services import permissions as perm
 from app.services.eventlog import write_audit
-from app.services.life_replay import RECORD_FACT_SOURCES
 
 router = APIRouter(tags=["life-intelligence"])
 
@@ -104,37 +103,14 @@ async def _evidence_current(
     db: DBSession, pet_id: uuid.UUID, event_ids: list[str],
     expected_event_type: str,
 ) -> bool:
-    source_ids, shape_valid = hist.frozen_source_items(event_ids)
-    if not shape_valid or not source_ids:
-        return False
-    parsed = [hist.parse_case_source_id(item) for item in source_ids]
-    # A malformed source or duplicated underlying UUID is not a valid
-    # frozen evidence set. Upper/lower-case spelling cannot manufacture two
-    # independent observations from one real event.
-    if any(item is None for item in parsed) or len(set(parsed)) != len(parsed):
-        return False
-    ids = [item for item in parsed if item is not None]
-    rows = list((await db.execute(
-        select(LifeEvent).where(LifeEvent.pet_id == pet_id, LifeEvent.id.in_(ids))
-    )).scalars().all())
-    if len(rows) != len(ids):
-        return False
-    # A future-dated source is neither a recorded past observation nor
-    # a valid current Case reference. Keep list/detail/source cards aligned.
-    now = datetime.now(UTC)
-    if any(
-        e.event_type != expected_event_type or
-        e.source_type not in RECORD_FACT_SOURCES or e.retracted_at is not None
-        or e.occurred_at > now or e.recorded_at > now
-        for e in rows
-    ):
-        return False
-    successors = (await db.execute(select(LifeEvent.id).where(
-        LifeEvent.pet_id == pet_id,
-        LifeEvent.supersedes_event_id.in_(ids),
-        LifeEvent.recorded_at <= datetime.now(UTC),
-    ))).first()
-    return successors is None
+    """Current truth is the same cutoff-aware evidence rule evaluated at now."""
+    return await workflow.evidence_valid_at(
+        db,
+        pet_id=pet_id,
+        event_ids=event_ids,
+        expected_event_type=expected_event_type,
+        cutoff=datetime.now(UTC),
+    )
 
 
 async def _case_current(db: DBSession, case: LifeChangeCase) -> bool:
@@ -146,39 +122,13 @@ async def _case_current(db: DBSession, case: LifeChangeCase) -> bool:
 async def _follow_up_current(
     db: DBSession, case: LifeChangeCase, review: LifeChangeReview,
 ) -> bool:
-    """Check whether a previously accepted real follow-up remains evidence.
-
-    A source correction/retraction does not erase an append-only owner Review,
-    but the UX must stop showing that Review as a valid observation loop.
-    """
-    followup_ids, followup_shape_valid = hist.frozen_source_items(review.related_event_ids)
-    if review.decision != "RECORD_OBSERVATION" or not followup_shape_valid or not followup_ids:
-        return False
-    if not await _evidence_current(
-        db, case.pet_id, followup_ids, METRICS[case.metric],
-    ):
-        return False
-    ids = [uuid.UUID(item) for item in followup_ids]
-    events = list((await db.execute(select(LifeEvent).where(
-        LifeEvent.pet_id == case.pet_id, LifeEvent.id.in_(ids),
-    ))).scalars().all())
-    now = datetime.now(UTC)
-    # A comparison is computed before the owner Case is persisted. A walk
-    # during that gap was not a follow-up to an existing Case, even if it
-    # happened after the algorithm's frozen comparison clock.
-    return (
-        len(events) == len(ids)
-        and not set(ids) & {
-            parsed for item in hist.frozen_source_items(case.evidence_event_ids)[0]
-            if (parsed := hist.parse_case_source_id(item)) is not None
-        }
-        and all(
-            event.recorded_at > case.created_at
-            and case.created_at < event.occurred_at <= now
-            for event in events
-        )
+    """Current follow-up truth delegates to the same evaluator used by replay."""
+    return await workflow.follow_up_valid_at(
+        db,
+        case=case,
+        review=review,
+        cutoff=datetime.now(UTC),
     )
-
 
 def _case_response(
     case: LifeChangeCase, current: bool, *,
