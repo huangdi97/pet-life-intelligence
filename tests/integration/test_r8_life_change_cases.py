@@ -1109,3 +1109,83 @@ def test_r8ca_owner_workflow_replay_is_cutoff_aware_and_not_retroactive(client, 
         headers=auth(owner),
     )
     assert future.status_code == 422
+
+
+def test_r8ca_life_replay_embeds_current_owner_workflow_without_health_claim(client, seeded):
+    """R8CA: R7 Life Replay and current Case detail share owner-workflow truth."""
+    owner = seeded["owner_id"]
+    pet, _, _ = _create_change(client, owner)
+    case = _case(client, owner, pet)
+    case_id = case["case_id"]
+    detail_url = f"/api/v1/pets/{pet}/life-change-cases/{case_id}"
+
+    follow = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 19}},
+        headers=auth(owner),
+    )
+    assert follow.status_code == 201, follow.text
+    review = client.post(
+        detail_url + "/reviews",
+        json={
+            "decision": "RECORD_OBSERVATION",
+            "related_event_ids": [follow.json()["event_id"]],
+            "expected_latest_review_id": None,
+        },
+        headers=auth(owner),
+    )
+    assert review.status_code == 201, review.text
+    outcome = client.post(
+        detail_url + "/outcomes",
+        json={
+            "observation_review_id": review.json()["review_id"],
+            "assessment": "CONTINUE_OBSERVING",
+            "expected_latest_review_id": review.json()["review_id"],
+            "expected_latest_outcome_id": None,
+            "idempotency_key": "r8ca-life-replay-outcome-001",
+        },
+        headers=auth(owner),
+    )
+    assert outcome.status_code == 201, outcome.text
+
+    day = datetime.now(PRODUCT_TZ).date().isoformat()
+    current_detail = client.get(detail_url, headers=auth(owner))
+    replay = client.get(
+        f"/api/v1/pets/{pet}/life-replay",
+        params={"date": day, "perspective": "verified_now"},
+        headers=auth(owner),
+    )
+    assert current_detail.status_code == 200, current_detail.text
+    assert replay.status_code == 200, replay.text
+    row = next(
+        item for item in replay.json()["owner_workflows"]
+        if item["case_id"] == case_id
+    )
+    assert row["owner_workflow_state"] == current_detail.json()["owner_workflow_state"]
+    assert row["owner_workflow_source"] == "OUTCOME"
+    assert row["latest_effective_outcome_id"] == outcome.json()["outcome_id"]
+    assert row["requires_new_follow_up_observation"] is False
+    assert replay.json()["owner_workflow_count"] >= 1
+    assert "不代表宠物健康状态" in replay.json()["owner_workflow_truth_note"]
+
+    withdrawn = client.post(
+        f"/api/v1/events/{follow.json()['event_id']}/retract",
+        headers=auth(owner),
+    )
+    assert withdrawn.status_code == 200, withdrawn.text
+    current_after = client.get(detail_url, headers=auth(owner))
+    replay_after = client.get(
+        f"/api/v1/pets/{pet}/life-replay",
+        params={"date": day, "perspective": "verified_now"},
+        headers=auth(owner),
+    )
+    assert current_after.status_code == 200 and replay_after.status_code == 200
+    replay_row = next(
+        item for item in replay_after.json()["owner_workflows"]
+        if item["case_id"] == case_id
+    )
+    assert replay_row["owner_workflow_state"] == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+    assert replay_row["owner_workflow_state"] == current_after.json()["owner_workflow_state"]
+    assert replay_row["latest_effective_outcome_id"] == outcome.json()["outcome_id"]
+    assert replay_row["follow_up_source_valid"] is False
+    assert replay_row["requires_new_follow_up_observation"] is True
