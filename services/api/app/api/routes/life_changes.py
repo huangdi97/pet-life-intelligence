@@ -19,6 +19,7 @@ from app.core.errors import ConflictError, NotFound, PermissionDenied, Validatio
 from app.domain import enums
 from app.models import CareTask, LifeChangeCase, LifeChangeOutcome, LifeChangeReview, LifeEvent, Pet
 from app.services import life_change_history as hist
+from app.services import life_change_workflow as workflow
 from app.services import permissions as perm
 from app.services.eventlog import write_audit
 from app.services.life_replay import RECORD_FACT_SOURCES
@@ -751,6 +752,45 @@ async def get_case(
             "RECORD_OBSERVATION", "FOLLOW_UP_LATER", "NOT_RELEVANT", "CORRECT_SOURCE",
         ],
         "follow_up_review_count": len(followup_states),
+    }
+
+
+@router.get("/pets/{pet_id}/life-change-cases/{case_id}/workflow-replay")
+async def replay_case_workflow(
+    pet_id: uuid.UUID,
+    case_id: uuid.UUID,
+    knowledge_cutoff: datetime,
+    db: DBSession,
+    user: CurrentUser,
+) -> dict:
+    """Rebuild the owner workflow exactly as it was knowable at a cutoff.
+
+    This is owner-intelligence history, not pet health history. It never reads
+    the denormalized current Case state as historical truth.
+    """
+    pet = await perm.get_pet_or_404(db, pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    if knowledge_cutoff.utcoffset() is None:
+        raise ValidationFailed("Owner-workflow replay cutoff must include a timezone.")
+    cutoff = knowledge_cutoff.astimezone(UTC)
+    if cutoff > datetime.now(UTC):
+        raise ValidationFailed("Owner-workflow replay cutoff cannot be in the future.")
+
+    case = await _get_case(db, pet.id, case_id)
+    projected = await workflow.project_case_workflow_at(
+        db, case=case, cutoff=cutoff,
+    )
+    return {
+        "case_id": str(case.id),
+        "pet_id": str(case.pet_id),
+        "metric": case.metric,
+        "computed_at": case.computed_at.isoformat(),
+        "case_created_at": case.created_at.isoformat(),
+        "knowledge_cutoff": cutoff.isoformat(),
+        **projected,
+        "truth_note": (
+            "这是截至该时点可知的主人核对与跟进工作流，不代表宠物当时或现在的健康、恢复、诊断或因果状态。"
+        ),
     }
 
 
