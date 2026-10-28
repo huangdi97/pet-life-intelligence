@@ -12,11 +12,12 @@ from app.api.deps import CurrentUser, DBSession
 from app.core.errors import ConflictError, NotFound, PermissionDenied, ValidationFailed
 from app.domain import enums
 from app.domain.event_types import EVENT_REGISTRY
-from app.models import Artifact, LifeEvent, User
+from app.models import Artifact, LifeChangeCase, LifeEvent, User
 from app.services import permissions as perm
 from app.services.event_visibility import MEDICAL_EVENT_TYPES, event_visible, scope_life_event_stmt
 from app.services.eventlog import create_life_event, write_audit
 from app.services.life_replay import project_life_replay
+from app.services import life_change_workflow as workflow
 
 router = APIRouter(tags=["events"])
 
@@ -470,6 +471,43 @@ async def life_replay(
             select(User).where(User.id.in_(actor_ids))
         )).scalars().all()))
     serialized = _serialize(projection.events, actors)
+
+    # R8CA: replay the owner's source-backed interpretation with the exact same
+    # knowledge cutoff as LifeEvent history. Cases are selected by the frozen
+    # comparison instant, but cannot exist in a perspective before their real
+    # creation time. This is owner-decision history, never pet-health history.
+    replay_cases = list((await db.execute(
+        select(LifeChangeCase).where(
+            LifeChangeCase.pet_id == pet.id,
+            LifeChangeCase.computed_at >= start,
+            LifeChangeCase.computed_at < end,
+            LifeChangeCase.created_at < cutoff,
+        ).order_by(
+            LifeChangeCase.computed_at.asc(),
+            LifeChangeCase.id.asc(),
+        )
+    )).scalars().all())
+    owner_workflows = []
+    for case in replay_cases:
+        owner_projection = await workflow.project_case_workflow_at(
+            db, case=case, cutoff=cutoff,
+        )
+        if not owner_projection["case_known_at_cutoff"]:
+            continue
+        owner_workflows.append({
+            "case_id": str(case.id),
+            "pet_id": str(case.pet_id),
+            "metric": case.metric,
+            "computed_at": case.computed_at.isoformat(),
+            "case_created_at": case.created_at.isoformat(),
+            "current_value": case.current_value,
+            "baseline_value": case.baseline_value,
+            "sample_days": case.sample_days,
+            "window_days": case.window_days,
+            "evidence_event_ids": case.evidence_event_ids,
+            **owner_projection,
+        })
+
     if perspective == "as_known_then":
         # Later withdrawal cannot retroactively appear in an earlier knowledge view.
         for source_event in serialized:
@@ -491,6 +529,11 @@ async def life_replay(
         "count": len(projection.events),
         "event_counts": projection.event_counts,
         "provenance_counts": projection.provenance_counts,
+        "owner_workflows": owner_workflows,
+        "owner_workflow_count": len(owner_workflows),
+        "owner_workflow_truth_note": (
+            "主人核对按同一知识截止时点回放；后来追加的反馈、结果或来源撤回不会倒灌到更早的“当时所知”，也不代表宠物健康状态。"
+        ),
         "exclusions": {
             "retracted": projection.excluded_retracted,
             "superseded": projection.excluded_superseded,
