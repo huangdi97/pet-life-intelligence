@@ -954,3 +954,158 @@ def test_owner_outcome_rejects_stale_case_review_head(client, seeded):
     assert listed_case["owner_workflow_source"] == "REVIEW"
     assert listed_case["latest_effective_outcome_id"] is None
     assert listed_case["requires_new_follow_up_observation"] is False
+
+
+def test_r8ca_owner_workflow_replay_is_cutoff_aware_and_not_retroactive(client, seeded):
+    """R8CA: later owner/source changes must never rewrite earlier knowledge."""
+    owner = seeded["owner_id"]
+    pet, _, _ = _create_change(client, owner)
+    cutoff_before_case = datetime.now(timezone.utc)
+    case = _case(client, owner, pet)
+    case_id = case["case_id"]
+    replay_url = f"/api/v1/pets/{pet}/life-change-cases/{case_id}/workflow-replay"
+    cutoff_after_case = datetime.now(timezone.utc)
+
+    before_case = client.get(
+        replay_url,
+        params={"knowledge_cutoff": cutoff_before_case.isoformat()},
+        headers=auth(owner),
+    )
+    assert before_case.status_code == 200, before_case.text
+    assert before_case.json()["case_known_at_cutoff"] is False
+    assert before_case.json()["owner_workflow_state"] is None
+
+    proposed = client.get(
+        replay_url,
+        params={"knowledge_cutoff": cutoff_after_case.isoformat()},
+        headers=auth(owner),
+    )
+    assert proposed.status_code == 200, proposed.text
+    assert proposed.json()["case_known_at_cutoff"] is True
+    assert proposed.json()["recorded_state"] == "PROPOSED"
+    assert proposed.json()["owner_workflow_state"] == "PROPOSED"
+    assert proposed.json()["owner_workflow_source"] == "CASE"
+    assert proposed.json()["source_valid"] is True
+
+    follow = client.post(
+        f"/api/v1/pets/{pet}/events",
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": 16}},
+        headers=auth(owner),
+    )
+    assert follow.status_code == 201, follow.text
+    review = client.post(
+        f"/api/v1/pets/{pet}/life-change-cases/{case_id}/reviews",
+        json={
+            "decision": "RECORD_OBSERVATION",
+            "related_event_ids": [follow.json()["event_id"]],
+            "expected_latest_review_id": None,
+        },
+        headers=auth(owner),
+    )
+    assert review.status_code == 201, review.text
+    cutoff_after_review = datetime.now(timezone.utc)
+
+    reviewed = client.get(
+        replay_url,
+        params={"knowledge_cutoff": cutoff_after_review.isoformat()},
+        headers=auth(owner),
+    )
+    assert reviewed.status_code == 200, reviewed.text
+    assert reviewed.json()["recorded_state"] == "FOLLOW_UP"
+    assert reviewed.json()["owner_workflow_state"] == "FOLLOW_UP"
+    assert reviewed.json()["owner_workflow_source"] == "REVIEW"
+    assert reviewed.json()["follow_up_source_valid"] is True
+    assert reviewed.json()["latest_review_id"] == review.json()["review_id"]
+
+    outcome = client.post(
+        f"/api/v1/pets/{pet}/life-change-cases/{case_id}/outcomes",
+        json={
+            "observation_review_id": review.json()["review_id"],
+            "assessment": "CONTINUE_OBSERVING",
+            "expected_latest_review_id": review.json()["review_id"],
+            "expected_latest_outcome_id": None,
+            "idempotency_key": "r8ca-cutoff-outcome-001",
+        },
+        headers=auth(owner),
+    )
+    assert outcome.status_code == 201, outcome.text
+    cutoff_after_outcome = datetime.now(timezone.utc)
+
+    outcome_then = client.get(
+        replay_url,
+        params={"knowledge_cutoff": cutoff_after_outcome.isoformat()},
+        headers=auth(owner),
+    )
+    assert outcome_then.status_code == 200, outcome_then.text
+    assert outcome_then.json()["owner_workflow_state"] == "OUTCOME_CONTINUE_OBSERVING"
+    assert outcome_then.json()["owner_workflow_source"] == "OUTCOME"
+    assert outcome_then.json()["latest_effective_outcome_id"] == outcome.json()["outcome_id"]
+    assert outcome_then.json()["follow_up_source_valid"] is True
+    assert outcome_then.json()["requires_new_follow_up_observation"] is False
+
+    withdrawn = client.post(
+        f"/api/v1/events/{follow.json()['event_id']}/retract",
+        headers=auth(owner),
+    )
+    assert withdrawn.status_code == 200, withdrawn.text
+    cutoff_after_retract = datetime.now(timezone.utc)
+
+    # The earlier cutoff must remain exactly as it was knowable before the
+    # later withdrawal; current invalidation cannot be back-propagated.
+    outcome_still_then = client.get(
+        replay_url,
+        params={"knowledge_cutoff": cutoff_after_outcome.isoformat()},
+        headers=auth(owner),
+    )
+    assert outcome_still_then.status_code == 200, outcome_still_then.text
+    assert outcome_still_then.json()["owner_workflow_state"] == "OUTCOME_CONTINUE_OBSERVING"
+    assert outcome_still_then.json()["follow_up_source_valid"] is True
+
+    invalidated = client.get(
+        replay_url,
+        params={"knowledge_cutoff": cutoff_after_retract.isoformat()},
+        headers=auth(owner),
+    )
+    assert invalidated.status_code == 200, invalidated.text
+    assert invalidated.json()["recorded_state"] == "FOLLOW_UP"
+    assert invalidated.json()["owner_workflow_state"] == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+    assert invalidated.json()["owner_workflow_source"] == "OUTCOME"
+    assert invalidated.json()["latest_effective_outcome_id"] == outcome.json()["outcome_id"]
+    assert invalidated.json()["follow_up_source_valid"] is False
+    assert invalidated.json()["requires_new_follow_up_observation"] is True
+
+    closed = client.post(
+        f"/api/v1/pets/{pet}/life-change-cases/{case_id}/reviews",
+        json={
+            "decision": "NOT_RELEVANT",
+            "expected_latest_review_id": review.json()["review_id"],
+        },
+        headers=auth(owner),
+    )
+    assert closed.status_code == 201, closed.text
+    cutoff_after_closed = datetime.now(timezone.utc)
+    closed_then = client.get(
+        replay_url,
+        params={"knowledge_cutoff": cutoff_after_closed.isoformat()},
+        headers=auth(owner),
+    )
+    assert closed_then.status_code == 200, closed_then.text
+    assert closed_then.json()["recorded_state"] == "CLOSED"
+    assert closed_then.json()["owner_workflow_state"] == "CLOSED"
+    assert closed_then.json()["owner_workflow_source"] == "REVIEW"
+    assert closed_then.json()["latest_outcome_id"] == outcome.json()["outcome_id"]
+    assert closed_then.json()["latest_effective_outcome_id"] is None
+    assert closed_then.json()["follow_up_source_valid"] is False
+
+    naive = client.get(
+        replay_url,
+        params={"knowledge_cutoff": "2026-10-01T12:00:00"},
+        headers=auth(owner),
+    )
+    assert naive.status_code == 422
+    future = client.get(
+        replay_url,
+        params={"knowledge_cutoff": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()},
+        headers=auth(owner),
+    )
+    assert future.status_code == 422
