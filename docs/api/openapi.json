@@ -2051,6 +2051,72 @@
         }
       }
     },
+    "/api/v1/pets/{pet_id}/life-change-cases/{case_id}/workflow-replay": {
+      "get": {
+        "tags": [
+          "life-intelligence"
+        ],
+        "summary": "Replay Case Workflow",
+        "description": "Rebuild the owner workflow exactly as it was knowable at a cutoff.\n\nThis is owner-intelligence history, not pet health history. It never reads\nthe denormalized current Case state as historical truth.",
+        "operationId": "replay_case_workflow_api_v1_pets__pet_id__life_change_cases__case_id__workflow_replay_get",
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pet Id"
+            }
+          },
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "knowledge_cutoff",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Knowledge Cutoff"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Replay Case Workflow Api V1 Pets  Pet Id  Life Change Cases  Case Id  Workflow Replay Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{pet_id}/life-change-cases/{case_id}/reviews": {
       "post": {
         "tags": [
