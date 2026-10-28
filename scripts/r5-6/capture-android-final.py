@@ -2030,21 +2030,37 @@ def capture_r8_owner_review(
         attempts=24,
         scroll_direction="up",
     )
-    if (
-        "所依据的后续记录已变化" not in invalid_outcome_xml
-        or "pli.r8.case-detail.outcome.needs-observation" not in invalid_outcome_xml
+    if "所依据的后续记录已变化" not in invalid_outcome_xml:
+        raise CaptureError(
+            "R8BW Android Outcome history did not expose invalid source truth"
+        )
+
+    # The immutable Outcome history card and the fresh-observation requirement
+    # are vertically adjacent but do not have to coexist in one UIAutomator
+    # viewport on a long React Native Case page. Prove both native surfaces
+    # independently instead of weakening either product invariant.
+    needs_observation_xml = find_control(
+        "pli.r8.case-detail.outcome.needs-observation",
+        "case-detail-outcome-needs-observation.xml",
+        attempts=24,
+        scroll_direction="up",
+    )
+    if "先记录一条真实的后续观察" not in ui_control_text(
+        needs_observation_xml, "pli.r8.case-detail.outcome.needs-observation",
     ):
         raise CaptureError(
-            "R8BW Android Outcome history did not expose invalid source truth "
-            "or did not require a fresh observation before another Outcome"
+            "R8BW Android did not require a fresh real observation before another Outcome"
         )
     stale_outcome_actions = (
         "pli.r8.case-detail.outcome.continue_observing",
         "pli.r8.case-detail.outcome.no_longer_concerned",
         "pli.r8.case-detail.outcome.needs_further_follow_up",
     )
-    if any(ui_has_actionable_control(invalid_outcome_xml, action)
-           for action in stale_outcome_actions):
+    if any(
+        ui_has_actionable_control(xml, action)
+        for xml in (invalid_outcome_xml, needs_observation_xml)
+        for action in stale_outcome_actions
+    ):
         raise CaptureError(
             "R8BW Android still offers a new Outcome against invalidated follow-up evidence"
         )
