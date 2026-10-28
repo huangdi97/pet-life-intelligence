@@ -2432,6 +2432,87 @@ def capture_r8_owner_review(
         "no_vision_model": True,
         "human_visual_acceptance": "PENDING",
     })
+
+    # R8CA: Life Replay must include the owner-intelligence journal under the
+    # same date/cutoff truth model as LifeEvents. Use the Case already mutated
+    # by real Android owner actions above; do not inject a replay-only fixture.
+    local_day_raw = android.shell("date", "+%Y-%m-%d")
+    offset_raw = android.shell("date", "+%z")
+    if (
+        not re.fullmatch(r"\d{4}-\d{2}-\d{2}", local_day_raw)
+        or not re.fullmatch(r"[+-]\d{4}", offset_raw)
+    ):
+        raise CaptureError("R8CA Android local date/offset is not replayable")
+    hours = int(offset_raw[1:3])
+    minutes = int(offset_raw[3:])
+    offset_seconds = (hours * 60 + minutes) * 60 * (1 if offset_raw[0] == "+" else -1)
+    owner_zone = timezone(timedelta(seconds=offset_seconds))
+    replay_day = datetime.strptime(local_day_raw, "%Y-%m-%d").date()
+    replay_start = datetime.combine(replay_day, clock_time.min, tzinfo=owner_zone)
+    replay_end = replay_start + timedelta(days=1)
+    replay_qs = urlencode({
+        "date": local_day_raw,
+        "perspective": "verified_now",
+        "day_start_at": replay_start.isoformat(),
+        "day_end_at": replay_end.isoformat(),
+    })
+    owner_replay_api = api_json(
+        f"{root}/pets/{pet_id}/life-replay?{replay_qs}",
+        headers=owner_header,
+    )
+    replay_case = next(
+        (row for row in owner_replay_api.get("owner_workflows", [])
+         if str(row.get("case_id")) == case_id),
+        None,
+    )
+    if (
+        replay_case is None
+        or replay_case.get("owner_workflow_state") != "INVALIDATED"
+        or replay_case.get("owner_workflow_source") != "CASE"
+        or replay_case.get("source_valid") is not False
+    ):
+        raise CaptureError(
+            "R8CA Life Replay did not project the current invalidated owner workflow"
+        )
+
+    android.start_link(
+        f"pli-demo://nav?screen=lifeview&pet={pet_id}&date={local_day_raw}"
+    )
+    replay_card_id = f"pli.lifeview.replay.owner-workflow.{case_id}"
+    replay_ui = ""
+    for attempt in range(28):
+        time.sleep(0.8 if attempt else 3)
+        replay_ui = android.dump_xml(directory / "case-owner-workflow-replay-ui.xml")
+        if replay_card_id in replay_ui and "原始记录已变更" in replay_ui:
+            break
+        android.shell("input", "swipe", "960", "1820", "960", "720", "360")
+    else:
+        raise CaptureError(
+            "R8CA native Life View did not render the replayed owner workflow"
+        )
+    if ui_has_actionable_control(replay_ui, replay_card_id):
+        raise CaptureError(
+            "R8CA historical owner-workflow card became an action surface"
+        )
+    if "pli.lifeview.replay.owner-workflows" not in replay_ui:
+        raise CaptureError("R8CA owner-workflow replay section identity is missing")
+    android.screenshot(directory / "owner-workflow-life-replay.png")
+    save_manifest(directory / "case-owner-workflow-replay-truth.json", {
+        "pet_id": pet_id,
+        "case_id": case_id,
+        "date": local_day_raw,
+        "perspective": "verified_now",
+        "owner_workflow_state": replay_case.get("owner_workflow_state"),
+        "owner_workflow_source": replay_case.get("owner_workflow_source"),
+        "source_valid": replay_case.get("source_valid"),
+        "native_case_card_visible": True,
+        "native_case_card_actionable": False,
+        "historical_surface_read_only": True,
+        "arbitrary_cutoff_nonretroactivity": "PROVEN_BY_BACKEND_INTEGRATION_TEST",
+        "screenshot": "owner-workflow-life-replay.png",
+        "no_vision_model": True,
+        "human_visual_acceptance": "PENDING",
+    })
     return case_id
 
 
