@@ -337,61 +337,20 @@ def _owner_workflow_projection(
     latest_outcome: LifeChangeOutcome | None = None,
     latest_outcome_source_valid: bool | None = None,
 ) -> dict:
-    """Expose the current owner workflow separately from evidence history.
-
-    A valid current Outcome is an owner intention, not a physiological state.
-    Its assessment can guide the next observation action but cannot mean
-    healthy, normal, recovered, diagnosed, or causal.
-    """
-    effective_state = _effective_case_state(
-        case,
+    """Current R8BY view delegated to the same pure projector as R8CA replay."""
+    return workflow.project_owner_workflow_values(
+        recorded_state=case.state,
         case_source_valid=case_source_valid,
-        latest_review=latest_review,
+        latest_review_id=latest_review.id if latest_review else None,
+        latest_review_decision=latest_review.decision if latest_review else None,
         latest_follow_up_source_valid=latest_follow_up_source_valid,
-        latest_outcome=latest_outcome,
+        latest_outcome_id=latest_outcome.id if latest_outcome else None,
+        latest_outcome_assessment=latest_outcome.assessment if latest_outcome else None,
+        latest_outcome_review_head_id=(
+            latest_outcome.case_review_head_id if latest_outcome else None
+        ),
         latest_outcome_source_valid=latest_outcome_source_valid,
     )
-    if not case_source_valid:
-        return {
-            "state": "INVALIDATED",
-            "source": "CASE",
-            "latest_effective_outcome_id": None,
-            "latest_effective_outcome_assessment": None,
-            "requires_new_follow_up_observation": False,
-        }
-
-    outcome_is_current = bool(
-        case_source_valid
-        and latest_outcome is not None
-        and latest_review is not None
-        and latest_outcome.case_review_head_id == latest_review.id
-    )
-    if outcome_is_current:
-        if latest_outcome_source_valid is False:
-            workflow_state = "FOLLOW_UP_EVIDENCE_INVALIDATED"
-        else:
-            workflow_state = f"OUTCOME_{latest_outcome.assessment}"
-        return {
-            "state": workflow_state,
-            "source": "OUTCOME",
-            "latest_effective_outcome_id": str(latest_outcome.id),
-            "latest_effective_outcome_assessment": latest_outcome.assessment,
-            "requires_new_follow_up_observation": latest_outcome_source_valid is False,
-        }
-
-    return {
-        "state": effective_state,
-        "source": (
-            "REVIEW" if latest_review is not None
-            else "CASE"
-        ),
-        "latest_effective_outcome_id": None,
-        "latest_effective_outcome_assessment": None,
-        "requires_new_follow_up_observation": (
-            effective_state == "FOLLOW_UP_EVIDENCE_INVALIDATED"
-        ),
-    }
-
 
 async def _get_case(db: DBSession, pet_id: uuid.UUID, case_id: uuid.UUID,
                     *, lock: bool = False) -> LifeChangeCase:
