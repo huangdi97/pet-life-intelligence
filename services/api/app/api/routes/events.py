@@ -12,12 +12,17 @@ from app.api.deps import CurrentUser, DBSession
 from app.core.errors import ConflictError, NotFound, PermissionDenied, ValidationFailed
 from app.domain import enums
 from app.domain.event_types import EVENT_REGISTRY
-from app.models import Artifact, LifeChangeCase, LifeEvent, User
+from app.models import Artifact, LifeEvent, User
 from app.services import life_change_workflow as workflow
 from app.services import permissions as perm
 from app.services.event_visibility import MEDICAL_EVENT_TYPES, event_visible, scope_life_event_stmt
 from app.services.eventlog import create_life_event, write_audit
+from app.services.life_change_knowledge_delta import build_day_knowledge_delta
 from app.services.life_replay import project_life_replay
+from app.services.life_replay_sources import (
+    load_day_replay_candidates,
+    load_owner_cases_for_day,
+)
 
 router = APIRouter(tags=["events"])
 
@@ -373,45 +378,6 @@ async def supersede_event(
 
 # --- R7 Life Replay (bitemporal owner-readable view) -----------------------
 
-async def _replay_day_candidates(
-    db: DBSession, pet_id: uuid.UUID, start: datetime, end: datetime,
-    cutoff: datetime, *, capabilities: set[str],
-) -> list[LifeEvent]:
-    """Load every occurrence in a day and its later correction chain.
-
-    Shared by /today and /life-replay to prevent different retraction,
-    supersession or future-event counting rules on the owner surfaces.
-    """
-    from app.core.errors import ValidationFailed
-
-    stmt = select(LifeEvent).where(
-        LifeEvent.pet_id == pet_id,
-        LifeEvent.occurred_at >= start,
-        LifeEvent.occurred_at < end,
-        LifeEvent.event_type.not_in(["today.viewed", "audit.accessed"]),
-    )
-    stmt = scope_life_event_stmt(stmt, capabilities)
-    day_events = list((await db.execute(stmt)).scalars().all())
-    events_by_id = {row.id: row for row in day_events}
-    pending = set(events_by_id)
-    for _ in range(32):
-        if not pending:
-            break
-        next_stmt = select(LifeEvent).where(
-            LifeEvent.pet_id == pet_id,
-            LifeEvent.supersedes_event_id.in_(pending),
-            LifeEvent.recorded_at < cutoff,
-        )
-        next_stmt = scope_life_event_stmt(next_stmt, capabilities)
-        superseders = list((await db.execute(next_stmt)).scalars().all())
-        pending = {row.id for row in superseders if row.id not in events_by_id}
-        for row in superseders:
-            events_by_id[row.id] = row
-    else:
-        raise ValidationFailed("Correction chain exceeds the supported replay depth.")
-    return list(events_by_id.values())
-
-
 @router.get("/pets/{pet_id}/life-replay")
 async def life_replay(
     pet_id: uuid.UUID,
@@ -421,6 +387,7 @@ async def life_replay(
     perspective: Literal["verified_now", "as_known_then"] = Query(default="verified_now"),
     day_start_at: datetime | None = Query(default=None),
     day_end_at: datetime | None = Query(default=None),
+    historical_cutoff: datetime | None = Query(default=None),
 ) -> dict:
     """Read-only event-sourced replay. It does not invent historical 3D states.
 
@@ -452,8 +419,16 @@ async def life_replay(
     now = datetime.now(UTC)
     if start > now:
         raise ValidationFailed("Life Replay cannot present a future day as recorded history.")
+    if historical_cutoff is not None:
+        # R8CB verification/audit override: the default stays the day's own end.
+        if historical_cutoff.utcoffset() is None:
+            raise ValidationFailed("The knowledge cutoff must include a timezone.")
+        if historical_cutoff > now:
+            raise ValidationFailed("A knowledge cutoff cannot be in the future.")
+        if historical_cutoff < start:
+            raise ValidationFailed("A knowledge cutoff cannot precede the replayed day.")
     cutoff = min(end, now) if perspective == "as_known_then" else now
-    candidates = await _replay_day_candidates(
+    candidates = await load_day_replay_candidates(
         db, pet.id, start, end, cutoff,
         capabilities=capabilities,
     )
@@ -476,17 +451,7 @@ async def life_replay(
     # knowledge cutoff as LifeEvent history. Cases are selected by the frozen
     # comparison instant, but cannot exist in a perspective before their real
     # creation time. This is owner-decision history, never pet-health history.
-    replay_cases = list((await db.execute(
-        select(LifeChangeCase).where(
-            LifeChangeCase.pet_id == pet.id,
-            LifeChangeCase.computed_at >= start,
-            LifeChangeCase.computed_at < end,
-            LifeChangeCase.created_at < cutoff,
-        ).order_by(
-            LifeChangeCase.computed_at.asc(),
-            LifeChangeCase.id.asc(),
-        )
-    )).scalars().all())
+    replay_cases = await load_owner_cases_for_day(db, pet.id, start, end, cutoff)
     owner_workflows = []
     for case in replay_cases:
         owner_projection = await workflow.project_case_workflow_at(
@@ -507,6 +472,18 @@ async def life_replay(
             "evidence_event_ids": case.evidence_event_ids,
             **owner_projection,
         })
+
+    # R8CB: explain why this day reads differently now than at its own end.
+    # Deterministic journal diff — never an LLM summary, never a health claim.
+    knowledge_delta = await build_day_knowledge_delta(
+        db,
+        pet_id=pet.id,
+        start=start,
+        end=end,
+        capabilities=capabilities,
+        historical_cutoff=historical_cutoff,
+        workflows_now={row["case_id"]: row for row in owner_workflows},
+    )
 
     if perspective == "as_known_then":
         # Later withdrawal cannot retroactively appear in an earlier knowledge view.
@@ -544,6 +521,7 @@ async def life_replay(
             if perspective == "as_known_then"
             else "截至目前的记录；包含事后补录，并排除已撤回或被替代的旧版本。具体事实需按来源判断。"
         ),
+        "knowledge_delta": knowledge_delta,
         "model_status": "RECORDED_EVENTS_ONLY_NO_HISTORICAL_3D_INFERENCE",
     }
 
@@ -564,7 +542,7 @@ async def today(
     day_end = day_start + timedelta(days=1)
 
     now = datetime.now(UTC)
-    candidates = await _replay_day_candidates(
+    candidates = await load_day_replay_candidates(
         db, pet.id, day_start, day_end, now,
         capabilities=capabilities,
     )
