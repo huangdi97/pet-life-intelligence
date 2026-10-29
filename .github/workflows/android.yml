@@ -56,6 +56,7 @@ jobs:
         run: pnpm --dir apps/mobile typecheck
       - name: Expo prebuild (android)
         run: pnpm --dir apps/mobile exec expo prebuild --platform android --non-interactive
+      - uses: gradle/actions/setup-gradle@v4
       - name: Gradle assembleRelease
         working-directory: apps/mobile/android
         run: bash ../../../scripts/ci/gradle-retry.sh assembleRelease
@@ -154,6 +155,9 @@ jobs:
           cd services/api
           alembic upgrade head
           python -m app.seed
+      # Gradle User Home caching keeps dependency resolution off the network on
+      # repeat runs; gradle-retry.sh still refreshes metadata on a real retry.
+      - uses: gradle/actions/setup-gradle@v4
       - name: Build demo-evidence Android APK
         env:
           EXPO_PUBLIC_PLI_API_URL: http://127.0.0.1:8800
@@ -180,21 +184,9 @@ jobs:
           done
           cat /tmp/pli-api.log
           exit 1
-      - name: Start Metro for demo-evidence debug APK
-        env:
-          CI: "1"
-          EXPO_PUBLIC_PLI_API_URL: http://127.0.0.1:8800
-          EXPO_PUBLIC_PLI_DEMO_ENV: "1"
-        run: |
-          (cd apps/mobile && nohup pnpm exec expo start --port 8081 > /tmp/pli-metro.log 2>&1 &)
-          for i in {1..60}; do
-            if curl -fsS http://127.0.0.1:8081/status | grep -q "packager-status:running"; then
-              exit 0
-            fi
-            sleep 2
-          done
-          cat /tmp/pli-metro.log
-          exit 1
+      # No Metro step: the evidence APK embeds assets/index.android.bundle and
+      # disables RN DevSupport, so runtime evidence must never depend on a
+      # packager being reachable from the emulator.
       - name: Enable hosted-runner KVM access
         run: |
           if [ -e /dev/kvm ]; then
@@ -230,10 +222,11 @@ jobs:
           name: r5-6-android-runtime-diagnostics
           path: |
             /tmp/pli-api.log
-            /tmp/pli-metro.log
             /tmp/pli-android-logcat.txt
             /tmp/pli-diag.json
             /tmp/pli-runtime-manifest.json
+            /tmp/pli-gradle-attempt-*.log
+            /tmp/pli-gradle-summary.txt
             artifacts/r5-6-final/android/
             artifacts/r5-6-final/contact-sheets-ci/
           if-no-files-found: warn

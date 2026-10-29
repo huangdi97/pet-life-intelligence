@@ -60,19 +60,28 @@ if [[ "$installed" -ne 1 ]]; then
   exit 1
 fi
 
-# The evidence bundle is self-contained, but React Native debug tooling may
-# still probe Metro. More importantly, the app was built with
-# EXPO_PUBLIC_PLI_API_URL=http://127.0.0.1:8800, so device loopback MUST be
-# reversed to the hosted runner. Establish mappings only after install/retry.
+# The evidence APK is self-contained: JS is bundled into the debug variant and
+# RN DevSupport is disabled, so Metro must not be part of this path. Only the
+# real API port is reversed. Establish mappings after install/retry because an
+# adb server restart drops every existing reverse mapping.
 "$ADB" -s "$SERIAL" reverse --remove-all || true
 "$ADB" -s "$SERIAL" reverse tcp:8800 tcp:8800
-"$ADB" -s "$SERIAL" reverse tcp:8081 tcp:8081
+
+# INVARIANT: runtime evidence must never silently fall back to a live packager.
+if curl -fsS --max-time 2 http://127.0.0.1:8081/status >/dev/null 2>&1; then
+  echo "Metro is listening on 8081; the evidence run must not depend on it." >&2
+  exit 1
+fi
 
 # Fail here, before UI capture, if the device cannot see the evidence API.
 # curl is not guaranteed on Android images, so verify the reverse table and
 # leave the application-level session gate to capture-android-final.py.
 "$ADB" -s "$SERIAL" reverse --list | tee /tmp/pli-adb-reverse.txt
 grep -q "tcp:8800 tcp:8800" /tmp/pli-adb-reverse.txt
+if grep -q "tcp:8081" /tmp/pli-adb-reverse.txt; then
+  echo "A Metro reverse mapping leaked into the evidence run." >&2
+  exit 1
+fi
 
 "$ADB" -s "$SERIAL" shell wm size 1080x2340
 "$ADB" -s "$SERIAL" shell wm density 440
@@ -80,3 +89,14 @@ grep -q "tcp:8800 tcp:8800" /tmp/pli-adb-reverse.txt
 python scripts/r5-6/capture-android-final.py \
   --serial "$SERIAL" \
   --api-url http://localhost:8800
+
+# Self-contained-BUNDLE proof: the embedded bundle must have executed without a
+# packager. A missing script or a dev-server connection attempt invalidates the
+# whole capture regardless of how readable the screenshots look.
+"$ADB" -s "$SERIAL" logcat -d > /tmp/pli-android-logcat.txt 2>/dev/null || true
+if grep -Eq "Unable to load script|Could not connect to development server|JS bundle missing|Unable to load JS bundle|packager-status" /tmp/pli-android-logcat.txt; then
+  echo "The evidence APK tried to use a JS packager; bundled-JS contract is broken." >&2
+  grep -E "Unable to load script|Could not connect to development server|JS bundle missing|Unable to load JS bundle" /tmp/pli-android-logcat.txt >&2 || true
+  exit 1
+fi
+echo "PASS: evidence run executed the embedded JS bundle with Metro absent."
