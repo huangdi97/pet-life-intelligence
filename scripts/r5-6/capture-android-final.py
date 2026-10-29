@@ -2513,6 +2513,56 @@ def capture_r8_owner_review(
         "no_vision_model": True,
         "human_visual_acceptance": "PENDING",
     })
+
+    # R8CB: the owner should not have to diff "现有记录" against "当时所知" by eye.
+    # The delta must come from the append-only journal mutation that real Android
+    # owner actions just produced — never from a model, never a health claim.
+    delta = owner_replay_api.get("knowledge_delta") or {}
+    if delta.get("changed") is not True or not delta.get("items"):
+        raise CaptureError("R8CB knowledge delta is empty for a really retracted source")
+    if delta.get("derived_from") != "APPEND_ONLY_JOURNAL":
+        raise CaptureError("R8CB knowledge delta is not journal-derived")
+    if delta.get("model_status") != "DETERMINISTIC_NO_LLM_NO_HEALTH_INFERENCE":
+        raise CaptureError("R8CB knowledge delta model status is not deterministic")
+    if any(
+        word in (item.get("reason") or "")
+        for item in delta.get("items", [])
+        for word in ("恢复", "恶化", "已经正常", "风险升高")
+    ):
+        raise CaptureError("R8CB knowledge delta made a pet-health claim")
+    delta_id = "pli.lifeview.replay.knowledge-delta"
+    delta_ui = ""
+    for attempt in range(24):
+        time.sleep(0.8 if attempt else 2.5)
+        delta_ui = android.dump_xml(directory / "knowledge-delta-ui.xml")
+        if delta_id in delta_ui and "为什么现在看到的不一样" in delta_ui:
+            break
+        android.shell("input", "swipe", "960", "1820", "960", "720", "360")
+    else:
+        raise CaptureError("R8CB native Life View did not render the knowledge delta")
+    if ui_has_actionable_control(delta_ui, delta_id):
+        raise CaptureError("R8CB knowledge delta became an action surface")
+    android.screenshot(directory / "knowledge-delta.png")
+    save_manifest(directory / "knowledge-delta-truth.json", {
+        "pet_id": pet_id,
+        "case_id": case_id,
+        "date": local_day_raw,
+        "delta_kinds": [item.get("kind") for item in delta.get("items", [])],
+        "delta_count": len(delta.get("items", [])),
+        "event_delta_count": delta.get("event_delta_count"),
+        "owner_workflow_delta_count": delta.get("owner_workflow_delta_count"),
+        "truth_note": delta.get("truth_note"),
+        "native_section_visible": True,
+        "native_section_read_only": True,
+        "derived_from_journal": True,
+        "llm_generated": False,
+        "read_only": True,
+        "health_inference": False,
+        "screenshot": "knowledge-delta.png",
+        "ui_xml": "knowledge-delta-ui.xml",
+        "no_vision_model": True,
+        "human_visual_acceptance": "PENDING",
+    })
     return case_id
 
 
