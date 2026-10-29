@@ -1687,6 +1687,23 @@
               ],
               "title": "Day End At"
             }
+          },
+          {
+            "name": "historical_cutoff",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Historical Cutoff"
+            }
           }
         ],
         "responses": {
