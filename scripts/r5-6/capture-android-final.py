@@ -2514,44 +2514,100 @@ def capture_r8_owner_review(
         "human_visual_acceptance": "PENDING",
     })
 
-    # R8CB: the owner should not have to diff "现有记录" against "当时所知" by eye.
-    # The delta must come from the append-only journal mutation that real Android
-    # owner actions just produced — never from a model, never a health claim.
-    delta = owner_replay_api.get("knowledge_delta") or {}
-    if delta.get("changed") is not True or not delta.get("items"):
-        raise CaptureError("R8CB knowledge delta is empty for a really retracted source")
-    if delta.get("derived_from") != "APPEND_ONLY_JOURNAL":
-        raise CaptureError("R8CB knowledge delta is not journal-derived")
-    if delta.get("model_status") != "DETERMINISTIC_NO_LLM_NO_HEALTH_INFERENCE":
-        raise CaptureError("R8CB knowledge delta model status is not deterministic")
-    if any(
-        word in (item.get("reason") or "")
-        for item in delta.get("items", [])
-        for word in ("恢复", "恶化", "已经正常", "风险升高")
-    ):
-        raise CaptureError("R8CB knowledge delta made a pet-health claim")
+    # R8CB: "why does this day look different now?" must be answered from the
+    # journal on the real device, not by asking the owner to diff two screens.
+    # A day that is still running has no delta by design (nothing has "later"
+    # happened yet), so the proof uses a completed day: a walk recorded
+    # afterwards, then withdrawn by the owner.
+    delta_day = replay_day - timedelta(days=2)
+    delta_start = datetime.combine(delta_day, clock_time.min, tzinfo=owner_zone)
+    delta_end = delta_start + timedelta(days=1)
+    late_walk = api_json(
+        f"{root}/pets/{pet_id}/events",
+        method="POST",
+        headers=owner_header,
+        body={
+            "event_type": "daily.walk",
+            "payload": {"duration_minutes": 14},
+            "occurred_at": (delta_start + timedelta(hours=10)).isoformat(),
+        },
+    )
+    late_event_id = late_walk.get("event_id")
+    if not late_event_id:
+        raise CaptureError("R8CB could not record the real late walk")
+
+    def day_replay(perspective: str) -> dict:
+        query = urlencode({
+            "date": delta_day.isoformat(),
+            "perspective": perspective,
+            "day_start_at": delta_start.isoformat(),
+            "day_end_at": delta_end.isoformat(),
+        })
+        return api_json(f"{root}/pets/{pet_id}/life-replay?{query}", headers=owner_header)
+
+    def delta_kinds(replay: dict, expected_kind: str) -> dict:
+        delta = replay.get("knowledge_delta") or {}
+        if delta.get("changed") is not True or not delta.get("items"):
+            raise CaptureError(f"R8CB knowledge delta is empty for {expected_kind}")
+        if delta.get("derived_from") != "APPEND_ONLY_JOURNAL":
+            raise CaptureError("R8CB knowledge delta is not journal-derived")
+        if delta.get("model_status") != "DETERMINISTIC_NO_LLM_NO_HEALTH_INFERENCE":
+            raise CaptureError("R8CB knowledge delta model status is not deterministic")
+        if expected_kind not in [item.get("kind") for item in delta.get("items", [])]:
+            raise CaptureError(f"R8CB knowledge delta lacks {expected_kind}")
+        for item in delta.get("items", []):
+            reason = item.get("reason") or ""
+            if any(word in reason for word in ("恢复", "恶化", "已经正常", "风险升高")):
+                raise CaptureError("R8CB knowledge delta made a pet-health claim")
+        return delta
+
+    before_retraction = delta_kinds(day_replay("verified_now"), "LATE_RECORDED_EVENT")
+    if late_event_id in [row.get("event_id") for row in day_replay("as_known_then").get("events", [])]:
+        raise CaptureError("R8CB late record leaked into as_known_then")
+
     delta_id = "pli.lifeview.replay.knowledge-delta"
-    delta_ui = ""
-    for attempt in range(24):
-        time.sleep(0.8 if attempt else 2.5)
-        delta_ui = android.dump_xml(directory / "knowledge-delta-ui.xml")
-        if delta_id in delta_ui and "为什么现在看到的不一样" in delta_ui:
-            break
-        android.shell("input", "swipe", "960", "1820", "960", "720", "360")
-    else:
-        raise CaptureError("R8CB native Life View did not render the knowledge delta")
-    if ui_has_actionable_control(delta_ui, delta_id):
-        raise CaptureError("R8CB knowledge delta became an action surface")
+
+    def open_delta_surface(expected_text: str) -> str:
+        android.start_link(
+            f"pli-demo://nav?screen=lifeview&pet={pet_id}&date={delta_day.isoformat()}"
+        )
+        ui = ""
+        for attempt in range(26):
+            time.sleep(0.8 if attempt else 3)
+            ui = android.dump_xml(directory / "knowledge-delta-ui.xml")
+            if delta_id in ui and expected_text in ui:
+                if "为什么现在看到的不一样" not in ui:
+                    raise CaptureError("R8CB native section headline is missing")
+                if ui_has_actionable_control(ui, delta_id):
+                    raise CaptureError("R8CB knowledge delta became an action surface")
+                return ui
+            android.shell("input", "swipe", "960", "1820", "960", "720", "360")
+        raise CaptureError(f"R8CB native Life View did not show: {expected_text}")
+
+    open_delta_surface("这条记录是在当天之后补录的")
+    android.screenshot(directory / "knowledge-delta.png")
+
+    # Real owner withdrawal of that source: the same screen must now explain the
+    # withdrawal instead of the backfill.
+    api_json(f"{root}/events/{late_event_id}/retract", method="POST", headers=owner_header)
+    after_retraction = delta_kinds(day_replay("verified_now"), "SOURCE_RETRACTED_LATER")
+    open_delta_surface("后来这条来源被主人撤回")
     android.screenshot(directory / "knowledge-delta.png")
     save_manifest(directory / "knowledge-delta-truth.json", {
         "pet_id": pet_id,
         "case_id": case_id,
-        "date": local_day_raw,
-        "delta_kinds": [item.get("kind") for item in delta.get("items", [])],
-        "delta_count": len(delta.get("items", [])),
-        "event_delta_count": delta.get("event_delta_count"),
-        "owner_workflow_delta_count": delta.get("owner_workflow_delta_count"),
-        "truth_note": delta.get("truth_note"),
+        "date": delta_day.isoformat(),
+        "late_event_id": late_event_id,
+        "kinds_before_retraction": [
+            item.get("kind") for item in before_retraction.get("items", [])
+        ],
+        "kinds_after_retraction": [
+            item.get("kind") for item in after_retraction.get("items", [])
+        ],
+        "event_delta_count": after_retraction.get("event_delta_count"),
+        "owner_workflow_delta_count": after_retraction.get("owner_workflow_delta_count"),
+        "truth_note": after_retraction.get("truth_note"),
+        "as_known_then_excludes_late_record": True,
         "native_section_visible": True,
         "native_section_read_only": True,
         "derived_from_journal": True,
