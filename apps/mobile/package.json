@@ -16,7 +16,8 @@
     "test:owner-case-history": "node scripts/test-owner-case-history.cjs",
     "doctor": "expo-doctor",
     "build:3d-page": "node scripts/build-3d-page.mjs",
-    "test:outcome-idempotency": "node scripts/test-outcome-idempotency.cjs"
+    "test:outcome-idempotency": "node scripts/test-outcome-idempotency.cjs",
+    "test:knowledge-delta": "node scripts/test-knowledge-delta.cjs"
   },
   "dependencies": {
     "@babel/runtime": "^7.24.0",

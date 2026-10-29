@@ -28,6 +28,10 @@ import {
   caseHistoryMetric, caseHistoryNeedsAttention, caseHistoryStatus,
   type LifeChangeCaseSummary,
 } from "../components/life/ownerCaseHistory";
+import {
+  KNOWLEDGE_DELTA_HEADLINE, knowledgeDeltaLines, knowledgeDeltaNote,
+  knowledgeDeltaSummary, knowledgeDeltaVisible, type KnowledgeDelta,
+} from "../components/life/knowledgeDelta";
 import { resolvePetStage } from "../components/pet/PetStageRenderer";
 import { eventTypeLabel, sourceLabel } from "./ui_labels";
 import { observedActivityMinutes } from "./today_helpers";
@@ -54,6 +58,7 @@ interface LifeReplayMeta {
   owner_workflows?: LifeChangeCaseSummary[];
   owner_workflow_count?: number;
   owner_workflow_truth_note?: string;
+  knowledge_delta?: KnowledgeDelta;
 }
 interface HistoricalVisualModel {
   version: number;
@@ -698,6 +703,27 @@ export function LifeViewScreen() {
             </Text>
           </View>
         ) : null}
+        {timeScope === "date" && knowledgeDeltaVisible(replay?.knowledge_delta) ? (
+          <View
+            style={styles.knowledgeDelta}
+            testID="pli.lifeview.replay.knowledge-delta"
+            accessibilityLabel="后来发生了什么：记录与主人核对的变化"
+          >
+            <Text style={styles.ownerReplayEyebrow}>后来发生了什么</Text>
+            <Text style={styles.ownerReplayTitle}>{KNOWLEDGE_DELTA_HEADLINE}</Text>
+            {knowledgeDeltaSummary(replay?.knowledge_delta) ? (
+              <Text style={styles.ownerReplayMeta}>
+                {knowledgeDeltaSummary(replay?.knowledge_delta)}
+              </Text>
+            ) : null}
+            <View style={styles.knowledgeDeltaList}>
+              {knowledgeDeltaLines(replay?.knowledge_delta).map((line, index) => (
+                <Text key={`${index}-${line}`} style={styles.knowledgeDeltaLine}>· {line}</Text>
+              ))}
+            </View>
+            <Text style={styles.ownerReplayTruth}>{knowledgeDeltaNote(replay?.knowledge_delta)}</Text>
+          </View>
+        ) : null}
 
         {displayTwin ? (
         <View testID="pli.lifeview.control.zoom" style={styles.controlRow} accessibilityLabel="3D 视图控制">
@@ -933,6 +959,12 @@ const styles = StyleSheet.create({
   ownerReplayFacts: { color: COLORS.textPrimary, fontSize: TYPE.sm },
   ownerReplayMeta: { color: COLORS.textSecondary, fontSize: TYPE.caption, lineHeight: 18 },
   ownerReplayTruth: { color: COLORS.textTertiary, fontSize: TYPE.caption, lineHeight: 18 },
+  knowledgeDelta: {
+    marginHorizontal: SPACE.s4, marginTop: SPACE.s3, padding: SPACE.s4,
+    borderRadius: 20, backgroundColor: COLORS.surfaceRaised, gap: SPACE.s2,
+  },
+  knowledgeDeltaList: { gap: 6 },
+  knowledgeDeltaLine: { color: COLORS.textPrimary, fontSize: TYPE.sm, lineHeight: 20 },
   historyTruth: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3, flexDirection: "row", alignItems: "flex-start", gap: SPACE.s2, padding: SPACE.s3, borderRadius: 18, backgroundColor: COLORS.surfaceRaised },
   historyTruthText: { flex: 1, fontSize: TYPE.sm, lineHeight: 20, color: COLORS.textSecondary },
   panel: { marginHorizontal: SPACE.s4, marginTop: SPACE.s4 },
