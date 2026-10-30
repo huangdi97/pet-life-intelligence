@@ -2490,12 +2490,32 @@ def capture_r8_owner_review(
     )
     replay_card_id = f"pli.lifeview.replay.owner-workflow.{case_id}"
     replay_ui = ""
-    for attempt in range(28):
+    up_swipes = 0
+    for attempt in range(34):
         time.sleep(0.8 if attempt else 3)
         replay_ui = android.dump_xml(directory / "case-owner-workflow-replay-ui.xml")
         if replay_card_id in replay_ui and "原始记录已变更" in replay_ui:
             break
-        android.shell("input", "swipe", "960", "1820", "960", "720", "360")
+        if "pli." not in replay_ui:
+            # The native surface has not painted yet; scrolling an empty
+            # hierarchy only loses the owner context.
+            time.sleep(1.4)
+            continue
+        if attempt == 18:
+            # A replay response fetched before the real Android retraction can
+            # keep the card in its pre-retraction state; refresh the surface once.
+            android.start_link("pli-demo://nav?screen=today")
+            time.sleep(2.0)
+            android.start_link(
+                f"pli-demo://nav?screen=lifeview&pet={pet_id}&date={local_day_raw}"
+            )
+            up_swipes = 0
+            continue
+        if up_swipes < 10:
+            android.shell("input", "swipe", "960", "1820", "960", "720", "360")
+            up_swipes += 1
+        else:
+            android.shell("input", "swipe", "960", "720", "960", "1820", "360")
     else:
         raise CaptureError(
             "R8CA native Life View did not render the replayed owner workflow"
