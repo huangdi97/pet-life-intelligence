@@ -2609,6 +2609,10 @@ def capture_r8_owner_review(
         raise CaptureError("R8CB kept explaining a day whose late record was withdrawn")
     if late_event_id in [row.get("event_id") for row in after_retraction.get("events", [])]:
         raise CaptureError("R8CB withdrawal left the late record in verified_now")
+    # Leave the day and come back so the screen refetches the journal instead of
+    # reusing the replay response that still carried the explanation.
+    android.start_link("pli-demo://nav?screen=today")
+    time.sleep(2.5)
     android.start_link(
         f"pli-demo://nav?screen=lifeview&pet={pet_id}&date={delta_day.isoformat()}"
     )
