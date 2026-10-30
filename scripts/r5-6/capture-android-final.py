@@ -1138,6 +1138,16 @@ def capture_r8_owner_review(
             time.sleep(0.8 if attempt else 1.8)
             latest = android.dump_xml(directory / filename)
             nodes = list(ET.fromstring(latest).iter("node"))
+            if not any(
+                node.attrib.get("resource-id", "").startswith("pli.")
+                for node in nodes
+            ) and attempt < attempts - 6:
+                # An empty PLI hierarchy means the native surface has not painted
+                # yet (cold JS bundle + WebView warm-up on a shared emulator).
+                # Waiting is safe; swiping or re-navigating would lose the owner
+                # context this evidence step depends on.
+                time.sleep(1.4)
+                continue
             matched = [node for node in nodes
                        if node.attrib.get("resource-id", "") == name]
             if matched:
