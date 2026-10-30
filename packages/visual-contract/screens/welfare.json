@@ -1,23 +1,204 @@
 {
   "screen": "welfare",
-  "version": 1,
-  "dimensions": { "petIdentity": 20, "composition": 20, "hierarchy": 15, "surface": 10, "contentPurity": 10, "interaction": 10, "accessibility": 5, "runtimeTruth": 10 },
-  "thresholds": { "pass": 92 },
-  "critical": ["welfare.content.purity", "welfare.enrichment"],
+  "version": 2,
+  "dimensions": {
+    "individualPetTruth": 25,
+    "visualComposition": 20,
+    "informationHierarchy": 15,
+    "surfaceGovernance": 10,
+    "contentPurity": 10,
+    "interactionTruth": 10,
+    "accessibility": 5,
+    "pixelStyleTruth": 5
+  },
+  "thresholds": {
+    "pass": 92
+  },
+  "critical": [
+    "welfare.content.purity",
+    "welfare.enrichment"
+  ],
   "checks": [
-    { "id": "welfare.identity", "dimension": "petIdentity", "points": 8, "description": "当前宠物身份存在", "check": { "kind": "element", "idPrefix": "pli.welfare.identity" } },
-    { "id": "welfare.enrichment", "dimension": "petIdentity", "points": 12, "description": "丰富化内容存在", "check": { "kind": "element", "idPrefix": "pli.welfare.enrichment" } },
-    { "id": "welfare.comfort", "dimension": "composition", "points": 8, "description": "休息/舒适存在", "check": { "kind": "element", "idPrefix": "pli.welfare.comfort" } },
-    { "id": "welfare.liked", "dimension": "composition", "points": 6, "description": "最近喜欢的活动存在", "check": { "kind": "element", "idPrefix": "pli.welfare.liked" } },
-    { "id": "welfare.observable", "dimension": "composition", "points": 6, "description": "可观察事实存在", "check": { "kind": "element", "idPrefix": "pli.welfare.observable" } },
-    { "id": "welfare.nofake", "dimension": "hierarchy", "points": 7, "description": "不虚构评分", "check": { "kind": "text-free", "tokens": ["评分", "分数", "得分"] } },
-    { "id": "welfare.meaning", "dimension": "hierarchy", "points": 4, "description": "条目有含义", "check": { "kind": "element", "idPrefix": "pli.welfare.enrichment" } },
-    { "id": "welfare.source", "dimension": "hierarchy", "points": 4, "description": "观察有来源", "check": { "kind": "element", "idPrefix": "pli.welfare.observable" } },
-    { "id": "welfare.surface", "dimension": "surface", "points": 10, "description": "大 Card ≤5", "check": { "kind": "surface", "max": 5, "minArea": 16000 } },
-    { "id": "welfare.content.purity", "dimension": "contentPurity", "points": 10, "description": "无 STRESS_RECOVERY / OWNER_REPORTED 等", "check": { "kind": "text-free", "tokens": ["BW-", "OWNER_REPORTED", "STRESS_RECOVERY", "OPEN", "provider_", "model_id", "event_key", "PLI-"] } },
-    { "id": "welfare.action", "dimension": "interaction", "points": 5, "description": "记录入口存在", "check": { "kind": "element", "idPrefix": "pli.welfare.action" } },
-    { "id": "welfare.view", "dimension": "interaction", "points": 5, "description": "内容可查看", "check": { "kind": "count", "filter": { "role": "button", "idPrefix": "pli.welfare.enrichment" }, "range": [1, 8] } },
-    { "id": "welfare.a11y", "dimension": "accessibility", "points": 5, "description": "关键区可读", "check": { "kind": "element", "idPrefix": "pli.welfare.enrichment" } },
-    { "id": "welfare.truth", "dimension": "runtimeTruth", "points": 10, "description": "数据来自真实 runtime（无占位）", "check": { "kind": "text-free", "tokens": ["占位", "TODO", "placeholder", "coming soon"] } }
+    {
+      "id": "welfare.identity",
+      "dimension": "individualPetTruth",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.identity"
+      }
+    },
+    {
+      "id": "welfare.enrichment",
+      "dimension": "individualPetTruth",
+      "points": 12,
+      "description": "丰富化内容存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.enrichment"
+      }
+    },
+    {
+      "id": "welfare.comfort",
+      "dimension": "visualComposition",
+      "points": 8,
+      "description": "休息/舒适存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.comfort"
+      }
+    },
+    {
+      "id": "welfare.liked",
+      "dimension": "visualComposition",
+      "points": 6,
+      "description": "最近喜欢的活动存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.liked"
+      }
+    },
+    {
+      "id": "welfare.observable",
+      "dimension": "visualComposition",
+      "points": 6,
+      "description": "可观察事实存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.observable"
+      }
+    },
+    {
+      "id": "welfare.nofake",
+      "dimension": "informationHierarchy",
+      "points": 7,
+      "description": "不虚构评分",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "评分",
+          "分数",
+          "得分"
+        ]
+      }
+    },
+    {
+      "id": "welfare.meaning",
+      "dimension": "informationHierarchy",
+      "points": 4,
+      "description": "条目有含义",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.enrichment"
+      }
+    },
+    {
+      "id": "welfare.source",
+      "dimension": "informationHierarchy",
+      "points": 4,
+      "description": "观察有来源",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.observable"
+      }
+    },
+    {
+      "id": "welfare.surface",
+      "dimension": "surfaceGovernance",
+      "points": 10,
+      "description": "大 Card ≤5",
+      "check": {
+        "kind": "surface",
+        "max": 5,
+        "minArea": 16000
+      }
+    },
+    {
+      "id": "welfare.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "无 STRESS_RECOVERY / OWNER_REPORTED 等",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      }
+    },
+    {
+      "id": "welfare.action",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "记录入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.action"
+      }
+    },
+    {
+      "id": "welfare.view",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "内容可查看",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.welfare.enrichment"
+        },
+        "range": [
+          1,
+          8
+        ]
+      }
+    },
+    {
+      "id": "welfare.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "关键区可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.welfare.enrichment"
+      }
+    },
+    {
+      "id": "welfare.truth",
+      "dimension": "individualPetTruth",
+      "points": 5.0,
+      "description": "数据来自真实 runtime（无占位） (real data)",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      }
+    },
+    {
+      "id": "welfare.truth.style",
+      "dimension": "pixelStyleTruth",
+      "points": 5.0,
+      "description": "无占位/空板书风格（style truth）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      }
+    }
   ]
 }

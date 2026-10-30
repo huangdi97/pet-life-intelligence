@@ -1,15 +1,22 @@
 "use client";
 
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { Icon } from "./icons";
 
+type StableHeroCopy = string | number | null;
+
 interface PetHeroProps {
   name: string;
-  /** Heading rendered inside the hero (an h1). Defaults to the pet name. */
-  title?: ReactNode;
+  /**
+   * Heading rendered inside the hero (an h1). Defaults to the pet name.
+   *
+   * Keep these owner-copy slots deliberately textual. The Hero is identity
+   * copy, not an arbitrary render slot; this also keeps the shared contract
+   * independent from duplicate React ambient declarations in build tooling.
+   */
+  title?: StableHeroCopy;
   /** Identity / status line under the title (e.g. "3岁2个月 · 柯基 · 雌性"). */
-  line?: ReactNode;
+  line?: StableHeroCopy;
   /** Optional pet id — the visual becomes a link to that pet's Life View. */
   petId?: string;
   /** "warm" canvas hero (Today/Pet) or "dark" immersive stage (Life View). */

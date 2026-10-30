@@ -1,0 +1,268 @@
+{
+  "screen": "quick-log",
+  "total": 95,
+  "max": 100,
+  "perDimension": {
+    "individualPetTruth": {
+      "earned": 25,
+      "max": 25
+    },
+    "visualComposition": {
+      "earned": 15,
+      "max": 20
+    },
+    "informationHierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surfaceGovernance": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interactionTruth": {
+      "earned": 10,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "pixelStyleTruth": {
+      "earned": 5,
+      "max": 5
+    }
+  },
+  "passed": [
+    {
+      "id": "quicklog.identity",
+      "dimension": "individualPetTruth",
+      "points": 10,
+      "description": "为当前宠物记录（PetContextHeader）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.quicklog.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.quicklog.identity]=1"
+    },
+    {
+      "id": "quicklog.primary",
+      "dimension": "individualPetTruth",
+      "points": 10,
+      "description": "高频四动作首屏可达（喂食/饮水/排泄/散步）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.quicklog.tile.feed",
+        "count": [
+          1,
+          1
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.quicklog.tile.feed]=1"
+    },
+    {
+      "id": "quicklog.tiles.water",
+      "dimension": "visualComposition",
+      "points": 5,
+      "description": "饮水入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.quicklog.tile.water"
+      },
+      "passed": true,
+      "detail": "elements[pli.quicklog.tile.water]=1"
+    },
+    {
+      "id": "quicklog.tiles.elim",
+      "dimension": "visualComposition",
+      "points": 5,
+      "description": "排泄入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.quicklog.tile.elimination"
+      },
+      "passed": true,
+      "detail": "elements[pli.quicklog.tile.elimination]=1"
+    },
+    {
+      "id": "quicklog.tiles.walk",
+      "dimension": "visualComposition",
+      "points": 5,
+      "description": "散步入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.quicklog.tile.walk"
+      },
+      "passed": true,
+      "detail": "elements[pli.quicklog.tile.walk]=1"
+    },
+    {
+      "id": "quicklog.form",
+      "dimension": "informationHierarchy",
+      "points": 7,
+      "description": "轻量表单（非重表单）存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.quicklog.form"
+      },
+      "passed": true,
+      "detail": "elements[pli.quicklog.form]=1"
+    },
+    {
+      "id": "quicklog.feedback",
+      "dimension": "informationHierarchy",
+      "points": 8,
+      "description": "记录反馈存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.quicklog.feedback"
+      },
+      "passed": true,
+      "detail": "elements[pli.quicklog.feedback]=1"
+    },
+    {
+      "id": "quicklog.surface",
+      "dimension": "surfaceGovernance",
+      "points": 10,
+      "description": "大 Card ≤3",
+      "check": {
+        "kind": "surface",
+        "max": 3,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 3"
+    },
+    {
+      "id": "quicklog.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "quicklog.tile.action",
+      "dimension": "interactionTruth",
+      "points": 6,
+      "description": "高频瓷砖可点",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.quicklog.tile."
+        },
+        "range": [
+          4,
+          16
+        ]
+      },
+      "passed": true,
+      "detail": "count=4 in [4,16]"
+    },
+    {
+      "id": "quicklog.save",
+      "dimension": "interactionTruth",
+      "points": 4,
+      "description": "保存/完成动作存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.quicklog.save"
+      },
+      "passed": true,
+      "detail": "elements[pli.quicklog.save]=1"
+    },
+    {
+      "id": "quicklog.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "瓷砖可访问",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.quicklog.tile."
+        },
+        "range": [
+          4,
+          16
+        ]
+      },
+      "passed": true,
+      "detail": "count=4 in [4,16]"
+    },
+    {
+      "id": "quicklog.truth",
+      "dimension": "individualPetTruth",
+      "points": 5,
+      "description": "记录类型来自真实配置（非占位） (real data)",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "quicklog.truth.style",
+      "dimension": "pixelStyleTruth",
+      "points": 5,
+      "description": "无占位/空板书风格（style truth）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [
+    {
+      "id": "quicklog.more",
+      "dimension": "visualComposition",
+      "points": 5,
+      "description": "更多入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.quicklog.more",
+        "count": [
+          1,
+          12
+        ]
+      },
+      "passed": false,
+      "detail": "elements[pli.quicklog.more]=0 count=1,12 minH=undefined"
+    }
+  ],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

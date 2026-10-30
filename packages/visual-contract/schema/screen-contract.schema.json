@@ -2,16 +2,16 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://pli.local/visual-contract/screen-contract.schema.json",
   "title": "ScreenVisualContract",
-  "description": "Machine-readable visual contract for one PLI screen. Evaluated by scripts/blind-ui/scorecard.py against extracted layout/style/semantics/manifest snapshots. No vision model is involved.",
+  "description": "Machine-readable visual contract for one PLI screen (Blind Contract V2). Evaluated by scripts/blind-ui/scorecard.py against extracted layout/style/semantics/manifest/camera snapshots. No vision model is involved.",
   "type": "object",
   "required": ["screen", "version", "dimensions", "thresholds", "critical", "checks"],
   "properties": {
     "screen": { "type": "string", "pattern": "^[a-z0-9-]+$" },
     "version": { "type": "integer", "minimum": 1 },
     "dimensions": {
-      "description": "Fixed 8-dimension scorecard, weights sum to 100.",
+      "description": "Blind Score V2 dimension weights; all present by convention, sums to 100 per contract (schema test).",
       "type": "object",
-      "required": ["petIdentity", "composition", "hierarchy", "surface", "contentPurity", "interaction", "accessibility", "runtimeTruth"],
+      "required": ["individualPetTruth", "visualComposition", "informationHierarchy", "surfaceGovernance", "contentPurity", "interactionTruth", "accessibility", "pixelStyleTruth"],
       "additionalProperties": { "type": "number" }
     },
     "thresholds": {
@@ -39,7 +39,7 @@
       "properties": {
         "id": { "type": "string" },
         "dimension": {
-          "enum": ["petIdentity", "composition", "hierarchy", "surface", "contentPurity", "interaction", "accessibility", "runtimeTruth"]
+          "enum": ["individualPetTruth", "visualComposition", "informationHierarchy", "surfaceGovernance", "contentPurity", "interactionTruth", "accessibility", "pixelStyleTruth"]
         },
         "points": { "type": "number", "minimum": 0 },
         "description": { "type": "string" },
@@ -53,8 +53,13 @@
             { "$ref": "#/$defs/textFreeCheck" },
             { "$ref": "#/$defs/textHasCheck" },
             { "$ref": "#/$defs/manifestCheck" },
+            { "$ref": "#/$defs/manifestOriginCheck" },
+            { "$ref": "#/$defs/identityCheck" },
+            { "$ref": "#/$defs/cameraCheck" },
+            { "$ref": "#/$defs/pixelStyleCheck" },
             { "$ref": "#/$defs/surfaceCheck" },
-            { "$ref": "#/$defs/interactionCheck" }
+            { "$ref": "#/$defs/interactionCheck" },
+            { "$ref": "#/$defs/styleTruthCheck" }
           ]
         }
       }
@@ -135,8 +140,45 @@
         "field": { "type": "string" },
         "eq": { "type": ["string", "boolean", "number", "null"] },
         "truthy": { "type": "boolean" },
-        "in": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
-        "unlessPlatform": { "type": "array", "items": { "type": "string" } }
+        "in": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }
+      }
+    },
+    "manifestOriginCheck": {
+      "type": "object",
+      "required": ["kind", "eq"],
+      "properties": {
+        "kind": { "const": "manifest-origin" },
+        "eq": { "enum": ["RUNTIME", "SYNTHETIC_FALLBACK_EVIDENCE"] }
+      }
+    },
+    "identityCheck": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "const": "identity" },
+        "generic": { "enum": [false] },
+        "petIdMatch": { "type": "boolean" },
+        "sourceMediaMin": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "cameraCheck": {
+      "type": "object",
+      "required": ["kind", "event", "field"],
+      "properties": {
+        "kind": { "const": "camera" },
+        "event": { "enum": ["rotate", "zoom", "reset"] },
+        "field": { "enum": ["yaw", "pitch", "distance", "radius"] },
+        "minDelta": { "type": "number", "minimum": 0 },
+        "maxDeviation": { "type": "number", "minimum": 0 }
+      }
+    },
+    "pixelStyleCheck": {
+      "type": "object",
+      "required": ["kind", "surface"],
+      "properties": {
+        "kind": { "const": "pixel-style" },
+        "surface": { "enum": ["today", "pet", "lifeview", "other"] },
+        "allowRealityMedia": { "type": "boolean" }
       }
     },
     "surfaceCheck": {
@@ -146,7 +188,8 @@
         "kind": { "const": "surface" },
         "max": { "type": "integer", "minimum": 0 },
         "minArea": { "type": "number" },
-        "aboveFold": { "type": "boolean" }
+        "aboveFold": { "type": "boolean" },
+        "surfaceType": { "enum": ["card", "CARD", "soft-panel", "SOFT_PANEL"] }
       }
     },
     "interactionCheck": {
@@ -161,6 +204,15 @@
             "selected": { "type": "string" }
           }
         }
+      }
+    },
+    "styleTruthCheck": {
+      "type": "object",
+      "required": ["kind", "idPrefix"],
+      "properties": {
+        "kind": { "const": "style-truth" },
+        "idPrefix": { "type": "string" },
+        "notDarkBg": { "type": "boolean" }
       }
     }
   }

@@ -13,18 +13,19 @@ import { PetSpeciesGlyph } from "../components/pet/PetSpeciesGlyph";
 
 interface HealthSummaryProps {
   health: HealthEventRow[];
-  hint: { hints: string[]; rule: string } | null;
+  evidenceState: "loading" | "ready" | "error";
 }
 
-/** One honest health line under the living stage (danger → change → stable → none). */
-export function TodayHealthSummary({ health, hint }: HealthSummaryProps) {
+/** Factual support line only. Never translate “no triggered rule” into “healthy/stable”. */
+export function TodayHealthSummary({ health, evidenceState }: HealthSummaryProps) {
   const danger = health.find((r) => r.latest_triage_level === "URGENT" || r.latest_triage_level === "EMERGENCY");
-  const abnormal = hint?.hints.find((x) => !x.includes("无明显异常"));
+  const openCount = health.filter((r) => r.status !== "CLOSED").length;
   let text: string;
-  if (danger) text = `健康：${danger.chief_complaint ?? "1 项需要留意"}`;
-  else if (abnormal) text = "健康：有值得留意的变化";
-  else if (health.length > 0 || hint !== null) text = "健康状态：总体稳定";
-  else text = "健康状态：暂无记录";
+  if (evidenceState !== "ready") text = "健康记录：当前没有完整读取到";
+  else if (danger) text = `健康记录：${danger.chief_complaint ?? "有 1 项风险分级需要处理"}`;
+  else if (openCount > 0) text = `健康记录：${openCount} 项仍在跟进`;
+  else if (health.length > 0) text = `健康记录：已读取 ${health.length} 条，当前无未关闭事项`;
+  else text = "健康记录：还没有记录";
   return (
     <View testID="pli.today.health-summary" style={styles.summaryWrap}>
       <Text style={styles.summaryText}>{text}</Text>

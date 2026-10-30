@@ -4,7 +4,7 @@ medication conflicts, audit."""
 
 from datetime import datetime, timedelta, timezone
 
-from tests.conftest import auth
+from tests.conftest import auth, create_user
 
 NOW = datetime.now(timezone.utc)
 
@@ -151,6 +151,47 @@ class TestPermissions:
                         headers=auth(seeded["owner_id"]))
         assert r.status_code == 403
 
+    def test_household_invitation_acceptance_is_account_bound(self, client, seeded):
+        invitee_email = "invitee-family@example.com"
+        invitee = create_user(email=invitee_email)
+        invited = client.post(
+            f"/api/v1/households/{seeded['household_id']}/invitations",
+            json={"email": invitee_email, "role": "FAMILY"},
+            headers=auth(seeded["owner_id"]),
+        )
+        assert invited.status_code == 201, invited.text
+        token = invited.json()["accept_token"]
+
+        accepted = client.post(
+            "/api/v1/invitations/accept",
+            json={"token": token},
+            headers=auth(invitee),
+        )
+        assert accepted.status_code == 200, accepted.text
+        assert accepted.json()["household_id"] == seeded["household_id"]
+        assert accepted.json()["role"] == "FAMILY"
+
+        pets = client.get("/api/v1/pets", headers=auth(invitee))
+        assert pets.status_code == 200
+        assert {pet["id"] for pet in pets.json()} >= {seeded["coco_id"], seeded["mimi_id"]}
+
+    def test_household_invitation_rejects_different_account(self, client, seeded):
+        invited_email = "bound-invitee@example.com"
+        wrong_user = create_user(email="wrong-invitee@example.com")
+        invited = client.post(
+            f"/api/v1/households/{seeded['household_id']}/invitations",
+            json={"email": invited_email, "role": "FAMILY"},
+            headers=auth(seeded["owner_id"]),
+        )
+        assert invited.status_code == 201, invited.text
+
+        denied = client.post(
+            "/api/v1/invitations/accept",
+            json={"token": invited.json()["accept_token"]},
+            headers=auth(wrong_user),
+        )
+        assert denied.status_code == 403
+
     def test_audit_visible_to_owner(self, client, seeded):
         owner = seeded["owner_id"]
         r = client.get(f"/api/v1/pets/{seeded['coco_id']}/audit", headers=auth(owner))
@@ -182,7 +223,7 @@ class TestTasks:
         r2 = client.get(f"/api/v1/pets/{seeded['coco_id']}/tasks?status=OPEN",
                         headers=auth(owner))
         titles = [t["title"] for t in r2.json()]
-        assert "Evening feeding" in titles
+        assert "晚间喂食" in titles
 
     def test_task_completion_in_timeline(self, client, seeded):
         family, task = seeded["family_id"], seeded["task_id"]
@@ -191,3 +232,60 @@ class TestTasks:
                        headers=auth(seeded["owner_id"]))
         events = r.json()["events"]
         assert events and events[0]["actor_name"] == "Demo Family Member"
+
+
+class TestPetProfile:
+    def test_owner_can_edit_and_clear_nullable_profile_fields(self, client, seeded):
+        owner, coco = seeded["owner_id"], seeded["coco_id"]
+        first = client.patch(
+            f"/api/v1/pets/{coco}",
+            json={"birth_date": "2020-05-01", "neutered": True, "weight_note": "12kg"},
+            headers=auth(owner),
+        )
+        assert first.status_code == 200, first.text
+        assert first.json()["birth_date"] == "2020-05-01"
+        assert first.json()["neutered"] is True
+
+        cleared = client.patch(
+            f"/api/v1/pets/{coco}",
+            json={"birth_date": None, "neutered": None},
+            headers=auth(owner),
+        )
+        assert cleared.status_code == 200, cleared.text
+        assert cleared.json()["birth_date"] is None
+        assert cleared.json()["neutered"] is None
+
+
+class TestOwnerDataControls:
+    def test_field_privacy_round_trip_masks_non_manager(self, client, seeded):
+        owner, family, coco = seeded["owner_id"], seeded["family_id"], seeded["coco_id"]
+
+        got = client.get(f"/api/v1/pets/{coco}/field-privacy", headers=auth(owner))
+        assert got.status_code == 200, got.text
+        assert set(got.json()["maskable_fields"]) == {"birth_date", "breed", "weight_note"}
+
+        saved = client.put(
+            f"/api/v1/pets/{coco}/field-privacy",
+            json={"hidden_fields": ["breed", "weight_note"]},
+            headers=auth(owner),
+        )
+        assert saved.status_code == 200, saved.text
+        assert set(saved.json()["hidden_fields"]) == {"breed", "weight_note"}
+
+        family_view = client.get(f"/api/v1/pets/{coco}", headers=auth(family))
+        assert family_view.status_code == 200
+        assert family_view.json()["breed"] is None
+        assert family_view.json()["weight_note"] is None
+        assert set(family_view.json()["field_privacy_applied"]) == {"breed", "weight_note"}
+
+    def test_owner_export_is_real_and_audited(self, client, seeded):
+        owner, family, coco = seeded["owner_id"], seeded["family_id"], seeded["coco_id"]
+
+        bundle = client.get(f"/api/v1/pets/{coco}/export", headers=auth(owner))
+        assert bundle.status_code == 200, bundle.text
+        assert bundle.json()["export_version"] == "1.0"
+        assert bundle.json()["pet"]["id"] == coco
+        assert "life_events" in bundle.json()
+
+        denied = client.get(f"/api/v1/pets/{coco}/export", headers=auth(family))
+        assert denied.status_code == 403

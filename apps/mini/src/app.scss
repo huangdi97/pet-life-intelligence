@@ -1,8 +1,8 @@
-// app.scss �?global styles for all mini pages.
+// app.scss — global styles for all mini pages.
 // Colors/sizes come from styles/tokens.scss (PLI Visual System V4, Stage R.2).
 // Information density is LOWER than desktop: cards + chips + bottom sheet,
 // no wide tables, no sidebars, no multi-layer modals (IA §5 / 母版 §68).
-// V4: warm canvas, reduced border density �?hierarchy via spacing/background
+// V4: warm canvas, reduced border density — hierarchy via spacing/background
 // instead of borders around everything.
 @use "./styles/tokens.scss" as *;
 
@@ -79,8 +79,10 @@ page {
 
 // ---- Now layer: LifeSignal ------------------------------------------- //
 .life-signal { display: flex; margin-top: $space-2; }
-.life-metric { flex: 1; padding: 0 $space-3; }
+.life-metric { flex: 1; padding: $space-2 $space-3; border-radius: $radius-lg; }
 .life-metric + .life-metric { border-left: 1px solid $color-divider-subtle; }
+.life-metric-action { transition: background-color 120ms ease, transform 120ms ease; }
+.life-metric-action:active { background: $color-brand-soft-green; transform: translateY(1px); }
 .life-metric-value { font-size: $font-metric; font-weight: $font-weight-bold; color: $color-text-primary; }
 .life-metric-label { font-size: $font-meta; color: $color-text-tertiary; margin-top: 2px; }
 .life-empty-note { font-size: $font-body; color: $color-text-tertiary; margin-top: $space-2; }
@@ -93,11 +95,13 @@ page {
 .attention-calm { background: $color-success-bg; }
 .attention-focus { background: $color-attention-bg; }
 .attention-danger { background: $color-danger-bg; }
+.attention-unknown { background: $color-surface-raised; border: 1px solid $color-divider-subtle; }
 .attention-icon { padding-top: 2px; }
 .attention-title { font-size: $font-body-strong; font-weight: $font-weight-bold; }
 .attention-title-calm { color: $color-success; }
 .attention-title-focus { color: $color-attention; }
 .attention-title-danger { color: $color-danger; }
+.attention-title-unknown { color: $color-text-secondary; }
 .attention-body { font-size: $font-body; color: $color-text-primary; margin-top: 2px; }
 .attention-footer { font-size: $font-caption; color: $color-text-tertiary; margin-top: $space-2; }
 
@@ -116,7 +120,7 @@ page {
 .secondary-action:active { opacity: 0.9; }
 .secondary-action-icon { font-size: $font-meta; color: $color-brand-primary; display: block; margin-bottom: 4px; }
 
-// ---- Pet context strip ("为豆豆记�?) ---------------------------------- //
+// ---- Pet context strip（为当前宠物记录） ---------------------------------- //
 .pet-context {
   display: flex; align-items: center; gap: $space-3;
   padding: $space-2 $space-1 $space-3;
@@ -129,7 +133,8 @@ page {
 // ---- Life stream spine (Timeline / Today memory) ------------------------ //
 .life-stream { margin-top: $space-2; }
 .life-day { margin-top: $space-3; }
-.life-day-label { font-size: $font-meta; font-weight: $font-weight-semibold; color: $color-text-secondary; margin-bottom: $space-1; }
+.life-day-label { display:flex; align-items:center; justify-content:space-between; gap:$space-2; font-size: $font-meta; font-weight: $font-weight-semibold; color: $color-text-secondary; margin-bottom: $space-1; }
+.life-day-back { min-height:44px; display:flex; align-items:center; padding:0 $space-2; border-radius:$radius-pill; background:$color-brand-soft; color:$color-brand-primary-deep; font-size:$font-meta; font-weight:$font-weight-semibold; }
 .life-row { display: flex; gap: $space-2; align-items: flex-start; padding: $space-1 0; }
 .life-dot {
   width: 20px; height: 20px; border-radius: $radius-pill; margin-top: 6px; flex-shrink: 0;
@@ -161,6 +166,43 @@ page {
 .inline-error-action { color: $color-warning; font-weight: $font-weight-semibold; flex-shrink: 0; }
 
 // ---- Assistant ------------------------------------------------------------ //
+.agent-primary-lead {
+  margin-top: $space-4;
+  color: $color-text-primary;
+  font-size: $font-section;
+  font-weight: $font-weight-bold;
+}
+.agent-context-panel { margin-top: $space-3; }
+.agent-back-to-ask {
+  display: inline-block;
+  min-height: 44px;
+  line-height: 44px;
+  color: $color-brand-primary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+}
+.agent-tool-section { margin-top: $space-5; }
+.agent-tool-label { color: $color-text-tertiary; font-size: $font-meta; margin-bottom: $space-2; }
+.agent-tool-scroll { width: 100%; }
+.agent-tool-row { display: inline-flex; min-width: 100%; gap: $space-2; padding-right: $space-3; box-sizing: border-box; }
+.agent-tool {
+  flex: none;
+  min-width: 88px;
+  min-height: 44px;
+  padding: 0 $space-3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-pill;
+  background: $color-surface-raised;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+}
+.agent-tool-active {
+  background: $color-primary-100;
+  color: $color-primary-800;
+  font-weight: $font-weight-semibold;
+}
 .mode-row { display: flex; gap: $space-2; margin-top: $space-3; }
 .mode-pill {
   flex: 1; text-align: center; padding: $space-2 0; border-radius: $radius-xl;
@@ -229,7 +271,7 @@ page {
   padding: 14px 18px; font-size: $font-size-base; width: 100%; color: $color-ink-primary;
 }
 
-// --- 页内 chips（二级导航，不做侧栏�?---
+// --- 页内 chips（二级导航，不做侧栏） ---
 .chips { display: flex; flex-wrap: wrap; gap: $space-1; margin: $space-2 0; }
 .chip {
   padding: 10px $space-3; border-radius: $radius-pill; font-size: $font-size-sm;
@@ -237,7 +279,7 @@ page {
 }
 .chip-active { border-color: $color-line-focus; background: $color-primary-100; color: $color-primary-800; font-weight: $font-weight-medium; }
 
-// --- 今日�?当前状态卡（低密度统计，legacy�?---
+// --- 今日页当前状态卡（低密度统计，legacy） ---
 .statgrid { display: flex; flex-wrap: wrap; gap: $space-2; }
 .stat {
   flex: 1 1 30%; min-width: 180px; background: $color-bg-surface-muted;
@@ -246,7 +288,7 @@ page {
 .stat-n { font-size: $font-size-lg; font-weight: $font-weight-semibold; color: $color-ink-primary; }
 .stat-label { font-size: $font-size-xs; color: $color-ink-muted; margin-top: 2px; }
 
-// --- 入口卡（监测 / 陪伴，legacy�?---
+// --- 入口卡（监测 / 陪伴，legacy） ---
 .entry-card {
   display: flex; align-items: center; justify-content: space-between;
   background: $color-bg-surface; border-radius: $radius-md;
@@ -256,7 +298,7 @@ page {
 .entry-desc { font-size: $font-size-xs; color: $color-ink-muted; margin-top: 4px; }
 .entry-arrow { color: $color-ink-disabled; font-size: $font-size-md; }
 
-// --- Bottom Sheet（快速记录，单层，非多层 Modal�?---
+// --- Bottom Sheet（快速记录，单层，非多层 Modal） ---
 .sheet-mask {
   position: fixed; left: 0; right: 0; top: 0; bottom: 0;
   background: rgba(43, 39, 35, 0.4); z-index: 1000;
@@ -299,7 +341,7 @@ page {
 .layer-en { font-size: $font-size-xs; color: $color-ink-disabled; margin-left: $space-1; }
 .layer-desc { font-size: $font-size-xs; color: $color-ink-muted; margin: $space-1 0; }
 
-// --- Agent 5 页内 tab（legacy；R.2 已改为主模式 + 情境入口�?---
+// --- Agent 5 页内 tab（legacy；R.2 已改为主模式 + 情境入口） ---
 .agent-tabs { display: flex; gap: $space-1; margin: $space-2 0; }
 .agent-tab {
   flex: 1; text-align: center; padding: $space-2 0; border-radius: $radius-sm;
@@ -320,4 +362,454 @@ page {
 @media (prefers-reduced-motion: reduce) {
   page { transition: none !important; }
   .card, .btn, .chip, .sheet, .layer-card, .primary-action, .secondary-action { transition: none !important; }
+}
+
+
+// ---- R5 cross-client living surfaces ----------------------------------- //
+.soft-hero {
+  margin: $space-3 0 0;
+  padding: $space-4;
+  border-radius: $radius-2xl;
+  background: $color-brand-soft;
+}
+.soft-panel {
+  margin-top: $space-3;
+  padding: $space-3;
+  border-radius: $radius-xl;
+  background: $color-surface-raised;
+}
+.metric-row {
+  display: flex;
+  gap: $space-2;
+  margin-top: $space-3;
+}
+.metric-cell {
+  flex: 1;
+  min-width: 0;
+  padding: $space-2 0;
+}
+.metric-cell + .metric-cell {
+  border-left: 1px solid $color-divider-subtle;
+  padding-left: $space-3;
+}
+.metric-value {
+  color: $color-text-primary;
+  font-size: $font-metric;
+  font-weight: $font-weight-bold;
+}
+.metric-label {
+  color: $color-text-tertiary;
+  font-size: $font-meta;
+  margin-top: 2px;
+}
+.life-dot-danger { background: $color-danger; }
+
+
+// R6 Living Canvas: full-height pet-first imagery / shared owner rhythm.
+page { background:#fbf7f1; }
+.page { padding:0 0 $space-10; }
+.page > .chips,.page > .open-section,.page > .life-signal,
+.page > .attention-panel,.page > .primary-action,.page > .action-row,
+.page > .secondary-action,.page > .life-stream,.page > .card,
+.page > .inline-error,.page > .state {
+  margin-left:$space-4; margin-right:$space-4;
+}
+.pet-hero {
+  height:750px; margin:0; border-radius:0;
+  background:radial-gradient(ellipse at 50% 38%,#fff8ed,#efdfc9 72%,#e9d3b8);
+}
+.pet-hero-glyph { align-self:center; transform:scale(1.4); }
+.pet-hero-scrim {
+  height:320px;
+  background:linear-gradient(180deg,transparent,rgba(67,52,37,.54));
+}
+.pet-hero-info { left:$space-5; right:$space-5; bottom:$space-5; }
+.pet-hero-name { font-size:76px; letter-spacing:-2px; }
+.pet-hero-headline { font-size:34px; line-height:1.35; font-weight:500; }
+.pet-hero-identity { font-size:$font-meta; }
+.pet-hero-demo { top:$space-5;right:$space-5; }
+.pet-hero-kicker {
+  position:absolute; left:$space-5; top:$space-5;
+  font-size:24px; letter-spacing:3px; font-weight:600;
+  color:#514633;
+}
+.pet-hero-no-photo {
+  position:relative; display:flex;flex-direction:column; align-items:center;
+  justify-content:center; gap:28px; width:100%;height:100%;
+}
+.pet-hero-no-photo-title {
+  max-width:440px; font-size:25px; color:#796f63; text-align:center;
+  line-height:1.55;
+}
+.pet-hero-no-photo .species-tile {
+  border:2px solid rgba(84,94,67,.16);
+  background:radial-gradient(circle at 46% 20%,#f8f0e3,#d9c8ac);
+  box-shadow:0 40px 80px rgba(73,57,40,.09);
+}
+.pet-hero-no-photo .species-tile Text { font-size:150px; font-weight:300; opacity:.28; }
+.life-signal { margin-top:$space-5; margin-bottom:$space-4; }
+.life-metric { padding:0 $space-2; }
+.life-metric-value { font-size:42px; }
+.open-section { margin-top:$space-6; }
+.section-title { font-size:38px; letter-spacing:-.4px; }
+.primary-action {
+  background:#4a644c; border-radius:999px; min-height:96px;
+  display:flex; align-items:center;justify-content:center;
+}
+.secondary-action { background:#f0eadf; border-radius:999px; }
+.card { background:#fffdf8; border-radius:32px; }
+
+
+/* R7 Owner living canvas: editorial photo-first hero, no fictitious Mini 3D runtime.
+   Canonical Warm Living Intelligence uses cream/beige as the room itself;
+   sage remains an accent rather than flooding the full surface. */
+page { background:#FBF7F1; }
+.page { padding-top:0; }
+.pet-hero {
+  height:650px;margin:0 -24px $space-2;border-radius:0 0 56px 56px;
+  background:
+    radial-gradient(75% 58% at 72% 12%,rgba(255,252,244,.86),rgba(255,252,244,0) 68%),
+    linear-gradient(145deg,#FBF6EC 0%,#F2E6D5 62%,#E6D2B7 100%);
+  box-shadow:0 14px 36px rgba(83,61,39,.07);
+}
+.pet-hero::before {
+  content:"";position:absolute;left:13%;top:-20%;width:20%;height:122%;
+  transform:skewX(-10deg);background:rgba(255,255,255,.24);pointer-events:none;
+}
+.pet-hero-no-photo {
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;height:100%;
+}
+.pet-hero-glyph { transform:scale(1.05);opacity:.86; }
+.pet-hero-no-photo-title {
+  max-width:530px;text-align:center;font-size:$font-caption;color:#756A5D;
+  padding:14px $space-4 0;
+}
+.pet-hero-kicker {
+  position:absolute;top:42px;left:36px;z-index:5;
+  font-size:24px;font-weight:700;color:#5A674F;letter-spacing:3px;
+}
+.pet-hero-scrim {
+  height:285px;
+  background:linear-gradient(0deg,rgba(43,36,29,.48),rgba(43,36,29,0) 88%);
+}
+.pet-hero-info { left:36px;right:36px;bottom:34px;z-index:4; }
+.pet-hero-name { font-size:76px;font-weight:800;letter-spacing:-2px; }
+.pet-hero-headline { font-size:31px;font-weight:600; }
+.pet-hero-timechip { background:#FFFDF5E8;color:#4D6353; }
+.pet-hero-demo { top:36px;right:30px;z-index:5; }
+.primary-action {
+  display:flex;align-items:center;justify-content:center;
+  background:#365F49;margin:$space-3 0 $space-2;min-height:90px;
+  border-radius:30px;box-shadow:0 12px 24px rgba(47,91,62,.13);
+}
+.secondary-action { background:#EEF3EA;color:#31563E;border-radius:25px; }
+.life-signal { padding:$space-3 0;margin-top:0; }
+.life-metric-value { font-size:44px; }
+
+
+// R7.2 Mini Life View — same Living Canvas hierarchy as Web / Android.
+// Photo stays dominant; state facts and four-way mode rail remain below it.
+.life-view-top {
+  padding: $space-4 $space-4 $space-3;
+}
+.life-view-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+  margin-top: $space-2;
+  color: $color-text-tertiary;
+  font-size: $font-caption;
+}
+.life-view-page .pet-hero {
+  margin-top: 0;
+}
+.life-view-anchor-row {
+  display: flex;
+  gap: $space-2;
+  padding: $space-3 $space-4 $space-2;
+}
+.life-view-anchor {
+  flex: 1;
+  min-width: 0;
+  min-height: 92px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24px;
+  background: rgba(255,254,249,.9);
+  border: 1px solid rgba(89,112,91,.12);
+}
+.life-view-anchor-active {
+  background: $color-brand-soft;
+  border-color: rgba(54,95,73,.34);
+}
+.life-view-anchor-value {
+  color: $color-text-primary;
+  font-size: 30px;
+  font-weight: $font-weight-bold;
+  white-space: nowrap;
+}
+.life-view-anchor-label {
+  margin-top: 4px;
+  color: $color-text-tertiary;
+  font-size: $font-caption;
+}
+.life-view-modes {
+  display: flex;
+  margin: $space-3 $space-4 0;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(255,254,249,.92);
+  border: 1px solid $color-divider-subtle;
+}
+.life-view-mode {
+  flex: 1;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+}
+.life-view-mode-active {
+  background: $color-brand-primary;
+  color: $color-surface;
+}
+.life-view-detail {
+  margin: $space-4 $space-4 0;
+  padding: $space-4;
+  border-radius: 30px;
+  background: rgba(255,254,249,.92);
+  border: 1px solid rgba(89,112,91,.14);
+}
+.life-view-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $space-3;
+}
+.life-view-detail-kicker {
+  display: block;
+  color: $color-text-tertiary;
+  font-size: $font-caption;
+  margin-bottom: 5px;
+}
+.life-view-detail-close {
+  color: $color-brand-primary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  padding: 12px 0 12px 18px;
+}
+.life-view-detail-grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: $space-3;
+}
+.life-view-detail-cell {
+  width: 50%;
+  box-sizing: border-box;
+  padding: $space-2 $space-2 $space-2 0;
+  color: $color-text-primary;
+  font-size: $font-size-sm;
+}
+.life-view-detail-key {
+  display: block;
+  color: $color-text-tertiary;
+  font-size: $font-caption;
+  margin-bottom: 4px;
+}
+.life-view-baseline {
+  margin-top: $space-3;
+}
+.life-view-baseline-row {
+  padding: $space-3 0;
+  border-bottom: 1px solid $color-divider-subtle;
+}
+.life-view-baseline-value {
+  display: block;
+  margin-top: 3px;
+  color: $color-text-primary;
+  font-size: $font-section;
+  font-weight: $font-weight-bold;
+}
+.life-view-baseline-meta {
+  display: block;
+  margin-top: 3px;
+  color: $color-text-tertiary;
+  font-size: $font-caption;
+}
+
+
+/* R7.3 Today CHANGE layer — quieter than health Attention. */
+.change-narrative {
+  margin:$space-3 $space-4 0;
+  padding:$space-3 $space-4;
+  border-radius:28px;
+  background:rgba(238,243,234,.9);
+  border:1px solid rgba(54,95,73,.10);
+}
+.change-narrative-unknown {
+  background:rgba(255,254,249,.9);
+  border-color:$color-divider-subtle;
+}
+.change-kicker {
+  display:block;
+  color:#42634E;
+  font-size:$font-caption;
+  font-weight:$font-weight-bold;
+  letter-spacing:2px;
+}
+.change-summary {
+  display:block;
+  margin-top:7px;
+  color:$color-text-primary;
+  font-size:$font-body-strong;
+  font-weight:$font-weight-semibold;
+  line-height:1.55;
+}
+.change-evidence {
+  display:block;
+  margin-top:5px;
+  color:$color-text-tertiary;
+  font-size:$font-caption;
+  line-height:1.5;
+}
+.change-why {
+  min-height:44px;display:flex;align-items:center;align-self:flex-start;
+  margin-top:$space-2;padding:0 $space-3;border-radius:$radius-pill;
+  background:$color-brand-soft;color:$color-brand-primary-deep;
+  font-size:$font-meta;font-weight:$font-weight-semibold;
+}
+.change-explain { margin-top:$space-2;padding-top:$space-2;border-top:1px solid $color-divider-subtle; }
+.change-explain-label { display:block;margin-top:8px;color:$color-brand-primary-deep;font-size:$font-meta;font-weight:$font-weight-semibold; }
+.change-explain-body { display:block;margin-top:3px;color:$color-text-secondary;font-size:$font-caption;line-height:1.55; }
+
+
+
+/* R7.10 Timeline creation is secondary to reading the Life Stream. */
+.timeline-composer {
+  margin-top: 12px;
+}
+.timeline-composer > .input,
+.timeline-composer > .chips,
+.timeline-composer > .btn {
+  margin-top: 10px;
+}
+.timeline-composer > .input:first-child,
+.timeline-composer > .chips:first-child,
+.timeline-composer > .btn:first-child {
+  margin-top: 0;
+}
+
+
+/* R7.11 Timeline is a journal, not a feature-card stack. Secondary memories
+   continue the same reading rhythm after the Life Stream. */
+.timeline-journal-list {
+  margin-top: $space-3;
+  padding-top: $space-2;
+  border-top: 1px solid $color-divider-subtle;
+  background: transparent;
+}
+.timeline-journal-list > .life-row {
+  padding: $space-2 0;
+}
+
+
+// R7.12 Life View secondary state: real weight / tasks / device facts.
+// It is intentionally quieter than the four primary life anchors.
+.life-view-support {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+  padding: $space-2 $space-4 0;
+}
+.life-view-support-item {
+  width: calc(50% - #{$space-2 / 2});
+  flex: 0 0 calc(50% - #{$space-2 / 2});
+  min-width: 0;
+  min-height: 86px;
+  box-sizing: border-box;
+  padding: $space-2;
+  border-radius: 22px;
+  background: rgba(255,254,249,.86);
+  border: 1px solid rgba(89,112,91,.10);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.life-view-support-label {
+  display: block;
+  color: $color-text-tertiary;
+  font-size: $font-caption;
+}
+.life-view-support-value {
+  display: block;
+  max-width: 100%;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: $color-text-primary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+}
+.life-view-support-danger { color: $color-danger; }
+
+
+
+/* R7.13 Life View time scrubber — historical scopes are truth boundaries.
+   Keep it horizontal and compact; the pet remains the visual lead. */
+.life-view-time-scrubber {
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+  padding: $space-2 $space-4;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.life-view-time-chip {
+  flex: 0 0 auto;
+  min-height: 64px;
+  padding: 0 $space-2;
+  border-radius: 999px;
+  border: 1px solid rgba(89,112,91,.12);
+  background: rgba(255,254,249,.88);
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.life-view-time-chip-active {
+  background: $color-brand-primary;
+  border-color: $color-brand-primary;
+  color: #fff;
+}
+.life-view-date-input {
+  flex: 0 0 250px;
+  min-width: 250px;
+  min-height: 64px;
+  box-sizing: border-box;
+  padding: 0 $space-2;
+  border-radius: 20px;
+  border: 1px solid rgba(89,112,91,.14);
+  background: rgba(255,254,249,.9);
+  color: $color-text-primary;
+  font-size: $font-size-sm;
+}
+.life-view-history-truth {
+  margin: $space-2 $space-4 0;
+  padding: $space-2 $space-3;
+  border-radius: 22px;
+  background: rgba(237,242,233,.9);
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  line-height: 1.55;
 }

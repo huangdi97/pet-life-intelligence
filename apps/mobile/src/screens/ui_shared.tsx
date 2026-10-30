@@ -96,16 +96,9 @@ export function Loading() {
 }
 
 const s = StyleSheet.create({
-  card: {
-    backgroundColor: COLORS.bgSurface,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.lineDefault,
-    padding: SPACE.s4,
-    marginVertical: SPACE.s2,
-  },
+  card: { backgroundColor: COLORS.surfaceRaised, borderRadius: RADIUS.xxl, borderWidth: 0, padding: SPACE.s5, marginVertical: SPACE.s2 },
   titleWrap: { marginTop: SPACE.s2, marginBottom: SPACE.s3 },
-  title: { fontSize: TYPE.xxl, fontWeight: TYPE.weightBold, color: COLORS.inkPrimary },
+  title: { fontSize: 30, fontWeight: TYPE.weightBold, letterSpacing: -0.6, color: COLORS.inkPrimary },
   sub: { fontSize: TYPE.sm, color: COLORS.inkMuted, marginTop: SPACE.s1 },
   section: {
     fontSize: TYPE.md,
@@ -134,8 +127,8 @@ const s = StyleSheet.create({
   },
   badgeText: { fontSize: TYPE.xs, fontWeight: TYPE.weightMedium },
   primaryBtn: {
-    backgroundColor: COLORS.primary500,
-    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.brandPrimaryDeep,
+    borderRadius: RADIUS.pill,
     paddingVertical: SPACE.s3,
     paddingHorizontal: SPACE.s5,
     alignItems: "center",
@@ -143,10 +136,9 @@ const s = StyleSheet.create({
   },
   primaryBtnText: { color: COLORS.bgSurface, fontSize: TYPE.base, fontWeight: TYPE.weightSemibold },
   ghostBtn: {
-    backgroundColor: COLORS.bgSurface,
-    borderWidth: 1,
-    borderColor: COLORS.lineStrong,
-    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.brandSoftGreen,
+    borderWidth: 0,
+    borderRadius: RADIUS.pill,
     paddingVertical: SPACE.s3,
     paddingHorizontal: SPACE.s5,
     alignItems: "center",

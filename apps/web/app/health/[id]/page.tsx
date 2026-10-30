@@ -9,6 +9,7 @@ import { IntakeCard } from "../../_components/health/IntakeCard";
 import { ObservationCard } from "../../_components/health/ObservationCard";
 import { OutcomeCard } from "../../_components/health/OutcomeCard";
 import { OverviewCard } from "../../_components/health/OverviewCard";
+import { RecoveryCard } from "../../_components/health/RecoveryCard";
 import { VetBriefCard } from "../../_components/health/VetBriefCard";
 
 /** OWN-005 Health 详情（Stage H §20-22）：发现异常→Intake→Evidence→Triage→Vet Brief→Outcome。
@@ -30,7 +31,7 @@ export default function HealthEventDetailPage({
   const [answer, setAnswer] = useState("");
   const [obsText, setObsText] = useState("");
   const [brief, setBrief] = useState<{ id: string; content: VetBriefContent } | null>(null);
-  const [share, setShare] = useState<{ token: string; expires_at: string } | null>(null);
+  const [share, setShare] = useState<{ token_id: string; token: string; expires_at: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState("");
   const [outcomeNotes, setOutcomeNotes] = useState("");
@@ -91,11 +92,22 @@ export default function HealthEventDetailPage({
   async function shareBrief(briefId: string) {
     setError(null);
     try {
-      const r = await api.post<{ share_token: string; expires_at: string }>(
+      const r = await api.post<{ token_id: string; share_token: string; expires_at: string }>(
         `/vet-briefs/${briefId}/share`,
         { expires_in_hours: 72 },
       );
-      setShare({ token: r.share_token, expires_at: r.expires_at });
+      setShare({ token_id: r.token_id, token: r.share_token, expires_at: r.expires_at });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function revokeShare() {
+    if (!share) return;
+    setError(null);
+    try {
+      await api.del(`/share-tokens/${share.token_id}`);
+      setShare(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -153,7 +165,10 @@ export default function HealthEventDetailPage({
               hasBriefs={detail.data.vet_briefs.length > 0}
               onMakeBrief={makeBrief}
               onShareBrief={shareBrief}
+              onRevokeShare={revokeShare}
             />
+
+            <RecoveryCard healthEventId={id} />
 
             <OutcomeCard
               outcome={outcome}

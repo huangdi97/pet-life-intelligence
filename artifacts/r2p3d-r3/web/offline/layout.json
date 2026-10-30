@@ -1,0 +1,152 @@
+{
+  "screen": "offline",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "contentBounds": {
+    "top": 82,
+    "bottom": 844,
+    "width": 390,
+    "height": 762,
+    "left": 0
+  },
+  "elements": [
+    {
+      "id": "header",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "nav",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 100,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "pli.nav.today",
+      "role": "button",
+      "x": 174,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "今日"
+    },
+    {
+      "id": "pli.nav.timeline",
+      "role": "button",
+      "x": 214,
+      "y": 15,
+      "width": 46,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "时间线"
+    },
+    {
+      "id": "pli.nav.pet",
+      "role": "button",
+      "x": 264,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆"
+    },
+    {
+      "id": "pli.nav.assistant",
+      "role": "button",
+      "x": 304,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "助手"
+    },
+    {
+      "id": "pli.nav.me",
+      "role": "button",
+      "x": 344,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "我的"
+    },
+    {
+      "id": "pli.multipet.switch",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）咪咪（cat）"
+    },
+    {
+      "id": "pli.multipet.current",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）"
+    },
+    {
+      "id": "pli.offline.state",
+      "x": 92,
+      "y": 272,
+      "width": 206,
+      "height": 35,
+      "visible": true,
+      "z": 0,
+      "text": "当前处于离线状态"
+    },
+    {
+      "id": "pli.offline.last-sync",
+      "x": 65,
+      "y": 394,
+      "width": 260,
+      "height": 17,
+      "visible": true,
+      "z": 0,
+      "text": "最近同步：尚未同步，恢复网络后会自动同步"
+    },
+    {
+      "id": "pli.offline.cached",
+      "x": 16,
+      "y": 446,
+      "width": 359,
+      "height": 202,
+      "visible": true,
+      "z": 0,
+      "text": "本地草稿\n\n离线时记录会先保存为草稿，恢复后自动同步（未同步 / 同步中 / 已同步 / 同步失败）。\n\n没有本地草稿。"
+    },
+    {
+      "id": "pli.offline.retry",
+      "role": "button",
+      "x": 179,
+      "y": 670,
+      "width": 128,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "重试连接并同步"
+    }
+  ]
+}

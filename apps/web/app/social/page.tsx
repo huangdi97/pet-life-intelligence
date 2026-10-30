@@ -4,20 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { api, type LifeEvent, type Pet } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
-import { mapErrorMessage, t } from "../../lib/i18n";
+import { mapErrorMessage } from "../../lib/i18n";
 import { FriendsPanel } from "./_components/FriendsPanel";
 import { InteractionsPanel } from "./_components/InteractionsPanel";
 import { RecordInteractionPanel } from "./_components/RecordInteractionPanel";
 import { RelationsPanel } from "./_components/RelationsPanel";
 import type { PetFriend, SocialProfile } from "./_components/types";
-
-const QUALITY_LABELS: Record<string, string> = {
-  UNKNOWN: "未知",
-  GOOD: "顺利",
-  NEUTRAL: "平静",
-  TENSE: "紧张",
-  BAD: "冲突",
-};
 
 /** OWN-012 Social（Stage H §27-28）：关系图谱 + 互动历史 + 安全 + 反馈，不是传统 Feed。 */
 export default function SocialPage() {
@@ -28,6 +20,7 @@ export default function SocialPage() {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
 
   const profile = useAsync<SocialProfile>(
     () => (petId ? api.get(`/pets/${petId}/social-profile`) : Promise.reject(new Error("NO_PET_SELECTED"))),
@@ -51,7 +44,7 @@ export default function SocialPage() {
     [petId],
   );
 
-  const friendName = (id: string) => pets.data?.find((p) => p.id === id)?.name ?? id.slice(0, 8);
+  const friendName = (id: string) => pets.data?.find((p) => p.id === id)?.name ?? "未命名伙伴";
 
   async function recordInteraction() {
     if (!petId || !friendPetId) return;
@@ -67,6 +60,7 @@ export default function SocialPage() {
       setMsg("已记录互动");
       events.reload();
       setNotes("");
+      setFormOpen(false);
       setTimeout(() => setMsg(null), 2500);
     } catch (e) {
       setMsg(mapErrorMessage(e));
@@ -76,10 +70,10 @@ export default function SocialPage() {
   }
 
   return (
-    <main>
-      <div data-testid="pli.social.identity">
-        <h1>{t("social.title")}</h1>
-        <p className="sub">{t("social.sub")}</p>
+    <main className="v4-main v5-domain-page">
+      <div className="v4-topline v5-page-lede" data-testid="pli.social.identity">
+        <h1>社交与伙伴</h1>
+        <p className="sub">它和谁熟悉、最近发生了什么互动，以及有哪些需要留意的相处情况。</p>
       </div>
       {msg && <div className="alert info">{msg}</div>}
 
@@ -94,33 +88,43 @@ export default function SocialPage() {
         <InteractionsPanel events={events} friendName={friendName} />
       </div>
 
-      {/* 社交偏好（来自真实档案，不猜测） */}
-      <div className="card" data-testid="pli.social.preferences">
-        <h2>社交偏好</h2>
-        <p className="muted" style={{ margin: 0 }}>
-          {profile.data?.profile
-            ? "与犬/猫/孩子/陌生人的相处情况记录在档案中，这里会汇总它自己的偏好。"
-            : "还没有偏好记录。在记录互动后，这里会呈现它自己的相处倾向。"}
-        </p>
-      </div>
-
-      {/* 记录互动 */}
-      <div data-testid="pli.social.action">
-        <RecordInteractionPanel
-          pets={pets.data}
-          petId={petId}
-          friendPetId={friendPetId}
-          onFriendChange={setFriendPetId}
-          quality={quality}
-          onQualityChange={setQuality}
-          duration={duration}
-          onDurationChange={setDuration}
-          notes={notes}
-          onNotesChange={setNotes}
-          busy={busy}
-          onRecord={recordInteraction}
-        />
-      </div>
+      {/* Record is an explicit create flow. Domain home stays relationship-first. */}
+      <section className="v4-sec v5-domain-create" data-testid="pli.social.action" data-form-open={formOpen ? "true" : "false"}>
+        <div className="v4-sec-head">
+          <div>
+            <h2 className="v4-sec-title">补充一次互动</h2>
+            <p className="v4-sec-sub">已有关系与互动历史优先展示；需要时再补充这次真实发生的互动。</p>
+          </div>
+          <button
+            type="button"
+            className="btn"
+            aria-expanded={formOpen}
+            aria-controls="pli-social-record-form"
+            onClick={() => setFormOpen((value) => !value)}
+            data-testid="pli.social.action.toggle"
+          >
+            {formOpen ? "收起" : "记录互动"}
+          </button>
+        </div>
+        {formOpen ? (
+          <div id="pli-social-record-form">
+            <RecordInteractionPanel
+              pets={pets.data}
+              petId={petId}
+              friendPetId={friendPetId}
+              onFriendChange={setFriendPetId}
+              quality={quality}
+              onQualityChange={setQuality}
+              duration={duration}
+              onDurationChange={setDuration}
+              notes={notes}
+              onNotesChange={setNotes}
+              busy={busy}
+              onRecord={recordInteraction}
+            />
+          </div>
+        ) : null}
+      </section>
 
       <div className="row" style={{ marginTop: 8 }}>
         <Link href="/" className="btn">

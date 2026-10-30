@@ -21,6 +21,8 @@ from app.models import (
     Milestone,
 )
 from app.services import permissions as perm
+from app.services.current_events import scope_current_event_stmt
+from app.services.event_visibility import scope_life_event_stmt
 from app.services.eventlog import create_life_event
 
 router = APIRouter(tags=["v02-social-platform"])
@@ -211,7 +213,9 @@ async def memories_on_this_day(
     years_back: int = Query(default=3, ge=1, le=20),
 ) -> list[dict]:
     pet = await perm.get_pet_or_404(db, pet_id)
-    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    capabilities = await perm.require_capability(
+        db, pet, user.id, enums.Capability.DAILY_READ
+    )
     now = datetime.now(timezone.utc)
     out = []
     for y in range(1, years_back + 1):
@@ -220,16 +224,15 @@ async def memories_on_this_day(
         except ValueError:
             continue
         start = target - timedelta(days=1)
-        rows = (
-            await db.execute(
-                select(LifeEvent).where(
-                    LifeEvent.pet_id == pet.id,
-                    LifeEvent.occurred_at >= start,
-                    LifeEvent.occurred_at < target + timedelta(days=1),
-                    LifeEvent.retracted_at.is_(None),
-                ).order_by(LifeEvent.occurred_at).limit(10)
-            )
-        ).scalars().all()
+        stmt = select(LifeEvent).where(
+            LifeEvent.pet_id == pet.id,
+            LifeEvent.occurred_at >= start,
+            LifeEvent.occurred_at < target + timedelta(days=1),
+            LifeEvent.retracted_at.is_(None),
+        ).order_by(LifeEvent.occurred_at).limit(10)
+        stmt = scope_life_event_stmt(stmt, capabilities)
+        stmt = scope_current_event_stmt(stmt, now)
+        rows = (await db.execute(stmt)).scalars().all()
         if rows:
             out.append({"years_ago": y, "window": f"{start.date()} ~ {target.date()}",
                         "events": len(rows),
@@ -252,10 +255,14 @@ async def search_timeline(
     """PLI-190/198: keyword search over canonical events; every hit cites the
     real event id — nothing generated."""
     pet = await perm.get_pet_or_404(db, pet_id)
-    await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
+    capabilities = await perm.require_capability(
+        db, pet, user.id, enums.Capability.DAILY_READ
+    )
     stmt = select(LifeEvent).where(
         LifeEvent.pet_id == pet.id, LifeEvent.retracted_at.is_(None)
     )
+    stmt = scope_life_event_stmt(stmt, capabilities)
+    stmt = scope_current_event_stmt(stmt)
     if domain:
         stmt = stmt.where(LifeEvent.event_type.like(f"{domain}.%"))
     rows = (

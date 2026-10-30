@@ -122,18 +122,27 @@ class TestNotificationsAndBaselineWindows:
 
     def test_baseline_recomputed_from_event_window(self, client, seeded):
         owner, coco = seeded["owner_id"], seeded["coco_id"]
-        # seed daily.drink over a 30-day window ending today
+        # The default 14-day baseline window uses supported quantitative
+        # metrics (meal/walk/sleep). Old fixture used daily.drink 30 days ago,
+        # which never qualified as a supported walk/meal/sleep baseline.
+        # Keep real, window-contained recorded walks instead.
+        start = datetime.now(UTC) - timedelta(days=12, minutes=6)
         for i in range(10):
-            at = NOW - timedelta(days=30 - i * 3)
-            client.post(f"/api/v1/pets/{coco}/events", headers=auth(owner),
-                        json={"event_type": "daily.drink",
-                              "payload": {"amount": str(100 + i * 10), "unit": "ml"},
-                              "occurred_at": at.isoformat()})
+            at = start + timedelta(days=i)
+            posted = client.post(
+                f"/api/v1/pets/{coco}/events",
+                headers=auth(owner),
+                json={"event_type": "daily.walk",
+                      "payload": {"duration_minutes": 15 + i},
+                      "occurred_at": at.isoformat()},
+            )
+            assert posted.status_code == 201, posted.text
         r = client.post(f"/api/v1/pets/{coco}/baseline/recompute", json={},
                         headers=auth(owner))
         assert r.status_code == 201
         bl = client.get(f"/api/v1/pets/{coco}/baseline", headers=auth(owner)).json()
-        assert any(b["metric"] for b in bl)  # baseline exists from allowed data
+        walk = next((b for b in bl if b["metric"] == "walk_minutes_per_day"), None)
+        assert walk is not None and walk["sample_count"] >= 10
 
 
 class TestLongTermTimelineAndLifecycle:

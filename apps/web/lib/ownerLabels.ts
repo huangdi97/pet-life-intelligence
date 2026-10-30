@@ -93,6 +93,31 @@ export function eventTypeLabel(eventType: string): string {
   return EVENT_TYPE_LABELS[eventType] ?? EVENT_TYPE_FALLBACK;
 }
 
+/** Common catalogue/demo breeds -> zh-CN owner copy. Unknown values stay
+ * exactly as owner-entered data; we never infer or rewrite arbitrary breeds. */
+export function breedLabel(breed: string | null | undefined): string {
+  const value = (breed ?? "").trim();
+  if (!value) return "";
+  const key = value.toLowerCase();
+  if (key === "corgi" || key === "welsh corgi" || key === "pembroke welsh corgi") return "柯基";
+  if (key === "dlh" || key === "domestic long hair" || key === "domestic longhair") return "长毛家猫";
+  return value;
+}
+
+
+/** Consent purpose enums -> owner language. Unknown purposes stay generic. */
+export function consentPurposeLabel(purpose: string | null | undefined): string {
+  const value = (purpose ?? "").trim().toUpperCase();
+  if (value === "SERVICE_ESSENTIAL") return "提供核心服务";
+  if (value.includes("HEALTH")) return "健康相关数据";
+  if (value.includes("AI") || value.includes("MODEL")) return "智能功能";
+  if (value.includes("RESEARCH")) return "研究与产品改进";
+  if (value.includes("SHARE") || value.includes("CARE")) return "照护协作与共享";
+  if (value.includes("DEVICE") || value.includes("MONITOR")) return "设备与在家观察";
+  if (value.includes("NOTIF")) return "通知与提醒";
+  return "其他数据用途";
+}
+
 /** provenance_level / source_type enums → owner copy. */
 const PROVENANCE_LABELS: Record<string, string> = {
   OWNER_REPORTED: "主人记录",
@@ -150,6 +175,20 @@ export function triageLabel(level: string | null | undefined): string {
   return TRIAGE_LABELS[level.trim().toUpperCase()] ?? TRIAGE_FALLBACK;
 }
 
+const OUTCOME_LABELS: Record<string, string> = {
+  RECOVERED: "已恢复",
+  IMPROVED: "有改善",
+  UNCHANGED: "暂无变化",
+  WORSENED: "变差",
+  RELAPSED: "再次出现",
+  REFERRED: "已转诊 / 就医",
+  UNRESOLVED: "仍未解决",
+};
+
+const ACTIVITY_TYPE_LABELS: Record<string, string> = {
+  fetch: "追球",
+};
+
 /**
  * Build a short owner-readable summary from an event payload.
  *
@@ -168,10 +207,16 @@ export function eventPayloadSummary(payload: Record<string, unknown>): string {
   const weight = payload["weight_kg"];
   if (typeof weight === "string" || typeof weight === "number") parts.push(`${weight} kg`);
   if (typeof payload["food_type"] === "string") parts.push(String(payload["food_type"]));
-  if (typeof payload["activity_type"] === "string") parts.push(String(payload["activity_type"]));
+  if (typeof payload["activity_type"] === "string") {
+    const activity = String(payload["activity_type"]).trim();
+    if (activity) parts.push(ACTIVITY_TYPE_LABELS[activity.toLowerCase()] ?? activity);
+  }
   if (typeof payload["behavior"] === "string") parts.push(String(payload["behavior"]));
   if (typeof payload["environment"] === "string") parts.push(`地点：${payload["environment"]}`);
-  if (typeof payload["outcome"] === "string") parts.push(`结果：${payload["outcome"]}`);
+  if (typeof payload["outcome"] === "string") {
+    const outcome = String(payload["outcome"]).trim().toUpperCase();
+    parts.push(`结果：${OUTCOME_LABELS[outcome] ?? "已记录"}`);
+  }
   if (typeof payload["medicine_name"] === "string") parts.push(String(payload["medicine_name"]));
   return parts.join(" · ");
 }

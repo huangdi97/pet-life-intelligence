@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.api.deps import CurrentUser, DBSession
 from app.api.routes.visual_helpers import _require_owner, _require_read
 from app.api.routes.visual_schemas import CaptureCreate, CaptureOut
-from app.core.errors import NotFound
+from app.core.errors import NotFound, ValidationFailed
 from app.models import Pet, PetVisualCapture
 from app.services.eventlog import write_audit
 
@@ -27,7 +27,11 @@ def _capture_out(cap: PetVisualCapture) -> CaptureOut:
         capture_type=cap.capture_type,
         qc_result=cap.qc_result,
         qc_passed=cap.qc_passed,
-        coverage=cap.coverage or {},
+        coverage={k: v for k, v in (cap.coverage or {}).items() if k != "_angle_artifact_ids"},
+        angle_artifact_ids={
+            k: uuid.UUID(v)
+            for k, v in ((cap.coverage or {}).get("_angle_artifact_ids") or {}).items()
+        },
         privacy_scan=cap.privacy_scan,
         status=cap.status,
         created_at=cap.created_at,
@@ -55,17 +59,36 @@ async def create_capture(
     pet = await db.get(Pet, pet_id)
     if pet is None:
         raise NotFound("pet not found")
+    artifact_ids = [str(a) for a in body.artifact_ids]
+    artifact_set = set(artifact_ids)
+    invalid_angles = sorted(set(body.angle_artifact_ids) - set(COVERAGE_ANGLES))
+    if invalid_angles:
+        raise ValidationFailed(f"unknown capture angles: {', '.join(invalid_angles)}")
+    angle_artifact_ids = {k: str(v) for k, v in body.angle_artifact_ids.items()}
+    unbound = sorted(set(angle_artifact_ids.values()) - artifact_set)
+    if unbound:
+        raise ValidationFailed("angle_artifact_ids must reference uploaded artifact_ids from this capture")
+
+    coverage = dict(body.coverage or {})
+    # The canonical angle booleans remain public/QC-compatible. The private
+    # mapping lives in the same JSONB field to avoid a schema migration while
+    # preserving exact owner-capture provenance end to end.
+    for angle, artifact_id in angle_artifact_ids.items():
+        coverage[angle] = bool(artifact_id)
+    if angle_artifact_ids:
+        coverage["_angle_artifact_ids"] = angle_artifact_ids
+
     cap = PetVisualCapture(
         pet_id=pet_id,
         created_by_user_id=user.id,
-        artifact_ids=[str(a) for a in body.artifact_ids],
+        artifact_ids=artifact_ids,
         capture_type=body.capture_type,
         consent_visual_model_training=body.consent_visual_model_training,
-        coverage=body.coverage or {},
+        coverage=coverage,
         status="UPLOADED",
     )
-    # PRIVACY: coverage only records which angles the owner shot; it carries no
-    # person/location data (EXIF handling belongs to the upload layer).
+    # PRIVACY: coverage records only owner-declared shooting direction plus
+    # opaque artifact UUID bindings; it carries no person/location data.
     db.add(cap)
     await db.commit()
     await db.refresh(cap)

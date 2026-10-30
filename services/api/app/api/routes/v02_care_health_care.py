@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
-from app.core.errors import NotFound, ValidationFailed
+from app.core.errors import NotFound, PermissionDenied, ValidationFailed
 from app.domain import enums
 from app.models import CareReminder, CareTask, Notification
 from app.services import permissions as perm
@@ -62,24 +62,42 @@ async def notifications_for_role(
 
     if role not in [r.value for r in enums.HouseholdRole]:
         raise ValidationFailed("unknown role")
-    hh = household_id
-    if hh is None:
+    if household_id is None:
         membership = (
             await db.execute(
                 select(HouseholdMember).where(
                     HouseholdMember.user_id == user.id,
                     HouseholdMember.status == "ACTIVE",
+                    HouseholdMember.role == role,
                 )
             )
         ).scalars().first()
         if membership is None:
             return []
-        hh = membership.household_id
+    else:
+        membership = (
+            await db.execute(
+                select(HouseholdMember).where(
+                    HouseholdMember.household_id == household_id,
+                    HouseholdMember.user_id == user.id,
+                    HouseholdMember.status == "ACTIVE",
+                )
+            )
+        ).scalar_one_or_none()
+        if membership is None:
+            raise PermissionDenied("Not a member of this household.")
+        if membership.role != role:
+            raise PermissionDenied("Cannot read notifications targeted to another household role.")
+
     rows = (
         await db.execute(
             select(Notification).where(
-                Notification.household_id == hh,
-                Notification.target_role == role,
+                Notification.household_id == membership.household_id,
+                Notification.target_role == membership.role,
+                (
+                    Notification.recipient_user_id.is_(None)
+                    | (Notification.recipient_user_id == user.id)
+                ),
             ).order_by(Notification.created_at.desc()).limit(100)
         )
     ).scalars().all()
