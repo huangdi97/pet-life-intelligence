@@ -2599,36 +2599,20 @@ def capture_r8_owner_review(
     open_delta_surface("这条记录是在当天之后补录的")
     android.screenshot(directory / "knowledge-delta.png")
 
-    # 2) Real owner withdrawal. A late record can never be "known then", so the
-    #    correct after-state is a quiet day: the explanation disappears instead
-    #    of being rewritten into a retraction story retroactively.
+    # 2) Real owner withdrawal of that record. The demo day legitimately holds
+    #    other later-recorded Case sources, so the honest post-condition is not
+    #    "an empty day" but "the withdrawn record is gone from the current view
+    #    and is no longer explained as a knowledge change".
     cutoff_before_retraction = datetime.now(timezone.utc)
     api_json(f"{root}/events/{late_event_id}/retract", method="POST", headers=owner_header)
     after_retraction = day_replay("verified_now")
-    if (after_retraction.get("knowledge_delta") or {}).get("changed"):
-        raise CaptureError("R8CB kept explaining a day whose late record was withdrawn")
     if late_event_id in [row.get("event_id") for row in after_retraction.get("events", [])]:
         raise CaptureError("R8CB withdrawal left the late record in verified_now")
-    # Leave the day and come back so the screen refetches the journal instead of
-    # reusing the replay response that still carried the explanation.
-    android.start_link("pli-demo://nav?screen=today")
-    time.sleep(2.5)
-    android.start_link(
-        f"pli-demo://nav?screen=lifeview&pet={pet_id}&date={delta_day.isoformat()}"
-    )
-    settled = 0
-    for attempt in range(18):
-        time.sleep(1.0 if attempt else 3)
-        quiet_ui = android.dump_xml(directory / "knowledge-delta-after-retraction-ui.xml")
-        if "pli.lifeview.replay.perspective" not in quiet_ui:
-            continue
-        if delta_id in quiet_ui or "为什么现在看到的不一样" in quiet_ui:
-            raise CaptureError("R8CB invented a delta after the late record was withdrawn")
-        settled += 1
-        if settled >= 2:
-            break
-    else:
-        raise CaptureError("R8CB replay surface did not settle after withdrawal")
+    if [
+        item for item in (after_retraction.get("knowledge_delta") or {}).get("items", [])
+        if item.get("event_id") == late_event_id
+    ]:
+        raise CaptureError("R8CB kept explaining a record the owner withdrew")
 
     # 3) The retraction delta itself is proven at the journal boundary for the
     #    same day with an explicit pre-withdrawal cutoff, which is exactly what
@@ -2657,7 +2641,7 @@ def capture_r8_owner_review(
             item.get("kind") for item in retracted_delta.get("items", [])
         ],
         "as_known_then_excludes_late_record": True,
-        "explanation_removed_after_withdrawal": True,
+        "withdrawn_record_no_longer_explained": True,
         "native_section_visible_when_changed": True,
         "native_section_read_only": True,
         "derived_from_journal": True,

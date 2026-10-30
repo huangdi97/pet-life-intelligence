@@ -169,7 +169,7 @@ Real Android runtime evidence (`artifacts/r5-6-final/android/r8-owner-review/`):
   `llm_generated: false`, `read_only: true`, `health_inference: false`,
   `ui_kinds_observed`, `ui_wording_asserted`, `retraction_cutoff_kinds`,
   `as_known_then_excludes_late_record`,
-  `explanation_removed_after_withdrawal`;
+  `withdrawn_record_no_longer_explained`;
 - `knowledge-delta-ui.xml` — the native section identity and headline;
 - `knowledge-delta.png` — the rendered owner surface.
 
@@ -178,8 +178,9 @@ Real Android runtime evidence (`artifacts/r5-6-final/android/r8-owner-review/`):
 A record that was made *after* a day ended can never be "known then", so on a
 completed day the device shows exactly one honest thing: the backfill
 explanation acquired from that real record. Withdrawing that record must then
-leave a quiet day — the explanation disappears instead of being rewritten into
-a retroactive retraction story. The capture asserts both directions.
+remove it from the current view and stop explaining it — a demo day may still
+hold other later-recorded Case sources, and none of them may be recycled into a
+retroactive retraction story. The capture asserts both directions.
 
 `SOURCE_RETRACTED_LATER` needs a record that existed at the day's own end, which
 a fresh demo capture can only produce with an explicit pre-withdrawal cutoff.
