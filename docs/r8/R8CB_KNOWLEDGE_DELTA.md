@@ -166,9 +166,25 @@ Mobile contract (`apps/mobile/scripts/test-knowledge-delta.cjs`, run through
 Real Android runtime evidence (`artifacts/r5-6-final/android/r8-owner-review/`):
 
 - `knowledge-delta-truth.json` — `derived_from_journal: true`,
-  `llm_generated: false`, `read_only: true`, `health_inference: false`;
+  `llm_generated: false`, `read_only: true`, `health_inference: false`,
+  `ui_kinds_observed`, `ui_wording_asserted`, `retraction_cutoff_kinds`,
+  `as_known_then_excludes_late_record`,
+  `explanation_removed_after_withdrawal`;
 - `knowledge-delta-ui.xml` — the native section identity and headline;
 - `knowledge-delta.png` — the rendered owner surface.
+
+### What the native runtime can and cannot show
+
+A record that was made *after* a day ended can never be "known then", so on a
+completed day the device shows exactly one honest thing: the backfill
+explanation acquired from that real record. Withdrawing that record must then
+leave a quiet day — the explanation disappears instead of being rewritten into
+a retroactive retraction story. The capture asserts both directions.
+
+`SOURCE_RETRACTED_LATER` needs a record that existed at the day's own end, which
+a fresh demo capture can only produce with an explicit pre-withdrawal cutoff.
+That kind is therefore proven at the journal boundary for the same day, while
+the device proves the rendering, wording and read-only posture.
 
 `NO_VISION_MODEL_USED = TRUE`; every check above is deterministic UI/API
 assertion text, never a vision model judgement.

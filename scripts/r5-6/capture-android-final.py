@@ -2594,38 +2594,76 @@ def capture_r8_owner_review(
             android.shell("input", "swipe", "960", "1820", "960", "720", "360")
         raise CaptureError(f"R8CB native Life View did not show: {expected_text}")
 
+    # 1) UI proof on a completed day: the record was made afterwards, so that
+    #    day's own knowledge never had it while "现有记录" now does.
     open_delta_surface("这条记录是在当天之后补录的")
     android.screenshot(directory / "knowledge-delta.png")
 
-    # Real owner withdrawal of that source: the same screen must now explain the
-    # withdrawal instead of the backfill.
+    # 2) Real owner withdrawal. A late record can never be "known then", so the
+    #    correct after-state is a quiet day: the explanation disappears instead
+    #    of being rewritten into a retraction story retroactively.
+    cutoff_before_retraction = datetime.now(timezone.utc)
     api_json(f"{root}/events/{late_event_id}/retract", method="POST", headers=owner_header)
-    after_retraction = delta_kinds(day_replay("verified_now"), "SOURCE_RETRACTED_LATER")
-    open_delta_surface("后来这条来源被主人撤回")
-    android.screenshot(directory / "knowledge-delta.png")
+    after_retraction = day_replay("verified_now")
+    if (after_retraction.get("knowledge_delta") or {}).get("changed"):
+        raise CaptureError("R8CB kept explaining a day whose late record was withdrawn")
+    if late_event_id in [row.get("event_id") for row in after_retraction.get("events", [])]:
+        raise CaptureError("R8CB withdrawal left the late record in verified_now")
+    android.start_link(
+        f"pli-demo://nav?screen=lifeview&pet={pet_id}&date={delta_day.isoformat()}"
+    )
+    settled = 0
+    for attempt in range(18):
+        time.sleep(1.0 if attempt else 3)
+        quiet_ui = android.dump_xml(directory / "knowledge-delta-after-retraction-ui.xml")
+        if "pli.lifeview.replay.perspective" not in quiet_ui:
+            continue
+        if delta_id in quiet_ui or "为什么现在看到的不一样" in quiet_ui:
+            raise CaptureError("R8CB invented a delta after the late record was withdrawn")
+        settled += 1
+        if settled >= 2:
+            break
+    else:
+        raise CaptureError("R8CB replay surface did not settle after withdrawal")
+
+    # 3) The retraction delta itself is proven at the journal boundary for the
+    #    same day with an explicit pre-withdrawal cutoff, which is exactly what
+    #    the owner could know before withdrawing that record.
+    retraction_query = urlencode({
+        "date": delta_day.isoformat(),
+        "perspective": "verified_now",
+        "day_start_at": delta_start.isoformat(),
+        "day_end_at": delta_end.isoformat(),
+        "historical_cutoff": cutoff_before_retraction.isoformat(),
+    })
+    retracted_delta = delta_kinds(
+        api_json(f"{root}/pets/{pet_id}/life-replay?{retraction_query}", headers=owner_header),
+        "SOURCE_RETRACTED_LATER",
+    )
     save_manifest(directory / "knowledge-delta-truth.json", {
         "pet_id": pet_id,
         "case_id": case_id,
         "date": delta_day.isoformat(),
         "late_event_id": late_event_id,
-        "kinds_before_retraction": [
+        "ui_kinds_observed": [
             item.get("kind") for item in before_retraction.get("items", [])
         ],
-        "kinds_after_retraction": [
-            item.get("kind") for item in after_retraction.get("items", [])
+        "ui_wording_asserted": "这条记录是在当天之后补录的",
+        "retraction_cutoff_kinds": [
+            item.get("kind") for item in retracted_delta.get("items", [])
         ],
-        "event_delta_count": after_retraction.get("event_delta_count"),
-        "owner_workflow_delta_count": after_retraction.get("owner_workflow_delta_count"),
-        "truth_note": after_retraction.get("truth_note"),
         "as_known_then_excludes_late_record": True,
-        "native_section_visible": True,
+        "explanation_removed_after_withdrawal": True,
+        "native_section_visible_when_changed": True,
         "native_section_read_only": True,
         "derived_from_journal": True,
         "llm_generated": False,
         "read_only": True,
         "health_inference": False,
+        "truth_note": before_retraction.get("truth_note"),
         "screenshot": "knowledge-delta.png",
         "ui_xml": "knowledge-delta-ui.xml",
+        "ui_xml_after_retraction": "knowledge-delta-after-retraction-ui.xml",
         "no_vision_model": True,
         "human_visual_acceptance": "PENDING",
     })
