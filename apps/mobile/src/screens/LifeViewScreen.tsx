@@ -317,13 +317,15 @@ export function LifeViewScreen() {
   const displayTwin =
     timeScope === "now" || timeScope === "today"
       ? twin
-      : timeScope === "date" && !asKnownThen
+      : timeScope === "date" && !asKnownThen && historicalTwin?.demoFixture !== true
         ? historicalTwin
         : null;
   const historicalRange = timeScope === "7d" || timeScope === "30d";
   // Historical dates and ranges without an authenticated historical visual
   // should be legible lived memories, not an enormous empty/mascot 3D stage.
-  // Present-day Live View and actually available historic Twins keep 3D.
+  // A demo fixture is not historical identity evidence, even if its GLB is
+  // technically valid. Present-day demo can exercise 3D, but replay never
+  // back-projects that mascot into the pet's past.
   const showLivingStage = currentFactScope || Boolean(displayTwin);
   const scopeLabel =
     timeScope === "now" ? "此刻" :
