@@ -306,6 +306,56 @@ def test_r8cb_outcome_invalidation_follows_the_outcome_observation_lineage(clien
     assert "WORKFLOW_CHANGED_LATER" not in _kinds(delta)
 
 
+def test_r8cb_case_invalidation_distinguishes_correction_from_withdrawal(client, seeded):
+    """A superseded Case source must be explained as a correction, not a withdrawal."""
+    owner = seeded["owner_id"]
+    pet, case_id = _case_pet(client, owner)
+    day = datetime.now(PRODUCT_TZ).date().isoformat()
+    detail = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases/{case_id}",
+        headers=auth(owner),
+    )
+    assert detail.status_code == 200, detail.text
+    source_id = detail.json()["evidence_event_ids"][0]
+    source = client.get(f"/api/v1/events/{source_id}", headers=auth(owner))
+    assert source.status_code == 200, source.text
+    old_minutes = int(source.json()["payload"]["duration_minutes"])
+    cutoff_before_correction = datetime.now(timezone.utc)
+
+    corrected = client.post(
+        f"/api/v1/pets/{pet}/events/{source_id}/supersede",
+        json={
+            "payload": {"duration_minutes": old_minutes + 1},
+            "idempotency_key": "r8cb-case-source-correction-001",
+        },
+        headers=auth(owner),
+    )
+    assert corrected.status_code == 201, corrected.text
+
+    body = _replay(
+        client, owner, pet, day,
+        historical_cutoff=cutoff_before_correction.isoformat(),
+    )
+    delta = body["knowledge_delta"]
+    invalidated = next(
+        item for item in delta["items"]
+        if item["kind"] == "CASE_BECAME_INVALID_LATER"
+        and item["case_id"] == case_id
+    )
+    assert invalidated["source_change_kind"] == "SUPERSEDED"
+    assert "修正" in invalidated["reason"]
+    assert "撤回" not in invalidated["reason"]
+
+
+def test_r8cb_verified_now_shares_one_request_cutoff_with_delta(client, seeded):
+    """The current replay and its delta must use the same request-level 'now'."""
+    owner = seeded["owner_id"]
+    pet = seeded["coco_id"]
+    day = (datetime.now(PRODUCT_TZ) - timedelta(days=1)).date().isoformat()
+    body = _replay(client, owner, pet, day)
+    assert body["knowledge_cutoff"] == body["knowledge_delta"]["current_cutoff"]
+
+
 def test_r8cb_case_invalidation_uses_real_source_journal_time(client, seeded):
     """Case invalidation is anchored to withdrawal time, never replay read-time."""
     owner = seeded["owner_id"]
