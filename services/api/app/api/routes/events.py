@@ -483,7 +483,14 @@ async def life_replay(
         capabilities=capabilities,
         historical_cutoff=historical_cutoff,
         current_cutoff=now,
-        workflows_now={row["case_id"]: row for row in owner_workflows},
+        # owner_workflows follows the selected replay perspective. Reuse it
+        # only when that perspective is already "now"; a completed
+        # as_known_then view must not masquerade as the current workflow that
+        # Knowledge Delta compares against.
+        workflows_now=(
+            {row["case_id"]: row for row in owner_workflows}
+            if cutoff == now else {}
+        ),
     )
 
     if perspective == "as_known_then":
