@@ -848,8 +848,8 @@ export function LifeViewScreen() {
                 {timeScope === "date"
                   ? asKnownThen
                     ? "当时所知只回放彼时已经记录的事件；没有足够建模记录时间证据，不展示历史 3D。"
-                    : historicalTwin
-                      ? `这一天使用当时有效的第 ${historicalTwin.version} 版 3D 形象；不会使用后来版本替代。`
+                    : displayTwin
+                      ? `这一天使用当时有效的第 ${displayTwin.version} 版 3D 形象；不会使用后来版本替代。`
                     : "这一天没有可确认的历史 3D 版本；不会用现在的样子补画过去。"
                   : historicalRange
                     ? "该时间范围跨越多个日期，不使用当前 3D 形象代表整个历史区间。"
