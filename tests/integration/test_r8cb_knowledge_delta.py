@@ -180,6 +180,7 @@ def test_r8cb_later_review_and_outcome_are_owner_workflow_changes(client, seeded
 
     retracted = client.post(f"/api/v1/events/{follow_up}/retract", headers=auth(owner))
     assert retracted.status_code == 200, retracted.text
+    retracted_at = retracted.json()["retracted_at"]
 
     reviewed = _replay(
         client, owner, pet, day, historical_cutoff=cutoff_before_review.isoformat(),
@@ -203,11 +204,12 @@ def test_r8cb_later_review_and_outcome_are_owner_workflow_changes(client, seeded
     )
     delta = invalidation["knowledge_delta"]
     assert "FOLLOWUP_BECAME_INVALID_LATER" in _kinds(delta)
-    reason = next(
-        item["reason"] for item in delta["items"]
+    invalidated_item = next(
+        item for item in delta["items"]
         if item["kind"] == "FOLLOWUP_BECAME_INVALID_LATER"
     )
-    assert reason == "后来作为该结果依据的记录被撤回"
+    assert invalidated_item["reason"] == "后来作为该结果依据的记录被撤回"
+    assert invalidated_item["changed_at"] == retracted_at
     # The day itself is unchanged: the R8CA cutoff view still shows the Outcome
     # the owner had recorded before the evidence was withdrawn.
     then_workflow = client.get(
@@ -227,6 +229,37 @@ def test_r8cb_later_review_and_outcome_are_owner_workflow_changes(client, seeded
     assert current_workflow["requires_new_follow_up_observation"] is True
     # The current view keeps the same Outcome ID: history is not rewritten.
     assert current_workflow["latest_effective_outcome_id"] == outcome.json()["outcome_id"]
+
+
+def test_r8cb_case_invalidation_uses_real_source_journal_time(client, seeded):
+    """Case invalidation is anchored to withdrawal time, never replay read-time."""
+    owner = seeded["owner_id"]
+    pet, case_id = _case_pet(client, owner)
+    day = datetime.now(PRODUCT_TZ).date().isoformat()
+    detail = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases/{case_id}",
+        headers=auth(owner),
+    )
+    assert detail.status_code == 200, detail.text
+    source_id = detail.json()["evidence_event_ids"][0]
+    cutoff_before_retraction = datetime.now(timezone.utc)
+
+    retracted = client.post(
+        f"/api/v1/events/{source_id}/retract",
+        headers=auth(owner),
+    )
+    assert retracted.status_code == 200, retracted.text
+
+    delta = _replay(
+        client, owner, pet, day,
+        historical_cutoff=cutoff_before_retraction.isoformat(),
+    )["knowledge_delta"]
+    invalidated = next(
+        item for item in delta["items"]
+        if item["kind"] == "CASE_BECAME_INVALID_LATER"
+        and item["case_id"] == case_id
+    )
+    assert invalidated["changed_at"] == retracted.json()["retracted_at"]
 
 
 def test_r8cb_delta_is_journal_derived_private_and_health_free(client, seeded):
