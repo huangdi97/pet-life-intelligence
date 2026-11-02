@@ -95,7 +95,7 @@ def test_r8cb_as_known_then_never_reuses_historical_workflow_as_current(
     day = (datetime.now(PRODUCT_TZ) - timedelta(days=2)).date().isoformat()
     captured = {}
 
-    async def fake_delta(**kwargs):
+    async def fake_delta(_db, **kwargs):
         captured.update(kwargs)
         return {
             "changed": False,
@@ -245,7 +245,7 @@ def test_r8cb_later_review_and_outcome_are_owner_workflow_changes(client, seeded
         item for item in delta["items"]
         if item["kind"] == "FOLLOWUP_BECAME_INVALID_LATER"
     )
-    assert invalidated_item["reason"] == "后来作为该结果依据的记录被撤回"
+    assert invalidated_item["reason"] == "后来作为该结果依据的记录被主人撤回"
     assert invalidated_item["changed_at"] == retracted_at
     # The day itself is unchanged: the R8CA cutoff view still shows the Outcome
     # the owner had recorded before the evidence was withdrawn.
@@ -339,7 +339,7 @@ def test_r8cb_outcome_invalidation_follows_the_outcome_observation_lineage(clien
         and item["case_id"] == case_id
     )
     assert invalidated["changed_at"] == withdrawn.json()["retracted_at"]
-    assert invalidated["reason"] == "后来作为该结果依据的记录被撤回"
+    assert invalidated["reason"] == "后来作为该结果依据的记录被主人撤回"
     assert "WORKFLOW_CHANGED_LATER" not in _kinds(delta)
 
 
