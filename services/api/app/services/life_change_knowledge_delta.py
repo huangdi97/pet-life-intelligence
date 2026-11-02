@@ -18,7 +18,8 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select
 
-from app.models import LifeChangeOutcome, LifeChangeReview
+from app.models import LifeChangeOutcome, LifeChangeReview, LifeEvent
+from app.services import life_change_history as hist
 from app.services import life_change_workflow as workflow
 from app.services.life_replay import project_life_replay
 from app.services.life_replay_sources import (
@@ -134,6 +135,65 @@ def _event_delta_items(
     return items
 
 
+async def _source_invalidation_at(
+    db,
+    *,
+    pet_id: uuid.UUID,
+    event_ids: list[str],
+    historical_cutoff: datetime,
+    current_cutoff: datetime,
+) -> datetime | None:
+    """Return the first real source-journal instant that invalidated evidence.
+
+    A replay explanation must be stable over time. Using the read-time "now"
+    would make the same historical withdrawal appear to happen on a different
+    day each time the owner opens Life Replay.
+    """
+    source_ids, shape_valid = hist.frozen_source_items(event_ids)
+    if not shape_valid or not source_ids:
+        return None
+    parsed = [hist.parse_case_source_id(item) for item in source_ids]
+    if any(item is None for item in parsed):
+        return None
+    ids = [item for item in parsed if item is not None]
+    rows = list((await db.execute(
+        select(LifeEvent).where(
+            LifeEvent.pet_id == pet_id,
+            LifeEvent.id.in_(ids),
+        )
+    )).scalars().all())
+    changes: list[datetime] = []
+    for row in rows:
+        if row.retracted_at is None:
+            continue
+        changed_at = _aware(row.retracted_at)
+        if historical_cutoff <= changed_at < current_cutoff:
+            changes.append(changed_at)
+    successors = list((await db.execute(
+        select(LifeEvent).where(
+            LifeEvent.pet_id == pet_id,
+            LifeEvent.supersedes_event_id.in_(ids),
+            LifeEvent.recorded_at >= historical_cutoff,
+            LifeEvent.recorded_at < current_cutoff,
+        )
+    )).scalars().all())
+    changes.extend(_aware(row.recorded_at) for row in successors)
+    return min(changes) if changes else None
+
+
+async def _latest_observation_review_before(db, case_id: uuid.UUID, cutoff: datetime):
+    return (await db.execute(
+        select(LifeChangeReview).where(
+            LifeChangeReview.case_id == case_id,
+            LifeChangeReview.decision == "RECORD_OBSERVATION",
+            LifeChangeReview.reviewed_at < cutoff,
+        ).order_by(
+            LifeChangeReview.reviewed_at.desc(),
+            LifeChangeReview.id.desc(),
+        ).limit(1)
+    )).scalar_one_or_none()
+
+
 async def _owner_rows_after(
     db, model, time_column, case_ids, *, historical_cutoff: datetime, current_cutoff: datetime,
 ) -> list:
@@ -206,12 +266,40 @@ async def _workflow_delta_items(
         if then_projection.get("source_valid") is True and (
             now_projection.get("source_valid") is False
         ):
-            items.append(_item(CASE_BECAME_INVALID_LATER, current_cutoff, case_id=case.id))
+            invalidated_at = await _source_invalidation_at(
+                db,
+                pet_id=pet_id,
+                event_ids=case.evidence_event_ids,
+                historical_cutoff=historical_cutoff,
+                current_cutoff=current_cutoff,
+            )
+            items.append(_item(
+                CASE_BECAME_INVALID_LATER,
+                invalidated_at or current_cutoff,
+                case_id=case.id,
+            ))
             explained = True
         if then_projection.get("follow_up_source_valid") is True and (
             now_projection.get("follow_up_source_valid") is False
         ):
-            items.append(_item(FOLLOWUP_BECAME_INVALID_LATER, current_cutoff, case_id=case.id))
+            observation = await _latest_observation_review_before(
+                db, case.id, historical_cutoff,
+            )
+            invalidated_at = (
+                await _source_invalidation_at(
+                    db,
+                    pet_id=pet_id,
+                    event_ids=observation.related_event_ids,
+                    historical_cutoff=historical_cutoff,
+                    current_cutoff=current_cutoff,
+                )
+                if observation is not None else None
+            )
+            items.append(_item(
+                FOLLOWUP_BECAME_INVALID_LATER,
+                invalidated_at or current_cutoff,
+                case_id=case.id,
+            ))
             explained = True
         if not explained and (
             then_projection.get("owner_workflow_state")
