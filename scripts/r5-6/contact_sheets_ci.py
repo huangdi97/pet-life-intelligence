@@ -87,8 +87,29 @@ def build_web() -> list[dict[str, object]]:
     ]
 
 
+def require_same_runtime_frame(primary: Path, proven: Path, label: str) -> None:
+    """Keep human-gate hero evidence tied to an already-proven runtime frame."""
+    require_image(primary)
+    require_image(proven)
+    if primary.read_bytes() != proven.read_bytes():
+        raise ValueError(
+            f"{label} human-gate screenshot is not the runtime-proven front frame: "
+            f"{primary} != {proven}"
+        )
+
+
 def build_android() -> list[dict[str, object]]:
     android = FINAL / "android"
+    require_same_runtime_frame(
+        android / "twinreview" / "twinreview.png",
+        android / "twinreview" / "twin_front.png",
+        "primary Twin Review",
+    )
+    require_same_runtime_frame(
+        android / "secondary-review" / "secondary_twinreview.png",
+        android / "secondary-review" / "secondary_front.png",
+        "secondary Twin Review",
+    )
     owner = ("today", "timeline", "pet", "lifeview", "twinreview", "health", "assistant", "me")
     hero = ("today", "pet", "lifeview", "twinreview")
     return [
