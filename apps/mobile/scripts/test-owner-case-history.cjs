@@ -96,5 +96,7 @@ assert.ok(lifeView.includes("caseHistoryStatus(item)"));
 assert.ok(lifeView.includes("caseHistoryNeedsAttention(item)"));
 assert.ok(lifeView.includes("历史页面只读，不从过去直接发起今天的动作"));
 assert.ok(lifeView.includes("historicalTwin?.demoFixture !== true"));
+assert.ok(lifeView.includes(": displayTwin"));
+assert.ok(!lifeView.includes(": historicalTwin\\n                      ? `这一天使用当时有效的第"));
 assert.ok(!lifeView.includes('testID="pli.lifeview.replay.owner-workflows" onPress='));
 console.log("R8AI/R8BY/R8BZ/R8CA Case journal + workflow + next action + replay wiring: PASS");
