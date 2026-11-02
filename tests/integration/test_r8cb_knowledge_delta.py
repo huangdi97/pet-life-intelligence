@@ -7,6 +7,7 @@ not health change.
 from datetime import datetime, timedelta, timezone
 
 from app.api.routes import events as events_route
+
 from tests.conftest import auth, create_user
 
 PRODUCT_TZ = timezone(timedelta(hours=8))
