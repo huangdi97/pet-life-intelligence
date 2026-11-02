@@ -181,7 +181,43 @@ async def _source_invalidation_at(
     return min(changes) if changes else None
 
 
-async def _latest_observation_review_before(db, case_id: uuid.UUID, cutoff: datetime):
+async def _workflow_followup_review_at(
+    db,
+    case_id: uuid.UUID,
+    cutoff: datetime,
+    projection: dict,
+):
+    """Resolve the observation actually driving the effective workflow.
+
+    R8BX permits an Outcome to assess an older valid observation while binding
+    itself to the latest Review head. Therefore "latest RECORD_OBSERVATION" is
+    not always the evidence behind the effective Outcome.
+    """
+    outcome_id = projection.get("latest_effective_outcome_id")
+    if outcome_id:
+        try:
+            parsed_outcome_id = uuid.UUID(str(outcome_id))
+        except (TypeError, ValueError):
+            parsed_outcome_id = None
+        if parsed_outcome_id is not None:
+            outcome = (await db.execute(
+                select(LifeChangeOutcome).where(
+                    LifeChangeOutcome.id == parsed_outcome_id,
+                    LifeChangeOutcome.case_id == case_id,
+                    LifeChangeOutcome.recorded_at < cutoff,
+                )
+            )).scalar_one_or_none()
+            if outcome is not None:
+                observation = (await db.execute(
+                    select(LifeChangeReview).where(
+                        LifeChangeReview.id == outcome.observation_review_id,
+                        LifeChangeReview.case_id == case_id,
+                        LifeChangeReview.decision == "RECORD_OBSERVATION",
+                        LifeChangeReview.reviewed_at < cutoff,
+                    )
+                )).scalar_one_or_none()
+                if observation is not None:
+                    return observation
     return (await db.execute(
         select(LifeChangeReview).where(
             LifeChangeReview.case_id == case_id,
@@ -279,11 +315,15 @@ async def _workflow_delta_items(
                 case_id=case.id,
             ))
             explained = True
-        if then_projection.get("follow_up_source_valid") is True and (
-            now_projection.get("follow_up_source_valid") is False
-        ):
-            observation = await _latest_observation_review_before(
-                db, case.id, historical_cutoff,
+        followup_became_invalid = (
+            now_projection.get("owner_workflow_state")
+            == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+            and then_projection.get("owner_workflow_state")
+            != "FOLLOW_UP_EVIDENCE_INVALIDATED"
+        )
+        if followup_became_invalid:
+            observation = await _workflow_followup_review_at(
+                db, case.id, current_cutoff, now_projection,
             )
             invalidated_at = (
                 await _source_invalidation_at(
