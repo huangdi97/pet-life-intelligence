@@ -143,6 +143,8 @@ jobs:
         run: pnpm --dir apps/mobile test:owner-case-history
       - name: R8BX Outcome idempotency key length contract
         run: pnpm --dir apps/mobile test:outcome-idempotency
+      - name: R8CB Knowledge Delta owner-safety contract
+        run: pnpm --dir apps/mobile test:knowledge-delta
       - name: Mobile bundle (android)
         run: pnpm --dir apps/mobile exec expo export --platform android
       - name: Mobile bundle (ios)
