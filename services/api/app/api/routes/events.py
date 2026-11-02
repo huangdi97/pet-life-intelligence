@@ -482,6 +482,7 @@ async def life_replay(
         end=end,
         capabilities=capabilities,
         historical_cutoff=historical_cutoff,
+        current_cutoff=now,
         workflows_now={row["case_id"]: row for row in owner_workflows},
     )
 
