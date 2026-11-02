@@ -45,8 +45,8 @@ DELTA_REASONS = {
     REVIEW_ADDED_LATER: "主人后来追加了一次核对",
     OUTCOME_ADDED_LATER: "主人后来基于新的真实观察记录了结果",
     WORKFLOW_CHANGED_LATER: "主人后来更新了这条关注的处理方式",
-    CASE_BECAME_INVALID_LATER: "作为这条关注依据的原始记录后来被撤回",
-    FOLLOWUP_BECAME_INVALID_LATER: "后来作为该结果依据的记录被撤回",
+    CASE_BECAME_INVALID_LATER: "作为这条关注依据的原始记录后来发生了变化",
+    FOLLOWUP_BECAME_INVALID_LATER: "后来作为该结果依据的记录发生了变化",
 }
 
 EVENT_DELTA_KINDS = frozenset({
@@ -58,6 +58,21 @@ WORKFLOW_DELTA_KINDS = frozenset({
 })
 
 TRUTH_NOTE = "这些变化只说明记录和主人核对后来发生了什么，不代表宠物健康状态改变。"
+
+
+def _source_change_reason(kind: str, cause: str | None) -> str:
+    """Precise owner copy for an evidence invalidation without new delta kinds."""
+    if kind == CASE_BECAME_INVALID_LATER:
+        if cause == "RETRACTED":
+            return "作为这条关注依据的原始记录后来被主人撤回"
+        if cause == "SUPERSEDED":
+            return "作为这条关注依据的原始记录后来被主人修正"
+    if kind == FOLLOWUP_BECAME_INVALID_LATER:
+        if cause == "RETRACTED":
+            return "后来作为该结果依据的记录被主人撤回"
+        if cause == "SUPERSEDED":
+            return "后来作为该结果依据的记录被主人修正"
+    return DELTA_REASONS[kind]
 
 
 def _aware(value: datetime) -> datetime:
@@ -315,7 +330,12 @@ async def _workflow_delta_items(
                     CASE_BECAME_INVALID_LATER,
                     invalidated_at,
                     case_id=case.id,
-                    extra={"source_change_kind": invalidation_cause},
+                    extra={
+                        "source_change_kind": invalidation_cause,
+                        "reason": _source_change_reason(
+                            CASE_BECAME_INVALID_LATER, invalidation_cause,
+                        ),
+                    },
                 ))
             explained = True
         followup_became_invalid = (
@@ -343,7 +363,12 @@ async def _workflow_delta_items(
                     FOLLOWUP_BECAME_INVALID_LATER,
                     invalidated_at,
                     case_id=case.id,
-                    extra={"source_change_kind": invalidation_cause},
+                    extra={
+                        "source_change_kind": invalidation_cause,
+                        "reason": _source_change_reason(
+                            FOLLOWUP_BECAME_INVALID_LATER, invalidation_cause,
+                        ),
+                    },
                 ))
             explained = True
         if not explained and (
