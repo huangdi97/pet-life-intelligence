@@ -142,19 +142,20 @@ async def _source_invalidation_at(
     event_ids: list[str],
     historical_cutoff: datetime,
     current_cutoff: datetime,
-) -> datetime | None:
-    """Return the first real source-journal instant that invalidated evidence.
+) -> tuple[datetime | None, str | None]:
+    """Return the first real source-journal invalidation instant and cause.
 
     A replay explanation must be stable over time. Using the read-time "now"
-    would make the same historical withdrawal appear to happen on a different
-    day each time the owner opens Life Replay.
+    would make the same historical change appear to happen on a different day
+    each time the owner opens Life Replay. Cause is journal truth too:
+    RETRACTED and SUPERSEDED must never be rendered as each other.
     """
     source_ids, shape_valid = hist.frozen_source_items(event_ids)
     if not shape_valid or not source_ids:
-        return None
+        return None, None
     parsed = [hist.parse_case_source_id(item) for item in source_ids]
     if any(item is None for item in parsed):
-        return None
+        return None, None
     ids = [item for item in parsed if item is not None]
     rows = list((await db.execute(
         select(LifeEvent).where(
@@ -162,13 +163,13 @@ async def _source_invalidation_at(
             LifeEvent.id.in_(ids),
         )
     )).scalars().all())
-    changes: list[datetime] = []
+    changes: list[tuple[datetime, str]] = []
     for row in rows:
         if row.retracted_at is None:
             continue
         changed_at = _aware(row.retracted_at)
         if historical_cutoff <= changed_at < current_cutoff:
-            changes.append(changed_at)
+            changes.append((changed_at, "RETRACTED"))
     successors = list((await db.execute(
         select(LifeEvent).where(
             LifeEvent.pet_id == pet_id,
@@ -177,8 +178,8 @@ async def _source_invalidation_at(
             LifeEvent.recorded_at < current_cutoff,
         )
     )).scalars().all())
-    changes.extend(_aware(row.recorded_at) for row in successors)
-    return min(changes) if changes else None
+    changes.extend((_aware(row.recorded_at), "SUPERSEDED") for row in successors)
+    return min(changes, key=lambda item: item[0]) if changes else (None, None)
 
 
 async def _workflow_followup_review_at(
@@ -302,18 +303,20 @@ async def _workflow_delta_items(
         if then_projection.get("source_valid") is True and (
             now_projection.get("source_valid") is False
         ):
-            invalidated_at = await _source_invalidation_at(
+            invalidated_at, invalidation_cause = await _source_invalidation_at(
                 db,
                 pet_id=pet_id,
                 event_ids=case.evidence_event_ids,
                 historical_cutoff=historical_cutoff,
                 current_cutoff=current_cutoff,
             )
-            items.append(_item(
-                CASE_BECAME_INVALID_LATER,
-                invalidated_at or current_cutoff,
-                case_id=case.id,
-            ))
+            if invalidated_at is not None:
+                items.append(_item(
+                    CASE_BECAME_INVALID_LATER,
+                    invalidated_at,
+                    case_id=case.id,
+                    extra={"source_change_kind": invalidation_cause},
+                ))
             explained = True
         followup_became_invalid = (
             now_projection.get("owner_workflow_state")
@@ -325,7 +328,7 @@ async def _workflow_delta_items(
             observation = await _workflow_followup_review_at(
                 db, case.id, current_cutoff, now_projection,
             )
-            invalidated_at = (
+            invalidated_at, invalidation_cause = (
                 await _source_invalidation_at(
                     db,
                     pet_id=pet_id,
@@ -333,25 +336,24 @@ async def _workflow_delta_items(
                     historical_cutoff=historical_cutoff,
                     current_cutoff=current_cutoff,
                 )
-                if observation is not None else None
+                if observation is not None else (None, None)
             )
-            items.append(_item(
-                FOLLOWUP_BECAME_INVALID_LATER,
-                invalidated_at or current_cutoff,
-                case_id=case.id,
-            ))
+            if invalidated_at is not None:
+                items.append(_item(
+                    FOLLOWUP_BECAME_INVALID_LATER,
+                    invalidated_at,
+                    case_id=case.id,
+                    extra={"source_change_kind": invalidation_cause},
+                ))
             explained = True
         if not explained and (
             then_projection.get("owner_workflow_state")
             != now_projection.get("owner_workflow_state")
         ):
-            items.append(_item(
-                WORKFLOW_CHANGED_LATER, current_cutoff, case_id=case.id,
-                extra={
-                    "workflow_state_then": then_projection.get("owner_workflow_state"),
-                    "workflow_state_now": now_projection.get("owner_workflow_state"),
-                },
-            ))
+            # A changed workflow with no append-only Review/Outcome/source
+            # journal timestamp is not explainable truth. Never stamp replay
+            # read-time "now" onto history just to manufacture a delta row.
+            continue
     return items
 
 
@@ -371,6 +373,7 @@ async def build_day_knowledge_delta(
     end: datetime,
     capabilities: set[str],
     historical_cutoff: datetime | None = None,
+    current_cutoff: datetime | None = None,
     workflows_now: dict[str, dict] | None = None,
 ) -> dict:
     """Explain what became knowable after the selected day ended.
@@ -380,7 +383,7 @@ async def build_day_knowledge_delta(
     delta: nothing has "later" happened yet. An explicit cutoff is accepted for
     auditing/verification and must be a real instant no later than now.
     """
-    current_cutoff = datetime.now(UTC)
+    current_cutoff = _aware(current_cutoff or datetime.now(UTC))
     historical_cutoff = min(_aware(historical_cutoff or end), current_cutoff)
     candidates = await load_day_replay_candidates(
         db, pet_id, start, end, current_cutoff, capabilities=capabilities,
