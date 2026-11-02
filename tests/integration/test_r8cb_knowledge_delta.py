@@ -231,6 +231,81 @@ def test_r8cb_later_review_and_outcome_are_owner_workflow_changes(client, seeded
     assert current_workflow["latest_effective_outcome_id"] == outcome.json()["outcome_id"]
 
 
+def test_r8cb_outcome_invalidation_follows_the_outcome_observation_lineage(client, seeded):
+    """An Outcome may assess an older observation while binding the latest Review head."""
+    owner = seeded["owner_id"]
+    pet, case_id = _case_pet(client, owner)
+    day = datetime.now(PRODUCT_TZ).date().isoformat()
+
+    follow_one = _walk(client, owner, pet, minutes=18)
+    review_one = client.post(
+        f"/api/v1/pets/{pet}/life-change-cases/{case_id}/reviews",
+        json={
+            "decision": "RECORD_OBSERVATION",
+            "related_event_ids": [follow_one],
+            "expected_latest_review_id": None,
+        },
+        headers=auth(owner),
+    )
+    assert review_one.status_code == 201, review_one.text
+
+    follow_two = _walk(client, owner, pet, minutes=23)
+    review_two = client.post(
+        f"/api/v1/pets/{pet}/life-change-cases/{case_id}/reviews",
+        json={
+            "decision": "RECORD_OBSERVATION",
+            "related_event_ids": [follow_two],
+            "expected_latest_review_id": review_one.json()["review_id"],
+        },
+        headers=auth(owner),
+    )
+    assert review_two.status_code == 201, review_two.text
+
+    outcome = client.post(
+        f"/api/v1/pets/{pet}/life-change-cases/{case_id}/outcomes",
+        json={
+            "observation_review_id": review_one.json()["review_id"],
+            "assessment": "CONTINUE_OBSERVING",
+            "expected_latest_review_id": review_two.json()["review_id"],
+            "expected_latest_outcome_id": None,
+            "idempotency_key": "r8cb-older-observation-outcome-001",
+        },
+        headers=auth(owner),
+    )
+    assert outcome.status_code == 201, outcome.text
+    cutoff_before_retraction = datetime.now(timezone.utc)
+
+    withdrawn = client.post(
+        f"/api/v1/events/{follow_one}/retract",
+        headers=auth(owner),
+    )
+    assert withdrawn.status_code == 200, withdrawn.text
+
+    detail = client.get(
+        f"/api/v1/pets/{pet}/life-change-cases/{case_id}",
+        headers=auth(owner),
+    )
+    assert detail.status_code == 200, detail.text
+    # The newer observation remains valid, but the effective Outcome's actual
+    # source is the older review and is now invalid.
+    assert detail.json()["follow_up_source_valid"] is True
+    assert detail.json()["owner_workflow_state"] == "FOLLOW_UP_EVIDENCE_INVALIDATED"
+    assert detail.json()["latest_effective_outcome_id"] == outcome.json()["outcome_id"]
+
+    delta = _replay(
+        client, owner, pet, day,
+        historical_cutoff=cutoff_before_retraction.isoformat(),
+    )["knowledge_delta"]
+    invalidated = next(
+        item for item in delta["items"]
+        if item["kind"] == "FOLLOWUP_BECAME_INVALID_LATER"
+        and item["case_id"] == case_id
+    )
+    assert invalidated["changed_at"] == withdrawn.json()["retracted_at"]
+    assert invalidated["reason"] == "后来作为该结果依据的记录被撤回"
+    assert "WORKFLOW_CHANGED_LATER" not in _kinds(delta)
+
+
 def test_r8cb_case_invalidation_uses_real_source_journal_time(client, seeded):
     """Case invalidation is anchored to withdrawal time, never replay read-time."""
     owner = seeded["owner_id"]
