@@ -763,7 +763,7 @@ def capture_surface(
         # screenshot of 9c42fa58 still contained pli.today.pet-boot-fallback.
         # Wait for real RN overlay removal, with exact surface identity and a
         # bounded failure artifact; never approve the interim species glyph.
-        if screen in {"today", "pet", "lifeview", "companion"}:
+        if screen in {"today", "pet", "lifeview", "twinreview", "companion"}:
             await_owner_3d_first_paint(
                 android, directory, screen=screen,
                 expected_root=expected_root or SURFACE_ROOT_IDS[screen],
@@ -907,6 +907,17 @@ def capture_review_views(
             )
         save_manifest(directory / f"3d_view_{view}.json", manifest)
         frame = directory / f"{prefix}_{view}.png"
+        if view == "front":
+            # The Review route can remount between the surface sweep and the
+            # camera truth pass. A ready WebGL manifest is still not proof that
+            # RN has removed its honest boot fallback, so reuse the same
+            # first-paint gate as Today/Pet/Life View before freezing front.
+            await_owner_3d_first_paint(
+                android,
+                directory,
+                screen="twinreview",
+                expected_root=SURFACE_ROOT_IDS["twinreview"],
+            )
         capture_distinct_view_frame(android, frame, previous_frame)
 
         # The human-gate Review hero must be a frame whose exact camera/pose
