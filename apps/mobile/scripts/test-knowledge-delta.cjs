@@ -71,6 +71,23 @@ assert.deepEqual(knowledgeDeltaLines(delta), [
 assert.equal(knowledgeDeltaSummary(delta), "2 条记录变化 · 1 条主人核对变化");
 assert.equal(knowledgeDeltaNote(delta), delta.truth_note);
 
+// --- repeated rows of the same journal kind/day collapse into one calm line --
+const grouped = knowledgeDeltaLines({
+  changed: true,
+  event_delta_count: 3,
+  items: [
+    { kind: "LATE_RECORDED_EVENT", changed_at: "2026-11-02T06:00:00Z" },
+    { kind: "LATE_RECORDED_EVENT", changed_at: "2026-11-02T06:01:00Z" },
+    { kind: "LATE_RECORDED_EVENT", changed_at: "2026-11-02T06:02:00Z" },
+    { kind: "SOURCE_RETRACTED_LATER", changed_at: "2026-11-02T07:00:00Z" },
+  ],
+});
+assert.deepEqual(grouped, [
+  "11月2日 当天之后补录了 3 条记录",
+  "11月2日 后来这条来源被主人撤回",
+]);
+assert.equal(grouped.filter((line) => line.includes("补录")).length, 1);
+
 // --- unknown kinds degrade to neutral copy instead of echoing the server -----
 const unknown = knowledgeDeltaLines({
   changed: true,
