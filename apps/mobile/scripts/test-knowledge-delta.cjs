@@ -89,6 +89,27 @@ assert.deepEqual(grouped, [
 ]);
 assert.equal(grouped.filter((line) => line.includes("补录")).length, 1);
 
+// --- invalidation wording follows the actual journal cause ------------------
+const invalidationCauses = knowledgeDeltaLines({
+  changed: true,
+  owner_workflow_delta_count: 2,
+  items: [
+    {
+      kind: "CASE_BECAME_INVALID_LATER",
+      changed_at: "2026-11-02T07:00:00Z",
+      source_change_kind: "SUPERSEDED",
+    },
+    {
+      kind: "FOLLOWUP_BECAME_INVALID_LATER",
+      changed_at: "2026-11-02T08:00:00Z",
+      source_change_kind: "RETRACTED",
+    },
+  ],
+});
+assert.ok(invalidationCauses.some((line) => line.includes("原始记录后来被主人修正")));
+assert.ok(invalidationCauses.some((line) => line.includes("结果依据的记录被主人撤回")));
+assert.ok(!invalidationCauses.some((line) => line.includes("原始记录后来被主人撤回")));
+
 // --- unknown kinds degrade to neutral copy instead of echoing the server -----
 const unknown = knowledgeDeltaLines({
   changed: true,
