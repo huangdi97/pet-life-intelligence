@@ -6,6 +6,7 @@ not health change.
 """
 from datetime import datetime, timedelta, timezone
 
+from app.api.routes import events as events_route
 from tests.conftest import auth, create_user
 
 PRODUCT_TZ = timezone(timedelta(hours=8))
@@ -82,6 +83,41 @@ def test_r8cb_late_backfill_is_reported_as_a_knowledge_change(client, seeded):
     then = _replay(client, owner, pet, occurred.date().isoformat(),
                    perspective="as_known_then")
     assert event_id not in [row["event_id"] for row in then["events"]]
+
+
+def test_r8cb_as_known_then_never_reuses_historical_workflow_as_current(
+    client, seeded, monkeypatch,
+):
+    """Route composition keeps Knowledge Delta independent of replay perspective."""
+    owner = seeded["owner_id"]
+    pet = seeded["coco_id"]
+    day = (datetime.now(PRODUCT_TZ) - timedelta(days=2)).date().isoformat()
+    captured = {}
+
+    async def fake_delta(**kwargs):
+        captured.update(kwargs)
+        return {
+            "changed": False,
+            "items": [],
+            "event_delta_count": 0,
+            "owner_workflow_delta_count": 0,
+            "historical_cutoff": kwargs["end"].isoformat(),
+            "current_cutoff": kwargs["current_cutoff"].isoformat(),
+            "truth_note": "test journal truth",
+            "derived_from": "APPEND_ONLY_JOURNAL",
+            "model_status": "DETERMINISTIC_NO_LLM_NO_HEALTH_INFERENCE",
+        }
+
+    monkeypatch.setattr(events_route, "build_day_knowledge_delta", fake_delta)
+    response = client.get(
+        f"/api/v1/pets/{pet}/life-replay",
+        params={"date": day, "perspective": "as_known_then"},
+        headers=auth(owner),
+    )
+    assert response.status_code == 200, response.text
+    replay_cutoff = datetime.fromisoformat(response.json()["knowledge_cutoff"])
+    assert captured["current_cutoff"] > replay_cutoff
+    assert captured["workflows_now"] == {}
 
 
 def test_r8cb_later_retraction_is_a_source_validity_change(client, seeded):
