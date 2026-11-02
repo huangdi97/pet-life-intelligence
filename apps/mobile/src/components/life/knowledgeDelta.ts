@@ -59,12 +59,26 @@ export const KNOWLEDGE_DELTA_REASONS: Record<string, string> = {
   FOLLOWUP_BECAME_INVALID_LATER: "后来作为该结果依据的记录被撤回",
 };
 
-/** `4月18日` from an ISO instant, parsed from the string so no TZ can shift a day. */
-export function knowledgeDeltaDay(iso?: string | null): string {
-  if (!iso || iso.length < 10) return "";
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-  if (!match) return "";
-  return `${Number(match[2])}月${Number(match[3])}日`;
+/**
+ * Owner-local calendar label for a journal instant.
+ *
+ * Backend timestamps are UTC instants while Life Replay's selected day is
+ * explicitly device-local. Use the device offset at that instant (including
+ * DST) instead of slicing the UTC ISO date. Tests may inject an offset east of
+ * UTC so the rule stays deterministic on CI hosts in any timezone.
+ */
+export function knowledgeDeltaDay(
+  iso?: string | null,
+  offsetMinutesEastOfUtc?: number,
+): string {
+  if (!iso) return "";
+  const instant = new Date(iso);
+  if (!Number.isFinite(instant.getTime())) return "";
+  const offset = offsetMinutesEastOfUtc
+    ?? -instant.getTimezoneOffset();
+  if (!Number.isFinite(offset)) return "";
+  const local = new Date(instant.getTime() + offset * 60 * 1000);
+  return `${local.getUTCMonth() + 1}月${local.getUTCDate()}日`;
 }
 
 export function knowledgeDeltaVisible(delta?: KnowledgeDelta | null): boolean {
