@@ -8,13 +8,20 @@ machine; `NOT_YET_OBSERVED` marks evidence only a real pet/human can produce.
 
 - Branch: `feat/r2p3d-r3-render-truth-ui-closure` (PR #2, still open)
 - Starting HEAD: `b5c896033d94f463e6ddb8ff4b94bae0fc7c1f9b`
-- Hosted runtime evidence was produced on identical sources twice:
-  `07a94936bc272ffe184212bcd6bc272a5161d354` (last code-bearing commit) and
-  `5e73c40300347b781d0c116093d04face272741f` (final HEAD, role
-  `workflow_dispatch`).
-- Final HEAD: `5e73c40300347b781d0c116093d04face272741f` (local == remote; working
-  tree clean). It is documentation-only relative to `07a94936`, so both runs
-  exercised the same application sources.
+- Hosted runtime evidence exists for three commits. Each row below is a
+  historical observation for that SHA and stays true regardless of later
+  documentation commits:
+
+  | SHA | Role | Evidence artifact |
+  | --- | --- | --- |
+  | `07a94936` | last code-bearing commit before the report | run `41017254872` |
+  | `5e73c403` | first docs commit (report) | run `41036084353` (`workflow_dispatch`) |
+  | `e390cbd2` | docs commit recording these runs | run `41387844351` (`pull_request`) |
+
+- Final HEAD: the tip of this branch, which the commit containing this file
+  advances by one documentation-only step. Read it with
+  `git log -1 --format=%H`; the code-bearing sources are identical to
+  `07a94936`.
 
 Commits in this closure:
 
@@ -36,26 +43,41 @@ test(android): withdraw the late record without rewriting the day
 test(android): make the r8ca life-view wait deterministic
 docs(r8): local pre-release closure report
 docs(r8): record final-HEAD hosted gate runs
+docs(r8): host gate history per sha
 ```
 
-### Hosted gates at the final HEAD
+### Hosted gate history (per SHA)
 
-| Workflow | Run | Status |
-| --- | --- | --- |
-| CI | #1790 | SUCCESS |
-| OpenAPI Artifact Sync | #1022 | SUCCESS |
-| Android + Release Artifacts | #1731 (`workflow_dispatch`, run `41036084353`) | SUCCESS |
-| Android + Release Artifacts | #1730 (same SHA, `pull_request`) | FAILURE |
+| Workflow | Run | SHA | Status |
+| --- | --- | --- | --- |
+| CI | #1783 | `864a5a92` | SUCCESS |
+| CI | #1790 | `5e73c403` | SUCCESS |
+| CI | #1791 | `e390cbd2` | SUCCESS |
+| OpenAPI Artifact Sync | #1015 | `864a5a92` | SUCCESS |
+| OpenAPI Artifact Sync | #1022 | `5e73c403` | SUCCESS |
+| OpenAPI Artifact Sync | #1023 | `e390cbd2` | SUCCESS |
+| Android + Release Artifacts | #1723 | `864a5a92` | FAILURE (R8CB gate, fixed) |
+| Android + Release Artifacts | #1730 | `5e73c403` | FAILURE (pre-existing capture wait flake) |
+| Android + Release Artifacts | #1731 | `5e73c403` | SUCCESS (`workflow_dispatch`, run `41036084353`) |
+| Android + Release Artifacts | #1732 | `e390cbd2` | SUCCESS (run `41387844351`) |
 
-The `pull_request`-triggered attempt #1730 failed at a pre-existing capture wait
-(`R8 native target not actionable: pli.r8.quicklog-followup … observed_ids=[]`)
-— a transiently empty UIAutomator hierarchy, not a product defect. The waits
-behind that flake were hardened in this closure, and re-running the identical
-commit as `workflow_dispatch` produced a green run whose
-`r5-6-android-runtime-evidence` artifact was downloaded and verified
-(`knowledge-delta-truth.json`, the R8 truth files,
-`owner-workflow-life-replay.png`, `knowledge-delta.png`, four
-`PLI_R5_6_ANDROID_*` contact sheets).
+Two Android runs failed for reasons worth naming, because both taught a real
+lesson instead of hiding one:
+
+- `#1723` failed at a newly added R8CB gate — the capture asked for a delta on a
+  day that had not closed, then for a retraction of a record that was itself
+  recorded later. Both were wrong expectations about the journal, and the
+  capture now asserts what the product can actually prove.
+- `#1730` failed at a pre-existing wait
+  (`R8 native target not actionable: pli.r8.quicklog-followup … observed_ids=[]`)
+  — a transiently empty UIAutomator hierarchy on the hosted emulator. The waits
+  behind that flake were hardened (painted-surface wait, stale-surface refresh,
+  bidirectional scroll), and both later runs are green.
+
+For every green Android run the `r5-6-android-runtime-evidence` artifact was
+downloaded and opened: `knowledge-delta-truth.json`, `knowledge-delta-ui.xml`,
+`knowledge-delta.png`, the R8 truth files,
+`owner-workflow-life-replay.png`, and four `PLI_R5_6_ANDROID_*` contact sheets.
 
 ## R8 owner-intelligence chain
 
