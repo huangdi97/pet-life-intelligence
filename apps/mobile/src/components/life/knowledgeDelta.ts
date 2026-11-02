@@ -30,6 +30,7 @@ export interface KnowledgeDeltaItem {
   event_id?: string | null;
   review_id?: string | null;
   outcome_id?: string | null;
+  source_change_kind?: "RETRACTED" | "SUPERSEDED" | string | null;
 }
 
 export interface KnowledgeDelta {
@@ -55,8 +56,8 @@ export const KNOWLEDGE_DELTA_REASONS: Record<string, string> = {
   REVIEW_ADDED_LATER: "主人后来追加了一次核对",
   OUTCOME_ADDED_LATER: "主人后来基于新的真实观察记录了结果",
   WORKFLOW_CHANGED_LATER: "主人后来更新了这条关注的处理方式",
-  CASE_BECAME_INVALID_LATER: "作为这条关注依据的原始记录后来被撤回",
-  FOLLOWUP_BECAME_INVALID_LATER: "后来作为该结果依据的记录被撤回",
+  CASE_BECAME_INVALID_LATER: "作为这条关注依据的原始记录后来发生了变化",
+  FOLLOWUP_BECAME_INVALID_LATER: "后来作为该结果依据的记录发生了变化",
 };
 
 /**
@@ -85,8 +86,22 @@ export function knowledgeDeltaVisible(delta?: KnowledgeDelta | null): boolean {
   return Boolean(delta && delta.changed && Array.isArray(delta.items) && delta.items.length > 0);
 }
 
-function groupedKnowledgeDeltaReason(kind: string, count: number): string {
-  if (count <= 1) return KNOWLEDGE_DELTA_REASONS[kind] ?? KNOWLEDGE_DELTA_EMPTY_REASON;
+function groupedKnowledgeDeltaReason(
+  kind: string,
+  count: number,
+  sourceChangeKind?: string | null,
+): string {
+  if (count <= 1) {
+    if (kind === "CASE_BECAME_INVALID_LATER") {
+      if (sourceChangeKind === "RETRACTED") return "作为这条关注依据的原始记录后来被主人撤回";
+      if (sourceChangeKind === "SUPERSEDED") return "作为这条关注依据的原始记录后来被主人修正";
+    }
+    if (kind === "FOLLOWUP_BECAME_INVALID_LATER") {
+      if (sourceChangeKind === "RETRACTED") return "后来作为该结果依据的记录被主人撤回";
+      if (sourceChangeKind === "SUPERSEDED") return "后来作为该结果依据的记录被主人修正";
+    }
+    return KNOWLEDGE_DELTA_REASONS[kind] ?? KNOWLEDGE_DELTA_EMPTY_REASON;
+  }
   const plural: Record<string, string> = {
     LATE_RECORDED_EVENT: `当天之后补录了 ${count} 条记录`,
     SOURCE_RETRACTED_LATER: `后来有 ${count} 条来源被主人撤回`,
@@ -110,16 +125,19 @@ function groupedKnowledgeDeltaReason(kind: string, count: number): string {
  */
 export function knowledgeDeltaLines(delta?: KnowledgeDelta | null): string[] {
   if (!knowledgeDeltaVisible(delta)) return [];
-  const groups = new Map<string, { kind: string; day: string; count: number }>();
+  const groups = new Map<string, {
+    kind: string; day: string; count: number; sourceChangeKind?: string | null;
+  }>();
   for (const item of delta?.items ?? []) {
     const day = knowledgeDeltaDay(item.changed_at);
-    const key = `${day}|\u0000|${item.kind}`;
+    const sourceChangeKind = item.source_change_kind ?? null;
+    const key = `${day}|\u0000|${item.kind}|\u0000|${sourceChangeKind ?? ""}`;
     const current = groups.get(key);
     if (current) current.count += 1;
-    else groups.set(key, { kind: item.kind, day, count: 1 });
+    else groups.set(key, { kind: item.kind, day, count: 1, sourceChangeKind });
   }
-  return Array.from(groups.values()).map(({ kind, day, count }) => {
-    const reason = groupedKnowledgeDeltaReason(kind, count);
+  return Array.from(groups.values()).map(({ kind, day, count, sourceChangeKind }) => {
+    const reason = groupedKnowledgeDeltaReason(kind, count, sourceChangeKind);
     return day ? `${day} ${reason}` : reason;
   });
 }
