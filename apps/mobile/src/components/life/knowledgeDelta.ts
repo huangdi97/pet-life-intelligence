@@ -71,12 +71,41 @@ export function knowledgeDeltaVisible(delta?: KnowledgeDelta | null): boolean {
   return Boolean(delta && delta.changed && Array.isArray(delta.items) && delta.items.length > 0);
 }
 
-/** One read-only line per journal change: "<day> <owner-readable reason>". */
+function groupedKnowledgeDeltaReason(kind: string, count: number): string {
+  if (count <= 1) return KNOWLEDGE_DELTA_REASONS[kind] ?? KNOWLEDGE_DELTA_EMPTY_REASON;
+  const plural: Record<string, string> = {
+    LATE_RECORDED_EVENT: `当天之后补录了 ${count} 条记录`,
+    SOURCE_RETRACTED_LATER: `后来有 ${count} 条来源被主人撤回`,
+    SOURCE_SUPERSEDED_LATER: `后来主人提交了 ${count} 条修正记录`,
+    REVIEW_ADDED_LATER: `主人后来追加了 ${count} 次核对`,
+    OUTCOME_ADDED_LATER: `主人后来基于新的真实观察记录了 ${count} 个结果`,
+    WORKFLOW_CHANGED_LATER: `主人后来更新了 ${count} 条关注的处理方式`,
+    CASE_BECAME_INVALID_LATER: `${count} 条关注的原始记录后来发生变化，需要重新核对`,
+    FOLLOWUP_BECAME_INVALID_LATER: `${count} 个结果所依据的记录后来发生变化`,
+  };
+  return plural[kind] ?? `后来有 ${count} 条记录或核对发生了变化`;
+}
+
+/**
+ * Owner-readable journal changes grouped by calendar day + deterministic kind.
+ *
+ * The API deliberately keeps every immutable delta row. The owner surface,
+ * however, should not print three identical bullets merely because three
+ * source rows were backfilled together. Grouping changes presentation only:
+ * counts and journal identities remain untouched in the response.
+ */
 export function knowledgeDeltaLines(delta?: KnowledgeDelta | null): string[] {
   if (!knowledgeDeltaVisible(delta)) return [];
-  return (delta?.items ?? []).map((item) => {
-    const reason = KNOWLEDGE_DELTA_REASONS[item.kind] ?? KNOWLEDGE_DELTA_EMPTY_REASON;
+  const groups = new Map<string, { kind: string; day: string; count: number }>();
+  for (const item of delta?.items ?? []) {
     const day = knowledgeDeltaDay(item.changed_at);
+    const key = `${day}|\u0000|${item.kind}`;
+    const current = groups.get(key);
+    if (current) current.count += 1;
+    else groups.set(key, { kind: item.kind, day, count: 1 });
+  }
+  return Array.from(groups.values()).map(({ kind, day, count }) => {
+    const reason = groupedKnowledgeDeltaReason(kind, count);
     return day ? `${day} ${reason}` : reason;
   });
 }
