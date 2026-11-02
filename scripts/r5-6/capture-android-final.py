@@ -908,8 +908,24 @@ def capture_review_views(
         save_manifest(directory / f"3d_view_{view}.json", manifest)
         frame = directory / f"{prefix}_{view}.png"
         capture_distinct_view_frame(android, frame, previous_frame)
+
+        # The human-gate Review hero must be a frame whose exact camera/pose
+        # manifest has already passed, never the earlier boot-fallback frame
+        # captured while the Review WebView is still painting. Reuse the
+        # runtime-proven front frame as the canonical Review screenshot.
+        if view == "front":
+            hero_name = "twinreview.png" if prefix == "twin" else f"{prefix}_twinreview.png"
+            shutil.copyfile(frame, directory / hero_name)
+            save_manifest(directory / "3d.json", manifest)
+
         previous_frame = frame
         xml = android.dump_xml(directory / "ui.xml")
+        if view == "front" and prefix == "twin":
+            # Refresh the extracted metadata against the same loaded front
+            # frame so screenshot / UI tree / manifest cannot describe
+            # different moments of the Review lifecycle.
+            extractor = ROOT / "scripts" / "blind-ui" / "android_extract.py"
+            run([os.environ.get("PYTHON", "python3"), str(extractor), str(directory)])
 
 
 def capture_r7_life_replay(
