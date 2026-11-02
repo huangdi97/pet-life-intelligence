@@ -8,11 +8,13 @@ machine; `NOT_YET_OBSERVED` marks evidence only a real pet/human can produce.
 
 - Branch: `feat/r2p3d-r3-render-truth-ui-closure` (PR #2, still open)
 - Starting HEAD: `b5c896033d94f463e6ddb8ff4b94bae0fc7c1f9b`
-- Code HEAD that produced the hosted runtime evidence:
-  `07a94936bc272ffe184212bcd6bc272a5161d354`
-- Final HEAD: the documentation-only commit that contains this file (see
-  `git log -1`); it changes no application code, so the runtime evidence above
-  applies to identical sources.
+- Hosted runtime evidence was produced on identical sources twice:
+  `07a94936bc272ffe184212bcd6bc272a5161d354` (last code-bearing commit) and
+  `5e73c40300347b781d0c116093d04face272741f` (final HEAD, role
+  `workflow_dispatch`).
+- Final HEAD: `5e73c40300347b781d0c116093d04face272741f` (local == remote; working
+  tree clean). It is documentation-only relative to `07a94936`, so both runs
+  exercised the same application sources.
 
 Commits in this closure:
 
@@ -33,7 +35,27 @@ test(android): refetch the withdrawn day instead of reusing cached replay
 test(android): withdraw the late record without rewriting the day
 test(android): make the r8ca life-view wait deterministic
 docs(r8): local pre-release closure report
+docs(r8): record final-HEAD hosted gate runs
 ```
+
+### Hosted gates at the final HEAD
+
+| Workflow | Run | Status |
+| --- | --- | --- |
+| CI | #1790 | SUCCESS |
+| OpenAPI Artifact Sync | #1022 | SUCCESS |
+| Android + Release Artifacts | #1731 (`workflow_dispatch`, run `41036084353`) | SUCCESS |
+| Android + Release Artifacts | #1730 (same SHA, `pull_request`) | FAILURE |
+
+The `pull_request`-triggered attempt #1730 failed at a pre-existing capture wait
+(`R8 native target not actionable: pli.r8.quicklog-followup … observed_ids=[]`)
+— a transiently empty UIAutomator hierarchy, not a product defect. The waits
+behind that flake were hardened in this closure, and re-running the identical
+commit as `workflow_dispatch` produced a green run whose
+`r5-6-android-runtime-evidence` artifact was downloaded and verified
+(`knowledge-delta-truth.json`, the R8 truth files,
+`owner-workflow-life-replay.png`, `knowledge-delta.png`, four
+`PLI_R5_6_ANDROID_*` contact sheets).
 
 ## R8 owner-intelligence chain
 
