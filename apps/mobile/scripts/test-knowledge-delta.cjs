@@ -45,11 +45,12 @@ for (const word of HEALTH_WORDS) {
   assert.ok(!KNOWLEDGE_DELTA_EMPTY_REASON.includes(word));
 }
 
-// --- day parsing never shifts a calendar day through a timezone --------------
-assert.equal(knowledgeDeltaDay("2026-10-18T23:30:00+08:00"), "10月18日");
-assert.equal(knowledgeDeltaDay("2026-10-18T01:00:00Z"), "10月18日");
-assert.equal(knowledgeDeltaDay("not-a-date"), "");
-assert.equal(knowledgeDeltaDay(null), "");
+// --- journal instants render in the owner's local calendar day ---------------
+assert.equal(knowledgeDeltaDay("2026-10-18T15:30:00Z", 480), "10月18日");
+assert.equal(knowledgeDeltaDay("2026-10-18T16:30:00Z", 480), "10月19日");
+assert.equal(knowledgeDeltaDay("2026-10-19T02:30:00Z", -420), "10月18日");
+assert.equal(knowledgeDeltaDay("not-a-date", 480), "");
+assert.equal(knowledgeDeltaDay(null, 480), "");
 
 // --- lines are deterministic and read the journal change, not a summary ------
 const delta = {
