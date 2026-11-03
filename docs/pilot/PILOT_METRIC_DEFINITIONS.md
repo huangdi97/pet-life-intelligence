@@ -5,7 +5,7 @@
 
 ## 0. 数据基础口径
 
-- **有效事实 Event（R8_PILOT_V2）**：`is_duplicate=false`，排除 `today.viewed/audit.accessed` 等非生命事件；来源必须属于 OWNER/CAREGIVER/DEVICE/PROFESSIONAL/LAB 的 record-fact 来源。用于“当前活跃”时还必须是当前有效版本：已撤回或已被 successor 替代的旧版本不计。
+- **有效事实 Event（R8_PILOT_V2）**：仅统计 `daily.*` 生活事实，且 `is_duplicate=false`；来源必须属于 OWNER/CAREGIVER/DEVICE/PROFESSIONAL/LAB 的 record-fact 来源。建宠/页面浏览/审计/系统聚合等生命周期或 telemetry 事件都不计。用于“当前活跃”时还必须是当前有效版本：已撤回或已被 successor 替代的旧版本不计。
 - **Active Pet（连续性）**：以「产生新的当前有效事实 Event」计，而不是打开页面、系统聚合或旧版本数量。
 - **Owner Activation** 使用双时间截止：按 `min(当前时间, Pet.created_at + 24h)` 判断当时可知的有效事实；24h 截止后结果冻结，后来的修正/撤回不会倒写 onboarding 历史。
 - 时间窗口：运营聚合仍以 UTC 计算；Pet Life Replay / 当天事实仍使用宠物本地日历边界，两者不要混为同一语义。

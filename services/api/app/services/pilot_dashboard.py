@@ -24,7 +24,7 @@ from app.models import (
     User,
 )
 from app.services.current_events import scope_current_event_stmt
-from app.services.life_replay import NON_LIFE_EVENTS, RECORD_FACT_SOURCES
+from app.services.life_replay import RECORD_FACT_SOURCES
 
 
 async def pilot_dashboard(db: AsyncSession) -> dict:
@@ -77,7 +77,7 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
             .where(
                 LifeEvent.recorded_at >= since,
                 LifeEvent.is_duplicate.is_(False),
-                LifeEvent.event_type.notin_(tuple(NON_LIFE_EVENTS)),
+                LifeEvent.event_type.like("daily.%"),
                 LifeEvent.source_type.in_(tuple(RECORD_FACT_SOURCES)),
                 Pet.is_demo.is_(False),
                 Pet.is_internal.is_(False),
@@ -127,7 +127,7 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
             "  SELECT count(*) FROM life_events e "
             "  WHERE e.pet_id = p.id "
             "    AND e.is_duplicate = false "
-            "    AND e.event_type NOT IN ('today.viewed', 'audit.accessed') "
+            "    AND e.event_type LIKE 'daily.%' "
             "    AND e.source_type IN ("
             "      'OWNER_REPORTED','CAREGIVER_REPORTED','DEVICE_DERIVED',"
             "      'PROFESSIONAL_CONFIRMED','LAB_CONFIRMED'"
