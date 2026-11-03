@@ -11,6 +11,7 @@ from sqlalchemy import and_, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ValidationFailed
+from app.domain.event_types_daily import DAILY_EVENT_TYPES
 from app.models import (
     LifeChangeCase,
     LifeChangeOutcome,
@@ -77,7 +78,11 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
             .where(
                 LifeEvent.recorded_at >= since,
                 LifeEvent.is_duplicate.is_(False),
-                LifeEvent.event_type.like("daily.%"),
+                # Pilot activity is evidence creation, not a prefix match.
+                # Bind the metric to the same canonical quick-log registry used
+                # by event validation so telemetry/system rows can never become
+                # activity merely by acquiring a daily.*-looking name.
+                LifeEvent.event_type.in_(tuple(DAILY_EVENT_TYPES)),
                 LifeEvent.source_type.in_(tuple(RECORD_FACT_SOURCES)),
                 Pet.is_demo.is_(False),
                 Pet.is_internal.is_(False),
@@ -109,7 +114,9 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
 
     # 5) activated owners — the written Pilot contract is exact:
     # a DISTINCT owner with >=1 real pet that has >=3 effective record facts
-    # within the first 24h after pet creation.
+    # within the first 24h after pet creation. A correction is a new journal
+    # row but not a new fact identity, so the activation count groups the
+    # correction with the source it supersedes.
     #
     # The projection cutoff is LEAST(now, pet_created+24h). Once the 24h
     # deadline passes, later retractions/corrections cannot rewrite whether
@@ -124,10 +131,14 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
             "AND u.email NOT LIKE '%@pli.test' "
             "AND u.email NOT LIKE '%@pli.pilot' "
             "AND ("
-            "  SELECT count(*) FROM life_events e "
+            "  SELECT count(DISTINCT COALESCE(e.supersedes_event_id, e.id)) "
+            "  FROM life_events e "
             "  WHERE e.pet_id = p.id "
             "    AND e.is_duplicate = false "
-            "    AND e.event_type LIKE 'daily.%' "
+            "    AND e.event_type IN ("
+            "      'daily.meal','daily.drink','daily.elimination','daily.walk',"
+            "      'daily.play','daily.weight','daily.sleep'"
+            "    ) "
             "    AND e.source_type IN ("
             "      'OWNER_REPORTED','CAREGIVER_REPORTED','DEVICE_DERIVED',"
             "      'PROFESSIONAL_CONFIRMED','LAB_CONFIRMED'"
