@@ -167,20 +167,26 @@ Real Android runtime evidence (`artifacts/r5-6-final/android/r8-owner-review/`):
 
 - `knowledge-delta-truth.json` — `derived_from_journal: true`,
   `llm_generated: false`, `read_only: true`, `health_inference: false`,
-  `ui_kinds_observed`, `ui_wording_asserted`, `retraction_cutoff_kinds`,
-  `as_known_then_excludes_late_record`,
-  `withdrawn_record_no_longer_explained`;
-- `knowledge-delta-ui.xml` — the native section identity and headline;
-- `knowledge-delta.png` — the rendered owner surface.
+  `ui_kinds_observed`, `late_record_delta_count`, `ui_wording_asserted`,
+  `after_retraction_late_record_delta_count`, `ui_wording_after_retraction`,
+  `native_refetched_after_retraction`, `retraction_cutoff_kinds`,
+  `as_known_then_excludes_late_record`, `withdrawn_record_no_longer_explained`;
+- `knowledge-delta-ui.xml` / `knowledge-delta.png` — pre-withdrawal native section;
+- `knowledge-delta-after-retraction-ui.xml` /
+  `knowledge-delta-after-retraction.png` — the same Life View after crossing a
+  real navigation boundary and refetching post-withdrawal state.
 
 ### What the native runtime can and cannot show
 
-A record that was made *after* a day ended can never be "known then", so on a
-completed day the device shows exactly one honest thing: the backfill
-explanation acquired from that real record. Withdrawing that record must then
-remove it from the current view and stop explaining it — a demo day may still
-hold other later-recorded Case sources, and none of them may be recycled into a
-retroactive retraction story. The capture asserts both directions.
+A record that was made *after* a day ended can never be "known then". On a
+completed day the device therefore shows only journal-derived backfill
+explanations. Multiple later records of the same kind/day may be grouped into a
+single calm line (for example `当天之后补录了 3 条记录`) without losing their
+individual event identities in the API truth. Withdrawing one of those records
+must remove exactly one late-record item, force the native Life View to refetch,
+and update or remove the grouped owner-facing line accordingly. A demo day may
+still hold other later-recorded Case sources, and none of them may be recycled
+into a retroactive retraction story. The capture asserts both directions.
 
 `SOURCE_RETRACTED_LATER` needs a record that existed at the day's own end, which
 a fresh demo capture can only produce with an explicit pre-withdrawal cutoff.
