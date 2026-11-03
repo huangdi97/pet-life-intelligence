@@ -2619,6 +2619,18 @@ def capture_r8_owner_review(
         return delta
 
     before_retraction = delta_kinds(day_replay("verified_now"), "LATE_RECORDED_EVENT")
+    late_delta_items = [
+        item for item in before_retraction.get("items", [])
+        if item.get("kind") == "LATE_RECORDED_EVENT"
+    ]
+    if late_event_id not in [item.get("event_id") for item in late_delta_items]:
+        raise CaptureError("R8CB new late record is missing from the journal delta")
+    late_delta_count = len(late_delta_items)
+    late_ui_copy = (
+        "这条记录是在当天之后补录的"
+        if late_delta_count == 1
+        else f"当天之后补录了 {late_delta_count} 条记录"
+    )
     if late_event_id in [row.get("event_id") for row in day_replay("as_known_then").get("events", [])]:
         raise CaptureError("R8CB late record leaked into as_known_then")
 
@@ -2643,7 +2655,7 @@ def capture_r8_owner_review(
 
     # 1) UI proof on a completed day: the record was made afterwards, so that
     #    day's own knowledge never had it while "现有记录" now does.
-    open_delta_surface("这条记录是在当天之后补录的")
+    open_delta_surface(late_ui_copy)
     android.screenshot(directory / "knowledge-delta.png")
 
     # 2) Real owner withdrawal of that record. The demo day legitimately holds
@@ -2683,7 +2695,8 @@ def capture_r8_owner_review(
         "ui_kinds_observed": [
             item.get("kind") for item in before_retraction.get("items", [])
         ],
-        "ui_wording_asserted": "这条记录是在当天之后补录的",
+        "late_record_delta_count": late_delta_count,
+        "ui_wording_asserted": late_ui_copy,
         "retraction_cutoff_kinds": [
             item.get("kind") for item in retracted_delta.get("items", [])
         ],
