@@ -321,6 +321,18 @@ export const pilotApi = {
       registered: number;
       activated_owners: number;
       north_star: string;
+      metric_contract_version: string;
+      activation_window_hours: number;
+      active_event_contract: string;
+      r8_loop_observation_status: "OBSERVED" | "NOT_YET_OBSERVED";
+      r8_loop: {
+        cases_created: number;
+        cases_reviewed: number;
+        cases_with_follow_up_observation: number;
+        cases_with_outcome: number;
+        source_corrections: number;
+        source_retractions: number;
+      };
       excludes: string[];
     }>("/pilot/status"),
   feedback: (body: {
