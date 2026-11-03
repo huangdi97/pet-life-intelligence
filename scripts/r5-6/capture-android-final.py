@@ -2974,24 +2974,35 @@ def capture_r8_correction(
     if successor.get("occurred_at") != original.get("occurred_at"):
         raise CaptureError("R8AS correction changed occurred_at instead of only correcting the value")
 
-    # Re-open the frozen source panel after invalidation. The owner must see the
-    # original historical row as superseded, not a silently rewritten 35-minute
-    # row. The successor itself is verified above at the append-only event layer.
-    tap_ready(
-        "pli.r8.case-detail.sources.open",
-        "correction-invalidated-open-sources.xml",
-        wait_first=2, attempts=30,
-    )
+    # Revisit the frozen source panel after invalidation. Correction keeps the
+    # panel's local open/closed state, so never blindly tap the toggle: doing so
+    # could close an already-open list and create a harness-only failure.
+    source_control = f"pli.r8.case-detail.source.{current_id}"
     corrected_source_ui = ""
-    for _ in range(24):
-        time.sleep(0.5)
+    source_label = ""
+    for attempt in range(24):
+        time.sleep(0.45)
         corrected_source_ui = android.dump_xml(directory / "correction-invalidated-sources.xml")
-        source_label = ui_control_label(
-            corrected_source_ui, f"pli.r8.case-detail.source.{current_id}",
-        )
+        source_label = ui_control_label(corrected_source_ui, source_control)
         if current_id in source_label and "记录已由后续修正替代" in source_label:
             break
-    else:
+        android.shell("input", "swipe", "765", "1650", "765", "900", "280")
+    if current_id not in source_label:
+        # The list really is closed (or was remounted closed): open it once,
+        # then search again. This is a state check, not a timeout relaxation.
+        tap_ready(
+            "pli.r8.case-detail.sources.open",
+            "correction-invalidated-open-sources.xml",
+            wait_first=1, attempts=30,
+        )
+        for _ in range(24):
+            time.sleep(0.45)
+            corrected_source_ui = android.dump_xml(directory / "correction-invalidated-sources.xml")
+            source_label = ui_control_label(corrected_source_ui, source_control)
+            if current_id in source_label and "记录已由后续修正替代" in source_label:
+                break
+            android.shell("input", "swipe", "765", "1650", "765", "900", "280")
+    if current_id not in source_label or "记录已由后续修正替代" not in source_label:
         raise CaptureError("R8AS native frozen source row did not show superseded truth")
     source_label = ui_control_label(
         corrected_source_ui, f"pli.r8.case-detail.source.{current_id}",
