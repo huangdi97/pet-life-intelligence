@@ -2980,7 +2980,7 @@ def capture_r8_correction(
     source_control = f"pli.r8.case-detail.source.{current_id}"
     corrected_source_ui = ""
     source_label = ""
-    for attempt in range(24):
+    for _ in range(24):
         time.sleep(0.45)
         corrected_source_ui = android.dump_xml(directory / "correction-invalidated-sources.xml")
         source_label = ui_control_label(corrected_source_ui, source_control)
