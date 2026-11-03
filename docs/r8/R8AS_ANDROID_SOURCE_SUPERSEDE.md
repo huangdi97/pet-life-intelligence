@@ -78,3 +78,51 @@ R8AQ（Web）与 R8AR（Mini）已支持受控 supersede；Android 仍只有撤�
 - 本轮顺带加固 R8D：Review 3D 首次挂载若仍读到旧 life manifest，会重挂载
   Review 路由一次并重新下发同一视角，仍失败才报错（不放宽断言）。
 - `NO_VISION_MODEL_USED = TRUE`；`HUMAN_VISUAL_ACCEPTANCE = PENDING`。
+
+## 2026-11-03 runtime truth closure
+
+旧门槛只证明“来源投影有 `superseded_by_event_id` + 原事件未被改写”，仍不足以证明 successor 本身就是主人刚输入的那条修正，也不足以证明 Android 冻结来源没有被静默重写。
+
+本轮在现有 R8AS 真实 Android 路径上加固为双层证据合同：
+
+1. **append-only successor truth**
+   - successor 与原事件属于同一 `pet_id`；
+   - successor.`supersedes_event_id == original.event_id`；
+   - successor payload 的 `duration_minutes == 35`，对应主人在真实 Android 输入框中输入并提交的值；
+   - successor 与 original 的 `occurred_at` 相同：本动作只修正数值，不改写“什么时候发生”。
+2. **frozen source owner truth**
+   - Case 已失效后重新核对原生来源区；
+   - 原始冻结来源继续显示 **20 分钟**；
+   - 原生可访问文案明确显示“**记录已由后续修正替代**”；
+   - 原始来源行不得显示 35 分钟，避免把 append-only correction 伪装成原记录被原地编辑。
+
+最终 code-bearing HEAD：
+
+- `3cb2e2a15e4b07f2aff8c1593d5618d276078cf0`
+- commits:
+  - `b01ed52f` — prove append-only correction truth on Android
+  - `376a97c6` — state-aware source-panel proof
+  - `3cb2e2a1` — Ruff-only lint closure
+
+exact-HEAD hosted gates：
+
+| Workflow | Run | Result |
+|---|---:|---|
+| CI | #1822 / `41587931879` | **SUCCESS** |
+| OpenAPI Artifact Sync | #1054 / `41587931835` | **SUCCESS** |
+| Android + Release Artifacts | #1763 / `41587931823` | **SUCCESS** |
+
+Android runtime artifact：
+
+- `r5-6-android-runtime-evidence`
+- artifact id: `13210108125`
+- digest: `sha256:fb64ede41d0d0d5b185435b0a77a5579232b91ef7e1ace38e508018098ad0ba4`
+- `case-source-correction-truth.json` records:
+  - `successor_payload_duration_minutes: 35`
+  - `successor_occurred_at_matches_original: true`
+  - `native_original_source_marked_superseded: true`
+  - `native_original_value_preserved: true`
+- `correction-invalidated-sources.xml` contains the original 20-minute row and “记录已由后续修正替代”, and does not rewrite that row to 35 minutes.
+
+This is a runtime-evidence strengthening only. It does not expand R8 product scope or change the visual baseline. `NO_VISION_MODEL_USED = TRUE`; `HUMAN_VISUAL_ACCEPTANCE = PENDING`.
+
