@@ -1,0 +1,206 @@
+{
+  "screen": "assistant",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "contentBounds": {
+    "top": 82,
+    "bottom": 844,
+    "width": 390,
+    "height": 762,
+    "left": 0
+  },
+  "elements": [
+    {
+      "id": "header",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "nav",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 100,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "pli.nav.today",
+      "role": "button",
+      "x": 174,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "今日"
+    },
+    {
+      "id": "pli.nav.timeline",
+      "role": "button",
+      "x": 214,
+      "y": 15,
+      "width": 46,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "时间线"
+    },
+    {
+      "id": "pli.nav.pet",
+      "role": "button",
+      "x": 264,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆"
+    },
+    {
+      "id": "pli.nav.assistant",
+      "role": "button",
+      "x": 304,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "助手"
+    },
+    {
+      "id": "pli.nav.me",
+      "role": "button",
+      "x": 344,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "我的"
+    },
+    {
+      "id": "pli.multipet.switch",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）咪咪（cat）BW-Coco-1790948252505（dog）"
+    },
+    {
+      "id": "pli.multipet.current",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）"
+    },
+    {
+      "id": "pli.assistant.identity",
+      "x": 12,
+      "y": 102,
+      "width": 366,
+      "height": 66,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆的助手\n\n基于 豆豆已有的真实记录回答，不诊断。"
+    },
+    {
+      "id": "pli.assistant.context",
+      "x": 12,
+      "y": 186,
+      "width": 366,
+      "height": 81,
+      "visible": true,
+      "z": 0,
+      "text": "正在查看\n\n豆豆 的最近记录与变化"
+    },
+    {
+      "id": "pli.assistant.chat",
+      "x": 12,
+      "y": 379,
+      "width": 366,
+      "height": 219,
+      "visible": true,
+      "z": 0,
+      "text": "解释变化\n生成总结\n查看记录\n计划下一步\n提问\n我会基于豆豆已有的真实记录回答。你可以问最近变化、任务、训练、健康记录。"
+    },
+    {
+      "id": "pli.assistant.suggestion.explain",
+      "role": "button",
+      "x": 14,
+      "y": 397,
+      "width": 78,
+      "height": 34,
+      "visible": true,
+      "z": 0,
+      "text": "解释变化"
+    },
+    {
+      "id": "pli.assistant.suggestion.summary",
+      "role": "button",
+      "x": 100,
+      "y": 397,
+      "width": 78,
+      "height": 34,
+      "visible": true,
+      "z": 0,
+      "text": "生成总结"
+    },
+    {
+      "id": "pli.assistant.suggestion.records",
+      "role": "button",
+      "x": 186,
+      "y": 397,
+      "width": 78,
+      "height": 34,
+      "visible": true,
+      "z": 0,
+      "text": "查看记录"
+    },
+    {
+      "id": "pli.assistant.suggestion.plan",
+      "role": "button",
+      "x": 272,
+      "y": 397,
+      "width": 91,
+      "height": 34,
+      "visible": true,
+      "z": 0,
+      "text": "计划下一步"
+    },
+    {
+      "id": "pli.assistant.ask",
+      "x": 14,
+      "y": 441,
+      "width": 288,
+      "height": 45,
+      "visible": true,
+      "z": 0,
+      "text": ""
+    },
+    {
+      "id": "pli.assistant.send",
+      "role": "button",
+      "x": 312,
+      "y": 441,
+      "width": 64,
+      "height": 45,
+      "visible": true,
+      "z": 0,
+      "text": "提问"
+    }
+  ]
+}

@@ -60,8 +60,15 @@ class InProcessRateLimiter:
         self._buckets: dict[str, deque[float]] = defaultdict(deque)
 
     async def allow(self, key: str, limit: int, window_seconds: int) -> bool:
-        now = time.monotonic()
         bucket = self._buckets[key]
+        if window_seconds <= 0:
+            # A zero-length window rate limits nothing. This must be explicit:
+            # the age comparison below is strict (`>`), so on platforms whose
+            # monotonic clock ticks coarsely (e.g. Windows GetTickCount64) two
+            # calls in the same tick have age 0.0 and would never be evicted.
+            bucket.clear()
+            return limit > 0
+        now = time.monotonic()
         while bucket and now - bucket[0] > window_seconds:
             bucket.popleft()
         if len(bucket) >= limit:

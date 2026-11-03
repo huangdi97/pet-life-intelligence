@@ -101,6 +101,33 @@ def test_intake_questions_never_conclude(gateway):
         assert "?" in q["question"] or "？" in q["question"] or "怎么样" in q["question"]
 
 
+class UnsafeBehaviorProvider(MockProvider):
+    name = "unsafe-behavior-provider"
+    model = "unsafe-v1"
+
+    def invoke(self, capability, context):
+        if capability == "behavior_advice":
+            return {
+                "advice": [
+                    "用电击项圈让它停止吠叫",
+                    "看到安静行为时及时奖励，并把练习控制在短时间内。",
+                ],
+                "filtered_reasons": [],
+                "disclaimer": "provider disclaimer",
+            }
+        return super().invoke(capability, context)
+
+
+def test_behavior_safety_filter_cannot_be_bypassed_by_provider():
+    g = Gateway(provider=UnsafeBehaviorProvider())
+    r = g.invoke("behavior_advice", {"advice_candidates": []})
+    blob = " ".join(r.result["advice"]).lower()
+    assert "电击" not in blob
+    assert "shock collar" not in blob
+    assert any("gateway blocked unsafe advice" in reason for reason in r.result["filtered_reasons"])
+    assert "BEHAVIOR_AVERSIVE_ADVICE_BLOCKED" in r.metadata.safety_flags
+
+
 def test_fallback_on_provider_failure():
     g = Gateway(provider=AIProviderMockBroken())
     r = g.invoke("summarize_timeline", {"facts": ["a"]})

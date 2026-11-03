@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 export type LoadState = "loading" | "ready" | "error" | "denied";
 
 /** Drop-in replacement for apps/web/components/ui.tsx `State`:
@@ -13,9 +11,9 @@ export function State({
 }: {
   state: LoadState;
   error?: string | null;
-  empty?: ReactNode;
+  empty?: unknown;
   onRetry?: () => void;
-  children: ReactNode;
+  children: unknown;
 }) {
   if (state === "loading")
     return (
@@ -50,6 +48,6 @@ export function State({
         )}
       </div>
     );
-  if (empty && !children) return <div className="pli-state">{empty}</div>;
-  return <>{children}</>;
+  if (empty && !children) return <div className="pli-state">{empty as any}</div>;
+  return <>{children as any}</>;
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { listDrafts, SYNC_LABELS, syncDrafts, type Draft } from "../../lib/drafts";
+import { listDrafts, resolveDraftRequest, SYNC_LABELS, syncDrafts, type Draft } from "../../lib/drafts";
 
 const KIND_LABELS: Record<string, string> = {
   quicklog: "快速记录",
@@ -27,19 +27,11 @@ export default function OfflinePage() {
     try {
       const { synced, failed } = await syncDrafts(async (kind, payload) => {
         const { api } = await import("@pli/api-client");
-        if (kind === "quicklog" || kind === "behavior") {
-          const petId = window.localStorage.getItem("pli_current_pet");
-          if (!petId) throw new Error("NO_PET_SELECTED");
-          await api.post(`/pets/${petId}/events`, payload);
-        } else {
-          // health_intake / care_note 草稿需要宠物上下文；无法同步时保留
-          const petId = window.localStorage.getItem("pli_current_pet");
-          if (!petId) throw new Error("NO_PET_SELECTED");
-          await api.post(`/pets/${petId}/events`, { event_type: "diary.created", payload });
-        }
+        const request = resolveDraftRequest(kind, payload);
+        await api.post(request.path, request.body);
       });
       setDrafts(listDrafts());
-      setMsg(`已同步 ${synced} 条${failed > 0 ? `，失败 ${failed} 条（稍后重试）` : ""}`);
+      setMsg(`已同步 ${synced} 条${failed > 0 ? `，${failed} 条保留待处理（身份缺失或提交失败；不会改写到当前宠物）` : ""}`);
     } catch {
       setMsg("同步失败，请稍后重试");
     } finally {
@@ -54,12 +46,12 @@ export default function OfflinePage() {
       <p className="sub">
         网络似乎不可用。已缓存的基础页面仍可使用；医疗高风险数据在上传前不会只保存在本机。
       </p>
-      <p className="muted" data-testid="pli.offline.last-sync">最近同步：{syncing ? "同步中…" : msg ? msg : "尚未同步，恢复网络后会自动同步"}</p>
+      <p className="muted" data-testid="pli.offline.last-sync">最近同步：{syncing ? "同步中…" : msg ? msg : "尚未同步，请在网络恢复后手动点击重试"}</p>
       {msg && <div className="alert info">{msg}</div>}
 
       <div className="card" style={{ width: "min(92vw, 560px)", textAlign: "left" }} data-testid="pli.offline.cached">
         <h2>本地草稿</h2>
-        <p className="muted">离线时记录会先保存为草稿，恢复后自动同步（未同步 / 同步中 / 已同步 / 同步失败）。</p>
+        <p className="muted">离线草稿不会自动转移到其他宠物。恢复网络后请手动同步；旧版缺少宠物归属或不支持的草稿将安全保留（未同步 / 同步中 / 已同步 / 同步失败）。</p>
         {drafts.length === 0 ? (
           <div className="state">没有本地草稿。</div>
         ) : (
@@ -74,9 +66,13 @@ export default function OfflinePage() {
                   <span className="tl-time">{new Date(d.created_at).toLocaleString("zh-CN", { hour12: false })}</span>
                 </div>
                 <div className="tl-body">
-                  {Object.entries(d.payload)
-                    .map(([k, v]) => `${k}: ${String(v)}`)
-                    .join(" · ")}
+                  {typeof d.payload.pet_id === "string"
+                    ? `记录对象：${d.payload.pet_id}`
+                    : "未核验宠物归属：不会自动上传"} · {d.kind === "quicklog" && typeof d.payload.text === "string"
+                    ? "备注草稿已保留"
+                    : typeof d.payload.event_type === "string"
+                      ? `事件类型：${d.payload.event_type}`
+                      : "待人工处理"}
                 </div>
               </li>
             ))}

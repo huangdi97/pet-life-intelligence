@@ -6,6 +6,12 @@
 > 不做时间测量；可运行的仓内确定性管线完成真实 benchmark。
 > 原始数据：`artifacts/r2p3d-r1/provider-benchmark/`.
 
+> **2026-10-10 superseding fidelity note**：下文
+> `STANDARD_INDIVIDUAL_TWIN_PIPELINE = PASS` 只证明 deterministic
+> template/morph/provenance/runtime 产品链闭环；它**不**证明真实宠物身份级高保真。
+> 当前 `INDIVIDUAL_HIGH_FIDELITY_TWIN = NOT_YET_QUALIFIED`，外观重建与自动
+> Rig 的生产候选见 `PET_TWIN_PRODUCTION_FIDELITY_PLAN_2026-10-10.md`。
+
 ## 1. 结论分类
 
 | 分类 | 含义 |

@@ -1,6 +1,7 @@
 /** Secure storage via expo-secure-store (Keychain / Keystore).
  *  Tokens must never live in plain AsyncStorage. */
 import * as SecureStore from "expo-secure-store";
+import { clearAllOwnerIntents } from "./pendingOwnerReview";
 
 export const SESSION_KEY = "pli_session";
 export const CURRENT_PET_KEY = "pli_current_pet";
@@ -12,6 +13,8 @@ export async function getToken(): Promise<string | null> {
 }
 
 export async function setToken(token: string | null): Promise<void> {
+  const current = await SecureStore.getItemAsync(SESSION_KEY);
+  if (current !== token) await clearAllOwnerIntents();
   if (token) await SecureStore.setItemAsync(SESSION_KEY, token);
   else await SecureStore.deleteItemAsync(SESSION_KEY);
 }
@@ -31,6 +34,8 @@ export async function getDevUserId(): Promise<string | null> {
 }
 
 export async function setDevUserId(id: string | null): Promise<void> {
+  const current = await SecureStore.getItemAsync(DEV_USER_KEY);
+  if (current !== id) await clearAllOwnerIntents();
   if (id) await SecureStore.setItemAsync(DEV_USER_KEY, id);
   else await SecureStore.deleteItemAsync(DEV_USER_KEY);
 }

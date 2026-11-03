@@ -9,15 +9,43 @@
 
 // Stage environment (used by clients for CSS background + fog tint).
 export const STAGE = {
-  /** Warm charcoal base — the dark, warm room the pet lives in. */
-  base: "#171310",
-  /** Slightly warmer brown-black for the deep layer. */
-  deep: "#100D0B",
-  /** Warm radial glow behind the pet. */
-  glow: "#3A2E24",
-  /** Fog / far-layer tint. */
-  fog: "#241C16",
+  /** Canonical warm-lifestyle base — calm daylight, never a dark viewer. */
+  base: "#F4E9D8",
+  /** Far field keeps depth without turning the room into a green brand panel. */
+  deep: "#E7D5BC",
+  /** Warm daylight around the real pet / individual Twin. */
+  glow: "#FFF7E9",
+  /** The WebGL haze must blend into the cream Living Canvas host. */
+  fog: "#EFE0C8",
 } as const;
+
+// R4.2 stage themes — the WebView/WebGL surface itself is themed per screen
+// role (never a dark viewer on owner hero pages):
+//   living      -> warm lifestyle reality field (Today / Pet / Life View)
+//   review      -> neutral identity studio (Twin Review)
+//   engineering -> dark debug stage (engineering manifests only)
+export const STAGE_THEMES = {
+  living: {
+    base: "#F4E9D8",
+    deep: "#E7D5BC",
+    glow: "#FFF7E9",
+    fog: "#EFE0C8",
+  },
+  review: {
+    base: "#F4F1EA",
+    deep: "#EBE5D8",
+    glow: "#FFFDF8",
+    fog: "#EAE4D8",
+  },
+  engineering: {
+    base: "#171310",
+    deep: "#100D0B",
+    glow: "#3A2E24",
+    fog: "#241C16",
+  },
+} as const;
+
+export type StageTheme = keyof typeof STAGE_THEMES;
 
 // Coat materials (corgi 豆豆).
 export const CORGI = {
@@ -45,20 +73,24 @@ export const MIMI = {
 export const GROUND_SHADOW = {
   /** Warm dark tone for the soft contact shadow under the pet. */
   color: 0x2a2018,
-  opacity: 0.32,
+  opacity: 0.18,
 } as const;
 
 export const LIGHTS = {
-  /** Warm low ambient so nothing is pitch black. */
-  ambient: 0xffe8d2,
-  ambientIntensity: 0.55,
-  /** Warm key light from upper front-left. */
-  key: 0xffd9b8,
-  keyIntensity: 1.05,
-  /** Cooler fill from the right to keep shapes readable. */
-  fill: 0xe8e2d8,
-  fillIntensity: 0.35,
-  /** Soft rim from behind to lift the silhouette off the background. */
-  rim: 0xfff3e0,
-  rimIntensity: 0.55,
+  /** Neutral daylight ambient so coat colors stay readable without a beige cast. */
+  ambient: 0xfff8ef,
+  ambientIntensity: 0.46,
+  /** Warm-neutral sky / ground separation gives coat volume without tinting fur green. */
+  hemisphereSky: 0xfffbf4,
+  hemisphereGround: 0xdccbb5,
+  hemisphereIntensity: 0.62,
+  /** Daylight key from upper front-left. */
+  key: 0xfff1dd,
+  keyIntensity: 1.18,
+  /** Warm-neutral fill from the right keeps cream/brown/grey coats faithful. */
+  fill: 0xf1e7d8,
+  fillIntensity: 0.48,
+  /** Soft warm daylight rim lifts the silhouette without a neon/hologram edge. */
+  rim: 0xfff6e8,
+  rimIntensity: 0.72,
 } as const;

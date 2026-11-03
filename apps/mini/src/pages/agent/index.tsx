@@ -4,9 +4,10 @@
  * 数据流不变：/ask、/search、/health-events、/tasks。
  */
 import { useCallback, useEffect, useState } from "react";
-import { Text, View } from "@tarojs/components";
+import { ScrollView, Text, View } from "@tarojs/components";
 import { api, type Task } from "../../services/api";
 import { usePets } from "../../utils/usePets";
+import { PetContextGate } from "../../components/feedback/Feedback";
 import { PetContextHeader } from "../../components/pet_visual";
 import {
   AskPanel,
@@ -26,7 +27,7 @@ import {
 } from "./_lib";
 
 export default function Agent() {
-  const { pets, petId } = usePets();
+  const { pets, petId, state: petContextState, refresh: refreshPets } = usePets();
   const [tab, setTab] = useState<AgentTab>("ask");
   const current = pets?.find((p) => p.id === petId) ?? pets?.[0];
 
@@ -60,6 +61,15 @@ export default function Agent() {
   useEffect(() => {
     if (petId) loadBriefAndPlan(petId);
   }, [petId, loadBriefAndPlan]);
+
+  if (petContextState !== "ready" || !petId || !pets?.length) {
+    return (
+      <View className="page">
+        <View className="h1">宠物助手</View>
+        <PetContextGate state={petContextState} hasPet={Boolean(petId && pets?.length)} onRetry={refreshPets} />
+      </View>
+    );
+  }
 
   async function ask(q?: string) {
     const text = (q ?? question).trim();
@@ -100,10 +110,9 @@ export default function Agent() {
     }
   }
 
-  const modes: Array<{ key: AgentTab; label: string }> = [
-    { key: "ask", label: "问" },
+  const assistantTools: Array<{ key: Exclude<AgentTab, "ask">; label: string }> = [
     { key: "brief", label: "摘要" },
-    { key: "find", label: "找" },
+    { key: "find", label: "找记录" },
     { key: "plan", label: "计划" },
     { key: "explain", label: "解释" },
   ];
@@ -116,48 +125,70 @@ export default function Agent() {
         sub="回答引用真实记录；风险判断以独立规则引擎为准"
       />
 
-      <View className="mode-row">
-        {modes.map((m) => (
-          <View
-            key={m.key}
-            className={`mode-pill${tab === m.key ? " mode-pill-active" : ""}${m.key === "ask" ? " mode-pill-primary" : ""}`}
-            onClick={() => setTab(m.key)}
-          >
-            {m.label}
-          </View>
-        ))}
+      <View className="sub" data-testid="pli.mini.assistant.context">
+        正在帮助你理解：{current?.name ?? "这只宠物"}
       </View>
 
-      {tab === "ask" && (
-        <AskPanel
-          petName={current?.name}
-          question={question}
-          askState={askState}
-          result={result}
-          onQuestionChange={setQuestion}
-          onAsk={ask}
-        />
+      {tab === "ask" ? (
+        <>
+          <View className="agent-primary-lead">先问一件和{current?.name ?? "这只宠物"}有关的事</View>
+          <AskPanel
+            petName={current?.name}
+            question={question}
+            askState={askState}
+            result={result}
+            onQuestionChange={setQuestion}
+            onAsk={ask}
+          />
+        </>
+      ) : (
+        <View className="agent-context-panel">
+          <View className="agent-back-to-ask" onClick={() => setTab("ask")}>← 回到提问</View>
+          {tab === "brief" && <BriefPanel healthRows={healthRows} />}
+          {tab === "find" && (
+            <FindPanel
+              query={query}
+              findState={findState}
+              hits={hits}
+              onQueryChange={setQuery}
+              onSearch={runSearch}
+            />
+          )}
+          {tab === "plan" && <PlanPanel tasks={tasks} onComplete={completeTask} />}
+          {tab === "explain" && <ExplainPanel />}
+        </View>
       )}
 
-      {tab === "brief" && <BriefPanel healthRows={healthRows} />}
+      <View className="attention-panel attention-calm" data-testid="pli.mini.assistant.medical-boundary">
+        <View className="attention-title">医疗动作边界</View>
+        <View className="attention-body">
+          助手可以整理记录和解释规则结果，但不会诊断、开药、改剂量或替代兽医。
+        </View>
+        <View className="attention-footer">
+          需要尽快或立即就医时，以健康页的独立风险分级与行动指引为准。
+        </View>
+      </View>
 
-      {tab === "find" && (
-        <FindPanel
-          query={query}
-          findState={findState}
-          hits={hits}
-          onQueryChange={setQuery}
-          onSearch={runSearch}
-        />
-      )}
-
-      {tab === "plan" && <PlanPanel tasks={tasks} onComplete={completeTask} />}
-
-      {tab === "explain" && <ExplainPanel />}
+      <View className="agent-tool-section">
+        <View className="agent-tool-label">更多帮助</View>
+        <ScrollView scrollX showScrollbar={false} className="agent-tool-scroll">
+          <View className="agent-tool-row">
+            {assistantTools.map((tool) => (
+              <View
+                key={tool.key}
+                className={`agent-tool${tab === tool.key ? " agent-tool-active" : ""}`}
+                onClick={() => setTab(tool.key)}
+              >
+                {tool.label}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
 
       {askState === "blocked" && (
         <Text className="life-empty-note" style={{ display: "block", marginTop: 12 }}>
-          AI 服务暂未开放，连接后即可提问。
+          当前无法连接 AI 服务；已有记录与时间线仍可正常查看。
         </Text>
       )}
     </View>

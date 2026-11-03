@@ -17,10 +17,13 @@ export function QuickLogSheet(props: {
   onClose: () => void;
   onPickType: (t: QuickType) => void;
   onFormChange: (key: string, value: string) => void;
+  mediaCount: number;
+  onAddMedia: () => void;
+  onClearMedia: () => void;
   onBack: () => void;
   onSave: () => void;
 }) {
-  const { pet, type, form, busy, onClose, onPickType, onFormChange, onBack, onSave } = props;
+  const { pet, type, form, busy, onClose, onPickType, onFormChange, mediaCount, onAddMedia, onClearMedia, onBack, onSave } = props;
   return (
     <View className="sheet-mask" onClick={onClose}>
       <View className="sheet" onClick={(e) => e.stopPropagation()}>
@@ -73,18 +76,57 @@ export function QuickLogSheet(props: {
             <View className="muted" style={{ marginBottom: 12 }}>{type.label} · 记录会带来源与记录人进入事件图</View>
             {type.fields.map((f) => (
               <View className="field" key={f.key}>
-                <Text>{f.label}</Text>
-                <Input
-                  className="input"
-                  value={form[f.key] ?? ""}
-                  onInput={(e) => onFormChange(f.key, e.detail.value)}
-                  type={f.numeric ? "digit" : "text"}
-                />
+                <Text>{f.label}{f.required ? " *" : ""}</Text>
+                {f.options?.length ? (
+                  <View className="chips" style={{ marginTop: 6 }}>
+                    {f.options.map((option) => (
+                      <View
+                        key={option.value}
+                        className={`chip${form[f.key] === option.value ? " chip-active" : ""}`}
+                        onClick={() => onFormChange(f.key, option.value)}
+                      >
+                        {option.label}
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Input
+                    className="input"
+                    value={form[f.key] ?? ""}
+                    onInput={(e) => onFormChange(f.key, e.detail.value)}
+                    type={f.numeric ? "digit" : "text"}
+                    placeholder={f.required ? "请填写真实记录" : "不知道可以留空"}
+                  />
+                )}
               </View>
             ))}
+            {type.type !== "diary.created" && (
+              <View className="soft-panel" style={{ marginBottom: 12 }}>
+                <View className="muted">照片证据（可选，最多 3 张）</View>
+                <View className="row" style={{ marginTop: 8 }}>
+                  <Button className="btn" disabled={busy || mediaCount >= 3} onClick={onAddMedia}>
+                    {mediaCount ? `已选 ${mediaCount}/3 张` : "添加照片"}
+                  </Button>
+                  {mediaCount > 0 ? <Button className="btn" onClick={onClearMedia}>清除</Button> : null}
+                </View>
+              </View>
+            )}
             <View className="row" style={{ justifyContent: "space-between" }}>
               <Button className="btn" onClick={onBack}>返回</Button>
-              <Button className="btn btn-primary" onClick={onSave} disabled={busy}>
+              <Button
+                className="btn btn-primary"
+                onClick={onSave}
+                disabled={
+                  busy ||
+                  type.fields.some((field) => {
+                    const raw = (form[field.key] ?? "").trim();
+                    if (field.required && !raw) return true;
+                    if (!raw || field.min == null) return false;
+                    const value = Number(raw);
+                    return !Number.isFinite(value) || value < field.min;
+                  })
+                }
+              >
                 {busy ? "保存中…" : "保存"}
               </Button>
             </View>

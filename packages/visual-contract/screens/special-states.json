@@ -1,26 +1,233 @@
 {
   "screen": "special-states",
-  "version": 1,
-  "dimensions": { "petIdentity": 20, "composition": 20, "hierarchy": 15, "surface": 10, "contentPurity": 10, "interaction": 10, "accessibility": 5, "runtimeTruth": 10 },
-  "thresholds": { "pass": 85 },
-  "critical": ["special.content.purity", "special.empty.presence", "special.attention.one", "special.offline.retry", "special.multipet.switch"],
+  "version": 2,
+  "dimensions": {
+    "individualPetTruth": 25,
+    "visualComposition": 20,
+    "informationHierarchy": 15,
+    "surfaceGovernance": 10,
+    "contentPurity": 10,
+    "interactionTruth": 10,
+    "accessibility": 5,
+    "pixelStyleTruth": 5
+  },
+  "thresholds": {
+    "pass": 85
+  },
+  "critical": [
+    "special.content.purity",
+    "special.empty.presence",
+    "special.attention.one",
+    "special.offline.retry",
+    "special.multipet.switch"
+  ],
   "checks": [
-    { "id": "special.empty.presence", "dimension": "petIdentity", "points": 5, "description": "Empty 态：Pet Presence 存在", "check": { "kind": "element", "idPrefix": "pli.empty.pet" } },
-    { "id": "special.empty.why", "dimension": "hierarchy", "points": 4, "description": "Empty 态：为什么为空", "check": { "kind": "element", "idPrefix": "pli.empty.why" } },
-    { "id": "special.empty.action", "dimension": "interaction", "points": 2, "description": "Empty 态：一个主动作", "check": { "kind": "element", "idPrefix": "pli.empty.action" } },
-    { "id": "special.attention.one", "dimension": "petIdentity", "points": 5, "description": "Attention 态：单 attention", "check": { "kind": "element", "idPrefix": "pli.attention.panel", "count": [1, 1] } },
-    { "id": "special.attention.evidence", "dimension": "hierarchy", "points": 4, "description": "Attention 态：evidence", "check": { "kind": "element", "idPrefix": "pli.attention.evidence" } },
-    { "id": "special.attention.action", "dimension": "interaction", "points": 2, "description": "Attention 态：action", "check": { "kind": "element", "idPrefix": "pli.attention.action" } },
-    { "id": "special.offline.state", "dimension": "petIdentity", "points": 5, "description": "Offline 态：offline state", "check": { "kind": "element", "idPrefix": "pli.offline.state" } },
-    { "id": "special.offline.cached", "dimension": "hierarchy", "points": 4, "description": "Offline 态：cached 内容", "check": { "kind": "element", "idPrefix": "pli.offline.cached" } },
-    { "id": "special.offline.sync", "dimension": "hierarchy", "points": 3, "description": "Offline 态：last sync", "check": { "kind": "element", "idPrefix": "pli.offline.last-sync" } },
-    { "id": "special.offline.retry", "dimension": "interaction", "points": 3, "description": "Offline 态：retry", "check": { "kind": "element", "idPrefix": "pli.offline.retry" } },
-    { "id": "special.multipet.current", "dimension": "petIdentity", "points": 5, "description": "Multi-pet 态：current pet", "check": { "kind": "element", "idPrefix": "pli.multipet.current" } },
-    { "id": "special.multipet.switch", "dimension": "interaction", "points": 3, "description": "Multi-pet 态：switch 存在", "check": { "kind": "element", "idPrefix": "pli.multipet.switch" } },
-    { "id": "special.composition", "dimension": "composition", "points": 20, "description": "每态有清晰主视觉结构", "check": { "kind": "element", "idPrefix": "pli.empty.*", "count": [1, 6] } },
-    { "id": "special.surface", "dimension": "surface", "points": 10, "description": "大 Card ≤3", "check": { "kind": "surface", "max": 3, "minArea": 16000 } },
-    { "id": "special.content.purity", "dimension": "contentPurity", "points": 10, "description": "Owner 文本无 raw internal terms", "check": { "kind": "text-free", "tokens": ["BW-", "OWNER_REPORTED", "STRESS_RECOVERY", "OPEN", "provider_", "model_id", "event_key", "PLI-"] } },
-    { "id": "special.a11y", "dimension": "accessibility", "points": 5, "description": "主动作可访问", "check": { "kind": "element", "idPrefix": "pli.empty.action" } },
-    { "id": "special.truth", "dimension": "runtimeTruth", "points": 10, "description": "特殊态数据来自真实 runtime", "check": { "kind": "text-free", "tokens": ["占位", "TODO", "placeholder"] } }
+    {
+      "id": "special.empty.presence",
+      "dimension": "individualPetTruth",
+      "points": 5,
+      "description": "Empty 态：Pet Presence 存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.empty.pet"
+      }
+    },
+    {
+      "id": "special.empty.why",
+      "dimension": "informationHierarchy",
+      "points": 4,
+      "description": "Empty 态：为什么为空",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.empty.why"
+      }
+    },
+    {
+      "id": "special.empty.action",
+      "dimension": "interactionTruth",
+      "points": 2,
+      "description": "Empty 态：一个主动作",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.empty.action"
+      }
+    },
+    {
+      "id": "special.attention.one",
+      "dimension": "individualPetTruth",
+      "points": 5,
+      "description": "Attention 态：单 attention",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.panel",
+        "count": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "id": "special.attention.evidence",
+      "dimension": "informationHierarchy",
+      "points": 4,
+      "description": "Attention 态：evidence",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.evidence"
+      }
+    },
+    {
+      "id": "special.attention.action",
+      "dimension": "interactionTruth",
+      "points": 2,
+      "description": "Attention 态：action",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.attention.action"
+      }
+    },
+    {
+      "id": "special.offline.state",
+      "dimension": "individualPetTruth",
+      "points": 5,
+      "description": "Offline 态：offline state",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.offline.state"
+      }
+    },
+    {
+      "id": "special.offline.cached",
+      "dimension": "informationHierarchy",
+      "points": 4,
+      "description": "Offline 态：cached 内容",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.offline.cached"
+      }
+    },
+    {
+      "id": "special.offline.sync",
+      "dimension": "informationHierarchy",
+      "points": 3,
+      "description": "Offline 态：last sync",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.offline.last-sync"
+      }
+    },
+    {
+      "id": "special.offline.retry",
+      "dimension": "interactionTruth",
+      "points": 3,
+      "description": "Offline 态：retry",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.offline.retry"
+      }
+    },
+    {
+      "id": "special.multipet.current",
+      "dimension": "individualPetTruth",
+      "points": 5,
+      "description": "Multi-pet 态：current pet",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.multipet.current"
+      }
+    },
+    {
+      "id": "special.multipet.switch",
+      "dimension": "interactionTruth",
+      "points": 3,
+      "description": "Multi-pet 态：switch 存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.multipet.switch"
+      }
+    },
+    {
+      "id": "special.composition",
+      "dimension": "visualComposition",
+      "points": 20,
+      "description": "每态有清晰主视觉结构",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.empty.*",
+        "count": [
+          1,
+          6
+        ]
+      }
+    },
+    {
+      "id": "special.surface",
+      "dimension": "surfaceGovernance",
+      "points": 10,
+      "description": "大 Card ≤3",
+      "check": {
+        "kind": "surface",
+        "max": 3,
+        "minArea": 16000
+      }
+    },
+    {
+      "id": "special.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      }
+    },
+    {
+      "id": "special.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "主动作可访问",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.empty.action"
+      }
+    },
+    {
+      "id": "special.truth",
+      "dimension": "individualPetTruth",
+      "points": 5.0,
+      "description": "特殊态数据来自真实 runtime (real data)",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder"
+        ]
+      }
+    },
+    {
+      "id": "special.truth.style",
+      "dimension": "pixelStyleTruth",
+      "points": 5.0,
+      "description": "无占位/空板书风格（style truth）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      }
+    }
   ]
 }

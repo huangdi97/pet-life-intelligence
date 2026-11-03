@@ -27,6 +27,9 @@ export interface QuickField {
   label: string;
   initial: string;
   numeric?: boolean;
+  required?: boolean;
+  min?: number;
+  options?: Array<{ value: string; label: string }>;
 }
 
 export interface QuickType {
@@ -39,14 +42,80 @@ export interface QuickType {
 /** Quick Log Sheet 类型 — 只复用后端 event_types.py 已注册的 daily.* 事件，
  *  payload 字段与 canonical schema 一致，不发明新事件/新字段。 */
 export const QUICK_TYPES: QuickType[] = [
-  { type: "daily.meal", label: "喂食", fields: [{ key: "amount", label: "食量（g）", initial: "100" }, { key: "food_type", label: "食物类型", initial: "狗粮" }], defaults: { unit: "g" } },
-  { type: "daily.drink", label: "饮水", fields: [{ key: "amount", label: "饮水量（ml）", initial: "200" }], defaults: { unit: "ml" } },
-  { type: "daily.elimination", label: "排泄", fields: [{ key: "kind", label: "类型（urine/stool/both）", initial: "urine" }, { key: "quality", label: "状态（normal/abnormal）", initial: "normal" }], defaults: {} },
-  { type: "daily.walk", label: "散步", fields: [{ key: "duration_minutes", label: "时长（分钟）", initial: "20", numeric: true }], defaults: { intensity: "normal" } },
-  { type: "daily.play", label: "玩耍", fields: [{ key: "duration_minutes", label: "时长（分钟）", initial: "15", numeric: true }], defaults: { activity_type: "fetch" } },
-  { type: "daily.weight", label: "体重", fields: [{ key: "weight_kg", label: "体重（kg）", initial: "12.0" }], defaults: {} },
-  { type: "daily.sleep", label: "睡眠", fields: [{ key: "duration_minutes", label: "时长（分钟）", initial: "60", numeric: true }], defaults: { quality: "" } },
-  { type: "diary.created", label: "备注", fields: [{ key: "text", label: "备注内容", initial: "" }], defaults: {} },
+  {
+    type: "daily.meal",
+    label: "喂食",
+    fields: [
+      { key: "amount", label: "大约多少", initial: "", numeric: true },
+      { key: "unit", label: "单位", initial: "" },
+      { key: "food_type", label: "吃了什么", initial: "" },
+    ],
+    defaults: {},
+  },
+  {
+    type: "daily.drink",
+    label: "饮水",
+    fields: [
+      { key: "amount", label: "大约多少", initial: "", numeric: true },
+      { key: "unit", label: "单位", initial: "" },
+    ],
+    defaults: {},
+  },
+  {
+    type: "daily.elimination",
+    label: "排泄",
+    fields: [
+      {
+        key: "kind",
+        label: "类型",
+        initial: "",
+        options: [
+          { value: "urine", label: "尿" },
+          { value: "stool", label: "便" },
+          { value: "both", label: "都有" },
+        ],
+      },
+      {
+        key: "quality",
+        label: "观察到的状态",
+        initial: "",
+        options: [
+          { value: "normal", label: "看起来和平时一样" },
+          { value: "abnormal", label: "和平时不一样" },
+          { value: "concerning", label: "明显需要关注" },
+        ],
+      },
+    ],
+    defaults: {},
+  },
+  {
+    type: "daily.walk",
+    label: "散步",
+    fields: [{ key: "duration_minutes", label: "时长（分钟，可选）", initial: "", numeric: true, min: 1 }],
+    defaults: {},
+  },
+  {
+    type: "daily.play",
+    label: "玩耍",
+    fields: [
+      { key: "duration_minutes", label: "时长（分钟）", initial: "", numeric: true, required: true },
+      { key: "activity_type", label: "玩了什么", initial: "" },
+    ],
+    defaults: {},
+  },
+  {
+    type: "daily.weight",
+    label: "体重",
+    fields: [{ key: "weight_kg", label: "体重（kg）", initial: "", numeric: true, required: true }],
+    defaults: {},
+  },
+  {
+    type: "daily.sleep",
+    label: "睡眠",
+    fields: [{ key: "duration_minutes", label: "时长（分钟）", initial: "", numeric: true, required: true }],
+    defaults: {},
+  },
+  { type: "diary.created", label: "备注", fields: [{ key: "text", label: "备注内容", initial: "", required: true }], defaults: {} },
 ];
 
 /** Quick Log 一级（高频，2 taps 完成）与二级（轻表单或进入对应页面）。 */
@@ -101,7 +170,7 @@ export function heroIdentity(pet: { species: string; breed: string; birth_date: 
   return parts.join(" · ");
 }
 
-export function eventRowFromEvent(e: { event_id: string; event_type: string; occurred_at: string; payload: Record<string, unknown>; source_type: string }): LifeStreamRow {
+export function eventRowFromEvent(e: { event_id: string; event_type: string; occurred_at: string; payload: Record<string, unknown>; source_type: string; artifact_ids?: string[] }): LifeStreamRow {
   const t = new Date(e.occurred_at);
   const hh = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
   return {
@@ -110,5 +179,6 @@ export function eventRowFromEvent(e: { event_id: string; event_type: string; occ
     typeLabel: eventTypeLabel(e.event_type),
     detail: eventPayloadText(e.payload),
     source: sourceLabel(e.source_type),
+    mediaCount: e.artifact_ids?.length ?? 0,
   };
 }

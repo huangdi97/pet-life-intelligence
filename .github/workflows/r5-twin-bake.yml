@@ -1,0 +1,97 @@
+name: R5 Twin Deterministic Bake
+
+on:
+  push:
+    branches:
+      - feat/r2p3d-r3-render-truth-ui-closure
+    paths:
+      - "artifacts/r2p3d-r5/twin-sources/doudou-gobkit-corgi/**"
+      - "scripts/r2p3d-r4/bake_twin.py"
+      - "scripts/r2p3d-r4/build_twins.py"
+      - "scripts/r2p3d-r4/glbwriter.py"
+      - "scripts/r2p3d-r4/skinweights.py"
+      - "scripts/r2p3d-r4/motion_py.py"
+      - "scripts/r2p3d-r4/objio.py"
+      - "scripts/r2p3d-r4/corgi_morph.py"
+      - "scripts/r2p3d-r4/unwrap.py"
+      - "scripts/r2p3d-r4/painting.py"
+      - "scripts/r2p3d-r4/meshops.py"
+      - "scripts/r2p3d-r4/asset_qa.py"
+      - ".github/workflows/r5-twin-bake.yml"
+
+concurrency:
+  group: r5-twin-bake-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  bake-twins:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/r2p3d-r3-render-truth-ui-closure
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lean bake dependencies
+        run: python -m pip install --disable-pip-version-check numpy pillow
+
+      - name: Bake demo twins through one deterministic PLI pipeline
+        run: |
+          python scripts/r2p3d-r4/bake_twin.py --identity dog
+          python scripts/r2p3d-r4/build_twins.py --identity dog
+          python scripts/r2p3d-r4/bake_twin.py --identity cat
+          python scripts/r2p3d-r4/build_twins.py --identity cat
+          python scripts/r2p3d-r4/asset_qa.py
+
+      - name: Synchronize web product twin assets
+        run: |
+          mkdir -p apps/web/public/assets/twins
+          for pet in doudou mimi; do
+            for asset in "${pet}.glb" "${pet}_baseColor.png" "${pet}_observed.png" "${pet}_inferred.png"; do
+              cp "packages/pet-3d/assets/twins/${asset}" "apps/web/public/assets/twins/${asset}"
+              cmp "packages/pet-3d/assets/twins/${asset}" "apps/web/public/assets/twins/${asset}"
+            done
+          done
+
+      - name: Verify source provenance
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          dog=json.loads(Path("packages/pet-3d/assets/twins/doudou_meta.json").read_text(encoding="utf-8"))
+          cat=json.loads(Path("packages/pet-3d/assets/twins/mimi_meta.json").read_text(encoding="utf-8"))
+          assert dog["nativeBreedSource"] is True
+          assert dog["sourceGeometryClass"] == "native-corgi"
+          assert dog["twin_version"] == "r5-1.0.0"
+          assert "Gobkit" in dog["sourceProvenance"]
+          assert cat["pet_id"] == "mimi"
+          assert cat["representationQuality"] == "HIGH_FIDELITY_SKINNED"
+          assert "Quaternius" in cat["sourceProvenance"]
+          print("R5_TWIN_SOURCE_PROVENANCE=PASS")
+          PY
+
+      - name: Commit deterministic baked product asset
+        run: |
+          git config user.name "pli-r5-bake-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add packages/pet-3d/assets/twins/doudou* packages/pet-3d/assets/twins/mimi* apps/web/public/assets/twins/doudou* apps/web/public/assets/twins/mimi* reports/r2p3d-r4/ASSET_QA_R4.json
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+            exit 0
+          fi
+          git commit -m "build(twin): bake corrected R5 demo twin assets"
+          # Other product/UI commits may land while this deterministic bake is
+          # running. Rebase the generated commit onto the current branch tip;
+          # never force-push and never overwrite concurrent work.
+          git fetch origin feat/r2p3d-r3-render-truth-ui-closure
+          git rebase origin/feat/r2p3d-r3-render-truth-ui-closure
+          git push origin HEAD:feat/r2p3d-r3-render-truth-ui-closure

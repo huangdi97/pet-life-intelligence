@@ -4,14 +4,6 @@ export type AgentTab = "ask" | "brief" | "find" | "plan" | "explain";
 export type AskState = "idle" | "loading" | "ready" | "blocked" | "error";
 export type FindState = "idle" | "loading" | "ready" | "error";
 
-export const TABS: Array<{ key: AgentTab; label: string }> = [
-  { key: "ask", label: "问" },
-  { key: "brief", label: "摘要" },
-  { key: "find", label: "找" },
-  { key: "plan", label: "计划" },
-  { key: "explain", label: "解释" },
-];
-
 /** 建议问题（Stage H 指定 4 条）。 */
 export const SUGGESTED = [
   "最近体重有什么变化？",
@@ -22,9 +14,15 @@ export const SUGGESTED = [
 
 export interface AnswerResult {
   answer: string;
-  citations: string[];
-  sufficient: boolean;
-  disclaimer: string;
+  facts?: string[];
+  inference?: string | null;
+  citations?: Array<string | { label?: string; event_id?: string }>;
+  sources?: Array<string | { label?: string; event_id?: string }>;
+  uncertainty?: string | null;
+  action?: string | null;
+  sufficient?: boolean;
+  disclaimer?: string;
+  external_blocked?: boolean;
 }
 
 export interface SearchHit {

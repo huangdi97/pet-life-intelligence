@@ -52,6 +52,7 @@ def _register(event_type: str, description: str, payload_model: type[BaseModel],
 from .event_types_care import (  # noqa: E402
     CareCardGeneratedPayload,
     CareConflictDetectedPayload,
+    CareHandoffChecklistCompletedPayload,
     CareHandoffEndedPayload,
     CareHandoffStartedPayload,
     CareTaskCompletedPayload,
@@ -162,6 +163,7 @@ _register("care.task_completed", "Care task completed", CareTaskCompletedPayload
 _register("care.task_conflict", "Duplicate completion conflict", CareConflictDetectedPayload, "care")
 _register("care.handoff_started", "Care handoff started", CareHandoffStartedPayload, "care")
 _register("care.handoff_ended", "Care handoff ended", CareHandoffEndedPayload, "care")
+_register("care.handoff_checklist_completed", "Care handoff checklist item completed", CareHandoffChecklistCompletedPayload, "care")
 _register("care.card_issued", "Care card generated", CareCardGeneratedPayload, "care")
 _register("behavior.observed", "Behavior event recorded", BehaviorObservedPayload, "behavior")
 _register("health.event_opened", "Health event opened", HealthEventOpenedPayload, "health")

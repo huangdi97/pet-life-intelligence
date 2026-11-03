@@ -16,6 +16,7 @@ export function eventTypeLabel(eventType: string): string {
     "daily.weight": "体重",
     "daily.sleep": "睡眠",
     "diary.created": "备注",
+    "milestone.recorded": "里程碑",
     "medication.administered": "用药",
     "behavior.observed": "行为",
     "health.event_opened": "健康记录",
@@ -88,6 +89,21 @@ export function petAgeText(birthDate: string | null): string {
   return `${years}岁${months}个月`;
 }
 
+function payloadValueLabel(key: string, value: unknown): string {
+  const raw = String(value);
+  const enums: Record<string, Record<string, string>> = {
+    kind: { urine: "尿", stool: "便", both: "尿和便" },
+    quality: {
+      normal: "和平时一样",
+      abnormal: "和平时不一样",
+      concerning: "明显需要关注",
+    },
+    intensity: { low: "轻松", normal: "一般", high: "较高" },
+    activity_type: { fetch: "追球" },
+  };
+  return enums[key]?.[raw] ?? raw;
+}
+
 /** 事件 payload → 简短用户语言摘要（只映射已知字段，未知字段不暴露 key）。 */
 export function eventPayloadText(payload: Record<string, unknown>): string {
   const map: Record<string, string> = {
@@ -107,7 +123,21 @@ export function eventPayloadText(payload: Record<string, unknown>): string {
   Object.entries(payload).forEach(([k, v]) => {
     const label = map[k];
     if (!label || v === null || v === undefined || v === "") return;
-    parts.push(`${label} ${String(v)}`);
+    parts.push(`${label} ${payloadValueLabel(k, v)}`);
   });
   return parts.join(" · ");
+}
+
+
+/** 数据用途 → 用户语言；未知用途不暴露内部枚举。 */
+export function consentPurposeLabel(purpose: string | null | undefined): string {
+  const value = (purpose ?? "").trim().toUpperCase();
+  if (value === "SERVICE_ESSENTIAL") return "提供核心服务";
+  if (value.includes("HEALTH")) return "健康相关数据";
+  if (value.includes("AI") || value.includes("MODEL")) return "智能功能";
+  if (value.includes("RESEARCH")) return "研究与产品改进";
+  if (value.includes("SHARE") || value.includes("CARE")) return "照护协作与共享";
+  if (value.includes("DEVICE") || value.includes("MONITOR")) return "设备与在家观察";
+  if (value.includes("NOTIF")) return "通知与提醒";
+  return "其他数据用途";
 }

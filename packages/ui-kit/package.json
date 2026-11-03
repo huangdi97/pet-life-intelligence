@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "react": ">=18"
+    "react": "^19.0.0"
   },
   "devDependencies": {
     "typescript": "5.7.3",

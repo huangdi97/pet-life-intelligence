@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { cx } from "../lib/cx";
 
 /** Canonical Vet Brief section order (信息整理，不是兽医诊断). */
@@ -22,13 +21,13 @@ export function VetBriefSection({
   className,
 }: {
   title: string;
-  children: ReactNode;
+  children: unknown;
   className?: string;
 }) {
   return (
     <section className={cx("pli-vet-brief-section", className)}>
       <h3 className="pli-vet-brief-title">{title}</h3>
-      <div className="pli-vet-brief-body">{children}</div>
+      <div className="pli-vet-brief-body">{children as any}</div>
     </section>
   );
 }

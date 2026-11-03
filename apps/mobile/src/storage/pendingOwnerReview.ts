@@ -1,0 +1,208 @@
+/** R8I: durable, scoped owner instructions, NOT a background retry worker.
+ * No token, note, free text, or event payload is stored with the intent.
+ * This is Keystore/Keychain-backed and must be cleared on account changes.
+ */
+import * as SecureStore from "expo-secure-store";
+
+const KEY = "pli_r8_unconfirmed_owner_review_v1";
+const MAX_PENDING = 4;
+// Expo SecureStore is intended for small secrets. Older iOS Keychain builds
+// may refuse values around 2 KB; reject an oversized new aggregate BEFORE
+// making a native storage call, without deleting existing pending decisions.
+// Stored identities and tokens are restricted to printable ASCII, so JSON
+// string length equals UTF-8 byte length for this wire format.
+const MAX_SECURESTORE_BYTES = 1900;
+const MAX_EVIDENCE_KEY_CHARS = 1200;
+const PRINTABLE_TOKEN = /^[\x21-\x7e]+$/;
+
+export type SavedOwnerIntent = {
+  petId: string;
+  caseId: string;
+  sourceIdsKey: string;
+  decision: "FOLLOW_UP_LATER" | "NOT_RELEVANT" | "CORRECT_SOURCE";
+  payload: {
+    decision: "FOLLOW_UP_LATER" | "NOT_RELEVANT" | "CORRECT_SOURCE";
+    expected_latest_review_id: string | null;
+    idempotency_key: string;
+  };
+};
+
+// All SecureStore reads AND writes participate in one queue. Waiting for
+// queue and reading outside it allows another component to overwrite/remove
+// an instruction during the async getItemAsync (stale-snapshot race).
+let queue: Promise<void> = Promise.resolve();
+function serialized<T>(work: () => Promise<T>): Promise<T> {
+  const pending = queue.then(work);
+  // Keep the queue live even if a read or write fails; propagate the failure
+  // only to the original caller, never silently consider it an acknowledgement.
+  queue = pending.then(() => undefined, () => undefined);
+  return pending;
+}
+
+/** Validate the persisted wire shape BEFORE reading OR storing it.
+ * TS annotations cannot prevent a JS caller from supplying extra private
+ * fields, malformed IDs or a mutable object to the storage boundary.
+ */
+function validateRows(decoded: unknown): SavedOwnerIntent[] {
+  if (!Array.isArray(decoded) || decoded.length > MAX_PENDING)
+    throw new Error("R8_SECURE_INTENT_CORRUPTED");
+  const seen = new Set<string>();
+  for (const item of decoded) {
+    if (!item || typeof item !== "object"
+        || typeof item.petId !== "string" || !item.petId.trim()
+        || item.petId.length > 128 || !PRINTABLE_TOKEN.test(item.petId)
+        || typeof item.caseId !== "string" || !item.caseId.trim()
+        || item.caseId.length > 128 || !PRINTABLE_TOKEN.test(item.caseId)
+        || typeof item.sourceIdsKey !== "string" || !item.sourceIdsKey.trim()
+        || item.sourceIdsKey.length > MAX_EVIDENCE_KEY_CHARS
+        || !PRINTABLE_TOKEN.test(item.sourceIdsKey)
+        || !["FOLLOW_UP_LATER", "NOT_RELEVANT", "CORRECT_SOURCE"].includes(item.decision)
+        || !item.payload || typeof item.payload !== "object"
+        || Array.isArray(item.payload) || item.payload.decision !== item.decision
+        || typeof item.payload.idempotency_key !== "string"
+        || item.payload.idempotency_key.length < 8
+        || item.payload.idempotency_key.length > 128
+        || !PRINTABLE_TOKEN.test(item.payload.idempotency_key)
+        || (item.payload.expected_latest_review_id !== null
+          && (typeof item.payload.expected_latest_review_id !== "string"
+            || !item.payload.expected_latest_review_id.trim()
+            || item.payload.expected_latest_review_id.length > 128
+            || !PRINTABLE_TOKEN.test(item.payload.expected_latest_review_id)))) {
+      throw new Error("R8_SECURE_INTENT_CORRUPTED");
+    }
+    // Never interpret two locally persisted decisions for the same Case and
+    // source fingerprint as two valid owner instructions. Preserve the raw
+    // SecureStore value for explicit recovery; do not silently pick or delete.
+    const identity = JSON.stringify([item.petId, item.caseId, item.sourceIdsKey]);
+    if (seen.has(identity)) throw new Error("R8_SECURE_INTENT_CORRUPTED");
+    seen.add(identity);
+    // This store must never become a cache for private note/media/payload data.
+    const keys = Object.keys(item).sort().join("|");
+    const payloadKeys = Object.keys(item.payload).sort().join("|");
+    if (keys !== "caseId|decision|payload|petId|sourceIdsKey" ||
+        payloadKeys !== "decision|expected_latest_review_id|idempotency_key") {
+      throw new Error("R8_SECURE_INTENT_CORRUPTED");
+    }
+  }
+  return decoded as SavedOwnerIntent[];
+}
+
+async function read(): Promise<SavedOwnerIntent[]> {
+  const raw = await SecureStore.getItemAsync(KEY);
+  if (!raw) return [];
+  let decoded: unknown;
+  try { decoded = JSON.parse(raw); } catch {
+    throw new Error("R8_SECURE_INTENT_CORRUPTED");
+  }
+  return validateRows(decoded);
+}
+
+/** Read only intents belonging to this pet. Never enumerate another pet in UI. */
+export function listOwnerIntentsForPet(petId: string): Promise<SavedOwnerIntent[]> {
+  return serialized(async () =>
+    (await read()).filter((entry) => entry.petId === petId)
+  );
+}
+
+export function restoreOwnerIntent(
+  petId: string, caseId: string, sourceIdsKey: string,
+): Promise<SavedOwnerIntent | null> {
+  return serialized(async () =>
+    (await read()).find((x) =>
+      x.petId === petId && x.caseId === caseId && x.sourceIdsKey === sourceIdsKey
+    ) ?? null
+  );
+}
+
+/** Freeze the exact owner instruction before any queued asynchronous I/O.
+ * Recovery/case callbacks can retain mutable JS objects across renders.
+ */
+function snapshotIntent(intent: SavedOwnerIntent): SavedOwnerIntent {
+  const checked = validateRows([intent])[0];
+  return {
+    petId: checked.petId,
+    caseId: checked.caseId,
+    sourceIdsKey: checked.sourceIdsKey,
+    decision: checked.decision,
+    payload: {
+      decision: checked.payload.decision,
+      expected_latest_review_id: checked.payload.expected_latest_review_id,
+      idempotency_key: checked.payload.idempotency_key,
+    },
+  };
+}
+
+export async function saveOwnerIntent(intent: SavedOwnerIntent): Promise<void> {
+  // Fail before ANY SecureStore write if a caller smuggles a private note,
+  // untrusted key, extra payload, or malformed owner identity into the object.
+  // Copy the validated fields synchronously: the original mutable argument
+  // must not be able to change while a queued SecureStore read is pending.
+  const snapshot = snapshotIntent(intent);
+  return serialized(async () => {
+    const existing = await read();
+    const previous = existing.find((x) =>
+      x.petId === snapshot.petId && x.caseId === snapshot.caseId &&
+      x.sourceIdsKey === snapshot.sourceIdsKey
+    );
+    if (previous) {
+      // Allow an exact retry, never silently overwrite an unresolved choice.
+      if (previous.decision !== snapshot.decision ||
+          previous.payload.decision !== snapshot.payload.decision ||
+          previous.payload.idempotency_key !== snapshot.payload.idempotency_key ||
+          previous.payload.expected_latest_review_id !== snapshot.payload.expected_latest_review_id) {
+        throw new Error("R8_UNCONFIRMED_INTENT_CONFLICT");
+      }
+      return;
+    }
+    if (existing.length >= MAX_PENDING) throw new Error("R8_UNCONFIRMED_INTENT_CAPACITY");
+    const encoded = JSON.stringify([...existing, snapshot]);
+    if (encoded.length > MAX_SECURESTORE_BYTES)
+      throw new Error("R8_SECURE_INTENT_STORAGE_LIMIT");
+    await SecureStore.setItemAsync(KEY, encoded);
+  });
+}
+
+export async function clearOwnerIntent(
+  petId: string, caseId: string, sourceIdsKey: string,
+): Promise<void> {
+  return serialized(async () => {
+    const rest = (await read()).filter((x) => !(
+      x.petId === petId && x.caseId === caseId && x.sourceIdsKey === sourceIdsKey
+    ));
+    if (rest.length) await SecureStore.setItemAsync(KEY, JSON.stringify(rest));
+    else await SecureStore.deleteItemAsync(KEY);
+  });
+}
+
+/** Remove this EXACT owner intent only if it is still the one the owner saw.
+ * Replaced decisions with the same pet+Case+evidence are never removed.
+ */
+export async function clearOwnerIntentIfUnchanged(intent: SavedOwnerIntent): Promise<boolean> {
+  const snapshot = snapshotIntent(intent);
+  let removed = false;
+  await serialized(async () => {
+    const rows = await read();
+    const index = rows.findIndex((x) =>
+      x.petId === snapshot.petId &&
+      x.caseId === snapshot.caseId &&
+      x.sourceIdsKey === snapshot.sourceIdsKey
+    );
+    if (index < 0) return;
+    const saved = rows[index];
+    if (saved.decision !== snapshot.decision ||
+        saved.payload.decision !== snapshot.payload.decision ||
+        saved.payload.idempotency_key !== snapshot.payload.idempotency_key ||
+        saved.payload.expected_latest_review_id !== snapshot.payload.expected_latest_review_id) {
+      return;
+    }
+    const rest = rows.filter((_, i) => i !== index);
+    if (rest.length) await SecureStore.setItemAsync(KEY, JSON.stringify(rest));
+    else await SecureStore.deleteItemAsync(KEY);
+    removed = true;
+  });
+  return removed;
+}
+
+export async function clearAllOwnerIntents(): Promise<void> {
+  await serialized(() => SecureStore.deleteItemAsync(KEY));
+}

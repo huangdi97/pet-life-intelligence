@@ -57,8 +57,8 @@ def scan_hardcoded_pet_names(root: Path) -> list[str]:
 
     Only actual code/string content is scanned — doc comments that merely
     reference the demo assets are not user-facing hardcodes. Excluded by
-    design: pet-3d identity registry keys, the backend demo identity map
-    (visual_pipeline.py), the blind-ui tool's own data, and ops smoke scripts.
+    design: backend demo identity fixtures/maps, the blind-ui tool's own data,
+    and ops smoke scripts. Production/shared 3D source is scanned too.
     """
     hits: list[str] = []
     if not root.exists():
@@ -72,7 +72,6 @@ def scan_hardcoded_pet_names(root: Path) -> list[str]:
         if any(p in rel.lower() for p in ("node_modules", ".next", "dist", "__pycache__", "android/", ".git")):
             continue
         if any(p in rel for p in (
-            "packages/pet-3d/src",
             "scripts/blind-ui",
             "packages/visual-contract",
             "scripts/staging_smoke.py",

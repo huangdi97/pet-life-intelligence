@@ -14,6 +14,7 @@ from app.domain import enums
 from app.models import Baseline, LifeEvent
 from app.services import permissions as perm
 from app.services.eventlog import write_audit
+from app.services.life_replay import RECORD_FACT_SOURCES, project_life_replay
 
 router = APIRouter(tags=["v02-identity-daily"])
 
@@ -23,6 +24,18 @@ BASELINE_METRICS = {
     "walk_minutes_per_day": "daily.walk",
     "sleep_minutes_per_day": "daily.sleep",
 }
+BASELINE_UNITS = {
+    "meal_count_per_day": "次",
+    "walk_minutes_per_day": "分钟",
+    "sleep_minutes_per_day": "分钟",
+}
+PRODUCT_TZ = timezone(timedelta(hours=8))
+
+
+def _product_date(value: datetime) -> date:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(PRODUCT_TZ).date()
 
 
 def _baseline_algorithm(values: list[float]) -> float:
@@ -42,35 +55,50 @@ async def recompute_baseline(
 ) -> dict:
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_WRITE)
-    since = datetime.now(timezone.utc) - timedelta(days=window_days)
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(days=window_days)
     results = {}
     for metric, event_type in BASELINE_METRICS.items():
-        rows = (
-            await db.execute(
-                select(LifeEvent.occurred_at, LifeEvent.payload).where(
-                    LifeEvent.pet_id == pet.id,
-                    LifeEvent.event_type == event_type,
-                    LifeEvent.retracted_at.is_(None),
-                    LifeEvent.occurred_at >= since,
-                )
+        originals = list((await db.execute(
+            select(LifeEvent).where(
+                LifeEvent.pet_id == pet.id,
+                LifeEvent.event_type == event_type,
+                LifeEvent.occurred_at >= since,
+                LifeEvent.occurred_at < now,
             )
-        ).all()
+        )).scalars().all())
+        successors: list[LifeEvent] = []
+        if originals:
+            successors = list((await db.execute(
+                select(LifeEvent).where(
+                    LifeEvent.pet_id == pet.id,
+                    LifeEvent.supersedes_event_id.in_([e.id for e in originals]),
+                    LifeEvent.recorded_at < now,
+                )
+            )).scalars().all())
+        # The same corrected row may occur in both queries. Never turn one
+        # observed event into two samples, even with a same-day correction.
+        candidates = {e.id: e for e in [*originals, *successors]}
+        projection = project_life_replay(
+            list(candidates.values()), pet_id=pet.id,
+            day_start=since, day_end=now, knowledge_cutoff=now,
+        )
         by_day: dict[date, float] = {}
-        for occurred_at, payload in rows:
-            day = occurred_at.date()
-            if metric in ("meal_count_per_day",):
+        for event in projection.events:
+            if event.event_type != event_type or event.source_type not in RECORD_FACT_SOURCES:
+                continue
+            day = _product_date(event.occurred_at)
+            if metric == "meal_count_per_day":
                 by_day[day] = by_day.get(day, 0) + 1
             else:
-                minutes = payload.get("duration_minutes", 0)
+                minutes = (event.payload or {}).get("duration_minutes")
                 try:
-                    by_day[day] = by_day.get(day, 0) + float(minutes)
+                    parsed = float(minutes)
                 except (TypeError, ValueError):
                     continue
+                if 0 < parsed <= 24 * 60:
+                    by_day[day] = by_day.get(day, 0) + parsed
         values = list(by_day.values())
-        if not values:
-            results[metric] = None
-            continue
-        value = round(_baseline_algorithm(values), 2)
         row = (
             await db.execute(
                 select(Baseline).where(
@@ -78,10 +106,19 @@ async def recompute_baseline(
                 )
             )
         ).scalar_one_or_none()
+        if not values:
+            # Previously a successful recompute with zero surviving recorded
+            # facts silently left a stale Baseline snapshot visible to owners.
+            if row is not None:
+                await db.delete(row)
+            results[metric] = None
+            continue
+        value = round(_baseline_algorithm(values), 2)
         if row is None:
             row = Baseline(pet_id=pet.id, metric=metric, value=str(value))
             db.add(row)
         row.value = str(value)
+        row.unit = BASELINE_UNITS[metric]
         row.sample_count = len(values)
         row.window_days = window_days
         row.algorithm = "trimmed_mean_v1"

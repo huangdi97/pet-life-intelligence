@@ -6,6 +6,7 @@ real pilot metrics (exclude_demo=true / exclude_internal=true).
 """
 
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.main import app
@@ -159,3 +160,124 @@ async def test_pilot_org_validation(client, seeded):
     r2 = await client.post("/api/v1/pilot/orgs", headers=h,
                            json={"name": "测试机构", "org_type": "NOT_A_TYPE"})
     assert r2.status_code == 422
+
+
+async def _register_real_owner(client):
+    email = f"real-{uuid.uuid4().hex[:10]}@example.com"
+    reg = await client.post("/api/v1/auth/register", json={
+        "email": email, "password": "RealPass!w0rd", "display_name": "真实 Pilot 宠主",
+    })
+    assert reg.status_code == 201, reg.text
+    login = await client.post("/api/v1/auth/login", json={
+        "email": email, "password": "RealPass!w0rd",
+    })
+    assert login.status_code == 200, login.text
+    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+
+async def _create_real_pet(client, headers, name="真实 Pilot 犬"):
+    pet = await client.post(
+        "/api/v1/pets", headers=headers, json={"name": name, "species": "dog"},
+    )
+    assert pet.status_code == 201, pet.text
+    return pet.json()["id"]
+
+
+async def _append_walk(client, headers, pet_id, minutes=20):
+    response = await client.post(
+        f"/api/v1/pets/{pet_id}/events",
+        headers=headers,
+        json={"event_type": "daily.walk", "payload": {"duration_minutes": minutes}},
+    )
+    assert response.status_code == 201, response.text
+    return response.json()["event_id"]
+
+
+@pytest.mark.asyncio
+async def test_pilot_activity_ignores_page_view_telemetry(client):
+    """Opening Today is product telemetry, never a real pet evidence chain."""
+    before = (await client.get("/api/v1/pilot/status")).json()
+    h = await _register_real_owner(client)
+    pet = await _create_real_pet(client, h, "Page View Only")
+
+    for _ in range(3):
+        today = await client.get(f"/api/v1/pets/{pet}/today", headers=h)
+        assert today.status_code == 200, today.text
+
+    after = (await client.get("/api/v1/pilot/status")).json()
+    assert after["pets_total"] == before["pets_total"] + 1
+    assert after["active_pets_3d"] == before["active_pets_3d"]
+    assert after["active_pets_7d"] == before["active_pets_7d"]
+    assert after["activated_owners"] == before["activated_owners"]
+    assert after["metric_contract_version"] == "R8_PILOT_V2"
+    assert after["active_event_contract"] == "CURRENT_EFFECTIVE_RECORD_FACT"
+
+
+@pytest.mark.asyncio
+async def test_pilot_activation_does_not_double_count_superseded_versions(client):
+    """Two facts + one correction remain two effective facts, not three."""
+    before = (await client.get("/api/v1/pilot/status")).json()
+    h = await _register_real_owner(client)
+    pet = await _create_real_pet(client, h, "Correction Chain")
+    first = await _append_walk(client, h, pet, 20)
+    await _append_walk(client, h, pet, 25)
+
+    corrected = await client.post(
+        f"/api/v1/pets/{pet}/events/{first}/supersede",
+        headers=h,
+        json={
+            "payload": {"duration_minutes": 35},
+            "idempotency_key": f"pilot-{uuid.uuid4().hex[:16]}",
+        },
+    )
+    assert corrected.status_code == 201, corrected.text
+
+    after = (await client.get("/api/v1/pilot/status")).json()
+    assert after["active_pets_3d"] == before["active_pets_3d"] + 1
+    assert after["activated_owners"] == before["activated_owners"]
+    assert after["r8_loop"]["source_corrections"] == (
+        before["r8_loop"]["source_corrections"] + 1
+    )
+
+
+@pytest.mark.asyncio
+async def test_pilot_activation_enforces_first_24_hours(client):
+    """Three valid facts recorded after the onboarding deadline do not activate."""
+    before = (await client.get("/api/v1/pilot/status")).json()
+    h = await _register_real_owner(client)
+    pet_id = await _create_real_pet(client, h, "Late Activation")
+
+    from app.core.db import get_session_factory
+    from app.models import Pet
+
+    factory = get_session_factory()
+    async with factory() as db:
+        pet = await db.get(Pet, uuid.UUID(pet_id))
+        assert pet is not None
+        pet.created_at = datetime.now(UTC) - timedelta(days=2)
+        await db.commit()
+
+    for minutes in (20, 25, 30):
+        await _append_walk(client, h, pet_id, minutes)
+
+    after = (await client.get("/api/v1/pilot/status")).json()
+    assert after["active_pets_3d"] == before["active_pets_3d"] + 1
+    assert after["activated_owners"] == before["activated_owners"]
+    assert after["activation_window_hours"] == 24
+
+
+@pytest.mark.asyncio
+async def test_pilot_activated_owners_are_distinct_people_not_pets(client):
+    """One owner with two activated pets is still one activated owner."""
+    before = (await client.get("/api/v1/pilot/status")).json()
+    h = await _register_real_owner(client)
+    pet_a = await _create_real_pet(client, h, "Owner Pet A")
+    pet_b = await _create_real_pet(client, h, "Owner Pet B")
+
+    for pet_id in (pet_a, pet_b):
+        for minutes in (20, 25, 30):
+            await _append_walk(client, h, pet_id, minutes)
+
+    after = (await client.get("/api/v1/pilot/status")).json()
+    assert after["active_pets_3d"] == before["active_pets_3d"] + 2
+    assert after["activated_owners"] == before["activated_owners"] + 1

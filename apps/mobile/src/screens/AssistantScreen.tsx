@@ -11,9 +11,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api, humanizeError, type AiStatus, type AskAnswer } from "../api";
 import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { usePets } from "../context";
 import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
-import type { TabParamList } from "../navigation";
+import type { StackParamList, TabParamList } from "../navigation";
 import { PetAvatar } from "../components/media/PetAvatar";
 import { resolvePetMediaUri } from "../components/media/demoPetVisual";
 import { BriefPanel, ExplainPanel, FindPanel, PlanPanel } from "./assistant_panels";
@@ -27,10 +28,9 @@ const SUGGESTION_ACTIONS: Array<{ key: string; label: string; fill?: string; rou
 
 type Tab = "ask" | "brief" | "find" | "plan" | "explain";
 
-const MODES: Array<{ id: Tab; label: string }> = [
-  { id: "ask", label: "问" },
+const TOOLS: Array<{ id: Exclude<Tab, "ask">; label: string }> = [
   { id: "brief", label: "摘要" },
-  { id: "find", label: "找" },
+  { id: "find", label: "找记录" },
   { id: "plan", label: "计划" },
   { id: "explain", label: "解释" },
 ];
@@ -38,6 +38,7 @@ const MODES: Array<{ id: Tab; label: string }> = [
 export function AssistantScreen() {
   const { pets, petId } = usePets();
   const tabNav = useNavigation<BottomTabNavigationProp<TabParamList>>();
+  const stackNav = useNavigation<NativeStackNavigationProp<StackParamList>>();
   const [tab, setTab] = useState<Tab>("ask");
   const [question, setQuestion] = useState("");
   const [asking, setAsking] = useState(false);
@@ -103,32 +104,39 @@ export function AssistantScreen() {
           )}
         </View>
 
-        <View style={styles.modeRow}>
-          {MODES.map((m) => {
-            const active = tab === m.id;
-            const primary = m.id === "ask";
-            return (
-              <Pressable
-                key={m.id}
-                accessibilityRole="button"
-                accessibilityLabel={m.label}
-                onPress={() => setTab(m.id)}
-                style={[styles.mode, active && styles.modeActive, primary && styles.modePrimary, active && primary && styles.modePrimaryActive]}
-              >
-                <Text style={[styles.modeText, active && styles.modeTextActive, primary && styles.modePrimaryText, active && primary && styles.modePrimaryTextActive]}>{m.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {tab === "ask" && (
+        {tab === "ask" ? (
           <View style={styles.askWrap} testID="pli.assistant.chat">
-            <View style={styles.suggestionRow}>
+            <Text style={styles.askLead}>先问一件和{pet?.name ?? "这只宠物"}有关的事</Text>
+            <View style={styles.askRow}>
+              <TextInput
+                testID="pli.assistant.ask"
+                style={styles.input}
+                value={question}
+                onChangeText={setQuestion}
+                placeholder="例如：最近有什么变化？"
+                placeholderTextColor={COLORS.textTertiary}
+                onSubmitEditing={() => void ask(question)}
+                returnKeyType="send"
+              />
+              <Pressable
+                testID="pli.assistant.send"
+                accessibilityRole="button"
+                accessibilityLabel="提问"
+                accessibilityState={{ disabled: asking || !question.trim() }}
+                disabled={asking || !question.trim()}
+                onPress={() => void ask(question)}
+                style={[styles.askBtn, (asking || !question.trim()) && styles.askBtnDisabled]}
+              >
+                <Text style={styles.askBtnText}>{asking ? "思考中…" : "提问"}</Text>
+              </Pressable>
+            </View>
+            <View style={styles.suggestionRow} accessibilityLabel="常用提问">
               {SUGGESTION_ACTIONS.map((a) => (
                 <Pressable
                   key={a.key}
                   testID={`pli.assistant.suggestion.${a.key}`}
                   accessibilityRole="button"
+                  accessibilityLabel={a.label}
                   onPress={() => (a.route === "Timeline" ? tabNav.navigate("Timeline") : setQuestion(a.fill ?? ""))}
                   style={styles.suggestion}
                 >
@@ -136,49 +144,83 @@ export function AssistantScreen() {
                 </Pressable>
               ))}
             </View>
-            <View style={styles.askRow}>
-              <TextInput
-                testID="pli.assistant.ask"
-                style={styles.input}
-                value={question}
-                onChangeText={setQuestion}
-                placeholder="问关于这只宠物的问题"
-                placeholderTextColor={COLORS.textTertiary}
-                onSubmitEditing={() => void ask(question)}
-                returnKeyType="send"
-              />
-              <Pressable testID="pli.assistant.send" accessibilityRole="button" accessibilityLabel="提问" onPress={() => void ask(question)} style={styles.askBtn}>
-                <Text style={styles.askBtnText}>{asking ? "思考中…" : "提问"}</Text>
-              </Pressable>
-            </View>
             {askErr ? <Text style={styles.errorText}>{askErr}</Text> : null}
-            {answer && !askErr ? <AnswerBlock answer={answer} citations={citations} /> : null}
+            {answer && !askErr ? <AnswerBlock answer={answer} citations={citations} onOpenTimeline={() => tabNav.navigate("Timeline")} onOpenLifeView={() => stackNav.navigate("LifeView")} /> : null}
             {!answer && !askErr && !asking ? (
               <View style={styles.emptyState} testID="pli.assistant.context">
-                <Text style={styles.emptyTitle}>我会基于{pet?.name ?? "宠物"}已有的真实记录回答。</Text>
-                <Text style={styles.emptyBody}>你可以问最近变化、任务、训练、健康记录。</Text>
+                <Text style={styles.emptyTitle}>只基于已有记录，不替你猜。</Text>
+                <Text style={styles.emptyBody}>回答会区分事实、推断、来源、不确定性和下一步。</Text>
                 {aiOff ? <Text style={styles.emptyNote}>当前为模拟服务，回答仅为演示。</Text> : null}
               </View>
             ) : null}
           </View>
+        ) : (
+          <View style={styles.toolPanel}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="回到提问"
+              onPress={() => setTab("ask")}
+              style={styles.backToAsk}
+            >
+              <Text style={styles.backToAskText}>← 回到提问</Text>
+            </Pressable>
+            {tab === "brief" && <BriefPanel onOpenHealth={undefined} />}
+            {tab === "find" && <FindPanel />}
+            {tab === "plan" && <PlanPanel />}
+            {tab === "explain" && <ExplainPanel aiStatus={aiStatus} />}
+          </View>
         )}
-        {tab === "brief" && <BriefPanel onOpenHealth={undefined} />}
-        {tab === "find" && <FindPanel />}
-        {tab === "plan" && <PlanPanel />}
-        {tab === "explain" && <ExplainPanel aiStatus={aiStatus} />}
+
+        <View style={styles.medicalBoundary} testID="pli.assistant.medical-boundary">
+          <Text style={styles.medicalBoundaryTitle}>医疗动作边界</Text>
+          <Text style={styles.medicalBoundaryBody}>
+            助手可以整理记录和解释规则结果，但不会诊断、开药、改剂量或替代兽医。需要尽快或立即就医时，以健康页的独立风险分级与行动指引为准。
+          </Text>
+        </View>
+
+        <View style={styles.toolSection} accessibilityLabel="助手更多能力">
+          <Text style={styles.toolLabel}>更多帮助</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.toolRow}
+            keyboardShouldPersistTaps="handled"
+          >
+            {TOOLS.map((tool) => {
+              const active = tab === tool.id;
+              return (
+                <Pressable
+                  key={tool.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={tool.label}
+                  accessibilityState={{ selected: active }}
+                  onPress={() => setTab(tool.id)}
+                  style={[styles.tool, active && styles.toolActive]}
+                >
+                  <Text style={[styles.toolText, active && styles.toolTextActive]}>{tool.label}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function AnswerBlock({ answer, citations }: { answer: AskAnswer; citations: Array<{ label: string; event_id?: string }> }) {
+function AnswerBlock({ answer, citations, onOpenTimeline, onOpenLifeView }: { answer: AskAnswer; citations: Array<{ label: string; event_id?: string }>; onOpenTimeline: () => void; onOpenLifeView: () => void }) {
   return (
     <View style={styles.answer}>
       {answer.external_blocked ? (
-        <Text style={styles.emptyBody}>该能力暂未开放。</Text>
+        <Text style={styles.emptyBody}>当前无法连接 AI 服务；已有记录、来源与时间线仍可正常查看。</Text>
       ) : (
         <>
-          {answer.answer ? <Text style={styles.answerBody}>{answer.answer}</Text> : null}
+          {answer.answer ? (
+            <View style={styles.answerSection}>
+              <Text style={styles.sectionLabel}>结论</Text>
+              <Text style={styles.answerBody}>{answer.answer}</Text>
+            </View>
+          ) : null}
           {answer.facts && answer.facts.length > 0 ? (
             <View style={styles.answerSection}>
               <Text style={styles.sectionLabel}>依据</Text>
@@ -202,6 +244,17 @@ function AnswerBlock({ answer, citations }: { answer: AskAnswer; citations: Arra
             </View>
           ) : null}
           {answer.action ? <Text style={styles.actionBody}>下一步：{answer.action}</Text> : null}
+          <View style={styles.answerActions} accessibilityLabel="继续查看">
+            <Pressable accessibilityRole="button" onPress={onOpenTimeline} style={styles.answerAction}>
+              <Text style={styles.answerActionText}>查看记录</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={onOpenTimeline} style={styles.answerAction}>
+              <Text style={styles.answerActionText}>查看来源</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={onOpenLifeView} style={styles.answerAction}>
+              <Text style={styles.answerActionText}>与它自己相比</Text>
+            </Pressable>
+          </View>
         </>
       )}
     </View>
@@ -219,18 +272,10 @@ const styles = StyleSheet.create({
   petSub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
   title: { fontSize: TYPE.pageTitle, fontWeight: "700", color: COLORS.textPrimary },
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
-  modeRow: { flexDirection: "row", gap: SPACE.s2, paddingHorizontal: SPACE.s4, paddingTop: SPACE.s4 },
-  mode: { paddingHorizontal: SPACE.s4, paddingVertical: 8, borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.dividerSubtle },
-  modeActive: { backgroundColor: COLORS.brandSoftGreen, borderColor: COLORS.brandPrimary },
-  modePrimary: { backgroundColor: COLORS.brandPrimary, borderColor: COLORS.brandPrimary },
-  modePrimaryActive: { backgroundColor: COLORS.brandPrimaryDeep },
-  modeText: { fontSize: TYPE.sm, color: COLORS.textTertiary },
-  modeTextActive: { color: COLORS.brandPrimaryDeep, fontWeight: "600" },
-  modePrimaryText: { color: COLORS.textInverse, fontWeight: "600" },
-  modePrimaryTextActive: { color: COLORS.textInverse },
-  askWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s4 },
-  suggestionRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
-  suggestion: { backgroundColor: COLORS.brandSoft, borderRadius: 999, paddingHorizontal: SPACE.s3, paddingVertical: 6 },
+  askWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
+  askLead: { fontSize: TYPE.section, color: COLORS.textPrimary, fontWeight: "700", marginBottom: SPACE.s2 },
+  suggestionRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, marginTop: SPACE.s3 },
+  suggestion: { minHeight: 44, justifyContent: "center", backgroundColor: COLORS.brandSoft, borderRadius: 999, paddingHorizontal: SPACE.s3, paddingVertical: 6 },
   suggestionText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
   askRow: { flexDirection: "row", gap: SPACE.s2, marginTop: SPACE.s3 },
   input: {
@@ -244,10 +289,24 @@ const styles = StyleSheet.create({
     fontSize: TYPE.body,
     color: COLORS.textPrimary,
   },
-  askBtn: { backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingHorizontal: SPACE.s4, justifyContent: "center" },
+  askBtn: { minHeight: 44, backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingHorizontal: SPACE.s4, justifyContent: "center" },
+  askBtnDisabled: { opacity: 0.5 },
   askBtnText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   errorText: { fontSize: TYPE.sm, color: COLORS.danger, marginTop: SPACE.s2 },
-  emptyState: { alignItems: "center", paddingVertical: SPACE.s8 },
+  toolPanel: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s4 },
+  backToAsk: { minHeight: 44, alignSelf: "flex-start", justifyContent: "center", marginBottom: SPACE.s2 },
+  backToAskText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
+  medicalBoundary: { marginHorizontal: SPACE.s4, marginTop: SPACE.s5, padding: SPACE.s3, borderRadius: RADIUS.lg, backgroundColor: COLORS.attentionBg },
+  medicalBoundaryTitle: { fontSize: TYPE.sm, fontWeight: "700", color: COLORS.textPrimary },
+  medicalBoundaryBody: { marginTop: 4, fontSize: TYPE.caption, color: COLORS.textSecondary, lineHeight: 18 },
+  toolSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s6 },
+  toolLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary, marginBottom: SPACE.s2 },
+  toolRow: { flexDirection: "row", gap: SPACE.s2, paddingRight: SPACE.s4 },
+  tool: { minWidth: 88, minHeight: 44, paddingHorizontal: SPACE.s3, alignItems: "center", justifyContent: "center", borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised },
+  toolActive: { backgroundColor: COLORS.brandSoftGreen },
+  toolText: { fontSize: TYPE.sm, color: COLORS.textSecondary, fontWeight: "500" },
+  toolTextActive: { color: COLORS.brandPrimaryDeep, fontWeight: "700" },
+  emptyState: { alignItems: "flex-start", paddingVertical: SPACE.s6 },
   emptyTitle: { fontSize: TYPE.bodyStrong, fontWeight: "600", color: COLORS.textPrimary, textAlign: "center" },
   emptyBody: { fontSize: TYPE.sm, color: COLORS.textTertiary, textAlign: "center", marginTop: SPACE.s2, lineHeight: 20 },
   emptyNote: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: SPACE.s2 },
@@ -261,4 +320,7 @@ const styles = StyleSheet.create({
   noticeBox: { backgroundColor: COLORS.attentionBg, borderRadius: RADIUS.lg, padding: SPACE.s3, marginTop: SPACE.s3 },
   noticeText: { fontSize: TYPE.sm, color: COLORS.attention },
   actionBody: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600", marginTop: SPACE.s3 },
+  answerActions: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2, marginTop: SPACE.s3 },
+  answerAction: { minHeight: 44, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.surface },
+  answerActionText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "700" },
 });

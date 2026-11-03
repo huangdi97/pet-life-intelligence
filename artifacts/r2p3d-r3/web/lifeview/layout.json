@@ -1,0 +1,290 @@
+{
+  "screen": "lifeview",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "contentBounds": {
+    "top": 82,
+    "bottom": 844,
+    "width": 390,
+    "height": 762,
+    "left": 0
+  },
+  "elements": [
+    {
+      "id": "header",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "nav",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 100,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "pli.nav.today",
+      "role": "button",
+      "x": 174,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "今日"
+    },
+    {
+      "id": "pli.nav.timeline",
+      "role": "button",
+      "x": 214,
+      "y": 15,
+      "width": 46,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "时间线"
+    },
+    {
+      "id": "pli.nav.pet",
+      "role": "button",
+      "x": 264,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆"
+    },
+    {
+      "id": "pli.nav.assistant",
+      "role": "button",
+      "x": 304,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "助手"
+    },
+    {
+      "id": "pli.nav.me",
+      "role": "button",
+      "x": 344,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "我的"
+    },
+    {
+      "id": "pli.multipet.switch",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）咪咪（cat）"
+    },
+    {
+      "id": "pli.multipet.current",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）"
+    },
+    {
+      "id": "pli.lifeview.identity",
+      "x": 127,
+      "y": 115,
+      "width": 68,
+      "height": 19,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆 · 此刻"
+    },
+    {
+      "id": "pli.lifeview.stage",
+      "type": "stage",
+      "x": 51,
+      "y": 155,
+      "width": 288,
+      "height": 470,
+      "visible": true,
+      "z": 0,
+      "text": "−\n+\n⟲\n饮水\n—\n进食\n—\n活动\n—\n睡眠\n—\n\n豆豆\n\n豆豆 · 此刻\n\n最近一次记录：活动 · 14:46\n\n第 1 版 3D 形象 · 已通过你的确认"
+    },
+    {
+      "id": "pli.lifeview.twin",
+      "type": "twin",
+      "x": 64,
+      "y": 267,
+      "width": 262,
+      "height": 330,
+      "visible": true,
+      "z": 0,
+      "text": "−\n+\n⟲"
+    },
+    {
+      "id": "pet3d-stage",
+      "role": "img",
+      "x": 64,
+      "y": 267,
+      "width": 262,
+      "height": 330,
+      "visible": true,
+      "z": 0,
+      "text": "−\n+\n⟲"
+    },
+    {
+      "id": "pli.lifeview.control.zoom",
+      "role": "button",
+      "x": 196,
+      "y": 551,
+      "width": 36,
+      "height": 36,
+      "visible": true,
+      "z": 0,
+      "text": "−"
+    },
+    {
+      "id": "pli.lifeview.control.reset",
+      "role": "button",
+      "x": 280,
+      "y": 551,
+      "width": 36,
+      "height": 36,
+      "visible": true,
+      "z": 0,
+      "text": "⟲"
+    },
+    {
+      "id": "pet3d-canvas",
+      "x": 64,
+      "y": 267,
+      "width": 262,
+      "height": 330,
+      "visible": true,
+      "z": 0,
+      "text": ""
+    },
+    {
+      "id": "pli.lifeview.anchor.water",
+      "x": 67,
+      "y": 229,
+      "width": 80,
+      "height": 50,
+      "visible": true,
+      "z": 0,
+      "text": "饮水\n—"
+    },
+    {
+      "id": "pli.lifeview.anchor.meal",
+      "x": 243,
+      "y": 229,
+      "width": 80,
+      "height": 50,
+      "visible": true,
+      "z": 0,
+      "text": "进食\n—"
+    },
+    {
+      "id": "pli.lifeview.anchor.activity",
+      "x": 67,
+      "y": 483,
+      "width": 80,
+      "height": 50,
+      "visible": true,
+      "z": 0,
+      "text": "活动\n—"
+    },
+    {
+      "id": "pli.lifeview.anchor.sleep",
+      "x": 243,
+      "y": 483,
+      "width": 80,
+      "height": 50,
+      "visible": true,
+      "z": 0,
+      "text": "睡眠\n—"
+    },
+    {
+      "id": "pli.lifeview.mode.now",
+      "role": "tab",
+      "x": 17,
+      "y": 640,
+      "width": 62,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "此刻"
+    },
+    {
+      "id": "pli.lifeview.mode.trend",
+      "role": "tab",
+      "x": 83,
+      "y": 640,
+      "width": 62,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "趋势"
+    },
+    {
+      "id": "pli.lifeview.mode.timeline",
+      "role": "tab",
+      "x": 149,
+      "y": 640,
+      "width": 75,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "时间线"
+    },
+    {
+      "id": "pli.lifeview.mode.appearance",
+      "role": "tab",
+      "x": 228,
+      "y": 640,
+      "width": 62,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "外观"
+    },
+    {
+      "id": "pli.lifeview.panel",
+      "x": 12,
+      "y": 703,
+      "width": 366,
+      "height": 79,
+      "visible": true,
+      "z": 0,
+      "text": "此刻\n\n上面的数值来自今天真实的记录。"
+    },
+    {
+      "id": "pli.current-pet-id",
+      "role": "text",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "text": "0070551c-8634-42b1-a361-81a635b66653"
+    }
+  ]
+}

@@ -2,12 +2,13 @@
   "name": "@pli/web",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
-    "build": "next build",
+    "dev": "pnpm sync:twins && next dev -p 3000",
+    "build": "pnpm sync:twins && next build",
     "start": "next start",
     "lint": "next lint || true",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "sync:twins": "node scripts/sync-twin-assets.mjs"
   },
   "dependencies": {
     "@pli/api-client": "workspace:*",

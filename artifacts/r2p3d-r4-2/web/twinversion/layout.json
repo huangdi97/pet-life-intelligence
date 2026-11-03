@@ -1,0 +1,191 @@
+{
+  "screen": "twinversion",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "contentBounds": {
+    "top": 82,
+    "bottom": 844,
+    "width": 390,
+    "height": 762,
+    "left": 0
+  },
+  "elements": [
+    {
+      "id": "header",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 0,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "nav",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 82,
+      "visible": true,
+      "z": 100,
+      "text": "宠物生活\n今日\n时间线\n豆豆\n助手\n我的\n退出"
+    },
+    {
+      "id": "pli.nav.today",
+      "role": "button",
+      "x": 174,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "今日"
+    },
+    {
+      "id": "pli.nav.timeline",
+      "role": "button",
+      "x": 214,
+      "y": 15,
+      "width": 46,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "时间线"
+    },
+    {
+      "id": "pli.nav.pet",
+      "role": "button",
+      "x": 264,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆"
+    },
+    {
+      "id": "pli.nav.assistant",
+      "role": "button",
+      "x": 304,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "助手"
+    },
+    {
+      "id": "pli.nav.me",
+      "role": "button",
+      "x": 344,
+      "y": 15,
+      "width": 36,
+      "height": 58,
+      "visible": true,
+      "z": 0,
+      "text": "我的"
+    },
+    {
+      "id": "pli.multipet.switch",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）咪咪（cat）BW-Coco-1790948252505（dog）"
+    },
+    {
+      "id": "pli.multipet.current",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "visible": false,
+      "z": 0,
+      "text": "豆豆（dog）"
+    },
+    {
+      "id": "pli.twinversion.identity",
+      "x": 12,
+      "y": 110,
+      "width": 366,
+      "height": 77,
+      "visible": true,
+      "z": 0,
+      "text": "豆豆 · 3D 形象版本\n\n每一次生成与确认都会留下版本记录，来源与时间都可追溯。"
+    },
+    {
+      "id": "pli.twinversion.current",
+      "x": 12,
+      "y": 203,
+      "width": 366,
+      "height": 148,
+      "visible": true,
+      "z": 0,
+      "text": "当前版本 · 第 1 版\n\n使用中\n\n生成于 2026/10/2 18:31:23\n来自 9 张照片\n已通过主人确认"
+    },
+    {
+      "id": "pli.twinversion.time",
+      "x": 29,
+      "y": 278,
+      "width": 173,
+      "height": 24,
+      "visible": true,
+      "z": 0,
+      "text": "生成于 2026/10/2 18:31:23"
+    },
+    {
+      "id": "pli.twinversion.source",
+      "x": 210,
+      "y": 278,
+      "width": 96,
+      "height": 24,
+      "visible": true,
+      "z": 0,
+      "text": "来自 9 张照片"
+    },
+    {
+      "id": "pli.twinversion.verify",
+      "x": 29,
+      "y": 310,
+      "width": 106,
+      "height": 24,
+      "visible": true,
+      "z": 0,
+      "text": "已通过主人确认"
+    },
+    {
+      "id": "pli.twinversion.info",
+      "x": 12,
+      "y": 363,
+      "width": 366,
+      "height": 99,
+      "visible": true,
+      "z": 0,
+      "text": "版本说明\n\n每个版本都记录来源素材数量、生成时间与确认状态；确认后才会显示，未确认版本不会覆盖已使用版本。"
+    },
+    {
+      "id": "pli.twinversion.history",
+      "x": 12,
+      "y": 474,
+      "width": 366,
+      "height": 105,
+      "visible": true,
+      "z": 0,
+      "text": "历史版本\n第 1 版 · 尚未生成去拍摄素材"
+    },
+    {
+      "id": "pli.twinversion.entry",
+      "x": 29,
+      "y": 664,
+      "width": 113,
+      "height": 44,
+      "visible": true,
+      "z": 0,
+      "text": "完善 3D 形象"
+    }
+  ]
+}

@@ -77,6 +77,9 @@ test("R2P3D-02 3D stage is loaded and never failed on the three pages", async ({
     await expect(stage).toHaveAttribute("data-pet3d", "ready", { timeout: 15000 });
     await expect(page.locator('[data-testid="pet3d-canvas"]').first()).toBeAttached();
     await expect(page.locator('[data-testid="pet3d-stage"][data-pet3d="failed"]')).toHaveCount(0);
+    // Seeded CI pets use demo/template Twins. Accessibility copy must disclose
+    // that truth too; screen-reader users must not hear a real-pet identity claim.
+    await expect(stage).toHaveAttribute("aria-label", /示例 3D 形象|演示模板|演示/);
   }
 });
 
@@ -157,7 +160,12 @@ test("R2P3D-05 owner-term zero + canonical copy on the three pages", async ({ pa
   await page.goto(`/pets/${petId}/life-view`);
   await page.waitForLoadState("networkidle");
   await expect(page.getByText("豆豆 · 此刻").first()).toBeVisible();
-  await expect(page.getByText(/演示 3D 形象/).first()).toBeVisible();
+  // Canonical copy has three honest states: an explicitly labelled demo Twin,
+  // an owner-confirmed real candidate, or the graceful simplified fallback.
+  // None may masquerade as LIVE or leak raw internal terms.
+  await expect(
+    page.getByTestId("pli.lifeview.model-status"),
+  ).toBeVisible();
 });
 
 test("R2P3D-06 Android page (pet-stage.html) renders 豆豆 and rotates via drag", async ({ page }) => {
@@ -223,4 +231,107 @@ test("R2P3D-R1-01 individual twin renders and pose switching changes pixels", as
   await page.waitForTimeout(700);
   const walk = await shot();
   expect(walk.equals(sit), "Walk pose must differ from Sit").toBe(false);
+});
+
+test("R7 viewport layout: Life View fits phone and Review controls precede the 3D stage", async ({ page, request }) => {
+  await loginAsEmail(page, request, "owner@pli.demo");
+  const petId = await demoDoudouId(request);
+  await useCurrentPet(page, petId);
+
+  // Geometry checks use actual browser DOM bounds, not CSS-string assertions
+  // or a vision model. A stage partially off the phone is an owner-facing bug.
+  for (const width of [360, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto(`/pets/${petId}/life-view`);
+    const life = page.getByTestId("pli.lifeview.stage");
+    await expect(life).toBeVisible();
+    const lifeBounds = await life.boundingBox();
+    expect(lifeBounds, "life stage bounds exist").not.toBeNull();
+    expect(lifeBounds!.x, "life view left edge is on-screen").toBeGreaterThanOrEqual(-1);
+    expect(lifeBounds!.x + lifeBounds!.width, "life stage fits the phone").toBeLessThanOrEqual(width + 1);
+
+    await page.goto(`/pets/${petId}/twin/review?version=1`);
+    const stage = page.getByTestId("pli.twinreview.stage");
+    await expect(stage).toBeVisible();
+    const stageBounds = await stage.boundingBox();
+    expect(stageBounds).not.toBeNull();
+    for (const angle of ["front", "side", "back"]) {
+      const button = page.getByTestId(`pli.twinreview.view.${angle}`);
+      await expect(button).toBeVisible();
+      const bounds = await button.boundingBox();
+      expect(bounds, `${angle} has measured bounds`).not.toBeNull();
+      expect(bounds!.y + bounds!.height, `${angle} control before model`).toBeLessThan(stageBounds!.y + 1);
+      expect(bounds!.x, `${angle} left edge on screen`).toBeGreaterThanOrEqual(-1);
+      expect(bounds!.x + bounds!.width, `${angle} right edge on screen`).toBeLessThanOrEqual(width + 1);
+      expect(bounds!.height, `${angle} tap target`).toBeGreaterThanOrEqual(44);
+    }
+  }
+});
+
+
+test("R7 Timeline keeps the life stream near the first phone viewport, with optional filters", async ({ page, request }) => {
+  await loginAsEmail(page, request, "owner@pli.demo");
+  const petId = await demoDoudouId(request);
+  await useCurrentPet(page, petId);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/timeline");
+  await page.waitForLoadState("networkidle");
+
+  const refine = page.locator(".v7-timeline-refine");
+  await expect(refine).toBeVisible();
+  await expect(page.locator(".v7-timeline-search input")).toBeVisible();
+  await expect(page.locator('[data-testid="pli.timeline.filter.all"]')).toBeVisible();
+  await expect(refine.locator(".v5-timeline-primary-tools")).toBeHidden();
+
+  const stream = page.getByTestId("pli.timeline.stream");
+  await expect(stream).toBeVisible();
+  const streamBox = await stream.boundingBox();
+  expect(streamBox, "real event stream must have bounds").not.toBeNull();
+  expect(streamBox!.y, "the life stream should not be hidden under a filter form").toBeLessThan(620);
+
+  await refine.locator("summary").click();
+  await expect(refine.locator(".v5-timeline-primary-tools")).toBeVisible();
+  await expect(refine.getByLabel("回到那一天")).toBeVisible();
+  await expect(refine.getByLabel("按事件类型过滤")).toBeVisible();
+  await expect(refine.getByRole("group", { name: "按来源筛选" })).toBeVisible();
+});
+
+
+test("R7 Companion is a real pet Living Canvas on the owner phone", async ({ page, request }) => {
+  await loginAsEmail(page, request, "owner@pli.demo");
+  const petId = await demoDoudouId(request);
+  await useCurrentPet(page, petId);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/companion");
+
+  const canvas = page.getByTestId("pli.companion.living-stage");
+  await expect(canvas).toBeVisible();
+  const bounds = await canvas.boundingBox();
+  expect(bounds, "Companion Living Canvas has real geometry").not.toBeNull();
+  expect(bounds!.x).toBeGreaterThanOrEqual(-1);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(391);
+
+  const stage = page.locator('[data-testid="pet3d-stage"]').first();
+  await expect(stage).toHaveAttribute("data-pet3d", "ready", { timeout: 15000 });
+  await page.waitForFunction(
+    ({ expectedPetId }) => {
+      const manifest = (window as typeof window & { __PLI_3D_MANIFEST__?: Record<string, any> }).__PLI_3D_MANIFEST__;
+      return (
+        manifest?.ready === true &&
+        manifest?.manifestOrigin === "RUNTIME" &&
+        manifest?.representation === "rigged-glb-twin" &&
+        manifest?.technicalRepresentationQuality === "RIGGED_PBR_SKINNED" &&
+        manifest?.visualFidelityTier === "STYLIZED_REFERENCE" &&
+        manifest?.individualIdentityEvidence === false &&
+        manifest?.petId === expectedPetId &&
+        manifest?.stageRole === "companion" &&
+        manifest?.generic !== true &&
+        manifest?.fallbackUsed !== true
+      );
+    },
+    { expectedPetId: petId },
+  );
+  await expect(page.getByRole("link", { name: "看看它" })).toBeVisible();
+  await expect(page.getByText(/尚未连接设备|个设备在线|设备状态暂时/).first()).toBeVisible();
+  await expectNoFatalState(page);
 });

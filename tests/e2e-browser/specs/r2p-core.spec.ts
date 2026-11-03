@@ -55,16 +55,28 @@ test("R2P-CORE-02 interaction smoke: quick log flash + life-view modes", async (
   const petId = await demoDoudouId(request);
   await useCurrentPet(page, petId);
 
-  // Quick log: feed action produces the .alert.info flash (E2E contract).
+  // Quick log is progressive disclosure in R5: open the single primary
+  // "快速记录" action, then choose the concrete fact to record.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
+  await page.getByRole("button", { name: "快速记录", exact: true }).click();
   await page.getByRole("button", { name: "喂食", exact: true }).click();
+  // R5 fact-first UX: selecting a record type opens a confirmation form;
+  // the app must not invent food/amount or record an unconfirmed fact.
+  await page.getByTestId("pli.quicklog.field.food_type").fill("鸡肉配方粮");
+  await page.getByTestId("pli.quicklog.field.amount").fill("80");
+  await page.getByTestId("pli.quicklog.field.unit").fill("g");
+  await page.getByTestId("pli.quicklog.text-save").click();
   await expect(page.locator(".alert.info").first()).toBeVisible();
 
-  // Life view mode switching: 趋势 / 外观 panels are reachable and honest.
+  // Life View canonical rail: 此刻 / 趋势 / 时间线 / 外观.
   await page.goto(`/pets/${petId}/life-view`);
   await page.getByRole("tab", { name: "趋势" }).click();
   await expect(page.getByText(/数据积累后|饮水|进食|活动|睡眠/).first()).toBeVisible();
+  await expect(page.getByRole("tab", { name: "时间线" })).toBeVisible();
+  await page.getByRole("tab", { name: "时间线" }).click();
+  await expect(page).toHaveURL(/\/timeline/);
+  await page.goto(`/pets/${petId}/life-view`);
   await page.getByRole("tab", { name: "外观" }).click();
-  await expect(page.getByText(/演示 3D 形象/).first()).toBeVisible();
+  await expect(page.getByText(/示例 3D 形象|演示 3D 形象|第 \d+ 版 3D 形象|简化形象/).first()).toBeVisible();
 });

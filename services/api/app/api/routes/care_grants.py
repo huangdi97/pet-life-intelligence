@@ -35,9 +35,22 @@ async def list_grants(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -> li
             select(Grant).where(Grant.pet_id == pet.id).order_by(Grant.created_at.desc())
         )
     ).scalars().all()
+    user_ids = {g.user_id for g in rows}
+    users = (
+        (
+            await db.execute(select(User).where(User.id.in_(user_ids)))
+        ).scalars().all()
+        if user_ids
+        else []
+    )
+    user_labels = {
+        u.id: (u.display_name.strip() or u.email)
+        for u in users
+    }
     return [
         {
-            "grant_id": str(g.id), "user_id": str(g.user_id), "scopes": g.scopes,
+            "grant_id": str(g.id), "user_id": str(g.user_id),
+            "user_label": user_labels.get(g.user_id, "已授权成员"), "scopes": g.scopes,
             "reason": g.reason, "source": g.source, "status": g.status,
             "starts_at": g.starts_at.isoformat(),
             "expires_at": g.expires_at.isoformat() if g.expires_at else None,

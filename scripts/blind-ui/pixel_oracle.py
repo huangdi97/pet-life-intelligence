@@ -92,6 +92,35 @@ def compute_pixel_stats(path: Path) -> dict:
     }
 
 
+def pixel_regions(path: Path, region: tuple[int, int, int, int]) -> dict:
+    """Stats for one pixel region (x, y, w, h) e.g. the stage area.
+
+    Used by the warm-living-field gate: Today/Pet stage average luma must be
+    above the warm threshold or use reality-field media; Life View allows a
+    slightly darker digital field but never pure black.
+    """
+    img = Image.open(path)
+    w, h = img.size
+    rx, ry, rw, rh = region
+    box = (max(0, rx), max(0, ry), min(w, rx + rw), min(h, ry + rh))
+    if box[2] <= box[0] or box[3] <= box[1]:
+        return {"width": w, "height": h, "region": None}
+    crop = img.crop(box)
+    rgb = _to_rgb(crop)
+    lum = _luma(rgb)
+    warm = _warm_mask(rgb)
+    cool = _cool_mask(rgb)
+    return {
+        "width": w,
+        "height": h,
+        "region": {"x": box[0], "y": box[1], "w": box[2] - box[0], "h": box[3] - box[1]},
+        "region_mean_luma": round(float(lum.mean()), 4),
+        "region_dark_ratio": round(float((lum < 0.18).mean()), 4),
+        "region_warm_ratio": round(float(warm.mean()), 4),
+        "region_cool_ratio": round(float(cool.mean()), 4),
+    }
+
+
 def _phash(img: Image.Image, size: int = 16) -> str:
     small = img.convert("L").resize((size, size), Image.LANCZOS)
     arr = np.asarray(small, dtype=np.float64)
@@ -129,6 +158,30 @@ def negative_distance(candidate: Path, baseline: Path) -> dict:
         "ssim": round(ssim(sc, sb), 4),
         "phash_hamming": hamming(_phash(Image.open(candidate)), _phash(Image.open(baseline))),
         "mse": round(float(np.mean((sc - sb) ** 2)), 4),
+    }
+
+
+def near_identical(candidate: Path, baseline: Path, ssim_max: float = 0.97, phash_min_dist: int = 4) -> dict:
+    """V2 Negative-Distance Gate: a candidate that is nearly identical to a
+    known-bad/old baseline must be flagged as a visual blocker, so an
+    intended rework that did not actually happen cannot pass silently.
+
+    Deterministic classical statistics only (SSIM + pHash hamming distance).
+    """
+    nd = negative_distance(candidate, baseline)
+    ssim_ok = nd["ssim"] <= ssim_max
+    phash_ok = nd["phash_hamming"] >= phash_min_dist
+    blocked = not (ssim_ok or phash_ok)
+    return {
+        "negative_distance": nd,
+        "ssim_max": ssim_max,
+        "phash_min_dist": phash_min_dist,
+        "blocked": blocked,
+        "reason": (
+            "near-identical to baseline (visual change not observed)"
+            if blocked
+            else "sufficient visual change observed"
+        ),
     }
 
 

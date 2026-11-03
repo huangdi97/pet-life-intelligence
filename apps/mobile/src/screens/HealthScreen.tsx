@@ -6,13 +6,48 @@
  */
 import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { usePets } from "../context";
 import { api, humanizeError, type HealthEventRow } from "../api";
 import { fmtDate, riskLabel } from "../format";
 import { COLORS, RADIUS, SPACE, TYPE } from "../tokens";
 import { OpenSection } from "../components/feedback/OpenSection";
-import { EmptyState, InlineError, Skeleton } from "../components/feedback/Feedback";
+import { InlineError, Skeleton } from "../components/feedback/Feedback";
+import type { StackParamList } from "../navigation";
+
+type StackNav = NativeStackNavigationProp<StackParamList>;
+
+interface ReminderRow {
+  reminder_id: string;
+  kind: "VACCINE" | "DEWORMING" | "CHECKUP";
+  title: string;
+  due_date: string;
+  status: string;
+}
+const REMINDER_KIND_LABEL: Record<ReminderRow["kind"], string> = {
+  VACCINE: "疫苗",
+  DEWORMING: "驱虫",
+  CHECKUP: "体检",
+};
+
+interface HealthRecordRow {
+  record_id: string;
+  kind: "PRESCRIPTION" | "LAB" | "EXAM" | "VACCINATION";
+  source_type: string;
+  source_note: string;
+  signature_status: string;
+  occurred_at: string | null;
+}
+
+const HEALTH_RECORD_KIND_LABEL: Record<HealthRecordRow["kind"], string> = {
+  PRESCRIPTION: "处方",
+  LAB: "检验",
+  EXAM: "检查",
+  VACCINATION: "疫苗记录",
+};
 
 interface HealthEventCreateResp {
   health_event_id: string;
@@ -34,7 +69,7 @@ function triageColors(level: string | null): { color: string; bg: string } {
 function statusLabel(status: string): string {
   if (status === "OPEN") return "进行中";
   if (status === "CLOSED") return "已结束";
-  return status;
+  return "状态已记录";
 }
 
 function isHighRisk(level: string | null): boolean {
@@ -43,15 +78,25 @@ function isHighRisk(level: string | null): boolean {
 
 export function HealthScreen() {
   const { pets, petId } = usePets();
+  const navigation = useNavigation<StackNav>();
   const [rows, setRows] = useState<HealthEventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [reminderFormOpen, setReminderFormOpen] = useState(false);
   const [complaint, setComplaint] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [createdLevel, setCreatedLevel] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
+  const [reminders, setReminders] = useState<ReminderRow[]>([]);
+  const [reminderState, setReminderState] = useState<"loading" | "ready" | "error">("loading");
+  const [reminderKind, setReminderKind] = useState<ReminderRow["kind"]>("VACCINE");
+  const [reminderTitle, setReminderTitle] = useState("");
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderBusy, setReminderBusy] = useState<string | null>(null);
+  const [healthRecords, setHealthRecords] = useState<HealthRecordRow[]>([]);
+  const [healthRecordState, setHealthRecordState] = useState<"loading" | "ready" | "error">("loading");
 
   const pet = pets?.find((p) => p.id === petId) ?? pets?.[0] ?? null;
 
@@ -78,6 +123,76 @@ export function HealthScreen() {
     };
   }, [petId, version]);
 
+  useEffect(() => {
+    if (!petId) return;
+    let alive = true;
+    setReminderState("loading");
+    api.get<ReminderRow[]>(`/pets/${petId}/reminders`)
+      .then((items) => {
+        if (!alive) return;
+        setReminders(items);
+        setReminderState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setReminders([]);
+        setReminderState("error");
+      });
+    return () => { alive = false; };
+  }, [petId, version]);
+
+  useEffect(() => {
+    if (!petId) return;
+    let alive = true;
+    setHealthRecordState("loading");
+    api.get<HealthRecordRow[]>(`/pets/${petId}/health-records`)
+      .then((items) => {
+        if (!alive) return;
+        setHealthRecords(items);
+        setHealthRecordState("ready");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setHealthRecords([]);
+        setHealthRecordState("error");
+      });
+    return () => { alive = false; };
+  }, [petId, version]);
+
+  async function createReminder() {
+    if (!petId || reminderBusy || !reminderTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(reminderDate)) return;
+    setReminderBusy("create");
+    try {
+      await api.post(`/pets/${petId}/reminders`, {
+        kind: reminderKind,
+        title: reminderTitle.trim(),
+        due_date: reminderDate,
+        note: "",
+      });
+      setReminderTitle("");
+      setReminderDate("");
+      setReminderFormOpen(false);
+      setVersion((value) => value + 1);
+    } catch {
+      setReminderState("error");
+    } finally {
+      setReminderBusy(null);
+    }
+  }
+
+  async function completeReminder(reminderId: string) {
+    if (reminderBusy) return;
+    setReminderBusy(reminderId);
+    try {
+      await api.post(`/reminders/${reminderId}/done`, {});
+      setVersion((value) => value + 1);
+    } catch {
+      setReminderState("error");
+    } finally {
+      setReminderBusy(null);
+    }
+  }
+
   async function submit() {
     if (!petId || saving) return;
     const c = complaint.trim();
@@ -101,6 +216,7 @@ export function HealthScreen() {
   }
 
   const latest = rows[0] ?? null;
+  const recordsUnavailable = error && rows.length === 0;
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
@@ -117,21 +233,29 @@ export function HealthScreen() {
           </View>
         ) : (
           <>
-            <OpenSection title="近期状态" testID="pli.health.overview">
-              <View style={styles.statusRow}>
-                <Text style={styles.statusLabel}>最近一次</Text>
-                <Text style={styles.statusValue}>
-                  {latest ? riskLabel(latest.latest_triage_level) : "还没有健康记录"}
+            <View style={styles.overviewWrap} testID="pli.health.overview">
+              <View style={styles.overviewIcon}>
+                <Ionicons name="heart-outline" size={20} color={COLORS.brandPrimaryDeep} />
+              </View>
+              <View style={styles.overviewText}>
+                <Text style={styles.overviewEyebrow}>近期状态</Text>
+                <Text style={styles.overviewValue}>
+                  {recordsUnavailable ? "暂时无法确认" : latest ? riskLabel(latest.latest_triage_level) : "还没有健康记录"}
+                </Text>
+                <Text style={styles.overviewMeta} testID="pli.health.status">
+                  {recordsUnavailable
+                    ? "记录暂时无法读取"
+                    : rows.length > 0
+                      ? `最近 7 天 · ${rows.length} 条记录`
+                      : "先记录事实，再判断变化；这里不会把未知状态显示成“正常”。"}
                 </Text>
               </View>
-              <View style={styles.statusRow} testID="pli.health.status">
-                <Text style={styles.statusLabel}>最近 7 天</Text>
-                <Text style={styles.statusValue}>{rows.length} 条记录</Text>
-              </View>
-            </OpenSection>
+            </View>
 
             <OpenSection title="最近变化" testID="pli.health.changes">
-              {latest ? (
+              {recordsUnavailable ? (
+                <Text style={styles.emptyText}>健康记录暂时没有加载成功；不会把未知状态显示成“没有变化”。</Text>
+              ) : latest ? (
                 <View style={[styles.changeCard, isHighRisk(latest.latest_triage_level) && styles.changeCardDanger]}>
                   <View style={styles.changeHead}>
                     <Text style={[styles.changeType, isHighRisk(latest.latest_triage_level) && styles.changeTypeDanger]}>
@@ -149,16 +273,38 @@ export function HealthScreen() {
             </OpenSection>
 
             <OpenSection title="健康记录" testID="pli.health.records">
-              {rows.length === 0 ? (
-                <EmptyState
-                  title="还没有健康记录"
-                  body="记录健康事件后，分级与变化会出现在这里。"
-                />
+              {recordsUnavailable ? (
+                <Text style={styles.emptyText}>健康记录暂时没有加载成功，请稍后重试。</Text>
+              ) : rows.length === 0 ? (
+                <View style={styles.recordsEmpty}>
+                  <View style={styles.recordsEmptyIcon}>
+                    <Ionicons name="document-text-outline" size={20} color={COLORS.brandSecondary} />
+                  </View>
+                  <View style={styles.recordsEmptyText}>
+                    <Text style={styles.recordsEmptyTitle}>从第一条事实开始</Text>
+                    <Text style={styles.recordsEmptyBody}>记录症状、时间和已经发生的情况；分级只来自规则，不替代诊断。</Text>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="记录第一条健康事件"
+                    onPress={() => setFormOpen(true)}
+                    style={styles.recordsEmptyAction}
+                  >
+                    <Text style={styles.recordsEmptyActionText}>开始记录</Text>
+                  </Pressable>
+                </View>
               ) : (
                 rows.map((r, i) => {
                   const colors = triageColors(r.latest_triage_level);
                   return (
-                    <View key={r.health_event_id} testID={`pli.health.record.${r.health_event_id}`} style={[styles.recordRow, i > 0 && styles.recordDivider]}>
+                    <Pressable
+                      key={r.health_event_id}
+                      testID={`pli.health.record.${r.health_event_id}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`查看健康记录：${r.chief_complaint}`}
+                      onPress={() => navigation.navigate("HealthDetail", { id: r.health_event_id })}
+                      style={[styles.recordRow, i > 0 && styles.recordDivider]}
+                    >
                       <View style={[styles.riskPill, { backgroundColor: colors.bg }]}>
                         <Text style={[styles.riskPillText, { color: colors.color }]}>{riskLabel(r.latest_triage_level)}</Text>
                       </View>
@@ -168,21 +314,117 @@ export function HealthScreen() {
                           {statusLabel(r.status)} · {fmtDate(r.opened_at)}
                         </Text>
                       </View>
-                    </View>
+                    </Pressable>
                   );
                 })
               )}
             </OpenSection>
 
             <OpenSection title="预防与用药">
-              <View testID="pli.health.prevent" style={styles.recordRow}>
-                <Text style={styles.recordMeta}>疫苗与驱虫：暂无记录</Text>
+              <View testID="pli.health.prevent">
+                <Text style={styles.emptyText}>疫苗、驱虫和体检提醒来自主人明确记录；到期不等于异常，也不会自动推断已经完成。</Text>
+                {reminderState === "loading" ? (
+                  <Text style={styles.emptyText}>正在读取预防提醒……</Text>
+                ) : reminderState === "error" ? (
+                  <Text style={styles.emptyText}>预防提醒暂时没有加载成功；不会用默认日期替代真实计划。</Text>
+                ) : reminders.length ? (
+                  reminders.map((row, index) => (
+                    <View key={row.reminder_id} style={[styles.recordRow, index > 0 && styles.recordDivider]}>
+                      <View style={styles.recordText}>
+                        <Text style={styles.recordTitle}>{REMINDER_KIND_LABEL[row.kind]} · {row.title}</Text>
+                        <Text style={styles.recordMeta}>计划日期：{row.due_date} · {row.status === "DONE" ? "已完成" : "待完成"}</Text>
+                      </View>
+                      {row.status !== "DONE" ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`标记完成：${row.title}`}
+                          disabled={reminderBusy !== null}
+                          onPress={() => void completeReminder(row.reminder_id)}
+                          style={styles.recordsEmptyAction}
+                        >
+                          <Text style={styles.recordsEmptyActionText}>{reminderBusy === row.reminder_id ? "保存中…" : "完成"}</Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>还没有预防提醒。</Text>
+                )}
+                <Pressable
+                  testID="pli.health.reminder.toggle"
+                  accessibilityRole="button"
+                  accessibilityLabel={reminderFormOpen ? "收起预防提醒表单" : "添加预防提醒"}
+                  accessibilityState={{ expanded: reminderFormOpen }}
+                  onPress={() => setReminderFormOpen((value) => !value)}
+                  style={[styles.recordsEmptyAction, styles.reminderToggle]}
+                >
+                  <Text style={styles.recordsEmptyActionText}>{reminderFormOpen ? "收起" : "+ 添加预防提醒"}</Text>
+                </Pressable>
+                {reminderFormOpen ? (
+                  <View style={styles.reminderForm}>
+                    <View style={styles.reminderKinds}>
+                      {(["VACCINE", "DEWORMING", "CHECKUP"] as const).map((kind) => (
+                        <Pressable
+                          key={kind}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: reminderKind === kind }}
+                          onPress={() => setReminderKind(kind)}
+                          style={[styles.reminderChip, reminderKind === kind && styles.reminderChipSelected]}
+                        >
+                          <Text style={[styles.reminderChipText, reminderKind === kind && styles.reminderChipTextSelected]}>{REMINDER_KIND_LABEL[kind]}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                    <TextInput style={styles.input} value={reminderDate} onChangeText={setReminderDate} placeholder="计划日期 YYYY-MM-DD" placeholderTextColor={COLORS.textTertiary} autoCapitalize="none" />
+                    <TextInput style={styles.input} value={reminderTitle} onChangeText={setReminderTitle} placeholder="例如：年度核心疫苗" placeholderTextColor={COLORS.textTertiary} />
+                    <Pressable
+                      testID="pli.health.reminder.submit"
+                      accessibilityRole="button"
+                      accessibilityLabel="保存预防提醒"
+                      disabled={reminderBusy !== null || !reminderTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(reminderDate)}
+                      onPress={() => void createReminder()}
+                      style={[styles.recordsEmptyAction, { alignSelf: "flex-start" }]}
+                    >
+                      <Text style={styles.recordsEmptyActionText}>{reminderBusy === "create" ? "保存中…" : "保存提醒"}</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
               </View>
-              <View testID="pli.health.medication" style={styles.recordRow}>
-                <Text style={styles.recordMeta}>用药计划：暂无进行中的计划</Text>
-              </View>
-              <View testID="pli.health.vet" style={styles.recordRow}>
-                <Text style={styles.recordMeta}>就医记录：暂无</Text>
+              <Pressable
+                testID="pli.health.medication"
+                accessibilityRole="button"
+                accessibilityLabel="打开用药管理"
+                onPress={() => navigation.navigate("Medication")}
+                style={styles.recordRow}
+              >
+                <Text style={styles.recordMeta}>用药计划与给药记录</Text>
+                <Text style={styles.recordMeta}>›</Text>
+              </Pressable>
+              <View testID="pli.health.vet">
+                <Text style={styles.healthRecordLead}>就医与专业记录</Text>
+                <Text style={styles.emptyText}>处方、检验、检查与疫苗记录只展示真实导入的数据，并保留来源与签名状态。</Text>
+                {healthRecordState === "loading" ? (
+                  <Text style={styles.emptyText}>正在读取专业记录……</Text>
+                ) : healthRecordState === "error" ? (
+                  <Text style={styles.emptyText}>专业记录暂时没有加载成功；不会把未知显示成“没有记录”。</Text>
+                ) : healthRecords.length ? (
+                  healthRecords.slice(0, 4).map((record, index) => (
+                    <View key={record.record_id} style={[styles.recordRow, index > 0 && styles.recordDivider]}>
+                      <View style={styles.recordText}>
+                        <Text style={styles.recordTitle}>{HEALTH_RECORD_KIND_LABEL[record.kind] ?? "专业记录"}</Text>
+                        <Text style={styles.recordMeta}>
+                          {record.occurred_at ? fmtDate(record.occurred_at) : "时间未记录"} · {record.source_type === "PROFESSIONAL_CONFIRMED" ? "专业确认" : "来源已记录"}
+                        </Text>
+                        <Text style={styles.recordMeta}>
+                          {record.signature_status === "SIGNED" ? "签名已记录" : record.signature_status === "UNSIGNED" ? "未记录签名" : "无需签名"}
+                          {record.source_note ? ` · ${record.source_note}` : ""}
+                        </Text>
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>还没有导入处方、检验、检查或疫苗专业记录。</Text>
+                )}
               </View>
             </OpenSection>
             {createdLevel ? (
@@ -197,6 +439,8 @@ export function HealthScreen() {
               <Pressable
                 testID="pli.health.action"
                 accessibilityRole="button"
+                accessibilityLabel={formOpen ? "收起健康记录表单" : "记录健康事件"}
+                accessibilityState={{ expanded: formOpen }}
                 onPress={() => setFormOpen((v) => !v)}
                 style={({ pressed }) => [styles.formToggle, pressed && styles.pressed]}
               >
@@ -243,9 +487,33 @@ const styles = StyleSheet.create({
   sub: { fontSize: TYPE.sm, color: COLORS.textTertiary, marginTop: 2 },
   loadingWrap: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
   emptyText: { fontSize: TYPE.body, color: COLORS.textTertiary, lineHeight: 22 },
-  statusRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6 },
-  statusLabel: { fontSize: TYPE.meta, color: COLORS.textTertiary },
-  statusValue: { fontSize: TYPE.meta, color: COLORS.textPrimary, fontWeight: "600" },
+  overviewWrap: {
+    marginHorizontal: SPACE.s4,
+    marginTop: SPACE.s5,
+    padding: SPACE.s4,
+    borderRadius: RADIUS.xl,
+    backgroundColor: COLORS.brandSoftGreen,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: SPACE.s3,
+  },
+  overviewIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.surfaceOverlay },
+  overviewText: { flex: 1 },
+  overviewEyebrow: { fontSize: TYPE.caption, color: COLORS.textTertiary, fontWeight: "600" },
+  overviewValue: { fontSize: TYPE.metric, color: COLORS.textPrimary, fontWeight: "700", marginTop: 2 },
+  overviewMeta: { fontSize: TYPE.sm, color: COLORS.textSecondary, lineHeight: 20, marginTop: SPACE.s1 },
+  recordsEmpty: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACE.s3,
+    paddingVertical: SPACE.s2,
+  },
+  recordsEmptyIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.brandSoftAmber },
+  recordsEmptyText: { flex: 1 },
+  recordsEmptyTitle: { fontSize: TYPE.bodyStrong, fontWeight: "700", color: COLORS.textPrimary },
+  recordsEmptyBody: { fontSize: TYPE.sm, color: COLORS.textTertiary, lineHeight: 20, marginTop: 2 },
+  recordsEmptyAction: { minHeight: 44, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.brandSoftGreen },
+  recordsEmptyActionText: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "700" },
   changeCard: {
     // V4 §5 SoftPanel (§7 Border Budget): warm soft surface, borders removed —
     // the white bordered box reads as admin/CRUD, not a living pet surface.
@@ -259,17 +527,25 @@ const styles = StyleSheet.create({
   changeTypeDanger: { color: COLORS.danger },
   changeMeta: { fontSize: TYPE.caption, color: COLORS.textTertiary },
   changeBody: { fontSize: TYPE.body, color: COLORS.textPrimary, marginTop: SPACE.s2, lineHeight: 22 },
-  recordRow: { flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: 10 },
+  recordRow: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: SPACE.s3, paddingVertical: 10 },
   recordDivider: { borderTopWidth: 1, borderTopColor: COLORS.dividerSubtle },
+  reminderToggle: { alignSelf: "flex-start", marginTop: SPACE.s3 },
+  reminderForm: { marginTop: SPACE.s3, gap: SPACE.s2 },
+  reminderKinds: { flexDirection: "row", flexWrap: "wrap", gap: SPACE.s2 },
+  reminderChip: { minHeight: 40, justifyContent: "center", paddingHorizontal: SPACE.s3, borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceRaised },
+  reminderChipSelected: { backgroundColor: COLORS.brandSoftGreen },
+  reminderChipText: { fontSize: TYPE.sm, color: COLORS.textSecondary },
+  reminderChipTextSelected: { color: COLORS.brandPrimaryDeep, fontWeight: "700" },
   riskPill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   riskPillText: { fontSize: TYPE.caption, fontWeight: "700" },
+  healthRecordLead: { fontSize: TYPE.bodyStrong, color: COLORS.textPrimary, fontWeight: "700", marginTop: SPACE.s3, marginBottom: 4 },
   recordText: { flex: 1 },
   recordTitle: { fontSize: TYPE.body, color: COLORS.textPrimary, fontWeight: "500" },
   recordMeta: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: 1 },
   feedback: { marginHorizontal: SPACE.s4, marginTop: SPACE.s3, backgroundColor: COLORS.successBg, borderRadius: RADIUS.lg, padding: SPACE.s3 },
   feedbackText: { fontSize: TYPE.sm, color: COLORS.success },
   formSection: { paddingHorizontal: SPACE.s4, marginTop: SPACE.s5 },
-  formToggle: { paddingVertical: 12, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center" },
+  formToggle: { minHeight: 48, paddingVertical: 12, borderRadius: 999, backgroundColor: COLORS.brandSoftGreen, alignItems: "center", justifyContent: "center" },
   formToggleText: { fontSize: TYPE.button, color: COLORS.brandPrimaryDeep, fontWeight: "600" },
   formWrap: { marginTop: SPACE.s3 },
   fieldLabel: { fontSize: TYPE.sm, color: COLORS.textSecondary, marginBottom: SPACE.s1 },
@@ -285,7 +561,7 @@ const styles = StyleSheet.create({
   },
   inputMultiline: { minHeight: 80, textAlignVertical: "top" },
   note: { fontSize: TYPE.caption, color: COLORS.textTertiary, marginTop: SPACE.s2 },
-  submitBtn: { marginTop: SPACE.s3, backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 12, alignItems: "center" },
+  submitBtn: { marginTop: SPACE.s3, minHeight: 48, backgroundColor: COLORS.brandPrimary, borderRadius: 999, paddingVertical: 12, alignItems: "center", justifyContent: "center" },
   submitText: { color: COLORS.textInverse, fontSize: TYPE.button, fontWeight: "600" },
   errorText: { fontSize: TYPE.sm, color: COLORS.danger, marginTop: SPACE.s2 },
   pressed: { opacity: 0.85 },

@@ -21,8 +21,8 @@ interface RelationsPanelProps {
 export function RelationsPanel({ profile }: RelationsPanelProps) {
   const prof = profile.data?.profile;
   return (
-    <div className="card">
-      <h2>{t("social.relations")}</h2>
+    <section className="v4-sec">
+      <h2 className="v4-sec-title">{t("social.relations")}</h2>
       <State
         state={profile.state}
         error={profile.error ? mapErrorMessage(profile.error) : null}
@@ -42,6 +42,6 @@ export function RelationsPanel({ profile }: RelationsPanelProps) {
           </p>
         )}
       </State>
-    </div>
+    </section>
   );
 }

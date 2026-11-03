@@ -16,6 +16,18 @@ export default function PilotPage() {
     registered: number;
     activated_owners: number;
     north_star: string;
+    metric_contract_version: string;
+    activation_window_hours: number;
+    active_event_contract: string;
+    r8_loop_observation_status: "OBSERVED" | "NOT_YET_OBSERVED";
+    r8_loop: {
+      cases_created: number;
+      cases_reviewed: number;
+      cases_with_follow_up_observation: number;
+      cases_with_outcome: number;
+      source_corrections: number;
+      source_retractions: number;
+    };
     excludes: string[];
   }>(() => pilotApi.status(), []);
   const orgs = useAsync<
@@ -61,10 +73,43 @@ export default function PilotPage() {
             </tbody>
           </table>
           <p className="muted">
-            口径：/pilot/status。已排除 demo / internal 数据（exclude_demo=true / exclude_internal=true）；
-            激活 Owner 为代理口径（真实宠物自建档起 ≥3 条有效事件）。
+            口径：/pilot/status · {pilot.data?.metric_contract_version ?? "—"}。已排除 demo / internal；
+            Active Pet 只认当前有效事实记录，不计页面浏览、重复、撤回或已被修正替代的旧版本。
+            激活 Owner 按人去重，要求至少一只 Pet 在建档后 {pilot.data?.activation_window_hours ?? 24}h
+            知识截止内达到 ≥3 条有效事实。
           </p>
         </State>
+      </div>
+
+      <div className="card">
+        <h2>R8 Individual Life Intelligence Loop</h2>
+        <p className="sub">
+          {pilot.data?.r8_loop_observation_status === "NOT_YET_OBSERVED"
+            ? "尚无真实 Pet 样本；以下 0 不解释为产品表现。"
+            : "只统计真实 append-only journal facts；未埋点的页面曝光/阅读率不伪造。"}
+        </p>
+        <table style={{ marginTop: 12 }}>
+          <thead>
+            <tr>
+              <th>Case</th>
+              <th>已 Review Case</th>
+              <th>有后续观察</th>
+              <th>有 Outcome</th>
+              <th>来源修正</th>
+              <th>来源撤回</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{pilot.data?.r8_loop?.cases_created ?? "—"}</td>
+              <td>{pilot.data?.r8_loop?.cases_reviewed ?? "—"}</td>
+              <td>{pilot.data?.r8_loop?.cases_with_follow_up_observation ?? "—"}</td>
+              <td>{pilot.data?.r8_loop?.cases_with_outcome ?? "—"}</td>
+              <td>{pilot.data?.r8_loop?.source_corrections ?? "—"}</td>
+              <td>{pilot.data?.r8_loop?.source_retractions ?? "—"}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <div className="card">

@@ -67,6 +67,45 @@ async function allPetIds(page: Page): Promise<string[]> {
 }
 
 test.describe("blind-ui harness (web)", () => {
+
+  test("mobile 5-tab bar is actually at the bottom of the viewport", async ({ page }) => {
+    // A filtered sticky parent can silently re-anchor position:fixed children
+    // at the TOP of the screen, even though computed CSS says bottom:0.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seedPet(page, "");
+    await page.goto("/");
+    const tab = page.getByTestId("pli.nav.today");
+    await expect(tab).toBeVisible();
+    await expect(page.locator(".navlinks")).toHaveCSS("position", "fixed");
+    const bounds = await tab.boundingBox();
+    expect(bounds).not.toBeNull();
+    // Browser viewport geometry is the only reliable bottom-bar assertion.
+    expect(bounds!.y).toBeGreaterThan(700);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844);
+    for (const id of ["pli.nav.today", "pli.nav.timeline", "pli.nav.pet", "pli.nav.assistant", "pli.nav.me"]) {
+      const b = await page.getByTestId(id).boundingBox();
+      expect(b).not.toBeNull();
+      expect(b!.y).toBeGreaterThan(700);
+      expect(b!.x).toBeGreaterThanOrEqual(0);
+      expect(b!.x + b!.width).toBeLessThanOrEqual(390);
+    }
+  });
+
+
+  test("today primary action clears the fixed phone nav on first fold", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seedPet(page, "");
+    await page.goto("/");
+    const action = page.getByTestId("pli.today.primary-action");
+    const nav = page.getByTestId("pli.nav.today");
+    await expect(action).toBeVisible();
+    await expect(nav).toBeVisible();
+    const [actionBox, navBox] = await Promise.all([action.boundingBox(), nav.boundingBox()]);
+    expect(actionBox).not.toBeNull();
+    expect(navBox).not.toBeNull();
+    expect(actionBox!.y + actionBox!.height).toBeLessThanOrEqual(navBox!.y - 4);
+  });
+
   test("today renders four basic anchors + identity + health summary", async ({ page }) => {
     await seedPet(page, "");
     await page.goto("/");
@@ -117,18 +156,28 @@ test.describe("blind-ui harness (web)", () => {
     expect(Math.abs(yawB - yawA)).toBeGreaterThan(0.05);
   });
 
-  test("multi-pet switch changes pet context, not only the title", async ({ page }) => {
+  test("multi-pet switch changes identity + Twin without stale cross-pet carryover", async ({ page }) => {
     await seedPet(page, "");
     const petIds = await allPetIds(page);
     expect(petIds.length).toBeGreaterThanOrEqual(2);
     await page.goto("/");
     const nameA = await page.getByTestId("pli.today.identity").innerText();
+    await expect.poll(async () => {
+      return page.evaluate(() => (window as any).__PLI_3D_MANIFEST__?.petId ?? null);
+    }).toBe(petIds[0]);
+
     await page.evaluate((id) => {
       localStorage.setItem("pli_current_pet", id);
       window.dispatchEvent(new Event("pli-pet-changed"));
     }, petIds[1]);
-    await page.reload();
+
+    // Do not reload: the product must cross the identity boundary correctly in
+    // the live session. The old pet's Twin may never remain attached to the
+    // new pet while its model request is resolving.
     await expect(page.getByTestId("pli.today.identity")).not.toHaveText(nameA);
+    await expect.poll(async () => {
+      return page.evaluate(() => (window as any).__PLI_3D_MANIFEST__?.petId ?? null);
+    }).toBe(petIds[1]);
   });
 
   test("twin review: 不像 disables activation", async ({ page }) => {

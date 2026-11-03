@@ -1,23 +1,100 @@
 "use client";
 
-import { api, API_URL, type Grant, type HouseholdMemberRow } from "@pli/api-client";
+import Link from "next/link";
+import { api, type Grant } from "@pli/api-client";
 import { useState } from "react";
 import { fmtTime, useAsync, useCurrentPet } from "../../lib/hooks";
 import { ErrorNote, State } from "../../components/ui";
 
+interface HandoffChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+  done_by?: string | null;
+  done_at?: string | null;
+}
 interface Handoff {
   handoff_id: string;
   caregiver_user_id: string;
+  caregiver_label?: string;
   scope: string[];
   start_at: string;
   end_at: string | null;
   status: string;
   notes: string;
+  checklist: HandoffChecklistItem[];
+}
+
+interface PetCareContext {
+  household_id: string;
+}
+
+interface HouseholdMember {
+  user_id: string;
+  display_name: string;
+  email: string;
+  role: string;
+  status: string;
+}
+interface HouseholdInvitation {
+  invitation_id: string;
+  email: string;
+  role: string;
+  expires_at: string;
+  accept_token?: string;
+}
+
+const SCOPE_LABELS: Record<string, string> = {
+  "daily:read": "查看日常记录",
+  "daily:write": "记录日常照护",
+  "medical:read": "查看健康记录",
+  "medical:write": "记录健康信息",
+  "card:read": "查看照护卡",
+};
+
+function handoffChecklist(scopes: string[]): string[] {
+  const items = ["喂食与日常安排已确认", "紧急联系人与就医方式已确认"];
+  if (scopes.some((scope) => scope.startsWith("medical:"))) {
+    items.splice(1, 0, "健康与用药注意事项已确认");
+  }
+  return items;
+}
+
+function careStatusLabel(status: string): string {
+  if (status === "ACTIVE") return "生效中";
+  if (status === "EXPIRED") return "已到期";
+  if (status === "ENDED") return "已结束";
+  if (status === "REVOKED") return "已撤销";
+  if (status === "PENDING") return "待确认";
+  return "已记录";
+}
+
+function memberRoleLabel(role: string): string {
+  if (role === "OWNER") return "主人";
+  if (role === "CO_OWNER") return "共同主人";
+  if (role === "FAMILY") return "家庭成员";
+  if (role === "SITTER" || role === "CAREGIVER") return "临时照护人";
+  if (role === "VET") return "兽医";
+  if (role === "TRAINER") return "训练师";
+  if (role === "GROOMER") return "美容护理";
+  return "成员";
 }
 
 /** Surfaces 5 + 7: Care Network / Handoff / Care Card (PLI-035..038, PLI-010/011). */
 export default function CarePage() {
   const { petId } = useCurrentPet();
+  const petContext = useAsync<PetCareContext>(
+    () => (petId ? api.get<PetCareContext>(`/pets/${petId}`) : Promise.reject(new Error("no pet"))),
+    [petId],
+  );
+  const householdId = petContext.data?.household_id ?? "";
+  const members = useAsync<HouseholdMember[]>(
+    () =>
+      householdId
+        ? api.get<HouseholdMember[]>(`/households/${householdId}/members`)
+        : Promise.reject(new Error("no household")),
+    [householdId],
+  );
   const grants = useAsync<Grant[]>(
     () => (petId ? api.get<Grant[]>(`/pets/${petId}/grants`) : Promise.reject(new Error("no pet"))),
     [petId],
@@ -29,13 +106,35 @@ export default function CarePage() {
         : Promise.reject(new Error("no pet")),
     [petId],
   );
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("FAMILY");
+  const [invitation, setInvitation] = useState<HouseholdInvitation | null>(null);
   const [caregiver, setCaregiver] = useState("");
   const [hours, setHours] = useState("48");
   const [scopes, setScopes] = useState<string[]>(["daily:read", "daily:write"]);
   const [error, setError] = useState<string | null>(null);
-  const [card, setCard] = useState<{ token: string; expires_at: string } | null>(null);
+  const [card, setCard] = useState<{ token_id: string; token: string; expires_at: string } | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [handoffOpen, setHandoffOpen] = useState(false);
 
   const ALL_SCOPES = ["daily:read", "daily:write", "medical:read", "medical:write", "card:read"];
+
+  async function inviteMember() {
+    if (!householdId || !inviteEmail.trim()) return;
+    setError(null);
+    setInvitation(null);
+    try {
+      const result = await api.post<HouseholdInvitation>(
+        `/households/${householdId}/invitations`,
+        { email: inviteEmail.trim().toLowerCase(), role: inviteRole },
+      );
+      setInvitation(result);
+      setInviteEmail("");
+      members.reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
 
   async function createHandoff() {
     if (!petId || !caregiver.trim()) return;
@@ -46,10 +145,21 @@ export default function CarePage() {
         scopes,
         end_at: new Date(Date.now() + Number(hours) * 3600_000).toISOString(),
         reason: "care handoff",
+        checklist: handoffChecklist(scopes),
       });
       setCaregiver("");
       handoffs.reload();
       grants.reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function completeChecklist(handoffId: string, itemId: string) {
+    setError(null);
+    try {
+      await api.post(`/handoffs/${handoffId}/checklist/${itemId}/complete`, {});
+      handoffs.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -61,11 +171,22 @@ export default function CarePage() {
     grants.reload();
   }
 
+  async function revokeGrant(id: string) {
+    setError(null);
+    try {
+      await api.del(`/grants/${id}`);
+      grants.reload();
+      handoffs.reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
   async function issueCard() {
     if (!petId) return;
     setError(null);
     try {
-      const r = await api.post<{ token: string; expires_at: string }>(
+      const r = await api.post<{ token_id: string; token: string; expires_at: string }>(
         `/pets/${petId}/care-cards`,
         { expires_in_hours: 72 },
       );
@@ -75,64 +196,204 @@ export default function CarePage() {
     }
   }
 
+  async function revokeCard() {
+    if (!card?.token_id) return;
+    setError(null);
+    try {
+      await api.del(`/share-tokens/${card.token_id}`);
+      setCard(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  const carePeople = new Map<string, { user_id: string; label: string; role: string }>();
+  for (const member of members.data ?? []) {
+    if (member.status !== "ACTIVE") continue;
+    carePeople.set(member.user_id, {
+      user_id: member.user_id,
+      label: member.display_name || member.email || "家庭成员",
+      role: memberRoleLabel(member.role),
+    });
+  }
+  for (const grant of grants.data ?? []) {
+    if (!grant.user_id) continue;
+    if (!carePeople.has(grant.user_id)) {
+      carePeople.set(grant.user_id, {
+        user_id: grant.user_id,
+        label: grant.user_label || "曾授权照护人",
+        role: "曾授权照护人",
+      });
+    }
+  }
+  for (const handoff of handoffs.data ?? []) {
+    if (!handoff.caregiver_user_id) continue;
+    if (!carePeople.has(handoff.caregiver_user_id)) {
+      carePeople.set(handoff.caregiver_user_id, {
+        user_id: handoff.caregiver_user_id,
+        label: handoff.caregiver_label || "曾参与照护的人",
+        role: "曾参与照护",
+      });
+    }
+  }
+  const caregiverOptions = [...carePeople.values()];
+
   return (
-    <main>
-      <h1>照护网络</h1>
-      <p className="sub">家庭成员、临时交接与 Care Card。</p>
+    <main className="v4-main v5-domain-page v5-utility-page">
+      <div className="v4-topline v5-page-lede">
+        <h1>照护网络</h1>
+        <p className="sub">家庭成员、临时交接与照护卡。权限按人、用途与时间清楚管理。</p>
+      </div>
       <ErrorNote message={error} />
 
-      <div className="card">
-        <h2>发起照护交接 Care Handoff</h2>
+      <section className="v5-utility-surface">
+        <h2>家庭成员</h2>
+        <p className="muted">邀请共同照护的人加入家庭；角色决定默认权限。主人角色不能通过邀请转移。</p>
+        <State state={members.state} error={members.error} onRetry={members.reload} empty="家庭成员暂时没有读取到。">
+          <ul className="tl">
+            {members.data?.filter((member) => member.status === "ACTIVE").map((member) => (
+              <li key={member.user_id}>
+                <div className="tl-head">
+                  <span className="tl-type">{member.display_name || member.email || "家庭成员"}</span>
+                  <span className="badge">{memberRoleLabel(member.role)}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </State>
+        <button type="button" className="btn" data-testid="pli.care.invite.toggle"
+          aria-expanded={inviteOpen} aria-controls="pli-care-invite-form"
+          onClick={() => setInviteOpen((value) => !value)} style={{ marginTop: 12 }}>
+          {inviteOpen ? "收起" : "+ 邀请成员"}
+        </button>
+        {inviteOpen ? (
+          <div id="pli-care-invite-form" className="v5-form-surface v5-form-surface--inline">
+            <div className="grid2" style={{ marginTop: 12 }}>
+            <label className="field">
+            对方邮箱
+            <input
+            type="email"
+            value={inviteEmail}
+            placeholder="name@example.com"
+            onChange={(e) => setInviteEmail(e.target.value)}
+            />
+            </label>
+            <label className="field">
+            家庭角色
+            <select aria-label="家庭角色" value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+            <option value="FAMILY">家庭成员</option>
+            <option value="CO_OWNER">共同主人</option>
+            <option value="SITTER">临时照护人</option>
+            <option value="VET">兽医</option>
+            <option value="TRAINER">训练师</option>
+            <option value="GROOMER">美容护理</option>
+            </select>
+            </label>
+            </div>
+            <button data-testid="pli.care.invite.submit" className="btn primary" onClick={inviteMember} disabled={!householdId || !inviteEmail.trim()}>
+            发送邀请
+            </button>
+            
+          </div>
+        ) : null}
+        {invitation ? (
+          <div className="v4-note" style={{ marginTop: 10 }}>
+            已为 {invitation.email} 创建邀请，有效至 {fmtTime(invitation.expires_at)}。
+            {invitation.accept_token ? (
+              <>
+                {" "}当前环境未接入邮件投递，可将邀请码 <strong>{invitation.accept_token}</strong> 安全地交给对方。
+              </>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+
+      <section className="v5-utility-surface v5-utility-surface--soft">
+        <h2>发起照护交接</h2>
         <p className="muted">
-          仅 Owner/Co-owner 可操作；被交接人获得限时、限定范围的权限，到期自动失效，manage 权限不可授予。
+          仅主人或共同主人可操作；临时照护人只获得限时、限定范围的权限，到期自动失效，无法转授管理权限。
         </p>
-        <div className="grid2">
-          <label className="field">
-            临时照护人 User ID
-            <input value={caregiver} onChange={(e) => setCaregiver(e.target.value)} placeholder="uuid" />
-          </label>
-          <label className="field">
+        <button type="button" className="btn" data-testid="pli.care.handoff.toggle"
+          aria-expanded={handoffOpen} aria-controls="pli-care-handoff-form"
+          onClick={() => setHandoffOpen((value) => !value)}>
+          {handoffOpen ? "收起" : "+ 发起交接"}
+        </button>
+        {handoffOpen ? (
+          <div id="pli-care-handoff-form" className="v5-form-surface v5-form-surface--inline">
+            <div className="grid2">
+            <label className="field">
+            临时照护人
+            <select aria-label="临时照护人" value={caregiver} onChange={(e) => setCaregiver(e.target.value)}>
+            <option value="">选择照护人</option>
+            {caregiverOptions.map((person) => (
+            <option key={person.user_id} value={person.user_id}>
+            {person.label} · {person.role}
+            </option>
+            ))}
+            </select>
+            {members.state === "error" ? <span className="v4-note">家庭成员暂时无法读取；仍可选择此前已有照护记录的人。</span> : null}
+            <span className="v4-note">新照护人请先完成家庭邀请，再从这里选择。</span>
+            </label>
+            <label className="field">
             有效时长（小时）
             <input type="number" min={1} value={hours} onChange={(e) => setHours(e.target.value)} />
-          </label>
-        </div>
-        <fieldset style={{ border: "none", padding: 0 }}>
-          <legend className="muted">授权范围：</legend>
-          <div className="row">
+            </label>
+            </div>
+            <fieldset style={{ border: "none", padding: 0 }}>
+            <legend className="muted">授权范围：</legend>
+            <div className="row">
             {ALL_SCOPES.map((s) => (
-              <label key={s} className="muted" style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                <input
-                  type="checkbox"
-                  style={{ width: "auto" }}
-                  checked={scopes.includes(s)}
-                  onChange={(e) =>
-                    setScopes((old) =>
-                      e.target.checked ? [...old, s] : old.filter((x) => x !== s),
-                    )
-                  }
-                />
-                {s}
-              </label>
+            <label key={s} className="muted" style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <input
+            type="checkbox"
+            style={{ width: "auto" }}
+            checked={scopes.includes(s)}
+            onChange={(e) =>
+            setScopes((old) =>
+            e.target.checked ? [...old, s] : old.filter((x) => x !== s),
+            )
+            }
+            />
+            {SCOPE_LABELS[s] ?? "限定权限"}
+            </label>
             ))}
+            </div>
+            </fieldset>
+            <button data-testid="pli.care.handoff.submit" className="btn primary" onClick={createHandoff} disabled={!petId || !caregiver || scopes.length === 0}>
+            创建交接
+            </button>
+            
           </div>
-        </fieldset>
-        <button className="btn primary" onClick={createHandoff} disabled={!petId}>
-          创建交接
-        </button>
-      </div>
+        ) : null}
+      </section>
 
-      <div className="card">
+      <section className="v5-utility-surface">
         <h2>交接记录</h2>
         <State state={handoffs.state} error={handoffs.error} onRetry={handoffs.reload} empty="暂无交接。">
           <ul className="tl">
             {handoffs.data?.map((h) => (
               <li key={h.handoff_id}>
                 <div className="tl-head">
-                  <span className="tl-type">→ {h.caregiver_user_id.slice(0, 8)}…</span>
-                  <span className="badge">{h.status}</span>
-                  <span className="badge">{h.scope.join(", ")}</span>
+                  <span className="tl-type">{h.caregiver_label || "临时照护人"}</span>
+                  <span className="badge">{careStatusLabel(h.status)}</span>
+                  <span className="badge">{h.scope.map((scope) => SCOPE_LABELS[scope] ?? "限定权限").join(" · ")}</span>
                   <span className="tl-time">至 {fmtTime(h.end_at)}</span>
                 </div>
+                {h.checklist?.length ? (
+                  <div style={{ marginTop: 8 }}>
+                    <div className="muted">交接确认</div>
+                    {h.checklist.map((item) => (
+                      <div key={item.id} className="row" style={{ marginTop: 4, alignItems: "center" }}>
+                        <span>{item.done ? "✓" : "○"} {item.text}</span>
+                        {!item.done && h.status === "ACTIVE" ? (
+                          <button className="btn" onClick={() => completeChecklist(h.handoff_id, item.id)}>
+                            确认完成
+                          </button>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
                 {h.status === "ACTIVE" && (
                   <button className="btn danger" onClick={() => endHandoff(h.handoff_id)}>
                     提前结束
@@ -142,10 +403,10 @@ export default function CarePage() {
             ))}
           </ul>
         </State>
-      </div>
+      </section>
 
-      <div className="card">
-        <h2>生成 Care Card</h2>
+      <section className="v5-utility-surface v5-utility-surface--soft">
+        <h2>生成照护卡</h2>
         <p className="muted">
           最小字段卡片：喂养/用药/行为禁忌/紧急联系人/首选医院（文字），不含完整医疗历史。
           链接可撤销、会过期、访问留审计。
@@ -154,31 +415,52 @@ export default function CarePage() {
           生成并获取链接
         </button>
         {card && (
-          <div className="alert info" style={{ marginTop: 10 }}>
-            分享链接（72h 有效）：<code>/care-card/{card.token}</code>
-            <br />
-            <span className="muted">在浏览器打开 {`${API_URL}/api/v1/care-card/${card.token}`} 查看效果</span>
+          <div className="v4-calm" style={{ marginTop: 12 }}>
+            <div>
+              <p className="v4-calm-title">照护卡已生成 · 72 小时有效</p>
+              <p className="v4-calm-body">
+                分享给临时照护人即可查看最小必要信息；不会暴露完整医疗历史。
+              </p>
+              <div className="v4-linkrow">
+                <Link
+                  className="v4-action v4-action--primary"
+                  href={`/share/care-card/${card.token}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  打开照护卡
+                </Link>
+                <button type="button" className="btn danger" onClick={revokeCard}>
+                  撤销这个分享链接
+                </button>
+              </div>
+            </div>
           </div>
         )}
-      </div>
+      </section>
 
-      <div className="card">
-        <h2>权限授予记录（Grants）</h2>
+      <section className="v5-utility-surface">
+        <h2>权限授予记录</h2>
         <State state={grants.state} error={grants.error} onRetry={grants.reload} empty="暂无授权记录。">
           <ul className="tl">
             {grants.data?.map((g) => (
               <li key={g.grant_id}>
                 <div className="tl-head">
-                  <span className="tl-type">{g.user_id.slice(0, 8)}…</span>
-                  <span className={`badge ${g.status === "ACTIVE" ? "MONITOR" : "EMERGENCY"}`}>{g.status}</span>
-                  <span className="badge">{g.scopes.join(", ")}</span>
+                  <span className="tl-type">{g.user_label || "已授权成员"}</span>
+                  <span className={`badge ${g.status === "ACTIVE" ? "MONITOR" : "EMERGENCY"}`}>{careStatusLabel(g.status)}</span>
+                  <span className="badge">{g.scopes.map((scope) => SCOPE_LABELS[scope] ?? "限定权限").join(" · ")}</span>
                   <span className="tl-time">{fmtTime(g.starts_at)} → {g.expires_at ? fmtTime(g.expires_at) : "无限期"}</span>
                 </div>
+                {g.status === "ACTIVE" && g.grant_id ? (
+                  <button type="button" className="btn danger" onClick={() => revokeGrant(g.grant_id)}>
+                    撤销权限
+                  </button>
+                ) : null}
               </li>
             ))}
           </ul>
         </State>
-      </div>
+      </section>
     </main>
   );
 }

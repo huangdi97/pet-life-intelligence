@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "@pli/api-client";
 
 export type LoadState = "loading" | "ready" | "error" | "denied";
@@ -16,11 +16,20 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []): Async<T
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [tick, setTick] = useState(0);
+  // React effects run AFTER render. Clearing data only within useEffect
+  // otherwise exposes the previous pet's record during a pet-switch render.
+  // Keep the provenance of the currently active request at render time.
+  const requestIdentity = useRef<{ deps: unknown[]; tick: number } | null>(null);
 
   useEffect(() => {
+    requestIdentity.current = { deps: [...deps], tick };
     let alive = true;
     setState("loading");
     setError(null);
+    // Dependency changes often mean a different Pet ID. Keeping prior data
+    // during that transition can briefly present the previous pet's facts or
+    // Twin as the newly selected pet. Clear it until the new request resolves.
+    setData(null);
     fn()
       .then((d) => {
         if (!alive) return;
@@ -43,7 +52,15 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []): Async<T
   }, [...deps, tick]);
 
   const reload = useCallback(() => setTick((t) => t + 1), []);
-  return { state, data, error, reload };
+  const source = requestIdentity.current;
+  const belongsToCurrentRequest =
+    source !== null &&
+    source.tick === tick &&
+    source.deps.length === deps.length &&
+    deps.every((dep, i) => Object.is(dep, source.deps[i]));
+  return belongsToCurrentRequest
+    ? { state, data, error, reload }
+    : { state: "loading", data: null, error: null, reload };
 }
 
 /** Current-pet context persisted across pages (GOAL Phase 10: 永远显示当前 Pet). */

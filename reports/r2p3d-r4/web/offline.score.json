@@ -1,0 +1,202 @@
+{
+  "screen": "special-offline",
+  "total": 92,
+  "max": 100,
+  "perDimension": {
+    "individualPetTruth": {
+      "earned": 17,
+      "max": 25
+    },
+    "visualComposition": {
+      "earned": 20,
+      "max": 20
+    },
+    "informationHierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surfaceGovernance": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interactionTruth": {
+      "earned": 10,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "pixelStyleTruth": {
+      "earned": 5,
+      "max": 5
+    }
+  },
+  "passed": [
+    {
+      "id": "offline.state",
+      "dimension": "individualPetTruth",
+      "points": 12,
+      "description": "Offline 态：offline state 呈现",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.offline.state"
+      },
+      "passed": true,
+      "detail": "elements[pli.offline.state]=1"
+    },
+    {
+      "id": "offline.composition",
+      "dimension": "visualComposition",
+      "points": 20,
+      "description": "offline 主视觉（state+cached）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.offline.*",
+        "count": [
+          1,
+          8
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.offline.*]=4"
+    },
+    {
+      "id": "offline.cached",
+      "dimension": "informationHierarchy",
+      "points": 7,
+      "description": "Offline 态：cached 内容",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.offline.cached"
+      },
+      "passed": true,
+      "detail": "elements[pli.offline.cached]=1"
+    },
+    {
+      "id": "offline.sync",
+      "dimension": "informationHierarchy",
+      "points": 8,
+      "description": "Offline 态：last sync",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.offline.last-sync"
+      },
+      "passed": true,
+      "detail": "elements[pli.offline.last-sync]=1"
+    },
+    {
+      "id": "offline.surface",
+      "dimension": "surfaceGovernance",
+      "points": 10,
+      "description": "大 Card ≤3",
+      "check": {
+        "kind": "surface",
+        "max": 3,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 3"
+    },
+    {
+      "id": "offline.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "offline.retry",
+      "dimension": "interactionTruth",
+      "points": 10,
+      "description": "Offline 态：retry",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.offline.retry"
+      },
+      "passed": true,
+      "detail": "elements[pli.offline.retry]=1"
+    },
+    {
+      "id": "offline.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "offline 状态可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.offline.state"
+      },
+      "passed": true,
+      "detail": "elements[pli.offline.state]=1"
+    },
+    {
+      "id": "offline.truth",
+      "dimension": "individualPetTruth",
+      "points": 5,
+      "description": "offline 状态来自真实网络状态 (real data)",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "offline.truth.style",
+      "dimension": "pixelStyleTruth",
+      "points": 5,
+      "description": "无占位/空板书风格（style truth）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [
+    {
+      "id": "offline.identity",
+      "dimension": "individualPetTruth",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.today.identity"
+      },
+      "passed": false,
+      "detail": "elements[pli.today.identity]=0 count=undefined minH=undefined"
+    }
+  ],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

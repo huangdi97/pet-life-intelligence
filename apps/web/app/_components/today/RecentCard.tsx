@@ -15,8 +15,8 @@ interface RecentCardProps {
   today: Async<TodayData>;
 }
 
-/** OWN-001 最近 — compact life stream preview（时间 + 事件 + 来源 + 媒体），
- *  以及 Monitoring / Companion 的情境入口。 */
+/** OWN-001 最近 — compact life stream preview（时间 + 事件 + 来源 + 媒体）。
+ *  Secondary actions live in the ACTION layer above; MEMORY stays quiet. */
 export function RecentCard({ hasPet, today }: RecentCardProps) {
   return (
     <div className="v4-sec" data-testid="pli.today.memory-preview" data-pli-type="card">
@@ -64,20 +64,6 @@ export function RecentCard({ hasPet, today }: RecentCardProps) {
           <p className="v4-calm-body">请先在顶部选择一只宠物。</p>
         </div>
       )}
-      <div className="v4-linkrow">
-        <Link href="/monitoring" className="v4-action v4-action--secondary">
-          <span className="v4-action-icon">
-            <Icon name="eye" size={16} />
-          </span>
-          看看它
-        </Link>
-        <Link href="/companion" className="v4-action v4-action--secondary">
-          <span className="v4-action-icon">
-            <Icon name="heart" size={16} />
-          </span>
-          陪伴
-        </Link>
-      </div>
     </div>
   );
 }
