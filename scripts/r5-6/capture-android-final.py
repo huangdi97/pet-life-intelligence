@@ -2963,18 +2963,64 @@ def capture_r8_correction(
     if not row or row.get("valid") is not False or not row.get("superseded_by_event_id"):
         raise CaptureError("R8AS source projection does not expose the successor correction")
 
+    successor_id = str(row["superseded_by_event_id"])
+    successor = api_json(f"{root}/api/v1/events/{successor_id}", headers=headers)
+    if str(successor.get("pet_id") or "") != pet_id:
+        raise CaptureError("R8AS successor correction belongs to another pet")
+    if str(successor.get("supersedes_event_id") or "") != current_id:
+        raise CaptureError("R8AS successor does not point back to the original event")
+    if successor.get("payload", {}).get("duration_minutes") != 35:
+        raise CaptureError("R8AS successor correction does not contain the owner-entered 35 minutes")
+    if successor.get("occurred_at") != original.get("occurred_at"):
+        raise CaptureError("R8AS correction changed occurred_at instead of only correcting the value")
+
+    # Re-open the frozen source panel after invalidation. The owner must see the
+    # original historical row as superseded, not a silently rewritten 35-minute
+    # row. The successor itself is verified above at the append-only event layer.
+    tap_ready(
+        "pli.r8.case-detail.sources.open",
+        "correction-invalidated-open-sources.xml",
+        wait_first=2, attempts=30,
+    )
+    corrected_source_ui = ""
+    for _ in range(24):
+        time.sleep(0.5)
+        corrected_source_ui = android.dump_xml(directory / "correction-invalidated-sources.xml")
+        source_label = ui_control_label(
+            corrected_source_ui, f"pli.r8.case-detail.source.{current_id}",
+        )
+        if current_id in source_label and "记录已由后续修正替代" in source_label:
+            break
+    else:
+        raise CaptureError("R8AS native frozen source row did not show superseded truth")
+    source_label = ui_control_label(
+        corrected_source_ui, f"pli.r8.case-detail.source.{current_id}",
+    )
+    if "20 分钟" not in source_label:
+        raise CaptureError("R8AS native frozen source row no longer preserves the original 20 minutes")
+    if "35 分钟" in source_label:
+        raise CaptureError("R8AS native frozen source row was silently rewritten to the correction value")
+
     android.screenshot(directory / "owner-case-source-corrected.png")
     save_manifest(directory / "case-source-correction-truth.json", {
         "pet_id": pet_id,
         "case_id": case_id,
         "corrected_event_id": current_id,
-        "superseded_by_event_id": row["superseded_by_event_id"],
+        "superseded_by_event_id": successor_id,
+        "successor_pet_id": successor.get("pet_id"),
+        "successor_supersedes_event_id": successor.get("supersedes_event_id"),
+        "successor_payload_duration_minutes": successor.get("payload", {}).get("duration_minutes"),
+        "successor_occurred_at_matches_original": successor.get("occurred_at") == original.get("occurred_at"),
         "native_status": native_status,
+        "native_original_source_label": source_label,
+        "native_original_source_marked_superseded": True,
+        "native_original_value_preserved": True,
         "corrected_by_real_android_tap": True,
         "server_source_valid": corrected.get("source_valid"),
         "server_state": corrected.get("state"),
         "original_payload_duration_minutes": original.get("payload", {}).get("duration_minutes"),
         "original_row_unchanged": True,
+        "source_xml_after_correction": "correction-invalidated-sources.xml",
         "screenshot": "owner-case-source-corrected.png",
         "no_vision_model": True,
         "human_visual_acceptance": "PENDING",
