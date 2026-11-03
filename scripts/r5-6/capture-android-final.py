@@ -2636,14 +2636,25 @@ def capture_r8_owner_review(
 
     delta_id = "pli.lifeview.replay.knowledge-delta"
 
-    def open_delta_surface(expected_text: str) -> str:
+    def open_delta_surface(
+        expected_text: str,
+        *,
+        filename: str = "knowledge-delta-ui.xml",
+        force_reload: bool = False,
+    ) -> str:
+        if force_reload:
+            # Same route params do not guarantee a React reload. Cross a real
+            # navigation boundary first so the post-mutation proof cannot pass
+            # on the pre-retraction Life View already held in memory.
+            android.start_link(f"pli-demo://nav?screen=today&pet={pet_id}")
+            time.sleep(1.2)
         android.start_link(
             f"pli-demo://nav?screen=lifeview&pet={pet_id}&date={delta_day.isoformat()}"
         )
         ui = ""
         for attempt in range(26):
             time.sleep(0.8 if attempt else 3)
-            ui = android.dump_xml(directory / "knowledge-delta-ui.xml")
+            ui = android.dump_xml(directory / filename)
             if delta_id in ui and expected_text in ui:
                 if "为什么现在看到的不一样" not in ui:
                     raise CaptureError("R8CB native section headline is missing")
@@ -2667,11 +2678,59 @@ def capture_r8_owner_review(
     after_retraction = day_replay("verified_now")
     if late_event_id in [row.get("event_id") for row in after_retraction.get("events", [])]:
         raise CaptureError("R8CB withdrawal left the late record in verified_now")
+    after_delta = after_retraction.get("knowledge_delta") or {}
     if [
-        item for item in (after_retraction.get("knowledge_delta") or {}).get("items", [])
+        item for item in after_delta.get("items", [])
         if item.get("event_id") == late_event_id
     ]:
         raise CaptureError("R8CB kept explaining a record the owner withdrew")
+    after_late_items = [
+        item for item in after_delta.get("items", [])
+        if item.get("kind") == "LATE_RECORDED_EVENT"
+    ]
+    after_late_count = len(after_late_items)
+    if after_late_count != late_delta_count - 1:
+        raise CaptureError(
+            "R8CB withdrawal did not remove exactly one late-recorded journal item: "
+            f"before={late_delta_count}, after={after_late_count}"
+        )
+
+    # The native surface must refetch after the mutation as well. The prior
+    # artifact manifest named this XML but never created it, leaving the
+    # owner-facing invalidation claim proven only at the API boundary.
+    after_retraction_ui_copy = None
+    if after_late_count:
+        after_retraction_ui_copy = (
+            "这条记录是在当天之后补录的"
+            if after_late_count == 1
+            else f"当天之后补录了 {after_late_count} 条记录"
+        )
+        refreshed_ui = open_delta_surface(
+            after_retraction_ui_copy,
+            filename="knowledge-delta-after-retraction-ui.xml",
+            force_reload=True,
+        )
+        if late_ui_copy != after_retraction_ui_copy and late_ui_copy in refreshed_ui:
+            raise CaptureError("R8CB native Life View retained the stale pre-withdrawal grouped copy")
+    else:
+        android.start_link(f"pli-demo://nav?screen=today&pet={pet_id}")
+        time.sleep(1.2)
+        android.start_link(
+            f"pli-demo://nav?screen=lifeview&pet={pet_id}&date={delta_day.isoformat()}"
+        )
+        refreshed_ui = ""
+        for attempt in range(18):
+            time.sleep(0.8 if attempt else 3)
+            refreshed_ui = android.dump_xml(
+                directory / "knowledge-delta-after-retraction-ui.xml"
+            )
+            if late_ui_copy in refreshed_ui:
+                raise CaptureError("R8CB native Life View retained withdrawn late-record copy")
+            android.shell("input", "swipe", "960", "1820", "960", "720", "360")
+        # No remaining late-record delta means the old grouped line must stay
+        # absent across the bounded native scan; other legitimate delta kinds
+        # may still keep the section itself visible.
+    android.screenshot(directory / "knowledge-delta-after-retraction.png")
 
     # 3) The retraction delta itself is proven at the journal boundary for the
     #    same day with an explicit pre-withdrawal cutoff, which is exactly what
@@ -2697,6 +2756,9 @@ def capture_r8_owner_review(
         ],
         "late_record_delta_count": late_delta_count,
         "ui_wording_asserted": late_ui_copy,
+        "after_retraction_late_record_delta_count": after_late_count,
+        "ui_wording_after_retraction": after_retraction_ui_copy,
+        "native_refetched_after_retraction": True,
         "retraction_cutoff_kinds": [
             item.get("kind") for item in retracted_delta.get("items", [])
         ],
@@ -2710,6 +2772,7 @@ def capture_r8_owner_review(
         "health_inference": False,
         "truth_note": before_retraction.get("truth_note"),
         "screenshot": "knowledge-delta.png",
+        "screenshot_after_retraction": "knowledge-delta-after-retraction.png",
         "ui_xml": "knowledge-delta-ui.xml",
         "ui_xml_after_retraction": "knowledge-delta-after-retraction-ui.xml",
         "no_vision_model": True,
