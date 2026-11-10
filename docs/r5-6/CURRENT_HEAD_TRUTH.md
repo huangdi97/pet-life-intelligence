@@ -1,5 +1,41 @@
 # PLI — CURRENT_HEAD_TRUTH
 
+> Rule for this file: every value is a command output or an artifact I actually
+> fetched in the round it describes. No historical PASS, screenshot or SHA is
+> reused as current evidence. Older rounds are preserved verbatim at the bottom,
+> explicitly labelled historical.
+
+## Current — 2026-11-10 round (R8 / Pilot truth / Android closure)
+
+> Verified by the local autonomous agent on **2026-11-10 (Asia/Shanghai)**.
+> Full detail: `docs/r8/R8_PILOT_VISUAL_FINAL_CLOSURE_2026-11-10.md`.
+
+| Item | Value | Verified by |
+| --- | --- | --- |
+| Repository / branch | `huangdi97/pet-life-intelligence` @ `feat/r2p3d-r3-render-truth-ui-closure` | `git remote -v`, `git rev-parse --abbrev-ref HEAD` |
+| Start remote HEAD | `ba7363c341931a3ca91a06193698b96f2686f6ff` | `git ls-remote origin refs/heads/...` |
+| Start local HEAD | `a46253255df20cd56726445287657a878e184dc6` — 41 commits behind, worktree clean | `git rev-parse HEAD`, `git rev-list --left-right --count` |
+| How the gap was closed | `git merge --ff-only`; no `reset --hard`, no `clean -fdx`, no history rewrite | `git merge` output |
+| Current HEAD (local == remote) | `ccbd689ece2ce9e66c214dc8d7f94f2774a0029e` | `git rev-parse HEAD`, `git ls-remote` |
+| Commits pushed this round | `ccbd689e` — `fix(pilot): keep synthetic inviters out of the invited KPI` | `git log --oneline -2` |
+| CI (exact head) | run `42800704246` — **success** (Backend / Frontend / Blind Visual Contract / Browser E2E) | `gh run view` |
+| OpenAPI Deterministic Sync | run `42800704227` — **success** | `gh run view` |
+| Android + Release Artifacts | run `42800704437` — **success** (APK / Web standalone / R5.6 runtime evidence) | `gh run view` |
+| Artifacts | `pli-mobile-apk` `13756027663` (50,459,558 B), `pli-web-standalone` `13756595899`, `r5-6-android-runtime-evidence` `13757394896` (13,197,021 B, 212 files) | `gh api …/artifacts` |
+| Runtime evidence integrity | **PASS** — validator run by this agent against the *downloaded* artifact; `source_head = ccbd689e…`, `checkout_head = 6bdec9bd…` resolves to `refs/pull/2/merge` | `scripts/r5-6/validate-android-runtime-evidence.py` imported and pointed at the download |
+| R8CB Knowledge Delta | `late_record_delta_count 3 → 2` after withdrawal (`−1` exactly); post-withdrawal native XML contains `当天之后补录了 2 条记录` and no longer `…3 条记录`; `llm_generated=false`, `health_inference=false`, `read_only=true` | downloaded `knowledge-delta-truth.json` + `ui.xml` |
+| Multi-pet A→B→A | secondary Today manifest `petId = B`, `stageRole=today`; return `petId = A`; primary Case `945d624a…` still visible | downloaded `multipet-a-b-a-truth.json` |
+| Pilot metric contract | `R8_PILOT_V2` / `CURRENT_EFFECTIVE_RECORD_FACT`; `excludes = {demo, internal, synthetic_domain}`; `invited` now issuer-bound (leak fixed, tested) | `services/api/app/services/pilot_dashboard.py`, CI Backend job |
+| Local gates re-run | `ruff check services packages tests scripts` PASS; mobile typecheck + 8 mobile R8 contract suites + `ui-tokens`/`pet-3d`/`build:3d-page` 12/12 PASS (via pnpm 9, the CI pin) | local runs |
+| Backend pytest locally | `EXTERNAL_BLOCKED` — no Postgres/Redis/MinIO and no Docker on this machine; covered by CI run `42800704246` | port scan + `gh run view` |
+| PR #2 | `OPEN`, `isDraft=false`, `mergedAt=null`, `mergeable=MERGEABLE` | `gh pr view 2 --json …` |
+| Governance | `NO_VISION_MODEL_USED = TRUE`, `HUMAN_VISUAL_ACCEPTANCE = PENDING`, `APPROVED_VISUAL_BASELINE = UNCHANGED`, `NO MERGE / NO TAG / NO RELEASE` | this round's actions |
+| Real-world evidence | `REAL_PARTICIPANTS = 0`; Retention / Outcome Closure / Vet Usefulness / Real Pet Identity Validation / Commercial Conversion / Companion Demand = `NOT_YET_OBSERVED` | no real participants this round |
+
+---
+
+## Historical — 2026-10-11 round (preserved verbatim, NOT current)
+
 > Verified by the local autonomous agent on **2026-10-11 (Asia/Shanghai)**.
 > Rule for this file: every value is a command output or an artifact I actually
 > fetched. No historical PASS, screenshot or SHA is reused as current evidence.
@@ -8,7 +44,6 @@
 
 | Commits pushed by this agent | `a03295c7` (evidence recovery + diagnostics), `3aacdf6c` (v10 time-window test), `253ffa55` (UTF-8 decode + §13 deliverable set), `fc334c63` (Life View mode-rail poll), `1be8888e` (requested-pet manifest before accepting a Today frame), `87eec64d` (docs sync), `e5d38e80` (no two identical Twin Review view frames) |
 | Final branch head | `e5d38e80f647d8d42c2c32e347a3922bf0685d77` — CI ✅ (run 38108483530), OpenAPI ✅ (38108483529), Android + Release Artifacts ✅ incl. runtime evidence (38108483572); artifacts `pli-mobile-apk` id 11690916840, `pli-web-standalone` id 11691215951, `r5-6-android-runtime-evidence` id 11690821647 (none expired), APK sha256 `c81dd474c7b414d87fa57acf33ac3d3b8ec91f2e1c2332a17e4d27f11fca1892` |
-
 ## 1b. Head of this round's first green verification (`3aacdf6c`)
 
 
