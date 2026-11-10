@@ -33,7 +33,10 @@
 
 | SHA | Subject | Purpose |
 | --- | --- | --- |
-| `ccbd689ece2ce9e66c214dc8d7f94f2774a0029e` | `fix(pilot): keep synthetic inviters out of the invited KPI` | Close a real PILOT-INTEGRITY leak: `invited` counted every invite code with no isolation guard |
+| `ccbd689ece2ce9e66c214dc8d7f94f2774a0029e` | `fix(pilot): keep synthetic inviters out of the invited KPI` | Pass 1 — close a real PILOT-INTEGRITY leak: `invited` counted every invite code with no isolation guard |
+| `3ac8324f` | `docs(r8): current-head truth and 2026-11-10 closure report` | Pass 1 — this file + `CURRENT_HEAD_TRUTH` |
+| `01e9b423` | `docs(r8): record the 3ac8324f gates, artifact ids and the disclosed capture flake` | Pass 1 — disclose the flake instead of reporting a bare green |
+| `f6c8459620d7e9549ec28d5eb55643eae5ceb780` | `test(android): stop photographing an engineering identifier as the owner's pet` | Pass 2 — §9: owner-copy defect in the capture fixture + one gate hardened |
 
 Files changed by that commit (4):
 
@@ -271,3 +274,103 @@ participants, no real device session, no owner review. Retention, Outcome
 Closure, Vet Usefulness, Real Pet Identity Validation, Commercial Conversion
 and Companion Demand all remain `NOT_YET_OBSERVED`; none of them is inferred
 from demo data, synthetic dry-runs, hosted-emulator runs or automated E2E.
+
+## 9. Pass 2 — owner-copy defect, evidence inventory, human review package
+
+Pass 2 did what §24 asks for without pretending that a machine can judge looks:
+it inventoried the fresh artifact, scanned every native XML deterministically, and
+fixed the one real owner-facing defect that scan exposed.
+
+### 9.1 Defect found and fixed (`f6c84596`)
+
+The R8AS correction fixture was created as a pet literally named
+`R8AS Correction <epoch>` (`scripts/r5-6/capture-android-final.py`). Fixture
+pets are photographed on owner surfaces, so that string was rendered and
+announced as owner content:
+
+```text
+today/ui.xml (multipet identity)  primary_identity_label = "豆豆 · 咪咪 · R8AS Correction 1794319053"
+r8-owner-correction/correction-today.xml  ImageView content-desc = "R8AS Correction 1794319059 …"
+```
+
+`content-desc` is not decorative: it is what TalkBack reads out. A fixture name
+is owner-visible content (§12.2 `OWNER_INTERNAL_TERMS = 0`), so it now reads
+`小虎` via the module-level constant `FIXTURE_PET_NAME_CORRECTION`, which carries
+the invariant in a comment. Determinism is untouched: the harness discovers the
+fixture by the returned `pet_id` and never by name.
+
+The blind-UI gate that had pinned the old string was retargeted from the display
+name to the actual intent (a `POST /api/v1/pets` inside `capture_r8_correction`
+plus `pet_id = str(pet["id"])`) and additionally asserts the old f-string cannot
+come back. That is a strengthened gate, not a relaxed one.
+
+Measured effect on the same scanner, old artifact vs new artifact:
+
+| Artifact | Native XML scanned | `R8AS` hits | total internal-term hits |
+| --- | --- | --- | --- |
+| `01e9b423` (`13771770716`) | 96 | 7 | 14 |
+| `f6c84596` (`13782360124`) | 129 | **0** | 9 |
+
+### 9.2 Remaining disclosed limitation (not silently changed)
+
+The 9 remaining hits are all the same string: `PLI_MANIFEST:{…}`, which is the
+3D stage WebView's `document.title` and therefore the `text` UIAutomator exposes
+for that WebView. It is a deliberate no-vision-model evidence channel, and the
+harness also has a `files/pli_manifest.json` path. Changing it means changing
+the evidence pipeline and re-proving it on an emulator, so it is recorded here
+as an accessibility limitation with a known remediation (move the beacon out of
+`document.title` and give the stage an owner-language `content-desc`), not
+patched blind in a documentation round.
+
+### 9.3 Deterministic Layout proof for Today (§12.1)
+
+Native document order in `today/ui.xml` at `f6c84596`:
+
+```text
+pli.today.identity → pli.today.living-stage → pli.today.pet-twin
+→ pli.today.anchor.{food,water,activity,sleep} → pli.today.now-story
+→ pli.today.change → pli.today.attention → pli.today.primary-action
+→ pli.today.support
+```
+
+`ORDER_MATCHES_PET_NOW_CHANGE_ATTENTION_ACTION = TRUE`, with exactly one
+`pli.today.attention` node (one attention, not a wall of alerts). This proves
+structure and ordering only — it says nothing about whether it looks good.
+
+### 9.4 §24 evidence coverage inventory
+
+20 of the 26 §24 items have fresh evidence at `f6c84596`
+(`OK` = screenshot + native XML, `XML_ONLY` = native tree proves it, no separate
+screenshot). Never captured by the current capture contract:
+
+```text
+Behavior, Training, Welfare, Social, Empty, Offline
+```
+
+Notes that keep this number honest: `Attention` is proven as a panel inside
+Today (`pli.today.attention`); `R8 Outcome` is proven by
+`case-detail-outcome-*.xml`; the Knowledge Delta before-withdrawal screenshot is
+required *and present* (`knowledge-delta.png`, enforced by the validator).
+The six gaps are a coverage gap, not a claim that those screens are broken:
+`SURFACES` in the capture script has only the 9 base screens plus the R8 sets,
+and adding surfaces is a capture-contract expansion needing its own emulator
+iteration.
+
+### 9.5 Gates and artifact at `f6c84596`
+
+| Item | Value |
+| --- | --- |
+| CI | run `42847698829` — **success** (Backend / Frontend / Blind Visual Contract / Browser E2E) |
+| OpenAPI Artifact Sync | run `42847699124` — **success** |
+| Android + Release Artifacts | run `42847698843` — **success**, no rerun needed |
+| runtime evidence artifact | `13782360124` (13,723,476 B, 247 files) |
+| APK / web | `13778918822` / `13779660817` |
+| validator (run by this agent on the download) | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS`, `source_head = f6c8459620d7e9549ec28d5eb55643eae5ceb780`, `checkout_head = cd88fad672b29565ef3020f149e4f033a2f45456` = `refs/pull/2/merge` |
+| local gates | `ruff` PASS; `pytest tests/blind_ui` 275/275 PASS (excluding one file whose autouse fixture needs the backend DB, unavailable here); the two source-reading tests that broke on a GBK-locale host now pass |
+
+Human review package: a self-contained page built from this artifact's four CI
+contact sheets plus the deterministic findings above
+(`pli-human-visual-review.html` in the session scratch/visualization directory).
+It states the facts and asks the questions; it answers none of them.
+
+`HUMAN_VISUAL_ACCEPTANCE` remains `PENDING`.
