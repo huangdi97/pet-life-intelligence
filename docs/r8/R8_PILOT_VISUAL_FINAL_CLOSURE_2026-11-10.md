@@ -66,7 +66,7 @@ The one observed Android failure was on the *previous* commit `95419afa`
 (`fix(ci): pin Android Gradle jobs to JDK 17`). Classification:
 `CI_ENVIRONMENT_FAILURE` (hosted-runner JDK drift), not `PRODUCT_LOGIC_FAILURE`.
 
-### 3.2 Final head `ccbd689e`
+### 3.2 Code head `ccbd689e`
 
 | Workflow | Run ID | Result |
 | --- | --- | --- |
@@ -74,13 +74,61 @@ The one observed Android failure was on the *previous* commit `95419afa`
 | OpenAPI Deterministic Sync | `42800704227` | **success** |
 | Android + Release Artifacts | `42800704437` | **success** — Android APK / Web standalone / Android R5.6 runtime evidence all `success` |
 
+### 3.2b Docs head `3ac8324f` (this report's commit)
+
+`3ac8324f` = `docs(r8): current-head truth and 2026-11-10 closure report`.
+It touches `docs/` only; the code tree is byte-identical to `ccbd689e`.
+
+| Workflow | Run ID | Result |
+| --- | --- | --- |
+| CI | `42808320469` | **success** — Backend / Frontend / Blind Visual Contract / Browser E2E all `success` |
+| OpenAPI Deterministic Sync | `42808320462` | **success** |
+| Android + Release Artifacts | `42808320443` | **success after one rerun of the runtime-evidence job** — see §3.2c |
+
+### 3.2c Disclosed flake on `3ac8324f` (not hidden, not waived)
+
+The first attempt of job `Android R5.6 runtime evidence` on `3ac8324f` failed:
+
+```text
+CaptureError: R8 native target not actionable: pli.r8.quicklog-followup;
+saw_disabled=False; observed_ids=[]
+  at scripts/r5-6/capture-android-final.py:1219 (find_control)
+  from capture_r8_owner_review -> quicklog_context_xml
+```
+
+Classification: `HOSTED_EMULATOR_FLAKE`. Evidence for that classification, not
+an assumption: the same capture script and the same application code passed
+this exact step on `ba7363c3` (run `42772779486`) and on `ccbd689e`
+(run `42800704437`); `3ac8324f` changes only markdown; `observed_ids=[]` means
+the dumped hierarchy contained no `pli.*` resource-ids at all, i.e. the native
+surface had not painted, and `find_control` already waits for a painted
+surface before failing. Re-running the failed job only (`gh run rerun --failed`,
+no gate change, no assertion relaxed, no test skipped) produced `success`.
+
+Residual risk, honestly stated: the capture script's paint wait is bounded
+(21 attempts). On a slower hosted runner this step can still flake. It is
+**not** proof of a product defect, and it is **not** resolved by this round —
+it is recorded so a reviewer is not told "Android was simply green".
+
 ### 3.3 Artifacts at `42800704437`
+### 3.3 Artifacts
+
+At `42800704437` (`ccbd689e`):
 
 | Artifact | ID | Size |
 | --- | --- | --- |
 | `pli-mobile-apk` | `13756027663` | 50,459,558 B |
 | `pli-web-standalone` | `13756595899` | 48,416,484 B |
-| `r5-6-android-runtime-evidence` | `13757394896` | 13,197,021 B |
+| `r5-6-android-runtime-evidence` | `13757394896` | 13,197,021 B (212 files) |
+
+At `42808320443` (`3ac8324f`, the head carrying this report):
+
+| Artifact | ID | Size |
+| --- | --- | --- |
+| `pli-mobile-apk` | `13761537081` | 50,459,557 B |
+| `pli-web-standalone` | `13762120671` | 48,416,007 B |
+| `r5-6-android-runtime-evidence` | `13764396930` | 12,568,921 B (212 files) |
+| `r5-6-android-runtime-diagnostics` | `13762403167` | 10,010,677 B — uploaded by the *failed first attempt* (§3.2c), kept as flake evidence |
 
 ## 4. Local gates re-run by this agent
 
@@ -98,20 +146,21 @@ The one observed Android failure was on the *previous* commit `95419afa`
 ## 5. Android runtime evidence integrity
 
 `scripts/r5-6/validate-android-runtime-evidence.py` was executed by this agent
-against the **downloaded** artifact (not against the CI checkout), for both
-heads:
+against the **downloaded** artifact (not against the CI checkout), at every
+head captured this round:
 
-| Head | Validator result |
-| --- | --- |
-| `ba7363c3` (artifact `13743393574`) | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS` |
-| `ccbd689e` (artifact `13757394896`) | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS` (see §5.4) |
+| Head | Artifact | Validator result |
+| --- | --- | --- |
+| `ba7363c3` | `13743393574` | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS` |
+| `ccbd689e` | `13757394896` | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS` |
+| `3ac8324f` | `13764396930` | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS` |
 
 Facts independently re-derived from the artifact itself, not from the manifest:
 
 | Check | Observed |
 | --- | --- |
-| `capture-manifest.source_head` | `ba7363c3…` (and `ccbd689e…` at final head) |
-| `capture-manifest.checkout_head` | `refs/pull/2/merge` — resolved via `git ls-remote`, i.e. the PR merge ref, not a stale checkout |
+| `capture-manifest.source_head` | equals the head being verified (`ba7363c3…`, `ccbd689e…`, `3ac8324f…` respectively) |
+| `capture-manifest.checkout_head` | `refs/pull/2/merge` each time (`b6060c06…`, `6bdec9bd…`, `a5b9e552…`) — resolved with `git ls-remote`, i.e. the PR merge ref of that head, not a stale checkout |
 | `vision_model_used` | `false` |
 | primary / secondary pet id | distinct (`7c8c722f…` / `2d18b05d…`) |
 | `late_record_delta_count` (before withdrawal) | `3` |
@@ -123,23 +172,26 @@ Facts independently re-derived from the artifact itself, not from the manifest:
 | A→B→A | secondary Today manifest `petId = B`, `stageRole=today`; return manifest `petId = A`; primary Case `945d624a…` still visible |
 | `no_vision_model` / `human_visual_acceptance` in every truth JSON | `true` / `PENDING` |
 
-### 5.4 Final-head evidence
+### 5.4 Final-head evidence (`3ac8324f`)
 
-The final-head artifact (`13757394896`, 212 files) was downloaded and
-re-validated with the same validator, from this machine, after the round:
+The artifact of the head that carries this report (`13764396930`, 212 files) was
+downloaded and re-validated with the same validator, from this machine:
 
 ```text
 ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS
-capture-manifest.source_head       = ccbd689ece2ce9e66c214dc8d7f94f2774a0029e
-capture-manifest.checkout_head     = 6bdec9bd209cafb95d27092472d561d7fa45876b
+capture-manifest.source_head       = 3ac8324fb3701078eb3a16083a81e24733e6c029
+capture-manifest.checkout_head     = a5b9e552245d6f16470d985673184df00f056c33
+vision_model_used                  = false
+late_record_delta_count            = 3
+after_retraction count             = 2   (post-withdrawal XML: 2-record wording present, 3-record wording absent)
+A→B→A                              = Today manifest back on pet A, primary Case still visible
 ```
 
-`6bdec9bd` was resolved with `git ls-remote` to `refs/pull/2/merge`, whose head
-is `ccbd689e` — so the evidence build checked out the PR merge ref of this
-exact head, not a stale or foreign commit. The delta counts and the native
-wording repeated exactly: `3 → 2`, post-withdrawal XML contains
-`当天之后补录了 2 条记录` and no longer contains `…3 条记录`, and A→B→A
-returned the Today manifest to pet A with the primary Case still visible.
+`a5b9e552` was resolved with `git ls-remote` to `refs/pull/2/merge`, whose head
+is `3ac8324f` — the evidence build checked out the merge ref of this exact head,
+not a stale or foreign commit. The same three checks produced the same result at
+`ccbd689e` (`6bdec9bd` merge ref) and at `ba7363c3` (`b6060c06` merge ref), so
+the evidence is not a one-off success.
 
 ## 6. Pilot metric truth
 

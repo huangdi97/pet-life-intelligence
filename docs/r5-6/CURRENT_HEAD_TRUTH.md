@@ -16,13 +16,14 @@
 | Start remote HEAD | `ba7363c341931a3ca91a06193698b96f2686f6ff` | `git ls-remote origin refs/heads/...` |
 | Start local HEAD | `a46253255df20cd56726445287657a878e184dc6` — 41 commits behind, worktree clean | `git rev-parse HEAD`, `git rev-list --left-right --count` |
 | How the gap was closed | `git merge --ff-only`; no `reset --hard`, no `clean -fdx`, no history rewrite | `git merge` output |
-| Current HEAD (local == remote) | `ccbd689ece2ce9e66c214dc8d7f94f2774a0029e` | `git rev-parse HEAD`, `git ls-remote` |
-| Commits pushed this round | `ccbd689e` — `fix(pilot): keep synthetic inviters out of the invited KPI` | `git log --oneline -2` |
-| CI (exact head) | run `42800704246` — **success** (Backend / Frontend / Blind Visual Contract / Browser E2E) | `gh run view` |
-| OpenAPI Deterministic Sync | run `42800704227` — **success** | `gh run view` |
-| Android + Release Artifacts | run `42800704437` — **success** (APK / Web standalone / R5.6 runtime evidence) | `gh run view` |
-| Artifacts | `pli-mobile-apk` `13756027663` (50,459,558 B), `pli-web-standalone` `13756595899`, `r5-6-android-runtime-evidence` `13757394896` (13,197,021 B, 212 files) | `gh api …/artifacts` |
-| Runtime evidence integrity | **PASS** — validator run by this agent against the *downloaded* artifact; `source_head = ccbd689e…`, `checkout_head = 6bdec9bd…` resolves to `refs/pull/2/merge` | `scripts/r5-6/validate-android-runtime-evidence.py` imported and pointed at the download |
+| Last code head verified | `ccbd689e` — `fix(pilot): keep synthetic inviters out of the invited KPI` | `git log --oneline -2` |
+| Last docs head verified | `3ac8324f` — `docs(r8): current-head truth and 2026-11-10 closure report` (docs/ only; code tree identical to `ccbd689e`) | `git show --stat` |
+| Current branch head | one or more docs-only commits ahead of `3ac8324f`. Merge requires the *then-current* head to be green; the live run IDs sit in PR #2's description because a docs commit cannot record its own run IDs without another commit. | `gh pr view 2` |
+| CI (exact head) | `ccbd689e` → run `42800704246`; `3ac8324f` → run `42808320469` — both **success** (Backend / Frontend / Blind Visual Contract / Browser E2E) | `gh run view` |
+| OpenAPI Deterministic Sync | `ccbd689e` → `42800704227`; `3ac8324f` → `42808320462` — both **success** | `gh run view` |
+| Android + Release Artifacts | `ccbd689e` → `42800704437` — **success**. `3ac8324f` → `42808320443` — **success after one `--failed` rerun**; the first attempt failed with `CaptureError: … pli.r8.quicklog-followup; observed_ids=[]` on a docs-only commit ⇒ `HOSTED_EMULATOR_FLAKE`, disclosed in the closure report §3.2c, not waived | `gh run view`, `gh run view --log-failed` |
+| Artifacts | `ccbd689e`: apk `13756027663`, web `13756595899`, runtime evidence `13757394896`. `3ac8324f`: apk `13761537081`, web `13762120671`, runtime evidence `13764396930` (212 files), plus `r5-6-android-runtime-diagnostics` `13762403167` kept as flake evidence | `gh api …/artifacts` |
+| Runtime evidence integrity | **PASS** at all three heads verified this round (`ba7363c3`, `ccbd689e`, `3ac8324f`) — validator run by this agent against the *downloaded* artifacts; each `source_head` equals its head and each `checkout_head` resolves to `refs/pull/2/merge` (`b6060c06`, `6bdec9bd`, `a5b9e552`) | `scripts/r5-6/validate-android-runtime-evidence.py` imported and pointed at each download |
 | R8CB Knowledge Delta | `late_record_delta_count 3 → 2` after withdrawal (`−1` exactly); post-withdrawal native XML contains `当天之后补录了 2 条记录` and no longer `…3 条记录`; `llm_generated=false`, `health_inference=false`, `read_only=true` | downloaded `knowledge-delta-truth.json` + `ui.xml` |
 | Multi-pet A→B→A | secondary Today manifest `petId = B`, `stageRole=today`; return `petId = A`; primary Case `945d624a…` still visible | downloaded `multipet-a-b-a-truth.json` |
 | Pilot metric contract | `R8_PILOT_V2` / `CURRENT_EFFECTIVE_RECORD_FACT`; `excludes = {demo, internal, synthetic_domain}`; `invited` now issuer-bound (leak fixed, tested) | `services/api/app/services/pilot_dashboard.py`, CI Backend job |
