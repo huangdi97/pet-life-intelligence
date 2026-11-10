@@ -35,6 +35,15 @@ from xml.etree import ElementTree as ET
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUT = ROOT / "artifacts" / "r5-6-final" / "android"
 OWNER_ERROR_FREE_SURFACES = {"today", "timeline", "pet", "lifeview", "health", "me"}
+
+# INVARIANT (owner copy):
+# Every fixture pet is photographed on owner-facing surfaces (Today identity,
+# Case detail, Twin Review) and its name is read aloud by TalkBack. A fixture
+# name is therefore owner-visible content: it must read like a real pet name,
+# never an engineering identifier such as "R8AS Correction <epoch>". The
+# harness never looks a fixture up by name (it keys on the returned pet_id),
+# so a plausible name costs nothing in determinism.
+FIXTURE_PET_NAME_CORRECTION = "小虎"
 SURFACES = (
     ("today", True, "today"),
     ("timeline", False, None),
@@ -2816,7 +2825,7 @@ def capture_r8_correction(
 
     pet = api_json(
         f"{root}/api/v1/pets", method="POST",
-        body={"name": f"R8AS Correction {int(time.time())}", "species": "dog"},
+        body={"name": FIXTURE_PET_NAME_CORRECTION, "species": "dog"},
         headers=headers,
     )
     pet_id = str(pet["id"])

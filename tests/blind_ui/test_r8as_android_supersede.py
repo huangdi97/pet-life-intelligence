@@ -51,5 +51,14 @@ def test_correction_has_a_real_android_runtime_gate():
     assert "case-source-correction-truth.json" in capture
     assert '"corrected_by_real_android_tap": True' in capture
     assert '"original_row_unchanged": True' in capture
-    # Independent fixture: correction must not reuse the retraction Case.
-    assert '"name": f"R8AS Correction' in capture
+    # Independent fixture: the correction captures its own pet instead of
+    # reusing the retraction Case's pet. Asserted on the create call and the
+    # returned id rather than on the display name, so the fixture can follow
+    # owner-copy rules without weakening this guarantee.
+    assert 'f"{root}/api/v1/pets", method="POST"' in capture
+    assert 'pet_id = str(pet["id"])' in capture
+    # Owner-copy rule: a fixture pet is photographed on owner-facing surfaces
+    # (Today identity, Case detail) and is read aloud by TalkBack, so its name
+    # must be plausible content, never an engineering identifier.
+    assert 'body={"name": FIXTURE_PET_NAME_CORRECTION, "species": "dog"}' in capture
+    assert '"name": f"R8AS Correction' not in capture

@@ -10,9 +10,12 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_pet_tab_avatar_uses_compact_media_bounds_and_species_fallback() -> None:
-    avatar = (ROOT / "apps/mobile/src/components/media/PetAvatar.tsx").read_text()
-    media = (ROOT / "apps/mobile/src/components/media/PetMedia.tsx").read_text()
-    navigation = (ROOT / "apps/mobile/src/navigation.tsx").read_text()
+    # COMPATIBILITY: the mobile sources are UTF-8 with Chinese copy. Without an
+    # explicit encoding, Path.read_text() falls back to the platform locale
+    # (GBK on a Chinese Windows host) and fails before any assertion is reached.
+    avatar = (ROOT / "apps/mobile/src/components/media/PetAvatar.tsx").read_text(encoding="utf-8")
+    media = (ROOT / "apps/mobile/src/components/media/PetMedia.tsx").read_text(encoding="utf-8")
+    navigation = (ROOT / "apps/mobile/src/navigation.tsx").read_text(encoding="utf-8")
     assert "compactSize={size}" in avatar
     assert "const frameHeight = compactSize ?? spec.height;" in media
     assert "const frameWidth = compactSize === undefined ? undefined : compactSize;" in media
@@ -24,7 +27,7 @@ def test_pet_tab_avatar_uses_compact_media_bounds_and_species_fallback() -> None
 
 
 def test_default_media_variants_remain_unchanged() -> None:
-    media = (ROOT / "apps/mobile/src/components/media/PetMedia.tsx").read_text()
+    media = (ROOT / "apps/mobile/src/components/media/PetMedia.tsx").read_text(encoding="utf-8")
     assert 'square: { height: 120, radius: RADIUS.lg, glyph: 96 }' in media
     assert "const frameHeight = compactSize ?? spec.height;" in media
     assert "const glyphSize = compactSize === undefined" in media
