@@ -46,6 +46,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build pet-3d
@@ -141,6 +145,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
       - name: Configure dynamic runtime service ports
         run: |
           echo "DATABASE_URL=postgresql+asyncpg://pli:pli_dev_password@localhost:${{ job.services.postgres.ports[5432] }}/pli" >> "$GITHUB_ENV"
