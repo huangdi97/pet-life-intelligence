@@ -100,3 +100,7 @@ if grep -Eq "Unable to load script|Could not connect to development server|JS bu
   exit 1
 fi
 echo "PASS: evidence run executed the embedded JS bundle with Metro absent."
+
+# Fail closed if a truth manifest references evidence that was never emitted, or
+# if the R8CB/multi-pet runtime identities contradict the captured native state.
+python scripts/r5-6/validate-android-runtime-evidence.py

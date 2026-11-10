@@ -48,6 +48,7 @@ async def main() -> int:
         # P1 status endpoint
         st = await c.get("/pilot/status")
         body = st.json()
+        baseline = dict(body)
         log(results, st.status_code == 200 and "north_star" in body,
             "PILOT-01 status + north star", str(body.get("north_star")))
 
@@ -87,15 +88,39 @@ async def main() -> int:
         log(results, fb.status_code == 201 and fb.json().get("feedback_id"),
             "PILOT-06 feedback submitted", str(fb.status_code))
 
-        # P7 dashboard reflects metrics
-        db = body = (await c.get("/pilot/status")).json()
-        had_pets = isinstance(db.get("pets_total"), int) or "counts" in db
-        log(results, had_pets, "PILOT-07 dashboard metrics present", str({k: db[k] for k in list(db)[:5]}))
+        # P7 this script deliberately uses @pli.test identities. Those rows
+        # exercise the API path but MUST NOT move any real-participant metric.
+        db = (await c.get("/pilot/status")).json()
+        real_metric_keys = (
+            "pets_total",
+            "active_pets_3d",
+            "active_pets_7d",
+            "registered",
+            "activated_owners",
+            "feedback_count",
+        )
+        unchanged = all(db.get(key) == baseline.get(key) for key in real_metric_keys)
+        contract_ok = (
+            db.get("metric_contract_version") == "R8_PILOT_V2"
+            and db.get("active_event_contract") == "CURRENT_EFFECTIVE_RECORD_FACT"
+        )
+        log(
+            results,
+            unchanged and contract_ok,
+            "PILOT-07 synthetic dry-run excluded from real metrics",
+            str({key: db.get(key) for key in real_metric_keys}),
+        )
 
-        # P8 demo seed does not masquerade as real analytics: staging demo user
-        # (owner@pli.demo) flags are audited separately; status returns real rows.
-        log(results, "demo" not in str(body.get("pilot_mode", "")).lower(),
-            "PILOT-08 pilot_mode flag not fake", str(body.get("pilot_mode")))
+        # P8 status must advertise the same isolation boundary that the query
+        # actually enforces. Do not infer isolation from a boolean pilot_mode.
+        excludes = set(db.get("excludes") or [])
+        required_excludes = {"demo", "internal", "synthetic_domain"}
+        log(
+            results,
+            required_excludes.issubset(excludes),
+            "PILOT-08 metric isolation contract advertised",
+            str(sorted(excludes)),
+        )
 
     return finish(results)
 
