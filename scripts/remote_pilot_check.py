@@ -91,6 +91,8 @@ async def main() -> int:
         # P7 this script deliberately uses @pli.test identities. Those rows
         # exercise the API path but MUST NOT move any real-participant metric.
         db = (await c.get("/pilot/status")).json()
+        # `invited` is included because the dry-run itself mints an invite code
+        # (@pli.test admin): a real invitation KPI must not move either.
         real_metric_keys = (
             "pets_total",
             "active_pets_3d",
@@ -98,6 +100,7 @@ async def main() -> int:
             "registered",
             "activated_owners",
             "feedback_count",
+            "invited",
         )
         unchanged = all(db.get(key) == baseline.get(key) for key in real_metric_keys)
         contract_ok = (

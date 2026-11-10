@@ -7,7 +7,7 @@ data is excluded so non-real data never enters real Pilot metrics.
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import and_, func, select, text
+from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ValidationFailed
@@ -103,8 +103,22 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
     )).scalar_one()
 
     # 4) invite/registration funnel counts (real users only)
+    # PILOT-INTEGRITY:
+    # An invite code minted by a demo/internal/synthetic-domain actor is not a
+    # real Pilot invitation; counting it would let the synthetic dry-run move a
+    # real KPI. Codes whose issuer is unattributable (NULL created_by) stay
+    # counted: the issuance was a real administrative act we cannot prove fake.
     invited = (await db.execute(
         select(func.count()).select_from(PilotInviteCode)
+        .outerjoin(User, User.id == PilotInviteCode.created_by_user_id)
+        .where(or_(
+            PilotInviteCode.created_by_user_id.is_(None),
+            and_(
+                User.is_demo.is_(False),
+                User.is_internal.is_(False),
+                real_email_cond(),
+            ),
+        ))
     )).scalar_one()
     registered = (await db.execute(
         select(func.count()).select_from(PilotUserProfile)

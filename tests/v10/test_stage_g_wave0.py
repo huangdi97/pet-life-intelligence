@@ -281,3 +281,51 @@ async def test_pilot_activated_owners_are_distinct_people_not_pets(client):
     after = (await client.get("/api/v1/pilot/status")).json()
     assert after["active_pets_3d"] == before["active_pets_3d"] + 2
     assert after["activated_owners"] == before["activated_owners"] + 1
+
+
+async def _register_owner_with_email(client, email: str):
+    """Register + log in an owner with an explicit email (synthetic or real)."""
+    reg = await client.post("/api/v1/auth/register", json={
+        "email": email, "password": "RealPass!w0rd", "display_name": "Pilot 邀请人",
+    })
+    assert reg.status_code == 201, reg.text
+    login = await client.post("/api/v1/auth/login", json={
+        "email": email, "password": "RealPass!w0rd",
+    })
+    assert login.status_code == 200, login.text
+    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+
+@pytest.mark.asyncio
+async def test_pilot_invites_ignore_synthetic_domain_issuers(client):
+    """PILOT-INTEGRITY: an invite minted by a @pli.test actor is not a real invite.
+
+    The remote synthetic dry-run mints an invite code as a @pli.test admin; if
+    that code were counted, the dry-run would move a real Pilot KPI while
+    claiming the real metrics stayed flat.
+    """
+    before = (await client.get("/api/v1/pilot/status")).json()
+
+    synthetic = await _register_owner_with_email(
+        client, f"pilotadm-{uuid.uuid4().hex[:8]}@pli.test",
+    )
+    fake = await client.post(
+        "/api/v1/pilot/invites", headers=synthetic,
+        json={"purpose": "pilot", "max_uses": 1, "expires_hours": 24},
+    )
+    assert fake.status_code == 201, fake.text
+
+    after_synthetic = (await client.get("/api/v1/pilot/status")).json()
+    assert after_synthetic["invited"] == before["invited"]
+
+    real = await _register_owner_with_email(
+        client, f"real-adm-{uuid.uuid4().hex[:8]}@example.com",
+    )
+    genuine = await client.post(
+        "/api/v1/pilot/invites", headers=real,
+        json={"purpose": "pilot", "max_uses": 1, "expires_hours": 24},
+    )
+    assert genuine.status_code == 201, genuine.text
+
+    after_real = (await client.get("/api/v1/pilot/status")).json()
+    assert after_real["invited"] == before["invited"] + 1

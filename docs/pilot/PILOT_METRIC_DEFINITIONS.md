@@ -14,7 +14,7 @@
 
 | 指标 | 定义 |
 |---|---|
-| Invited Users | 已发放邀请码数（含未注册） |
+| Invited Users | 已发放邀请码数（含未注册）。**发码人若属于 demo / internal / `@pli.demo` / `@pli.test` / `@pli.pilot` 合成域，该码不计**；无法归属发码人（`created_by` 为空）的码仍计入，因为发码本身是一次无法证伪的管理动作。remote synthetic dry-run 用 `@pli.test` 发码，因此 `invited` 在该演练前后必须不变。 |
 | Registered Users | 注册且绑定 invite 的真实用户 |
 | Activated Owners | **去重后的 Owner 人数**；至少一只真实 Pet 在建档后 24h 知识截止内达到 ≥3 条有效事实 Event。多宠不得把同一 Owner 重复计数。 |
 | Activated Professionals | 见 PILOT_ONBOARDING.md §4（真实查看/协作一次） |
