@@ -7,7 +7,9 @@ visual judgement and therefore cannot close Human Visual Acceptance.
 from __future__ import annotations
 
 import json
+import re
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
@@ -46,6 +48,111 @@ def referenced_file(base: Path, truth: dict, key: str, *, minimum_size: int = 1)
 def require_text(path: Path, expected: str, *, label: str) -> None:
     if expected not in path.read_text(encoding="utf-8", errors="replace"):
         raise ValueError(f"{label} not found in native UI XML {path.name}: {expected!r}")
+
+
+# --- owner copy -----------------------------------------------------------
+# INVARIANT (owner copy):
+# Every "text" / "content-desc" in a native ui.xml is content the owner can see
+# and that TalkBack speaks, so it is owner-facing copy. An engineering
+# identifier here means the owner is shown (or read aloud) internal vocabulary.
+OWNER_COPY_FORBIDDEN = (
+    "petId", "pet_id", "stageRole", "manifestOrigin", "fallbackUsed",
+    "legacyRepresentation", "procedural-twin", "rigged-glb-twin",
+    "STYLIZED_REFERENCE", "individualIdentityEvidence",
+    "null", "undefined", "NaN",
+    "TODO", "FIXME", "HACK", "NotImplemented",
+    "R5.6", "R7", "R8", "R8AS", "R8CB", "R8BX", "R8CA", "R8AZ",
+    "LATE_RECORDED_EVENT", "SOURCE_RETRACTED_LATER", "SOURCE_SUPERSEDED_LATER",
+    "REVIEW_ADDED_LATER", "OUTCOME_ADDED_LATER", "WORKFLOW_CHANGED_LATER",
+    "CASE_BECAME_INVALID_LATER", "FOLLOWUP_BECAME_INVALID_LATER",
+    "OWNER_REPORTED", "CAREGIVER_REPORTED", "DEVICE_DERIVED",
+    "PROFESSIONAL_CONFIRMED", "LAB_CONFIRMED",
+    "AI_INFERENCE", "AI_STRUCTURED", "GENERATED_3D",
+    "NOT_YET_OBSERVED", "EXTERNAL_BLOCKED", "BACKGROUND_ONLY", "ADMIN_ONLY",
+    "PRO_ONLY", "ACCEPTED_UI_LIMITATION",
+    # The beacon marker itself is internal vocabulary. It only passes on the
+    # WebView stage through MANIFEST_BEACON below, which is checked first.
+    "PLI_MANIFEST",
+)
+
+# PROVENANCE / documented exception:
+# The 3D stage publishes its runtime manifest as the WebView document.title so a
+# no-vision-model run can read it without image analysis, and UIAutomator
+# surfaces that title as the WebView's text. Only that exact node class and only
+# that prefix is exempt; every other engineering string still fails the gate.
+MANIFEST_BEACON = "PLI_MANIFEST:"
+MANIFEST_BEACON_CLASS = "android.webkit.WebView"
+
+# §12.1 order. Structure only: this proves the canvas is ordered PET -> NOW ->
+# CHANGE -> ATTENTION -> ACTION, never that it looks good.
+TODAY_CANVAS_ORDER = (
+    "pli.today.identity",
+    "pli.today.living-stage",
+    "pli.today.now-story",
+    "pli.today.change",
+    "pli.today.attention",
+    "pli.today.primary-action",
+)
+
+
+def forbidden_token(value: str) -> str | None:
+    for token in OWNER_COPY_FORBIDDEN:
+        # Word-ish boundaries: "R8" must not fire inside "R8AS", "null" must not
+        # fire inside "annulled".
+        if re.search(rf"(?<![A-Za-z0-9_]){re.escape(token)}(?![A-Za-z0-9_])", value):
+            return token
+    return None
+
+
+def validate_owner_copy(android: Path) -> None:
+    """Fail closed when an engineering identifier reaches owner-facing copy."""
+    scanned = 0
+    for xml_path in sorted(android.rglob("*.xml")):
+        try:
+            nodes = list(ET.parse(xml_path).getroot().iter("node"))
+        except ET.ParseError as exc:
+            raise ValueError(f"unparseable native XML: {xml_path.name}: {exc}") from exc
+        scanned += 1
+        for node in nodes:
+            for attr in ("text", "content-desc"):
+                value = node.attrib.get(attr) or ""
+                if not value:
+                    continue
+                if (
+                    attr == "text"
+                    and node.attrib.get("class") == MANIFEST_BEACON_CLASS
+                    and value.startswith(MANIFEST_BEACON)
+                ):
+                    continue
+                token = forbidden_token(value)
+                if token is not None:
+                    raise ValueError(
+                        f"owner-visible engineering identifier {token!r} in "
+                        f"{xml_path.relative_to(android).as_posix()}: {value[:80]!r}"
+                    )
+    if scanned == 0:
+        raise ValueError("no native UI XML was captured; owner copy cannot be verified")
+
+
+def validate_today_canvas(android: Path) -> None:
+    """§12.2 structural acceptance for Today (no visual judgement)."""
+    path = require_file(android / "today" / "ui.xml", minimum_size=100)
+    xml = path.read_text(encoding="utf-8", errors="replace")
+    order: list[str] = []
+    for match in re.finditer(r'resource-id="(pli\.today\.[^"]+)"', xml):
+        ident = match.group(1)
+        if ident not in order:
+            order.append(ident)
+    skeleton = [ident for ident in order if ident in TODAY_CANVAS_ORDER]
+    if skeleton != list(TODAY_CANVAS_ORDER):
+        raise ValueError(
+            "Today is not the required Living Canvas order: "
+            + " -> ".join(skeleton or ["<none>"])
+        )
+    if xml.count('resource-id="pli.today.attention"') != 1:
+        raise ValueError("Today must show exactly one Attention panel")
+    if 'resource-id="pli.today.pet-twin"' not in xml:
+        raise ValueError("Today is missing the pet visual stage")
 
 
 def validate(android: Path) -> None:
@@ -126,6 +233,12 @@ def validate(android: Path) -> None:
     if secondary.get("stageRole") != "today":
         raise ValueError("secondary runtime manifest is not a Today-stage capture")
     require_file(secondary_dir / "secondary_today.png", minimum_size=1024)
+
+    # Owner-facing copy and the Today canvas are part of the evidence, not only
+    # of the screenshot: a run that shows an engineering identifier to the owner
+    # is not valid evidence of an owner experience.
+    validate_owner_copy(android)
+    validate_today_canvas(android)
 
 
 def main() -> int:
