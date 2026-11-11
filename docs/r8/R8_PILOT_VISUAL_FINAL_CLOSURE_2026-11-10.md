@@ -425,3 +425,60 @@ dead code nor over-broad. The gate would have caught this leak on its own.
 
 `HUMAN_VISUAL_ACCEPTANCE` remains `PENDING`; this pass changed what the
 automation can refuse, not what it can judge.
+
+## 11. Pass 4 — the missing §24 domains are captured now (`960bfad9`)
+
+Pass 2 had to report six §24 surfaces as "never captured". Four of them were not
+an implementation gap at all: `BehaviorScreen`, `TrainingScreen`,
+`WelfareScreen` and `SocialScreen` exist, and `demoNav` already routes
+`behavior`/`training`/`welfare`/`social`. They were simply absent from
+`SURFACES`, so no human could ever review them.
+
+Root ids were taken from the screens themselves (`pli.<domain>.identity`), not
+guessed:
+
+| Change | Detail |
+| --- | --- |
+| `capture-android-final.py` | `SURFACES` + `SURFACE_ROOT_IDS` gain behavior / training / welfare / social (no 3D manifest — they are not Twin stages) |
+| `contact_sheets_ci.py` | new `PLI_R5_6_ANDROID_DOMAINS.png` sheet: health, behavior, training, welfare, social, companion |
+| validator | `validate_domain_coverage` fails the run if any of the four domain surfaces is missing a screenshot or native XML, so the coverage cannot silently regress |
+
+### 11.1 The gate rejected the previous artifact first
+
+Before pushing, the extended validator was pointed at the artifact of
+`7239d4a3`:
+
+```text
+7239d4a3 artifact: FAIL -> missing §24 domain evidence surfaces: behavior, training, welfare, social
+```
+
+That is the proof the gap was real and the check is live, not decorative.
+16 gate tests pass; the blind suite is `291 passed` locally.
+
+### 11.2 Result on the new exact head
+
+| Item | Value |
+| --- | --- |
+| CI | run `42974423354` — **success** |
+| OpenAPI Artifact Sync | run `42974423393` — **success** |
+| Android + Release Artifacts | run `42974423381` — **success**, no rerun, first attempt |
+| runtime evidence artifact | `13835852483` (14,320,102 B, 233 files, 227 under `android/`, 98 native XML) |
+| APK / web | `13835450771` / `13834722744` |
+| validator (local, on the download) | `PASS` with owner-copy + today-canvas + domain-coverage gates active; `source_head = 960bfad95e7fb1b2e3c72a9a226f42b15607c722`, `checkout_head = 779f4b33…` = `refs/pull/2/merge` |
+| the four domains | `behavior`, `training`, `welfare`, `social` each present with `png` + `ui.xml` (+ `layout.json`, `visual.json`, `report.md`) and their own `pli.<domain>.identity` root in the native tree |
+
+### 11.3 §24 coverage after this pass
+
+```text
+MISSING SURFACES (2): Empty, Offline
+```
+
+24 of 26 items now have fresh evidence. The remaining two are state simulations
+(no data / no network) rather than screens: they need a deliberate state
+manipulation step in the demo run, which is a separate change and is **not**
+claimed here. Owner-copy scan on the new artifact: 7 hits, all the documented
+`PLI_MANIFEST` WebView beacon, 0 engineering copy.
+
+`HUMAN_VISUAL_ACCEPTANCE` remains `PENDING`: the reviewer now has four surfaces
+they have never been able to look at before, which is exactly why a human still
+has to look.
