@@ -366,7 +366,7 @@ iteration.
 | runtime evidence artifact | `13782360124` (13,723,476 B, 247 files) |
 | APK / web | `13778918822` / `13779660817` |
 | validator (run by this agent on the download) | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS`, `source_head = f6c8459620d7e9549ec28d5eb55643eae5ceb780`, `checkout_head = cd88fad672b29565ef3020f149e4f033a2f45456` = `refs/pull/2/merge` |
-| local gates | `ruff` PASS; `pytest tests/blind_ui` 275/275 PASS (excluding one file whose autouse fixture needs the backend DB, unavailable here); the two source-reading tests that broke on a GBK-locale host now pass |
+| local gates | `ruff check services packages tests scripts` PASS; `pytest tests/blind_ui` **316/316 PASS** when run in UTF-8 mode (`python -X utf8 -m pytest …`); the whole twin QA pair passes (`twin_glb_qa.py`, `product_twin_qa.py`, both `pass: true`) |
 
 Human review package: a self-contained page built from this artifact's four CI
 contact sheets plus the deterministic findings above
@@ -539,3 +539,54 @@ future state; `REQUIRED_STATE_SURFACES = ("empty",)` and
 `STATE_ROOT_IDS = {"empty": "pli.empty.pet"}` encode only what was actually
 proven. The runs that produced this section are `43011387865` and
 `43015188064`; the head carrying this text has its own run IDs in PR #2.
+
+## 13. Local test matrix re-run — and a correction to this file
+
+The §27 matrix was executed on this machine at `71df8895`. Results, with the
+blocked items named rather than glossed:
+
+| Matrix item | Result | Note |
+| --- | --- | --- |
+| `ruff check services packages tests scripts` | **PASS** | one pre-existing `noqa` warning in `scan_codebase_scale.py` |
+| `py_compile` on every file this round touched | **PASS** | 9 files |
+| `pytest tests/blind_ui --confcutdir tests/blind_ui` | **316/316 PASS** | run as `python -X utf8 -m pytest …`; see the correction below |
+| `scripts/twin/twin_glb_qa.py` | **PASS** (`pass: true`) | GLB + animation manifest, no model download |
+| `scripts/twin/product_twin_qa.py` | **PASS** (`pass: true`, `humanVisualAcceptance: PENDING`) | structural only, no vision model |
+| `ui-tokens build`, `ui-kit typecheck`, `pet-3d build` | **PASS** | via `pnpm 9` (the CI pin) |
+| `apps/mobile build:3d-page`, `mobile typecheck` | **PASS** | |
+| `apps/web` typecheck + Vitest | **PASS** | both |
+| `apps/admin` typecheck, `apps/mini` typecheck | **PASS** | |
+| backend `pytest` | `EXTERNAL_BLOCKED` | no Postgres/Redis/MinIO and no Docker here; covered by the CI Backend job |
+| `python scripts/gen_openapi.py` + `git diff --exit-code` | `EXTERNAL_BLOCKED` | `ModuleNotFoundError: fastapi` — no backend deps installed here; covered by the CI OpenAPI job (run `43022247117` success at this head) |
+
+**Correction (§9.5 and earlier statements in this file were wrong).** An earlier
+pass reported `pytest tests/blind_ui` as "275/275 PASS, excluding one file whose
+autouse fixture needs the backend DB", and implied ~20 tests could not run here
+at all. That diagnosis was wrong. Those failures are
+`UnicodeDecodeError: 'gbk' codec can't decode …` in tests that call
+`Path.read_text()` without an encoding: the mobile sources are UTF-8 with
+Chinese copy, and this host's locale is GBK. Running the same suite with
+`python -X utf8` yields **316/316 PASS** — no backend database is involved.
+
+What that means, honestly:
+
+- No product claim in this file changes: the gates, artifacts, manifests and
+  counts reported elsewhere were produced by CI and by downloads this agent
+  validated, not by the local pytest run.
+- It was a *verification-method* error: I attributed a locale artifact to a
+  dependency. The correction is recorded here rather than silently edited
+  away, because "20 tests cannot run here" is exactly the kind of statement
+  that should not survive being false.
+- One test file does still carry a real portability nit: 39 `read_text()` calls
+  without an explicit encoding in `tests/blind_ui/test_r8_owner_review_retry_identity.py`.
+  Two other test files got the explicit `encoding="utf-8"`; the 39-site file was
+  left alone in this round because `-X utf8` already proves the suite, and a
+  39-line mechanical edit belongs in its own reviewed change.
+
+**Toolchain side effects, restored not committed.** Running `build:3d-page`
+again rewrote the tracked generated page (`apps/mobile/assets/3d/pet-stage.html`,
+`apps/mobile/src/three/petStageHtml.ts`) and `product_twin_qa.py` rewrote
+`artifacts/r2p3d-r1/glb/glb-qa-report.json` plus created
+`artifacts/r2p3d-r5/product-twin-qa.json`. All were restored or removed; the
+worktree is clean. That is the third confirmation that `build:3d-page` is not
+reproducible across local toolchains (§7 item 3).
