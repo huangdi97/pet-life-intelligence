@@ -374,3 +374,54 @@ contact sheets plus the deterministic findings above
 It states the facts and asks the questions; it answers none of them.
 
 `HUMAN_VISUAL_ACCEPTANCE` remains `PENDING`.
+
+## 10. Pass 3 — the owner-copy rule became a gate (`709859d1`)
+
+Pass 2 found the leak with a one-off scanner in the session scratch directory.
+That is exactly the kind of knowledge this repository is supposed to encode in
+CI instead of in a human's memory, so it moved into
+`scripts/r5-6/validate-android-runtime-evidence.py` (259 lines, fail closed):
+
+| New gate | Rule |
+| --- | --- |
+| `validate_owner_copy` | Every `text` / `content-desc` in every captured native XML is owner-facing copy. An engineering identifier there (`petId`, `stageRole`, `manifestOrigin`, `legacyRepresentation`, `R5.6`/`R7`/`R8*`, delta kinds, provenance enums, `NOT_YET_OBSERVED`/`EXTERNAL_BLOCKED`…, `null`/`undefined`/`NaN`, `PLI_MANIFEST`) invalidates the whole evidence run. Word boundaries keep `annulled`/`R80` clean. |
+| beacon exemption | `PLI_MANIFEST:{…}` is allowed **only** on `class="android.webkit.WebView"` **and only** as a prefix — the documented no-vision-model manifest channel (§9.2). Tested to be narrow: the same string on a `TextView` fails. |
+| `validate_today_canvas` | Today must appear in the §12.1 order `identity → living-stage → now-story → change → attention → primary-action`, contain the pet stage, and carry exactly one Attention panel. |
+
+13 tests pin the behaviour in `tests/blind_ui/test_android_evidence_owner_copy.py`
+(clean pass, visible-text reject, `content-desc` reject, beacon allowed, beacon
+narrow, no false positives, wrong order, two Attentions, missing pet stage,
+empty artifact fails closed). They run in the `Blind Visual Contract` job and
+locally: `288 passed` for the whole suite here.
+
+### 10.1 Discriminating power, proven on the real artifacts
+
+The same extended validator, run by this agent against the five artifacts
+downloaded this round:
+
+```text
+ccbd689e  FAIL  owner-visible engineering identifier 'R8AS' in multipet-return/today-primary-return.xml
+3ac8324f  FAIL  owner-visible engineering identifier 'R8AS' in …
+01e9b423  FAIL  owner-visible engineering identifier 'R8AS' in …
+f6c84596  PASS
+0a04a38e  PASS
+```
+
+The three heads *before* the fixture fix fail with the exact offender; the two
+*after* it pass, which is also the proof that the beacon exemption is neither
+dead code nor over-broad. The gate would have caught this leak on its own.
+
+### 10.2 Gates and artifact at `709859d1`
+
+| Item | Value |
+| --- | --- |
+| CI | run `42945801026` — **success** (Backend / Frontend / Blind Visual Contract / Browser E2E) |
+| OpenAPI Artifact Sync | run `42945801446` — **success** |
+| Android + Release Artifacts | run `42945801200` — **success**, no rerun |
+| runtime evidence artifact | `13823708303` (12,787,271 B, 244 files) |
+| APK / web | `13823152629` / `13822557094` |
+| CI log proof the gate really ran | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS` printed by the job at `02:51:23Z` |
+| local re-validation (this agent, on the download) | `PASS`, `source_head = 709859d1bf75a36e93d89186ad8d18503e48ea92`, `checkout_head = daa32e78…` = `refs/pull/2/merge`, 129 native XML scanned |
+
+`HUMAN_VISUAL_ACCEPTANCE` remains `PENDING`; this pass changed what the
+automation can refuse, not what it can judge.
