@@ -3120,6 +3120,119 @@ def capture_multipet_return(
     })
 
 
+def capture_state_surface(
+    android: Android,
+    out: Path,
+    name: str,
+    root_id: str,
+    *,
+    prepare,
+    restore,
+    attempts: int = 18,
+) -> None:
+    """Capture a §24 *state* surface from the live app, never a drawn mock.
+
+    The expected state id has to appear in the real native tree; if it does not,
+    the failure lists what was on screen instead of accepting the wrong frame.
+    ``restore`` always runs, so a missing state cannot leave the run offline.
+    """
+    directory = out / name
+    directory.mkdir(parents=True, exist_ok=True)
+    latest = ""
+    prepare(directory)
+    try:
+        for attempt in range(attempts):
+            time.sleep(1.5 if attempt else 3)
+            latest = android.dump_xml(directory / "ui.xml")
+            if root_id in latest:
+                break
+        else:
+            observed = sorted(set(re.findall(r'resource-id="(pli\.[^"]+)"', latest)))[:16]
+            raise CaptureError(
+                f"§24 {name} state never rendered: expected_ui_id={root_id}; "
+                f"observed_ui_ids={observed}"
+            )
+        android.screenshot(directory / f"{name}.png")
+        run([
+            os.environ.get("PYTHON", "python3"),
+            str(ROOT / "scripts" / "blind-ui" / "android_extract.py"),
+            str(directory),
+        ])
+    finally:
+        restore()
+
+
+def ensure_empty_state_owner(api_url: str) -> str:
+    """Return a real account that owns no pet, so Today's Empty state is genuine."""
+    email = f"emptystate-{int(time.time())}@pli.test"
+    registered = api_json(
+        f"{api_url.rstrip('/')}/api/v1/auth/register",
+        method="POST",
+        body={"email": email, "password": "EmptyState!w0rd", "display_name": "空态证据账号"},
+    )
+    token = registered.get("verification_token")
+    if token:
+        api_json(
+            f"{api_url.rstrip('/')}/api/v1/auth/verify-email",
+            method="POST",
+            body={"token": token},
+        )
+    auth = api_json(
+        f"{api_url.rstrip('/')}/api/v1/auth/dev/login", method="POST", body={"email": email},
+    )
+    user_id = str(auth.get("user_id") or "")
+    if not user_id:
+        raise CaptureError("empty-state account has no dev-login user_id")
+    pets = api_json(
+        f"{api_url.rstrip('/')}/api/v1/pets", headers={"X-Dev-User-Id": user_id},
+    )
+    if pets:
+        raise CaptureError("empty-state account already owns pets; Empty would be a fake state")
+    return email
+
+
+def capture_today_states(android: Android, out: Path, *, api_url: str, login_email: str) -> None:
+    """§24 Empty + Offline: both are states the app really produces."""
+    empty_email = ensure_empty_state_owner(api_url)
+
+    def open_empty_owner() -> None:
+        android.start_link(f"pli-demo://login?{urlencode({'email': empty_email})}")
+        time.sleep(2)
+        android.start_link("pli-demo://nav?screen=today")
+
+    def back_to_evidence_owner() -> None:
+        android.start_link(f"pli-demo://login?{urlencode({'email': login_email})}")
+        time.sleep(2)
+        android.start_link("pli-demo://nav?screen=today")
+
+    capture_state_surface(
+        android, out, "empty", "pli.empty.pet",
+        prepare=lambda _directory: open_empty_owner(),
+        restore=back_to_evidence_owner,
+    )
+
+    # Load Today while the tunnel is still up, so the app has real content to be
+    # honest about, then cut the app's ONLY route to the evidence API (the adb
+    # reverse mapping) and force a refetch. Airplane mode would not do this:
+    # `adb reverse` rides the adb connection, not the device network.
+    android.start_link("pli-demo://nav?screen=today")
+    time.sleep(3)
+
+    def cut_evidence_tunnel() -> None:
+        android.cmd("reverse", "--remove", "tcp:8800", check=False)
+        android.start_link("pli-demo://nav?screen=today")
+
+    def restore_evidence_tunnel() -> None:
+        android.cmd("reverse", "tcp:8800", "tcp:8800")
+        android.start_link("pli-demo://nav?screen=today")
+
+    capture_state_surface(
+        android, out, "offline", "pli.offline.state",
+        prepare=lambda _directory: cut_evidence_tunnel(),
+        restore=restore_evidence_tunnel,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default=str(DEFAULT_OUT.relative_to(ROOT)))
@@ -3200,6 +3313,12 @@ def main() -> None:
             stage_role,
             primary_id if manifest else None,
         )
+
+    # §24 Empty / Offline: real product states, produced by a real account with
+    # no pets and by cutting the evidence tunnel mid-run.
+    capture_today_states(
+        android, out, api_url=args.api_url, login_email=args.login_email,
+    )
 
     review_dir = out / "twinreview"
     capture_review_views(android, review_dir, "twin", primary_id)

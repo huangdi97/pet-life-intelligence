@@ -181,3 +181,42 @@ def test_domain_coverage_reports_every_missing_domain(tmp_path: Path) -> None:
     message = str(excinfo.value)
     assert "training" in message and "welfare" in message and "social" in message
     assert "behavior" not in message
+
+
+def test_state_coverage_requires_empty_and_offline(tmp_path: Path) -> None:
+    """§24 state coverage cannot silently regress either."""
+    android = _artifact(tmp_path)
+    with pytest.raises(ValueError, match="missing §24 state evidence surface"):
+        validator.validate_state_coverage(android)
+
+
+def test_state_coverage_rejects_a_capture_without_the_state_id(tmp_path: Path) -> None:
+    """A screenshot of the wrong screen is not evidence of the state."""
+    android = _artifact(tmp_path)
+    _write(android, "empty/empty.png", "x" * 2048)
+    _write(
+        android,
+        "empty/ui.xml",
+        '<hierarchy>' + '<node resource-id="pli.today.identity" />' * 3 + "</hierarchy>",
+    )
+    _write(android, "offline/offline.png", "x" * 2048)
+    _write(
+        android,
+        "offline/ui.xml",
+        '<hierarchy><node resource-id="pli.offline.state" /></hierarchy>',
+    )
+    with pytest.raises(ValueError, match="does not contain pli.empty.pet"):
+        validator.validate_state_coverage(android)
+
+
+def test_state_coverage_passes_when_both_states_are_proven(tmp_path: Path) -> None:
+    android = _artifact(tmp_path)
+    for screen, root in validator.STATE_ROOT_IDS.items():
+        _write(android, f"{screen}/{screen}.png", "x" * 2048)
+        _write(
+            android,
+            f"{screen}/ui.xml",
+            f'<hierarchy><node resource-id="{root}" />'
+            f'<node text="{screen} 状态的说明文本，用于满足证据最小体积要求" /></hierarchy>',
+        )
+    validator.validate_state_coverage(android)

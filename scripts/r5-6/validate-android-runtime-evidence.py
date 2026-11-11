@@ -1,7 +1,6 @@
 """Validate hosted Android runtime evidence before artifact upload.
 
-This is a structural/runtime truth gate only. It deliberately does not perform
-visual judgement and therefore cannot close Human Visual Acceptance.
+Structural/runtime truth only: no visual judgement, so never Human Acceptance.
 """
 
 from __future__ import annotations
@@ -51,10 +50,9 @@ def require_text(path: Path, expected: str, *, label: str) -> None:
 
 
 # --- owner copy -----------------------------------------------------------
-# INVARIANT (owner copy):
-# Every "text" / "content-desc" in a native ui.xml is content the owner can see
-# and that TalkBack speaks, so it is owner-facing copy. An engineering
-# identifier here means the owner is shown (or read aloud) internal vocabulary.
+# INVARIANT (owner copy): every "text" / "content-desc" in a native ui.xml is
+# content the owner sees and TalkBack speaks, so an engineering identifier there
+# means the owner is shown internal vocabulary.
 OWNER_COPY_FORBIDDEN = (
     "petId", "pet_id", "stageRole", "manifestOrigin", "fallbackUsed",
     "legacyRepresentation", "procedural-twin", "rigged-glb-twin",
@@ -75,16 +73,13 @@ OWNER_COPY_FORBIDDEN = (
     "PLI_MANIFEST",
 )
 
-# PROVENANCE / documented exception:
-# The 3D stage publishes its runtime manifest as the WebView document.title so a
-# no-vision-model run can read it without image analysis, and UIAutomator
-# surfaces that title as the WebView's text. Only that exact node class and only
-# that prefix is exempt; every other engineering string still fails the gate.
+# PROVENANCE / documented exception: the 3D stage publishes its runtime manifest
+# as the WebView document.title (surfaced as its text), which a no-vision-model
+# run reads. Only that node class and that prefix is exempt.
 MANIFEST_BEACON = "PLI_MANIFEST:"
 MANIFEST_BEACON_CLASS = "android.webkit.WebView"
 
-# §12.1 order. Structure only: this proves the canvas is ordered PET -> NOW ->
-# CHANGE -> ATTENTION -> ACTION, never that it looks good.
+# §12.1 order. Structure only, never "looks good".
 TODAY_CANVAS_ORDER = (
     "pli.today.identity",
     "pli.today.living-stage",
@@ -155,11 +150,36 @@ def validate_today_canvas(android: Path) -> None:
         raise ValueError("Today is missing the pet visual stage")
 
 
-# §24 domain surfaces that must exist in every Android evidence run. They are
-# captured (Behavior/Training/Welfare/Social are implemented and reachable via
-# the demo nav deep link); this list makes the coverage un-regressable: silently
-# dropping a domain from the capture contract now fails the evidence gate.
+# §24 domain surfaces required in every Android evidence run: dropping one from
+# the capture contract fails the gate instead of quietly losing coverage.
 REQUIRED_DOMAIN_SURFACES = ("behavior", "training", "welfare", "social")
+
+# §24 state surfaces the app really produces, captured rather than drawn.
+REQUIRED_STATE_SURFACES = ("empty", "offline")
+
+# The id that proves the state was really rendered, not just a directory.
+STATE_ROOT_IDS = {
+    "empty": "pli.empty.pet",
+    "offline": "pli.offline.state",
+}
+
+
+def validate_state_coverage(android: Path) -> None:
+    """§24 Empty / Offline: files must exist AND prove their own state id."""
+    for screen in REQUIRED_STATE_SURFACES:
+        directory = android / screen
+        try:
+            require_file(directory / f"{screen}.png", minimum_size=1024)
+            xml_path = require_file(directory / "ui.xml", minimum_size=100)
+        except FileNotFoundError:
+            raise ValueError(f"missing §24 state evidence surface: {screen}") from None
+        xml = xml_path.read_text(encoding="utf-8", errors="replace")
+        expected = STATE_ROOT_IDS[screen]
+        if expected not in xml:
+            raise ValueError(
+                f"§24 {screen} evidence does not contain {expected}; "
+                "the state was not actually rendered"
+            )
 
 
 def validate_domain_coverage(android: Path) -> None:
@@ -254,12 +274,12 @@ def validate(android: Path) -> None:
         raise ValueError("secondary runtime manifest is not a Today-stage capture")
     require_file(secondary_dir / "secondary_today.png", minimum_size=1024)
 
-    # Owner-facing copy and the Today canvas are part of the evidence, not only
-    # of the screenshot: a run that shows an engineering identifier to the owner
-    # is not valid evidence of an owner experience.
+    # Owner-facing copy and the Today canvas are part of the evidence: a run that
+    # shows the owner an engineering identifier is not valid owner evidence.
     validate_owner_copy(android)
     validate_today_canvas(android)
     validate_domain_coverage(android)
+    validate_state_coverage(android)
 
 
 def main() -> int:
