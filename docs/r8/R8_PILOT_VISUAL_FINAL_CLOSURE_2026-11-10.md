@@ -482,3 +482,60 @@ claimed here. Owner-copy scan on the new artifact: 7 hits, all the documented
 `HUMAN_VISUAL_ACCEPTANCE` remains `PENDING`: the reviewer now has four surfaces
 they have never been able to look at before, which is exactly why a human still
 has to look.
+
+## 12. Pass 5 — Empty captured, Offline NOT reproducible (open finding)
+
+The last two §24 items are states, not screens, so they need real triggers
+rather than a new nav target. One worked, one did not, and the difference is
+recorded instead of papered over.
+
+### 12.1 Empty — captured (`pli.empty.pet`)
+
+Trigger: a real account that owns no pet. The capture creates it through the
+public API (`emptystate-<epoch>@pli.test`), verifies through
+`GET /api/v1/pets` that it really owns zero pets (otherwise it raises rather
+than publishing a fake empty state), logs the app in through the demo deep link
+and opens Today. The app renders its own no-pet presence state, which the run
+asserts by id — not by looking at a picture.
+
+### 12.2 Offline — NOT reproducible from the live app
+
+Trigger attempt: the app reaches the evidence API only through the
+`adb reverse tcp:8800` tunnel, so the honest way to make it offline is to remove
+that mapping (airplane mode would not work — the reverse mapping rides the adb
+connection, not the device network).
+
+| Run | What was tried | Result |
+| --- | --- | --- |
+| `43011387865` | remove the mapping, re-open Today | failed: `§24 offline state never rendered … expected_ui_id=pli.offline.state`; observed a full Today (`pli.today.identity`, `anchor.*`, `change`, `attention`) |
+| `43015188064` | same, plus leave to Timeline and return so Today actually remounts, plus assert via `adb reverse --list` that the mapping is really gone | failed identically: the tunnel was confirmed cut, Today still rendered cached content, `pli.offline.state` never appeared |
+
+Conclusion, stated as a finding rather than a PASS: with the evidence API
+unreachable the app keeps rendering its cached Today and never surfaces the
+offline banner. Either the pets query does not enter an error state in this
+scenario (cache-first, silent failure) or `error && !loading` is not reached on
+this path. §21 requires an honest Offline state, so this is an **open product /
+engineering question**, not an evidence gap that a better screenshot could fix.
+Manufacturing the state (injecting an error, freezing a frame) was rejected: it
+would be fake evidence.
+
+### 12.3 The gate refused to accept the wrong screenshot
+
+Both offline attempts failed *because* `validate_state_coverage` requires the
+state's own id in the captured native tree. Without that gate the run would have
+shipped a screenshot of a normal Today page labelled "offline" — exactly the
+class of lie the evidence contract exists to prevent. The two heads are recorded
+here as **rejected by the gate**, not as "Android was green".
+
+### 12.4 §24 coverage now
+
+```text
+captured      : 25 of 26
+open          : Offline (NOT_YET_REPRODUCED, finding §12.2)
+```
+
+`capture_state_surface` was kept for Empty and is general enough to cover any
+future state; `REQUIRED_STATE_SURFACES = ("empty",)` and
+`STATE_ROOT_IDS = {"empty": "pli.empty.pet"}` encode only what was actually
+proven. The runs that produced this section are `43011387865` and
+`43015188064`; the head carrying this text has its own run IDs in PR #2.

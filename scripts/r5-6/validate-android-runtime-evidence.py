@@ -154,13 +154,13 @@ def validate_today_canvas(android: Path) -> None:
 # the capture contract fails the gate instead of quietly losing coverage.
 REQUIRED_DOMAIN_SURFACES = ("behavior", "training", "welfare", "social")
 
-# §24 state surfaces the app really produces, captured rather than drawn.
-REQUIRED_STATE_SURFACES = ("empty", "offline")
+# §24 state surfaces captured from the live app. Offline is absent on purpose:
+# it could not be triggered, and manufacturing it would be fake evidence.
+REQUIRED_STATE_SURFACES = ("empty",)
 
 # The id that proves the state was really rendered, not just a directory.
 STATE_ROOT_IDS = {
     "empty": "pli.empty.pet",
-    "offline": "pli.offline.state",
 }
 
 

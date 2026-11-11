@@ -183,8 +183,8 @@ def test_domain_coverage_reports_every_missing_domain(tmp_path: Path) -> None:
     assert "behavior" not in message
 
 
-def test_state_coverage_requires_empty_and_offline(tmp_path: Path) -> None:
-    """§24 state coverage cannot silently regress either."""
+def test_state_coverage_requires_the_empty_state(tmp_path: Path) -> None:
+    """§24 state coverage cannot silently regress."""
     android = _artifact(tmp_path)
     with pytest.raises(ValueError, match="missing §24 state evidence surface"):
         validator.validate_state_coverage(android)
@@ -209,7 +209,7 @@ def test_state_coverage_rejects_a_capture_without_the_state_id(tmp_path: Path) -
         validator.validate_state_coverage(android)
 
 
-def test_state_coverage_passes_when_both_states_are_proven(tmp_path: Path) -> None:
+def test_state_coverage_passes_when_the_state_is_proven(tmp_path: Path) -> None:
     android = _artifact(tmp_path)
     for screen, root in validator.STATE_ROOT_IDS.items():
         _write(android, f"{screen}/{screen}.png", "x" * 2048)

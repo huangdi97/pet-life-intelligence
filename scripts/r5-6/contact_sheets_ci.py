@@ -113,7 +113,7 @@ def build_android() -> list[dict[str, object]]:
     owner = ("today", "timeline", "pet", "lifeview", "twinreview", "health", "assistant", "me")
     hero = ("today", "pet", "lifeview", "twinreview")
     domains = ("health", "behavior", "training", "welfare", "social", "companion")
-    states = (("empty", "空态"), ("offline", "离线"))
+    states = (("empty", "空态（真实无宠物账号）"),)
     return [
         sheet("PLI R5.6 Android — Owner surfaces", [(x, android / x / f"{x}.png") for x in owner], OUT / "PLI_R5_6_ANDROID_OWNER.png", 4),
         sheet(

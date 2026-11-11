@@ -3211,39 +3211,12 @@ def capture_today_states(android: Android, out: Path, *, api_url: str, login_ema
         restore=back_to_evidence_owner,
     )
 
-    # Load Today while the tunnel is still up, so the app has real content to be
-    # honest about, then cut the app's ONLY route to the evidence API (the adb
-    # reverse mapping) and force a refetch. Airplane mode would not do this:
-    # `adb reverse` rides the adb connection, not the device network.
-    android.start_link("pli-demo://nav?screen=today")
-    time.sleep(3)
-
-    def cut_evidence_tunnel() -> None:
-        android.cmd("reverse", "--remove", "tcp:8800", check=False)
-        listed = android.cmd("reverse", "--list", check=False).stdout or ""
-        if "tcp:8800" in listed:
-            raise CaptureError(
-                "the evidence tunnel is still mapped; the offline state cannot be "
-                "proven honestly"
-            )
-        # Resetting to the route already on screen does not remount Today, so its
-        # query never refetches and no error is produced (observed on run
-        # 43011387865: full Today content, no pli.offline.state). Leave the screen
-        # first so the return to Today is a real mount.
-        android.start_link("pli-demo://nav?screen=timeline")
-        time.sleep(2)
-        android.start_link("pli-demo://nav?screen=today")
-
-    def restore_evidence_tunnel() -> None:
-        android.cmd("reverse", "tcp:8800", "tcp:8800")
-        android.start_link("pli-demo://nav?screen=today")
-
-    capture_state_surface(
-        android, out, "offline", "pli.offline.state",
-        prepare=lambda _directory: cut_evidence_tunnel(),
-        restore=restore_evidence_tunnel,
-        attempts=24,
-    )
+    # §24 Offline is NOT captured: two real runs (43011387865, 43015188064) cut the
+    # adb reverse tunnel that is the app's only route to the evidence API and
+    # Today still rendered cached content without ever rendering
+    # pli.offline.state. Faking that state would defeat the point of evidence, so
+    # it is recorded as an open finding (see the closure report) instead of being
+    # manufactured here.
 
 
 def main() -> None:
