@@ -3220,6 +3220,18 @@ def capture_today_states(android: Android, out: Path, *, api_url: str, login_ema
 
     def cut_evidence_tunnel() -> None:
         android.cmd("reverse", "--remove", "tcp:8800", check=False)
+        listed = android.cmd("reverse", "--list", check=False).stdout or ""
+        if "tcp:8800" in listed:
+            raise CaptureError(
+                "the evidence tunnel is still mapped; the offline state cannot be "
+                "proven honestly"
+            )
+        # Resetting to the route already on screen does not remount Today, so its
+        # query never refetches and no error is produced (observed on run
+        # 43011387865: full Today content, no pli.offline.state). Leave the screen
+        # first so the return to Today is a real mount.
+        android.start_link("pli-demo://nav?screen=timeline")
+        time.sleep(2)
         android.start_link("pli-demo://nav?screen=today")
 
     def restore_evidence_tunnel() -> None:
@@ -3230,6 +3242,7 @@ def capture_today_states(android: Android, out: Path, *, api_url: str, login_ema
         android, out, "offline", "pli.offline.state",
         prepare=lambda _directory: cut_evidence_tunnel(),
         restore=restore_evidence_tunnel,
+        attempts=24,
     )
 
 
