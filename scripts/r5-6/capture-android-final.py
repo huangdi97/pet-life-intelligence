@@ -51,6 +51,14 @@ SURFACES = (
     ("lifeview", True, "life"),
     ("twinreview", True, "review"),
     ("health", False, None),
+    # §24 secondary domains: implemented (BehaviorScreen/TrainingScreen/
+    # WelfareScreen/SocialScreen) and reachable through the demo nav deep link,
+    # but never captured, so no human could ever review them. Root ids come from
+    # the screens themselves, not from guesswork.
+    ("behavior", False, None),
+    ("training", False, None),
+    ("welfare", False, None),
+    ("social", False, None),
     ("assistant", False, None),
     ("companion", True, "companion"),
     ("me", False, None),
@@ -63,6 +71,10 @@ SURFACE_ROOT_IDS = {
     "lifeview": "pli.lifeview.identity",
     "twinreview": "pli.twinreview.identity",
     "health": "pli.health.identity",
+    "behavior": "pli.behavior.identity",
+    "training": "pli.training.identity",
+    "welfare": "pli.welfare.identity",
+    "social": "pli.social.identity",
     "assistant": "pli.assistant.identity",
     "companion": "pli.companion.living-stage",
     "me": "pli.me.owner",

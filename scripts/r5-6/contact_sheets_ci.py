@@ -112,8 +112,15 @@ def build_android() -> list[dict[str, object]]:
     )
     owner = ("today", "timeline", "pet", "lifeview", "twinreview", "health", "assistant", "me")
     hero = ("today", "pet", "lifeview", "twinreview")
+    domains = ("health", "behavior", "training", "welfare", "social", "companion")
     return [
         sheet("PLI R5.6 Android — Owner surfaces", [(x, android / x / f"{x}.png") for x in owner], OUT / "PLI_R5_6_ANDROID_OWNER.png", 4),
+        sheet(
+            "PLI R5.6 Android — Secondary domains (§24 coverage)",
+            [(x, android / x / f"{x}.png") for x in domains],
+            OUT / "PLI_R5_6_ANDROID_DOMAINS.png",
+            3,
+        ),
         sheet("PLI R5.6 Android — Hero Human Gate", [(x, android / x / f"{x}.png") for x in hero], OUT / "PLI_R5_6_ANDROID_HERO.png", 4),
         sheet(
             "PLI R5.6 Android — Secondary pet sanity",

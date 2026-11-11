@@ -155,6 +155,26 @@ def validate_today_canvas(android: Path) -> None:
         raise ValueError("Today is missing the pet visual stage")
 
 
+# §24 domain surfaces that must exist in every Android evidence run. They are
+# captured (Behavior/Training/Welfare/Social are implemented and reachable via
+# the demo nav deep link); this list makes the coverage un-regressable: silently
+# dropping a domain from the capture contract now fails the evidence gate.
+REQUIRED_DOMAIN_SURFACES = ("behavior", "training", "welfare", "social")
+
+
+def validate_domain_coverage(android: Path) -> None:
+    missing: list[str] = []
+    for screen in REQUIRED_DOMAIN_SURFACES:
+        directory = android / screen
+        try:
+            require_file(directory / f"{screen}.png", minimum_size=1024)
+            require_file(directory / "ui.xml", minimum_size=100)
+        except FileNotFoundError:
+            missing.append(screen)
+    if missing:
+        raise ValueError(f"missing §24 domain evidence surfaces: {', '.join(missing)}")
+
+
 def validate(android: Path) -> None:
     capture = load_json(android / "capture-manifest.json")
     if capture.get("vision_model_used") is not False:
@@ -239,6 +259,7 @@ def validate(android: Path) -> None:
     # is not valid evidence of an owner experience.
     validate_owner_copy(android)
     validate_today_canvas(android)
+    validate_domain_coverage(android)
 
 
 def main() -> int:

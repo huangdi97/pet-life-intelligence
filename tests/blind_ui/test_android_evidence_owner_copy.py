@@ -146,3 +146,38 @@ def test_artifact_without_any_xml_fails_closed(tmp_path: Path) -> None:
     android.mkdir()
     with pytest.raises(ValueError, match="cannot be verified"):
         validator.validate_owner_copy(android)
+
+
+def test_domain_coverage_requires_the_four_secondary_domains(tmp_path: Path) -> None:
+    """§24 coverage cannot silently regress by dropping a surface."""
+    android = _artifact(tmp_path)
+    with pytest.raises(ValueError, match="missing §24 domain evidence surfaces"):
+        validator.validate_domain_coverage(android)
+
+
+def _domain_files(android: Path, screen: str) -> None:
+    """Write a minimal but size-valid domain capture (gates require >=100 bytes)."""
+    _write(android, f"{screen}/{screen}.png", "x" * 2048)
+    _write(
+        android,
+        f"{screen}/ui.xml",
+        f'<hierarchy rotation="0"><node resource-id="pli.{screen}.identity" />'
+        f'<node text="（{screen} 说明文本，用于满足证据最小体积）" /></hierarchy>',
+    )
+
+
+def test_domain_coverage_passes_when_every_domain_is_captured(tmp_path: Path) -> None:
+    android = _artifact(tmp_path)
+    for screen in validator.REQUIRED_DOMAIN_SURFACES:
+        _domain_files(android, screen)
+    validator.validate_domain_coverage(android)
+
+
+def test_domain_coverage_reports_every_missing_domain(tmp_path: Path) -> None:
+    android = _artifact(tmp_path)
+    _domain_files(android, "behavior")
+    with pytest.raises(ValueError) as excinfo:
+        validator.validate_domain_coverage(android)
+    message = str(excinfo.value)
+    assert "training" in message and "welfare" in message and "social" in message
+    assert "behavior" not in message
