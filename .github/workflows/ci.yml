@@ -207,8 +207,22 @@ jobs:
           # Headless chromium on ubuntu renders CJK as tofu boxes without a
           # CJK font; the approved baseline must be captured & compared in the
           # SAME environment (Linux + Noto CJK) to be reproducible.
-          sudo apt-get update
-          sudo apt-get install -y fonts-noto-cjk
+          #
+          # COMPATIBILITY: hosted runners intermittently fail DNS for
+          # archive.ubuntu.com / security.ubuntu.com (observed on 3 consecutive
+          # attempts at 2026-11-11T16:03-16:33Z, while the same job passed 30
+          # minutes earlier on the parent commit). Retry with backoff instead of
+          # failing on the first blip: the font is still REQUIRED before the
+          # visual chain runs, so a real outage still fails this step.
+          for attempt in 1 2 3 4 5; do
+            if sudo apt-get update && sudo apt-get install -y fonts-noto-cjk; then
+              exit 0
+            fi
+            echo "CJK font install attempt $attempt failed; retrying" >&2
+            sleep $((attempt * 15))
+          done
+          echo "fonts-noto-cjk could not be installed after 5 attempts" >&2
+          exit 1
       - name: Start API + Web
         run: |
           (cd services/api && python -m uvicorn app.main:app --port 8800 &)
