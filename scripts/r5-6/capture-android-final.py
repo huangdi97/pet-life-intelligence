@@ -16,7 +16,6 @@ required high-fidelity runtime manifest is missing/fallback.
 from __future__ import annotations
 
 import argparse
-import html
 import json
 import math
 import os
@@ -375,30 +374,6 @@ class Android:
             return
         raise CaptureError(f"UI target not found: {needle} ({attr})")
 
-    def _manifest_from_xml(self) -> dict | None:
-        remote = "/sdcard/pli_manifest_title.xml"
-        self.shell("uiautomator", "dump", remote, check=False)
-        raw = self.shell("cat", remote, check=False)
-        if not raw:
-            return None
-        try:
-            root = ET.fromstring(raw)
-            values: list[str] = []
-            for node in root.iter("node"):
-                values.extend(node.attrib.values())
-            for value in values:
-                decoded = html.unescape(value)
-                idx = decoded.find("PLI_MANIFEST:")
-                if idx < 0:
-                    continue
-                payload = decoded[idx + len("PLI_MANIFEST:") :].strip()
-                if payload.startswith("{"):
-                    candidate = json.loads(payload)
-                    if isinstance(candidate, dict):
-                        return candidate
-        except Exception:
-            return None
-        return None
 
     def read_runtime_manifest(
         self,
@@ -448,20 +423,12 @@ class Android:
                 ):
                     return manifest
 
-            xml_manifest = self._manifest_from_xml()
-            if xml_manifest is not None:
-                last_manifest = xml_manifest
-            if (
-                xml_manifest is not None
-                and self._manifest_matches(
-                    xml_manifest,
-                    expected_pet_id=expected_pet_id,
-                    expected_yaw=expected_yaw,
-                    expected_stage_role=expected_stage_role,
-                    expected_pose=expected_pose,
-                )
-            ):
-                return xml_manifest
+            # INVARIANT: app storage is the only manifest channel. The stage page
+            # used to publish the manifest as document.title, which this parser
+            # could recover from the native XML; Pet3DViewer freezes that title for
+            # accessibility, and the evidence gate now forbids the marker in
+            # owner-visible text. So a missing manifest is reported loudly instead
+            # of being recovered from the accessibility tree.
             time.sleep(2)
         suffix = f" for pet {expected_pet_id}" if expected_pet_id else ""
         if expected_yaw is not None:

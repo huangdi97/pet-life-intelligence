@@ -800,9 +800,29 @@ c6308cff artifact (title frozen)  PASS
 | --- | --- |
 | Screen-reader leak of the runtime manifest | **CLOSED** — the node carries empty text/content-desc; the container keeps the owner label (`豆豆的 3D 形象…`) |
 | Evidence integrity | unchanged: `manifestOrigin=RUNTIME`, `ready=true`; the capture reads app storage first |
-| Capture fallback | the native-XML `PLI_MANIFEST:` parse in `capture-android-final.py` is now dead for current builds; if the storage channel ever fails the run fails loudly instead of photographing an unproven frame. Worth deleting in its own change |
+| Capture fallback | **deleted** in pass 8b: `_manifest_from_xml` is gone, so app storage is the only manifest channel. A missing manifest fails the run loudly instead of being recovered from the accessibility tree — which also removes a backdoor that would have contradicted the new gate |
 | Gate | stricter than before: manifest text anywhere in owner-visible attributes fails the run (test-pinned) |
 | Generated asset | untouched — no unreproducible rebuild was committed |
 
 `HUMAN_VISUAL_ACCEPTANCE` remains `PENDING`; this section closes an
 accessibility defect, not a design question.
+
+### 16.4 Dead channel removed, not left as a backdoor
+
+`_manifest_from_xml` scanned the whole uiautomator dump for `PLI_MANIFEST:` and
+parsed the JSON out of it. With the title frozen that can never match, and
+keeping it would have left a channel that contradicts the gate: if someone
+reintroduced the marker into owner-visible text, the leak would be caught by the
+gate *and* silently consumed by the capture, so the run's verdict would depend on
+which code path ran first.
+
+It is deleted. `read_runtime_manifest` now reads only
+`files/pli_manifest.json` (via `run-as`, then the rooted path) and carries a
+comment stating that invariant, so the failure mode is a loud `CaptureError`
+instead of a quietly recovered frame.
+
+Verified: `ruff` clean (the now-unused `html` import went with it),
+`316 passed` locally, and no test referenced the removed method. The capture
+behaviour for healthy builds is unchanged — the storage channel was already the
+first candidate and is what produced `manifestOrigin=RUNTIME` in every artifact
+listed in PR #2.
