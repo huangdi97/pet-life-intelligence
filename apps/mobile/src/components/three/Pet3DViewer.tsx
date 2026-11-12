@@ -185,7 +185,14 @@ export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DVi
       accessibilityRole="image"
       testID="pet3d-stage-mobile"
     >
-      <WebView
+      {/* A11Y: the stage publishes its runtime manifest as document.title, and
+          Android exposes that as the WebView node's text, so a screen reader
+          otherwise speaks a JSON blob for the pet. The manifest still reaches
+          evidence through app storage (files/pli_manifest.json, the
+          release-proof channel), so hiding this subtree from accessibility does
+          not remove machine truth; the container above keeps the owner label. */}
+      <View style={styles.web} importantForAccessibility="no-hide-descendants">
+        <WebView
         // Every value below is bootstrap-only: pet-stage-entry reads it before
         // the bundled renderer starts. Reuse across owner surfaces would keep
         // stale stageRole/theme/frameTarget/interaction semantics even when
@@ -221,7 +228,8 @@ export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DVi
         }}
         setBuiltInZoomControls={false}
         onShouldStartLoadWithRequest={() => true}
-      />
+        />
+      </View>
     </View>
   );
 });
