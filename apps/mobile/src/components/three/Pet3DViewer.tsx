@@ -203,6 +203,11 @@ export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DVi
           String(Number(sourceMediaCount) || 0),
         ].join(":")}
         ref={webRef}
+        // A11Y: the page publishes the runtime manifest as document.title, which
+        // Android exposes as this node's text, so TalkBack would otherwise read a
+        // JSON blob. The descriptive owner label lives on the container; this
+        // short label keeps the node readable without duplicating that sentence.
+        accessibilityLabel="宠物 3D 形象"
         source={{ html: PET_STAGE_HTML, baseUrl: "file:///android_asset/" }}
         style={styles.web}
         originWhitelist={["*"]}
