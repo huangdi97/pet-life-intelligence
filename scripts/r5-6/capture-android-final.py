@@ -3192,7 +3192,7 @@ def ensure_empty_state_owner(api_url: str) -> str:
 
 
 def capture_today_states(android: Android, out: Path, *, api_url: str, login_email: str) -> None:
-    """§24 Empty + Offline: both are states the app really produces."""
+    """§24 Empty + (attempted) Offline, both from the live app."""
     empty_email = ensure_empty_state_owner(api_url)
 
     def open_empty_owner() -> None:
@@ -3211,12 +3211,79 @@ def capture_today_states(android: Android, out: Path, *, api_url: str, login_ema
         restore=back_to_evidence_owner,
     )
 
-    # §24 Offline is NOT captured: two real runs (43011387865, 43015188064) cut the
-    # adb reverse tunnel that is the app's only route to the evidence API and
-    # Today still rendered cached content without ever rendering
-    # pli.offline.state. Faking that state would defeat the point of evidence, so
-    # it is recorded as an open finding (see the closure report) instead of being
-    # manufactured here.
+    capture_offline_state(android, out)
+
+
+def capture_offline_state(android: Android, out: Path) -> None:
+    """Attempt the §24 Offline state honestly and record what really happened.
+
+    Why the first two attempts failed, from their own diagnostics artifact
+    (run 43015188064, `offline/ui.xml`): `pli.today.now-story` was present, and
+    that node only renders when `pet && !loading && !error`. So the app was NOT
+    in an error state even though `adb reverse tcp:8800` had been removed and
+    verified gone — the already-established keep-alive socket through the tunnel
+    kept serving requests. Removing the mapping closes the listener, not the
+    pooled connection.
+
+    This attempt therefore also force-stops the app so the connection pool dies,
+    then cold-starts it straight into Today with the tunnel still down. It is
+    still an *attempt*, not a claim: if the state does not render, the observed
+    ids are recorded in `NOT_REPRODUCED.json` and the run continues, because a
+    state that the product may not surface is a finding to report, not a reason
+    to fail an otherwise-green evidence run.
+    """
+    directory = out / "offline"
+    directory.mkdir(parents=True, exist_ok=True)
+    expected = "pli.offline.state"
+    latest = ""
+    android.cmd("reverse", "--remove", "tcp:8800", check=False)
+    try:
+        listed = android.cmd("reverse", "--list", check=False).stdout or ""
+        if "tcp:8800" in listed:
+            raise CaptureError("the evidence tunnel is still mapped; offline cannot be attempted")
+        # Kill the connection pool, then cold start into Today while still offline.
+        android.cmd("shell", "am", "force-stop", android.package, check=False)
+        time.sleep(2)
+        android.start_link("pli-demo://nav?screen=today")
+        for attempt in range(20):
+            time.sleep(1.5 if attempt else 4)
+            latest = android.dump_xml(directory / "ui.xml")
+            if expected in latest:
+                break
+    finally:
+        android.cmd("reverse", "tcp:8800", "tcp:8800", check=False)
+
+    if expected not in latest:
+        observed = sorted(set(re.findall(r'resource-id="(pli\.[^"]+)"', latest)))[:16]
+        (directory / "NOT_REPRODUCED.json").write_text(
+            json.dumps(
+                {
+                    "expected_ui_id": expected,
+                    "observed_ui_ids": observed,
+                    "now_story_present": "pli.today.now-story" in latest,
+                    "tunnel_removed": True,
+                    "app_force_stopped": True,
+                    "conclusion": (
+                        "offline state did not render with the API unreachable and the "
+                        "connection pool killed"
+                    ),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        android.start_link("pli-demo://nav?screen=today")
+        return
+
+    android.screenshot(directory / "offline.png")
+    run([
+        os.environ.get("PYTHON", "python3"),
+        str(ROOT / "scripts" / "blind-ui" / "android_extract.py"),
+        str(directory),
+    ])
+    android.start_link("pli-demo://nav?screen=today")
 
 
 def main() -> None:
