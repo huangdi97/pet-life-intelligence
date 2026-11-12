@@ -659,3 +659,45 @@ evidence contract fails closed if any domain or state disappears again.
 `HUMAN_VISUAL_ACCEPTANCE` stays `PENDING`. Capturing an offline screen proves the
 screen exists and says an honest thing; it does not prove the owner finds it
 clear, and no automation here claims otherwise.
+
+## 15. Pass 7 — an attempted a11y fix that did not work, and was reverted
+
+§9.2 has been carrying one disclosed limitation: the 3D stage publishes its
+runtime manifest as `document.title`, Android surfaces that title as the WebView
+node's `text`, and TalkBack therefore reads a JSON blob for the pet's 3D view.
+
+This pass tried the cheap fix: give the inner `WebView` in
+`Pet3DViewer.tsx` its own short owner-language `accessibilityLabel`. Checked
+against the artifact it produced (`03eb6bd3`, artifact `13920945968`):
+
+```text
+today/ui.xml    WebView text='PLI_MANIFEST:{"ready":true,…'   content-desc=''
+pet/ui.xml      WebView text='PLI_MANIFEST:{"ready":true,…'   content-desc=''
+lifeview/ui.xml WebView text='PLI_MANIFEST:{"ready":true,…'   content-desc=''
+```
+
+`content-desc` stayed empty, so the prop never reached the native node:
+`react-native-webview` does not map `accessibilityLabel` the way a plain `View`
+does. The manifest channel was untouched, which is the only good news.
+
+**Reverted.** An inert prop is worse than no prop: it implies a fix that does
+not exist, and the next engineer would trust it. The leak is unchanged and
+still disclosed.
+
+Two real options, neither done, both honestly costed:
+
+1. `importantForAccessibility="no"` on the WebView. This removes the node from
+   the accessibility tree — which is exactly what `uiautomator dump` reads, so
+   the manifest's native-XML fallback (`capture-android-final.py`, the
+   `PLI_MANIFEST:` parse) would stop working. It is survivable only if the
+   primary `files/pli_manifest.json` path (three `run-as`/`cat` fallbacks) is
+   proven sufficient, and that proof needs its own emulator round.
+2. Move the beacon off `document.title` entirely and keep the file channel as
+   the only machine-readable one. Cleaner a11y, but it changes the evidence
+   pipeline and the validator's story about where the manifest comes from.
+
+Until one of those is done and verified, the state is: the owner-facing visual
+experience is unaffected, a screen reader still speaks the manifest for this one
+node, and the evidence gate keeps the leak from spreading to any other string
+(the exemption is WebView-`text`-prefix-only, and a test proves a `TextView` with
+the same string fails).
