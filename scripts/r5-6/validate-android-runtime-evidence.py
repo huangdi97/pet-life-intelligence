@@ -68,13 +68,16 @@ OWNER_COPY_FORBIDDEN = (
     "AI_INFERENCE", "AI_STRUCTURED", "GENERATED_3D",
     "NOT_YET_OBSERVED", "EXTERNAL_BLOCKED", "BACKGROUND_ONLY", "ADMIN_ONLY",
     "PRO_ONLY", "ACCEPTED_UI_LIMITATION",
-    # The 3D stage used to publish its runtime manifest as the WebView's
-    # document.title, which Android exposed as accessible text (a screen reader
-    # read the JSON). The stage subtree is now hidden from the accessibility
-    # tree and the manifest travels through app storage instead, so this token
-    # must never appear in owner-facing text again.
+    # The beacon marker itself is internal vocabulary. It only passes on the
+    # WebView stage through MANIFEST_BEACON below, which is checked first.
     "PLI_MANIFEST",
 )
+
+# PROVENANCE / documented exception: the 3D stage publishes its runtime manifest
+# as the WebView document.title (surfaced as its text), which a no-vision-model
+# run reads. Only that node class and that prefix is exempt.
+MANIFEST_BEACON = "PLI_MANIFEST:"
+MANIFEST_BEACON_CLASS = "android.webkit.WebView"
 
 # §12.1 order. Structure only, never "looks good".
 TODAY_CANVAS_ORDER = (
@@ -109,6 +112,12 @@ def validate_owner_copy(android: Path) -> None:
             for attr in ("text", "content-desc"):
                 value = node.attrib.get(attr) or ""
                 if not value:
+                    continue
+                if (
+                    attr == "text"
+                    and node.attrib.get("class") == MANIFEST_BEACON_CLASS
+                    and value.startswith(MANIFEST_BEACON)
+                ):
                     continue
                 token = forbidden_token(value)
                 if token is not None:

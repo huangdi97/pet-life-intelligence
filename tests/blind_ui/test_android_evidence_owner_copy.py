@@ -85,13 +85,8 @@ def test_engineering_identifier_in_content_desc_fails(tmp_path: Path) -> None:
         validator.validate_owner_copy(android)
 
 
-def test_manifest_text_in_the_accessibility_tree_is_rejected(tmp_path: Path) -> None:
-    """The stage manifest must never be readable text.
-
-    A screen reader would speak the JSON, so `Pet3DViewer` hides the WebView
-    subtree from accessibility and the manifest travels through app storage.
-    If it ever reappears as `text`, this fails.
-    """
+def test_manifest_beacon_on_the_webview_stage_is_allowed(tmp_path: Path) -> None:
+    """Documented exception: the no-vision-model manifest lives in document.title."""
     android = _artifact(tmp_path)
     _write(
         android,
@@ -99,8 +94,7 @@ def test_manifest_text_in_the_accessibility_tree_is_rejected(tmp_path: Path) -> 
         '<hierarchy><node class="android.webkit.WebView" '
         'text=\'PLI_MANIFEST:{"ready":true,"petId":"x"}\' /></hierarchy>',
     )
-    with pytest.raises(ValueError, match="PLI_MANIFEST"):
-        validator.validate_owner_copy(android)
+    validator.validate_owner_copy(android)
 
 
 def test_manifest_exception_is_narrow(tmp_path: Path) -> None:

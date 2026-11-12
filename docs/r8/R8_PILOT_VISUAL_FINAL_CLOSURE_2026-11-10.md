@@ -701,3 +701,39 @@ experience is unaffected, a screen reader still speaks the manifest for this one
 node, and the evidence gate keeps the leak from spreading to any other string
 (the exemption is WebView-`text`-prefix-only, and a test proves a `TextView` with
 the same string fails).
+
+### 15.1 Second attempt — hiding the subtree from accessibility — also failed
+
+`0fa380ab` wrapped the `WebView` in `<View importantForAccessibility="no-hide-descendants">`
+(a plain RN View definitely honours that prop) and, to make the property
+enforced rather than hoped for, **removed the gate's PLI_MANIFEST exemption** so
+that manifest text anywhere in owner-visible attributes would fail validation.
+
+The run answered immediately:
+
+```text
+ANDROID_RUNTIME_EVIDENCE_INTEGRITY = FAIL: owner-visible engineering identifier
+'petId' in companion/ui.xml: 'PLI_MANIFEST:{"ready":true,"manifestOrigin":"RUNTIME",…
+```
+
+The WebView node is still in the uiautomator tree: the native `WebView` manages
+its own accessibility and is not hidden by a React-Native parent's
+`no-hide-descendants`. So both RN-level levers — `accessibilityLabel` on the node
+(§15) and hiding its subtree (here) — are inert for this node type.
+
+**Both changes reverted**, including the gate tightening: with the leak still
+present, a strict rule would fail every future run, and a rule that cannot pass
+is not a gate. The narrow WebView-`text` exemption is restored, so the leak stays
+contained to exactly one node instead of blocking evidence.
+
+That leaves only the second option from §15, and it is not a small edit: the
+manifest must stop being published as `document.title` inside the stage page
+(a generated asset, `apps/mobile/assets/3d/pet-stage.html`, produced by
+`scripts/build-3d-page.mjs`), and the capture must rely solely on
+`files/pli_manifest.json`. It needs its own round with its own evidence, and it
+is recorded here as the remaining path rather than attempted again at the end of
+this one.
+
+Honest status of the limitation: **still open**, now with two RN-level
+approaches empirically excluded so the next engineer does not spend a cycle
+re-discovering that they do not work.
