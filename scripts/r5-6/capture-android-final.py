@@ -3192,7 +3192,7 @@ def ensure_empty_state_owner(api_url: str) -> str:
 
 
 def capture_today_states(android: Android, out: Path, *, api_url: str, login_email: str) -> None:
-    """§24 Empty + (attempted) Offline, both from the live app."""
+    """§24 Empty from the live app (a real account that owns no pet)."""
     empty_email = ensure_empty_state_owner(api_url)
 
     def open_empty_owner() -> None:
@@ -3210,8 +3210,6 @@ def capture_today_states(android: Android, out: Path, *, api_url: str, login_ema
         prepare=lambda _directory: open_empty_owner(),
         restore=back_to_evidence_owner,
     )
-
-    capture_offline_state(android, out)
 
 
 def capture_offline_state(android: Android, out: Path) -> None:
@@ -3492,6 +3490,14 @@ def main() -> None:
         secondary_name=str(secondary_pet["name"]),
         case_id=primary_case_id,
     )
+
+    # §24 Offline is attempted LAST, because the only honest way to break the
+    # app's route to the evidence API mid-run is to force-stop it (a pooled
+    # keep-alive socket survives removal of the adb reverse mapping) and cold
+    # start it. That deliberately leaves the app in an unknown UI state, so it
+    # must not happen before captures that need a live session.
+    capture_offline_state(android, out)
+    android.start_link(f"pli-demo://login?{urlencode({'email': args.login_email})}")
 
     source_head, source_branch = source_identity()
     capture_manifest = {
