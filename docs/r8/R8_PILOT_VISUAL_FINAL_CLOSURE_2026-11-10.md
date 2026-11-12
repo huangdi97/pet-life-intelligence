@@ -534,6 +534,10 @@ captured      : 25 of 26
 open          : Offline (NOT_YET_REPRODUCED, finding §12.2)
 ```
 
+> **Superseded by §14.** Offline was reproduced and captured after this
+> section was written. The text above is kept as the state of knowledge at that
+> point, not as the current status.
+
 `capture_state_surface` was kept for Empty and is general enough to cover any
 future state; `REQUIRED_STATE_SURFACES = ("empty",)` and
 `STATE_ROOT_IDS = {"empty": "pli.empty.pet"}` encode only what was actually
@@ -590,3 +594,68 @@ again rewrote the tracked generated page (`apps/mobile/assets/3d/pet-stage.html`
 `artifacts/r2p3d-r5/product-twin-qa.json`. All were restored or removed; the
 worktree is clean. That is the third confirmation that `build:3d-page` is not
 reproducible across local toolchains (§7 item 3).
+
+## 14. Pass 6 — §24 Offline reproduced; coverage 26/26
+
+§12 recorded Offline as `NOT_YET_REPRODUCED` and offered two hypotheses. Both
+were wrong in an instructive way, and the runs themselves said so.
+
+### 14.1 What the evidence actually showed
+
+| Attempt | Head / run | What was done | Outcome |
+| --- | --- | --- | --- |
+| 1 | `0f83b5b9` / `43011387865` | remove `adb reverse tcp:8800`, re-open Today | no offline state |
+| 2 | `c4e5fafb` / `43015188064` | same + leave to Timeline and return + assert the mapping is gone | no offline state |
+| 3 | `9d1b7e53` / `43133237216` | also `am force-stop` to kill the pooled socket — but **inline**, before the Twin Review capture | offline probe ran, then Twin Review found an empty hierarchy and the job failed |
+| 4 | `1e3bc180` / `43140996420` | same, moved to the **end** of the run | job green; `offline/NOT_REPRODUCED.json` with `observed_ui_ids: []` |
+
+Attempt 2's own diagnostics artifact (`offline/ui.xml`) contained
+`pli.today.now-story`, which only renders when `pet && !loading && !error`: the
+app was still online, because removing the reverse *listener* does not drop an
+already-tunnelled keep-alive socket. Attempt 4 then produced the decisive clue:
+the screen was not a blank failure — the native dump held the copy
+`演示数据暂时没有连接成功 · 点击重试` with **no `pli.*` id at all**. The app was
+showing a real, honest offline screen; the harness simply had nothing
+machine-readable to assert.
+
+### 14.2 Root cause and fix (`fd42ce58`)
+
+`App.tsx` renders that startup "not connected" screen when the demo bootstrap
+fails, and it had no `testID`. So:
+
+- `apps/mobile/App.tsx`: the screen now carries `testID="pli.startup.offline"`
+  (a handle for evidence and E2E, no visual change).
+- `capture-android-final.py`: the offline capture accepts **either** honest
+  surface — the cold-start screen or Today's cached banner — and records which
+  one it saw in `offline/offline-truth.json`.
+- validator: `REQUIRED_STATE_SURFACES = ("empty", "offline")` with
+  `STATE_ROOT_IDS["offline"] = ("pli.startup.offline", "pli.offline.state")`,
+  any-of. Proven discriminating first: the pre-fix artifact was rejected with
+  `missing §24 state evidence surface: offline`.
+
+### 14.3 Evidence at `fd42ce58`
+
+| Item | Value |
+| --- | --- |
+| CI | run `43147450982` — **success** (Backend / Frontend / Blind / Browser E2E) |
+| OpenAPI Artifact Sync | run `43147450987` — **success** |
+| Android + Release Artifacts | run `43147450973` — **success**, no rerun |
+| runtime evidence artifact | `13913507014` (14,454,247 B) |
+| APK / web | `13912967119` / `13911523515` |
+| `offline/` | `offline.png` (36,965 B), `ui.xml` (4,163 B), `offline-truth.json`, layout/visual/report |
+| state actually rendered | `state_ui_id: pli.startup.offline`, copy `演示数据暂时没有连接成功 · 点击重试`, `tunnel_removed: true`, `app_force_stopped: true`, `no_vision_model: true`, `human_visual_acceptance: PENDING` |
+| local re-validation | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS` with owner-copy + today-canvas + domains + states active |
+
+### 14.4 §24 coverage
+
+```text
+captured : 26 of 26
+open     : none
+```
+
+Every §24 surface now has fresh Android evidence from this round, and the
+evidence contract fails closed if any domain or state disappears again.
+
+`HUMAN_VISUAL_ACCEPTANCE` stays `PENDING`. Capturing an offline screen proves the
+screen exists and says an honest thing; it does not prove the owner finds it
+clear, and no automation here claims otherwise.
