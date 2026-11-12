@@ -737,3 +737,72 @@ this one.
 Honest status of the limitation: **still open**, now with two RN-level
 approaches empirically excluded so the next engineer does not spend a cycle
 re-discovering that they do not work.
+
+> **Superseded by §16.** The third approach worked and did not require the
+> generated page at all: the RN side already injects script before page content
+> loads, so it takes over `document.title` there. The leak is closed and the gate
+> is now stricter than it was before this section.
+
+## 16. Pass 8 — the manifest leak is closed, without touching the generated page
+
+§15.1 concluded that only one path was left and that it needed the generated
+stage page. That turned out to be avoidable: the page's assignment
+`document.title = "PLI_MANIFEST:" + json` lives in
+`apps/mobile/scripts/pet-stage-entry.ts`, but the RN side already injects script
+**before** page content loads. So the title can be taken over from the app side,
+without regenerating `pet-stage.html` / `petStageHtml.ts` (which this machine
+cannot reproduce, §7 item 3).
+
+`c6308cff` prepends to that injected script:
+
+```js
+Object.defineProperty(document, "title", {
+  configurable: false,
+  get: function () { return "宠物 3D 形象"; },
+  set: function () {},
+});
+```
+
+The page's assignment becomes a no-op, so the WebView node no longer carries the
+manifest to a screen reader.
+
+### 16.1 Verified from that run's artifact, not from intent
+
+```text
+today/ui.xml      WebView text=''  content-desc=''
+pet/ui.xml        WebView text=''  content-desc=''
+lifeview/ui.xml   WebView text=''  content-desc=''
+companion/ui.xml  WebView text=''  content-desc=''
+today/3d.json     manifestOrigin=RUNTIME  ready=True  petId=…0094e1ec
+```
+
+The leak is gone **and** the evidence still came through: the manifest is read
+from app storage (`files/pli_manifest.json`), which the capture tries first and
+which the code itself calls the release-proof channel.
+
+### 16.2 Then, and only then, the gate was tightened
+
+`3b050918` removes the documented `PLI_MANIFEST` exception, so manifest text in
+any owner-visible attribute now fails validation. The difference from the failed
+attempt in `0fa380ab` is ordering: the same tightening was applied there while
+the leak was still present, so it could only fail; here the leak was verified
+gone first, and the assertion was checked against both artifacts before pushing:
+
+```text
+c6308cff artifact (title frozen)  PASS
+202f8d14 artifact (previous head)  FAIL  owner-visible engineering identifier
+                                         'petId' … 'PLI_MANIFEST:{…}'
+```
+
+### 16.3 What this changes and what it costs
+
+| Item | State |
+| --- | --- |
+| Screen-reader leak of the runtime manifest | **CLOSED** — the node carries empty text/content-desc; the container keeps the owner label (`豆豆的 3D 形象…`) |
+| Evidence integrity | unchanged: `manifestOrigin=RUNTIME`, `ready=true`; the capture reads app storage first |
+| Capture fallback | the native-XML `PLI_MANIFEST:` parse in `capture-android-final.py` is now dead for current builds; if the storage channel ever fails the run fails loudly instead of photographing an unproven frame. Worth deleting in its own change |
+| Gate | stricter than before: manifest text anywhere in owner-visible attributes fails the run (test-pinned) |
+| Generated asset | untouched — no unreproducible rebuild was committed |
+
+`HUMAN_VISUAL_ACCEPTANCE` remains `PENDING`; this section closes an
+accessibility defect, not a design question.
