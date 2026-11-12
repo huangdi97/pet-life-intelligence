@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_owner_review_android_retries_keep_original_decision_and_optimistic_token() -> None:
-    code = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
+    code = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text(encoding="utf-8")
     assert "useRef<PendingReviewIntent | null>(null)" in code
     assert "const pending = pendingReview.current;" in code
     assert "pending.caseId !== record.case_id || pending.decision !== decision" in code
@@ -46,7 +46,7 @@ def test_owner_review_android_retries_keep_original_decision_and_optimistic_toke
 
 def test_r8_android_does_not_clear_ambiguous_intent_before_exact_review_is_seen() -> None:
     """Case identity alone cannot certify the specific owner Review was stored."""
-    code = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
+    code = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text(encoding="utf-8")
     assert "type ReviewAcknowledgement = {" in code
     assert "const accepted = await api.post<ReviewAcknowledgement>(" in code
     assert "accepted.pet_id !== petId" in code
@@ -62,9 +62,9 @@ def test_r8_android_does_not_clear_ambiguous_intent_before_exact_review_is_seen(
 
 
 def test_r8i_android_pending_owner_intent_survives_restart_and_is_account_scoped() -> None:
-    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
-    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text()
-    session = (ROOT / "apps/mobile/src/storage/session.ts").read_text()
+    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text(encoding="utf-8")
+    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text(encoding="utf-8")
+    session = (ROOT / "apps/mobile/src/storage/session.ts").read_text(encoding="utf-8")
     assert 'import * as SecureStore from "expo-secure-store"' in store
     assert 'const KEY = "pli_r8_unconfirmed_owner_review_v1"' in store
     assert "x.petId === petId && x.caseId === caseId && x.sourceIdsKey === sourceIdsKey" in store
@@ -83,9 +83,9 @@ def test_r8i_android_pending_owner_intent_survives_restart_and_is_account_scoped
 
 
 def test_r8j_unconfirmed_owner_review_recovery_survives_loss_of_notable_card() -> None:
-    today = (ROOT / "apps/mobile/src/screens/TodayScreen.tsx").read_text()
-    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
-    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text()
+    today = (ROOT / "apps/mobile/src/screens/TodayScreen.tsx").read_text(encoding="utf-8")
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text(encoding="utf-8")
+    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text(encoding="utf-8")
     assert "listOwnerIntentsForPet(petId)" in recovery
     assert "entry.petId === petId" in store
     assert "PendingOwnerReviewRecovery" in today
@@ -117,7 +117,7 @@ def test_r8k_orphaned_owner_review_intent_has_only_explicit_twostep_local_exit()
     The UI must allow owner-controlled local cleanup without changing remote
     append-only Review history or silently dropping a possibly accepted choice.
     """
-    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text(encoding="utf-8")
     assert "const [discardCandidate, setDiscardCandidate]" in recovery
     assert "if (discardCandidate !== intentKey)" in recovery
     assert "setDiscardCandidate(intentKey)" in recovery
@@ -142,8 +142,8 @@ def test_r8k_orphaned_owner_review_intent_has_only_explicit_twostep_local_exit()
 
 
 def test_r8k_confirmed_local_optout_does_not_erase_a_newer_decision_for_same_case() -> None:
-    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text()
-    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text(encoding="utf-8")
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text(encoding="utf-8")
     assert "export async function clearOwnerIntentIfUnchanged(intent: SavedOwnerIntent)" in store
     assert "const snapshot = snapshotIntent(intent);" in store
     assert "function snapshotIntent(intent: SavedOwnerIntent): SavedOwnerIntent" in store
@@ -162,8 +162,8 @@ def test_r8k_confirmed_local_optout_does_not_erase_a_newer_decision_for_same_cas
 
 
 def test_r8k_secure_store_rejects_overwriting_a_different_unconfirmed_owner_choice() -> None:
-    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text()
-    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text(encoding="utf-8")
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text(encoding="utf-8")
     assert "const previous = existing.find((x) =>" in store
     assert "const snapshot = snapshotIntent(intent);" in store
     assert "const checked = validateRows([intent])[0];" in store
@@ -180,7 +180,7 @@ def test_r8k_secure_store_rejects_overwriting_a_different_unconfirmed_owner_choi
 
 
 def test_r8_owner_review_recovery_ack_can_only_clear_same_immutable_intent() -> None:
-    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text(encoding="utf-8")
     success_flow = recovery.split("const recover = async", 1)[1].split(
         "  const discardLocalReminder = async", 1
     )[0]
@@ -204,9 +204,9 @@ def test_r8_owner_review_recovery_ack_can_only_clear_same_immutable_intent() -> 
 
 def test_r8q_securestore_reader_is_in_same_serialized_queue_and_ci_executes_race() -> None:
     """The source contract supplements (does not replace) executable Node race tests."""
-    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text()
-    workflow = (ROOT / ".github/workflows/ci.yml").read_text()
-    script = (ROOT / "apps/mobile/scripts/test-owner-intent-store.cjs").read_text()
+    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text(encoding="utf-8")
+    workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    script = (ROOT / "apps/mobile/scripts/test-owner-intent-store.cjs").read_text(encoding="utf-8")
     assert "function serialized<T>(work: () => Promise<T>): Promise<T>" in store
     assert "return serialized(async () =>" in store
     assert "await queue;\n  return (await read())" not in store
@@ -218,7 +218,7 @@ def test_r8q_securestore_reader_is_in_same_serialized_queue_and_ci_executes_race
 
 
 def test_r8m_primary_owner_review_never_drops_uncertain_request_on_http_conflict() -> None:
-    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
+    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text(encoding="utf-8")
     post = panel.split("const review = async", 1)[1].split("const inspectEvidence = async", 1)[0]
     assert "await clearOwnerIntent(petId, record.case_id, sourceIdsKey)" not in post
     assert "const cleared = await clearOwnerIntentIfUnchanged({" in post
@@ -234,7 +234,7 @@ def test_r8m_primary_owner_review_never_drops_uncertain_request_on_http_conflict
 
 def test_r8n_owner_evidence_async_result_cannot_cross_pet_or_case() -> None:
     """Slow event-source GETs are not allowed to paint another selected pet."""
-    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
+    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text(encoding="utf-8")
     section = panel.split("const inspectEvidence = async", 1)[1].split("  return (", 1)[0]
     assert "const requestGeneration = useRef(0)" in panel
     assert "requestGeneration.current += 1" in panel
@@ -248,7 +248,7 @@ def test_r8n_owner_evidence_async_result_cannot_cross_pet_or_case() -> None:
 
 
 def test_r8o_life_change_case_create_is_guarded_by_live_pet_and_frozen_source() -> None:
-    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
+    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text(encoding="utf-8")
     create = panel.split("const create = async", 1)[1].split("const review = async", 1)[0]
     assert "const activeChangeScope = useRef({ petId, metric: change.metric, sourceIdsKey });" in panel
     assert "activeChangeScope.current = { petId, metric: change.metric, sourceIdsKey };" in panel
@@ -262,7 +262,7 @@ def test_r8o_life_change_case_create_is_guarded_by_live_pet_and_frozen_source() 
 
 
 def test_r8o_async_review_post_never_paints_new_pet_or_erases_its_intent() -> None:
-    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
+    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text(encoding="utf-8")
     review = panel.split("const review = async", 1)[1].split("const inspectEvidence = async", 1)[0]
     assert "activeOwnerScope.current.caseId === requestedCaseId" in review
     assert "activeChangeScope.current.petId === requestedPetId" in review
@@ -284,7 +284,7 @@ def test_r8o_async_review_post_never_paints_new_pet_or_erases_its_intent() -> No
 
 
 def test_r8p_recovery_async_is_scoped_before_each_remote_side_effect() -> None:
-    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text(encoding="utf-8")
     flow = recovery.split("const recover = async", 1)[1].split("const discardLocalReminder = async", 1)[0]
     assert "const activeRecoveryPet = useRef(petId);" in recovery
     assert "activeRecoveryPet.current = petId;" in recovery
@@ -305,7 +305,7 @@ def test_r8p_recovery_async_is_scoped_before_each_remote_side_effect() -> None:
 
 
 def test_r8p_discard_is_not_applied_to_a_different_active_pet() -> None:
-    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text(encoding="utf-8")
     discard = recovery.split("const discardLocalReminder = async", 1)[1].split(
         "  // Hide prior-pet rows", 1
     )[0]
@@ -322,7 +322,7 @@ def test_r8p_discard_is_not_applied_to_a_different_active_pet() -> None:
 
 def test_r8r_quicklog_does_not_reuse_pet_a_media_or_review_for_pet_b() -> None:
     """Source contract: async photo/save/review completions must stay on original pet."""
-    code = (ROOT / "apps/mobile/src/screens/QuickLogScreen.tsx").read_text()
+    code = (ROOT / "apps/mobile/src/screens/QuickLogScreen.tsx").read_text(encoding="utf-8")
     assert "const livePetScope = useRef<" in code
     assert "livePetScope.current.petId !== (current?.id ?? null)" in code
     assert "const saveScope = livePetScope.current;" in code
@@ -345,7 +345,7 @@ def test_r8r_quicklog_does_not_reuse_pet_a_media_or_review_for_pet_b() -> None:
 
 def test_r8s_recovery_panel_synchronously_serializes_owner_actions() -> None:
     """Two taps before React state commits must not post twice or race a discard."""
-    code = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
+    code = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text(encoding="utf-8")
     assert "const activeOwnerAction = useRef<string | null>(null);" in code
     assert code.count("if (loadingCaseId || activeOwnerAction.current) return;") == 2
     assert 'activeOwnerAction.current = actionKey;' in code
@@ -360,9 +360,9 @@ def test_r8s_recovery_panel_synchronously_serializes_owner_actions() -> None:
 def test_r8t_actual_owner_recovery_handler_executable_gate_runs_in_mobile_ci() -> None:
     """The synchronous lock must be exercised with delayed I/O, not only scanned."""
     root = Path(__file__).resolve().parents[2]
-    node = (root / "apps/mobile/scripts/test-owner-review-recovery.cjs").read_text()
-    ci = (root / ".github/workflows/ci.yml").read_text()
-    mobile = (root / "apps/mobile/package.json").read_text()
+    node = (root / "apps/mobile/scripts/test-owner-review-recovery.cjs").read_text(encoding="utf-8")
+    ci = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    mobile = (root / "apps/mobile/package.json").read_text(encoding="utf-8")
     assert 'PendingOwnerReviewRecovery.tsx' in node
     assert 'screen.slice(start, end)' in node
     assert 'ts.transpileModule(source' in node
@@ -378,7 +378,7 @@ def test_r8t_actual_owner_recovery_handler_executable_gate_runs_in_mobile_ci() -
     assert 'screen.slice(guardStart, guardEnd)' in node
     assert 'h.changeBackToA()' in node
     assert 'Old A response cannot resume after A→B→A before effect cleanup' in node
-    production = (root / 'apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx').read_text()
+    production = (root / 'apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx').read_text(encoding="utf-8")
     assert 'if (activeRecoveryPet.current !== petId) {' in production
     assert 'const effectGeneration = recoveryGeneration.current;' in production
     assert 'stillOnPet(petId, effectGeneration)' in production
@@ -386,8 +386,8 @@ def test_r8t_actual_owner_recovery_handler_executable_gate_runs_in_mobile_ci() -
 
 
 def test_r8w_secure_owner_intents_fail_before_oversized_native_keychain_write() -> None:
-    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text()
-    script = (ROOT / "apps/mobile/scripts/test-owner-intent-store.cjs").read_text()
+    store = (ROOT / "apps/mobile/src/storage/pendingOwnerReview.ts").read_text(encoding="utf-8")
+    script = (ROOT / "apps/mobile/scripts/test-owner-intent-store.cjs").read_text(encoding="utf-8")
     assert "const MAX_SECURESTORE_BYTES = 1900;" in store
     assert "const MAX_EVIDENCE_KEY_CHARS = 1200;" in store
     assert "const PRINTABLE_TOKEN =" in store
@@ -404,8 +404,8 @@ def test_r8w_secure_owner_intents_fail_before_oversized_native_keychain_write() 
 
 
 def test_r8x_owner_recovery_rejects_source_invalidation_before_and_after_post() -> None:
-    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text()
-    fault = (ROOT / "apps/mobile/scripts/test-owner-review-recovery.cjs").read_text()
+    recovery = (ROOT / "apps/mobile/src/components/life/PendingOwnerReviewRecovery.tsx").read_text(encoding="utf-8")
+    fault = (ROOT / "apps/mobile/scripts/test-owner-review-recovery.cjs").read_text(encoding="utf-8")
     assert "detail.source_valid !== true" in recovery
     assert "confirmed.source_valid !== true" in recovery
     assert '[...confirmed.evidence_event_ids].sort().join("|") !== intent.sourceIdsKey' in recovery
@@ -425,10 +425,10 @@ def test_r8x_owner_recovery_rejects_source_invalidation_before_and_after_post() 
 
 
 def test_r8z_primary_review_executes_actual_handler_under_source_faults() -> None:
-    script = (ROOT / "apps/mobile/scripts/test-owner-review-primary.cjs").read_text()
-    ci = (ROOT / ".github/workflows/ci.yml").read_text()
-    package = (ROOT / "apps/mobile/package.json").read_text()
-    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
+    script = (ROOT / "apps/mobile/scripts/test-owner-review-primary.cjs").read_text(encoding="utf-8")
+    ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    package = (ROOT / "apps/mobile/package.json").read_text(encoding="utf-8")
+    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text(encoding="utf-8")
     assert 'LifeChangeReviewPanel.tsx' in script
     assert 'ts.transpileModule' in script
     assert 'screen.slice(start, end)' in script
@@ -448,8 +448,8 @@ def test_r8z_primary_review_executes_actual_handler_under_source_faults() -> Non
 
 
 def test_r8z_primary_owner_review_has_synchronous_scope_lock_and_aba_guard() -> None:
-    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text()
-    test = (ROOT / "apps/mobile/scripts/test-owner-review-primary.cjs").read_text()
+    panel = (ROOT / "apps/mobile/src/components/life/LifeChangeReviewPanel.tsx").read_text(encoding="utf-8")
+    test = (ROOT / "apps/mobile/scripts/test-owner-review-primary.cjs").read_text(encoding="utf-8")
     assert "const activeReviewAction = useRef<{ scope: string } | null>(null);" in panel
     assert "const renderedReviewScope = useRef(ownerReviewScope);" in panel
     assert "if (renderedReviewScope.current !== ownerReviewScope)" in panel

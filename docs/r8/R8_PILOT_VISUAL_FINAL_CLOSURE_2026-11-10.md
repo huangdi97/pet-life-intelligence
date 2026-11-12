@@ -366,7 +366,7 @@ iteration.
 | runtime evidence artifact | `13782360124` (13,723,476 B, 247 files) |
 | APK / web | `13778918822` / `13779660817` |
 | validator (run by this agent on the download) | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS`, `source_head = f6c8459620d7e9549ec28d5eb55643eae5ceb780`, `checkout_head = cd88fad672b29565ef3020f149e4f033a2f45456` = `refs/pull/2/merge` |
-| local gates | `ruff check services packages tests scripts` PASS; `pytest tests/blind_ui` **316/316 PASS** when run in UTF-8 mode (`python -X utf8 -m pytest …`); the whole twin QA pair passes (`twin_glb_qa.py`, `product_twin_qa.py`, both `pass: true`) |
+| local gates | `ruff check services packages tests scripts` PASS; `pytest tests/blind_ui` **316/316 PASS** (plain `python -m pytest …` since pass 9; `-X utf8` was required before that); the whole twin QA pair passes (`twin_glb_qa.py`, `product_twin_qa.py`, both `pass: true`) |
 
 Human review package: a self-contained page built from this artifact's four CI
 contact sheets plus the deterministic findings above
@@ -553,7 +553,7 @@ blocked items named rather than glossed:
 | --- | --- | --- |
 | `ruff check services packages tests scripts` | **PASS** | one pre-existing `noqa` warning in `scan_codebase_scale.py` |
 | `py_compile` on every file this round touched | **PASS** | 9 files |
-| `pytest tests/blind_ui --confcutdir tests/blind_ui` | **316/316 PASS** | run as `python -X utf8 -m pytest …`; see the correction below |
+| `pytest tests/blind_ui --confcutdir tests/blind_ui` | **316/316 PASS** | plain `python -m pytest …` works since pass 9; earlier runs needed `-X utf8` — see the correction below |
 | `scripts/twin/twin_glb_qa.py` | **PASS** (`pass: true`) | GLB + animation manifest, no model download |
 | `scripts/twin/product_twin_qa.py` | **PASS** (`pass: true`, `humanVisualAcceptance: PENDING`) | structural only, no vision model |
 | `ui-tokens build`, `ui-kit typecheck`, `pet-3d build` | **PASS** | via `pnpm 9` (the CI pin) |
@@ -581,11 +581,14 @@ What that means, honestly:
   dependency. The correction is recorded here rather than silently edited
   away, because "20 tests cannot run here" is exactly the kind of statement
   that should not survive being false.
-- One test file does still carry a real portability nit: 39 `read_text()` calls
-  without an explicit encoding in `tests/blind_ui/test_r8_owner_review_retry_identity.py`.
-  Two other test files got the explicit `encoding="utf-8"`; the 39-site file was
-  left alone in this round because `-X utf8` already proves the suite, and a
-  39-line mechanical edit belongs in its own reviewed change.
+- The 39 `read_text()` calls without an explicit encoding in
+  `tests/blind_ui/test_r8_owner_review_retry_identity.py` are now **fixed**
+  (pass 9), not deferred: every site reads with `encoding="utf-8"`. On this host
+  (`locale.getpreferredencoding() = cp936`) the old path demonstrably fails —
+  `UnicodeDecodeError: 'gbk' codec can't decode byte 0x94` on `TodayScreen.tsx` —
+  and with the fix the full suite passes `316/316` **without** `-X utf8` and
+  without `PYTHONIOENCODING`. The flag in the rows above is therefore no longer
+  required; those rows are kept because those runs really were executed that way.
 
 **Toolchain side effects, restored not committed.** Running `build:3d-page`
 again rewrote the tracked generated page (`apps/mobile/assets/3d/pet-stage.html`,
