@@ -205,18 +205,18 @@ def test_state_coverage_rejects_a_capture_without_the_state_id(tmp_path: Path) -
         "offline/ui.xml",
         '<hierarchy><node resource-id="pli.offline.state" /></hierarchy>',
     )
-    with pytest.raises(ValueError, match="does not contain pli.empty.pet"):
+    with pytest.raises(ValueError, match="does not contain any of"):
         validator.validate_state_coverage(android)
 
 
 def test_state_coverage_passes_when_the_state_is_proven(tmp_path: Path) -> None:
     android = _artifact(tmp_path)
-    for screen, root in validator.STATE_ROOT_IDS.items():
+    for screen, roots in validator.STATE_ROOT_IDS.items():
         _write(android, f"{screen}/{screen}.png", "x" * 2048)
         _write(
             android,
             f"{screen}/ui.xml",
-            f'<hierarchy><node resource-id="{root}" />'
+            f'<hierarchy><node resource-id="{roots[0]}" />'
             f'<node text="{screen} 状态的说明文本，用于满足证据最小体积要求" /></hierarchy>',
         )
     validator.validate_state_coverage(android)

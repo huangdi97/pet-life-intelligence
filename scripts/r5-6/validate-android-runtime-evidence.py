@@ -154,13 +154,13 @@ def validate_today_canvas(android: Path) -> None:
 # the capture contract fails the gate instead of quietly losing coverage.
 REQUIRED_DOMAIN_SURFACES = ("behavior", "training", "welfare", "social")
 
-# §24 state surfaces captured from the live app. Offline is absent on purpose:
-# it could not be triggered, and manufacturing it would be fake evidence.
-REQUIRED_STATE_SURFACES = ("empty",)
+# §24 states: Empty (no-pet account) and Offline (cold start without the API).
+REQUIRED_STATE_SURFACES = ("empty", "offline")
 
-# The id that proves the state was really rendered, not just a directory.
+# The id(s) that prove the state was really rendered, not just a directory.
 STATE_ROOT_IDS = {
-    "empty": "pli.empty.pet",
+    "empty": ("pli.empty.pet",),
+    "offline": ("pli.startup.offline", "pli.offline.state"),
 }
 
 
@@ -174,10 +174,10 @@ def validate_state_coverage(android: Path) -> None:
         except FileNotFoundError:
             raise ValueError(f"missing §24 state evidence surface: {screen}") from None
         xml = xml_path.read_text(encoding="utf-8", errors="replace")
-        expected = STATE_ROOT_IDS[screen]
-        if expected not in xml:
+        expected_ids = STATE_ROOT_IDS[screen]
+        if not any(ident in xml for ident in expected_ids):
             raise ValueError(
-                f"§24 {screen} evidence does not contain {expected}; "
+                f"§24 {screen} evidence does not contain any of {list(expected_ids)}; "
                 "the state was not actually rendered"
             )
 

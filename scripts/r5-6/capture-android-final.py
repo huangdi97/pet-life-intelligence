@@ -3232,8 +3232,12 @@ def capture_offline_state(android: Android, out: Path) -> None:
     """
     directory = out / "offline"
     directory.mkdir(parents=True, exist_ok=True)
-    expected = "pli.offline.state"
+    # Two honest offline surfaces exist: the cold-start "not connected" screen
+    # (App.tsx, pli.startup.offline) and Today's cached-content banner
+    # (pli.offline.state). Either is a real offline state; record which one.
+    expected_ids = ("pli.startup.offline", "pli.offline.state")
     latest = ""
+    observed_state = ""
     android.cmd("reverse", "--remove", "tcp:8800", check=False)
     try:
         listed = android.cmd("reverse", "--list", check=False).stdout or ""
@@ -3246,17 +3250,18 @@ def capture_offline_state(android: Android, out: Path) -> None:
         for attempt in range(20):
             time.sleep(1.5 if attempt else 4)
             latest = android.dump_xml(directory / "ui.xml")
-            if expected in latest:
+            observed_state = next((i for i in expected_ids if i in latest), "")
+            if observed_state:
                 break
     finally:
         android.cmd("reverse", "tcp:8800", "tcp:8800", check=False)
 
-    if expected not in latest:
+    if not observed_state:
         observed = sorted(set(re.findall(r'resource-id="(pli\.[^"]+)"', latest)))[:16]
         (directory / "NOT_REPRODUCED.json").write_text(
             json.dumps(
                 {
-                    "expected_ui_id": expected,
+                    "expected_ui_id": list(expected_ids),
                     "observed_ui_ids": observed,
                     "now_story_present": "pli.today.now-story" in latest,
                     "tunnel_removed": True,
@@ -3275,6 +3280,22 @@ def capture_offline_state(android: Android, out: Path) -> None:
         android.start_link("pli-demo://nav?screen=today")
         return
 
+    (directory / "offline-truth.json").write_text(
+        json.dumps(
+            {
+                "state_ui_id": observed_state,
+                "tunnel_removed": True,
+                "app_force_stopped": True,
+                "read_only": True,
+                "no_vision_model": True,
+                "human_visual_acceptance": "PENDING",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     android.screenshot(directory / "offline.png")
     run([
         os.environ.get("PYTHON", "python3"),

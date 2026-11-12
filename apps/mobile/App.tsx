@@ -159,7 +159,15 @@ function DemoSession() {
   if (failure && !ready) {
     return (
       <SafeAreaProvider>
-        <Pressable accessibilityRole="button" accessibilityLabel="重试演示登录" onPress={() => { setFailure(false); setAttempt((n) => n + 1); }}>
+        {/* testID is the only machine-readable handle on this offline state:
+            it is reachable without owner data, so evidence and E2E runs assert
+            the state itself instead of matching visible copy. */}
+        <Pressable
+          testID="pli.startup.offline"
+          accessibilityRole="button"
+          accessibilityLabel="重试演示登录"
+          onPress={() => { setFailure(false); setAttempt((n) => n + 1); }}
+        >
           <Text>演示数据暂时没有连接成功 · 点击重试</Text>
         </Pressable>
       </SafeAreaProvider>
