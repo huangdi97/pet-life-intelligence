@@ -166,7 +166,15 @@ export const Pet3DViewer = forwardRef<Pet3DViewerHandle, Props>(function Pet3DVi
   }, [view, status]);
 
   const twinJson = twin ? JSON.stringify(twin).replace(/\\/g, "\\\\").replace(/'/g, "\\'") : "";
-  const injected = `window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; window.__PLI_FRAME_TARGET = ${Number(frameTarget) || 0}; window.__PLI_PET_ID = ${petId ? JSON.stringify(petId) : "null"}; window.__PLI_SOURCE_MEDIA_COUNT = ${Number(sourceMediaCount) || 0}; window.__PLI_DEMO_TWIN = ${demoTwin}; window.__PLI_STAGE_ROLE = ${JSON.stringify(stageRole ?? (stageTheme === "review" ? "review" : "life"))}; window.__PLI_STAGE_THEME = ${JSON.stringify(stageTheme)}; ${
+  // A11Y: the stage page publishes its runtime manifest as document.title, and
+  // Android exposes that as this WebView node's accessible text, so a screen
+  // reader would read a JSON blob. RN-level accessibility props do not reach
+  // this node (both were tried and reverted: 03eb6bd3, 0fa380ab), so the title
+  // itself is frozen to a human label before the page script runs. The page's
+  // assignment becomes a no-op; the manifest still reaches evidence through app
+  // storage (files/pli_manifest.json), which the capture reads first.
+  const titleLock = `try { Object.defineProperty(document, "title", { configurable: false, get: function () { return "宠物 3D 形象"; }, set: function () {} }); } catch (e) {} `;
+  const injected = `${titleLock}window.__PLI_IDENTITY = "${identity}"; window.__PLI_INTERACTIVE = ${interactive}; window.__PLI_FRAME_TARGET = ${Number(frameTarget) || 0}; window.__PLI_PET_ID = ${petId ? JSON.stringify(petId) : "null"}; window.__PLI_SOURCE_MEDIA_COUNT = ${Number(sourceMediaCount) || 0}; window.__PLI_DEMO_TWIN = ${demoTwin}; window.__PLI_STAGE_ROLE = ${JSON.stringify(stageRole ?? (stageTheme === "review" ? "review" : "life"))}; window.__PLI_STAGE_THEME = ${JSON.stringify(stageTheme)}; ${
     twin ? `window.__PLI_TWIN = JSON.parse('${twinJson}');` : ""
   } true;`;
 
