@@ -930,3 +930,53 @@ fail.
 
 Status: `ACCEPTED_LIMITATION` → **superseded by this finding**: it is a real
 `NOT_YET_OBSERVED` product-state divergence, recorded rather than papered over.
+
+### 18.3 Decision and closure (pass 11)
+
+Product decision, 2026-11-13: **the shipped look wins.** The generator was
+corrected, not the page abandoned, and nothing new reached owners' eyes.
+
+What changed (`c8710e0b`):
+
+- `.btn` back to 40 px / dark (`rgba(23,19,16,0.55)`, `#FAF6EF`, active
+  `rgba(58,46,36,0.85)`). Checked programmatically, not by eye: the generated
+  `<style>` block is now byte-identical to the previously shipped one.
+- The controls rule back to `if (interactive)`. Their old comment claimed owner
+  pages rely on the native RN controls alone — the APK does not do that: the
+  current artifact exposes the WebView 缩小/放大 buttons on `lifeview`. The comment
+  now records the real state (a duplicated control layer) instead of a decision
+  that never shipped.
+- Both tracked outputs regenerated.
+
+The cost is stated where the code is: the WebView controls overlap the native RN
+controls on interactive surfaces. Reverting to engineering-only is a one-line
+change, and now it would also be a *visible* one, so it needs its own decision.
+
+### 18.4 The drift can no longer happen silently
+
+The Frontend job already ran `pnpm --dir apps/mobile build:3d-page` on every run
+and then threw the result away. It now diffs it:
+
+```yaml
+- name: Mobile 3D page matches its generator
+  run: |
+    if ! git diff --exit-code -- apps/mobile/assets/3d/pet-stage.html apps/mobile/src/three/petStageHtml.ts; then
+      echo "::error::generated 3D page is out of date - run 'pnpm --dir apps/mobile build:3d-page' and commit the result"
+      exit 1
+    fi
+```
+
+It passed on its first run, which is also the proof that CI's rebuild is
+byte-identical to the committed artifact — if the two toolchains disagreed, this
+gate could not be green and would not have been kept.
+
+Post-change evidence: artifact `14017181770` at `c8710e0b` validates
+(`ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS`, `manifestOrigin = RUNTIME`), and its
+native XML still exposes the WebView controls on `lifeview`, `twinreview` and
+`secondary-review` — i.e. the aligned rule kept the behaviour owners already had
+instead of quietly removing it.
+
+Residual, unchanged: the regenerated bundle carries a different three.js module
+subset than the 2026-10-03 page, so the stage *chrome* is provably identical while
+the scene's pixels are not machine-compared to the old page.
+`HUMAN_VISUAL_ACCEPTANCE` stays `PENDING` for exactly that reason.
