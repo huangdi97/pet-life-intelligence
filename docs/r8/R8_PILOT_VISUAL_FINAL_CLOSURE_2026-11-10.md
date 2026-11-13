@@ -829,3 +829,41 @@ Verified: `ruff` clean (the now-unused `html` import went with it),
 behaviour for healthy builds is unchanged — the storage channel was already the
 first candidate and is what produced `manifestOrigin=RUNTIME` in every artifact
 listed in PR #2.
+
+## 17. Pass 10 — the activation metric stops carrying its own copy of the registry
+
+`pilot_dashboard.py` already imported `DAILY_EVENT_TYPES` and
+`RECORD_FACT_SOURCES`, and then repeated both sets as SQL string literals inside
+the activation subquery. They agreed when written, so no test failed — which is
+exactly the shape of a latent PILOT-INTEGRITY defect: a registry change would
+have made the dashboard count a different fact set than event validation and
+`life_replay`, with every gate still green.
+
+`c5854ca7` replaces both literals with expanding bind parameters:
+
+```python
+activation_event_types = tuple(DAILY_EVENT_TYPES)
+activation_fact_sources = tuple(RECORD_FACT_SOURCES)
+...
+"    AND e.event_type IN :activation_event_types "
+"    AND e.source_type IN :activation_fact_sources "
+```
+
+Behaviour-identical by construction, and checked to be identical by reading both
+registries: seven daily types (meal, drink, elimination, walk, play, weight,
+sleep) and five sources (OWNER_REPORTED, CAREGIVER_REPORTED, DEVICE_DERIVED,
+PROFESSIONAL_CONFIRMED, LAB_CONFIRMED) — the same members the literals listed.
+
+### 17.1 Which layer proved what
+
+| Claim | Evidence |
+| --- | --- |
+| The substitution is set-equal | registry definitions read directly; both lists enumerated above |
+| The rendered SQL still works | CI Backend job on `c5854ca7` — it runs the activation integration tests against a real database |
+| Nobody re-introduces the literals | three new blind tests in `tests/blind_ui/test_pilot_activation_registry.py` |
+| Local sanity | `ruff` clean, AST parses, `319` blind tests pass |
+
+`sqlalchemy` is not installed on this machine, so the rendered/compiled SQL was
+**not** verified locally and is not claimed to be; the honest ordering is that
+CI's database-backed run is the proof and the local run only covers the source
+contract.
