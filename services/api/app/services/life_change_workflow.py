@@ -16,15 +16,12 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select
 
+from app.domain.life_change_metrics import METRIC_EVENT_TYPES
 from app.models import LifeChangeCase, LifeChangeOutcome, LifeChangeReview, LifeEvent
 from app.services import life_change_history as hist
 from app.services.life_replay import RECORD_FACT_SOURCES
 
-METRIC_EVENT_TYPES = {
-    "walk_minutes_per_day": "daily.walk",
-    "meal_count_per_day": "daily.meal",
-    "sleep_minutes_per_day": "daily.sleep",
-}
+# Canonical registry (metric -> event type); this used to be a local copy.
 
 REVIEW_RECORDED_STATE = {
     "RECORD_OBSERVATION": "FOLLOW_UP",

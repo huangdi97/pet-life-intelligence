@@ -11,6 +11,7 @@ from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
 from app.domain import enums
+from app.domain.life_change_metrics import METRIC_EVENT_TYPES, METRIC_UNITS
 from app.models import Baseline, LifeEvent
 from app.services import permissions as perm
 from app.services.eventlog import write_audit
@@ -18,17 +19,7 @@ from app.services.life_replay import RECORD_FACT_SOURCES, project_life_replay
 
 router = APIRouter(tags=["v02-identity-daily"])
 
-BASELINE_METRICS = {
-    # metric -> event_type
-    "meal_count_per_day": "daily.meal",
-    "walk_minutes_per_day": "daily.walk",
-    "sleep_minutes_per_day": "daily.sleep",
-}
-BASELINE_UNITS = {
-    "meal_count_per_day": "次",
-    "walk_minutes_per_day": "分钟",
-    "sleep_minutes_per_day": "分钟",
-}
+# Canonical metric registry (event type + owner-facing unit); both used to be copies.
 PRODUCT_TZ = timezone(timedelta(hours=8))
 
 
@@ -58,7 +49,7 @@ async def recompute_baseline(
     now = datetime.now(timezone.utc)
     since = now - timedelta(days=window_days)
     results = {}
-    for metric, event_type in BASELINE_METRICS.items():
+    for metric, event_type in METRIC_EVENT_TYPES.items():
         originals = list((await db.execute(
             select(LifeEvent).where(
                 LifeEvent.pet_id == pet.id,
@@ -118,7 +109,7 @@ async def recompute_baseline(
             row = Baseline(pet_id=pet.id, metric=metric, value=str(value))
             db.add(row)
         row.value = str(value)
-        row.unit = BASELINE_UNITS[metric]
+        row.unit = METRIC_UNITS[metric]
         row.sample_count = len(values)
         row.window_days = window_days
         row.algorithm = "trimmed_mean_v1"

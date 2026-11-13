@@ -21,7 +21,9 @@ from datetime import datetime
 from sqlalchemy import Select, and_, func, or_, select, text
 
 from app.core.errors import ValidationFailed
+from app.domain.life_change_metrics import metric_event_type_sql
 from app.models import LifeChangeCase
+from app.services.life_replay import RECORD_FACT_SOURCES
 
 # The list VALID/INVALID query must agree with the detail-level
 # _evidence_current() contract on EVERY source, not just retraction/supersession.
@@ -50,15 +52,8 @@ _INVALID_EVIDENCE_SQL = """
                       '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
                       THEN ev.id_text::uuid ELSE NULL::uuid END
                   )
-                  AND e.event_type = CASE life_change_cases.metric
-                      WHEN 'walk_minutes_per_day' THEN 'daily.walk'
-                      WHEN 'meal_count_per_day' THEN 'daily.meal'
-                      WHEN 'sleep_minutes_per_day' THEN 'daily.sleep'
-                      ELSE NULL END
-                  AND e.source_type IN (
-                      'OWNER_REPORTED', 'CAREGIVER_REPORTED', 'DEVICE_DERIVED',
-                      'PROFESSIONAL_CONFIRMED', 'LAB_CONFIRMED'
-                  )
+                  AND e.event_type = __METRIC_EVENT_CASE__
+                  AND e.source_type IN (__RECORD_FACT_SOURCES__)
                   AND e.retracted_at IS NULL
                   AND e.occurred_at <= now()
                   AND e.recorded_at <= now()
@@ -74,6 +69,16 @@ _INVALID_EVIDENCE_SQL = """
     END
 )
 """
+
+# The metric->event mapping and the record-fact source list are rendered from the
+# canonical registries instead of being typed into this SQL. They agreed on the day
+# they were written; from here they cannot disagree.
+_INVALID_EVIDENCE_SQL = _INVALID_EVIDENCE_SQL.replace(
+    "__METRIC_EVENT_CASE__", metric_event_type_sql("life_change_cases.metric")
+).replace(
+    "__RECORD_FACT_SOURCES__",
+    ", ".join(f"'{source}'" for source in sorted(RECORD_FACT_SOURCES)),
+)
 _INVALID_EVIDENCE = text(_INVALID_EVIDENCE_SQL)
 _VALID_EVIDENCE = text(f"NOT ({_INVALID_EVIDENCE_SQL})")
 

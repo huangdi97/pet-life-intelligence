@@ -40,8 +40,14 @@ def test_validity_filter_uses_the_same_derived_source_validity_as_detail():
     assert "len(set(parsed)) != len(parsed)" in workflow
     assert "WHERE NOT EXISTS" in history
     assert "e.pet_id = life_change_cases.pet_id" in history
-    assert "e.event_type = CASE life_change_cases.metric" in history
-    assert "e.source_type IN (" in history
+    # The metric->event binding is rendered from the canonical registry, so a case
+    # can only be valid against the event type its metric is computed from; the same
+    # holds for the record-fact source list. Both predicates must still be present -
+    # only the place their values come from changed.
+    assert "e.event_type = __METRIC_EVENT_CASE__" in history
+    assert 'metric_event_type_sql("life_change_cases.metric")' in history
+    assert "e.source_type IN (__RECORD_FACT_SOURCES__)" in history
+    assert "RECORD_FACT_SOURCES" in history
     assert "s.pet_id = e.pet_id" in history
     assert "s.supersedes_event_id = e.id" in history
     assert 'validity == "VALID"' in history

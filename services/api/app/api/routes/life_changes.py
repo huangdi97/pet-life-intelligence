@@ -17,6 +17,7 @@ from app.api.deps import CurrentUser, DBSession
 from app.api.routes.v10_extras_services import abnormal_day_hint
 from app.core.errors import ConflictError, NotFound, PermissionDenied, ValidationFailed
 from app.domain import enums
+from app.domain.life_change_metrics import METRIC_EVENT_TYPES
 from app.models import CareTask, LifeChangeCase, LifeChangeOutcome, LifeChangeReview, LifeEvent, Pet
 from app.services import life_change_history as hist
 from app.services import life_change_workflow as workflow
@@ -25,11 +26,7 @@ from app.services.eventlog import write_audit
 
 router = APIRouter(tags=["life-intelligence"])
 
-METRICS = {
-    "walk_minutes_per_day": "daily.walk",
-    "meal_count_per_day": "daily.meal",
-    "sleep_minutes_per_day": "daily.sleep",
-}
+# Canonical registry (metric -> event type); this used to be a local copy.
 ALGORITHM = "R8A_SAME_CLOCK_RECORDED_CHANGE_V1"
 
 
@@ -115,7 +112,7 @@ async def _evidence_current(
 
 async def _case_current(db: DBSession, case: LifeChangeCase) -> bool:
     return await _evidence_current(
-        db, case.pet_id, case.evidence_event_ids, METRICS[case.metric],
+        db, case.pet_id, case.evidence_event_ids, METRIC_EVENT_TYPES[case.metric],
     )
 
 
@@ -337,7 +334,7 @@ async def create_case(
         )
     roles = _freeze_evidence_roles(selected)
     ids = sorted(roles)
-    if not await _evidence_current(db, pet.id, ids, METRICS[body.metric]):
+    if not await _evidence_current(db, pet.id, ids, METRIC_EVENT_TYPES[body.metric]):
         raise ConflictError("Source evidence changed; recompute before reviewing.")
     raw = {
         "pet": str(pet.id), "metric": body.metric,
@@ -764,7 +761,7 @@ async def review_case(
             e.occurred_at > now or e.recorded_at > now for e in related_rows
         ):
             raise ValidationFailed("Future-dated events cannot be follow-up observations.")
-        if not await _evidence_current(db, pet.id, related_ids, METRICS[case.metric]):
+        if not await _evidence_current(db, pet.id, related_ids, METRIC_EVENT_TYPES[case.metric]):
             raise ValidationFailed("Related observation must be a current sourced event from this pet and metric.")
         # The frozen comparison clock defines the old baseline; created_at
         # defines when a real owner-followup loop first became possible.
