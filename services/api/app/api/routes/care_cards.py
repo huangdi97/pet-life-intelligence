@@ -99,7 +99,8 @@ async def create_care_card(
                       household_id=pet.household_id, pet_id=pet.id,
                       resource_type="CareCard", resource_id=str(card.id))
     await db.commit()
-    return {"card_id": str(card.id), "token": raw, "token_prefix": prefix,
+    return {"card_id": str(card.id), "token_id": str(token.id),
+            "token": raw, "token_prefix": prefix,
             "expires_at": card.expires_at.isoformat(),
             "share_url": f"/care-card/{raw}"}
 

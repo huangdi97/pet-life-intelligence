@@ -81,3 +81,26 @@ def test_dedupe_key_stable_and_sensitive():
     assert k1 == k2
     assert k1 != k3
     assert k1 == k4  # equivalent instants dedupe regardless of tz repr
+
+
+def test_diary_created_payload_tracks_text_and_audio_without_content() -> None:
+    """Existing diary events stay readable; voice-only events retain provenance."""
+    legacy = validate_payload("diary.created", {"diary_id": "diary-old", "has_audio": False})
+    assert legacy["text_present"] is False
+    voice = validate_payload(
+        "diary.created",
+        {"diary_id": "diary-voice", "has_audio": True, "text_present": False},
+    )
+    assert voice["has_audio"] is True
+    assert voice["text_present"] is False
+    written = validate_payload(
+        "diary.created",
+        {"diary_id": "diary-text", "has_audio": False, "text_present": True},
+    )
+    assert written["text_present"] is True
+    assert "text" not in written
+    with pytest.raises(ValidationError):
+        validate_payload(
+            "diary.created",
+            {"diary_id": "diary-test", "text_present": True, "secret_body": "do not persist"},
+        )

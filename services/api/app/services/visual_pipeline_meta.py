@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.models import Pet
-from app.services.twin_individual import MORPH_KEYS, pick_template
+from app.services.twin_individual import MORPH_KEYS, TEMPLATE_MORPH_DEFAULTS, pick_template
 
 OBSERVABLE_REGIONS = ("coat", "cream", "ear", "tail", "paw", "face")
 
@@ -23,10 +23,14 @@ OBSERVABLE_REGIONS = ("coat", "cream", "ear", "tail", "paw", "face")
 def metadata_only_descriptor(pet: Pet, n_photos_hint: int = 0) -> dict[str, Any]:
     """Return a template-only descriptor (all regions INFERRED)."""
     family, prior = pick_template(pet.species, pet.breed)
-    morph: dict[str, float] = {}
-    for k in MORPH_KEYS:
-        morph[k] = float(prior.get(k, 1.0))
-    morph.setdefault("overall_scale", 1.0)
+    family_defaults = TEMPLATE_MORPH_DEFAULTS.get(
+        family,
+        TEMPLATE_MORPH_DEFAULTS["standard-dog"],
+    )
+    morph: dict[str, float] = {
+        k: float(prior.get(k, family_defaults[k]))
+        for k in MORPH_KEYS
+    }
     inferred: dict[str, str] = {r: "template_default" for r in OBSERVABLE_REGIONS}
     return {
         "family": family,

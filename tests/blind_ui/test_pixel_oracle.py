@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
-from pixel_oracle import compute_pixel_stats, negative_distance, ssim
+from pixel_oracle import compute_pixel_stats, near_identical, negative_distance, pixel_regions, ssim
 
 
 def _make(size: tuple[int, int], color: tuple[int, int, int]) -> Path:
@@ -59,3 +59,34 @@ def test_negative_distance_different_large() -> None:
     d = negative_distance(a, b)
     assert d["mse"] > 0.1
     assert d["ssim"] < 0.6
+
+
+def test_pixel_regions_stage_luma() -> None:
+    """Stage region luma: warm cream region is bright, dark region is dark."""
+    img = Image.new("RGB", (200, 200), (0xF6, 0xF1, 0xE9))
+    tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    img.save(tmp.name)
+    p = Path(tmp.name)
+    r = pixel_regions(p, (0, 0, 200, 200))
+    assert r["region_mean_luma"] > 0.8
+    dark = Image.new("RGB", (200, 200), (0x17, 0x13, 0x10))
+    tmp2 = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    dark.save(tmp2.name)
+    r2 = pixel_regions(Path(tmp2.name), (0, 0, 200, 200))
+    assert r2["region_dark_ratio"] > 0.9
+
+
+def test_near_identical_blocks_when_unchanged() -> None:
+    """V2 Negative-Distance Gate: a candidate that barely changed from a
+    known-bad baseline must be flagged BLOCKED (B3: near-identity is a
+    blocker, not just a log line)."""
+    p = _make((64, 64), (0xF6, 0xF1, 0xE9))
+    gate = near_identical(p, p)
+    assert gate["blocked"] is True, "identical candidate must be blocked"
+
+
+def test_near_identical_passes_when_changed() -> None:
+    a = _make((64, 64), (0xF6, 0xF1, 0xE9))
+    b = _make((64, 64), (0x17, 0x13, 0x10))
+    gate = near_identical(a, b)
+    assert gate["blocked"] is False, "changed candidate is not blocked"

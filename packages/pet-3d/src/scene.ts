@@ -27,20 +27,60 @@ export interface StageOptions {
   shadow?: boolean;
 }
 
-/** Camera target the pet should be centered on. */
-export const STAGE_TARGET = new THREE.Vector3(0, 0.85, 0);
+/**
+ * Camera target for the grounded pet.
+ *
+ * Runtime projection evidence showed the former 0.85 target pushed both dog
+ * and cat silhouettes toward the lower containment boundary. Auto-framing then
+ * had to zoom out to protect the paws, leaving a large dead area above the
+ * animal. 0.55 keeps the feet grounded while bringing the optical center of
+ * the complete body closer to the canvas center, so owner surfaces can use
+ * substantially more of the Living Canvas without crop or a fake CSS scale.
+ */
+export const STAGE_TARGET = new THREE.Vector3(0, 0.55, 0);
+
+/** Deterministic radial alpha mask: soft contact, never a solid decal/disc. */
+function createSoftContactAlphaMap(size = 64): THREE.DataTexture {
+  const data = new Uint8Array(size * size * 4);
+  const center = (size - 1) / 2;
+  const radius = size / 2;
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const dx = (x - center) / radius;
+      const dy = (y - center) / radius;
+      const d = Math.min(1, Math.sqrt(dx * dx + dy * dy));
+      // Smooth central contact with a long feathered edge.
+      const falloff = Math.pow(Math.max(0, 1 - d), 1.8);
+      const value = Math.round(255 * falloff);
+      const offset = (y * size + x) * 4;
+      // MeshBasicMaterial alphaMap samples the green channel.
+      data[offset] = value;
+      data[offset + 1] = value;
+      data[offset + 2] = value;
+      data[offset + 3] = 255;
+    }
+  }
+  const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat, THREE.UnsignedByteType);
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return texture;
+}
 
 export function createPetStageScene(identity: Pet3DIdentity, opts: StageOptions = {}): PetStageScene {
   const pet = identity === "doudou" ? buildCorgi() : buildCat();
   const setPose = identity === "doudou" ? applyIdlePose : applyCatIdlePose;
 
   const shadow = new THREE.Mesh(
-    new THREE.CircleGeometry(0.95, 48),
+    new THREE.CircleGeometry(0.98, 64),
     new THREE.MeshBasicMaterial({
       color: GROUND_SHADOW.color,
+      alphaMap: createSoftContactAlphaMap(),
       transparent: true,
       opacity: GROUND_SHADOW.opacity,
       depthWrite: false,
+      depthTest: true,
     }),
   );
   shadow.name = "petContactShadow";
@@ -65,8 +105,31 @@ export function addStageLights(scene: THREE.Scene): void {
   const ambient = new THREE.AmbientLight(LIGHTS.ambient, LIGHTS.ambientIntensity);
   scene.add(ambient);
 
+  // Hemisphere separation keeps a textured coat dimensional: warm daylight
+  // above, softly grounded beige below. It is intentionally low-saturation.
+  const hemisphere = new THREE.HemisphereLight(
+    LIGHTS.hemisphereSky,
+    LIGHTS.hemisphereGround,
+    LIGHTS.hemisphereIntensity,
+  );
+  hemisphere.position.set(0, 3.2, 0);
+  scene.add(hemisphere);
+
   const key = new THREE.DirectionalLight(LIGHTS.key, LIGHTS.keyIntensity);
   key.position.set(2.2, 3.4, 3.2);
+  // Real contact shadow is part of the Living Canvas depth cue. The adapters
+  // enable the renderer shadow map and install a transparent receiver; keeping
+  // the light configuration here guarantees Web and Android use the same rig.
+  key.castShadow = true;
+  key.shadow.mapSize.set(1024, 1024);
+  key.shadow.bias = -0.00035;
+  key.shadow.normalBias = 0.018;
+  key.shadow.camera.near = 0.5;
+  key.shadow.camera.far = 12;
+  key.shadow.camera.left = -3.2;
+  key.shadow.camera.right = 3.2;
+  key.shadow.camera.top = 3.4;
+  key.shadow.camera.bottom = -2.4;
   scene.add(key);
 
   const fill = new THREE.DirectionalLight(LIGHTS.fill, LIGHTS.fillIntensity);
@@ -76,6 +139,18 @@ export function addStageLights(scene: THREE.Scene): void {
   const rim = new THREE.SpotLight(LIGHTS.rim, LIGHTS.rimIntensity, 12, Math.PI / 6, 0.4, 1.6);
   rim.position.set(-0.6, 2.8, -3.4);
   scene.add(rim);
+}
+
+/** Mark the actual pet geometry as a shadow caster. This applies equally to
+ * procedural loading fallbacks and the final skinned GLB, without altering
+ * geometry, texture, provenance, or identity semantics. */
+export function enableStageShadowCasters(root: THREE.Object3D): void {
+  root.traverse((object) => {
+    const mesh = object as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.castShadow = true;
+    mesh.receiveShadow = false;
+  });
 }
 
 /** Stage fog color for warm depth (matches R2P3D palette). */
@@ -99,9 +174,13 @@ export function orbitFromDrag(prev: OrbitState, dx: number, dy: number, sensitiv
   return { yaw, pitch, radius: prev.radius };
 }
 
-export function orbitZoom(prev: OrbitState, factor: number): OrbitState {
-  // factor > 1 zooms in (closer), clamped to keep the pet framed.
-  const radius = Math.min(7, Math.max(2.6, prev.radius / factor));
+export function orbitZoom(prev: OrbitState, factor: number, bounds?: { min: number; max: number }): OrbitState {
+  // factor > 1 zooms in (closer), clamped to keep the pet framed. The bound
+  // range is relative to the framing baseline when a fitted camera is used
+  // (portrait stages need a wider default radius than the demo default).
+  const min = bounds?.min ?? 2.6;
+  const max = bounds?.max ?? 7;
+  const radius = Math.min(max, Math.max(min, prev.radius / factor));
   return { yaw: prev.yaw, pitch: prev.pitch, radius };
 }
 

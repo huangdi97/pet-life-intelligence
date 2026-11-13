@@ -9,7 +9,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, RADIUS, SPACE, TYPE } from "../../tokens";
 
-type AttentionKind = "calm" | "attention" | "danger";
+type AttentionKind = "calm" | "attention" | "danger" | "unknown";
 
 interface AttentionPanelProps {
   kind: AttentionKind;
@@ -25,6 +25,7 @@ const TONE: Record<AttentionKind, { bg: string; fg: string; icon: keyof typeof I
   calm: { bg: COLORS.successBg, fg: COLORS.success, icon: "checkmark-circle" },
   attention: { bg: COLORS.attentionBg, fg: COLORS.attention, icon: "alert-circle-outline" },
   danger: { bg: COLORS.dangerBg, fg: COLORS.danger, icon: "warning" },
+  unknown: { bg: COLORS.infoBg, fg: COLORS.info, icon: "information-circle-outline" },
 };
 
 export function AttentionPanel({ kind, title, body, footer, onPress, testID }: AttentionPanelProps) {
@@ -35,7 +36,16 @@ export function AttentionPanel({ kind, title, body, footer, onPress, testID }: A
         <Ionicons name={tone.icon} size={22} color={tone.fg} />
       </View>
       <View style={styles.textWrap}>
-        <Text style={[styles.title, { color: tone.fg }]}>{title ?? (kind === "danger" ? "需要关注" : kind === "attention" ? "值得关注" : "一切如常")}</Text>
+        <Text style={[styles.title, { color: tone.fg }]}>
+          {title ??
+            (kind === "danger"
+              ? "需要关注"
+              : kind === "attention"
+                ? "值得关注"
+                : kind === "unknown"
+                  ? "信息不足"
+                  : "一切如常")}
+        </Text>
         <Text style={styles.body}>{body}</Text>
         {footer ? <Text style={styles.footer} testID="pli.attention.evidence">{footer}</Text> : null}
       </View>

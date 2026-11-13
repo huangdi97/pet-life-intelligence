@@ -190,6 +190,34 @@ class Gateway:
         if leaked:
             raise OutputSchemaError(f"Provider output contains forbidden decision fields: {leaked}")
 
+        # PLI-084 must be provider-independent. A real/remote provider cannot
+        # bypass the deterministic aversive-method filter implemented by the
+        # offline mock. Scan the validated output at the gateway boundary and
+        # remove unsafe advice again before any caller can render it.
+        safety_flags: list[str] = []
+        if capability == "behavior_advice":
+            kept: list[str] = []
+            filtered = [str(v) for v in dumped.get("filtered_reasons", [])]
+            for advice in [str(v) for v in dumped.get("advice", [])]:
+                lowered = advice.lower()
+                hit = next(
+                    (pattern for pattern in UNSAFE_ADVICE_PATTERNS if pattern.lower() in lowered),
+                    None,
+                )
+                if hit is None:
+                    kept.append(advice)
+                    continue
+                reason = f"gateway blocked unsafe advice (matched '{hit}')"
+                if reason not in filtered:
+                    filtered.append(reason)
+                safety_flags.append("BEHAVIOR_AVERSIVE_ADVICE_BLOCKED")
+            if not kept:
+                kept = [
+                    "不采用惩罚或厌恶式方法；先停止当前训练压力，并改用短时、奖励式的低强度练习。"
+                ]
+            dumped["advice"] = kept
+            dumped["filtered_reasons"] = filtered
+
         meta = GatewayMetadata(
             provider=self.provider.name if not fallback_used else self.fallback.name,
             model=self.provider.model if not fallback_used else self.fallback.model,
@@ -199,7 +227,7 @@ class Gateway:
             capability=capability,
             latency_ms=latency_ms,
             fallback_used=fallback_used,
-            safety_flags=[],
+            safety_flags=safety_flags,
         )
         result = GatewayResult(result=dumped, metadata=meta)
         return result

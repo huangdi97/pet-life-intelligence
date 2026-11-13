@@ -1,0 +1,1066 @@
+# PLI — R8 / Pilot Truth / Android Final Closure (this round)
+
+> Produced by the local autonomous agent on **2026-11-10 (Asia/Shanghai)**.
+>
+> Rule for this file: every value is a command output, an API read, or an artifact
+> I actually downloaded and inspected in this round. No historical PASS, run ID,
+> screenshot or SHA is reused as current evidence.
+>
+> Invariants held at the end of this round:
+> `NO_VISION_MODEL_USED = TRUE`,
+> `HUMAN_VISUAL_ACCEPTANCE = PENDING`,
+> `APPROVED_VISUAL_BASELINE = UNCHANGED`,
+> `MERGE = NOT PERFORMED`, `TAG = NOT CREATED`, `RELEASE = NOT CREATED`.
+>
+> This file does not rewrite any historical report. Earlier snapshots
+> (`docs/r5-6/CURRENT_HEAD_TRUTH.md` history sections, `R8_RUNTIME_CLOSURE_2026-11-03.md`,
+> old Stage G reports) keep their original SHAs and remain historical.
+
+## 1. Repository truth
+
+| Item | Value | How it was read |
+| --- | --- | --- |
+| Repository | `huangdi97/pet-life-intelligence` | `git remote -v` |
+| Branch | `feat/r2p3d-r3-render-truth-ui-closure` | `git rev-parse --abbrev-ref HEAD` |
+| Start remote HEAD (before any change) | `ba7363c341931a3ca91a06193698b96f2686f6ff` | `git ls-remote origin refs/heads/...` |
+| Start local HEAD | `a46253255df20cd56726445287657a878e184dc6` (41 commits behind, worktree clean) | `git rev-parse HEAD`, `git rev-list --left-right --count` |
+| Sync performed | `git merge --ff-only origin/...` → fast-forward to `ba7363c3`; no history rewritten, no `reset --hard`, no `clean -fdx` | `git merge` output |
+| Final remote HEAD | `ccbd689ece2ce9e66c214dc8d7f94f2774a0029e` | `git ls-remote`, `git rev-parse HEAD` |
+| local/remote parity at end | 0 ahead / 0 behind, worktree clean | `git rev-list --left-right --count` |
+| PR #2 | `state=OPEN`, `isDraft=false`, `mergedAt=null`, `mergeable=MERGEABLE`, `headRefOid` tracks the live branch head | `gh pr view 2 --json …` |
+
+## 2. Commits created this round
+
+| SHA | Subject | Purpose |
+| --- | --- | --- |
+| `ccbd689ece2ce9e66c214dc8d7f94f2774a0029e` | `fix(pilot): keep synthetic inviters out of the invited KPI` | Pass 1 — close a real PILOT-INTEGRITY leak: `invited` counted every invite code with no isolation guard |
+| `3ac8324f` | `docs(r8): current-head truth and 2026-11-10 closure report` | Pass 1 — this file + `CURRENT_HEAD_TRUTH` |
+| `01e9b423` | `docs(r8): record the 3ac8324f gates, artifact ids and the disclosed capture flake` | Pass 1 — disclose the flake instead of reporting a bare green |
+| `f6c8459620d7e9549ec28d5eb55643eae5ceb780` | `test(android): stop photographing an engineering identifier as the owner's pet` | Pass 2 — §9: owner-copy defect in the capture fixture + one gate hardened |
+
+Files changed by that commit (4):
+
+```text
+services/api/app/services/pilot_dashboard.py   # invited bound to issuer, synthetic/demo excluded
+tests/v10/test_stage_g_wave0.py               # new contract test for the exclusion
+scripts/remote_pilot_check.py                 # invited became a 7th asserted-unchanged KPI
+docs/pilot/PILOT_METRIC_DEFINITIONS.md        # M-01 Invited Users definition now states the rule
+```
+
+## 3. Exact-head gates
+
+All three workflows were re-read at `ccbd689e` after the push. The Android
+run that had been `IN_PROGRESS` at the start of this round (`ba7363c3`)
+completed as `success` before any edit was made.
+
+### 3.1 Start head `ba7363c3` (pre-change, re-read this round)
+
+| Workflow | Run ID | Result |
+| --- | --- | --- |
+| CI | `42772779367` | success |
+| OpenAPI Deterministic Sync | `42772779406` | success |
+| Android + Release Artifacts | `42772779486` | success |
+
+Correction to the task-book snapshot: the snapshot recorded Android as
+`IN_PROGRESS`; it finished green, so no exact-head failure existed to fix.
+
+The one observed Android failure was on the *previous* commit `95419afa`
+(run `42772553798`, 1m51s) and was already resolved by `ba7363c3`
+(`fix(ci): pin Android Gradle jobs to JDK 17`). Classification:
+`CI_ENVIRONMENT_FAILURE` (hosted-runner JDK drift), not `PRODUCT_LOGIC_FAILURE`.
+
+### 3.2 Code head `ccbd689e`
+
+| Workflow | Run ID | Result |
+| --- | --- | --- |
+| CI | `42800704246` | **success** — Backend / Frontend / Blind Visual Contract / Browser E2E all `success` |
+| OpenAPI Deterministic Sync | `42800704227` | **success** |
+| Android + Release Artifacts | `42800704437` | **success** — Android APK / Web standalone / Android R5.6 runtime evidence all `success` |
+
+### 3.2b Docs head `3ac8324f` (this report's commit)
+
+`3ac8324f` = `docs(r8): current-head truth and 2026-11-10 closure report`.
+It touches `docs/` only; the code tree is byte-identical to `ccbd689e`.
+
+| Workflow | Run ID | Result |
+| --- | --- | --- |
+| CI | `42808320469` | **success** — Backend / Frontend / Blind Visual Contract / Browser E2E all `success` |
+| OpenAPI Deterministic Sync | `42808320462` | **success** |
+| Android + Release Artifacts | `42808320443` | **success after one rerun of the runtime-evidence job** — see §3.2c |
+
+### 3.2c Disclosed flake on `3ac8324f` (not hidden, not waived)
+
+The first attempt of job `Android R5.6 runtime evidence` on `3ac8324f` failed:
+
+```text
+CaptureError: R8 native target not actionable: pli.r8.quicklog-followup;
+saw_disabled=False; observed_ids=[]
+  at scripts/r5-6/capture-android-final.py:1219 (find_control)
+  from capture_r8_owner_review -> quicklog_context_xml
+```
+
+Classification: `HOSTED_EMULATOR_FLAKE`. Evidence for that classification, not
+an assumption: the same capture script and the same application code passed
+this exact step on `ba7363c3` (run `42772779486`) and on `ccbd689e`
+(run `42800704437`); `3ac8324f` changes only markdown; `observed_ids=[]` means
+the dumped hierarchy contained no `pli.*` resource-ids at all, i.e. the native
+surface had not painted, and `find_control` already waits for a painted
+surface before failing. Re-running the failed job only (`gh run rerun --failed`,
+no gate change, no assertion relaxed, no test skipped) produced `success`.
+
+Residual risk, honestly stated: the capture script's paint wait is bounded
+(21 attempts). On a slower hosted runner this step can still flake. It is
+**not** proof of a product defect, and it is **not** resolved by this round —
+it is recorded so a reviewer is not told "Android was simply green".
+
+### 3.3 Artifacts at `42800704437`
+### 3.3 Artifacts
+
+At `42800704437` (`ccbd689e`):
+
+| Artifact | ID | Size |
+| --- | --- | --- |
+| `pli-mobile-apk` | `13756027663` | 50,459,558 B |
+| `pli-web-standalone` | `13756595899` | 48,416,484 B |
+| `r5-6-android-runtime-evidence` | `13757394896` | 13,197,021 B (212 files) |
+
+At `42808320443` (`3ac8324f`, the head carrying this report):
+
+| Artifact | ID | Size |
+| --- | --- | --- |
+| `pli-mobile-apk` | `13761537081` | 50,459,557 B |
+| `pli-web-standalone` | `13762120671` | 48,416,007 B |
+| `r5-6-android-runtime-evidence` | `13764396930` | 12,568,921 B (212 files) |
+| `r5-6-android-runtime-diagnostics` | `13762403167` | 10,010,677 B — uploaded by the *failed first attempt* (§3.2c), kept as flake evidence |
+
+## 4. Local gates re-run by this agent
+
+| Gate | Result | Note |
+| --- | --- | --- |
+| `ruff check services packages tests scripts` | PASS | `ruff 0.17.4`, one pre-existing `noqa` warning in `scan_codebase_scale.py` (same warning CI emits) |
+| `py_compile` on every changed Python file | PASS | |
+| `pnpm --dir packages/ui-tokens build` | PASS | via `pnpm 9` (CI pin); local `pnpm 11` aborts on the store layout |
+| `pnpm --dir packages/pet-3d build` | PASS | |
+| `pnpm --dir apps/mobile build:3d-page` | PASS | |
+| `pnpm --dir apps/mobile typecheck` | PASS | |
+| `test:owner-intent-store` / `test:quicklog-pet-scope` / `test:owner-review-recovery` / `test:owner-review-primary` / `test:owner-review-evidence` / `test:owner-case-history` / `test:outcome-idempotency` / `test:knowledge-delta` | 8/8 PASS | all mobile R8 contract suites |
+| `pytest` (backend) | NOT RUN LOCALLY — `EXTERNAL_BLOCKED` | no Postgres/Redis/MinIO on this machine and no Docker; verified instead by CI run `42800704246` job `Backend` |
+
+## 5. Android runtime evidence integrity
+
+`scripts/r5-6/validate-android-runtime-evidence.py` was executed by this agent
+against the **downloaded** artifact (not against the CI checkout), at every
+head captured this round:
+
+| Head | Artifact | Validator result |
+| --- | --- | --- |
+| `ba7363c3` | `13743393574` | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS` |
+| `ccbd689e` | `13757394896` | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS` |
+| `3ac8324f` | `13764396930` | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS` |
+
+Facts independently re-derived from the artifact itself, not from the manifest:
+
+| Check | Observed |
+| --- | --- |
+| `capture-manifest.source_head` | equals the head being verified (`ba7363c3…`, `ccbd689e…`, `3ac8324f…` respectively) |
+| `capture-manifest.checkout_head` | `refs/pull/2/merge` each time (`b6060c06…`, `6bdec9bd…`, `a5b9e552…`) — resolved with `git ls-remote`, i.e. the PR merge ref of that head, not a stale checkout |
+| `vision_model_used` | `false` |
+| primary / secondary pet id | distinct (`7c8c722f…` / `2d18b05d…`) |
+| `late_record_delta_count` (before withdrawal) | `3` |
+| `after_retraction_late_record_delta_count` | `2` (exactly −1) |
+| native pre-withdrawal XML contains `当天之后补录了 3 条记录` | true / contains `…2 条记录`: false |
+| native post-withdrawal XML contains `当天之后补录了 2 条记录` | true / contains `…3 条记录`: **false** (no stale grouped wording) |
+| pre/post XML + screenshot SHA-256 | different (not re-uploaded duplicates) |
+| `derived_from_journal` / `llm_generated` / `health_inference` | `true` / `false` / `false` |
+| A→B→A | secondary Today manifest `petId = B`, `stageRole=today`; return manifest `petId = A`; primary Case `945d624a…` still visible |
+| `no_vision_model` / `human_visual_acceptance` in every truth JSON | `true` / `PENDING` |
+
+### 5.4 Final-head evidence (`3ac8324f`)
+
+The artifact of the head that carries this report (`13764396930`, 212 files) was
+downloaded and re-validated with the same validator, from this machine:
+
+```text
+ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS
+capture-manifest.source_head       = 3ac8324fb3701078eb3a16083a81e24733e6c029
+capture-manifest.checkout_head     = a5b9e552245d6f16470d985673184df00f056c33
+vision_model_used                  = false
+late_record_delta_count            = 3
+after_retraction count             = 2   (post-withdrawal XML: 2-record wording present, 3-record wording absent)
+A→B→A                              = Today manifest back on pet A, primary Case still visible
+```
+
+`a5b9e552` was resolved with `git ls-remote` to `refs/pull/2/merge`, whose head
+is `3ac8324f` — the evidence build checked out the merge ref of this exact head,
+not a stale or foreign commit. The same three checks produced the same result at
+`ccbd689e` (`6bdec9bd` merge ref) and at `ba7363c3` (`b6060c06` merge ref), so
+the evidence is not a one-off success.
+
+## 6. Pilot metric truth
+
+| Contract item | Status |
+| --- | --- |
+| `metric_contract_version` | `R8_PILOT_V2` |
+| `active_event_contract` | `CURRENT_EFFECTIVE_RECORD_FACT` |
+| canonical daily fact registry | `DAILY_EVENT_TYPES` (7 types) + `RECORD_FACT_SOURCES` (5 sources), read from source |
+| page view / `today.viewed` counted as activity | no — bound to the canonical registry, not a name prefix |
+| correction chain | one fact identity (`COALESCE(supersedes_event_id, id)`) |
+| activation window | `min(now, pet.created_at + 24h)`, result frozen after the deadline |
+| `excludes` advertised | `{demo, internal, synthetic_domain}` |
+| synthetic dry-run | `@pli.test` identities; now asserts **7** metrics unchanged (was 6) |
+
+Defect found and fixed this round: `invited` was the only metric on the same
+`/pilot/status` payload with **no** isolation guard, so the `@pli.test`
+synthetic dry-run minted an invite code and moved a real Pilot KPI while the
+drill reported that real metrics were flat. `invited` is now bound to the code
+issuer (`created_by_user_id`), excluding demo/internal/synthetic-domain actors;
+codes with an unattributable issuer stay counted because the issuance was a real
+administrative act. Covered by `test_pilot_invites_ignore_synthetic_domain_issuers`.
+
+## 7. R8 semantics audit (no feature expansion)
+
+| Invariant | Verdict |
+| --- | --- |
+| `occurred_at != recorded_at` | preserved |
+| correction != in-place edit (original row untouched, successor carries `supersedes_event_id`) | preserved |
+| retraction != deletion (row remains, projection excludes it) | preserved |
+| `as_known_then` does not inherit later withdrawal | preserved — `events.py` clears a `retracted_at` that is `>= cutoff` in the historical view |
+| activation subquery semantics vs `current_events.scope_current_event_stmt` | equivalent (same 4 conditions, per-pet cutoff `LEAST(created+24h, now)`) |
+| Knowledge Delta delta kinds | unchanged set of 8; no new kind added |
+| delta wording == native XML | proven in §5 |
+| historical surfaces read-only | preserved (`read_only` recorded in every delta truth) |
+
+Known maintainability debt (reported, not refactored this round):
+
+1. The canonical registries (`DAILY_EVENT_TYPES`, `RECORD_FACT_SOURCES`) are
+   re-typed as string literals in raw SQL in `pilot_dashboard.py` (activation
+   subquery) and `life_change_history.py` (evidence validity). They match the
+   canonical registries today, but a future registry change would silently
+   diverge — the exact drift class §9.3 of the task book warns about.
+2. `services/api/app/api/routes/events.py` is 592 lines and
+   `pilot_dashboard.py` 350 lines, both over the ≤300-line rule in `AGENTS.md`.
+   Splitting a route that carries safety-critical write paths is a separate,
+   separately-verified change.
+3. `pnpm --dir apps/mobile build:3d-page` is not reproducible across local
+   toolchains: running it locally rewrote the tracked generated outputs
+   (`apps/mobile/assets/3d/pet-stage.html`, `apps/mobile/src/three/petStageHtml.ts`)
+   with a 725-line diff vs the committed file, and no CI gate diffs that output.
+   The generated files were restored to HEAD and are not part of this round's
+   commit.
+
+## 8. Round outcome
+
+```text
+PLI_R8_FEATURE_EXPANSION              = FROZEN (no feature added)
+PLI_R8_ENGINEERING_TRUTH              = CLOSED
+PLI_PILOT_METRIC_TRUTH                = CLOSED (one synthetic leak fixed and tested)
+PLI_ANDROID_RUNTIME_EVIDENCE          = CLOSED (artifact downloaded + validator PASS)
+PLI_RUNTIME_ARTIFACT_INTEGRITY        = PASS
+PLI_OWNER_EXPERIENCE_IMPLEMENTATION   = READY_FOR_HUMAN_REVIEW
+REAL_PET_IDENTITY_VALIDATION          = NOT_YET_OBSERVED
+REAL_PILOT_PRODUCT_VALIDATION         = NOT_YET_OBSERVED
+REAL_PARTICIPANTS                     = 0
+NO_VISION_MODEL_USED                  = TRUE
+HUMAN_VISUAL_ACCEPTANCE               = PENDING
+APPROVED_VISUAL_BASELINE              = UNCHANGED
+PR_2                                  = OPEN
+MERGE                                 = NOT PERFORMED
+TAG                                   = NOT CREATED
+RELEASE                               = NOT CREATED
+```
+
+Real-world evidence remains absent by design of this round: no real
+participants, no real device session, no owner review. Retention, Outcome
+Closure, Vet Usefulness, Real Pet Identity Validation, Commercial Conversion
+and Companion Demand all remain `NOT_YET_OBSERVED`; none of them is inferred
+from demo data, synthetic dry-runs, hosted-emulator runs or automated E2E.
+
+## 9. Pass 2 — owner-copy defect, evidence inventory, human review package
+
+Pass 2 did what §24 asks for without pretending that a machine can judge looks:
+it inventoried the fresh artifact, scanned every native XML deterministically, and
+fixed the one real owner-facing defect that scan exposed.
+
+### 9.1 Defect found and fixed (`f6c84596`)
+
+The R8AS correction fixture was created as a pet literally named
+`R8AS Correction <epoch>` (`scripts/r5-6/capture-android-final.py`). Fixture
+pets are photographed on owner surfaces, so that string was rendered and
+announced as owner content:
+
+```text
+today/ui.xml (multipet identity)  primary_identity_label = "豆豆 · 咪咪 · R8AS Correction 1794319053"
+r8-owner-correction/correction-today.xml  ImageView content-desc = "R8AS Correction 1794319059 …"
+```
+
+`content-desc` is not decorative: it is what TalkBack reads out. A fixture name
+is owner-visible content (§12.2 `OWNER_INTERNAL_TERMS = 0`), so it now reads
+`小虎` via the module-level constant `FIXTURE_PET_NAME_CORRECTION`, which carries
+the invariant in a comment. Determinism is untouched: the harness discovers the
+fixture by the returned `pet_id` and never by name.
+
+The blind-UI gate that had pinned the old string was retargeted from the display
+name to the actual intent (a `POST /api/v1/pets` inside `capture_r8_correction`
+plus `pet_id = str(pet["id"])`) and additionally asserts the old f-string cannot
+come back. That is a strengthened gate, not a relaxed one.
+
+Measured effect on the same scanner, old artifact vs new artifact:
+
+| Artifact | Native XML scanned | `R8AS` hits | total internal-term hits |
+| --- | --- | --- | --- |
+| `01e9b423` (`13771770716`) | 96 | 7 | 14 |
+| `f6c84596` (`13782360124`) | 129 | **0** | 9 |
+
+### 9.2 Remaining disclosed limitation (not silently changed)
+
+The 9 remaining hits are all the same string: `PLI_MANIFEST:{…}`, which is the
+3D stage WebView's `document.title` and therefore the `text` UIAutomator exposes
+for that WebView. It is a deliberate no-vision-model evidence channel, and the
+harness also has a `files/pli_manifest.json` path. Changing it means changing
+the evidence pipeline and re-proving it on an emulator, so it is recorded here
+as an accessibility limitation with a known remediation (move the beacon out of
+`document.title` and give the stage an owner-language `content-desc`), not
+patched blind in a documentation round.
+
+### 9.3 Deterministic Layout proof for Today (§12.1)
+
+Native document order in `today/ui.xml` at `f6c84596`:
+
+```text
+pli.today.identity → pli.today.living-stage → pli.today.pet-twin
+→ pli.today.anchor.{food,water,activity,sleep} → pli.today.now-story
+→ pli.today.change → pli.today.attention → pli.today.primary-action
+→ pli.today.support
+```
+
+`ORDER_MATCHES_PET_NOW_CHANGE_ATTENTION_ACTION = TRUE`, with exactly one
+`pli.today.attention` node (one attention, not a wall of alerts). This proves
+structure and ordering only — it says nothing about whether it looks good.
+
+### 9.4 §24 evidence coverage inventory
+
+20 of the 26 §24 items have fresh evidence at `f6c84596`
+(`OK` = screenshot + native XML, `XML_ONLY` = native tree proves it, no separate
+screenshot). Never captured by the current capture contract:
+
+```text
+Behavior, Training, Welfare, Social, Empty, Offline
+```
+
+Notes that keep this number honest: `Attention` is proven as a panel inside
+Today (`pli.today.attention`); `R8 Outcome` is proven by
+`case-detail-outcome-*.xml`; the Knowledge Delta before-withdrawal screenshot is
+required *and present* (`knowledge-delta.png`, enforced by the validator).
+The six gaps are a coverage gap, not a claim that those screens are broken:
+`SURFACES` in the capture script has only the 9 base screens plus the R8 sets,
+and adding surfaces is a capture-contract expansion needing its own emulator
+iteration.
+
+### 9.5 Gates and artifact at `f6c84596`
+
+| Item | Value |
+| --- | --- |
+| CI | run `42847698829` — **success** (Backend / Frontend / Blind Visual Contract / Browser E2E) |
+| OpenAPI Artifact Sync | run `42847699124` — **success** |
+| Android + Release Artifacts | run `42847698843` — **success**, no rerun needed |
+| runtime evidence artifact | `13782360124` (13,723,476 B, 247 files) |
+| APK / web | `13778918822` / `13779660817` |
+| validator (run by this agent on the download) | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS`, `source_head = f6c8459620d7e9549ec28d5eb55643eae5ceb780`, `checkout_head = cd88fad672b29565ef3020f149e4f033a2f45456` = `refs/pull/2/merge` |
+| local gates | `ruff check services packages tests scripts` PASS; `pytest tests/blind_ui` **316/316 PASS** (plain `python -m pytest …` since pass 9; `-X utf8` was required before that); the whole twin QA pair passes (`twin_glb_qa.py`, `product_twin_qa.py`, both `pass: true`) |
+
+Human review package: a self-contained page built from this artifact's four CI
+contact sheets plus the deterministic findings above
+(`pli-human-visual-review.html` in the session scratch/visualization directory).
+It states the facts and asks the questions; it answers none of them.
+
+`HUMAN_VISUAL_ACCEPTANCE` remains `PENDING`.
+
+## 10. Pass 3 — the owner-copy rule became a gate (`709859d1`)
+
+Pass 2 found the leak with a one-off scanner in the session scratch directory.
+That is exactly the kind of knowledge this repository is supposed to encode in
+CI instead of in a human's memory, so it moved into
+`scripts/r5-6/validate-android-runtime-evidence.py` (259 lines, fail closed):
+
+| New gate | Rule |
+| --- | --- |
+| `validate_owner_copy` | Every `text` / `content-desc` in every captured native XML is owner-facing copy. An engineering identifier there (`petId`, `stageRole`, `manifestOrigin`, `legacyRepresentation`, `R5.6`/`R7`/`R8*`, delta kinds, provenance enums, `NOT_YET_OBSERVED`/`EXTERNAL_BLOCKED`…, `null`/`undefined`/`NaN`, `PLI_MANIFEST`) invalidates the whole evidence run. Word boundaries keep `annulled`/`R80` clean. |
+| beacon exemption | `PLI_MANIFEST:{…}` is allowed **only** on `class="android.webkit.WebView"` **and only** as a prefix — the documented no-vision-model manifest channel (§9.2). Tested to be narrow: the same string on a `TextView` fails. |
+| `validate_today_canvas` | Today must appear in the §12.1 order `identity → living-stage → now-story → change → attention → primary-action`, contain the pet stage, and carry exactly one Attention panel. |
+
+13 tests pin the behaviour in `tests/blind_ui/test_android_evidence_owner_copy.py`
+(clean pass, visible-text reject, `content-desc` reject, beacon allowed, beacon
+narrow, no false positives, wrong order, two Attentions, missing pet stage,
+empty artifact fails closed). They run in the `Blind Visual Contract` job and
+locally: `288 passed` for the whole suite here.
+
+### 10.1 Discriminating power, proven on the real artifacts
+
+The same extended validator, run by this agent against the five artifacts
+downloaded this round:
+
+```text
+ccbd689e  FAIL  owner-visible engineering identifier 'R8AS' in multipet-return/today-primary-return.xml
+3ac8324f  FAIL  owner-visible engineering identifier 'R8AS' in …
+01e9b423  FAIL  owner-visible engineering identifier 'R8AS' in …
+f6c84596  PASS
+0a04a38e  PASS
+```
+
+The three heads *before* the fixture fix fail with the exact offender; the two
+*after* it pass, which is also the proof that the beacon exemption is neither
+dead code nor over-broad. The gate would have caught this leak on its own.
+
+### 10.2 Gates and artifact at `709859d1`
+
+| Item | Value |
+| --- | --- |
+| CI | run `42945801026` — **success** (Backend / Frontend / Blind Visual Contract / Browser E2E) |
+| OpenAPI Artifact Sync | run `42945801446` — **success** |
+| Android + Release Artifacts | run `42945801200` — **success**, no rerun |
+| runtime evidence artifact | `13823708303` (12,787,271 B, 244 files) |
+| APK / web | `13823152629` / `13822557094` |
+| CI log proof the gate really ran | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS` printed by the job at `02:51:23Z` |
+| local re-validation (this agent, on the download) | `PASS`, `source_head = 709859d1bf75a36e93d89186ad8d18503e48ea92`, `checkout_head = daa32e78…` = `refs/pull/2/merge`, 129 native XML scanned |
+
+`HUMAN_VISUAL_ACCEPTANCE` remains `PENDING`; this pass changed what the
+automation can refuse, not what it can judge.
+
+## 11. Pass 4 — the missing §24 domains are captured now (`960bfad9`)
+
+Pass 2 had to report six §24 surfaces as "never captured". Four of them were not
+an implementation gap at all: `BehaviorScreen`, `TrainingScreen`,
+`WelfareScreen` and `SocialScreen` exist, and `demoNav` already routes
+`behavior`/`training`/`welfare`/`social`. They were simply absent from
+`SURFACES`, so no human could ever review them.
+
+Root ids were taken from the screens themselves (`pli.<domain>.identity`), not
+guessed:
+
+| Change | Detail |
+| --- | --- |
+| `capture-android-final.py` | `SURFACES` + `SURFACE_ROOT_IDS` gain behavior / training / welfare / social (no 3D manifest — they are not Twin stages) |
+| `contact_sheets_ci.py` | new `PLI_R5_6_ANDROID_DOMAINS.png` sheet: health, behavior, training, welfare, social, companion |
+| validator | `validate_domain_coverage` fails the run if any of the four domain surfaces is missing a screenshot or native XML, so the coverage cannot silently regress |
+
+### 11.1 The gate rejected the previous artifact first
+
+Before pushing, the extended validator was pointed at the artifact of
+`7239d4a3`:
+
+```text
+7239d4a3 artifact: FAIL -> missing §24 domain evidence surfaces: behavior, training, welfare, social
+```
+
+That is the proof the gap was real and the check is live, not decorative.
+16 gate tests pass; the blind suite is `291 passed` locally.
+
+### 11.2 Result on the new exact head
+
+| Item | Value |
+| --- | --- |
+| CI | run `42974423354` — **success** |
+| OpenAPI Artifact Sync | run `42974423393` — **success** |
+| Android + Release Artifacts | run `42974423381` — **success**, no rerun, first attempt |
+| runtime evidence artifact | `13835852483` (14,320,102 B, 233 files, 227 under `android/`, 98 native XML) |
+| APK / web | `13835450771` / `13834722744` |
+| validator (local, on the download) | `PASS` with owner-copy + today-canvas + domain-coverage gates active; `source_head = 960bfad95e7fb1b2e3c72a9a226f42b15607c722`, `checkout_head = 779f4b33…` = `refs/pull/2/merge` |
+| the four domains | `behavior`, `training`, `welfare`, `social` each present with `png` + `ui.xml` (+ `layout.json`, `visual.json`, `report.md`) and their own `pli.<domain>.identity` root in the native tree |
+
+### 11.3 §24 coverage after this pass
+
+```text
+MISSING SURFACES (2): Empty, Offline
+```
+
+24 of 26 items now have fresh evidence. The remaining two are state simulations
+(no data / no network) rather than screens: they need a deliberate state
+manipulation step in the demo run, which is a separate change and is **not**
+claimed here. Owner-copy scan on the new artifact: 7 hits, all the documented
+`PLI_MANIFEST` WebView beacon, 0 engineering copy.
+
+`HUMAN_VISUAL_ACCEPTANCE` remains `PENDING`: the reviewer now has four surfaces
+they have never been able to look at before, which is exactly why a human still
+has to look.
+
+## 12. Pass 5 — Empty captured, Offline NOT reproducible (open finding)
+
+The last two §24 items are states, not screens, so they need real triggers
+rather than a new nav target. One worked, one did not, and the difference is
+recorded instead of papered over.
+
+### 12.1 Empty — captured (`pli.empty.pet`)
+
+Trigger: a real account that owns no pet. The capture creates it through the
+public API (`emptystate-<epoch>@pli.test`), verifies through
+`GET /api/v1/pets` that it really owns zero pets (otherwise it raises rather
+than publishing a fake empty state), logs the app in through the demo deep link
+and opens Today. The app renders its own no-pet presence state, which the run
+asserts by id — not by looking at a picture.
+
+### 12.2 Offline — NOT reproducible from the live app
+
+Trigger attempt: the app reaches the evidence API only through the
+`adb reverse tcp:8800` tunnel, so the honest way to make it offline is to remove
+that mapping (airplane mode would not work — the reverse mapping rides the adb
+connection, not the device network).
+
+| Run | What was tried | Result |
+| --- | --- | --- |
+| `43011387865` | remove the mapping, re-open Today | failed: `§24 offline state never rendered … expected_ui_id=pli.offline.state`; observed a full Today (`pli.today.identity`, `anchor.*`, `change`, `attention`) |
+| `43015188064` | same, plus leave to Timeline and return so Today actually remounts, plus assert via `adb reverse --list` that the mapping is really gone | failed identically: the tunnel was confirmed cut, Today still rendered cached content, `pli.offline.state` never appeared |
+
+Conclusion, stated as a finding rather than a PASS: with the evidence API
+unreachable the app keeps rendering its cached Today and never surfaces the
+offline banner. Either the pets query does not enter an error state in this
+scenario (cache-first, silent failure) or `error && !loading` is not reached on
+this path. §21 requires an honest Offline state, so this is an **open product /
+engineering question**, not an evidence gap that a better screenshot could fix.
+Manufacturing the state (injecting an error, freezing a frame) was rejected: it
+would be fake evidence.
+
+### 12.3 The gate refused to accept the wrong screenshot
+
+Both offline attempts failed *because* `validate_state_coverage` requires the
+state's own id in the captured native tree. Without that gate the run would have
+shipped a screenshot of a normal Today page labelled "offline" — exactly the
+class of lie the evidence contract exists to prevent. The two heads are recorded
+here as **rejected by the gate**, not as "Android was green".
+
+### 12.4 §24 coverage now
+
+```text
+captured      : 25 of 26
+open          : Offline (NOT_YET_REPRODUCED, finding §12.2)
+```
+
+> **Superseded by §14.** Offline was reproduced and captured after this
+> section was written. The text above is kept as the state of knowledge at that
+> point, not as the current status.
+
+`capture_state_surface` was kept for Empty and is general enough to cover any
+future state; `REQUIRED_STATE_SURFACES = ("empty",)` and
+`STATE_ROOT_IDS = {"empty": "pli.empty.pet"}` encode only what was actually
+proven. The runs that produced this section are `43011387865` and
+`43015188064`; the head carrying this text has its own run IDs in PR #2.
+
+## 13. Local test matrix re-run — and a correction to this file
+
+The §27 matrix was executed on this machine at `71df8895`. Results, with the
+blocked items named rather than glossed:
+
+| Matrix item | Result | Note |
+| --- | --- | --- |
+| `ruff check services packages tests scripts` | **PASS** | one pre-existing `noqa` warning in `scan_codebase_scale.py` |
+| `py_compile` on every file this round touched | **PASS** | 9 files |
+| `pytest tests/blind_ui --confcutdir tests/blind_ui` | **316/316 PASS** | plain `python -m pytest …` works since pass 9; earlier runs needed `-X utf8` — see the correction below |
+| `scripts/twin/twin_glb_qa.py` | **PASS** (`pass: true`) | GLB + animation manifest, no model download |
+| `scripts/twin/product_twin_qa.py` | **PASS** (`pass: true`, `humanVisualAcceptance: PENDING`) | structural only, no vision model |
+| `ui-tokens build`, `ui-kit typecheck`, `pet-3d build` | **PASS** | via `pnpm 9` (the CI pin) |
+| `apps/mobile build:3d-page`, `mobile typecheck` | **PASS** | |
+| `apps/web` typecheck + Vitest | **PASS** | both |
+| `apps/admin` typecheck, `apps/mini` typecheck | **PASS** | |
+| backend `pytest` | `EXTERNAL_BLOCKED` | no Postgres/Redis/MinIO and no Docker here; covered by the CI Backend job |
+| `python scripts/gen_openapi.py` + `git diff --exit-code` | `EXTERNAL_BLOCKED` | `ModuleNotFoundError: fastapi` — no backend deps installed here; covered by the CI OpenAPI job (run `43022247117` success at this head) |
+
+**Correction (§9.5 and earlier statements in this file were wrong).** An earlier
+pass reported `pytest tests/blind_ui` as "275/275 PASS, excluding one file whose
+autouse fixture needs the backend DB", and implied ~20 tests could not run here
+at all. That diagnosis was wrong. Those failures are
+`UnicodeDecodeError: 'gbk' codec can't decode …` in tests that call
+`Path.read_text()` without an encoding: the mobile sources are UTF-8 with
+Chinese copy, and this host's locale is GBK. Running the same suite with
+`python -X utf8` yields **316/316 PASS** — no backend database is involved.
+
+What that means, honestly:
+
+- No product claim in this file changes: the gates, artifacts, manifests and
+  counts reported elsewhere were produced by CI and by downloads this agent
+  validated, not by the local pytest run.
+- It was a *verification-method* error: I attributed a locale artifact to a
+  dependency. The correction is recorded here rather than silently edited
+  away, because "20 tests cannot run here" is exactly the kind of statement
+  that should not survive being false.
+- The 39 `read_text()` calls without an explicit encoding in
+  `tests/blind_ui/test_r8_owner_review_retry_identity.py` are now **fixed**
+  (pass 9), not deferred: every site reads with `encoding="utf-8"`. On this host
+  (`locale.getpreferredencoding() = cp936`) the old path demonstrably fails —
+  `UnicodeDecodeError: 'gbk' codec can't decode byte 0x94` on `TodayScreen.tsx` —
+  and with the fix the full suite passes `316/316` **without** `-X utf8` and
+  without `PYTHONIOENCODING`. The flag in the rows above is therefore no longer
+  required; those rows are kept because those runs really were executed that way.
+
+**Toolchain side effects, restored not committed.** Running `build:3d-page`
+again rewrote the tracked generated page (`apps/mobile/assets/3d/pet-stage.html`,
+`apps/mobile/src/three/petStageHtml.ts`) and `product_twin_qa.py` rewrote
+`artifacts/r2p3d-r1/glb/glb-qa-report.json` plus created
+`artifacts/r2p3d-r5/product-twin-qa.json`. All were restored or removed; the
+worktree is clean. That is the third confirmation that `build:3d-page` is not
+reproducible across local toolchains (§7 item 3).
+
+## 14. Pass 6 — §24 Offline reproduced; coverage 26/26
+
+§12 recorded Offline as `NOT_YET_REPRODUCED` and offered two hypotheses. Both
+were wrong in an instructive way, and the runs themselves said so.
+
+### 14.1 What the evidence actually showed
+
+| Attempt | Head / run | What was done | Outcome |
+| --- | --- | --- | --- |
+| 1 | `0f83b5b9` / `43011387865` | remove `adb reverse tcp:8800`, re-open Today | no offline state |
+| 2 | `c4e5fafb` / `43015188064` | same + leave to Timeline and return + assert the mapping is gone | no offline state |
+| 3 | `9d1b7e53` / `43133237216` | also `am force-stop` to kill the pooled socket — but **inline**, before the Twin Review capture | offline probe ran, then Twin Review found an empty hierarchy and the job failed |
+| 4 | `1e3bc180` / `43140996420` | same, moved to the **end** of the run | job green; `offline/NOT_REPRODUCED.json` with `observed_ui_ids: []` |
+
+Attempt 2's own diagnostics artifact (`offline/ui.xml`) contained
+`pli.today.now-story`, which only renders when `pet && !loading && !error`: the
+app was still online, because removing the reverse *listener* does not drop an
+already-tunnelled keep-alive socket. Attempt 4 then produced the decisive clue:
+the screen was not a blank failure — the native dump held the copy
+`演示数据暂时没有连接成功 · 点击重试` with **no `pli.*` id at all**. The app was
+showing a real, honest offline screen; the harness simply had nothing
+machine-readable to assert.
+
+### 14.2 Root cause and fix (`fd42ce58`)
+
+`App.tsx` renders that startup "not connected" screen when the demo bootstrap
+fails, and it had no `testID`. So:
+
+- `apps/mobile/App.tsx`: the screen now carries `testID="pli.startup.offline"`
+  (a handle for evidence and E2E, no visual change).
+- `capture-android-final.py`: the offline capture accepts **either** honest
+  surface — the cold-start screen or Today's cached banner — and records which
+  one it saw in `offline/offline-truth.json`.
+- validator: `REQUIRED_STATE_SURFACES = ("empty", "offline")` with
+  `STATE_ROOT_IDS["offline"] = ("pli.startup.offline", "pli.offline.state")`,
+  any-of. Proven discriminating first: the pre-fix artifact was rejected with
+  `missing §24 state evidence surface: offline`.
+
+### 14.3 Evidence at `fd42ce58`
+
+| Item | Value |
+| --- | --- |
+| CI | run `43147450982` — **success** (Backend / Frontend / Blind / Browser E2E) |
+| OpenAPI Artifact Sync | run `43147450987` — **success** |
+| Android + Release Artifacts | run `43147450973` — **success**, no rerun |
+| runtime evidence artifact | `13913507014` (14,454,247 B) |
+| APK / web | `13912967119` / `13911523515` |
+| `offline/` | `offline.png` (36,965 B), `ui.xml` (4,163 B), `offline-truth.json`, layout/visual/report |
+| state actually rendered | `state_ui_id: pli.startup.offline`, copy `演示数据暂时没有连接成功 · 点击重试`, `tunnel_removed: true`, `app_force_stopped: true`, `no_vision_model: true`, `human_visual_acceptance: PENDING` |
+| local re-validation | `ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS` with owner-copy + today-canvas + domains + states active |
+
+### 14.4 §24 coverage
+
+```text
+captured : 26 of 26
+open     : none
+```
+
+Every §24 surface now has fresh Android evidence from this round, and the
+evidence contract fails closed if any domain or state disappears again.
+
+`HUMAN_VISUAL_ACCEPTANCE` stays `PENDING`. Capturing an offline screen proves the
+screen exists and says an honest thing; it does not prove the owner finds it
+clear, and no automation here claims otherwise.
+
+## 15. Pass 7 — an attempted a11y fix that did not work, and was reverted
+
+§9.2 has been carrying one disclosed limitation: the 3D stage publishes its
+runtime manifest as `document.title`, Android surfaces that title as the WebView
+node's `text`, and TalkBack therefore reads a JSON blob for the pet's 3D view.
+
+This pass tried the cheap fix: give the inner `WebView` in
+`Pet3DViewer.tsx` its own short owner-language `accessibilityLabel`. Checked
+against the artifact it produced (`03eb6bd3`, artifact `13920945968`):
+
+```text
+today/ui.xml    WebView text='PLI_MANIFEST:{"ready":true,…'   content-desc=''
+pet/ui.xml      WebView text='PLI_MANIFEST:{"ready":true,…'   content-desc=''
+lifeview/ui.xml WebView text='PLI_MANIFEST:{"ready":true,…'   content-desc=''
+```
+
+`content-desc` stayed empty, so the prop never reached the native node:
+`react-native-webview` does not map `accessibilityLabel` the way a plain `View`
+does. The manifest channel was untouched, which is the only good news.
+
+**Reverted.** An inert prop is worse than no prop: it implies a fix that does
+not exist, and the next engineer would trust it. The leak is unchanged and
+still disclosed.
+
+Two real options, neither done, both honestly costed:
+
+1. `importantForAccessibility="no"` on the WebView. This removes the node from
+   the accessibility tree — which is exactly what `uiautomator dump` reads, so
+   the manifest's native-XML fallback (`capture-android-final.py`, the
+   `PLI_MANIFEST:` parse) would stop working. It is survivable only if the
+   primary `files/pli_manifest.json` path (three `run-as`/`cat` fallbacks) is
+   proven sufficient, and that proof needs its own emulator round.
+2. Move the beacon off `document.title` entirely and keep the file channel as
+   the only machine-readable one. Cleaner a11y, but it changes the evidence
+   pipeline and the validator's story about where the manifest comes from.
+
+Until one of those is done and verified, the state is: the owner-facing visual
+experience is unaffected, a screen reader still speaks the manifest for this one
+node, and the evidence gate keeps the leak from spreading to any other string
+(the exemption is WebView-`text`-prefix-only, and a test proves a `TextView` with
+the same string fails).
+
+### 15.1 Second attempt — hiding the subtree from accessibility — also failed
+
+`0fa380ab` wrapped the `WebView` in `<View importantForAccessibility="no-hide-descendants">`
+(a plain RN View definitely honours that prop) and, to make the property
+enforced rather than hoped for, **removed the gate's PLI_MANIFEST exemption** so
+that manifest text anywhere in owner-visible attributes would fail validation.
+
+The run answered immediately:
+
+```text
+ANDROID_RUNTIME_EVIDENCE_INTEGRITY = FAIL: owner-visible engineering identifier
+'petId' in companion/ui.xml: 'PLI_MANIFEST:{"ready":true,"manifestOrigin":"RUNTIME",…
+```
+
+The WebView node is still in the uiautomator tree: the native `WebView` manages
+its own accessibility and is not hidden by a React-Native parent's
+`no-hide-descendants`. So both RN-level levers — `accessibilityLabel` on the node
+(§15) and hiding its subtree (here) — are inert for this node type.
+
+**Both changes reverted**, including the gate tightening: with the leak still
+present, a strict rule would fail every future run, and a rule that cannot pass
+is not a gate. The narrow WebView-`text` exemption is restored, so the leak stays
+contained to exactly one node instead of blocking evidence.
+
+That leaves only the second option from §15, and it is not a small edit: the
+manifest must stop being published as `document.title` inside the stage page
+(a generated asset, `apps/mobile/assets/3d/pet-stage.html`, produced by
+`scripts/build-3d-page.mjs`), and the capture must rely solely on
+`files/pli_manifest.json`. It needs its own round with its own evidence, and it
+is recorded here as the remaining path rather than attempted again at the end of
+this one.
+
+Honest status of the limitation: **still open**, now with two RN-level
+approaches empirically excluded so the next engineer does not spend a cycle
+re-discovering that they do not work.
+
+> **Superseded by §16.** The third approach worked and did not require the
+> generated page at all: the RN side already injects script before page content
+> loads, so it takes over `document.title` there. The leak is closed and the gate
+> is now stricter than it was before this section.
+
+## 16. Pass 8 — the manifest leak is closed, without touching the generated page
+
+§15.1 concluded that only one path was left and that it needed the generated
+stage page. That turned out to be avoidable: the page's assignment
+`document.title = "PLI_MANIFEST:" + json` lives in
+`apps/mobile/scripts/pet-stage-entry.ts`, but the RN side already injects script
+**before** page content loads. So the title can be taken over from the app side,
+without regenerating `pet-stage.html` / `petStageHtml.ts` (which this machine
+cannot reproduce, §7 item 3).
+
+`c6308cff` prepends to that injected script:
+
+```js
+Object.defineProperty(document, "title", {
+  configurable: false,
+  get: function () { return "宠物 3D 形象"; },
+  set: function () {},
+});
+```
+
+The page's assignment becomes a no-op, so the WebView node no longer carries the
+manifest to a screen reader.
+
+### 16.1 Verified from that run's artifact, not from intent
+
+```text
+today/ui.xml      WebView text=''  content-desc=''
+pet/ui.xml        WebView text=''  content-desc=''
+lifeview/ui.xml   WebView text=''  content-desc=''
+companion/ui.xml  WebView text=''  content-desc=''
+today/3d.json     manifestOrigin=RUNTIME  ready=True  petId=…0094e1ec
+```
+
+The leak is gone **and** the evidence still came through: the manifest is read
+from app storage (`files/pli_manifest.json`), which the capture tries first and
+which the code itself calls the release-proof channel.
+
+### 16.2 Then, and only then, the gate was tightened
+
+`3b050918` removes the documented `PLI_MANIFEST` exception, so manifest text in
+any owner-visible attribute now fails validation. The difference from the failed
+attempt in `0fa380ab` is ordering: the same tightening was applied there while
+the leak was still present, so it could only fail; here the leak was verified
+gone first, and the assertion was checked against both artifacts before pushing:
+
+```text
+c6308cff artifact (title frozen)  PASS
+202f8d14 artifact (previous head)  FAIL  owner-visible engineering identifier
+                                         'petId' … 'PLI_MANIFEST:{…}'
+```
+
+### 16.3 What this changes and what it costs
+
+| Item | State |
+| --- | --- |
+| Screen-reader leak of the runtime manifest | **CLOSED** — the node carries empty text/content-desc; the container keeps the owner label (`豆豆的 3D 形象…`) |
+| Evidence integrity | unchanged: `manifestOrigin=RUNTIME`, `ready=true`; the capture reads app storage first |
+| Capture fallback | **deleted** in pass 8b: `_manifest_from_xml` is gone, so app storage is the only manifest channel. A missing manifest fails the run loudly instead of being recovered from the accessibility tree — which also removes a backdoor that would have contradicted the new gate |
+| Gate | stricter than before: manifest text anywhere in owner-visible attributes fails the run (test-pinned) |
+| Generated asset | untouched — no unreproducible rebuild was committed |
+
+`HUMAN_VISUAL_ACCEPTANCE` remains `PENDING`; this section closes an
+accessibility defect, not a design question.
+
+### 16.4 Dead channel removed, not left as a backdoor
+
+`_manifest_from_xml` scanned the whole uiautomator dump for `PLI_MANIFEST:` and
+parsed the JSON out of it. With the title frozen that can never match, and
+keeping it would have left a channel that contradicts the gate: if someone
+reintroduced the marker into owner-visible text, the leak would be caught by the
+gate *and* silently consumed by the capture, so the run's verdict would depend on
+which code path ran first.
+
+It is deleted. `read_runtime_manifest` now reads only
+`files/pli_manifest.json` (via `run-as`, then the rooted path) and carries a
+comment stating that invariant, so the failure mode is a loud `CaptureError`
+instead of a quietly recovered frame.
+
+Verified: `ruff` clean (the now-unused `html` import went with it),
+`316 passed` locally, and no test referenced the removed method. The capture
+behaviour for healthy builds is unchanged — the storage channel was already the
+first candidate and is what produced `manifestOrigin=RUNTIME` in every artifact
+listed in PR #2.
+
+## 17. Pass 10 — the activation metric stops carrying its own copy of the registry
+
+`pilot_dashboard.py` already imported `DAILY_EVENT_TYPES` and
+`RECORD_FACT_SOURCES`, and then repeated both sets as SQL string literals inside
+the activation subquery. They agreed when written, so no test failed — which is
+exactly the shape of a latent PILOT-INTEGRITY defect: a registry change would
+have made the dashboard count a different fact set than event validation and
+`life_replay`, with every gate still green.
+
+`c5854ca7` replaces both literals with expanding bind parameters:
+
+```python
+activation_event_types = tuple(DAILY_EVENT_TYPES)
+activation_fact_sources = tuple(RECORD_FACT_SOURCES)
+...
+"    AND e.event_type IN :activation_event_types "
+"    AND e.source_type IN :activation_fact_sources "
+```
+
+Behaviour-identical by construction, and checked to be identical by reading both
+registries: seven daily types (meal, drink, elimination, walk, play, weight,
+sleep) and five sources (OWNER_REPORTED, CAREGIVER_REPORTED, DEVICE_DERIVED,
+PROFESSIONAL_CONFIRMED, LAB_CONFIRMED) — the same members the literals listed.
+
+### 17.1 Which layer proved what
+
+| Claim | Evidence |
+| --- | --- |
+| The substitution is set-equal | registry definitions read directly; both lists enumerated above |
+| The rendered SQL still works | CI Backend job on `c5854ca7` — it runs the activation integration tests against a real database |
+| Nobody re-introduces the literals | three new blind tests in `tests/blind_ui/test_pilot_activation_registry.py` |
+| Local sanity | `ruff` clean, AST parses, `319` blind tests pass |
+
+`sqlalchemy` is not installed on this machine, so the rendered/compiled SQL was
+**not** verified locally and is not claimed to be; the honest ordering is that
+CI's database-backed run is the proof and the local run only covers the source
+contract.
+
+## 18. Finding (open, needs a human decision): the generated stage page is older than its generator
+
+`docs` describe `build:3d-page` as "not reproducible across local toolchains". That
+description was too soft and wrong in its cause. The committed generated page does
+not match the generator for reasons that have nothing to do with toolchains.
+
+Two facts, read straight from the blobs:
+
+```text
+build-3d-page.mjs:54   width: 44px; ... border: 1px solid rgba(120,101,78,0.24)
+build-3d-page.mjs:55   background: rgba(255,253,248,0.86); color: #4A3A2C;
+HEAD pet-stage.html:14 background: rgba(23,19,16,0.55);   color: #FAF6EF;
+```
+
+```text
+HEAD pet-stage.html   if (interactive) controls.classList.add("show");
+pet-stage-entry.ts    if (interactive && stageTheme === "engineering") controls.classList.add("show");
+```
+
+The generator says: 44 px light controls, shown only in the engineering theme. The
+committed page ships: 40 px dark controls, shown on **any interactive surface**.
+A fresh local build differs from the committed file by 725 lines — 718 short lines
+(CSS, bundle structure, e.g. `ShadowMaterial`) and 7 long bundle lines — so this is
+content drift, not line endings or formatter noise.
+
+### 18.1 Timeline (from git, not from memory)
+
+| What | Commit | Date |
+| --- | --- | --- |
+| generated page last written | `238f7b58` "replace dark viewer with warm living reality field" | 2026-10-03 |
+| generator last changed | `cf2e755b` "harden R5 mobile touch and accessibility semantics" | 2026-10-05 |
+| later generator change | `9ddc5047` (R5 Corgi propagation) | 2026-10-05 |
+
+The R5 touch/accessibility hardening lives in the **generator**; the page that ships
+in the APK was last rebuilt two days *before* it. So the shipped WebView still
+renders the pre-R5 controls, and every Android artifact validated in this PR —
+including all twenty downloaded and re-checked here — photographed that older page.
+
+### 18.2 Why this was not "fixed" by regenerating
+
+Regenerating is a 10 MB change to a **user-visible** surface: control size, control
+colours, and when the controls appear at all, plus a different three.js bundle
+section. `HUMAN_VISUAL_ACCEPTANCE` is `PENDING`, so committing that rebuild would
+silently ship a visual change nobody has looked at — and it is not decidable from
+code which side is intended: either the generator is right and the APK has been
+shipping a stale stage for six weeks, or the shipped look was chosen deliberately
+and the generator is the thing that is wrong.
+
+Both branches are cheap to close **after** that decision:
+
+1. *Generator is truth* → run `pnpm --dir apps/mobile build:3d-page`, commit both
+   generated files, and require a fresh Android evidence run plus human acceptance.
+2. *Shipped look is truth* → update the generator's CSS and control-visibility rule
+   to match, then regenerate.
+
+Whichever way it goes, the missing piece is a CI drift check (`build:3d-page` +
+`git diff --exit-code` on the two generated files) so this cannot silently happen
+again. It is not added here because, with the drift still unresolved, it could only
+fail.
+
+Status: `ACCEPTED_LIMITATION` → **superseded by this finding**: it is a real
+`NOT_YET_OBSERVED` product-state divergence, recorded rather than papered over.
+
+### 18.3 Decision and closure (pass 11)
+
+Product decision, 2026-11-13: **the shipped look wins.** The generator was
+corrected, not the page abandoned, and nothing new reached owners' eyes.
+
+What changed (`c8710e0b`):
+
+- `.btn` back to 40 px / dark (`rgba(23,19,16,0.55)`, `#FAF6EF`, active
+  `rgba(58,46,36,0.85)`). Checked programmatically, not by eye: the generated
+  `<style>` block is now byte-identical to the previously shipped one.
+- The controls rule back to `if (interactive)`. Their old comment claimed owner
+  pages rely on the native RN controls alone — the APK does not do that: the
+  current artifact exposes the WebView 缩小/放大 buttons on `lifeview`. The comment
+  now records the real state (a duplicated control layer) instead of a decision
+  that never shipped.
+- Both tracked outputs regenerated.
+
+The cost is stated where the code is: the WebView controls overlap the native RN
+controls on interactive surfaces. Reverting to engineering-only is a one-line
+change, and now it would also be a *visible* one, so it needs its own decision.
+
+### 18.4 The drift can no longer happen silently
+
+The Frontend job already ran `pnpm --dir apps/mobile build:3d-page` on every run
+and then threw the result away. It now diffs it:
+
+```yaml
+- name: Mobile 3D page matches its generator
+  run: |
+    if ! git diff --exit-code -- apps/mobile/assets/3d/pet-stage.html apps/mobile/src/three/petStageHtml.ts; then
+      echo "::error::generated 3D page is out of date - run 'pnpm --dir apps/mobile build:3d-page' and commit the result"
+      exit 1
+    fi
+```
+
+It passed on its first run, which is also the proof that CI's rebuild is
+byte-identical to the committed artifact — if the two toolchains disagreed, this
+gate could not be green and would not have been kept.
+
+Post-change evidence: artifact `14017181770` at `c8710e0b` validates
+(`ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS`, `manifestOrigin = RUNTIME`), and its
+native XML still exposes the WebView controls on `lifeview`, `twinreview` and
+`secondary-review` — i.e. the aligned rule kept the behaviour owners already had
+instead of quietly removing it.
+
+Residual, unchanged: the regenerated bundle carries a different three.js module
+subset than the 2026-10-03 page, so the stage *chrome* is provably identical while
+the scene's pixels are not machine-compared to the old page.
+`HUMAN_VISUAL_ACCEPTANCE` stays `PENDING` for exactly that reason.
+
+## 19. Pass 12 — the metric→event map stops being copied four times
+
+`meal_count_per_day` / `walk_minutes_per_day` / `sleep_minutes_per_day` each map to
+one daily event type, and that mapping was declared in four places: two route
+modules, the change workflow, and a SQL `CASE` inside the history module — which
+also carried its own copy of the five record-fact source names. They agreed, so
+nothing failed; an edit to one of them would have left change-case validation, the
+baseline API and the evidence-validity filter disagreeing with no test noticing.
+
+`app/domain/life_change_metrics.py` now owns `METRIC_EVENT_TYPES` and
+`METRIC_UNITS`, and renders the SQL `CASE` through `metric_event_type_sql()`, so the
+query cannot drift from the Python mapping it must agree with. All consumers import
+it; the source list in that SQL now comes from `RECORD_FACT_SOURCES`.
+
+### 19.1 What the run caught that I could not
+
+`0349c180` deleted `METRICS` from `routes/life_changes.py` and the Backend job
+failed immediately with `cannot import name 'METRICS'` — a sixth consumer,
+`routes/life_change_sources.py`, imported it through that route. My local blind
+suite cannot import the app at all (no `sqlalchemy` on this host), so the import
+graph is genuinely CI's check, not mine; `58febd4d` fixes it and the Backend job
+is green. This is the same division of labour as §17.1 and it is stated rather than
+blurred.
+
+### 19.2 What pins it now
+
+`tests/blind_ui/test_life_change_metric_registry.py` (6 tests, stdlib only):
+the registry is the only module naming the mappings, no consumer re-types them or
+the source list, every consumer imports the registry, the SQL is rendered through
+`metric_event_type_sql`, the rendered `CASE` covers every metric, and the Chinese
+search-term map's keys equal the registry's (a metric without keywords would be
+unreachable; a removed metric would leave dead weights).
+
+One older test pinned the literal SQL text. It was **re-expressed, not weakened**:
+it now requires the predicates to exist *and* their values to come from the
+registry, so deleting either half fails.
+
+Local: `ruff` clean, `325` blind tests pass. Behavioural proof: Backend job on
+`58febd4d` (real Postgres), plus the Android artifact `14029343775` validating
+(`ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS`).
+
+## 20. Pass 13 — one flake hypothesis tested and disproven, diagnostics added instead
+
+The Backend failure at `9deb0616` (see §19.1's sibling note) was
+`test_r8at_case_validity_filter.py::test_filtered_history_paginates_without_overlap`
+returning `422 No reviewable source-backed change` where it expects `201`.
+
+### 20.1 The hypothesis, and why it is wrong
+
+`abnormal_day_hint` (`api/routes/v10_extras_services.py`) buckets observations by the
+**UTC+8 calendar day**: `day_start = now.replace(hour=0…)`, `current_recorded =
+bool(today_events)` where `today_events` needs `local.date() == now.date()` **and**
+`local <= now`; historical days additionally need `seconds <= clock_seconds`. The
+fixture anchors its "current" event at `now - 20 min`, so within the first 20
+minutes of a product day that anchor lands on the **previous** day and the 422 is
+correct behaviour, not a defect.
+
+That predicts a 20-minute-per-day window right after UTC+8 midnight — and the run
+failed at **09:42Z = 17:42 local**, nowhere near midnight. A guard on that window
+would have been inert exactly when it was needed, so it was written, checked against
+the timestamp, and **reverted** rather than shipped with a plausible-sounding
+reason. Recorded because "we know what the flake was" is precisely the claim that
+should not survive being false.
+
+### 20.2 What was shipped instead
+
+No behaviour change and no weakened assertion. The two case-creation assertions in
+that module now raise with the **inputs the refusal was based on**, fetched from the
+public `GET /api/v1/pets/{id}/abnormal-day-hint` endpoint:
+
+```python
+if case.status_code != 201:
+    raise AssertionError(f"case rejected: {case.text} | hint={_hint(client, owner, pet)}")
+```
+
+So the next occurrence states which condition was false — `notable`,
+`current_recorded`, `sample_count` or `same_time_baseline` — instead of leaving a 422
+that nobody can attribute. Diagnostics are computed only on failure (an `if`, not an
+`assert` message, whose expression Python would evaluate eagerly on every run).
+
+Unknown and left unknown: the actual cause of that 09:42Z failure. The rerun passed
+with identical code, so it remains `HOSTED_RUNNER_FLAKE_UNEXPLAINED` rather than
+being given a story it has not earned.

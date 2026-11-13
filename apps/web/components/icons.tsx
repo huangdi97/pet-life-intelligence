@@ -1,5 +1,3 @@
-import type { ReactElement, SVGProps } from "react";
-
 /** Web owner-icon set — Stage R.2 (V4 vector icons, 1.5px stroke, round caps).
  *  Functional icons are stroke SVGs; emoji is never used as a functional icon. */
 export type WebIconName =
@@ -35,7 +33,10 @@ export type WebIconName =
   | "shield"
   | "users";
 
-const PATHS: Record<WebIconName, ReactElement> = {
+// Keep JSX values inferred by this app's active JSX runtime. Explicitly
+// importing ReactElement here can bind the table to a different workspace
+// @types/react instance during root-monorepo CI builds (React 18 vs 19).
+const PATHS = {
   paw: (
     <>
       <circle cx="6.5" cy="9.5" r="1.7" />
@@ -212,14 +213,18 @@ export function Icon({
   size = 18,
   className,
   strokeWidth = 1.5,
-  ...rest
-}: { name: WebIconName; size?: number; className?: string; strokeWidth?: number } & Omit<
-  SVGProps<SVGSVGElement>,
-  "children" | "width" | "height"
->) {
+  style,
+}: {
+  name: WebIconName;
+  size?: number;
+  className?: string;
+  strokeWidth?: number;
+  style?: { color?: string; marginLeft?: number | string };
+}) {
   return (
     <svg
       className={className}
+      style={style}
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -230,7 +235,6 @@ export function Icon({
       strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
-      {...rest}
     >
       {PATHS[name] ?? PATHS.paw}
     </svg>

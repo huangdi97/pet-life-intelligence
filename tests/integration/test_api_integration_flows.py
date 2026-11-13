@@ -4,7 +4,7 @@ conflicts, notifications, deletion requests, media access control."""
 import io
 from datetime import datetime, timedelta, timezone
 
-from tests.conftest import auth
+from tests.conftest import auth, create_user
 
 NOW = datetime.now(timezone.utc)
 
@@ -31,6 +31,51 @@ class TestCareHandoff:
         r = client.post(f"/api/v1/pets/{seeded['coco_id']}/health-events",
                         json={"chief_complaint": "x"}, headers=auth(sitter))
         assert r.status_code == 403
+
+    def test_handoff_checklist_is_actionable_for_caregiver(self, client, seeded):
+        owner, sitter = seeded["owner_id"], seeded["sitter_id"]
+        created = client.post(
+            f"/api/v1/pets/{seeded['coco_id']}/handoffs",
+            json={
+                "caregiver_user_id": sitter,
+                "scopes": ["daily:read", "daily:write"],
+                "end_at": (NOW + timedelta(hours=2)).isoformat(),
+                "reason": "weekend care",
+                "checklist": ["确认喂食安排", "确认紧急联系人"],
+            },
+            headers=auth(owner),
+        )
+        assert created.status_code == 201, created.text
+        checklist = created.json()["checklist"]
+        assert [item["text"] for item in checklist] == ["确认喂食安排", "确认紧急联系人"]
+        assert all(item["done"] is False for item in checklist)
+
+        visible = client.get(
+            f"/api/v1/pets/{seeded['coco_id']}/handoffs",
+            headers=auth(sitter),
+        )
+        assert visible.status_code == 200, visible.text
+        assert [row["handoff_id"] for row in visible.json()] == [created.json()["handoff_id"]]
+
+        completed = client.post(
+            f"/api/v1/handoffs/{created.json()['handoff_id']}/checklist/{checklist[0]['id']}/complete",
+            json={},
+            headers=auth(sitter),
+        )
+        assert completed.status_code == 200, completed.text
+        first = completed.json()["checklist"][0]
+        assert first["done"] is True
+        assert first["done_by"] == sitter
+        assert first["done_at"]
+
+    def test_handoff_checklist_rejects_unrelated_user(self, client, seeded):
+        self._start(client, seeded)
+        outsider = create_user(email="handoff-outsider@pli.test")
+        listed = client.get(
+            f"/api/v1/pets/{seeded['coco_id']}/handoffs",
+            headers=auth(outsider),
+        )
+        assert listed.status_code == 403
 
     def test_end_handoff_revokes(self, client, seeded):
         data = self._start(client, seeded)
@@ -126,12 +171,74 @@ class TestHealthFlow:
                             json={"expires_in_hours": 1}, headers=auth(owner))
         assert share.status_code == 201
         token = share.json()["share_token"]
+        token_id = share.json()["token_id"]
         # anonymous access works
         view = client.get(f"/api/v1/vet-briefs/shared/{token}")
         assert view.status_code == 200
         assert view.json()["vet_brief_id"] == brief_id
         # invalid token rejected
         assert client.get("/api/v1/vet-briefs/shared/bogus").status_code == 404
+        # owner can revoke the share; the public link immediately becomes dead.
+        revoked = client.delete(f"/api/v1/share-tokens/{token_id}", headers=auth(owner))
+        assert revoked.status_code == 200, revoked.text
+        assert client.get(f"/api/v1/vet-briefs/shared/{token}").status_code == 404
+
+    def test_recovery_plan_persists_updates_and_has_deterministic_trend(self, client, seeded):
+        owner = seeded["owner_id"]
+        he = seeded["health_event_non_emergency_id"]
+
+        created = client.post(
+            f"/api/v1/health-events/{he}/recovery-plan",
+            json={"items": [{"description": "按已确认安排复查", "due_at": None}]},
+            headers=auth(owner),
+        )
+        assert created.status_code == 201, created.text
+        plan_id = created.json()["plan_id"]
+        assert created.json()["items"][0]["status"] == "PENDING"
+
+        listed = client.get(
+            f"/api/v1/health-events/{he}/recovery-plans",
+            headers=auth(owner),
+        )
+        assert listed.status_code == 200, listed.text
+        assert listed.json()[0]["plan_id"] == plan_id
+        assert listed.json()[0]["items"][0]["description"] == "按已确认安排复查"
+
+        updated = client.patch(
+            f"/api/v1/recovery-plans/{plan_id}/items/0",
+            json={"status": "DONE"},
+            headers=auth(owner),
+        )
+        assert updated.status_code == 200, updated.text
+        assert updated.json()["items"][0]["status"] == "DONE"
+
+        refreshed = client.get(
+            f"/api/v1/health-events/{he}/recovery-plans",
+            headers=auth(owner),
+        )
+        assert refreshed.json()[0]["items"][0]["status"] == "DONE"
+
+        trend = client.get(
+            f"/api/v1/health-events/{he}/trend",
+            headers=auth(owner),
+        )
+        assert trend.status_code == 200, trend.text
+        assert trend.json()["health_event_id"] == he
+        assert "非医学判断" in trend.json()["notice"]
+
+        # The seeded non-emergency health episode belongs to Mimi; recovery
+        # lifecycle events must be written to and queried from that same pet.
+        events = client.get(
+            f"/api/v1/pets/{seeded['mimi_id']}/events?event_type=recovery_plan.updated",
+            headers=auth(owner),
+        )
+        assert events.status_code == 200, events.text
+        matching = [
+            row for row in events.json()["events"]
+            if row["payload"].get("plan_id") == plan_id
+        ]
+        assert len(matching) >= 2
+        assert all(row["provenance_level"] == "OWNER_REPORTED" for row in matching)
 
     def test_medication_duplicate_administration_conflict(self, client, seeded):
         owner, plan = seeded["owner_id"], seeded["medication_plan_id"]
@@ -191,6 +298,25 @@ class TestPlatformFeatures:
         assert r.status_code == 201
         assert client.get(f"/api/v1/pets/{coco}", headers=auth(owner)).status_code == 200
 
+        history = client.get(f"/api/v1/pets/{coco}/deletion-requests", headers=auth(owner))
+        assert history.status_code == 200
+        assert history.json()[0]["request_id"] == r.json()["request_id"]
+        assert history.json()[0]["status"] == "PENDING"
+        assert history.json()[0]["reason"] == "test"
+        assert history.json()[0]["created_at"]
+
+        duplicate = client.post(
+            f"/api/v1/pets/{coco}/deletion-requests",
+            json={"reason": "duplicate"},
+            headers=auth(owner),
+        )
+        assert duplicate.status_code == 409
+        assert duplicate.json()["error"]["details"]["request_id"] == r.json()["request_id"]
+
+        family = seeded["family_id"]
+        denied = client.get(f"/api/v1/pets/{coco}/deletion-requests", headers=auth(family))
+        assert denied.status_code == 403
+
     def test_artifact_upload_and_access_control(self, client, seeded):
         owner, family = seeded["owner_id"], seeded["family_id"]
         png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
@@ -214,3 +340,64 @@ class TestPlatformFeatures:
         got = client.get(f"/api/v1/artifacts/{artifact_id}/content", headers=auth(owner))
         assert got.status_code == 200
         assert got.content == png
+
+
+
+class TestDiaryFlow:
+    def test_text_diary_creates_owner_reported_life_event(self, client, seeded):
+        owner, pet_id = seeded["owner_id"], seeded["coco_id"]
+        created = client.post(
+            f"/api/v1/pets/{pet_id}/diary",
+            json={"text": "今天散步时第一次主动去闻路边的花。"},
+            headers=auth(owner),
+        )
+        assert created.status_code == 201, created.text
+
+        diary = client.get(f"/api/v1/pets/{pet_id}/diary", headers=auth(owner))
+        assert diary.status_code == 200, diary.text
+        assert diary.json()[0]["text"] == "今天散步时第一次主动去闻路边的花。"
+
+        events = client.get(f"/api/v1/pets/{pet_id}/events?event_type=diary.created", headers=auth(owner))
+        assert events.status_code == 200, events.text
+        rows = events.json()["events"]
+        assert rows
+        assert rows[0]["source_type"] == "OWNER_REPORTED"
+        assert rows[0]["payload"]["diary_id"] == created.json()["diary_id"]
+
+
+
+class TestDailySummaryFlow:
+    def test_daily_summary_is_idempotent_and_ai_derived(self, client, seeded):
+        owner, pet_id = seeded["owner_id"], seeded["coco_id"]
+        client.post(
+            f"/api/v1/pets/{pet_id}/diary",
+            json={"text": "今天散步很平稳。"},
+            headers=auth(owner),
+        )
+        first = client.post(
+            f"/api/v1/pets/{pet_id}/daily-summary",
+            json={},
+            headers=auth(owner),
+        )
+        assert first.status_code == 201, first.text
+        assert first.json()["source_type"] == "AI_DERIVED"
+        assert first.json()["fact_count"] >= 1
+        assert first.json()["summary"]
+        summary_id = first.json()["summary_id"]
+
+        second = client.post(
+            f"/api/v1/pets/{pet_id}/daily-summary",
+            json={},
+            headers=auth(owner),
+        )
+        assert second.status_code == 201, second.text
+        assert second.json()["summary_id"] == summary_id
+
+        history = client.get(
+            f"/api/v1/pets/{pet_id}/daily-summaries?limit=7",
+            headers=auth(owner),
+        )
+        assert history.status_code == 200, history.text
+        assert history.json()[0]["summary_id"] == summary_id
+        assert history.json()[0]["source_type"] == "AI_DERIVED"
+        assert "不替代原始记录" in history.json()[0]["disclaimer"]

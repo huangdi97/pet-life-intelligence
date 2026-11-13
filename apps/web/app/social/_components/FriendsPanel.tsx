@@ -13,30 +13,32 @@ interface FriendsPanelProps {
 
 /** 伙伴关系状态 → 用户语言（绝不泄漏 raw 枚举）。 */
 function statusZh(status: string): string {
-  if (status === "ACTIVE") return t("social.familiar");
+  if (status === "ACTIVE" || status === "ACCEPTED") return t("social.familiar");
   if (status === "PENDING") return "待确认";
   if (status === "BLOCKED") return "已屏蔽";
   if (status === "DECLINED") return "已拒绝";
-  return "朋友";
+  return "状态已记录";
 }
 
 /** OWN-012 Social — 伙伴关系列表。 */
 export function FriendsPanel({ friends, friendName }: FriendsPanelProps) {
   return (
-    <div className="card" data-testid="pli.social.friends">
-      <h2>宠物朋友</h2>
+    <section className="v4-sec" data-testid="pli.social.friends">
+      <h2 className="v4-sec-title">宠物朋友</h2>
       <State
         state={friends.state}
         error={friends.error ? mapErrorMessage(friends.error) : null}
         onRetry={friends.reload}
         empty="还没有伙伴关系。"
       >
-        {friends.data?.map((f) => (
-          <li key={f.request_id} data-testid={`pli.social.friends.${f.request_id}`}>
-            <PersonChip name={friendName(f.friend_pet_id)} role={statusZh(f.status)} />
-          </li>
-        ))}
+        <div className="v5-people-row">
+          {friends.data?.map((f) => (
+            <div key={f.request_id} data-testid={`pli.social.friends.${f.request_id}`}>
+              <PersonChip name={friendName(f.friend_pet_id)} role={statusZh(f.status)} />
+            </div>
+          ))}
+        </div>
       </State>
-    </div>
+    </section>
   );
 }

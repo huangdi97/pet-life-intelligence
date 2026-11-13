@@ -23,6 +23,8 @@ interface PetMediaProps {
   radius?: number;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
+  /** Render a small avatar at its actual bounds; default media stays unchanged. */
+  compactSize?: number;
 }
 
 const SIZES: Record<PetMediaVariant, { height: number; radius: number; glyph: number }> = {
@@ -41,16 +43,24 @@ export function PetMedia({
   radius,
   accessibilityLabel,
   style,
+  compactSize,
 }: PetMediaProps) {
   const spec = SIZES[variant];
   const round = radius ?? spec.radius;
   const glyph: SpeciesGlyphName = speciesGlyphFor(pet?.species ?? "dog");
   const label = accessibilityLabel ?? `${pet?.name ?? "宠物"}的图片`;
+  // A 28dp nav avatar cannot host the default square variant's 120dp
+  // frame / 96dp glyph. It otherwise clips to an empty tinted circle.
+  const frameHeight = compactSize ?? spec.height;
+  const glyphSize = compactSize === undefined
+    ? spec.glyph
+    : Math.max(16, Math.floor(compactSize * 0.9));
+  const frameWidth = compactSize === undefined ? undefined : compactSize;
 
   if (uri) {
     return (
       <View
-        style={[styles.frame, { borderRadius: round, height: spec.height }, style]}
+        style={[styles.frame, { borderRadius: round, height: frameHeight, width: frameWidth }, style]}
         accessibilityRole="image"
         accessibilityLabel={label}
       >
@@ -61,12 +71,12 @@ export function PetMedia({
 
   return (
     <View
-      style={[styles.frame, { borderRadius: round, height: spec.height }, style]}
+      style={[styles.frame, { borderRadius: round, height: frameHeight, width: frameWidth }, style]}
       accessibilityRole="image"
       accessibilityLabel={label}
     >
       <View style={styles.glyphWrap}>
-        <PetSpeciesGlyph glyph={glyph} size={spec.glyph} round={RADIUS.xl} />
+        <PetSpeciesGlyph glyph={glyph} size={glyphSize} round={RADIUS.xl} />
       </View>
       {showLetter && pet?.name ? (
         <View style={styles.letterBadge} accessibilityElementsHidden>

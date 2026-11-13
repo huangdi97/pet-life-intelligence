@@ -11,6 +11,8 @@ export interface LifeStreamRow {
   typeLabel: string;
   detail: string;
   source: string;
+  mediaCount?: number;
+  artifactIds?: string[];
 }
 
 export interface LifeStreamDay {
@@ -20,15 +22,31 @@ export interface LifeStreamDay {
   rows: LifeStreamRow[];
 }
 
-export function LifeStream({ days }: { days: LifeStreamDay[] }) {
+export function LifeStream({
+  days,
+  onOpenMedia,
+  onOpenDay,
+}: {
+  days: LifeStreamDay[];
+  onOpenMedia?: (artifactIds: string[]) => void;
+  onOpenDay?: (date: string) => void;
+}) {
   if (!days.length) return null;
   return (
     <View className="life-stream">
       {days.map((d) => (
         <View className="life-day" key={d.id}>
           <View className="life-day-label">
-            {d.label}
-            {d.isToday ? " · 今天" : ""}
+            <Text>{d.label}{d.isToday ? " · 今天" : ""}</Text>
+            {onOpenDay && /^\d{4}-\d{2}-\d{2}$/.test(d.id) ? (
+              <Text
+                className="life-day-back"
+                data-testid={`pli.mini.timeline.day.${d.id}`}
+                onClick={() => onOpenDay(d.id)}
+              >
+                回到这一天 ›
+              </Text>
+            ) : null}
           </View>
           {d.rows.map((r) => (
             <View className="life-row" key={r.id}>
@@ -39,7 +57,18 @@ export function LifeStream({ days }: { days: LifeStreamDay[] }) {
                   <Text className="life-row-time">{r.time}</Text>
                 </View>
                 {r.detail ? <View className="life-row-detail">{r.detail}</View> : null}
-                <View className="life-row-source">{r.source}</View>
+                <View className="life-row-source">
+                  {r.source}{r.mediaCount && r.mediaCount > 0 ? ` · ${r.mediaCount} 个媒体证据` : ""}
+                </View>
+                {r.artifactIds?.length && onOpenMedia ? (
+                  <View
+                    className="secondary-action"
+                    style={{ marginTop: 6, minHeight: 36 }}
+                    onClick={() => onOpenMedia(r.artifactIds ?? [])}
+                  >
+                    查看原始媒体
+                  </View>
+                ) : null}
               </View>
             </View>
           ))}

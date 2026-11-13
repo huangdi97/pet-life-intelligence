@@ -112,7 +112,10 @@ def test_generate_template_local_enters_owner_review(client, seeded):
     assert ready["status"] == "READY"
     assert ready["geometry_version"].startswith("template-")
     assert ready["observed_surface_manifest"]  # photos -> photo_projection observed
-    assert ready["inferred_surface_manifest"]["face"] == "template_default"
+    # The canonical demo capture contains an explicit head view, so face is
+    # now legitimately source-backed rather than template-inferred.
+    assert ready["observed_surface_manifest"]["face"] == "photo_projection"
+    assert "face" not in ready["inferred_surface_manifest"]
 
     # Honest: a real external generative provider is still reported blocked.
     status = client.get("/api/v1/visual/status", headers=headers).json()
@@ -199,6 +202,14 @@ def test_model_versioning_increments(client, seeded):
     owner = seeded["owner_id"]
     coco = seeded["coco_id"]
     headers = auth(owner)
+
+    # The canonical demo seed now carries an ACTIVE DEMO_TEMPLATE Twin so
+    # Web/Android runtime evidence exercises the real high-fidelity path.
+    # Versioning must therefore be tested relative to the existing history,
+    # not by assuming an empty model table.
+    before = client.get(f"/api/v1/pets/{coco}/visual-models", headers=headers).json()["models"]
+    baseline = max((int(m["version"]) for m in before), default=0)
+
     cap = client.post(
         f"/api/v1/pets/{coco}/visual-captures",
         json={"artifact_ids": [str(uuid.uuid4())]},
@@ -210,10 +221,31 @@ def test_model_versioning_increments(client, seeded):
     m2 = client.post(
         f"/api/v1/pets/{coco}/visual-models", json={"capture_id": cap["capture_id"]}, headers=headers
     ).json()
-    assert m1["version"] == 1
-    assert m2["version"] == 2
+    assert m1["version"] == baseline + 1
+    assert m2["version"] == baseline + 2
     lst = client.get(f"/api/v1/pets/{coco}/visual-models", headers=headers).json()["models"]
-    assert [m["version"] for m in lst] == [2, 1]
+    versions = [int(m["version"]) for m in lst]
+    assert versions[:2] == [baseline + 2, baseline + 1]
+    assert set(int(m["version"]) for m in before).issubset(set(versions))
+
+
+def test_seeded_demo_twins_are_explicit_templates_not_real_identity(client, seeded):
+    owner = seeded["owner_id"]
+    headers = auth(owner)
+
+    for pet_id in (seeded["coco_id"], seeded["mimi_id"]):
+        models = client.get(
+            f"/api/v1/pets/{pet_id}/visual-models",
+            headers=headers,
+        ).json()["models"]
+        demo = next((m for m in models if (m.get("metadata_json") or {}).get("demo_fixture") is True), None)
+        assert demo is not None
+        assert demo["status"] == "ACTIVE"
+        assert demo["provenance_kind"] == "GENERATED_3D"
+        assert (demo.get("metadata_json") or {}).get("media_provenance") == "DEMO_TEMPLATE"
+        assert (demo.get("metadata_json") or {}).get("real_pet_identity_validation") == "NOT_YET_OBSERVED"
+        assert (demo.get("identity_qc") or {}).get("scope") == "DEMO_FIXTURE_ONLY"
+        assert (demo.get("identity_qc") or {}).get("real_pet_identity_validation") == "NOT_YET_OBSERVED"
 
 
 def test_non_owner_cannot_create_capture(client, seeded):

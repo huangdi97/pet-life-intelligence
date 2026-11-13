@@ -29,7 +29,7 @@ export function EmptyState({
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.body}>{body}</Text>
       {actionLabel && onAction ? (
-        <Pressable accessibilityRole="button" onPress={onAction} style={styles.action}>
+        <Pressable accessibilityRole="button" accessibilityLabel={actionLabel} onPress={onAction} style={styles.action}>
           <Text style={styles.actionText}>{actionLabel}</Text>
         </Pressable>
       ) : null}
@@ -70,7 +70,7 @@ export function FullPageError({
       <Text style={styles.fullTitle}>{title}</Text>
       <Text style={styles.body}>{body}</Text>
       {onRetry ? (
-        <Pressable accessibilityRole="button" onPress={onRetry} style={styles.action}>
+        <Pressable accessibilityRole="button" accessibilityLabel="重试" onPress={onRetry} style={styles.action}>
           <Text style={styles.actionText}>重试</Text>
         </Pressable>
       ) : null}
@@ -99,7 +99,7 @@ export function RetryState({ onRetry, label = "加载失败" }: { onRetry: () =>
   return (
     <View style={styles.retryWrap}>
       <Text style={styles.inlineText}>{label}</Text>
-      <Pressable accessibilityRole="button" onPress={onRetry} style={styles.smallAction}>
+      <Pressable accessibilityRole="button" accessibilityLabel="重新加载" onPress={onRetry} style={styles.smallAction}>
         <Text style={styles.actionText}>重新加载</Text>
       </Pressable>
     </View>
@@ -144,9 +144,12 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
     paddingHorizontal: SPACE.s5,
     paddingVertical: 10,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   actionText: { color: COLORS.textInverse, fontSize: TYPE.sm, fontWeight: "600" },
-  smallAction: { marginTop: SPACE.s2, padding: SPACE.s2 },
+  smallAction: { marginTop: SPACE.s2, minHeight: 44, minWidth: 44, padding: SPACE.s2, alignItems: "center", justifyContent: "center" },
   inline: { flexDirection: "row", alignItems: "center", gap: SPACE.s2, padding: SPACE.s3, marginHorizontal: SPACE.s4, marginTop: SPACE.s3 },
   inlineText: { fontSize: TYPE.sm, color: COLORS.textTertiary, flex: 1 },
   retryLink: { fontSize: TYPE.sm, color: COLORS.brandPrimaryDeep, fontWeight: "600" },

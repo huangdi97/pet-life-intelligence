@@ -1,18 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
 import { authApi } from "@pli/api-client";
 
 function ResetForm() {
-  const params = useSearchParams();
-  const token = params.get("token") ?? "";
+  const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+
+  // Read the reset token from the browser URL after mount. This keeps the
+  // route fully client-side without requiring a Suspense boundary solely for
+  // useSearchParams, and avoids cross-workspace React 18/19 JSX namespace
+  // leakage in clean standalone builds.
+  useEffect(() => {
+    setToken(new URLSearchParams(window.location.search).get("token") ?? "");
+  }, []);
 
   async function submit() {
     setError(null);
@@ -60,9 +65,7 @@ export default function ResetPasswordPage() {
     <main className="page-center">
       <h1>重置密码</h1>
       <p className="sub">设置新的登录密码</p>
-      <Suspense fallback={<div className="state loading">加载中……</div>}>
-        <ResetForm />
-      </Suspense>
+      <ResetForm />
     </main>
   );
 }

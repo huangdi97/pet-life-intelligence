@@ -269,30 +269,42 @@ def test_replay_11_pet_switch_uses_new_context(client, seeded):
 
 def test_replay_12_3d_model_version_evolution(client, seeded):
     owner, coco = seeded["owner_id"], seeded["coco_id"]
-    # capture 1 → model v1 → verify → activate
-    c1 = client.post(f"/api/v1/pets/{coco}/visual-captures", headers=auth(owner),
+    headers = auth(owner)
+
+    # The demo seed may contain an ACTIVE DEMO_TEMPLATE Twin. Replay the same
+    # lifecycle from the current history tip so the scenario verifies forward
+    # evolution instead of coupling itself to an empty seed.
+    initial = client.get(f"/api/v1/pets/{coco}/visual-models", headers=headers).json()["models"]
+    baseline = max((int(m["version"]) for m in initial), default=0)
+
+    # capture 1 → next version → verify → activate
+    c1 = client.post(f"/api/v1/pets/{coco}/visual-captures", headers=headers,
                      json={"capture_type": "PHOTO_SET",
                            "consent_visual_model_training": True}).json()
-    m1 = client.post(f"/api/v1/pets/{coco}/visual-models", headers=auth(owner),
+    m1 = client.post(f"/api/v1/pets/{coco}/visual-models", headers=headers,
                      json={"capture_id": c1["capture_id"]}).json()
-    assert m1["version"] == 1
-    client.post(f"/api/v1/pets/{coco}/visual-models/1/verify", headers=auth(owner),
+    v1 = baseline + 1
+    assert m1["version"] == v1
+    client.post(f"/api/v1/pets/{coco}/visual-models/{v1}/verify", headers=headers,
                 json={"result": "like", "issues": [], "notes": "ok"})
-    a1 = client.post(f"/api/v1/pets/{coco}/visual-models/1/activate", headers=auth(owner))
+    a1 = client.post(f"/api/v1/pets/{coco}/visual-models/{v1}/activate", headers=headers)
     assert a1.status_code == 200
-    # capture 2 → model v2 → verify → activate → manifest points to v2
-    c2 = client.post(f"/api/v1/pets/{coco}/visual-captures", headers=auth(owner),
+
+    # capture 2 → next version → verify → activate → manifest points to latest
+    c2 = client.post(f"/api/v1/pets/{coco}/visual-captures", headers=headers,
                      json={"capture_type": "PHOTO_SET",
                            "consent_visual_model_training": True}).json()
-    m2 = client.post(f"/api/v1/pets/{coco}/visual-models", headers=auth(owner),
+    m2 = client.post(f"/api/v1/pets/{coco}/visual-models", headers=headers,
                      json={"capture_id": c2["capture_id"]}).json()
-    assert m2["version"] == 2
-    client.post(f"/api/v1/pets/{coco}/visual-models/2/verify", headers=auth(owner),
+    v2 = baseline + 2
+    assert m2["version"] == v2
+    client.post(f"/api/v1/pets/{coco}/visual-models/{v2}/verify", headers=headers,
                 json={"result": "like", "issues": [], "notes": "ok"})
-    client.post(f"/api/v1/pets/{coco}/visual-models/2/activate", headers=auth(owner))
+    client.post(f"/api/v1/pets/{coco}/visual-models/{v2}/activate", headers=headers)
     manifest = client.get(f"/api/v1/pets/{coco}/visual-model/render-manifest",
-                          headers=auth(owner)).json()
-    assert manifest["version"] == 2  # evolution is forward-progressing
-    models = client.get(f"/api/v1/pets/{coco}/visual-models", headers=auth(owner)).json()
-    versions = [m["version"] for m in models["models"]]
-    assert 1 in versions and 2 in versions  # version history preserved
+                          headers=headers).json()
+    assert manifest["version"] == v2
+    models = client.get(f"/api/v1/pets/{coco}/visual-models", headers=headers).json()
+    versions = [int(m["version"]) for m in models["models"]]
+    assert v1 in versions and v2 in versions
+    assert set(int(m["version"]) for m in initial).issubset(set(versions))

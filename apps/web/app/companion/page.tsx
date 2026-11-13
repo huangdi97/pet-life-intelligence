@@ -1,19 +1,39 @@
 "use client";
 
+import Link from "next/link";
 import { api, type LifeEvent } from "@pli/api-client";
 import { useAsync, useCurrentPet } from "../../lib/hooks";
 import type { DeviceInfo } from "./_components/types";
+import { PetLivingStage } from "../../components/pet-living-stage";
 
 /**
- * Companion — 陪伴模式 (Stage R.2 §54-56). Graceful preview experience:
- * plain-language capability layers + honest device state. No feature flags,
- * no PROTOTYPE tags, no fake device execution.
+ * Companion — 陪伴模式 (Stage R.2 §54-56).
+ *
+ * Relationship-first, device-honest product surface:
+ * - reads like part of the Living Experience, not an admin console;
+ * - capability layers explain value before controls;
+ * - device actions navigate to the real monitoring surface (no dead CTA);
+ * - owner copy never leaks raw device/event status codes.
  */
+interface PetRow {
+  name: string;
+  species?: string | null;
+  breed?: string | null;
+}
+
+interface VisualModelRow {
+  version: number;
+  status: string;
+  provenance_kind?: string;
+  artifact_map?: { twin_descriptor?: import("@pli/pet-3d").TwinDescriptor };
+  metadata_json?: { demo_fixture?: boolean };
+}
+
 const LAYERS = [
-  { key: "observe", zh: "观察", desc: "在不打扰它的前提下，留意它的活动、休息与互动。" },
-  { key: "presence", zh: "在场", desc: "连接设备后，可以知道它是否来到附近、停留多久。" },
+  { key: "observe", zh: "观察", desc: "在不打扰它的前提下，留意活动、休息与互动变化。" },
+  { key: "presence", zh: "在场", desc: "连接设备后，了解它是否来到附近、停留多久。" },
   { key: "enrichment", zh: "丰富化", desc: "在合适的时候提供游戏与探索机会，由你控制节奏。" },
-  { key: "learned", zh: "习得互动", desc: "根据长期观察，逐渐了解它的偏好，但不猜测情绪。" },
+  { key: "learned", zh: "习得互动", desc: "根据长期记录逐渐了解偏好，但不猜测情绪。" },
 ];
 
 export default function CompanionPage() {
@@ -26,86 +46,214 @@ export default function CompanionPage() {
     () => (petId ? api.get(`/pets/${petId}/devices`) : Promise.reject(new Error("NO_PET_SELECTED"))),
     [petId],
   );
+  const pet = useAsync<PetRow>(
+    () => (petId ? api.get(`/pets/${petId}`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [petId],
+  );
+  const visual = useAsync<{ models: VisualModelRow[] }>(
+    () => (petId ? api.get(`/pets/${petId}/visual-models`) : Promise.reject(new Error("NO_PET_SELECTED"))),
+    [petId],
+  );
+
+  const visibleEvents = (recent.data?.events ?? [])
+    .filter((e) => e.event_type !== "today.viewed")
+    .slice(0, 4);
+
+  const activeTwin = visual.data?.models.find((model) => model.status === "ACTIVE") ?? null;
+  const twinDescriptor = activeTwin?.artifact_map?.twin_descriptor ?? null;
+  const sourceMediaCount = ((twinDescriptor as { surface?: { observed_regions?: string[] } } | null)?.surface?.observed_regions ?? []).length;
+  const demoTwin = activeTwin?.metadata_json?.demo_fixture === true;
+  const name = pet.data?.name ?? "它";
+  const onlineCount = (devices.data ?? []).filter((device) => {
+    const status = device.status.toUpperCase();
+    return status === "CONNECTED" || status === "ONLINE";
+  }).length;
+  const lastEvent = visibleEvents[0] ?? null;
+  const presenceHeadline =
+    devices.state === "error" || devices.state === "denied"
+      ? "先从它最近的生活继续了解它"
+      : onlineCount > 0
+        ? `${onlineCount} 个设备在线，可以了解它的此刻`
+        : "不在身边，也能继续看见它的生活";
+  const presenceCaption = lastEvent
+    ? `最近：${eventTypeZh(lastEvent.event_type)} · ${new Date(lastEvent.occurred_at).toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })}`
+    : "还没有新的生活记录；不会用生成内容冒充实时画面。";
 
   return (
-    <main className="v4-page">
-      <section className="v4-hero v4-hero--compact" data-testid="pli.companion.identity">
-        <div className="v4-art" aria-hidden="true" />
-        <div className="v4-hero-copy">
-          <h1 className="v4-hero-title">陪伴模式</h1>
-          <p className="v4-hero-sub">连接支持的设备后，可以在不打扰它的前提下观察和互动。</p>
+    <main className="v4-main v5-domain-page v5-utility-page">
+      <div className="v4-topline v5-page-lede" data-testid="pli.companion.identity">
+        <div>
+          <h1>陪伴模式</h1>
+          <p className="sub">先看见这一只宠物，再决定是否需要设备；没有实时来源时仍以真实照片与生活记录理解它。</p>
         </div>
-      </section>
+      </div>
 
-      <section className="v4-sec" data-testid="pli.companion.overview">
-        <h2 className="v4-sec-title">四种能力</h2>
-        {LAYERS.map((l) => (
-          <div className="v4-domain" key={l.key}>
-            <span className="v4-domain-label">{l.zh}</span>
-            <span className="v4-domain-value">{l.desc}</span>
-          </div>
-        ))}
-      </section>
+      <PetLivingStage
+        name={name}
+        petId={petId ?? undefined}
+        species={pet.data?.species}
+        breed={pet.data?.breed}
+        variant="pet"
+        headline={presenceHeadline}
+        caption={presenceCaption}
+        note={
+          devices.state === "ready" && devices.data?.length === 0
+            ? "尚未连接设备 · 3D / 照片只是陪伴入口，不代表实时画面"
+            : "事实来自真实设备与生活记录；外观不会替代它们"
+        }
+        demo={demoTwin || process.env.NEXT_PUBLIC_PLI_DEMO_ENV === "1"}
+        twin={twinDescriptor}
+        sourceMediaCount={sourceMediaCount}
+        frameTarget={0.48}
+        stageRole="companion"
+        realityField="presence-space"
+        stageTestId="pli.companion.living-stage"
+        twinTestId="pli.companion.pet-twin"
+      />
 
-      <section className="v4-sec" data-testid="pli.companion.device-status">
-        <h2 className="v4-sec-title">设备</h2>
-        {devices.data && devices.data.length === 0 ? (
-          <div className="v4-calm" data-testid="pli.companion.device-empty">
-            尚未连接设备
-          </div>
-        ) : (
-          (devices.data ?? []).map((d) => (
-            <div className="v4-domain" key={d.device_id}>
-              <span className="v4-domain-label">{d.display_name || "设备"}</span>
-              <span className="v4-domain-value">{deviceStateZh(d.status)}</span>
+      <div className="v4-linkrow" style={{ margin: "14px 0 8px" }}>
+        <Link className="v4-action v4-action--primary" href={petId ? `/pets/${petId}/life-view` : "/pets"}>
+          看看它
+        </Link>
+        <Link className="v4-action v4-action--secondary" href="/monitoring">
+          在家与设备
+        </Link>
+        <Link className="v4-action v4-action--secondary" href="/timeline">
+          最近记录
+        </Link>
+      </div>
+
+      <div className="v5-utility-stack">
+        <section className="v5-utility-surface v5-utility-surface--soft" data-testid="pli.companion.overview">
+          <h2>陪伴方式</h2>
+          {LAYERS.map((l) => (
+            <div className="v4-domain" key={l.key}>
+              <div>
+                <div className="v4-domain-name">{l.zh}</div>
+                <div className="v4-domain-desc">{l.desc}</div>
+              </div>
             </div>
-          ))
-        )}
-        <div className="v4-linkrow" style={{ marginTop: 10 }} data-testid="pli.companion.action">
-          <button type="button" className="v4-action v4-action--secondary">
-            连接设备
-          </button>
-        </div>
-      </section>
+          ))}
+        </section>
 
-      <section className="v4-sec" data-testid="pli.companion.recent">
-        <h2 className="v4-sec-title">最近</h2>
-        {recent.data && recent.data.events.length > 0 ? (
-          <div className="v4-ls">
-            {recent.data.events
-              .filter((e) => e.event_type !== "today.viewed")
-              .slice(0, 4)
-              .map((e) => (
-                <div className="v4-ls-row" key={e.event_id}>
-                  <span className="v4-ls-type">{eventTypeZh(e.event_type)}</span>
-                  <span className="v4-ls-time">{new Date(e.occurred_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}</span>
-                </div>
-              ))}
+        <section className="v5-utility-surface" data-testid="pli.companion.device-status">
+          <div className="v4-sec-head">
+            <div>
+              <h2>设备</h2>
+              <p className="v4-sec-sub">这里只展示真实连接状态；没有设备时不会模拟在线。</p>
+            </div>
+            <Link className="v4-sec-link" href="/monitoring">管理设备</Link>
           </div>
-        ) : (
-          <p className="v4-note" style={{ margin: 0 }}>还没有可展示的最近活动。</p>
-        )}
-      </section>
 
-      <section className="v4-sec" data-testid="pli.companion.next">
-        <h2 className="v4-sec-title">下一步</h2>
-        <p className="v4-note" style={{ margin: 0 }}>连接一台支持的设备后，就可以在不打扰它的前提下观察与互动。</p>
-      </section>
+          {devices.state === "loading" ? (
+            <div className="v4-loading">正在读取设备状态…</div>
+          ) : devices.state === "error" || devices.state === "denied" ? (
+            <div className="v4-calm" data-testid="pli.companion.device-error">
+              <div>
+                <p className="v4-calm-title">{devices.state === "denied" ? "没有读取设备状态的权限" : "设备状态暂时没有加载成功"}</p>
+                <p className="v4-calm-body">
+                  {devices.state === "denied"
+                    ? "需要相应权限后才能查看；这里不会把未知状态显示成未连接。"
+                    : "可以稍后重试；这里不会把加载失败显示成未连接。"}
+                </p>
+              </div>
+            </div>
+          ) : devices.data && devices.data.length === 0 ? (
+            <div className="v4-calm" data-testid="pli.companion.device-empty">
+              <div>
+                <p className="v4-calm-title">尚未连接设备</p>
+                <p className="v4-calm-body">连接支持的摄像头或互动设备后，状态会出现在这里。</p>
+              </div>
+            </div>
+          ) : (
+            (devices.data ?? []).map((d) => (
+              <div className="v4-domain" key={d.device_id}>
+                <div>
+                  <div className="v4-domain-name">{d.display_name || "设备"}</div>
+                  <div className="v4-domain-desc">{deviceStateZh(d.status)}</div>
+                </div>
+              </div>
+            ))
+          )}
 
-      <p className="v4-note">陪伴不用于医疗判断；互动节奏始终由你控制。</p>
-      {/* SAFETY:
-          Demo/preview must never be mistaken for a live stream — the owner
-          UI keeps stating, in user language, that this is not a live feed. */}
-      <p className="v4-note">当前为演示体验，不是实时画面。</p>
+          <div className="v4-linkrow" data-testid="pli.companion.action">
+            <Link className="v4-action v4-action--secondary" href="/monitoring">
+              {devices.data?.length ? "查看设备详情" : "连接设备"}
+            </Link>
+          </div>
+        </section>
+
+        <section className="v5-utility-surface" data-testid="pli.companion.recent">
+          <div className="v4-sec-head">
+            <div>
+              <h2>最近发生</h2>
+              <p className="v4-sec-sub">陪伴只参考已经发生并被记录的事实。</p>
+            </div>
+            <Link className="v4-sec-link" href="/timeline">完整时间线</Link>
+          </div>
+
+          {recent.state === "loading" ? (
+            <div className="v4-loading">正在读取最近记录…</div>
+          ) : recent.state === "error" || recent.state === "denied" ? (
+            <div className="v4-calm">
+              <div>
+                <p className="v4-calm-title">{recent.state === "denied" ? "没有读取最近记录的权限" : "最近记录暂时没有加载成功"}</p>
+                <p className="v4-calm-body">不会把未知或加载失败显示成“没有活动”。</p>
+              </div>
+            </div>
+          ) : visibleEvents.length > 0 ? (
+            <ul className="v4-ls">
+              {visibleEvents.map((e) => (
+                <li className="ls-item" key={e.event_id}>
+                  <span className="ls-time">
+                    {new Date(e.occurred_at).toLocaleTimeString("zh-CN", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    })}
+                  </span>
+                  <div className="ls-body">
+                    <div className="ls-title">{eventTypeZh(e.event_type)}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="v4-calm">
+              <div>
+                <p className="v4-calm-title">还没有可展示的最近活动</p>
+                <p className="v4-calm-body">继续记录日常，陪伴模式会逐渐获得更多真实上下文。</p>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="v5-utility-surface v5-utility-surface--soft" data-testid="pli.companion.next">
+          <h2>下一步</h2>
+          <p className="v4-note" style={{ margin: 0 }}>
+            连接设备后，从“在家”查看当前环境；没有设备时，仍可以通过时间线、健康和行为记录理解它的生活。
+          </p>
+        </section>
+      </div>
+
+      <p className="v4-note" style={{ marginTop: 16 }}>
+        陪伴模式不用于医疗判断；没有可确认的实时来源时不会显示成实时画面，互动节奏始终由你控制。
+      </p>
     </main>
   );
 }
 
 function deviceStateZh(status: string): string {
-  if (status === "connected") return "在线";
-  if (status === "offline") return "离线";
-  if (status === "degraded") return "降级";
-  return "状态未知";
+  const normalized = status.toUpperCase();
+  if (normalized === "CONNECTED" || normalized === "ONLINE") return "在线";
+  if (normalized === "OFFLINE") return "离线";
+  if (normalized === "DEGRADED") return "连接不稳定";
+  if (normalized === "PERMISSION_REQUIRED") return "需要授权";
+  return "状态待确认";
 }
 
 function eventTypeZh(eventType: string): string {
@@ -116,9 +264,12 @@ function eventTypeZh(eventType: string): string {
     "daily.play": "玩耍",
     "daily.weight": "体重",
     "daily.sleep": "睡觉",
-    "behavior.observed": "行为",
-    "diary.created": "备注",
-    "health.event_opened": "健康",
+    "behavior.observed": "行为观察",
+    "diary.created": "生活备注",
+    "health.event_opened": "健康记录",
+    "social.interaction_logged": "互动记录",
+    "training.session_logged": "训练记录",
+    "welfare.observation_recorded": "生活质量观察",
   };
-  return map[eventType] ?? eventType;
+  return map[eventType] ?? "其他记录";
 }

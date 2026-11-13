@@ -9,13 +9,23 @@
 //
 // Regenerate after touching packages/pet-3d/src: `pnpm --dir apps/mobile build:3d-page`
 import { build } from "esbuild";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const entry = resolve(root, "scripts/pet-stage-entry.ts");
 const out = resolve(root, "assets/3d/pet-stage.html");
+
+// R2P3D-R4: embed the production-candidate twin GLBs as base64 so the WebView
+// (baseUrl file:///android_asset/, no HTTP server) can load them offline.
+// ~6.2 MB base64 for 豆豆 + mimi is acceptable for this demo page.
+const twinsDir = resolve(root, "../../packages/pet-3d/assets/twins");
+const twinGlbB64 = Object.fromEntries(
+  ["doudou", "mimi"].map((id) => [id, readFileSync(resolve(twinsDir, `${id}.glb`)).toString("base64")]),
+);
+// Injected BEFORE the bundled entry runs so the resolver can read it.
+const twinGlbScript = `window.__PLI_TWIN_GLB_B64__ = ${JSON.stringify(twinGlbB64)};`;
 
 const res = await build({
   entryPoints: [entry],
@@ -56,9 +66,11 @@ const html = `<!doctype html>
     <button type="button" class="btn" aria-label="重置视图" onclick="resetView()">⟲</button>
   </div>
 <script>
+${twinGlbScript}
+</script>
+<script>
 ${js}
 </script>
-</body>
 </html>`;
 
 mkdirSync(dirname(out), { recursive: true });

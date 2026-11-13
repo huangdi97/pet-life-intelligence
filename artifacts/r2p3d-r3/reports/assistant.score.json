@@ -1,0 +1,254 @@
+{
+  "screen": "assistant",
+  "total": 100,
+  "max": 100,
+  "perDimension": {
+    "individualPetTruth": {
+      "earned": 25,
+      "max": 25
+    },
+    "visualComposition": {
+      "earned": 20,
+      "max": 20
+    },
+    "informationHierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surfaceGovernance": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interactionTruth": {
+      "earned": 10,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "pixelStyleTruth": {
+      "earned": 5,
+      "max": 5
+    }
+  },
+  "passed": [
+    {
+      "id": "assistant.identity",
+      "dimension": "individualPetTruth",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.assistant.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.assistant.identity]=1"
+    },
+    {
+      "id": "assistant.context",
+      "dimension": "individualPetTruth",
+      "points": 12,
+      "description": "当前宠物上下文（recent context + change）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.assistant.context"
+      },
+      "passed": true,
+      "detail": "elements[pli.assistant.context]=1"
+    },
+    {
+      "id": "assistant.suggestions",
+      "dimension": "visualComposition",
+      "points": 12,
+      "description": "建议动作（解释变化/总结/查看记录/计划下一步）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.assistant.suggestion.*",
+        "count": [
+          3,
+          6
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.assistant.suggestion.*]=4"
+    },
+    {
+      "id": "assistant.chat",
+      "dimension": "visualComposition",
+      "points": 8,
+      "description": "对话区存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.assistant.chat"
+      },
+      "passed": true,
+      "detail": "elements[pli.assistant.chat]=1"
+    },
+    {
+      "id": "assistant.ask",
+      "dimension": "informationHierarchy",
+      "points": 5,
+      "description": "输入/提问区存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.assistant.ask"
+      },
+      "passed": true,
+      "detail": "elements[pli.assistant.ask]=1"
+    },
+    {
+      "id": "assistant.explain",
+      "dimension": "informationHierarchy",
+      "points": 5,
+      "description": "解释入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.assistant.suggestion.explain"
+      },
+      "passed": true,
+      "detail": "elements[pli.assistant.suggestion.explain]=1"
+    },
+    {
+      "id": "assistant.plan",
+      "dimension": "informationHierarchy",
+      "points": 5,
+      "description": "计划入口存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.assistant.suggestion.plan"
+      },
+      "passed": true,
+      "detail": "elements[pli.assistant.suggestion.plan]=1"
+    },
+    {
+      "id": "assistant.surface",
+      "dimension": "surfaceGovernance",
+      "points": 10,
+      "description": "大 Card ≤4",
+      "check": {
+        "kind": "surface",
+        "max": 4,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 4"
+    },
+    {
+      "id": "assistant.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "无 provider/debug/model 信息",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-",
+          "debug",
+          "开发模式"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "assistant.suggestion.action",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "建议动作可点",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.assistant.suggestion."
+        },
+        "range": [
+          3,
+          6
+        ]
+      },
+      "passed": true,
+      "detail": "count=4 in [3,6]"
+    },
+    {
+      "id": "assistant.send",
+      "dimension": "interactionTruth",
+      "points": 5,
+      "description": "发送动作存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.assistant.send"
+      },
+      "passed": true,
+      "detail": "elements[pli.assistant.send]=1"
+    },
+    {
+      "id": "assistant.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "建议动作可访问",
+      "check": {
+        "kind": "count",
+        "filter": {
+          "role": "button",
+          "idPrefix": "pli.assistant.suggestion."
+        },
+        "range": [
+          3,
+          6
+        ]
+      },
+      "passed": true,
+      "detail": "count=4 in [3,6]"
+    },
+    {
+      "id": "assistant.truth",
+      "dimension": "individualPetTruth",
+      "points": 5,
+      "description": "上下文来自真实 runtime（非 generic 克隆） (real data)",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "hello"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "assistant.truth.style",
+      "dimension": "pixelStyleTruth",
+      "points": 5,
+      "description": "无占位/空板书风格（style truth）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}

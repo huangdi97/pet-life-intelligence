@@ -1,0 +1,174 @@
+// R5.6 final Web Twin turntables. Real runtime camera presets only; no vision model.
+// Usage:
+//   node scripts/r5-6/capture-web-turntables-final.mjs //     --primary-pet-id <uuid> --secondary-pet-id <uuid> [--base-url http://localhost:3100]
+import { chromium } from "@playwright/test";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const root = resolve(here, "..", "..");
+const args = process.argv.slice(2);
+const pick = (flag, fallback = "") => {
+  const i = args.indexOf(flag);
+  return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
+};
+const baseUrl = pick("--base-url", "http://localhost:3100");
+const primaryPetId = pick("--primary-pet-id", process.env.PLI_PRIMARY_PET_ID || "");
+const secondaryPetId = pick("--secondary-pet-id", process.env.PLI_SECONDARY_PET_ID || "");
+if (!primaryPetId || !secondaryPetId) {
+  throw new Error("Both --primary-pet-id and --secondary-pet-id are required; do not guess demo identity.");
+}
+
+const outRoot = resolve(root, "artifacts/r5-6-final/turntable");
+function sourceIdentity() {
+  if (process.env.PLI_SOURCE_HEAD) {
+    return {
+      head: process.env.PLI_SOURCE_HEAD,
+      branch: process.env.PLI_SOURCE_BRANCH || "",
+    };
+  }
+  const eventPath = process.env.GITHUB_EVENT_PATH;
+  if (eventPath && existsSync(eventPath)) {
+    try {
+      const event = JSON.parse(readFileSync(eventPath, "utf8"));
+      const head = event?.pull_request?.head?.sha;
+      const branch = event?.pull_request?.head?.ref;
+      if (head) return { head: String(head), branch: String(branch || "") };
+    } catch {}
+  }
+  return { head: git("rev-parse", "HEAD"), branch: git("branch", "--show-current") };
+}
+
+const git = (...gitArgs) => {
+  const r = spawnSync("git", gitArgs, { cwd: root, encoding: "utf8" });
+  if (r.status !== 0) throw new Error(`git ${gitArgs.join(" ")} failed: ${r.stderr || r.stdout}`);
+  return r.stdout.trim();
+};
+rmSync(outRoot, { recursive: true, force: true });
+const viewport = { width: 390, height: 844 };
+const views = [
+  ["front", 0],
+  ["front-left", 0.35],
+  ["side", Math.PI / 2],
+  ["rear", Math.PI],
+  ["front-right", -0.35],
+];
+
+async function devUserId() {
+  const api = baseUrl.replace(/:\d+$/, ":8800");
+  const response = await fetch(`${api}/api/v1/auth/dev/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: "owner@pli.demo" }),
+  });
+  if (!response.ok) throw new Error(`dev login failed: ${response.status}`);
+  const body = await response.json();
+  if (!body.user_id) throw new Error("dev login returned no user_id");
+  return body.user_id;
+}
+
+async function capture(browser, userId, petId, folder, requiredViews) {
+  const dir = resolve(outRoot, folder);
+  mkdirSync(dir, { recursive: true });
+  const page = await browser.newPage({ viewport, locale: "zh-CN" });
+  await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await page.evaluate((uid) => localStorage.setItem("pli_dev_user_id", uid), userId);
+  await page.goto(`${baseUrl}/pets/${petId}/life-view`, { waitUntil: "domcontentloaded", timeout: 30000 });
+  await page.waitForSelector('[data-testid="pet3d-stage"]', { timeout: 20000 });
+  await page.waitForFunction(() => {
+    const el = document.querySelector('[data-testid="pet3d-stage"]');
+    return el?.getAttribute("data-pet3d") === "ready";
+  }, { timeout: 20000 });
+  await page.waitForTimeout(2500);
+
+  for (const [name, yaw] of views) {
+    if (!requiredViews.includes(name)) continue;
+    await page.evaluate((value) => window.__PLI_SET_VIEW?.(value), yaw);
+    await page.waitForTimeout(1200);
+    const manifest = await page.evaluate(() => window.__PLI_3D_MANIFEST__ ?? null);
+    if (!manifest || manifest.petId !== petId) {
+      throw new Error(`runtime manifest pet mismatch for ${folder}/${name}`);
+    }
+    const sourceMediaCount = Number(manifest.sourceMediaCount ?? 0);
+    const identityEvidence = manifest.individualIdentityEvidence === true;
+    const fidelityTier = manifest.visualFidelityTier;
+    const fidelityConsistent =
+      (fidelityTier === "STYLIZED_REFERENCE" && sourceMediaCount === 0 && !identityEvidence) ||
+      (fidelityTier === "OWNER_MEDIA_REFERENCED" && sourceMediaCount > 0 && identityEvidence);
+    if (
+      manifest.ready !== true ||
+      manifest.manifestOrigin !== "RUNTIME" ||
+      manifest.representation !== "rigged-glb-twin" ||
+      manifest.technicalRepresentationQuality !== "RIGGED_PBR_SKINNED" ||
+      manifest.productCandidate !== true ||
+      !fidelityConsistent ||
+      manifest.generic === true ||
+      manifest.fallbackUsed === true
+    ) {
+      throw new Error(
+        `non-product runtime representation for ${folder}/${name}: ` +
+        JSON.stringify({
+          representation: manifest.representation,
+          technicalRepresentationQuality: manifest.technicalRepresentationQuality,
+          visualFidelityTier: fidelityTier,
+          sourceMediaCount,
+          individualIdentityEvidence: identityEvidence,
+          productCandidate: manifest.productCandidate,
+          generic: manifest.generic,
+          fallbackUsed: manifest.fallbackUsed,
+        }),
+      );
+    }
+    if (manifest.stageRole !== "life") {
+      throw new Error(
+        `turntable must be captured from Life View: ${folder}/${name}; stageRole=${manifest.stageRole}`,
+      );
+    }
+    const actualYaw = Number(manifest.camera?.yaw);
+    if (!Number.isFinite(actualYaw)) {
+      throw new Error(`runtime camera yaw missing for ${folder}/${name}`);
+    }
+    const yawError = Math.abs(Math.atan2(Math.sin(actualYaw - yaw), Math.cos(actualYaw - yaw)));
+    if (yawError > 0.08) {
+      throw new Error(
+        `runtime camera mismatch for ${folder}/${name}: expected=${yaw.toFixed(3)} actual=${actualYaw.toFixed(3)}`,
+      );
+    }
+    writeFileSync(resolve(dir, `${name}.json`), JSON.stringify(manifest, null, 2) + "\n", "utf8");
+    await page.screenshot({ path: resolve(dir, `${name}.png`), fullPage: false });
+  }
+  await page.close();
+}
+
+const browser = await chromium.launch();
+try {
+  const userId = await devUserId();
+  await capture(browser, userId, primaryPetId, "primary", ["front", "front-left", "side", "rear", "front-right"]);
+  await capture(browser, userId, secondaryPetId, "secondary", ["front", "front-left", "side", "rear"]);
+} finally {
+  await browser.close();
+}
+const source = sourceIdentity();
+writeFileSync(
+  resolve(outRoot, "capture-manifest.json"),
+  JSON.stringify(
+    {
+      captured_at: new Date().toISOString(),
+      source_head: source.head,
+      source_branch: source.branch,
+      checkout_head: git("rev-parse", "HEAD"),
+      base_url: baseUrl,
+      vision_model_used: false,
+      primary_pet_id: primaryPetId,
+      secondary_pet_id: secondaryPetId,
+      primary_views: ["front", "front-left", "side", "rear", "front-right"],
+      secondary_views: ["front", "front-left", "side", "rear"],
+    },
+    null,
+    2,
+  ) + "\n",
+  "utf8",
+);
+console.log("R5.6 final runtime turntables captured ->", outRoot);

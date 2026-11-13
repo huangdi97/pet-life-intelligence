@@ -46,3 +46,18 @@ Companion 不是一级 Tab；入口来自 Today / Pet contextual entry（§16）
 - §108：COMPANION_EMPTY_EXPERIENCE_PASS。
 - 截图：artifacts/visual-reconstruction/v0.2.0/wave-05-assistant-companion-me/after/companion-390.png；final/_s_12_Companion.png。
 - Copy：无 feature flag / prototype tag（web owner copy zero gate 同步通过）。
+
+
+## 9. R5.3 cross-client closure（2026-10-04）
+
+Owner-facing Companion is now aligned across Web / Mobile / Mini:
+
+- no feature-flag or PROTOTYPE gate in Owner UI;
+- four capability layers use the same user semantics;
+- device state is read from the real device endpoint;
+- no-device is a calm honest empty state, not a fake timeout/live view;
+- recent context comes from recorded life events;
+- Monitoring and Timeline are contextual actions;
+- Mini explicitly states that it does not impersonate a live view.
+
+The hardware integration boundary is unchanged: unsupported hardware actions remain unavailable rather than simulated.

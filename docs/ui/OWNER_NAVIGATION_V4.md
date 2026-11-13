@@ -47,8 +47,8 @@ RootStack
     ├── Assistant
     └── Me
 
-Stack 二级：QuickLog(modal) / Notifications / Health / LifeView / Behavior /
-           Training / Welfare / Social / Monitoring / Companion
+Stack 二级：QuickLog(modal) / Notifications / Health / Medication / Care / LifeView /
+           Behavior / Training / Welfare / Social / Monitoring / Companion
 ```
 
 实现：`apps/mobile/src/navigation.tsx` — TabParamList = Today/Timeline/Pet/Assistant/Me；StackParamList 含全部二级页；QuickLog 以 `presentation: "modal"` 打开。Tab icons 统一 Ionicons（active/inactive outline 语义）。
@@ -68,3 +68,12 @@ Stack 二级：QuickLog(modal) / Notifications / Health / LifeView / Behavior /
 - §105 P0：Bottom tabs = Today/Timeline/Pet/Assistant/Me（PASS）。
 - §108：OWNER_NAVIGATION_CANONICAL_PASS。
 - 证据：apps/mobile/src/navigation.tsx（5 Tab.Screen：今天/时间线/宠物/助手/我的）；截图 final/_s_01_Today.png 底部 Tab。
+
+
+## 7. R5.3 utility closure（2026-10-04）
+
+Mobile Stack 已补齐 `Medication` 与 `Care`：
+
+- Health → Medication 是健康照护情境入口；
+- Pet / Me → Care 是家庭照护与临时交接入口；
+- 两者仍不占一级 Tab，保持 canonical 5-tab IA 不漂移。

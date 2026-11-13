@@ -169,6 +169,17 @@ async def request_merge(body: MergeIn, db: DBSession, user: CurrentUser) -> dict
 class FieldPrivacyIn(BaseModel):
     hidden_fields: list[str] = Field(default_factory=list)
 
+@router.get("/pets/{pet_id}/field-privacy")
+async def get_field_privacy(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -> dict:
+    pet = await perm.get_pet_or_404(db, pet_id)
+    await perm.require_capability(db, pet, user.id, enums.Capability.MANAGE_PET)
+    return {
+        "pet_id": str(pet.id),
+        "hidden_fields": list(pet.field_privacy or []),
+        "maskable_fields": ["birth_date", "breed", "weight_note"],
+    }
+
+
 @router.put("/pets/{pet_id}/field-privacy")
 async def put_field_privacy(pet_id: uuid.UUID, body: FieldPrivacyIn,
                             db: DBSession, user: CurrentUser) -> dict:

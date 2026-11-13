@@ -1,0 +1,51 @@
+name: OpenAPI Artifact Sync
+
+on:
+  pull_request:
+    paths:
+      - "services/api/**"
+      - "packages/rules/**"
+      - "scripts/gen_openapi.py"
+      - "docs/api/openapi.json"
+      - ".github/workflows/openapi-sync.yml"
+
+concurrency:
+  group: openapi-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Regenerate OpenAPI from current API source
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/r2p3d-r3-render-truth-ui-closure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install API generation dependencies
+        run: pip install -e "services/api[dev]" -e "packages/rules" -e "services/ai-gateway"
+      - name: Regenerate OpenAPI
+        run: python scripts/gen_openapi.py
+      - name: Commit artifact if changed
+        env:
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          git diff --check
+          if git diff --quiet -- docs/api/openapi.json; then
+            echo "OpenAPI artifact already fresh."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/api/openapi.json
+          git commit -m "chore(api): refresh OpenAPI artifact"
+          git push origin "HEAD:${BRANCH}"

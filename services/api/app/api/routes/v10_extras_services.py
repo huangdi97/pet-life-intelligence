@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
 from app.core.errors import ValidationFailed
@@ -14,6 +14,7 @@ from app.domain import enums
 from app.models import BehaviorEvent, LifeEvent
 from app.services import permissions as perm
 from app.services.eventlog import create_notification
+from app.services.life_replay import RECORD_FACT_SOURCES, project_life_replay
 
 router = APIRouter(tags=["v10-extras"])
 
@@ -65,44 +66,262 @@ async def emergency_grant(pet_id: uuid.UUID, body: EmergencyGrantIn,
 # --- PLI-030 abnormal-day hint (today vs baseline deviation) ---------------------
 
 
+PRODUCT_TZ = timezone(timedelta(hours=8))
+_HINT_METRICS = {
+    "meal_count_per_day": {
+        "event_type": "daily.meal",
+        "label": "进食",
+        "unit": "次",
+        "mode": "count",
+        "next_step": "继续按真实发生记录进食；如果记录长期明显变化，再结合食欲和健康事实查看。",
+    },
+    "walk_minutes_per_day": {
+        "event_type": "daily.walk",
+        "label": "散步",
+        "unit": "分钟",
+        "mode": "duration",
+        "next_step": "继续记录真实散步时长；如果活动变化持续，再结合行为和健康记录判断下一步。",
+    },
+    "sleep_minutes_per_day": {
+        "event_type": "daily.sleep",
+        "label": "睡眠",
+        "unit": "分钟",
+        "mode": "duration",
+        "next_step": "继续记录可观察到的睡眠时长；如果变化持续并伴随明确异常，再进入健康页查看。",
+    },
+}
+
+
+def _local_time(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(PRODUCT_TZ)
+
+
+def _metric_value(metric: str, events: list[LifeEvent]) -> float:
+    spec = _HINT_METRICS[metric]
+    if spec["mode"] == "count":
+        return float(len(events))
+    total = 0.0
+    for event in events:
+        raw = (event.payload or {}).get("duration_minutes")
+        try:
+            minutes = float(raw)
+        except (TypeError, ValueError):
+            continue
+        # A malformed duration must never become a baseline fact.
+        if 0 < minutes <= 24 * 60:
+            total += minutes
+    return total
+
+
+def _fmt_value(value: float) -> str:
+    rounded = round(value, 1)
+    return f"{int(rounded)}" if rounded.is_integer() else f"{rounded:g}"
+
+
 @router.get("/pets/{pet_id}/abnormal-day-hint")
 async def abnormal_day_hint(pet_id: uuid.UUID, db: DBSession,
                             user: CurrentUser) -> dict:
+    """Explain today against this pet's same-clock recorded history.
+
+    Baseline rows define the approved metric/window. The comparison itself is
+    rebuilt from raw LifeEvents at the current local clock so a 10:00 owner
+    screen is never compared with a full-day total. Count metrics stay counts;
+    duration metrics sum duration_minutes. This endpoint describes *recorded
+    facts*, never disease, mood, or unobserved behaviour.
+    """
+    from app.api.routes.v02_identity_daily_baseline import _baseline_algorithm
     from app.models import Baseline
 
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
-    day_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0,
-                                                   microsecond=0)
-    hints = []
+
+    now = datetime.now(PRODUCT_TZ)
+    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end = day_start + timedelta(days=1)
+    clock_seconds = now.hour * 3600 + now.minute * 60 + now.second
     baselines = (
         await db.execute(select(Baseline).where(Baseline.pet_id == pet.id))
     ).scalars().all()
-    type_by_metric = {"meal_count_per_day": "daily.meal",
-                      "walk_minutes_per_day": "daily.walk",
-                      "sleep_minutes_per_day": "daily.sleep"}
-    for b in baselines:
-        et = type_by_metric.get(b.metric)
-        if not et:
+
+    explanations: list[dict] = []
+    hints: list[str] = []
+    for baseline in baselines:
+        spec = _HINT_METRICS.get(baseline.metric)
+        if not spec:
             continue
-        today_count = (
+        try:
+            stored_baseline = float(baseline.value)
+        except (TypeError, ValueError):
+            continue
+
+        window_days = max(3, int(baseline.window_days or 14))
+        history_start = day_start - timedelta(days=window_days)
+        raw_metric_events = list((
             await db.execute(
-                select(func.count()).where(
+                select(LifeEvent).where(
                     LifeEvent.pet_id == pet.id,
-                    LifeEvent.event_type == et,
-                    LifeEvent.occurred_at >= day_start,
-                    LifeEvent.retracted_at.is_(None),
+                    LifeEvent.event_type == spec["event_type"],
+                    LifeEvent.occurred_at >= history_start,
+                    LifeEvent.occurred_at < day_end,
                 )
             )
-        ).scalar_one()
-        try:
-            base = float(b.value)
-        except ValueError:
-            continue
-        if base > 0 and today_count == 0:
-            hints.append(f"今天还没有「{et}」记录（基线约 {base:g}/天）。")
-    return {"hints": hints or ["今天与基线相比无明显异常。"],
-            "rule": "确定性对比（今日计数 vs 基线），非健康判断。"}
+        ).scalars().all())
+        # A later correction may occur outside this historical window or
+        # change event type. Check its original-event link, not merely the
+        # original row's retracted_at: Today/Life Replay already interpret
+        # supersession as replacing the earlier recorded fact.
+        superseders: list[LifeEvent] = []
+        if raw_metric_events:
+            superseders = list((
+                await db.execute(
+                    select(LifeEvent).where(
+                        LifeEvent.pet_id == pet.id,
+                        LifeEvent.supersedes_event_id.in_(
+                            [event.id for event in raw_metric_events]
+                        ),
+                        LifeEvent.recorded_at < now.astimezone(timezone.utc),
+                    )
+                )
+            ).scalars().all())
+        # A correction with the same event type and day can appear in BOTH
+        # queries. Deduplicate by immutable LifeEvent ID before projection,
+        # otherwise the corrected duration would be counted twice.
+        candidates = {event.id: event for event in [*raw_metric_events, *superseders]}
+        projection = project_life_replay(
+            list(candidates.values()),
+            pet_id=pet.id,
+            day_start=history_start,
+            day_end=day_end,
+            knowledge_cutoff=now.astimezone(timezone.utc),
+        )
+        rows = [
+            event for event in projection.events
+            if event.event_type == spec["event_type"]
+            and event.source_type in RECORD_FACT_SOURCES
+        ]
+
+        today_events: list[LifeEvent] = []
+        by_day: dict[object, list[LifeEvent]] = {}
+        for event in rows:
+            local = _local_time(event.occurred_at)
+            if local.date() == now.date():
+                if local <= now:
+                    today_events.append(event)
+                continue
+            seconds = local.hour * 3600 + local.minute * 60 + local.second
+            if seconds <= clock_seconds:
+                by_day.setdefault(local.date(), []).append(event)
+
+        # Missing logs are unknown, not observed zero. Use only historical days
+        # with at least one relevant record and expose the sample count.
+        historical_values = [
+            _metric_value(baseline.metric, events)
+            for events in by_day.values()
+            if events
+        ]
+        same_time_baseline = (
+            round(_baseline_algorithm(historical_values), 2)
+            if historical_values
+            else None
+        )
+        current_recorded = bool(today_events)
+        current_value = round(_metric_value(baseline.metric, today_events), 2)
+        # No log is NOT a measured zero. Unless a zero-observation source exists,
+        # today's missing records cannot justify a -100% "decline" warning.
+        comparable = (
+            current_recorded and same_time_baseline is not None
+            and len(historical_values) >= 3 and same_time_baseline > 0
+        )
+        deviation_percent = (
+            round(((current_value - same_time_baseline) / same_time_baseline) * 100)
+            if comparable and same_time_baseline
+            else None
+        )
+        if deviation_percent is None:
+            direction = "INSUFFICIENT"
+            comparison = (
+                f"今天截至 {now.strftime('%H:%M')} 尚未记录{spec['label']}；"
+                "未知不等于零，不推断减少。"
+                if not current_recorded
+                else f"过去 {window_days} 天同一时间的可比记录还不足，暂不判断变化。"
+            )
+        elif abs(deviation_percent) < 15:
+            direction = "SIMILAR"
+            comparison = (
+                f"与过去 {window_days} 天同一时间的已记录常态接近"
+                f"（{len(historical_values)} 天可比记录）。"
+            )
+        else:
+            direction = "HIGHER" if deviation_percent > 0 else "LOWER"
+            comparison = (
+                f"比过去 {window_days} 天同一时间的已记录常态"
+                f"{'高' if deviation_percent > 0 else '低'} {abs(deviation_percent)}%"
+                f"（{len(historical_values)} 天可比记录）。"
+            )
+
+        fact = (
+            f"今天截至 {now.strftime('%H:%M')} 已记录{spec['label']} "
+            f"{_fmt_value(current_value)} {spec['unit']}。"
+            if current_recorded
+            else f"今天截至 {now.strftime('%H:%M')} 尚无{spec['label']}记录；"
+                 "不能据此认为实际发生次数或时长为零。"
+        )
+        uncertainty = (
+            "这里只比较已经记录的事实；漏记、设备离线或当天尚未发生的活动都可能影响结果，"
+            "不能据此判断疾病、疼痛或情绪。"
+        )
+        notable = deviation_percent is not None and abs(deviation_percent) >= 15
+        explanation = {
+            "metric": baseline.metric,
+            "label": spec["label"],
+            "unit": spec["unit"],
+            "current_value": current_value,
+            "current_recorded": current_recorded,
+            "current_event_ids": [str(event.id) for event in today_events],
+            "historical_event_ids": [str(event.id) for day in by_day.values() for event in day],
+            "stored_daily_baseline": stored_baseline,
+            "same_time_baseline": same_time_baseline,
+            "sample_count": len(historical_values),
+            "window_days": window_days,
+            "deviation_percent": deviation_percent,
+            "direction": direction,
+            "notable": notable,
+            "fact": fact,
+            "comparison": comparison,
+            "uncertainty": uncertainty,
+            "next_step": spec["next_step"],
+            "source_scope": "RECORDED_LIFE_EVENTS",
+        }
+        explanations.append(explanation)
+        if notable:
+            hints.append(f"{spec['label']}：{comparison}")
+
+    explanations.sort(
+        key=lambda row: (
+            not row["notable"],
+            -(abs(row["deviation_percent"]) if row["deviation_percent"] is not None else -1),
+            row["metric"],
+        )
+    )
+    comparable = any(row["direction"] != "INSUFFICIENT" for row in explanations)
+    if hints:
+        status = "NOTABLE"
+        owner_hints = hints
+    elif comparable:
+        status = "STABLE"
+        owner_hints = ["今天与自身同期的已记录常态相比，暂未出现需要突出显示的变化。"]
+    else:
+        status = "INSUFFICIENT"
+        owner_hints = ["当前记录或同期基线不足，不能判断今天是否发生了变化；未记录不等于实际为零。"]
+    return {
+        "status": status,
+        "hints": owner_hints,
+        "rule": "确定性同期对比（同一时间点、同一指标口径），仅比较已记录事实，非健康判断。",
+        "as_of": now.isoformat(),
+        "explanations": explanations,
+    }
 
 
 # --- PLI-034 continuous care feedback (7-day streak vs baseline) -------------------
@@ -112,25 +331,42 @@ async def abnormal_day_hint(pet_id: uuid.UUID, db: DBSession,
 async def care_feedback(pet_id: uuid.UUID, db: DBSession, user: CurrentUser) -> dict:
     pet = await perm.get_pet_or_404(db, pet_id)
     await perm.require_capability(db, pet, user.id, enums.Capability.DAILY_READ)
-    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    counts = (
-        await db.execute(
-            select(LifeEvent.event_type, func.count()).where(
-                LifeEvent.pet_id == pet.id,
-                LifeEvent.occurred_at >= week_ago,
-                LifeEvent.event_type.in_(["daily.meal", "daily.walk", "daily.play",
-                                          "daily.sleep"]),
-                LifeEvent.retracted_at.is_(None),
-            ).group_by(LifeEvent.event_type)
+    now = datetime.now(timezone.utc)
+    week_ago = now - timedelta(days=7)
+    observed_types = ("daily.meal", "daily.walk", "daily.play", "daily.sleep")
+    originals = list((await db.execute(
+        select(LifeEvent).where(
+            LifeEvent.pet_id == pet.id,
+            LifeEvent.occurred_at >= week_ago,
+            LifeEvent.occurred_at < now,
+            LifeEvent.event_type.in_(observed_types),
         )
-    ).all()
+    )).scalars().all())
+    successors: list[LifeEvent] = []
+    if originals:
+        successors = list((await db.execute(
+            select(LifeEvent).where(
+                LifeEvent.pet_id == pet.id,
+                LifeEvent.supersedes_event_id.in_([event.id for event in originals]),
+                LifeEvent.recorded_at < now,
+            )
+        )).scalars().all())
+    candidates = {event.id: event for event in [*originals, *successors]}
+    projection = project_life_replay(
+        list(candidates.values()), pet_id=pet.id,
+        day_start=week_ago, day_end=now, knowledge_cutoff=now,
+    )
+    event_ids: dict[str, list[str]] = {}
+    for event in projection.events:
+        if event.event_type in observed_types and event.source_type in RECORD_FACT_SOURCES:
+            event_ids.setdefault(event.event_type, []).append(str(event.id))
     feedback = [
-        {"event_type": t, "count_7d": c,
-         "status": "active" if c > 0 else "quiet"}
-        for t, c in counts
+        {"event_type": kind, "count_7d": len(ids), "status": "active",
+         "source_event_ids": ids}
+        for kind, ids in sorted(event_ids.items())
     ]
     return {"feedback": feedback,
-            "note": "轻量连续照护反馈：近 7 天记录活跃度（记录层）。"}
+            "note": "近 7 天有来源的照护记录次数；未记录不代表没有发生，且已撤回或被修正的旧版本不计入。"}
 
 
 # --- PLI-081 behavior consultation package (JSON bundle) ------------------------------

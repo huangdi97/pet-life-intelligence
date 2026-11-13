@@ -1,0 +1,190 @@
+{
+  "screen": "special-multipet",
+  "total": 100,
+  "max": 100,
+  "perDimension": {
+    "individualPetTruth": {
+      "earned": 25,
+      "max": 25
+    },
+    "visualComposition": {
+      "earned": 20,
+      "max": 20
+    },
+    "informationHierarchy": {
+      "earned": 15,
+      "max": 15
+    },
+    "surfaceGovernance": {
+      "earned": 10,
+      "max": 10
+    },
+    "contentPurity": {
+      "earned": 10,
+      "max": 10
+    },
+    "interactionTruth": {
+      "earned": 10,
+      "max": 10
+    },
+    "accessibility": {
+      "earned": 5,
+      "max": 5
+    },
+    "pixelStyleTruth": {
+      "earned": 5,
+      "max": 5
+    }
+  },
+  "passed": [
+    {
+      "id": "multipet.current",
+      "dimension": "individualPetTruth",
+      "points": 12,
+      "description": "Multi-pet 态：current pet 呈现",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.multipet.current"
+      },
+      "passed": true,
+      "detail": "elements[pli.multipet.current]=1"
+    },
+    {
+      "id": "multipet.identity",
+      "dimension": "individualPetTruth",
+      "points": 8,
+      "description": "当前宠物身份存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.pet.identity"
+      },
+      "passed": true,
+      "detail": "elements[pli.pet.identity]=1"
+    },
+    {
+      "id": "multipet.composition",
+      "dimension": "visualComposition",
+      "points": 20,
+      "description": "多宠切换主视觉存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.multipet.*",
+        "count": [
+          1,
+          6
+        ]
+      },
+      "passed": true,
+      "detail": "elements[pli.multipet.*]=3"
+    },
+    {
+      "id": "multipet.names",
+      "dimension": "informationHierarchy",
+      "points": 15,
+      "description": "宠物名称来自 runtime（≥1 宠物列表）",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.multipet.switch.*"
+      },
+      "passed": true,
+      "detail": "elements[pli.multipet.switch.*]=1"
+    },
+    {
+      "id": "multipet.surface",
+      "dimension": "surfaceGovernance",
+      "points": 10,
+      "description": "大 Card ≤6",
+      "check": {
+        "kind": "surface",
+        "max": 6,
+        "minArea": 16000
+      },
+      "passed": true,
+      "detail": "card surfaces(aboveFold=undefined)=0 <= 6"
+    },
+    {
+      "id": "multipet.content.purity",
+      "dimension": "contentPurity",
+      "points": 10,
+      "description": "Owner 文本无 raw internal terms",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "BW-",
+          "OWNER_REPORTED",
+          "STRESS_RECOVERY",
+          "OPEN",
+          "provider_",
+          "model_id",
+          "event_key",
+          "PLI-"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "multipet.switch",
+      "dimension": "interactionTruth",
+      "points": 10,
+      "description": "Multi-pet 态：switch 存在",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.multipet.switch"
+      },
+      "passed": true,
+      "detail": "elements[pli.multipet.switch]=1"
+    },
+    {
+      "id": "multipet.a11y",
+      "dimension": "accessibility",
+      "points": 5,
+      "description": "current pet 可读",
+      "check": {
+        "kind": "element",
+        "idPrefix": "pli.multipet.current"
+      },
+      "passed": true,
+      "detail": "elements[pli.multipet.current]=1"
+    },
+    {
+      "id": "multipet.truth",
+      "dimension": "individualPetTruth",
+      "points": 5,
+      "description": "当前宠物来自真实 runtime (real data)",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "测试宠物"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    },
+    {
+      "id": "multipet.truth.style",
+      "dimension": "pixelStyleTruth",
+      "points": 5,
+      "description": "无占位/空板书风格（style truth）",
+      "check": {
+        "kind": "text-free",
+        "tokens": [
+          "占位",
+          "TODO",
+          "placeholder",
+          "coming soon"
+        ]
+      },
+      "passed": true,
+      "detail": "no raw tokens found"
+    }
+  ],
+  "failed": [],
+  "criticalFailed": [],
+  "pass": true,
+  "heroPass": true,
+  "blockers": []
+}
