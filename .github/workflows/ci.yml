@@ -108,6 +108,16 @@ jobs:
         run: pnpm --dir packages/pet-3d build
       - name: Mobile 3D page build
         run: pnpm --dir apps/mobile build:3d-page
+      # The generated stage page is committed, so regenerating it here and diffing
+      # is the only way to keep the shipped WebView page honest about its source.
+      # This exact drift (page written 2026-10-03, generator changed 2026-10-05)
+      # shipped unnoticed for six weeks because nothing compared the two.
+      - name: Mobile 3D page matches its generator
+        run: |
+          if ! git diff --exit-code -- apps/mobile/assets/3d/pet-stage.html apps/mobile/src/three/petStageHtml.ts; then
+            echo "::error::generated 3D page is out of date - run 'pnpm --dir apps/mobile build:3d-page' and commit the result"
+            exit 1
+          fi
       - name: Web typecheck (cold, non-incremental)
         run: pnpm --dir apps/web exec tsc --noEmit --incremental false
       # The Web component tests previously existed but CI never executed them.

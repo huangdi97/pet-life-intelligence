@@ -476,9 +476,14 @@ window.__PLI_SET_VIEW = (yaw: number) => {
 };
 
 const controls = document.getElementById("controls") as HTMLElement;
-// Product owner pages use the native React Native controls so there is one
-// interaction layer, not duplicated WebView + native +/-/reset buttons.
-if (interactive && stageTheme === "engineering") controls.classList.add("show");
+// DECISION (recorded 2026-11-13, product owner): the WebView controls stay
+// visible on any interactive surface, matching what the shipped APK has rendered
+// since the 2026-10-03 build. The alternative - engineering theme only - would
+// have removed the +/-/reset buttons owners can already see on LifeView, at the
+// cost that those buttons now overlap the native React Native controls the other
+// surfaces use. Going back to engineering-only is a one-line change if the
+// duplicated control layer is judged worse than the missing one.
+if (interactive) controls.classList.add("show");
 
 // Host-ready means both renderer AND imperative camera controls exist. Posting
 // ready earlier allowed the React Native host to issue the initial Review
