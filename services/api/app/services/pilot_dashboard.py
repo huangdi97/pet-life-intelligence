@@ -7,7 +7,7 @@ data is excluded so non-real data never enters real Pilot metrics.
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import and_, func, or_, select, text
+from sqlalchemy import and_, bindparam, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ValidationFailed
@@ -136,6 +136,11 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
     # deadline passes, later retractions/corrections cannot rewrite whether
     # onboarding was achieved by that deadline; before it passes, invalidated
     # rows stop counting immediately. This mirrors PLI's bitemporal truth.
+    # Derived, never copied: the registries are the single source of truth for
+    # what counts as a daily fact and which sources are record facts.
+    activation_event_types = tuple(DAILY_EVENT_TYPES)
+    activation_fact_sources = tuple(RECORD_FACT_SOURCES)
+
     activated_owners = (await db.execute(
         text(
             "SELECT count(DISTINCT p.created_by_user_id) FROM pets p "
@@ -149,14 +154,8 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
             "  FROM life_events e "
             "  WHERE e.pet_id = p.id "
             "    AND e.is_duplicate = false "
-            "    AND e.event_type IN ("
-            "      'daily.meal','daily.drink','daily.elimination','daily.walk',"
-            "      'daily.play','daily.weight','daily.sleep'"
-            "    ) "
-            "    AND e.source_type IN ("
-            "      'OWNER_REPORTED','CAREGIVER_REPORTED','DEVICE_DERIVED',"
-            "      'PROFESSIONAL_CONFIRMED','LAB_CONFIRMED'"
-            "    ) "
+            "    AND e.event_type IN :activation_event_types "
+            "    AND e.source_type IN :activation_fact_sources "
             "    AND e.recorded_at >= p.created_at "
             "    AND e.recorded_at < LEAST("
             "      p.created_at + INTERVAL '24 hours', CURRENT_TIMESTAMP"
@@ -176,6 +175,13 @@ async def pilot_dashboard(db: AsyncSession) -> dict:
             "        )"
             "    )"
             ") >= 3"
+        ).bindparams(
+            # INVARIANT: the activation fact set IS the canonical registry. These
+            # two lists used to be literals inside the SQL below, so a registry
+            # change would have made this dashboard silently disagree with event
+            # validation and life_replay while every test still passed.
+            bindparam("activation_event_types", activation_event_types, expanding=True),
+            bindparam("activation_fact_sources", activation_fact_sources, expanding=True),
         )
     )).scalar_one()
 
