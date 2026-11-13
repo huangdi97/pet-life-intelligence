@@ -980,3 +980,44 @@ Residual, unchanged: the regenerated bundle carries a different three.js module
 subset than the 2026-10-03 page, so the stage *chrome* is provably identical while
 the scene's pixels are not machine-compared to the old page.
 `HUMAN_VISUAL_ACCEPTANCE` stays `PENDING` for exactly that reason.
+
+## 19. Pass 12 — the metric→event map stops being copied four times
+
+`meal_count_per_day` / `walk_minutes_per_day` / `sleep_minutes_per_day` each map to
+one daily event type, and that mapping was declared in four places: two route
+modules, the change workflow, and a SQL `CASE` inside the history module — which
+also carried its own copy of the five record-fact source names. They agreed, so
+nothing failed; an edit to one of them would have left change-case validation, the
+baseline API and the evidence-validity filter disagreeing with no test noticing.
+
+`app/domain/life_change_metrics.py` now owns `METRIC_EVENT_TYPES` and
+`METRIC_UNITS`, and renders the SQL `CASE` through `metric_event_type_sql()`, so the
+query cannot drift from the Python mapping it must agree with. All consumers import
+it; the source list in that SQL now comes from `RECORD_FACT_SOURCES`.
+
+### 19.1 What the run caught that I could not
+
+`0349c180` deleted `METRICS` from `routes/life_changes.py` and the Backend job
+failed immediately with `cannot import name 'METRICS'` — a sixth consumer,
+`routes/life_change_sources.py`, imported it through that route. My local blind
+suite cannot import the app at all (no `sqlalchemy` on this host), so the import
+graph is genuinely CI's check, not mine; `58febd4d` fixes it and the Backend job
+is green. This is the same division of labour as §17.1 and it is stated rather than
+blurred.
+
+### 19.2 What pins it now
+
+`tests/blind_ui/test_life_change_metric_registry.py` (6 tests, stdlib only):
+the registry is the only module naming the mappings, no consumer re-types them or
+the source list, every consumer imports the registry, the SQL is rendered through
+`metric_event_type_sql`, the rendered `CASE` covers every metric, and the Chinese
+search-term map's keys equal the registry's (a metric without keywords would be
+unreachable; a removed metric would leave dead weights).
+
+One older test pinned the literal SQL text. It was **re-expressed, not weakened**:
+it now requires the predicates to exist *and* their values to come from the
+registry, so deleting either half fails.
+
+Local: `ruff` clean, `325` blind tests pass. Behavioural proof: Backend job on
+`58febd4d` (real Postgres), plus the Android artifact `14029343775` validating
+(`ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS`).
