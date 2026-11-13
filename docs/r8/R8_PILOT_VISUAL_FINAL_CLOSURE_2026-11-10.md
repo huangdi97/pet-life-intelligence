@@ -867,3 +867,66 @@ PROFESSIONAL_CONFIRMED, LAB_CONFIRMED) — the same members the literals listed.
 **not** verified locally and is not claimed to be; the honest ordering is that
 CI's database-backed run is the proof and the local run only covers the source
 contract.
+
+## 18. Finding (open, needs a human decision): the generated stage page is older than its generator
+
+`docs` describe `build:3d-page` as "not reproducible across local toolchains". That
+description was too soft and wrong in its cause. The committed generated page does
+not match the generator for reasons that have nothing to do with toolchains.
+
+Two facts, read straight from the blobs:
+
+```text
+build-3d-page.mjs:54   width: 44px; ... border: 1px solid rgba(120,101,78,0.24)
+build-3d-page.mjs:55   background: rgba(255,253,248,0.86); color: #4A3A2C;
+HEAD pet-stage.html:14 background: rgba(23,19,16,0.55);   color: #FAF6EF;
+```
+
+```text
+HEAD pet-stage.html   if (interactive) controls.classList.add("show");
+pet-stage-entry.ts    if (interactive && stageTheme === "engineering") controls.classList.add("show");
+```
+
+The generator says: 44 px light controls, shown only in the engineering theme. The
+committed page ships: 40 px dark controls, shown on **any interactive surface**.
+A fresh local build differs from the committed file by 725 lines — 718 short lines
+(CSS, bundle structure, e.g. `ShadowMaterial`) and 7 long bundle lines — so this is
+content drift, not line endings or formatter noise.
+
+### 18.1 Timeline (from git, not from memory)
+
+| What | Commit | Date |
+| --- | --- | --- |
+| generated page last written | `238f7b58` "replace dark viewer with warm living reality field" | 2026-10-03 |
+| generator last changed | `cf2e755b` "harden R5 mobile touch and accessibility semantics" | 2026-10-05 |
+| later generator change | `9ddc5047` (R5 Corgi propagation) | 2026-10-05 |
+
+The R5 touch/accessibility hardening lives in the **generator**; the page that ships
+in the APK was last rebuilt two days *before* it. So the shipped WebView still
+renders the pre-R5 controls, and every Android artifact validated in this PR —
+including all twenty downloaded and re-checked here — photographed that older page.
+
+### 18.2 Why this was not "fixed" by regenerating
+
+Regenerating is a 10 MB change to a **user-visible** surface: control size, control
+colours, and when the controls appear at all, plus a different three.js bundle
+section. `HUMAN_VISUAL_ACCEPTANCE` is `PENDING`, so committing that rebuild would
+silently ship a visual change nobody has looked at — and it is not decidable from
+code which side is intended: either the generator is right and the APK has been
+shipping a stale stage for six weeks, or the shipped look was chosen deliberately
+and the generator is the thing that is wrong.
+
+Both branches are cheap to close **after** that decision:
+
+1. *Generator is truth* → run `pnpm --dir apps/mobile build:3d-page`, commit both
+   generated files, and require a fresh Android evidence run plus human acceptance.
+2. *Shipped look is truth* → update the generator's CSS and control-visibility rule
+   to match, then regenerate.
+
+Whichever way it goes, the missing piece is a CI drift check (`build:3d-page` +
+`git diff --exit-code` on the two generated files) so this cannot silently happen
+again. It is not added here because, with the drift still unresolved, it could only
+fail.
+
+Status: `ACCEPTED_LIMITATION` → **superseded by this finding**: it is a real
+`NOT_YET_OBSERVED` product-state divergence, recorded rather than papered over.
