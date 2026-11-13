@@ -84,3 +84,28 @@ def test_registry_module_renders_every_metric_into_sql() -> None:
     for metric, event_type in METRIC_EVENT_TYPES.items():
         assert f"WHEN '{metric}' THEN '{event_type}'" in rendered
     assert "ELSE NULL END" in rendered
+
+
+def _registry_metrics() -> set[str]:
+    """Metric names straight from the registry module (stdlib-only import)."""
+    sys.path.insert(0, str(APP))
+    try:
+        from domain.life_change_metrics import METRIC_EVENT_TYPES  # noqa: PLC0415
+    finally:
+        sys.path.remove(str(APP))
+    return set(METRIC_EVENT_TYPES)
+
+
+def test_search_terms_cover_exactly_the_registry_metrics() -> None:
+    """A metric with no search keywords is unreachable; a stale keyword is dead code."""
+    import ast  # noqa: PLC0415 - only this test needs to parse source
+
+    tree = ast.parse(_read(SQL_CONSUMER))
+    terms: dict[str, object] | None = None
+    for node in tree.body:
+        target = getattr(node, "target", None)
+        if isinstance(node, ast.AnnAssign) and isinstance(target, ast.Name):
+            if target.id == "METRIC_SEARCH_TERMS":
+                terms = ast.literal_eval(node.value)
+    assert terms is not None, "METRIC_SEARCH_TERMS disappeared from the history module"
+    assert set(terms) == _registry_metrics()

@@ -17,9 +17,9 @@ from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
 from app.api.routes.events import MEDICAL_EVENT_TYPES, _actor_names_map, _serialize
-from app.api.routes.life_changes import METRICS
 from app.core.errors import NotFound, PermissionDenied, ValidationFailed
 from app.domain import enums
+from app.domain.life_change_metrics import METRIC_EVENT_TYPES
 from app.models import LifeChangeCase, LifeChangeReview, LifeEvent, User
 from app.services import life_change_history as history
 from app.services import permissions as perm
@@ -171,7 +171,7 @@ async def list_case_sources(
             reason = "RETRACTED"
         elif event.id in superseded_by:
             reason = "SUPERSEDED"
-        elif event.event_type != METRICS.get(case.metric):
+        elif event.event_type != METRIC_EVENT_TYPES.get(case.metric):
             reason = "WRONG_METRIC"
         elif event.source_type not in RECORD_FACT_SOURCES:
             reason = "NON_FACT_SOURCE"
