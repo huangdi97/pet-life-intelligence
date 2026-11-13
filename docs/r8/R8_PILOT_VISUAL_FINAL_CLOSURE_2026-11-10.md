@@ -1021,3 +1021,46 @@ registry, so deleting either half fails.
 Local: `ruff` clean, `325` blind tests pass. Behavioural proof: Backend job on
 `58febd4d` (real Postgres), plus the Android artifact `14029343775` validating
 (`ANDROID_RUNTIME_EVIDENCE_INTEGRITY = PASS`).
+
+## 20. Pass 13 — one flake hypothesis tested and disproven, diagnostics added instead
+
+The Backend failure at `9deb0616` (see §19.1's sibling note) was
+`test_r8at_case_validity_filter.py::test_filtered_history_paginates_without_overlap`
+returning `422 No reviewable source-backed change` where it expects `201`.
+
+### 20.1 The hypothesis, and why it is wrong
+
+`abnormal_day_hint` (`api/routes/v10_extras_services.py`) buckets observations by the
+**UTC+8 calendar day**: `day_start = now.replace(hour=0…)`, `current_recorded =
+bool(today_events)` where `today_events` needs `local.date() == now.date()` **and**
+`local <= now`; historical days additionally need `seconds <= clock_seconds`. The
+fixture anchors its "current" event at `now - 20 min`, so within the first 20
+minutes of a product day that anchor lands on the **previous** day and the 422 is
+correct behaviour, not a defect.
+
+That predicts a 20-minute-per-day window right after UTC+8 midnight — and the run
+failed at **09:42Z = 17:42 local**, nowhere near midnight. A guard on that window
+would have been inert exactly when it was needed, so it was written, checked against
+the timestamp, and **reverted** rather than shipped with a plausible-sounding
+reason. Recorded because "we know what the flake was" is precisely the claim that
+should not survive being false.
+
+### 20.2 What was shipped instead
+
+No behaviour change and no weakened assertion. The two case-creation assertions in
+that module now raise with the **inputs the refusal was based on**, fetched from the
+public `GET /api/v1/pets/{id}/abnormal-day-hint` endpoint:
+
+```python
+if case.status_code != 201:
+    raise AssertionError(f"case rejected: {case.text} | hint={_hint(client, owner, pet)}")
+```
+
+So the next occurrence states which condition was false — `notable`,
+`current_recorded`, `sample_count` or `same_time_baseline` — instead of leaving a 422
+that nobody can attribute. Diagnostics are computed only on failure (an `if`, not an
+`assert` message, whose expression Python would evaluate eagerly on every run).
+
+Unknown and left unknown: the actual cause of that 09:42Z failure. The rerun passed
+with identical code, so it remains `HOSTED_RUNNER_FLAKE_UNEXPLAINED` rather than
+being given a story it has not earned.

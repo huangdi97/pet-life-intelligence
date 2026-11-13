@@ -5,6 +5,21 @@ from tests.conftest import auth, create_user
 
 TZ = timezone(timedelta(hours=8))
 
+METRIC = "walk_minutes_per_day"
+
+
+def _hint(client, owner, pet: str) -> dict:
+    """The inputs create_case actually judges, so a refusal explains itself.
+
+    `abnormal-day-hint` is a public read endpoint. Without it a failing run shows
+    only the 422 text, and nobody can tell which condition was false - the
+    `notable` flag, `current_recorded`, `sample_count` or `same_time_baseline`.
+    """
+    payload = client.get(
+        f"/api/v1/pets/{pet}/abnormal-day-hint", headers=auth(owner),
+    ).json()
+    return next((x for x in payload["explanations"] if x["metric"] == METRIC), {})
+
 
 def _case(client, owner, name: str, *, current_minutes: int = 20):
     pet = client.post(
@@ -35,7 +50,8 @@ def _case(client, owner, name: str, *, current_minutes: int = 20):
         f"/api/v1/pets/{pet}/life-change-cases",
         json={"metric": "walk_minutes_per_day"}, headers=auth(owner),
     )
-    assert case.status_code == 201, case.text
+    if case.status_code != 201:
+        raise AssertionError(f"case rejected: {case.text} | hint={_hint(client, owner, pet)}")
     return pet, case.json()["case_id"], current_id
 
 
@@ -83,7 +99,10 @@ def test_filtered_history_paginates_without_overlap(client, seeded):
             f"/api/v1/pets/{pet}/life-change-cases",
             json={"metric": "walk_minutes_per_day"}, headers=auth(owner),
         )
-        assert case.status_code == 201, case.text
+        if case.status_code != 201:
+            # Evaluate diagnostics only on failure: this makes the next
+            # occurrence self-explaining instead of another 422 with no context.
+            raise AssertionError(f"case rejected: {case.text} | hint={_hint(client, owner, pet)}")
         case_ids.append(case.json()["case_id"])
         assert client.post(
             f"/api/v1/events/{current.json()['event_id']}/retract",
